@@ -1,0 +1,19 @@
+[package]
+name = "graphide-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "graphide"
+path = "src/main.rs"
+
+[dependencies]
+graphide-ir = { workspace = true }
+graphide-engine = { workspace = true }
+graphide-plugin-rust = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+walkdir = { workspace = true }

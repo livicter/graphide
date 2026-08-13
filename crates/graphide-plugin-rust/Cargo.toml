@@ -1,0 +1,11 @@
+[package]
+name = "graphide-plugin-rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+graphide-ir = { workspace = true }
+tree-sitter = { workspace = true }
+tree-sitter-rust = { workspace = true }
+thiserror = { workspace = true }

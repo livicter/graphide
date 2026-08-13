@@ -1,0 +1,6 @@
+/target/
+**/node_modules/
+extension/out/
+extension/*.vsix
+.DS_Store
+*.pdb

@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/graphide-ir",
+    "crates/graphide-engine",
+    "crates/graphide-plugin-rust",
+    "crates/graphide-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+graphide-ir = { path = "crates/graphide-ir" }
+graphide-engine = { path = "crates/graphide-engine" }
+graphide-plugin-rust = { path = "crates/graphide-plugin-rust" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "2"
+sha2 = "0.10"
+hex = "0.4"
+indexmap = { version = "2", features = ["serde"] }
+petgraph = "0.7"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+walkdir = "2"
+tree-sitter = "0.25"
+tree-sitter-rust = "0.24"

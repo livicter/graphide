@@ -1,0 +1,66 @@
+{
+  "name": "graphide",
+  "displayName": "Graphide Review",
+  "description": "Review agent changes as flow graphs — Steiner slices over derived bubbles.",
+  "version": "0.1.0",
+  "publisher": "graphide",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Visualization", "Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "graphide.review",
+        "title": "Graphide: Review Workspace",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "graphide.openSource",
+        "title": "Graphide: Open Node Source"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "graphide",
+          "title": "Graphide",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "graphide": [
+        {
+          "type": "webview",
+          "id": "graphide.reviewView",
+          "name": "Flow Review"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Graphide",
+      "properties": {
+        "graphide.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to graphide binary. Empty = target/debug/graphide next to workspace or PATH."
+        },
+        "graphide.packageRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Package root with flows.toml. Empty = workspace folder."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
