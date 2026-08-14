@@ -179,6 +179,8 @@ function packageRoot(): string {
   if (configured) return configured;
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!folder) throw new Error("Open a workspace folder");
+  const solarsim = path.join(folder, "fixtures", "solarsim");
+  if (fs.existsSync(path.join(solarsim, "flows.toml"))) return solarsim;
   const demo = path.join(folder, "fixtures", "demo");
   if (fs.existsSync(path.join(demo, "flows.toml"))) return demo;
   return folder;

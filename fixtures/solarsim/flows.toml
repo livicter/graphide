@@ -1,0 +1,47 @@
+# Complex-repo demo: source snapshot of https://github.com/jan-tennert/SolarSim (MIT).
+# Bevy n-body sandbox (~56 Rust files). Systems share types more than they call;
+# Steiner still connects each story through Mass / SimPosition / ScenarioData.
+
+[[flow]]
+name = "nbody-verlet"
+hits = [
+    "crate::simulation::integration::verlet::apply_physics",
+    "crate::simulation::integration::verlet::step",
+    "crate::simulation::integration::verlet::update_acceleration",
+    "crate::simulation::integration::verlet::final_velocity",
+]
+
+[[flow]]
+name = "load-scenario"
+hits = [
+    "crate::simulation::scenario::setup::scenario::setup_scenario",
+    "crate::simulation::scenario::setup::scenario::recursive_bodies",
+    "crate::simulation::scenario::setup::scenario::apply_body",
+    "crate::simulation::scenario::setup::scenario::spawn_scene",
+]
+
+[[flow]]
+name = "save-scenario"
+hits = [
+    "crate::simulation::scenario::save_scenario::save_scenario",
+    "crate::simulation::scenario::save_scenario::collect_bodies",
+    "crate::simulation::scenario::save_scenario::collect_planets",
+    "crate::simulation::scenario::save_scenario::find_body_data",
+]
+
+[[flow]]
+name = "pick-scenario"
+hits = [
+    "crate::simulation::ui::scenario_selection::load_scenarios",
+    "crate::simulation::ui::scenario_selection::show_menu",
+    "crate::simulation::ui::scenario_selection::select_scenario",
+    "crate::simulation::ui::scenario_selection::create_scenario",
+]
+
+[[flow]]
+name = "camera-lock"
+hits = [
+    "crate::simulation::components::lock_on::lock_on",
+    "crate::simulation::components::selection::apply_camera_to_selection",
+    "crate::simulation::components::selection::SelectedEntity",
+]
