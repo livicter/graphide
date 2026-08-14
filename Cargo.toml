@@ -4,6 +4,7 @@ members = [
     "crates/graphide-ir",
     "crates/graphide-engine",
     "crates/graphide-plugin-rust",
+    "crates/graphide-plugin",
     "crates/graphide-cli",
 ]
 
@@ -17,6 +18,7 @@ rust-version = "1.85"
 graphide-ir = { path = "crates/graphide-ir" }
 graphide-engine = { path = "crates/graphide-engine" }
 graphide-plugin-rust = { path = "crates/graphide-plugin-rust" }
+graphide-plugin = { path = "crates/graphide-plugin" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
@@ -30,3 +32,9 @@ anyhow = "1"
 walkdir = "2"
 tree-sitter = "0.25"
 tree-sitter-rust = "0.24"
+tree-sitter-python = "0.25"
+tree-sitter-javascript = "0.25"
+tree-sitter-typescript = "0.23"
+tree-sitter-cpp = "0.23"
+tree-sitter-c = "0.24"
+tree-sitter-go = "0.25"

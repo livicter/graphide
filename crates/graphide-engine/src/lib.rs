@@ -14,6 +14,6 @@ pub use coverage::{changed_nodes, changed_nodes_with_sources, coverage};
 pub use flowchart::build_flowchart;
 pub use hints::parse_flows_toml;
 pub use link::link;
-pub use review::{derive_repo, hints_from_toml, ReviewInput, ReviewOptions};
+pub use review::{derive_repo, hints_from_toml, resolve_fqn, ReviewInput, ReviewOptions};
 pub use stamp::{make_stamp, recheck_stamp, stamp_from_graph};
 pub use steiner::steiner_tree;

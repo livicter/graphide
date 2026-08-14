@@ -105,8 +105,44 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     }
 }
 
-fn resolve_fqn(graph: &Graph, fqn: &str) -> Option<NodeId> {
-    graph.nodes.iter().find(|n| n.fqn == fqn).map(|n| n.id)
+/// Exact FQN, else a unique suffix / last-segment match.
+/// Names that match derived FQNs are hits (SPEC §5). Language-agnostic.
+pub fn resolve_fqn(graph: &Graph, fqn: &str) -> Option<NodeId> {
+    if let Some(n) = graph.nodes.iter().find(|n| n.fqn == fqn) {
+        return Some(n.id);
+    }
+    let q = fqn.trim();
+    if q.is_empty() {
+        return None;
+    }
+    let mut hits: Vec<_> = graph
+        .nodes
+        .iter()
+        .filter(|n| {
+            n.fqn.ends_with(&format!("::{q}"))
+                || n.fqn.ends_with(&format!(".{q}"))
+                || n.fqn.ends_with(&format!("/{q}"))
+        })
+        .collect();
+    if hits.len() == 1 {
+        return Some(hits[0].id);
+    }
+    hits = graph
+        .nodes
+        .iter()
+        .filter(|n| last_seg(&n.fqn) == q)
+        .collect();
+    if hits.len() == 1 {
+        Some(hits[0].id)
+    } else {
+        None
+    }
+}
+
+fn last_seg(fqn: &str) -> &str {
+    fqn.rsplit([':', '.', '/', '#'])
+        .find(|s| !s.is_empty())
+        .unwrap_or(fqn)
 }
 
 pub fn hints_from_toml(text: &str) -> Result<HintFile, crate::hints::HintError> {

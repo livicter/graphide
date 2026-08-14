@@ -11,7 +11,7 @@ path = "src/main.rs"
 [dependencies]
 graphide-ir = { workspace = true }
 graphide-engine = { workspace = true }
-graphide-plugin-rust = { workspace = true }
+graphide-plugin = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 clap = { workspace = true }

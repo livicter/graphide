@@ -3,16 +3,21 @@ use clap::{Parser, Subcommand};
 use graphide_engine::{
     derive_repo, hints_from_toml, make_stamp, recheck_stamp, ReviewInput, ReviewOptions,
 };
-use graphide_ir::{Extract, InnerViewNode, NodeId, ReviewSnapshot, Stamp};
-use graphide_plugin_rust::{extract_file, PLUGIN_ID};
+use graphide_ir::{Extract, FlowHint, HintFile, InnerViewNode, NodeId, ReviewSnapshot, Stamp};
+use graphide_plugin::{extract_file, plugin_ids_for};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+const MAX_FILE_BYTES: u64 = 1_500_000;
+
 #[derive(Parser, Debug)]
-#[command(name = "graphide", about = "Review IDE deriver + flow engine")]
+#[command(
+    name = "graphide",
+    about = "Review IDE deriver + flow engine. Point at any repo; plugins pick language by file extension."
+)]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -20,14 +25,17 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Cmd {
-    /// Derive graph + proposed flows for a repo (first slice).
+    /// Derive graph + proposed flows for any repo.
     Review {
-        /// Path to package root (contains flows.toml and src/)
+        /// Workspace or package root
         #[arg(long)]
         root: PathBuf,
         /// Optional parent revision root for coverage
         #[arg(long)]
         parent: Option<PathBuf>,
+        /// Prompt a flow without writing a sidecar: name=hit,hit
+        #[arg(long)]
+        flow: Vec<String>,
         #[arg(long)]
         json: bool,
     },
@@ -46,6 +54,8 @@ enum Cmd {
         flow: String,
         #[arg(long)]
         bubble: u64,
+        #[arg(long)]
+        prompt: Vec<String>,
     },
     /// Write a human stamp for one proposed flow.
     Stamp {
@@ -70,8 +80,13 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Review { root, parent, json } => {
-            let snap = review_roots(&root, parent.as_deref())?;
+        Cmd::Review {
+            root,
+            parent,
+            flow,
+            json,
+        } => {
+            let snap = review_roots(&root, parent.as_deref(), &flow)?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&snap)?);
             } else {
@@ -81,16 +96,23 @@ fn main() -> Result<()> {
         Cmd::Extract { file, repo_root } => {
             let rel = path_relative(&repo_root, &file)?;
             let src = fs::read_to_string(&file)?;
-            let r = extract_file(&rel, &src)?;
-            println!("{}", serde_json::to_string_pretty(&r.extract)?);
+            match extract_file(&rel, &src)? {
+                Some(r) => println!("{}", serde_json::to_string_pretty(&r.extract)?),
+                None => anyhow::bail!("no plugin for {rel}"),
+            }
         }
-        Cmd::Enter { root, flow, bubble } => {
-            let snap = review_roots(&root, None)?;
+        Cmd::Enter {
+            root,
+            flow,
+            bubble,
+            prompt,
+        } => {
+            let snap = review_roots(&root, None, &prompt)?;
             let view = inner_view(&snap, &flow, bubble)?;
             println!("{}", serde_json::to_string_pretty(&view)?);
         }
         Cmd::Stamp { root, flow, out } => {
-            let snap = review_roots(&root, None)?;
+            let snap = review_roots(&root, None, &[])?;
             let view = snap
                 .flows
                 .iter()
@@ -104,7 +126,7 @@ fn main() -> Result<()> {
             eprintln!("wrote stamp {}", out.display());
         }
         Cmd::Recheck { root, stamp, json } => {
-            let snap = review_roots(&root, None)?;
+            let snap = review_roots(&root, None, &[])?;
             let text = fs::read_to_string(&stamp)?;
             let stamp: Stamp = serde_json::from_str(&text)?;
             let (view, finding) = recheck_stamp(&snap.graph, &stamp);
@@ -173,7 +195,11 @@ fn print_review(snap: &ReviewSnapshot) {
     }
 }
 
-fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
+fn review_roots(
+    root: &Path,
+    parent: Option<&Path>,
+    prompt_flows: &[String],
+) -> Result<ReviewSnapshot> {
     let (head_extracts, head_sources) = extract_repo(root)?;
     let (parent_extracts, parent_sources) = match parent {
         Some(p) => {
@@ -182,13 +208,9 @@ fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
         }
         None => (None, HashMap::new()),
     };
-    let hints_path = root.join("flows.toml");
-    let hints = if hints_path.exists() {
-        let text = fs::read_to_string(&hints_path)?;
-        hints_from_toml(&text).context("parse flows.toml")?
-    } else {
-        graphide_ir::HintFile { flows: vec![] }
-    };
+    let mut hints = load_hints(root);
+    hints.flows.extend(parse_prompt_flows(prompt_flows)?);
+    let plugin = plugin_ids_for(&head_extracts);
     Ok(derive_repo(
         ReviewInput {
             head_extracts,
@@ -198,10 +220,53 @@ fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
             parent_sources,
             previous_bubbles: None,
         },
-        &ReviewOptions {
-            plugin: PLUGIN_ID.into(),
-        },
+        &ReviewOptions { plugin },
     ))
+}
+
+fn parse_prompt_flows(args: &[String]) -> Result<Vec<FlowHint>> {
+    let mut out = Vec::new();
+    for raw in args {
+        let (name, hits) = raw
+            .split_once('=')
+            .with_context(|| format!("--flow expects name=hit,hit (got {raw})"))?;
+        let hits: Vec<String> = hits
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if name.trim().is_empty() || hits.is_empty() {
+            anyhow::bail!("--flow expects name=hit,hit (got {raw})");
+        }
+        out.push(FlowHint {
+            name: name.trim().into(),
+            hits,
+        });
+    }
+    Ok(out)
+}
+
+fn load_hints(root: &Path) -> HintFile {
+    let mut flows = Vec::new();
+    for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if path.file_name().and_then(|s| s.to_str()) != Some("flows.toml") {
+            continue;
+        }
+        if skip_dir(path) {
+            continue;
+        }
+        let rel = path_relative(root, path).unwrap_or_default();
+        if rel != "flows.toml" && (rel.contains("fixtures/") || rel.contains("/tests/")) {
+            continue;
+        }
+        if let Ok(text) = fs::read_to_string(path) {
+            if let Ok(h) = hints_from_toml(&text) {
+                flows.extend(h.flows);
+            }
+        }
+    }
+    HintFile { flows }
 }
 
 fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> {
@@ -209,21 +274,55 @@ fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> 
     let mut sources = HashMap::new();
     for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
-        if path.extension().and_then(|s| s.to_str()) != Some("rs") {
+        if !path.is_file() {
             continue;
         }
-        if path.components().any(|c| c.as_os_str() == "target") {
+        if skip_dir(path) {
+            continue;
+        }
+        let meta = match path.metadata() {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        if meta.len() > MAX_FILE_BYTES {
             continue;
         }
         let rel = path_relative(root, path)?;
-        let src = fs::read_to_string(path)?;
-        sources.insert(rel.clone(), src.clone());
+        let src = match fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
         match extract_file(&rel, &src) {
-            Ok(r) => extracts.push(r.extract),
+            Ok(Some(r)) => {
+                sources.insert(rel, src);
+                extracts.push(r.extract);
+            }
+            Ok(None) => {}
             Err(e) => eprintln!("warn: extract {rel}: {e}"),
         }
     }
     Ok((extracts, sources))
+}
+
+fn skip_dir(path: &Path) -> bool {
+    path.components().any(|c| {
+        matches!(
+            c.as_os_str().to_str(),
+            Some(
+                "target"
+                    | "node_modules"
+                    | ".git"
+                    | "out"
+                    | "vendor"
+                    | "dist"
+                    | "build"
+                    | "__pycache__"
+                    | ".venv"
+                    | "venv"
+                    | ".next"
+            )
+        )
+    })
 }
 
 fn path_relative(root: &Path, file: &Path) -> Result<String> {

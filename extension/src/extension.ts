@@ -179,19 +179,13 @@ function packageRoot(): string {
   if (configured) return configured;
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!folder) throw new Error("Open a workspace folder");
-  const solarsim = path.join(folder, "fixtures", "solarsim");
-  if (fs.existsSync(path.join(solarsim, "flows.toml"))) return solarsim;
-  const demo = path.join(folder, "fixtures", "demo");
-  if (fs.existsSync(path.join(demo, "flows.toml"))) return demo;
   return folder;
 }
 
-function parentRoot(head: string): string | undefined {
+function parentRoot(_head: string): string | undefined {
   const cfg = vscode.workspace.getConfiguration("graphide");
   const configured = cfg.get<string>("parentRoot")?.trim();
   if (configured && fs.existsSync(configured)) return configured;
-  const guess = path.join(path.dirname(head), "demo-parent");
-  if (path.basename(head) === "demo" && fs.existsSync(path.join(guess, "src"))) return guess;
   return undefined;
 }
 
