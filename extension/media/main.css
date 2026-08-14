@@ -20,6 +20,38 @@ button {
 }
 button:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
 button:disabled { opacity: 0.45; cursor: default; }
+#cancelBtn {
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+}
+#progress {
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+#progressBar {
+  height: 4px;
+  background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#progressFill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+  transition: width 80ms linear;
+}
+#progressMeta {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+#progressLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#progressCounts, #progressPct, #progressTime { font-variant-numeric: tabular-nums; }
+#canvas.stale { opacity: 0.42; pointer-events: none; filter: grayscale(0.15); }
 #promptRow { padding: 6px 10px; border-bottom: 1px solid var(--vscode-panel-border); }
 #prompt {
   width: 100%; box-sizing: border-box;

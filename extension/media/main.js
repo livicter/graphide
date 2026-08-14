@@ -6,9 +6,17 @@ const tabs = document.getElementById("tabs");
 const status = document.getElementById("status");
 const prompt = document.getElementById("prompt");
 const reviewBtn = document.getElementById("reviewBtn");
+const cancelBtn = document.getElementById("cancelBtn");
 const backBtn = document.getElementById("backBtn");
+const progressEl = document.getElementById("progress");
+const progressFill = document.getElementById("progressFill");
+const progressLabel = document.getElementById("progressLabel");
+const progressCounts = document.getElementById("progressCounts");
+const progressPct = document.getElementById("progressPct");
+const progressTime = document.getElementById("progressTime");
 
 reviewBtn.onclick = () => startReview();
+cancelBtn.onclick = () => vscode.postMessage({ type: "cancel" });
 backBtn.onclick = () => vscode.postMessage({ type: "back" });
 prompt.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
@@ -17,6 +25,11 @@ prompt.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !cancelBtn.hidden) {
+    e.preventDefault();
+    vscode.postMessage({ type: "cancel" });
+    return;
+  }
   if (e.key === "Backspace" && document.activeElement !== prompt) {
     e.preventDefault();
     vscode.postMessage({ type: "back" });
@@ -24,6 +37,14 @@ document.addEventListener("keydown", (e) => {
 });
 
 function startReview() {
+  showProgress({
+    phase: "start",
+    label: "Starting review…",
+    done: 0,
+    total: 0,
+    pct: 0,
+    elapsed_ms: 0,
+  });
   const flows = prompt.value
     .split(";")
     .map((s) => s.trim())
@@ -35,7 +56,9 @@ window.addEventListener("message", (event) => {
   const msg = event.data;
   if (msg.type === "empty") {
     setBusy(false);
+    hideProgress();
     backBtn.disabled = true;
+    canvas.classList.remove("stale");
     canvas.innerHTML =
       '<div class="empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review. A language exists when a plugin can extract it.</div></div>';
     meta.textContent = "";
@@ -44,19 +67,43 @@ window.addEventListener("message", (event) => {
     status.textContent = "";
     return;
   }
+  if (msg.type === "progress") {
+    showProgress(msg);
+    return;
+  }
+  if (msg.type === "tick") {
+    if (progressTime) progressTime.textContent = formatMs(msg.elapsed_ms);
+    return;
+  }
+  if (msg.type === "cancelled") {
+    setBusy(false);
+    hideProgress();
+    canvas.classList.remove("stale");
+    status.textContent = "cancelled";
+    return;
+  }
   if (msg.type === "loading") {
-    setBusy(true);
-    canvas.innerHTML = '<div class="empty pulse">' + esc(msg.text || "Working…") + "</div>";
-    status.textContent = "extracting…";
+    showProgress({
+      phase: "start",
+      label: msg.text || "Working…",
+      done: 0,
+      total: 0,
+      pct: 0,
+      elapsed_ms: 0,
+    });
     return;
   }
   if (msg.type === "error") {
     setBusy(false);
+    hideProgress();
+    canvas.classList.remove("stale");
     canvas.innerHTML = '<div class="empty error">' + esc(msg.text) + "</div>";
     status.textContent = "failed";
     return;
   }
   setBusy(false);
+  hideProgress();
+  canvas.classList.remove("stale");
   backBtn.disabled = !msg.depth;
   if (msg.type === "flowchart") renderFlowchart(msg);
   if (msg.type === "inner") renderInner(msg);
@@ -64,7 +111,41 @@ window.addEventListener("message", (event) => {
 
 function setBusy(on) {
   reviewBtn.disabled = on;
+  reviewBtn.hidden = on;
+  cancelBtn.hidden = !on;
   prompt.disabled = on;
+}
+
+function showProgress(msg) {
+  setBusy(true);
+  progressEl.hidden = false;
+  const pct = Math.max(0, Math.min(100, Number(msg.pct) || 0));
+  progressFill.style.width = pct + "%";
+  progressLabel.textContent = msg.label || msg.phase || "Working…";
+  progressPct.textContent = pct + "%";
+  if (msg.total) {
+    progressCounts.textContent = (msg.done || 0) + "/" + msg.total;
+  } else {
+    progressCounts.textContent = msg.phase || "";
+  }
+  if (msg.elapsed_ms != null) progressTime.textContent = formatMs(msg.elapsed_ms);
+  if (canvas.innerHTML.trim()) canvas.classList.add("stale");
+  else {
+    canvas.classList.remove("stale");
+    canvas.innerHTML = '<div class="empty pulse">' + esc(msg.label || "Working…") + "</div>";
+  }
+  status.textContent = (msg.phase || "review") + " · " + pct + "%";
+}
+
+function hideProgress() {
+  progressEl.hidden = true;
+  progressFill.style.width = "0%";
+}
+
+function formatMs(ms) {
+  const n = Number(ms) || 0;
+  if (n < 1000) return n + "ms";
+  return (n / 1000).toFixed(1) + "s";
 }
 
 function idVal(id) {

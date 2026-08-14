@@ -2,9 +2,6 @@ import * as vscode from "vscode";
 import * as cp from "child_process";
 import * as path from "path";
 import * as fs from "fs";
-import { promisify } from "util";
-
-const execFile = promisify(cp.execFile);
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new ReviewViewProvider(context.extensionUri);
@@ -47,6 +44,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     { kind: "flow" },
   ];
   private running = false;
+  private child?: cp.ChildProcess;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -71,44 +69,140 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.stack.pop();
         if (this.stack.length === 0) this.stack.push({ kind: "flow" });
         this.pushState();
+      } else if (msg.type === "cancel") {
+        this.cancelReview();
       }
     });
     if (this.snapshot) this.pushState();
   }
 
+  cancelReview() {
+    if (this.child && !this.child.killed) {
+      this.child.kill();
+    }
+  }
+
   async runReview(promptFlows?: string[]) {
     if (this.running) return;
     this.running = true;
-    this.view?.webview.postMessage({ type: "loading", text: "Deriving graph…" });
     const started = Date.now();
+    this.view?.webview.postMessage({
+      type: "progress",
+      phase: "start",
+      label: "Starting review…",
+      done: 0,
+      total: 0,
+      pct: 0,
+      elapsed_ms: 0,
+    });
+    const tick = setInterval(() => {
+      this.view?.webview.postMessage({ type: "tick", elapsed_ms: Date.now() - started });
+    }, 120);
     try {
       const root = packageRoot();
       const cli = resolveCli();
-      const args = ["review", "--root", root, "--json"];
+      const args = ["review", "--root", root, "--json", "--progress"];
       const parent = parentRoot();
       if (parent) args.push("--parent", parent);
       const flows = promptFlows?.filter(Boolean) ?? configuredFlows();
       for (const f of flows) {
         args.push("--flow", f);
       }
-      const { stdout } = await execFile(cli, args, {
-        maxBuffer: 32 * 1024 * 1024,
-        windowsHide: true,
-      });
-      this.snapshot = JSON.parse(stdout.slice(stdout.indexOf("{")));
-      if (!this.snapshot.stats) this.snapshot.stats = {};
-      this.snapshot.stats.ui_ms = Date.now() - started;
-      this.flowName = this.snapshot.flows?.[0]?.name;
-      this.stack = [{ kind: "flow" }];
-      this.pushState();
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: "Graphide",
+          cancellable: true,
+        },
+        async (vsProgress, token) => {
+          let lastPct = 0;
+          const snap = await this.spawnReview(cli, args, (ev) => {
+            const increment = Math.max(0, ev.pct - lastPct);
+            lastPct = ev.pct;
+            vsProgress.report({
+              increment,
+              message: `${ev.pct}% ${ev.label}`,
+            });
+            this.view?.webview.postMessage({
+              type: "progress",
+              ...ev,
+              elapsed_ms: Date.now() - started,
+            });
+          }, token);
+          this.snapshot = snap;
+          if (!this.snapshot.stats) this.snapshot.stats = {};
+          this.snapshot.stats.ui_ms = Date.now() - started;
+          this.flowName = this.snapshot.flows?.[0]?.name;
+          this.stack = [{ kind: "flow" }];
+          this.pushState();
+        }
+      );
     } catch (e: any) {
-      this.view?.webview.postMessage({
-        type: "error",
-        text: e.message ?? String(e),
-      });
+      const text = e?.message ?? String(e);
+      if (/cancelled|SIGTERM|SIGINT|killed/i.test(text)) {
+        this.view?.webview.postMessage({ type: "cancelled" });
+      } else {
+        this.view?.webview.postMessage({ type: "error", text });
+      }
     } finally {
+      clearInterval(tick);
       this.running = false;
+      this.child = undefined;
     }
+  }
+
+  private spawnReview(
+    cli: string,
+    args: string[],
+    onProgress: (ev: ProgressLine) => void,
+    token: vscode.CancellationToken
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const child = cp.spawn(cli, args, { windowsHide: true });
+      this.child = child;
+      let stdout = "";
+      let stderr = "";
+      let errBuf = "";
+      let cancelled = false;
+      const cancel = token.onCancellationRequested(() => {
+        cancelled = true;
+        if (!child.killed) child.kill();
+      });
+      child.stdout?.on("data", (d: Buffer) => {
+        stdout += d.toString("utf8");
+      });
+      child.stderr?.on("data", (d: Buffer) => {
+        errBuf += d.toString("utf8");
+        const lines = errBuf.split(/\r?\n/);
+        errBuf = lines.pop() ?? "";
+        for (const line of lines) {
+          const ev = parseProgress(line);
+          if (ev) onProgress(ev);
+          else if (line.trim()) stderr += line + "\n";
+        }
+      });
+      child.on("error", (err) => {
+        cancel.dispose();
+        reject(err);
+      });
+      child.on("close", (code, signal) => {
+        cancel.dispose();
+        if (cancelled || signal === "SIGTERM" || signal === "SIGINT") {
+          reject(new Error("cancelled"));
+          return;
+        }
+        if (code !== 0) {
+          reject(new Error((stderr || stdout).trim() || `graphide exited ${code}`));
+          return;
+        }
+        try {
+          const start = stdout.indexOf("{");
+          resolve(JSON.parse(start >= 0 ? stdout.slice(start) : stdout));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   }
 
   private async enterNode(msg: any) {
@@ -181,7 +275,17 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <div class="brand">GRAPH<span>IDE</span></div>
     <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
     <button id="reviewBtn" title="Review workspace">Review</button>
+    <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
   </header>
+  <div id="progress" hidden>
+    <div id="progressBar"><i id="progressFill"></i></div>
+    <div id="progressMeta">
+      <span id="progressLabel"></span>
+      <span id="progressCounts"></span>
+      <span id="progressPct"></span>
+      <span id="progressTime"></span>
+    </div>
+  </div>
   <div id="promptRow">
     <input id="prompt" type="text" spellcheck="false"
       placeholder="Optional prompt: name=hit,hit  (repeat with ; )" />
@@ -299,4 +403,25 @@ function resolveCli(): string {
   ].filter(Boolean) as string[];
   for (const c of candidates) if (fs.existsSync(c)) return c;
   return "graphide";
+}
+
+type ProgressLine = {
+  graphide: string;
+  phase: string;
+  label: string;
+  done: number;
+  total: number;
+  pct: number;
+};
+
+function parseProgress(line: string): ProgressLine | undefined {
+  const t = line.trim();
+  if (!t.startsWith("{") || !t.includes('"graphide"')) return undefined;
+  try {
+    const ev = JSON.parse(t);
+    if (ev && ev.graphide === "progress" && typeof ev.pct === "number") return ev;
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }

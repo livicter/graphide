@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use graphide_engine::{
-    derive_repo, enter_bubble, hints_from_toml, make_stamp, recheck_stamp, ReviewInput,
-    ReviewOptions,
+    derive_repo, enter_bubble, hints_from_toml, make_stamp, progress_pct, recheck_stamp,
+    ProgressEvent, ReviewInput, ReviewOptions,
 };
 use graphide_ir::{Extract, FlowHint, HintFile, ReviewSnapshot, Stamp};
 use graphide_plugin::{extract_file, has_plugin, plugin_ids_for};
@@ -10,7 +10,10 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 use std::time::Instant;
 use walkdir::WalkDir;
 
@@ -41,6 +44,9 @@ enum Cmd {
         flow: Vec<String>,
         #[arg(long)]
         json: bool,
+        /// JSON progress lines on stderr (stdout stays the snapshot).
+        #[arg(long)]
+        progress: bool,
     },
     /// Extract one file (debug).
     Extract {
@@ -88,8 +94,9 @@ fn main() -> Result<()> {
             parent,
             flow,
             json,
+            progress,
         } => {
-            let snap = review_roots(&root, parent.as_deref(), &flow)?;
+            let snap = review_roots(&root, parent.as_deref(), &flow, progress)?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&snap)?);
             } else {
@@ -110,13 +117,13 @@ fn main() -> Result<()> {
             bubble,
             prompt,
         } => {
-            let snap = review_roots(&root, None, &prompt)?;
+            let snap = review_roots(&root, None, &prompt, false)?;
             let view = enter_bubble(&snap, &flow, bubble)
                 .with_context(|| format!("flow/bubble not found: {flow} / {bubble}"))?;
             println!("{}", serde_json::to_string_pretty(&view)?);
         }
         Cmd::Stamp { root, flow, out } => {
-            let snap = review_roots(&root, None, &[])?;
+            let snap = review_roots(&root, None, &[], false)?;
             let view = snap
                 .flows
                 .iter()
@@ -130,7 +137,7 @@ fn main() -> Result<()> {
             eprintln!("wrote stamp {}", out.display());
         }
         Cmd::Recheck { root, stamp, json } => {
-            let snap = review_roots(&root, None, &[])?;
+            let snap = review_roots(&root, None, &[], false)?;
             let text = fs::read_to_string(&stamp)?;
             let stamp: Stamp = serde_json::from_str(&text)?;
             let (view, finding) = recheck_stamp(&snap.graph, &stamp);
@@ -203,18 +210,67 @@ fn print_review(snap: &ReviewSnapshot) {
     }
 }
 
+struct ProgressSink {
+    enabled: bool,
+    last: Mutex<Instant>,
+    last_phase: Mutex<String>,
+}
+
+impl ProgressSink {
+    fn new(enabled: bool) -> Self {
+        Self {
+            enabled,
+            last: Mutex::new(Instant::now() - std::time::Duration::from_secs(1)),
+            last_phase: Mutex::new(String::new()),
+        }
+    }
+
+    fn emit(&self, ev: &ProgressEvent) {
+        if !self.enabled {
+            return;
+        }
+        let now = Instant::now();
+        {
+            let mut last = self.last.lock().expect("progress lock");
+            let mut phase = self.last_phase.lock().expect("progress lock");
+            let force = ev.phase != *phase || ev.done == ev.total || ev.pct >= 100;
+            if !force && now.duration_since(*last).as_millis() < 40 {
+                return;
+            }
+            *last = now;
+            *phase = ev.phase.to_string();
+        }
+        if let Ok(line) = serde_json::to_string(ev) {
+            let mut err = io::stderr();
+            let _ = writeln!(err, "{line}");
+            let _ = err.flush();
+        }
+    }
+}
+
 fn review_roots(
     root: &Path,
     parent: Option<&Path>,
     prompt_flows: &[String],
+    emit_progress: bool,
 ) -> Result<ReviewSnapshot> {
+    let sink = ProgressSink::new(emit_progress);
+    let report = |ev: &ProgressEvent| sink.emit(ev);
     let t0 = Instant::now();
-    let (head_extracts, head_sources) = extract_repo(root)?;
+    report(&ProgressEvent::new("walk", "Scanning workspace…", 0, 0, 1));
+    let (head_extracts, head_sources) = extract_repo(root, Some(&report), "extract", 5, 60)?;
     let files = head_extracts.len() as u32;
     let extract_ms = t0.elapsed().as_millis() as u64;
     let (parent_extracts, parent_sources) = match parent {
         Some(p) => {
-            let (e, s) = extract_repo(p)?;
+            report(&ProgressEvent::new(
+                "parent",
+                "Extracting parent revision…",
+                0,
+                0,
+                60,
+            ));
+            let (e, s) = extract_repo(p, Some(&report), "parent", 60, 70)?;
             (Some(e), s)
         }
         None => (None, HashMap::new()),
@@ -232,7 +288,10 @@ fn review_roots(
             parent_sources,
             previous_bubbles: None,
         },
-        &ReviewOptions { plugin },
+        &ReviewOptions {
+            plugin,
+            progress: Some(&report),
+        },
     );
     snap.stats.files = files;
     snap.stats.extract_ms = extract_ms;
@@ -286,12 +345,31 @@ fn load_hints(root: &Path) -> HintFile {
     HintFile { flows }
 }
 
-fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> {
+fn extract_repo(
+    root: &Path,
+    progress: Option<&(dyn Fn(&ProgressEvent) + Send + Sync)>,
+    phase: &'static str,
+    lo: u8,
+    hi: u8,
+) -> Result<(Vec<Extract>, HashMap<String, String>)> {
     let mut jobs = Vec::new();
+    let mut seen = 0usize;
     for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         if !path.is_file() || skip_dir(path) {
             continue;
+        }
+        seen += 1;
+        if seen % 80 == 0 {
+            if let Some(p) = progress {
+                p(&ProgressEvent::new(
+                    "walk",
+                    format!("Scanning… {seen} files"),
+                    seen,
+                    0,
+                    lo.saturating_sub(2).max(1),
+                ));
+            }
         }
         let rel = path_relative(root, path)?;
         if !has_plugin(&rel) {
@@ -309,17 +387,49 @@ fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> 
             Err(_) => continue,
         }
     }
+    let total = jobs.len();
+    if let Some(p) = progress {
+        p(&ProgressEvent::new(
+            phase,
+            format!("Extracting 0/{total}"),
+            0,
+            total,
+            lo,
+        ));
+    }
+    let done = AtomicUsize::new(0);
     let extracted: Vec<_> = jobs
         .par_iter()
-        .filter_map(|(rel, src)| match extract_file(rel, src) {
-            Ok(Some(r)) => Some((rel.clone(), src.clone(), r.extract)),
-            Ok(None) => None,
-            Err(e) => {
-                eprintln!("warn: extract {rel}: {e}");
-                None
+        .filter_map(|(rel, src)| {
+            if let Some(p) = progress {
+                let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+                p(&ProgressEvent::new(
+                    phase,
+                    rel.clone(),
+                    n,
+                    total,
+                    progress_pct(lo, hi, n, total),
+                ));
+            }
+            match extract_file(rel, src) {
+                Ok(Some(r)) => Some((rel.clone(), src.clone(), r.extract)),
+                Ok(None) => None,
+                Err(e) => {
+                    eprintln!("warn: extract {rel}: {e}");
+                    None
+                }
             }
         })
         .collect();
+    if let Some(p) = progress {
+        p(&ProgressEvent::new(
+            phase,
+            format!("Extracted {total} files"),
+            total,
+            total,
+            hi,
+        ));
+    }
     let mut extracts = Vec::with_capacity(extracted.len());
     let mut sources = HashMap::with_capacity(extracted.len());
     for (rel, src, extract) in extracted {
