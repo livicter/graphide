@@ -113,7 +113,11 @@ fn pick_root(graph: &Graph, tree: &Steiner, adj: &HashMap<NodeId, Vec<NodeId>>) 
         .unwrap_or(tree.nodes[0])
 }
 
-fn dfs_order(root: NodeId, adj: &HashMap<NodeId, Vec<NodeId>>, tree_set: &HashSet<NodeId>) -> Vec<NodeId> {
+fn dfs_order(
+    root: NodeId,
+    adj: &HashMap<NodeId, Vec<NodeId>>,
+    tree_set: &HashSet<NodeId>,
+) -> Vec<NodeId> {
     let mut out = Vec::new();
     let mut seen = HashSet::new();
     let mut stack = vec![root];
@@ -195,12 +199,22 @@ fn layout_positions(runs: &[Run], spine: &[RunSpine]) -> Vec<RunPosition> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use graphide_ir::*;
+    use graphide_ir::{Graph, Steiner};
 
     #[test]
     fn empty_tree_empty_flowchart() {
-        let g = Graph { nodes: vec![], edges: vec![] };
-        let fc = build_flowchart(&g, &[], &Steiner { nodes: vec![], edges: vec![] });
+        let g = Graph {
+            nodes: vec![],
+            edges: vec![],
+        };
+        let fc = build_flowchart(
+            &g,
+            &[],
+            &Steiner {
+                nodes: vec![],
+                edges: vec![],
+            },
+        );
         assert!(fc.runs.is_empty());
         assert!(fc.spine.is_empty());
     }

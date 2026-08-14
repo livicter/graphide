@@ -1,6 +1,4 @@
-use graphide_ir::{
-    Edge, EdgeKind, Extract, Finding, FindingKind, Graph, Node, NodeId, NodeKind,
-};
+use graphide_ir::{Edge, EdgeKind, Extract, Finding, FindingKind, Graph, Node, NodeId, NodeKind};
 use indexmap::IndexMap;
 use std::collections::HashSet;
 
@@ -61,10 +59,8 @@ pub fn link(extracts: &[Extract]) -> (Graph, Vec<Finding>) {
     for n in nodes_by_fqn.values() {
         fqn_index.entry(n.fqn.clone()).or_default().push(n.id);
     }
-    let id_to_node: IndexMap<NodeId, Node> = nodes_by_fqn
-        .values()
-        .map(|n| (n.id, n.clone()))
-        .collect();
+    let id_to_node: IndexMap<NodeId, Node> =
+        nodes_by_fqn.values().map(|n| (n.id, n.clone())).collect();
 
     let mut edges = Vec::new();
     for extract in extracts {
@@ -231,10 +227,7 @@ mod tests {
         }];
         let (g, findings) = link(&extracts);
         assert_eq!(g.nodes.len(), 1);
-        assert!(matches!(
-            findings[0].kind,
-            FindingKind::DuplicateFqn { .. }
-        ));
+        assert!(matches!(findings[0].kind, FindingKind::DuplicateFqn { .. }));
     }
 
     #[test]
@@ -269,9 +262,6 @@ mod tests {
         }];
         let (g, findings) = link(&extracts);
         assert!(g.edges.is_empty());
-        assert!(matches!(
-            findings[0].kind,
-            FindingKind::KindMismatch { .. }
-        ));
+        assert!(matches!(findings[0].kind, FindingKind::KindMismatch { .. }));
     }
 }

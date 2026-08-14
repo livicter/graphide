@@ -50,6 +50,11 @@
           "type": "string",
           "default": "",
           "description": "Package root with flows.toml. Empty = workspace folder."
+        },
+        "graphide.parentRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Parent revision root for coverage. Empty = fixtures/demo-parent when reviewing fixtures/demo."
         }
       }
     }

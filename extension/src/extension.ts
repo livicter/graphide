@@ -40,7 +40,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "graphide.reviewView";
   private view?: vscode.WebviewView;
   private snapshot: any;
-  private stack: Array<{ kind: "flow" } | { kind: "bubble"; flow: string; bubble: number }> = [
+  private stack: Array<{ kind: "flow" } | { kind: "bubble"; flow: string; bubble: string }> = [
     { kind: "flow" },
   ];
 
@@ -56,7 +56,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === "review") await this.runReview();
       else if (msg.type === "enterRun") {
-        this.stack.push({ kind: "bubble", flow: msg.flow, bubble: msg.bubble });
+        this.stack.push({ kind: "bubble", flow: msg.flow, bubble: String(msg.bubble) });
         this.pushState();
       } else if (msg.type === "enterNode") await this.enterNode(msg);
       else if (msg.type === "back") {
@@ -71,7 +71,10 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     try {
       const root = packageRoot();
       const cli = resolveCli();
-      const { stdout } = await execFile(cli, ["review", "--root", root, "--json"], {
+      const args = ["review", "--root", root, "--json"];
+      const parent = parentRoot(root);
+      if (parent) args.push("--parent", parent);
+      const { stdout } = await execFile(cli, args, {
         maxBuffer: 32 * 1024 * 1024,
         windowsHide: true,
       });
@@ -92,7 +95,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       this.pushState();
       return;
     }
-    const node = this.snapshot?.graph?.nodes?.find((n: any) => n.id === msg.id);
+    const node = this.snapshot?.graph?.nodes?.find((n: any) => String(n.id) === String(msg.id));
     if (!node) return;
     await openSource({
       file: node.span.file,
@@ -113,6 +116,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     if (top.kind === "flow") {
       this.view.webview.postMessage({
         type: "flowchart",
+        flows: this.snapshot.flows || [],
         flow: this.snapshot.flows?.[0],
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
@@ -124,7 +128,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     void this.loadInner(top.flow, top.bubble);
   }
 
-  private async loadInner(flow: string, bubble: number) {
+  private async loadInner(flow: string, bubble: string) {
     try {
       const { stdout } = await execFile(
         resolveCli(),
@@ -178,6 +182,15 @@ function packageRoot(): string {
   const demo = path.join(folder, "fixtures", "demo");
   if (fs.existsSync(path.join(demo, "flows.toml"))) return demo;
   return folder;
+}
+
+function parentRoot(head: string): string | undefined {
+  const cfg = vscode.workspace.getConfiguration("graphide");
+  const configured = cfg.get<string>("parentRoot")?.trim();
+  if (configured && fs.existsSync(configured)) return configured;
+  const guess = path.join(path.dirname(head), "demo-parent");
+  if (path.basename(head) === "demo" && fs.existsSync(path.join(guess, "src"))) return guess;
+  return undefined;
 }
 
 function resolveCli(): string {

@@ -1,4 +1,3 @@
-
 use graphide_engine::{derive_repo, ReviewInput, ReviewOptions};
 use graphide_ir::*;
 
@@ -76,8 +75,14 @@ fn sub_extract() -> Extract {
 fn span(file: &str, sl: u32, sc: u32, el: u32, ec: u32) -> Span {
     Span {
         file: file.into(),
-        start: Pos { line: sl, column: sc },
-        end: Pos { line: el, column: ec },
+        start: Pos {
+            line: sl,
+            column: sc,
+        },
+        end: Pos {
+            line: el,
+            column: ec,
+        },
     }
 }
 
@@ -90,14 +95,11 @@ fn ir_md_steiner_is_subscribes_edge() {
             hints: HintFile {
                 flows: vec![FlowHint {
                     name: "data-subscription".into(),
-                    hits: vec![
-                        "crate::sub::subscribe".into(),
-                        "crate::bus::events".into(),
-                    ],
+                    hits: vec!["crate::sub::subscribe".into(), "crate::bus::events".into()],
                 }],
             },
-            head_file_hashes: Default::default(),
-            parent_file_hashes: Default::default(),
+            head_sources: Default::default(),
+            parent_sources: Default::default(),
             previous_bubbles: None,
         },
         &ReviewOptions {

@@ -1,43 +1,19 @@
-use graphide_ir::{Coverage, Flow, Graph, NodeId};
-use std::collections::HashSet;
+use graphide_ir::{span_snippet, Coverage, Flow, Graph, NodeId};
+use std::collections::{HashMap, HashSet};
 
 /// Changed = span contents differ OR incident edges gained/lost. Match by (kind,fqn) via NodeId.
 pub fn changed_nodes(parent: &Graph, head: &Graph) -> Vec<NodeId> {
-    let parent_nodes: HashSet<_> = parent.nodes.iter().map(|n| n.id).collect();
-    let head_by_id: std::collections::HashMap<_, _> =
-        head.nodes.iter().map(|n| (n.id, n)).collect();
-    let parent_by_id: std::collections::HashMap<_, _> =
-        parent.nodes.iter().map(|n| (n.id, n)).collect();
-
-    let parent_incident = incident_map(parent);
-    let head_incident = incident_map(head);
-
-    let mut changed = Vec::new();
-    for n in &head.nodes {
-        let Some(p) = parent_by_id.get(&n.id) else {
-            changed.push(n.id);
-            continue;
-        };
-        let span_changed = p.span != n.span; // without source bytes, span shift = change
-        let edges_changed = parent_incident.get(&n.id) != head_incident.get(&n.id);
-        if span_changed || edges_changed {
-            changed.push(n.id);
-        }
-    }
-    // Nodes removed from head also "changed" for coverage of head review? Spec: between two revisions being reviewed — uncovered on head's proposed trees. Focus head nodes.
-    let _ = (parent_nodes, head_by_id);
-    changed
+    changed_nodes_with_sources(parent, head, &HashMap::new(), &HashMap::new())
 }
 
-/// Optional: when caller has file digests keyed by path, refine span_changed.
-pub fn changed_nodes_with_files(
+/// Compare the source text inside each node's span when file bytes are available.
+pub fn changed_nodes_with_sources(
     parent: &Graph,
     head: &Graph,
-    parent_files: &std::collections::HashMap<String, u64>,
-    head_files: &std::collections::HashMap<String, u64>,
+    parent_sources: &HashMap<String, String>,
+    head_sources: &HashMap<String, String>,
 ) -> Vec<NodeId> {
-    let parent_by_id: std::collections::HashMap<_, _> =
-        parent.nodes.iter().map(|n| (n.id, n)).collect();
+    let parent_by_id: HashMap<_, _> = parent.nodes.iter().map(|n| (n.id, n)).collect();
     let parent_incident = incident_map(parent);
     let head_incident = incident_map(head);
     let mut changed = Vec::new();
@@ -46,18 +22,23 @@ pub fn changed_nodes_with_files(
             changed.push(n.id);
             continue;
         };
-        let file = &n.span.file;
-        let content_changed = parent_files.get(file) != head_files.get(file);
+        let snippet_changed = match (
+            parent_sources.get(&p.span.file),
+            head_sources.get(&n.span.file),
+        ) {
+            (Some(ps), Some(hs)) => span_snippet(ps, &p.span) != span_snippet(hs, &n.span),
+            _ => p.span != n.span,
+        };
         let edges_changed = parent_incident.get(&n.id) != head_incident.get(&n.id);
-        if content_changed || edges_changed || p.span != n.span {
+        if snippet_changed || edges_changed {
             changed.push(n.id);
         }
     }
     changed
 }
 
-fn incident_map(graph: &Graph) -> std::collections::HashMap<NodeId, HashSet<(NodeId, graphide_ir::EdgeKind, bool)>> {
-    let mut m: std::collections::HashMap<NodeId, HashSet<_>> = std::collections::HashMap::new();
+fn incident_map(graph: &Graph) -> HashMap<NodeId, HashSet<(NodeId, graphide_ir::EdgeKind, bool)>> {
+    let mut m: HashMap<NodeId, HashSet<_>> = HashMap::new();
     for n in &graph.nodes {
         m.entry(n.id).or_default();
     }
@@ -90,7 +71,10 @@ mod tests {
     use graphide_ir::*;
 
     fn empty_graph() -> Graph {
-        Graph { nodes: vec![], edges: vec![] }
+        Graph {
+            nodes: vec![],
+            edges: vec![],
+        }
     }
 
     fn node(fqn: &str) -> Node {
@@ -136,5 +120,49 @@ mod tests {
         let cov = coverage(&[n.id], &[flow]);
         assert!(cov.uncovered.is_empty());
         let _ = empty_graph();
+    }
+
+    #[test]
+    fn span_text_change_marks_node_not_file_siblings() {
+        let helper = Node {
+            id: NodeId::from_identity(NodeKind::Function, "crate::helper"),
+            fqn: "crate::helper".into(),
+            kind: NodeKind::Function,
+            span: Span {
+                file: "a.rs".into(),
+                start: Pos { line: 2, column: 1 },
+                end: Pos {
+                    line: 2,
+                    column: 15,
+                },
+            },
+            endpoint: None,
+        };
+        let keep = Node {
+            id: NodeId::from_identity(NodeKind::Function, "crate::keep"),
+            fqn: "crate::keep".into(),
+            kind: NodeKind::Function,
+            span: Span {
+                file: "a.rs".into(),
+                start: Pos { line: 1, column: 1 },
+                end: Pos {
+                    line: 1,
+                    column: 13,
+                },
+            },
+            endpoint: None,
+        };
+        let parent = Graph {
+            nodes: vec![keep.clone()],
+            edges: vec![],
+        };
+        let head = Graph {
+            nodes: vec![keep.clone(), helper.clone()],
+            edges: vec![],
+        };
+        let parent_src = HashMap::from([("a.rs".into(), "fn keep() {}\n".into())]);
+        let head_src = HashMap::from([("a.rs".into(), "fn keep() {}\nfn helper() {}\n".into())]);
+        let changed = changed_nodes_with_sources(&parent, &head, &parent_src, &head_src);
+        assert_eq!(changed, vec![helper.id]);
     }
 }

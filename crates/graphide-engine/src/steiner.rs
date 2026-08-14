@@ -1,6 +1,4 @@
-use graphide_ir::{
-    Edge, EndRole, Graph, NodeId, NodeKind, Steiner,
-};
+use graphide_ir::{Edge, EndRole, Graph, NodeId, NodeKind, Steiner};
 use indexmap::IndexSet;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
@@ -76,11 +74,13 @@ pub fn steiner_tree(graph: &Graph, hits: &[NodeId]) -> Steiner {
             let b = w[1];
             tree_nodes.insert(a);
             tree_nodes.insert(b);
-            if let Some(e) = edge_lookup.get(&(a, b)).or_else(|| edge_lookup.get(&(b, a))) {
-                if !tree_edges
-                    .iter()
-                    .any(|x| (x.from == e.from && x.to == e.to) || (x.from == e.to && x.to == e.from))
-                {
+            if let Some(e) = edge_lookup
+                .get(&(a, b))
+                .or_else(|| edge_lookup.get(&(b, a)))
+            {
+                if !tree_edges.iter().any(|x| {
+                    (x.from == e.from && x.to == e.to) || (x.from == e.to && x.to == e.from)
+                }) {
                     tree_edges.push(e.clone());
                 }
             }
@@ -252,10 +252,7 @@ mod tests {
         let c = node("crate::c", NodeKind::Function);
         let g = Graph {
             nodes: vec![a.clone(), b.clone(), c.clone()],
-            edges: vec![
-                edge(&a, &b, EdgeKind::Calls),
-                edge(&b, &c, EdgeKind::Calls),
-            ],
+            edges: vec![edge(&a, &b, EdgeKind::Calls), edge(&b, &c, EdgeKind::Calls)],
         };
         let tree = steiner_tree(&g, &[a.id, c.id]);
         assert!(tree.nodes.contains(&a.id));
@@ -271,10 +268,7 @@ mod tests {
         let c = node("crate::sink", NodeKind::Function);
         let g = Graph {
             nodes: vec![a.clone(), b.clone(), c.clone()],
-            edges: vec![
-                edge(&a, &b, EdgeKind::Calls),
-                edge(&b, &c, EdgeKind::Calls),
-            ],
+            edges: vec![edge(&a, &b, EdgeKind::Calls), edge(&b, &c, EdgeKind::Calls)],
         };
         let tree = steiner_tree(&g, &[b.id]);
         assert!(tree.nodes.len() >= 2);

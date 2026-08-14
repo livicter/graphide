@@ -12,3 +12,6 @@ toml = { workspace = true }
 thiserror = { workspace = true }
 indexmap = { workspace = true }
 petgraph = { workspace = true }
+
+[dev-dependencies]
+graphide-plugin-rust = { workspace = true }

@@ -1,12 +1,13 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use graphide_engine::{derive_repo, hints_from_toml, ReviewInput, ReviewOptions};
-use graphide_ir::{Extract, InnerViewNode, NodeId, ReviewSnapshot};
+use graphide_engine::{
+    derive_repo, hints_from_toml, make_stamp, recheck_stamp, ReviewInput, ReviewOptions,
+};
+use graphide_ir::{Extract, InnerViewNode, NodeId, ReviewSnapshot, Stamp};
 use graphide_plugin_rust::{extract_file, PLUGIN_ID};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -46,6 +47,24 @@ enum Cmd {
         #[arg(long)]
         bubble: u64,
     },
+    /// Write a human stamp for one proposed flow.
+    Stamp {
+        #[arg(long)]
+        root: PathBuf,
+        #[arg(long)]
+        flow: String,
+        #[arg(long)]
+        out: PathBuf,
+    },
+    /// Recheck a stamp against the latest derived graph.
+    Recheck {
+        #[arg(long)]
+        root: PathBuf,
+        #[arg(long)]
+        stamp: PathBuf,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -53,8 +72,10 @@ fn main() -> Result<()> {
     match cli.cmd {
         Cmd::Review { root, parent, json } => {
             let snap = review_roots(&root, parent.as_deref())?;
-            if json || true {
+            if json {
                 println!("{}", serde_json::to_string_pretty(&snap)?);
+            } else {
+                print_review(&snap);
             }
         }
         Cmd::Extract { file, repo_root } => {
@@ -68,19 +89,98 @@ fn main() -> Result<()> {
             let view = inner_view(&snap, &flow, bubble)?;
             println!("{}", serde_json::to_string_pretty(&view)?);
         }
+        Cmd::Stamp { root, flow, out } => {
+            let snap = review_roots(&root, None)?;
+            let view = snap
+                .flows
+                .iter()
+                .find(|f| f.name == flow)
+                .with_context(|| format!("flow not found: {flow}"))?;
+            let stamp = make_stamp(&snap.graph, view, &snap.plugin);
+            if let Some(parent) = out.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&out, serde_json::to_string_pretty(&stamp)?)?;
+            eprintln!("wrote stamp {}", out.display());
+        }
+        Cmd::Recheck { root, stamp, json } => {
+            let snap = review_roots(&root, None)?;
+            let text = fs::read_to_string(&stamp)?;
+            let stamp: Stamp = serde_json::from_str(&text)?;
+            let (view, finding) = recheck_stamp(&snap.graph, &stamp);
+            let out = RecheckOut { view, finding };
+            if json {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                match &out.finding {
+                    None => println!("stamp {} still holds", stamp.name),
+                    Some(f) => println!("stamp broken: {}", serde_json::to_string_pretty(f)?),
+                }
+            }
+        }
     }
     Ok(())
 }
 
+#[derive(Serialize)]
+struct RecheckOut {
+    view: graphide_ir::FlowView,
+    finding: Option<graphide_ir::Finding>,
+}
+
+fn print_review(snap: &ReviewSnapshot) {
+    println!("plugin {}", snap.plugin);
+    println!(
+        "graph {} nodes / {} edges / {} bubbles",
+        snap.graph.nodes.len(),
+        snap.graph.edges.len(),
+        snap.bubbles.len()
+    );
+    for flow in &snap.flows {
+        println!("flow {}", flow.name);
+        println!("  hits {}", flow.hits.join(", "));
+        for e in &flow.tree.edges {
+            let from = snap
+                .graph
+                .nodes
+                .iter()
+                .find(|n| n.id == e.from)
+                .map(|n| n.fqn.as_str())
+                .unwrap_or("?");
+            let to = snap
+                .graph
+                .nodes
+                .iter()
+                .find(|n| n.id == e.to)
+                .map(|n| n.fqn.as_str())
+                .unwrap_or("?");
+            println!("  {} -{:?}-> {}", from, e.kind, to);
+        }
+        println!("  runs {}", flow.flowchart.runs.len());
+    }
+    println!(
+        "coverage {} changed / {} uncovered",
+        snap.coverage.changed.len(),
+        snap.coverage.uncovered.len()
+    );
+    for id in &snap.coverage.uncovered {
+        if let Some(n) = snap.graph.nodes.iter().find(|n| n.id == *id) {
+            println!("  uncovered {}", n.fqn);
+        }
+    }
+    for f in &snap.findings {
+        println!("finding {:?}", f.kind);
+    }
+}
+
 fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
-    let (head_extracts, head_hashes) = extract_repo(root)?;
-    let parent_extracts = match parent {
-        Some(p) => Some(extract_repo(p)?.0),
-        None => None,
-    };
-    let parent_hashes = match parent {
-        Some(p) => extract_repo(p)?.1,
-        None => HashMap::new(),
+    let (head_extracts, head_sources) = extract_repo(root)?;
+    let (parent_extracts, parent_sources) = match parent {
+        Some(p) => {
+            let (e, s) = extract_repo(p)?;
+            (Some(e), s)
+        }
+        None => (None, HashMap::new()),
     };
     let hints_path = root.join("flows.toml");
     let hints = if hints_path.exists() {
@@ -94,8 +194,8 @@ fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
             head_extracts,
             parent_extracts,
             hints,
-            head_file_hashes: head_hashes,
-            parent_file_hashes: parent_hashes,
+            head_sources,
+            parent_sources,
             previous_bubbles: None,
         },
         &ReviewOptions {
@@ -104,38 +204,31 @@ fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
     ))
 }
 
-fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, u64>)> {
+fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> {
     let mut extracts = Vec::new();
-    let mut hashes = HashMap::new();
+    let mut sources = HashMap::new();
     for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         if path.extension().and_then(|s| s.to_str()) != Some("rs") {
             continue;
         }
-        // skip target/
         if path.components().any(|c| c.as_os_str() == "target") {
             continue;
         }
         let rel = path_relative(root, path)?;
         let src = fs::read_to_string(path)?;
-        hashes.insert(rel.clone(), hash_str(&src));
+        sources.insert(rel.clone(), src.clone());
         match extract_file(&rel, &src) {
             Ok(r) => extracts.push(r.extract),
             Err(e) => eprintln!("warn: extract {rel}: {e}"),
         }
     }
-    Ok((extracts, hashes))
+    Ok((extracts, sources))
 }
 
 fn path_relative(root: &Path, file: &Path) -> Result<String> {
     let rel = file.strip_prefix(root).unwrap_or(file);
     Ok(rel.to_string_lossy().replace('\\', "/"))
-}
-
-fn hash_str(s: &str) -> u64 {
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    s.hash(&mut h);
-    h.finish()
 }
 
 #[derive(Serialize)]
@@ -158,7 +251,6 @@ fn inner_view(snap: &ReviewSnapshot, flow_name: &str, bubble_id: u64) -> Result<
         .with_context(|| format!("bubble not found: {bubble_id}"))?;
 
     let tree_set: HashSet<NodeId> = flow.tree.nodes.iter().copied().collect();
-    // Children bubbles of this bubble, or leaf members.
     let child_bubbles: Vec<_> = snap
         .bubbles
         .iter()
