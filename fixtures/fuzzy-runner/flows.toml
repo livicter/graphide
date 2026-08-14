@@ -1,0 +1,37 @@
+# Real-repo demo: snapshot of https://github.com/livicter/fuzzy-runner (MIT).
+# Bevy systems share types more than they call each other; Steiner still
+# connects a story through Player / Enemy / Platform.
+
+[[flow]]
+name = "player-run"
+hits = [
+    "fuzzy_runner::player::handle_input",
+    "fuzzy_runner::player::apply_forces",
+    "fuzzy_runner::player::check_collisions",
+    "fuzzy_runner::player::check_for_death",
+]
+
+[[flow]]
+name = "zombie-chase"
+hits = [
+    "fuzzy_runner::enemy::manage_zombie_population",
+    "fuzzy_runner::enemy::spawn_zombie",
+    "fuzzy_runner::enemy::zombie_movement_ai",
+    "fuzzy_runner::enemy::zombie_player_collision",
+]
+
+[[flow]]
+name = "rooftop-gen"
+hits = [
+    "fuzzy_runner::platform::setup_platforms",
+    "fuzzy_runner::platform::manage_platforms",
+    "fuzzy_runner::platform::spawn_platform",
+]
+
+[[flow]]
+name = "restart-session"
+hits = [
+    "fuzzy_runner::cleanup_game_session",
+    "fuzzy_runner::ui::handle_menu_button_actions",
+    "fuzzy_runner::despawn_screen",
+]

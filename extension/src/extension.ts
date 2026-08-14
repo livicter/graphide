@@ -188,6 +188,8 @@ function packageRoot(): string {
   if (fs.existsSync(path.join(folder, "Cargo.toml")) || fs.existsSync(path.join(folder, "flows.toml"))) {
     return folder;
   }
+  const fuzzy = path.join(folder, "fixtures", "fuzzy-runner");
+  if (fs.existsSync(path.join(fuzzy, "flows.toml"))) return fuzzy;
   const demo = path.join(folder, "fixtures", "demo");
   if (fs.existsSync(path.join(demo, "flows.toml"))) return demo;
   return folder;

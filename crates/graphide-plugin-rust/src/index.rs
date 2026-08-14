@@ -33,6 +33,13 @@ impl SymbolIndex {
     }
 
     pub fn unique(&self, short: &str, prefer: Option<NodeKind>) -> Option<String> {
+        // These names are almost always trait/std methods, not a unique crate fn.
+        if matches!(
+            short,
+            "default" | "new" | "clone" | "from" | "into" | "fmt" | "drop" | "clone_from"
+        ) {
+            return None;
+        }
         let hits = self.by_short.get(short)?;
         let filtered: Vec<&(String, NodeKind)> = match prefer {
             Some(k) => hits.iter().filter(|(_, kind)| *kind == k).collect(),
