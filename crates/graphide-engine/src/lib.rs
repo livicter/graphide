@@ -17,8 +17,8 @@ pub use flowchart::build_flowchart;
 pub use hints::parse_flows_toml;
 pub use link::link;
 pub use review::{
-    derive_repo, hints_from_toml, progress_pct, resolve_fqn, ProgressEvent, ReviewInput,
-    ReviewOptions,
+    derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow, PreviewGraph,
+    PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 pub use stamp::{make_stamp, recheck_stamp, stamp_from_graph};
 pub use steiner::steiner_tree;

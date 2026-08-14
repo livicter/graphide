@@ -105,6 +105,7 @@ fn ir_md_steiner_is_subscribes_edge() {
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
             progress: None,
+            preview: None,
         },
     );
     assert!(snap.findings.is_empty(), "{:?}", snap.findings);

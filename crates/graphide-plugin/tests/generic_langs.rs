@@ -131,6 +131,7 @@ fn prompt_suffix_hits_are_language_agnostic() {
         &ReviewOptions {
             plugin: "python@0.1.0".into(),
             progress: None,
+            preview: None,
         },
     );
     assert!(snap

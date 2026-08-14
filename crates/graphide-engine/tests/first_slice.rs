@@ -87,6 +87,7 @@ fn steiner_of_hits_is_subscribes_edge() {
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
             progress: None,
+            preview: None,
         },
     );
     assert!(
@@ -131,6 +132,7 @@ fn coverage_flags_sneaky_helper_only() {
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
             progress: None,
+            preview: None,
         },
     );
     let uncovered: Vec<_> = snap
@@ -172,6 +174,7 @@ fn enter_bubble_is_instant_on_snapshot() {
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
             progress: None,
+            preview: None,
         },
     );
     let run = &snap.flows[0].flowchart.runs[0];
@@ -197,11 +200,18 @@ fn derive_reports_progress_phases() {
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
             progress: Some(&|ev| phases.lock().unwrap().push(ev.phase.to_string())),
+            preview: Some(&|p| {
+                assert!(
+                    !p.flows.is_empty(),
+                    "preview should carry Steiner before cluster"
+                );
+                assert!(!p.flows[0].tree.nodes.is_empty());
+            }),
         },
     );
     assert!(!snap.flows.is_empty());
     let phases = phases.lock().unwrap().clone();
-    for need in ["link", "cluster", "flows", "done"] {
+    for need in ["link", "preview", "cluster", "flows", "done"] {
         assert!(
             phases.iter().any(|p| p == need),
             "missing phase {need} in {phases:?}"

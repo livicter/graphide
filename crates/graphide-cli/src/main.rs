@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use graphide_engine::{
     derive_repo, enter_bubble, hints_from_toml, make_stamp, progress_pct, recheck_stamp,
-    ProgressEvent, ReviewInput, ReviewOptions,
+    ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 use graphide_ir::{Extract, FlowHint, HintFile, ReviewSnapshot, Stamp};
 use graphide_plugin::{extract_file, has_plugin, plugin_ids_for};
@@ -98,7 +98,12 @@ fn main() -> Result<()> {
         } => {
             let snap = review_roots(&root, parent.as_deref(), &flow, progress)?;
             if json {
-                println!("{}", serde_json::to_string_pretty(&snap)?);
+                // Compact when the UI is streaming — faster parse, same snapshot.
+                if progress {
+                    println!("{}", serde_json::to_string(&snap)?);
+                } else {
+                    println!("{}", serde_json::to_string_pretty(&snap)?);
+                }
             } else {
                 print_review(&snap);
             }
@@ -256,6 +261,16 @@ fn review_roots(
 ) -> Result<ReviewSnapshot> {
     let sink = ProgressSink::new(emit_progress);
     let report = |ev: &ProgressEvent| sink.emit(ev);
+    let report_preview = |preview: &ReviewPreview| {
+        if !emit_progress {
+            return;
+        }
+        if let Ok(line) = serde_json::to_string(preview) {
+            let mut err = io::stderr();
+            let _ = writeln!(err, "{line}");
+            let _ = err.flush();
+        }
+    };
     let t0 = Instant::now();
     report(&ProgressEvent::new("walk", "Scanning workspace…", 0, 0, 1));
     let (head_extracts, head_sources) = extract_repo(root, Some(&report), "extract", 5, 60)?;
@@ -291,6 +306,7 @@ fn review_roots(
         &ReviewOptions {
             plugin,
             progress: Some(&report),
+            preview: Some(&report_preview),
         },
     );
     snap.stats.files = files;

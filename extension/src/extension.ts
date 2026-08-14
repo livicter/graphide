@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.review", () => provider.runReview())
   );
+  setTimeout(() => warmCli(), 0);
 }
 
 export function deactivate() {}
@@ -117,15 +118,24 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         async (vsProgress, token) => {
           let lastPct = 0;
           const snap = await this.spawnReview(cli, args, (ev) => {
-            const increment = Math.max(0, ev.pct - lastPct);
-            lastPct = ev.pct;
+            if (ev.kind === "preview") {
+              this.view?.webview.postMessage({
+                type: "preview",
+                ...ev.data,
+                elapsed_ms: Date.now() - started,
+              });
+              return;
+            }
+            const p = ev.data;
+            const increment = Math.max(0, (p.pct ?? 0) - lastPct);
+            lastPct = p.pct ?? lastPct;
             vsProgress.report({
               increment,
-              message: `${ev.pct}% ${ev.label}`,
+              message: `${p.pct}% ${p.label}`,
             });
             this.view?.webview.postMessage({
               type: "progress",
-              ...ev,
+              ...p,
               elapsed_ms: Date.now() - started,
             });
           }, token);
@@ -154,7 +164,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private spawnReview(
     cli: string,
     args: string[],
-    onProgress: (ev: ProgressLine) => void,
+    onProgress: (ev: StreamEvent) => void,
     token: vscode.CancellationToken
   ): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -176,7 +186,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         const lines = errBuf.split(/\r?\n/);
         errBuf = lines.pop() ?? "";
         for (const line of lines) {
-          const ev = parseProgress(line);
+          const ev = parseStreamLine(line);
           if (ev) onProgress(ev);
           else if (line.trim()) stderr += line + "\n";
         }
@@ -277,13 +287,22 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="reviewBtn" title="Review workspace">Review</button>
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
   </header>
-  <div id="progress" hidden>
-    <div id="progressBar"><i id="progressFill"></i></div>
-    <div id="progressMeta">
-      <span id="progressLabel"></span>
-      <span id="progressCounts"></span>
-      <span id="progressPct"></span>
-      <span id="progressTime"></span>
+  <div id="progress">
+    <div class="progress-inner">
+      <ol id="phases">
+        <li data-phase="walk">Scan</li>
+        <li data-phase="extract">Extract</li>
+        <li data-phase="link">Link</li>
+        <li data-phase="cluster">Cluster</li>
+        <li data-phase="flows">Flows</li>
+      </ol>
+      <div id="progressBar"><i id="progressFill"></i></div>
+      <div id="progressMeta">
+        <span id="progressLabel"></span>
+        <span id="progressCounts"></span>
+        <span id="progressPct"></span>
+        <span id="progressTime"></span>
+      </div>
     </div>
   </div>
   <div id="promptRow">
@@ -405,23 +424,29 @@ function resolveCli(): string {
   return "graphide";
 }
 
-type ProgressLine = {
-  graphide: string;
-  phase: string;
-  label: string;
-  done: number;
-  total: number;
-  pct: number;
-};
+type StreamEvent = { kind: "progress" | "preview"; data: any };
 
-function parseProgress(line: string): ProgressLine | undefined {
+function parseStreamLine(line: string): StreamEvent | undefined {
   const t = line.trim();
   if (!t.startsWith("{") || !t.includes('"graphide"')) return undefined;
   try {
     const ev = JSON.parse(t);
-    if (ev && ev.graphide === "progress" && typeof ev.pct === "number") return ev;
+    if (ev && ev.graphide === "progress" && typeof ev.pct === "number") {
+      return { kind: "progress", data: ev };
+    }
+    if (ev && ev.graphide === "preview") return { kind: "preview", data: ev };
   } catch {
     return undefined;
   }
   return undefined;
+}
+
+function warmCli() {
+  try {
+    const cli = resolveCli();
+    const child = cp.spawn(cli, ["--help"], { windowsHide: true, stdio: "ignore" });
+    child.unref?.();
+  } catch {
+    /* first Review still works if the binary is missing */
+  }
 }
