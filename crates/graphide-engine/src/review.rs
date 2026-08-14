@@ -102,6 +102,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         flows: flow_views,
         coverage: cov,
         findings,
+        stats: Default::default(),
     }
 }
 

@@ -6,7 +6,10 @@
   "publisher": "graphide",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Visualization", "Other"],
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:graphide.reviewView",
+    "onCommand:graphide.review"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -55,6 +58,12 @@
           "type": "string",
           "default": "",
           "description": "Parent revision root for coverage. Empty = no parent (coverage stays empty)."
+        },
+        "graphide.promptFlows": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Default --flow prompts (name=hit,hit). The Review input can override these."
         }
       }
     }

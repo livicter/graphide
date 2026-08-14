@@ -17,3 +17,4 @@ serde_json = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
 walkdir = { workspace = true }
+rayon = { workspace = true }

@@ -9,7 +9,9 @@ const execFile = promisify(cp.execFile);
 export function activate(context: vscode.ExtensionContext) {
   const provider = new ReviewViewProvider(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(ReviewViewProvider.viewType, provider)
+    vscode.window.registerWebviewViewProvider(ReviewViewProvider.viewType, provider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.review", () => provider.runReview())
@@ -40,9 +42,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "graphide.reviewView";
   private view?: vscode.WebviewView;
   private snapshot: any;
+  private flowName?: string;
   private stack: Array<{ kind: "flow" } | { kind: "bubble"; flow: string; bubble: string }> = [
     { kind: "flow" },
   ];
+  private running = false;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -54,8 +58,12 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     };
     webviewView.webview.html = this.html(webviewView.webview);
     webviewView.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === "review") await this.runReview();
-      else if (msg.type === "enterRun") {
+      if (msg.type === "review") await this.runReview(msg.flows);
+      else if (msg.type === "selectFlow") {
+        this.flowName = msg.flow;
+        this.stack = [{ kind: "flow" }];
+        this.pushState();
+      } else if (msg.type === "enterRun") {
         this.stack.push({ kind: "bubble", flow: msg.flow, bubble: String(msg.bubble) });
         this.pushState();
       } else if (msg.type === "enterNode") await this.enterNode(msg);
@@ -65,27 +73,41 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.pushState();
       }
     });
+    if (this.snapshot) this.pushState();
   }
 
-  async runReview() {
+  async runReview(promptFlows?: string[]) {
+    if (this.running) return;
+    this.running = true;
+    this.view?.webview.postMessage({ type: "loading", text: "Deriving graph…" });
+    const started = Date.now();
     try {
       const root = packageRoot();
       const cli = resolveCli();
       const args = ["review", "--root", root, "--json"];
-      const parent = parentRoot(root);
+      const parent = parentRoot();
       if (parent) args.push("--parent", parent);
+      const flows = promptFlows?.filter(Boolean) ?? configuredFlows();
+      for (const f of flows) {
+        args.push("--flow", f);
+      }
       const { stdout } = await execFile(cli, args, {
         maxBuffer: 32 * 1024 * 1024,
         windowsHide: true,
       });
       this.snapshot = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      if (!this.snapshot.stats) this.snapshot.stats = {};
+      this.snapshot.stats.ui_ms = Date.now() - started;
+      this.flowName = this.snapshot.flows?.[0]?.name;
       this.stack = [{ kind: "flow" }];
       this.pushState();
-      vscode.window.showInformationMessage(
-        `Graphide: ${this.snapshot.flows?.length ?? 0} flow(s), ${this.snapshot.findings?.length ?? 0} finding(s)`
-      );
     } catch (e: any) {
-      vscode.window.showErrorMessage(`Graphide review failed: ${e.message ?? e}`);
+      this.view?.webview.postMessage({
+        type: "error",
+        text: e.message ?? String(e),
+      });
+    } finally {
+      this.running = false;
     }
   }
 
@@ -96,7 +118,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     const node = this.snapshot?.graph?.nodes?.find((n: any) => String(n.id) === String(msg.id));
-    if (!node) return;
+    if (!node?.span) return;
     await openSource({
       file: node.span.file,
       line: node.span.start.line,
@@ -113,38 +135,34 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       this.view.webview.postMessage({ type: "empty" });
       return;
     }
+    const flow =
+      this.snapshot.flows?.find((f: any) => f.name === this.flowName) || this.snapshot.flows?.[0];
     if (top.kind === "flow") {
       this.view.webview.postMessage({
         type: "flowchart",
         flows: this.snapshot.flows || [],
-        flow: this.snapshot.flows?.[0],
+        flow,
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
         bubbles: this.snapshot.bubbles,
         graph: this.snapshot.graph,
+        plugin: this.snapshot.plugin,
+        stats: this.snapshot.stats,
+        depth: 0,
       });
       return;
     }
-    void this.loadInner(top.flow, top.bubble);
-  }
-
-  private async loadInner(flow: string, bubble: string) {
-    try {
-      const { stdout } = await execFile(
-        resolveCli(),
-        ["enter", "--root", packageRoot(), "--flow", flow, "--bubble", String(bubble)],
-        { maxBuffer: 16 * 1024 * 1024, windowsHide: true }
-      );
-      const inner = JSON.parse(stdout.slice(stdout.indexOf("{")));
-      this.view?.webview.postMessage({
-        type: "inner",
-        inner,
-        coverage: this.snapshot.coverage,
-        findings: this.snapshot.findings,
-      });
-    } catch (e: any) {
-      vscode.window.showErrorMessage(`Graphide enter failed: ${e.message ?? e}`);
-    }
+    const inner = enterBubble(this.snapshot, top.flow, top.bubble);
+    this.view.webview.postMessage({
+      type: "inner",
+      inner,
+      flow,
+      coverage: this.snapshot.coverage,
+      findings: this.snapshot.findings,
+      plugin: this.snapshot.plugin,
+      stats: this.snapshot.stats,
+      depth: this.stack.length - 1,
+    });
   }
 
   private html(webview: vscode.Webview): string {
@@ -160,17 +178,90 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <header>
-    <div class="brand">Graphide</div>
-    <button id="reviewBtn">Review</button>
-    <button id="backBtn">Back</button>
+    <div class="brand">GRAPH<span>IDE</span></div>
+    <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
+    <button id="reviewBtn" title="Review workspace">Review</button>
   </header>
+  <div id="promptRow">
+    <input id="prompt" type="text" spellcheck="false"
+      placeholder="Optional prompt: name=hit,hit  (repeat with ; )" />
+  </div>
+  <nav id="tabs"></nav>
   <section id="meta"></section>
   <section id="canvas"></section>
   <section id="coverage"></section>
+  <footer id="status"></footer>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
+}
+
+function enterBubble(snap: any, flowName: string, bubbleId: string) {
+  const flow = (snap.flows || []).find((f: any) => f.name === flowName);
+  const bubble = (snap.bubbles || []).find((b: any) => String(b.id) === String(bubbleId));
+  if (!flow || !bubble) return { flow: flowName, bubble: bubbleId, nodes: [] };
+  const tree = new Set((flow.tree?.nodes || []).map((id: any) => String(id)));
+  const children = (snap.bubbles || []).filter((b: any) => String(b.parent) === String(bubbleId));
+  const adj = new Map<string, string[]>();
+  for (const e of snap.graph?.edges || []) {
+    const a = String(e.from),
+      b = String(e.to);
+    if (!adj.has(a)) adj.set(a, []);
+    if (!adj.has(b)) adj.set(b, []);
+    adj.get(a)!.push(b);
+    adj.get(b)!.push(a);
+  }
+  const distTo = (target: string): number => {
+    if (tree.has(target)) return 0;
+    const q = [...tree].map((id) => [id, 0] as [string, number]);
+    const seen = new Set(tree);
+    while (q.length) {
+      const [n, d] = q.shift()!;
+      if (n === target) return d;
+      for (const m of adj.get(n) || []) {
+        if (seen.has(m)) continue;
+        seen.add(m);
+        q.push([m, d + 1]);
+      }
+    }
+    return 99;
+  };
+  let nodes: any[];
+  if (!children.length) {
+    nodes = (bubble.members || []).map((id: any) => {
+      const n = (snap.graph?.nodes || []).find((x: any) => String(x.id) === String(id));
+      const lit = tree.has(String(id));
+      return {
+        id,
+        fqn: n?.fqn ?? String(id),
+        kind: n?.kind ?? "Function",
+        lit,
+        grey: !lit,
+        is_leaf: true,
+        distance: lit ? 0 : distTo(String(id)),
+      };
+    });
+  } else {
+    nodes = children.map((b: any) => {
+      const members = (b.members || []).map((m: any) => String(m));
+      const lit = members.some((m: string) => tree.has(m));
+      const distance = Math.min(...members.map((m: string) => distTo(m)), 99);
+      return {
+        id: b.id,
+        fqn: b.label,
+        kind: "Type",
+        lit,
+        grey: !lit,
+        is_leaf: false,
+        distance: lit ? 0 : distance,
+      };
+    });
+  }
+  nodes.sort(
+    (a, b) => Number(b.lit) - Number(a.lit) || (a.distance ?? 99) - (b.distance ?? 99) || String(a.fqn).localeCompare(String(b.fqn))
+  );
+  return { flow: flowName, bubble: bubbleId, nodes };
 }
 
 function packageRoot(): string {
@@ -182,11 +273,17 @@ function packageRoot(): string {
   return folder;
 }
 
-function parentRoot(_head: string): string | undefined {
+function parentRoot(): string | undefined {
   const cfg = vscode.workspace.getConfiguration("graphide");
   const configured = cfg.get<string>("parentRoot")?.trim();
   if (configured && fs.existsSync(configured)) return configured;
   return undefined;
+}
+
+function configuredFlows(): string[] {
+  const cfg = vscode.workspace.getConfiguration("graphide");
+  const raw = cfg.get<string[]>("promptFlows") ?? [];
+  return raw.map((s) => s.trim()).filter(Boolean);
 }
 
 function resolveCli(): string {

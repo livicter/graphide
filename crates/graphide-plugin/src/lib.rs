@@ -53,3 +53,12 @@ pub fn known_extensions() -> Vec<&'static str> {
     exts.dedup();
     exts
 }
+
+pub fn has_plugin(path: &str) -> bool {
+    let ext = path
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .trim_start_matches('.');
+    ext.eq_ignore_ascii_case("rs") || langs::for_extension(ext).is_some()
+}

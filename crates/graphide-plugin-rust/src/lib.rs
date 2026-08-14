@@ -8,7 +8,9 @@ use graphide_ir::{
     Pos, Ref, Span,
 };
 use queries::EXTRACT_QUERIES;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use thiserror::Error;
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 
@@ -29,18 +31,38 @@ pub struct ExtractResult {
     pub findings: Vec<Finding>,
 }
 
-pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, PluginError> {
-    let mut parser = Parser::new();
+fn rust_query() -> Result<&'static Query, PluginError> {
+    static Q: OnceLock<Query> = OnceLock::new();
+    if let Some(q) = Q.get() {
+        return Ok(q);
+    }
     let language = tree_sitter_rust::LANGUAGE.into();
-    parser
-        .set_language(&language)
-        .map_err(|_| PluginError::Language)?;
-    let tree = parser
-        .parse(source, None)
-        .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))?;
-
-    let query =
+    let compiled =
         Query::new(&language, EXTRACT_QUERIES).map_err(|e| PluginError::Query(e.to_string()))?;
+    Ok(Q.get_or_init(|| compiled))
+}
+
+thread_local! {
+    static PARSER: RefCell<Option<Parser>> = const { RefCell::new(None) };
+}
+
+pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, PluginError> {
+    let query = rust_query()?;
+    let tree = PARSER.with(|slot| {
+        let mut cell = slot.borrow_mut();
+        if cell.is_none() {
+            let mut parser = Parser::new();
+            let language = tree_sitter_rust::LANGUAGE.into();
+            parser
+                .set_language(&language)
+                .map_err(|_| PluginError::Language)?;
+            *cell = Some(parser);
+        }
+        cell.as_mut()
+            .unwrap()
+            .parse(source, None)
+            .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))
+    })?;
     let mut cursor = QueryCursor::new();
     let bytes = source.as_bytes();
     let file = normalize_path(repo_relative);

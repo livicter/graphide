@@ -3,7 +3,9 @@
 
 use crate::langs::Lang;
 use graphide_ir::{EdgeKind, Extract, Finding, FindingKind, NodeDef, NodeKind, Pos, Ref, Span};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use thiserror::Error;
 use tree_sitter::{Node, Parser, Query, QueryCursor, StreamingIterator};
 
@@ -22,21 +24,45 @@ pub struct ExtractResult {
     pub findings: Vec<Finding>,
 }
 
+fn cached_query(lang: &Lang) -> Result<&'static Query, PluginError> {
+    static MAP: OnceLock<HashMap<&'static str, Query>> = OnceLock::new();
+    let map = MAP.get_or_init(|| {
+        let mut m = HashMap::new();
+        for lang in crate::langs::ALL {
+            if let Ok(q) = Query::new(&(lang.language)(), lang.queries) {
+                m.insert(lang.id, q);
+            }
+        }
+        m
+    });
+    map.get(lang.id)
+        .ok_or_else(|| PluginError::Query(format!("no compiled query for {}", lang.id)))
+}
+
+thread_local! {
+    static PARSERS: RefCell<HashMap<&'static str, Parser>> = RefCell::new(HashMap::new());
+}
+
 pub fn extract_with(
     lang: &Lang,
     repo_relative: &str,
     source: &str,
 ) -> Result<ExtractResult, PluginError> {
-    let mut parser = Parser::new();
-    parser
-        .set_language(&((lang.language)()))
-        .map_err(|_| PluginError::Language)?;
-    let tree = parser
-        .parse(source, None)
-        .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))?;
-
-    let query = Query::new(&((lang.language)()), lang.queries)
-        .map_err(|e| PluginError::Query(e.to_string()))?;
+    let query = cached_query(lang)?;
+    let tree = PARSERS.with(|slot| {
+        let mut map = slot.borrow_mut();
+        if !map.contains_key(lang.id) {
+            let mut parser = Parser::new();
+            parser
+                .set_language(&(lang.language)())
+                .map_err(|_| PluginError::Language)?;
+            map.insert(lang.id, parser);
+        }
+        map.get_mut(lang.id)
+            .unwrap()
+            .parse(source, None)
+            .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))
+    })?;
     let bytes = source.as_bytes();
     let file = normalize_path(repo_relative);
     let module_fqn = module_fqn_from_path(&file, lang.sep);

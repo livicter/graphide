@@ -2,6 +2,7 @@
 
 mod cluster;
 mod coverage;
+mod enter;
 mod flowchart;
 mod hints;
 mod link;
@@ -11,6 +12,7 @@ mod steiner;
 
 pub use cluster::{cluster, coarse_bubbles, node_coarse_bubble, sticky_match};
 pub use coverage::{changed_nodes, changed_nodes_with_sources, coverage};
+pub use enter::enter_bubble;
 pub use flowchart::build_flowchart;
 pub use hints::parse_flows_toml;
 pub use link::link;
