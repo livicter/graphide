@@ -226,9 +226,9 @@ fn collect_loose_rs(dir: &Path, package: &str, crate_root: &str) -> Result<Vec<F
         let rel = if crate_root.is_empty() {
             path_relative(dir, path)
         } else {
-            let parent =
-                dir.parent()
-                    .and_then(|p| if crate_root.is_empty() { None } else { Some(p) });
+            let parent = dir
+                .parent()
+                .and_then(|p| if crate_root.is_empty() { None } else { Some(p) });
             let _ = parent;
             // repo-relative: crate_root + path relative to package dir
             let inner = path_relative(dir, path);
