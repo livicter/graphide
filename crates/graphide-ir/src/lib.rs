@@ -1,6 +1,6 @@
 //! Language-agnostic IR matching IR.md.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
@@ -96,8 +96,8 @@ pub struct EndpointMeta {
 }
 
 /// Engine-assigned after extract: hash(kind, fqn).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
+/// Serialized as a decimal string so JS JSON cannot mangle the u64.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NodeId(pub u64);
 
 impl NodeId {
@@ -113,13 +113,50 @@ impl NodeId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
+impl Serialize for NodeId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for NodeId {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map(NodeId).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BubbleId(pub u64);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
+impl Serialize for BubbleId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for BubbleId {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map(BubbleId).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RunId(pub u64);
+
+impl Serialize for RunId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for RunId {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map(RunId).map_err(serde::de::Error::custom)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Extract {
@@ -263,17 +300,34 @@ pub struct Coverage {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "PascalCase")]
 pub enum FindingKind {
-    UnmatchedHint { flow: String, fqn: String },
-    DuplicateFqn { node_kind: NodeKind, fqn: String },
-    SpanlessDrop { plugin: String, file: String },
-    KindMismatch { from: String, to: String, edge: EdgeKind },
-    UncoveredNode { fqn: String },
+    UnmatchedHint {
+        flow: String,
+        fqn: String,
+    },
+    DuplicateFqn {
+        node_kind: NodeKind,
+        fqn: String,
+    },
+    SpanlessDrop {
+        plugin: String,
+        file: String,
+    },
+    KindMismatch {
+        from: String,
+        to: String,
+        edge: EdgeKind,
+    },
+    UncoveredNode {
+        fqn: String,
+    },
     StampBroken {
         flow: String,
         added: Vec<StampEdge>,
         removed: Vec<StampEdge>,
     },
-    PluginBug { message: String },
+    PluginBug {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -312,4 +366,26 @@ pub struct FlowView {
     pub resolved_hits: Vec<NodeId>,
     pub tree: Steiner,
     pub flowchart: Flowchart,
+}
+
+/// Source text covered by a 1-based span. Columns are byte offsets in the line.
+pub fn span_snippet(source: &str, span: &Span) -> String {
+    let start = pos_to_offset(source, span.start.line, span.start.column);
+    let end = pos_to_offset(source, span.end.line, span.end.column);
+    let end = end.min(source.len()).max(start.min(source.len()));
+    let start = start.min(source.len());
+    source[start..end].to_string()
+}
+
+fn pos_to_offset(source: &str, line: u32, column: u32) -> usize {
+    let mut cur_line = 1u32;
+    let bytes = source.as_bytes();
+    let mut i = 0usize;
+    while i < bytes.len() && cur_line < line {
+        if bytes[i] == b'\n' {
+            cur_line += 1;
+        }
+        i += 1;
+    }
+    i + column.saturating_sub(1) as usize
 }

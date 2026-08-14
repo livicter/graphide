@@ -18,6 +18,3 @@ pub fn flush() {}
 pub const events: BroadcastChannel = BroadcastChannel;
 
 pub struct BroadcastChannel;
-
-/// Changed helper that is not a hit on any proposed flow.
-pub fn sneaky_helper() {}

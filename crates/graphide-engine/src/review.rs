@@ -1,5 +1,5 @@
 use crate::cluster::{cluster, sticky_match};
-use crate::coverage::{changed_nodes_with_files, coverage};
+use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
 use crate::link::link;
@@ -17,8 +17,8 @@ pub struct ReviewInput {
     pub head_extracts: Vec<Extract>,
     pub parent_extracts: Option<Vec<Extract>>,
     pub hints: HintFile,
-    pub head_file_hashes: HashMap<String, u64>,
-    pub parent_file_hashes: HashMap<String, u64>,
+    pub head_sources: HashMap<String, String>,
+    pub parent_sources: HashMap<String, String>,
     pub previous_bubbles: Option<Vec<graphide_ir::Bubble>>,
 }
 
@@ -73,15 +73,14 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         });
 
     let changed = if input.parent_extracts.is_some() {
-        changed_nodes_with_files(
+        changed_nodes_with_sources(
             &parent_graph,
             &graph,
-            &input.parent_file_hashes,
-            &input.head_file_hashes,
+            &input.parent_sources,
+            &input.head_sources,
         )
     } else {
-        // No parent: treat nothing as changed for coverage gate, or all nodes.
-        // First-slice demo: empty changed unless parent provided.
+        // No parent: coverage gate is silent. Parent revision supplies changed nodes.
         vec![]
     };
 
@@ -89,9 +88,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     for id in &cov.uncovered {
         if let Some(n) = graph.nodes.iter().find(|n| n.id == *id) {
             findings.push(Finding {
-                kind: FindingKind::UncoveredNode {
-                    fqn: n.fqn.clone(),
-                },
+                kind: FindingKind::UncoveredNode { fqn: n.fqn.clone() },
                 span: Some(n.span.clone()),
             });
         }

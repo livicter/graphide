@@ -18,8 +18,8 @@ window.addEventListener("message", (event) => {
 });
 
 function idVal(id) {
-  if (id && typeof id === "object" && "0" in id) return id[0];
-  return id;
+  if (id && typeof id === "object" && "0" in id) return String(id[0]);
+  return String(id);
 }
 function sameId(a, b) { return idVal(a) === idVal(b); }
 function fqnOf(graph, id) {
@@ -80,7 +80,7 @@ function renderFlowchart(msg) {
       vscode.postMessage({
         type: "enterRun",
         flow: el.getAttribute("data-flow"),
-        bubble: Number(el.getAttribute("data-bubble")),
+        bubble: el.getAttribute("data-bubble"),
       });
     });
   });
@@ -105,7 +105,7 @@ function renderInner(msg) {
       vscode.postMessage({
         type: "enterNode",
         flow: el.getAttribute("data-flow"),
-        id: Number(el.getAttribute("data-id")),
+        id: el.getAttribute("data-id"),
         isLeaf: el.getAttribute("data-leaf") === "1",
       });
     });
@@ -118,10 +118,18 @@ function renderCoverage(cov, findings, graph) {
   let html = "Coverage: " + changed.length + " changed · " + uncovered.length + " uncovered";
   if (uncovered.length && graph) {
     html += "<ul>" + uncovered.map((id) => '<li class="finding">' + esc(fqnOf(graph, id)) + "</li>").join("") + "</ul>";
+  } else if (uncovered.length) {
+    html += "<ul>" + uncovered.map((id) => '<li class="finding">' + esc(idVal(id)) + "</li>").join("") + "</ul>";
   }
-  const unmatched = (findings || []).filter((f) => f.kind === "UnmatchedHint" || f.kind === "UncoveredNode");
-  if (unmatched.length) {
-    html += "<div class='finding'>Findings:</div><ul>" + unmatched.map((f) => '<li class="finding">' + esc(JSON.stringify(f)) + "</li>").join("") + "</ul>";
+  const interesting = (findings || []).filter((f) =>
+    f.kind === "UnmatchedHint" || f.kind === "UncoveredNode" || f.kind === "StampBroken"
+  );
+  if (interesting.length) {
+    html += "<div class='finding'>Findings:</div><ul>" + interesting.map((f) => {
+      if (f.kind === "UncoveredNode") return '<li class="finding">uncovered ' + esc(f.fqn) + "</li>";
+      if (f.kind === "UnmatchedHint") return '<li class="finding">unmatched ' + esc(f.fqn) + " in " + esc(f.flow) + "</li>";
+      return '<li class="finding">' + esc(f.kind) + "</li>";
+    }).join("") + "</ul>";
   }
   coverage.innerHTML = html;
 }

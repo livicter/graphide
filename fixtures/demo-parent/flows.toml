@@ -1,0 +1,3 @@
+[[flow]]
+name = "data-subscription"
+hits = ["crate::sub::subscribe", "crate::bus::events"]

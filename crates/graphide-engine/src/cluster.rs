@@ -18,7 +18,7 @@ pub fn cluster(graph: &Graph) -> Vec<Bubble> {
     let parts = if node_ids.len() <= LEAF_MAX || !can_split(&node_ids, &adj) {
         vec![node_ids.clone()]
     } else {
-        let p = partition(&node_ids, &adj);
+        let p = partition(&node_ids, &adj, graph);
         if p.len() <= 1 {
             vec![node_ids.clone()]
         } else {
@@ -71,7 +71,7 @@ fn cluster_rec(
         return;
     }
 
-    let parts = partition(members, adj);
+    let parts = partition(members, adj, graph);
     if parts.len() <= 1 {
         let id = BubbleId(*next_id);
         *next_id += 1;
@@ -116,9 +116,163 @@ fn can_split(members: &[NodeId], adj: &HashMap<NodeId, Vec<(NodeId, f64)>>) -> b
     edge_count > 0
 }
 
-/// Greedy: sort unique undirected edges by weight, union until >=2 communities remain
-/// with balanced sizes; fall back to connected components.
+/// Prefer a balanced articulation-point cut (endpoint sitting between
+/// publisher and subscriber), then MST light-edge cut, then components.
 fn partition(
+    members: &[NodeId],
+    adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
+    graph: &Graph,
+) -> Vec<Vec<NodeId>> {
+    if let Some(parts) = split_at_articulation(members, adj, graph) {
+        if parts.len() >= 2 {
+            return parts;
+        }
+    }
+    mst_partition(members, adj)
+}
+
+fn split_at_articulation(
+    members: &[NodeId],
+    adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
+    graph: &Graph,
+) -> Option<Vec<Vec<NodeId>>> {
+    let aps = articulation_points(members, adj);
+    let mut best: Option<(i64, NodeId, Vec<Vec<NodeId>>)> = None;
+    for ap in aps {
+        let comps = components_without(members, adj, ap);
+        if comps.len() < 2 {
+            continue;
+        }
+        let mut sizes: Vec<usize> = comps.iter().map(|c| c.len()).collect();
+        sizes.sort_unstable_by(|a, b| b.cmp(a));
+        let score = (sizes[0] as i64) * (sizes.get(1).copied().unwrap_or(0) as i64);
+        if score < 2 {
+            continue;
+        }
+        // Endpoint joints stay their own coarse bubble so Steiner can cross runs.
+        let is_endpoint = graph
+            .nodes
+            .iter()
+            .any(|n| n.id == ap && n.kind == graphide_ir::NodeKind::Endpoint);
+        let mut parts = comps;
+        if is_endpoint || parts.iter().all(|c| c.len() >= 2) {
+            parts.push(vec![ap]);
+        } else {
+            // Tie the AP to the largest remaining component.
+            if let Some(largest) = parts.iter_mut().max_by_key(|c| c.len()) {
+                largest.push(ap);
+            }
+        }
+        if best
+            .as_ref()
+            .map(|(s, id, _)| score > *s || (score == *s && ap.0 < id.0))
+            .unwrap_or(true)
+        {
+            best = Some((score, ap, parts));
+        }
+    }
+    best.map(|(_, _, parts)| parts)
+}
+
+fn articulation_points(
+    members: &[NodeId],
+    adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
+) -> Vec<NodeId> {
+    let set: HashSet<_> = members.iter().copied().collect();
+    let mut time = 0u32;
+    let mut disc: HashMap<NodeId, u32> = HashMap::new();
+    let mut low: HashMap<NodeId, u32> = HashMap::new();
+    let mut parent: HashMap<NodeId, NodeId> = HashMap::new();
+    let mut aps = HashSet::new();
+
+    fn visit(
+        u: NodeId,
+        set: &HashSet<NodeId>,
+        adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
+        time: &mut u32,
+        disc: &mut HashMap<NodeId, u32>,
+        low: &mut HashMap<NodeId, u32>,
+        parent: &mut HashMap<NodeId, NodeId>,
+        aps: &mut HashSet<NodeId>,
+    ) {
+        *time += 1;
+        disc.insert(u, *time);
+        low.insert(u, *time);
+        let mut children = 0;
+        if let Some(ns) = adj.get(&u) {
+            for &(v, _) in ns {
+                if !set.contains(&v) {
+                    continue;
+                }
+                if !disc.contains_key(&v) {
+                    children += 1;
+                    parent.insert(v, u);
+                    visit(v, set, adj, time, disc, low, parent, aps);
+                    let lu = low[&u];
+                    let lv = low[&v];
+                    low.insert(u, lu.min(lv));
+                    if parent.get(&u).is_none() && children > 1 {
+                        aps.insert(u);
+                    }
+                    if parent.get(&u).is_some() && low[&v] >= disc[&u] {
+                        aps.insert(u);
+                    }
+                } else if parent.get(&u) != Some(&v) {
+                    let lu = low[&u];
+                    low.insert(u, lu.min(disc[&v]));
+                }
+            }
+        }
+    }
+
+    for &n in members {
+        if !disc.contains_key(&n) {
+            visit(
+                n,
+                &set,
+                adj,
+                &mut time,
+                &mut disc,
+                &mut low,
+                &mut parent,
+                &mut aps,
+            );
+        }
+    }
+    aps.into_iter().collect()
+}
+
+fn components_without(
+    members: &[NodeId],
+    adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
+    skip: NodeId,
+) -> Vec<Vec<NodeId>> {
+    let set: HashSet<_> = members.iter().copied().filter(|n| *n != skip).collect();
+    let remain: Vec<NodeId> = members.iter().copied().filter(|n| *n != skip).collect();
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for &start in &remain {
+        if !seen.insert(start) {
+            continue;
+        }
+        let mut q = VecDeque::from([start]);
+        let mut comp = vec![start];
+        while let Some(n) = q.pop_front() {
+            if let Some(ns) = adj.get(&n) {
+                for &(m, _) in ns {
+                    if set.contains(&m) && seen.insert(m) {
+                        q.push_back(m);
+                        comp.push(m);
+                    }
+                }
+            }
+        }
+        out.push(comp);
+    }
+    out
+}
+
+fn mst_partition(
     members: &[NodeId],
     adj: &HashMap<NodeId, Vec<(NodeId, f64)>>,
 ) -> Vec<Vec<NodeId>> {
@@ -260,10 +414,7 @@ pub fn sticky_match(previous: &[Bubble], current: &mut [Bubble]) {
     let mut order: Vec<usize> = (0..current.len()).collect();
     order.sort_by_key(|&i| {
         let b = &current[i];
-        (
-            b.parent.is_some(),
-            std::cmp::Reverse(b.members.len()),
-        )
+        (b.parent.is_some(), std::cmp::Reverse(b.members.len()))
     });
     for i in order {
         let members: HashSet<_> = current[i].members.iter().copied().collect();
