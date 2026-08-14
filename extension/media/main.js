@@ -35,12 +35,19 @@ function esc(s) {
 }
 
 function renderFlowchart(msg) {
-  const flow = msg.flow;
+  const flows = msg.flows || (msg.flow ? [msg.flow] : []);
+  const flow = msg.flow || flows[0];
   if (!flow) {
     canvas.innerHTML = '<div class="empty">No proposed flows in flows.toml.</div>';
     return;
   }
-  meta.innerHTML = "Flow <b>" + esc(flow.name) + "</b> · hits " + esc((flow.hits || []).join(", "));
+  let tabs = "";
+  if (flows.length > 1) {
+    tabs = '<div class="tabs">' + flows.map((f) =>
+      '<button class="tab' + (f.name === flow.name ? " on" : "") + '" data-flow="' + esc(f.name) + '">' + esc(f.name) + "</button>"
+    ).join("") + "</div>";
+  }
+  meta.innerHTML = tabs + "Flow <b>" + esc(flow.name) + "</b> · hits " + esc((flow.hits || []).join(", "));
   renderCoverage(msg.coverage, msg.findings, msg.graph);
 
   const fc = flow.flowchart || { runs: [], spine: [], positions: [] };
@@ -75,6 +82,11 @@ function renderFlowchart(msg) {
   }
   html += "</div>";
   canvas.innerHTML = html;
+  meta.querySelectorAll(".tab").forEach((el) => {
+    el.addEventListener("click", () => {
+      vscode.postMessage({ type: "selectFlow", flow: el.getAttribute("data-flow") });
+    });
+  });
   canvas.querySelectorAll(".run").forEach((el) => {
     el.addEventListener("click", () => {
       vscode.postMessage({

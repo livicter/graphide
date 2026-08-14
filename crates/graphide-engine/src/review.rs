@@ -106,7 +106,42 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
 }
 
 fn resolve_fqn(graph: &Graph, fqn: &str) -> Option<NodeId> {
-    graph.nodes.iter().find(|n| n.fqn == fqn).map(|n| n.id)
+    if let Some(n) = graph.nodes.iter().find(|n| n.fqn == fqn) {
+        return Some(n.id);
+    }
+    let aliases: Vec<_> = graph
+        .nodes
+        .iter()
+        .filter(|n| fqn_aliases(&n.fqn, fqn))
+        .collect();
+    if aliases.len() == 1 {
+        return Some(aliases[0].id);
+    }
+    let suffix: Vec<_> = graph
+        .nodes
+        .iter()
+        .filter(|n| n.fqn == fqn || n.fqn.ends_with(&format!("::{fqn}")))
+        .collect();
+    if suffix.len() == 1 {
+        return Some(suffix[0].id);
+    }
+    None
+}
+
+/// `crate::bus::events` matches `demo::bus::events` (package FQN).
+fn fqn_aliases(node: &str, hint: &str) -> bool {
+    if node == hint {
+        return true;
+    }
+    let strip = |s: &str| {
+        s.strip_prefix("crate::")
+            .map(|r| r.to_string())
+            .or_else(|| s.split_once("::").map(|(_, rest)| rest.to_string()))
+    };
+    match (hint.strip_prefix("crate::"), strip(node)) {
+        (Some(rest), Some(nrest)) => rest == nrest,
+        _ => false,
+    }
 }
 
 pub fn hints_from_toml(text: &str) -> Result<HintFile, crate::hints::HintError> {

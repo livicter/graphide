@@ -2,7 +2,7 @@ use graphide_ir::{Bubble, BubbleId, Graph, NodeId};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::{HashMap, HashSet, VecDeque};
 
-const LEAF_MAX: usize = 4;
+const LEAF_MAX: usize = 10;
 
 /// Recursive agglomerative clustering on weighted edges. Contains excluded.
 pub fn cluster(graph: &Graph) -> Vec<Bubble> {
@@ -15,9 +15,8 @@ pub fn cluster(graph: &Graph) -> Vec<Bubble> {
     let mut bubbles = Vec::new();
     let mut next_id = 1u64;
     // First cut under the program => coarse bubbles (parent == None).
-    let parts = if node_ids.len() <= LEAF_MAX || !can_split(&node_ids, &adj) {
-        vec![node_ids.clone()]
-    } else {
+    // First cut always tries a community split so the flowchart can be runs.
+    let parts = {
         let p = partition(&node_ids, &adj, graph);
         if p.len() <= 1 {
             vec![node_ids.clone()]

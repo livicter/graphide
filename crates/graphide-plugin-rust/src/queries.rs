@@ -37,6 +37,8 @@ pub const EXTRACT_QUERIES: &str = r#"
   name: (identifier) @const.name
   type: (_) @const.type) @const.def
 
+(let_declaration) @let
+
 (call_expression
   function: [
     (identifier) @call.name
@@ -52,4 +54,6 @@ pub const EXTRACT_QUERIES: &str = r#"
 (scoped_identifier) @path
 
 (use_declaration) @use
+
+(attribute_item) @attr
 "#;

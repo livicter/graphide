@@ -1,0 +1,22 @@
+[[flow]]
+name = "review-derive"
+hits = [
+    "graphide_engine::review::derive_repo",
+    "graphide_engine::link::link",
+    "graphide_engine::steiner::steiner_tree",
+    "graphide_engine::cluster::cluster",
+    "graphide_engine::coverage::coverage",
+    "graphide_engine::coverage::changed_nodes_with_sources",
+    "graphide_engine::flowchart::build_flowchart",
+    "graphide_engine::stamp::recheck_stamp",
+]
+
+[[flow]]
+name = "rust-extract"
+hits = [
+    "graphide_plugin_rust::extract_file_with",
+    "graphide_plugin_rust::extract_file",
+    "graphide_cli::extract::extract_jobs",
+    "graphide_cli::extract::collect_jobs",
+    "graphide_cli::git::sources_at_rev",
+]

@@ -40,6 +40,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "graphide.reviewView";
   private view?: vscode.WebviewView;
   private snapshot: any;
+  private selectedFlow?: string;
   private stack: Array<{ kind: "flow" } | { kind: "bubble"; flow: string; bubble: string }> = [
     { kind: "flow" },
   ];
@@ -55,7 +56,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.html(webviewView.webview);
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === "review") await this.runReview();
-      else if (msg.type === "enterRun") {
+      else if (msg.type === "selectFlow") {
+        this.selectedFlow = msg.flow;
+        this.stack = [{ kind: "flow" }];
+        this.pushState();
+      } else if (msg.type === "enterRun") {
         this.stack.push({ kind: "bubble", flow: msg.flow, bubble: String(msg.bubble) });
         this.pushState();
       } else if (msg.type === "enterNode") await this.enterNode(msg);
@@ -79,6 +84,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         windowsHide: true,
       });
       this.snapshot = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      this.selectedFlow = this.snapshot.flows?.[0]?.name;
       this.stack = [{ kind: "flow" }];
       this.pushState();
       vscode.window.showInformationMessage(
@@ -117,7 +123,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       this.view.webview.postMessage({
         type: "flowchart",
         flows: this.snapshot.flows || [],
-        flow: this.snapshot.flows?.[0],
+        flow: (this.snapshot.flows || []).find((f: any) => f.name === this.selectedFlow) || this.snapshot.flows?.[0],
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
         bubbles: this.snapshot.bubbles,
@@ -179,6 +185,9 @@ function packageRoot(): string {
   if (configured) return configured;
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!folder) throw new Error("Open a workspace folder");
+  if (fs.existsSync(path.join(folder, "Cargo.toml")) || fs.existsSync(path.join(folder, "flows.toml"))) {
+    return folder;
+  }
   const demo = path.join(folder, "fixtures", "demo");
   if (fs.existsSync(path.join(demo, "flows.toml"))) return demo;
   return folder;

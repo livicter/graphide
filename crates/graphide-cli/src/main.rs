@@ -1,15 +1,16 @@
+mod extract;
+mod git;
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use graphide_engine::{
-    derive_repo, hints_from_toml, make_stamp, recheck_stamp, ReviewInput, ReviewOptions,
-};
-use graphide_ir::{Extract, InnerViewNode, NodeId, ReviewSnapshot, Stamp};
+use extract::{collect_jobs, extract_jobs, jobs_from_sources, load_hints, path_relative};
+use graphide_engine::{derive_repo, make_stamp, recheck_stamp, ReviewInput, ReviewOptions};
+use graphide_ir::{InnerViewNode, NodeId, ReviewSnapshot, Stamp};
 use graphide_plugin_rust::{extract_file, PLUGIN_ID};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
 #[command(name = "graphide", about = "Review IDE deriver + flow engine")]
@@ -20,14 +21,20 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Cmd {
-    /// Derive graph + proposed flows for a repo (first slice).
+    /// Derive graph + proposed flows for a repo.
     Review {
-        /// Path to package root (contains flows.toml and src/)
+        /// Workspace or package root
         #[arg(long)]
         root: PathBuf,
-        /// Optional parent revision root for coverage
+        /// Optional parent checkout directory (overrides git)
         #[arg(long)]
         parent: Option<PathBuf>,
+        /// Git ref to diff against (default: merge-base with main/master)
+        #[arg(long)]
+        base: Option<String>,
+        /// Skip coverage parent (git or directory)
+        #[arg(long)]
+        no_parent: bool,
         #[arg(long)]
         json: bool,
     },
@@ -70,8 +77,14 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Review { root, parent, json } => {
-            let snap = review_roots(&root, parent.as_deref())?;
+        Cmd::Review {
+            root,
+            parent,
+            base,
+            no_parent,
+            json,
+        } => {
+            let snap = review_roots(&root, parent.as_deref(), base.as_deref(), no_parent)?;
             if json {
                 println!("{}", serde_json::to_string_pretty(&snap)?);
             } else {
@@ -79,18 +92,18 @@ fn main() -> Result<()> {
             }
         }
         Cmd::Extract { file, repo_root } => {
-            let rel = path_relative(&repo_root, &file)?;
+            let rel = path_relative(&repo_root, &file);
             let src = fs::read_to_string(&file)?;
             let r = extract_file(&rel, &src)?;
             println!("{}", serde_json::to_string_pretty(&r.extract)?);
         }
         Cmd::Enter { root, flow, bubble } => {
-            let snap = review_roots(&root, None)?;
+            let snap = review_roots(&root, None, None, true)?;
             let view = inner_view(&snap, &flow, bubble)?;
             println!("{}", serde_json::to_string_pretty(&view)?);
         }
         Cmd::Stamp { root, flow, out } => {
-            let snap = review_roots(&root, None)?;
+            let snap = review_roots(&root, None, None, true)?;
             let view = snap
                 .flows
                 .iter()
@@ -104,7 +117,7 @@ fn main() -> Result<()> {
             eprintln!("wrote stamp {}", out.display());
         }
         Cmd::Recheck { root, stamp, json } => {
-            let snap = review_roots(&root, None)?;
+            let snap = review_roots(&root, None, None, true)?;
             let text = fs::read_to_string(&stamp)?;
             let stamp: Stamp = serde_json::from_str(&text)?;
             let (view, finding) = recheck_stamp(&snap.graph, &stamp);
@@ -173,22 +186,34 @@ fn print_review(snap: &ReviewSnapshot) {
     }
 }
 
-fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
-    let (head_extracts, head_sources) = extract_repo(root)?;
-    let (parent_extracts, parent_sources) = match parent {
-        Some(p) => {
-            let (e, s) = extract_repo(p)?;
-            (Some(e), s)
+fn review_roots(
+    root: &Path,
+    parent: Option<&Path>,
+    base: Option<&str>,
+    no_parent: bool,
+) -> Result<ReviewSnapshot> {
+    let jobs = collect_jobs(root)?;
+    let (head_extracts, head_sources) = extract_jobs(jobs)?;
+    let (parent_extracts, parent_sources) = if no_parent {
+        (None, HashMap::new())
+    } else if let Some(p) = parent {
+        let (e, s) = extract_jobs(collect_jobs(p)?)?;
+        (Some(e), s)
+    } else if let Some(git_root) = git::git_root(root) {
+        match git::resolve_base_rev(&git_root, base) {
+            Some(rev) => {
+                eprintln!("coverage parent git {rev}");
+                let parent_src = git::sources_at_rev(&git_root, root, &rev, head_sources.keys())?;
+                let jobs = jobs_from_sources(root, &parent_src)?;
+                let (e, s) = extract_jobs(jobs)?;
+                (Some(e), s)
+            }
+            None => (None, HashMap::new()),
         }
-        None => (None, HashMap::new()),
-    };
-    let hints_path = root.join("flows.toml");
-    let hints = if hints_path.exists() {
-        let text = fs::read_to_string(&hints_path)?;
-        hints_from_toml(&text).context("parse flows.toml")?
     } else {
-        graphide_ir::HintFile { flows: vec![] }
+        (None, HashMap::new())
     };
+    let hints = load_hints(root);
     Ok(derive_repo(
         ReviewInput {
             head_extracts,
@@ -202,33 +227,6 @@ fn review_roots(root: &Path, parent: Option<&Path>) -> Result<ReviewSnapshot> {
             plugin: PLUGIN_ID.into(),
         },
     ))
-}
-
-fn extract_repo(root: &Path) -> Result<(Vec<Extract>, HashMap<String, String>)> {
-    let mut extracts = Vec::new();
-    let mut sources = HashMap::new();
-    for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
-        let path = entry.path();
-        if path.extension().and_then(|s| s.to_str()) != Some("rs") {
-            continue;
-        }
-        if path.components().any(|c| c.as_os_str() == "target") {
-            continue;
-        }
-        let rel = path_relative(root, path)?;
-        let src = fs::read_to_string(path)?;
-        sources.insert(rel.clone(), src.clone());
-        match extract_file(&rel, &src) {
-            Ok(r) => extracts.push(r.extract),
-            Err(e) => eprintln!("warn: extract {rel}: {e}"),
-        }
-    }
-    Ok((extracts, sources))
-}
-
-fn path_relative(root: &Path, file: &Path) -> Result<String> {
-    let rel = file.strip_prefix(root).unwrap_or(file);
-    Ok(rel.to_string_lossy().replace('\\', "/"))
 }
 
 #[derive(Serialize)]
