@@ -286,7 +286,14 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
     <button id="reviewBtn" title="Review workspace">Review</button>
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
+    <div id="zoomBar" hidden>
+      <button id="zoomOut" title="Zoom out (−)">−</button>
+      <span id="zoomPct">100%</span>
+      <button id="zoomIn" title="Zoom in (+)">+</button>
+      <button id="zoomFit" title="Fit (0)">Fit</button>
+    </div>
   </header>
+  <div id="tip" hidden></div>
   <div id="progress">
     <div class="progress-inner">
       <ol id="phases">

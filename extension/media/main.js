@@ -16,6 +16,12 @@ const progressCounts = document.getElementById("progressCounts");
 const progressPct = document.getElementById("progressPct");
 const progressTime = document.getElementById("progressTime");
 const phasesEl = document.getElementById("phases");
+const zoomBar = document.getElementById("zoomBar");
+const zoomInBtn = document.getElementById("zoomIn");
+const zoomOutBtn = document.getElementById("zoomOut");
+const zoomFitBtn = document.getElementById("zoomFit");
+const zoomPct = document.getElementById("zoomPct");
+const tip = document.getElementById("tip");
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -42,6 +48,13 @@ let shownPct = 0;
 let barRaf = 0;
 let pendingProgress = null;
 let progressRaf = 0;
+let navToken = 0;
+let viewportEl = null;
+let cam = { x: 0, y: 0, k: 1 };
+let camTo = { x: 0, y: 0, k: 1 };
+let camRaf = 0;
+const CAM_MIN = 0.35;
+const CAM_MAX = 3.6;
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -62,11 +75,30 @@ document.addEventListener("keydown", (e) => {
     vscode.postMessage({ type: "cancel" });
     return;
   }
-  if (e.key === "Backspace" && document.activeElement !== prompt) {
+  if (document.activeElement === prompt) return;
+  if (e.key === "+" || e.key === "=") {
+    e.preventDefault();
+    zoomBy(1.18);
+    return;
+  }
+  if (e.key === "-" || e.key === "_") {
+    e.preventDefault();
+    zoomBy(1 / 1.18);
+    return;
+  }
+  if (e.key === "0") {
+    e.preventDefault();
+    setCamTarget(0, 0, 1);
+    return;
+  }
+  if (e.key === "Backspace") {
     e.preventDefault();
     goBack();
   }
 });
+if (zoomInBtn) zoomInBtn.onclick = () => zoomBy(1.2);
+if (zoomOutBtn) zoomOutBtn.onclick = () => zoomBy(1 / 1.2);
+if (zoomFitBtn) zoomFitBtn.onclick = () => setCamTarget(0, 0, 1);
 
 function startReview() {
   targetPct = 0;
@@ -100,6 +132,8 @@ window.addEventListener("message", (event) => {
     coverage.textContent = "";
     tabs.innerHTML = "";
     status.textContent = "";
+    setZoomUi(false);
+    hideTip();
     return;
   }
   if (msg.type === "progress") {
@@ -139,6 +173,8 @@ window.addEventListener("message", (event) => {
     canvas.className = "";
     canvas.innerHTML = '<div class="empty error">' + esc(msg.text) + "</div>";
     status.textContent = "failed";
+    setZoomUi(false);
+    hideTip();
     return;
   }
   if (msg.type === "flowchart" || msg.type === "inner") {
@@ -166,7 +202,7 @@ function applyPreview(msg) {
   };
   if (!flowName && flows[0]) flowName = flows[0].name;
   indexGraph(snapshot.graph);
-  paint({ animate: "tree", preview: true });
+  paint({ animate: "tree", preview: true, keepCam: !!canvas.querySelector(".stage") });
 }
 
 function applySnapshot(msg, inner) {
@@ -207,21 +243,231 @@ function indexGraph(graph) {
   for (const n of graph?.nodes || []) nodeById.set(idVal(n.id), n);
 }
 
+function reduceMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function clamp(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function setZoomUi(on) {
+  if (zoomBar) zoomBar.hidden = !on;
+  if (on) updateZoomPct();
+}
+
+function updateZoomPct() {
+  if (zoomPct) zoomPct.textContent = Math.round(cam.k * 100) + "%";
+}
+
+function applyCam() {
+  if (viewportEl) {
+    viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
+  }
+  updateZoomPct();
+}
+
+function tickCam() {
+  cam.x += (camTo.x - cam.x) * 0.24;
+  cam.y += (camTo.y - cam.y) * 0.24;
+  cam.k += (camTo.k - cam.k) * 0.24;
+  if (Math.hypot(camTo.x - cam.x, camTo.y - cam.y) < 0.35 && Math.abs(camTo.k - cam.k) < 0.004) {
+    cam.x = camTo.x;
+    cam.y = camTo.y;
+    cam.k = camTo.k;
+    camRaf = 0;
+  } else {
+    camRaf = requestAnimationFrame(tickCam);
+  }
+  applyCam();
+}
+
+function setCamTarget(x, y, k) {
+  camTo = { x: x, y: y, k: clamp(k, CAM_MIN, CAM_MAX) };
+  if (reduceMotion()) {
+    cam = { x: camTo.x, y: camTo.y, k: camTo.k };
+    applyCam();
+    return;
+  }
+  if (!camRaf) camRaf = requestAnimationFrame(tickCam);
+}
+
+function resetCam() {
+  cam = { x: 0, y: 0, k: 1 };
+  camTo = { x: 0, y: 0, k: 1 };
+  applyCam();
+}
+
+function zoomBy(factor) {
+  const stage = canvas.querySelector(".stage");
+  if (!stage) return;
+  const r = stage.getBoundingClientRect();
+  zoomAt(r.width / 2, r.height / 2, camTo.k * factor);
+}
+
+function zoomAt(px, py, nextK) {
+  const k = camTo.k;
+  const nk = clamp(nextK, CAM_MIN, CAM_MAX);
+  setCamTarget(px - ((px - camTo.x) * nk) / k, py - ((py - camTo.y) * nk) / k, nk);
+}
+
+function zoomToEl(el, k) {
+  const stage = canvas.querySelector(".stage");
+  if (!stage || !el) return;
+  const vr = stage.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2 - vr.left;
+  const cy = r.top + r.height / 2 - vr.top;
+  const contentX = (cx - cam.x) / cam.k;
+  const contentY = (cy - cam.y) / cam.k;
+  const nk = k || Math.min(CAM_MAX, Math.max(1.55, cam.k * 1.45));
+  setCamTarget(vr.width / 2 - contentX * nk, vr.height / 2 - contentY * nk, nk);
+}
+
+function hideTip() {
+  if (!tip) return;
+  tip.hidden = true;
+}
+
+function showTip(text, ev) {
+  if (!tip || !text) return;
+  tip.textContent = text;
+  tip.hidden = false;
+  const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - tip.offsetWidth);
+  const y = Math.min(ev.clientY + 14, window.innerHeight - 16 - tip.offsetHeight);
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+
+function bindStage(stage, opts) {
+  viewportEl = stage.querySelector(".viewport");
+  if (!opts || opts.reset) resetCam();
+  else applyCam();
+  stage.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      zoomAt(e.clientX - r.left, e.clientY - r.top, camTo.k * factor);
+    },
+    { passive: false }
+  );
+  let drag = null;
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest("button, .run, .inode, a, input")) return;
+    drag = { x: e.clientX, y: e.clientY, cx: camTo.x, cy: camTo.y };
+    stage.classList.add("panning");
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    setCamTarget(drag.cx + (e.clientX - drag.x), drag.cy + (e.clientY - drag.y), camTo.k);
+  });
+  const endDrag = () => {
+    drag = null;
+    stage.classList.remove("panning");
+  };
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+  stage.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".vnode, .run")) return;
+    setCamTarget(0, 0, 1);
+  });
+}
+
+function bindGraphFx() {
+  const svg = canvas.querySelector("svg.steiner");
+  if (svg) {
+    const edges = [...svg.querySelectorAll(".edge")];
+    const flows = [...svg.querySelectorAll(".edge-flow")];
+    const nodes = [...svg.querySelectorAll(".vnode")];
+    const clearHot = () => {
+      svg.classList.remove("focus");
+      edges.forEach((el) => el.classList.remove("hot"));
+      flows.forEach((el) => el.classList.remove("hot"));
+      nodes.forEach((el) => el.classList.remove("hot"));
+      hideTip();
+    };
+    nodes.forEach((g) => {
+      const id = g.getAttribute("data-id");
+      const fqn = g.getAttribute("data-fqn") || "";
+      g.addEventListener("pointerenter", (ev) => {
+        svg.classList.add("focus");
+        g.classList.add("hot");
+        edges.forEach((el) => {
+          if (el.dataset.from === id || el.dataset.to === id) el.classList.add("hot");
+        });
+        flows.forEach((el) => {
+          if (el.dataset.from === id || el.dataset.to === id) el.classList.add("hot");
+        });
+        showTip(fqn, ev);
+      });
+      g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
+      g.addEventListener("pointerleave", clearHot);
+      g.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        zoomToEl(g, Math.min(2.2, Math.max(1.6, camTo.k * 1.35)));
+      });
+      g.addEventListener("dblclick", (ev) => {
+        ev.stopPropagation();
+        const run = [...canvas.querySelectorAll(".run")].find((el) =>
+          (el.getAttribute("data-nodes") || "").split(",").includes(id)
+        );
+        if (run) enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
+      });
+    });
+    if (!reduceMotion()) {
+      setTimeout(() => svg.classList.add("flowing"), 520);
+    }
+  }
+  canvas.querySelectorAll(".run").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"), el);
+    });
+  });
+}
+
 function selectFlow(name) {
   flowName = name;
   stack = [{ kind: "flow" }];
   paint({ animate: "tree" });
 }
 
-function enterRun(flow, bubble) {
-  stack.push({ kind: "bubble", flow, bubble: String(bubble) });
-  paint({ animate: "list" });
+function enterRun(flow, bubble, fromEl) {
+  const token = ++navToken;
+  const go = () => {
+    if (token !== navToken) return;
+    stack.push({ kind: "bubble", flow, bubble: String(bubble) });
+    paint({ animate: "list" });
+  };
+  if (fromEl && !reduceMotion()) {
+    fromEl.classList.add("zoom-in");
+    canvas.classList.add("leaving");
+    zoomToEl(fromEl, 1.9);
+    setTimeout(go, 200);
+  } else {
+    go();
+  }
 }
 
 function goBack() {
   if (stack.length <= 1) return;
-  stack.pop();
-  paint({ animate: "tree" });
+  const token = ++navToken;
+  const fromInner = stack[stack.length - 1].kind === "bubble";
+  const go = () => {
+    if (token !== navToken) return;
+    stack.pop();
+    paint({ animate: "tree", fromInner });
+  };
+  if (fromInner && !reduceMotion()) {
+    canvas.classList.add("leaving");
+    setTimeout(go, 150);
+  } else {
+    go();
+  }
 }
 
 function paint(opts) {
@@ -243,9 +489,15 @@ function paint(opts) {
         plugin: snapshot.plugin,
         stats: snapshot.stats,
       },
-      { animate, preview }
+      { animate, preview, keepCam: !!(opts && opts.keepCam), fromInner: !!(opts && opts.fromInner) }
     );
     lastTreeKey = treeKey(flow);
+    if (opts && opts.fromInner) {
+      cam = { x: 0, y: 0, k: 1.45 };
+      camTo = { x: 0, y: 0, k: 1.45 };
+      applyCam();
+      setCamTarget(0, 0, 1);
+    }
     return;
   }
   const inner = enterBubble(snapshot, top.flow, top.bubble);
@@ -424,6 +676,7 @@ function renderFlowchart(msg, opts) {
       '<div class="empty">Graph is ready (' +
       (msg.graph?.nodes?.length || msg.stats?.nodes || 0) +
       " nodes). Prompt a story to slice it.</div>";
+    setZoomUi(false);
     return;
   }
   meta.innerHTML =
@@ -436,17 +689,23 @@ function renderFlowchart(msg, opts) {
 
   const playTree = animate === "all" || animate === "tree";
   const playRuns = animate === "all" || animate === "runs";
+  const keepCam = !!(opts && opts.keepCam) || animate === "runs";
   const treeHtml = renderSteiner(flow, msg.graph, playTree);
   const runHtml = renderRuns(flow, msg, playRuns);
-  canvas.className = "play";
+  canvas.className = "play has-stage";
   canvas.innerHTML =
+    '<div class="stage"><div class="viewport">' +
     '<div class="flow-title">Steiner slice</div>' +
     treeHtml +
     (runHtml
       ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
       : preview
         ? '<div class="hint-live">Runs appear when clustering finishes</div>'
-        : "");
+        : "") +
+    "</div></div>";
+  bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+  bindGraphFx();
+  setZoomUi(true);
 }
 
 function renderSteiner(flow, graph, animate) {
@@ -491,30 +750,39 @@ function renderSteiner(flow, graph, animate) {
       pos[id] = { x: colW * (i + 0.5), y: (H / (col.length + 1)) * (j + 1) };
     })
   );
-  let svg = '<svg class="steiner' + (animate ? " play" : "") + '" viewBox="0 0 ' + W + " " + H + '">';
+  let svg =
+    '<svg class="steiner' +
+    (animate ? " play" : "") +
+    '" viewBox="0 0 ' +
+    W +
+    " " +
+    H +
+    '"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" /></marker></defs>';
   for (const e of edges) {
     const a = pos[idVal(e.from)],
       b = pos[idVal(e.to)];
     if (!a || !b) continue;
     const mx = (a.x + b.x) / 2,
       my = (a.y + b.y) / 2 - 8;
+    const d =
+      "M" + a.x + "," + a.y + " C" + mx + "," + a.y + " " + mx + "," + b.y + " " + b.x + "," + b.y;
+    const from = idVal(e.from),
+      to = idVal(e.to);
     svg +=
-      '<path class="edge" pathLength="1" d="M' +
-      a.x +
-      "," +
-      a.y +
-      " C" +
-      mx +
-      "," +
-      a.y +
-      " " +
-      mx +
-      "," +
-      b.y +
-      " " +
-      b.x +
-      "," +
-      b.y +
+      '<path class="edge" pathLength="1" marker-end="url(#arr)" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" d="' +
+      d +
+      '" />';
+    svg +=
+      '<path class="edge-flow" pathLength="1" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" d="' +
+      d +
       '" />';
     svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
   }
@@ -522,10 +790,18 @@ function renderSteiner(flow, graph, animate) {
     const p = pos[idVal(id)];
     if (!p) continue;
     const type = kindOf(graph, id) === "Type";
-    const label = shortOf(fqnOf(graph, id));
+    const fqn = fqnOf(graph, id);
+    const label = shortOf(fqn);
     const w = Math.max(120, Math.min(200, 8 * label.length + 24));
     const d = level[idVal(id)] || 0;
-    svg += '<g class="vnode" style="--d:' + d + '">';
+    svg +=
+      '<g class="vnode" style="--d:' +
+      d +
+      '" data-id="' +
+      idVal(id) +
+      '" data-fqn="' +
+      esc(fqn) +
+      '">';
     svg +=
       '<rect class="node-box' +
       (type ? " type" : "") +
@@ -535,9 +811,7 @@ function renderSteiner(flow, graph, animate) {
       (p.y - 20) +
       '" width="' +
       w +
-      '" height="40" rx="5" data-id="' +
-      idVal(id) +
-      '" />';
+      '" height="40" rx="5" />';
     svg += '<text class="kind" x="' + p.x + '" y="' + (p.y - 6) + '" text-anchor="middle">' + esc(kindOf(graph, id)) + "</text>";
     svg +=
       '<text class="label' +
@@ -578,7 +852,25 @@ function renderRuns(flow, msg, animate) {
       x2 = b.x,
       y2 = b.y + 28;
     html +=
-      '<path pathLength="1" d="M' +
+      '<path class="spine" pathLength="1" d="M' +
+      x1 +
+      "," +
+      y1 +
+      " C" +
+      (x1 + 40) +
+      "," +
+      y1 +
+      " " +
+      (x2 - 40) +
+      "," +
+      y2 +
+      " " +
+      x2 +
+      "," +
+      y2 +
+      '" />';
+    html +=
+      '<path class="spine-flow" pathLength="1" d="M' +
       x1 +
       "," +
       y1 +
@@ -600,6 +892,7 @@ function renderRuns(flow, msg, animate) {
   (fc.runs || []).forEach((run, i) => {
     const p = pos[idVal(run.id)] || { x: 0, y: 0 };
     const label = bubbleLabel[idVal(run.bubble)] || "run";
+    const nodeIds = (run.nodes || []).map((n) => idVal(n)).join(",");
     const nodes = (run.nodes || []).map((n) => shortOf(fqnOf(msg.graph, n))).join(" → ");
     html +=
       '<div class="run" style="left:' +
@@ -612,18 +905,13 @@ function renderRuns(flow, msg, animate) {
       esc(flow.name) +
       '" data-bubble="' +
       idVal(run.bubble) +
+      '" data-nodes="' +
+      nodeIds +
       '">';
     html += '<div class="label">' + esc(shortOf(label)) + "</div>";
     html += '<div class="meta">' + esc(nodes) + "</div></div>";
   });
   html += "</div>";
-  queueMicrotask(() => {
-    canvas.querySelectorAll(".run").forEach((el) => {
-      el.addEventListener("click", () => {
-        enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"));
-      });
-    });
-  });
   return html;
 }
 
@@ -664,6 +952,8 @@ function renderInner(msg, animate) {
   html += "</div>";
   canvas.className = "play";
   canvas.innerHTML = html;
+  setZoomUi(false);
+  hideTip();
   canvas.querySelectorAll(".inode").forEach((el) => {
     el.addEventListener("click", () => {
       const isLeaf = el.getAttribute("data-leaf") === "1";
