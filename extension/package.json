@@ -6,7 +6,10 @@
   "publisher": "graphide",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Visualization", "Other"],
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:graphide.reviewView",
+    "onCommand:graphide.review"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -49,12 +52,18 @@
         "graphide.packageRoot": {
           "type": "string",
           "default": "",
-          "description": "Package root with flows.toml. Empty = workspace folder."
+          "description": "Repo root to review. Empty = the open workspace folder. Any language the deriver has a plugin for."
         },
         "graphide.parentRoot": {
           "type": "string",
           "default": "",
-          "description": "Parent revision root for coverage. Empty = fixtures/demo-parent when reviewing fixtures/demo."
+          "description": "Parent revision root for coverage. Empty = no parent (coverage stays empty)."
+        },
+        "graphide.promptFlows": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Default --flow prompts (name=hit,hit). The Review input can override these."
         }
       }
     }

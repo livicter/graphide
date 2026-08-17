@@ -6,6 +6,11 @@ const LEAF_MAX: usize = 4;
 
 /// Recursive agglomerative clustering on weighted edges. Contains excluded.
 pub fn cluster(graph: &Graph) -> Vec<Bubble> {
+    cluster_with(graph, None)
+}
+
+/// Same as [`cluster`], reporting leaf-assigned nodes as work completes.
+pub fn cluster_with(graph: &Graph, progress: Option<&dyn Fn(usize, usize)>) -> Vec<Bubble> {
     let node_ids: Vec<NodeId> = graph.nodes.iter().map(|n| n.id).collect();
     if node_ids.is_empty() {
         return Vec::new();
@@ -14,6 +19,14 @@ pub fn cluster(graph: &Graph) -> Vec<Bubble> {
     let fqn: HashMap<NodeId, String> = graph.nodes.iter().map(|n| (n.id, n.fqn.clone())).collect();
     let mut bubbles = Vec::new();
     let mut next_id = 1u64;
+    let total = node_ids.len();
+    let assigned = std::cell::Cell::new(0usize);
+    let on_leaf = |n: usize| {
+        assigned.set(assigned.get() + n);
+        if let Some(p) = progress {
+            p(assigned.get(), total);
+        }
+    };
     // First cut under the program => coarse bubbles (parent == None).
     let parts = if node_ids.len() <= LEAF_MAX || !can_split(&node_ids, &adj) {
         vec![node_ids.clone()]
@@ -26,7 +39,16 @@ pub fn cluster(graph: &Graph) -> Vec<Bubble> {
         }
     };
     for part in parts {
-        cluster_rec(&part, None, &adj, &fqn, graph, &mut bubbles, &mut next_id);
+        cluster_rec(
+            &part,
+            None,
+            &adj,
+            &fqn,
+            graph,
+            &mut bubbles,
+            &mut next_id,
+            &on_leaf,
+        );
     }
     bubbles
 }
@@ -55,6 +77,7 @@ fn cluster_rec(
     graph: &Graph,
     out: &mut Vec<Bubble>,
     next_id: &mut u64,
+    on_leaf: &dyn Fn(usize),
 ) {
     if members.is_empty() {
         return;
@@ -68,6 +91,7 @@ fn cluster_rec(
             members: members.to_vec(),
             label: label_for(members, fqn, graph),
         });
+        on_leaf(members.len());
         return;
     }
 
@@ -81,6 +105,7 @@ fn cluster_rec(
             members: members.to_vec(),
             label: label_for(members, fqn, graph),
         });
+        on_leaf(members.len());
         return;
     }
 
@@ -97,7 +122,7 @@ fn cluster_rec(
         if part.len() == members.len() {
             continue;
         }
-        cluster_rec(&part, Some(id), adj, fqn, graph, out, next_id);
+        cluster_rec(&part, Some(id), adj, fqn, graph, out, next_id, on_leaf);
     }
 }
 

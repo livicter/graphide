@@ -86,6 +86,8 @@ fn steiner_of_hits_is_subscribes_edge() {
         },
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
+            progress: None,
+            preview: None,
         },
     );
     assert!(
@@ -129,6 +131,8 @@ fn coverage_flags_sneaky_helper_only() {
         },
         &ReviewOptions {
             plugin: "rust@0.1.0".into(),
+            progress: None,
+            preview: None,
         },
     );
     let uncovered: Vec<_> = snap
@@ -153,4 +157,65 @@ fn coverage_flags_sneaky_helper_only() {
         .findings
         .iter()
         .any(|f| matches!(&f.kind, FindingKind::UncoveredNode { fqn } if fqn == "crate::bus::sneaky_helper")));
+}
+
+#[test]
+fn enter_bubble_is_instant_on_snapshot() {
+    let (extracts, sources) = extract_dir(&fixture_root());
+    let snap = derive_repo(
+        ReviewInput {
+            head_extracts: extracts,
+            parent_extracts: None,
+            hints: hints(),
+            head_sources: sources,
+            parent_sources: HashMap::new(),
+            previous_bubbles: None,
+        },
+        &ReviewOptions {
+            plugin: "rust@0.1.0".into(),
+            progress: None,
+            preview: None,
+        },
+    );
+    let run = &snap.flows[0].flowchart.runs[0];
+    let inner =
+        graphide_engine::enter_bubble(&snap, "data-subscription", run.bubble.0).expect("enter");
+    assert!(!inner.nodes.is_empty());
+    assert!(inner.nodes.iter().any(|n| n.lit));
+}
+
+#[test]
+fn derive_reports_progress_phases() {
+    let (extracts, sources) = extract_dir(&fixture_root());
+    let phases = std::sync::Mutex::new(Vec::new());
+    let snap = derive_repo(
+        ReviewInput {
+            head_extracts: extracts,
+            parent_extracts: None,
+            hints: hints(),
+            head_sources: sources,
+            parent_sources: HashMap::new(),
+            previous_bubbles: None,
+        },
+        &ReviewOptions {
+            plugin: "rust@0.1.0".into(),
+            progress: Some(&|ev| phases.lock().unwrap().push(ev.phase.to_string())),
+            preview: Some(&|p| {
+                assert!(
+                    !p.flows.is_empty(),
+                    "preview should carry Steiner before cluster"
+                );
+                assert!(!p.flows[0].tree.nodes.is_empty());
+            }),
+        },
+    );
+    assert!(!snap.flows.is_empty());
+    let phases = phases.lock().unwrap().clone();
+    for need in ["link", "preview", "cluster", "flows", "done"] {
+        assert!(
+            phases.iter().any(|p| p == need),
+            "missing phase {need} in {phases:?}"
+        );
+    }
+    assert_eq!(phases.last().map(String::as_str), Some("done"));
 }

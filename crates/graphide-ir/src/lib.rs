@@ -350,6 +350,25 @@ pub struct InnerViewNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InnerView {
+    pub flow: String,
+    pub bubble: u64,
+    pub nodes: Vec<InnerViewNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ReviewStats {
+    #[serde(default)]
+    pub elapsed_ms: u64,
+    #[serde(default)]
+    pub extract_ms: u64,
+    #[serde(default)]
+    pub derive_ms: u64,
+    #[serde(default)]
+    pub files: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReviewSnapshot {
     pub plugin: String,
     pub graph: Graph,
@@ -357,6 +376,8 @@ pub struct ReviewSnapshot {
     pub flows: Vec<FlowView>,
     pub coverage: Coverage,
     pub findings: Vec<Finding>,
+    #[serde(default)]
+    pub stats: ReviewStats,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
