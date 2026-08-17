@@ -4,11 +4,13 @@
   "description": "Review agent changes as flow graphs — Steiner slices over derived bubbles.",
   "version": "0.1.0",
   "publisher": "graphide",
+  "license": "MIT",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Visualization", "Other"],
   "activationEvents": [
     "onView:graphide.reviewView",
-    "onCommand:graphide.review"
+    "onCommand:graphide.review",
+    "onCommand:graphide.install"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -21,6 +23,10 @@
       {
         "command": "graphide.openSource",
         "title": "Graphide: Open Node Source"
+      },
+      {
+        "command": "graphide.install",
+        "title": "Graphide: Install (one click)"
       }
     ],
     "viewsContainers": {
@@ -47,7 +53,7 @@
         "graphide.cliPath": {
           "type": "string",
           "default": "",
-          "description": "Path to graphide binary. Empty = target/debug/graphide next to workspace or PATH."
+          "description": "Optional override. Empty = ~/.graphide/graphide, then the VSIX bin, then the workspace target/ folder."
         },
         "graphide.packageRoot": {
           "type": "string",
@@ -70,11 +76,13 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "node ./scripts/bundle-cli.js && npm run compile && vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
     "typescript": "^5.3.0"
   }
 }

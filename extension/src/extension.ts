@@ -2,9 +2,10 @@ import * as vscode from "vscode";
 import * as cp from "child_process";
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new ReviewViewProvider(context.extensionUri);
+  const provider = new ReviewViewProvider(context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ReviewViewProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -13,7 +14,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.review", () => provider.runReview())
   );
-  setTimeout(() => warmCli(), 0);
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.install", () => installGraphide(context, provider))
+  );
+  setTimeout(() => {
+    const cli = findCli(context);
+    if (cli) warmCli(cli);
+  }, 0);
 }
 
 export function deactivate() {}
@@ -47,7 +54,23 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private running = false;
   private child?: cp.ChildProcess;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
+
+  get extensionUri() {
+    return this.context.extensionUri;
+  }
+
+  notifySetup() {
+    if (findCli(this.context)) {
+      if (!this.snapshot) this.view?.webview.postMessage({ type: "empty" });
+      else this.pushState();
+      return;
+    }
+    this.view?.webview.postMessage({
+      type: "setup",
+      text: "One-click install builds the local CLI and is only needed once.",
+    });
+  }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
     this.view = webviewView;
@@ -72,9 +95,12 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.pushState();
       } else if (msg.type === "cancel") {
         this.cancelReview();
+      } else if (msg.type === "install") {
+        await installGraphide(this.context, this);
       }
     });
     if (this.snapshot) this.pushState();
+    else this.notifySetup();
   }
 
   cancelReview() {
@@ -101,7 +127,18 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     }, 120);
     try {
       const root = packageRoot();
-      const cli = resolveCli();
+      let cli = findCli(this.context);
+      if (!cli) {
+        const go = await vscode.window.showInformationMessage(
+          "Graphide CLI is not installed yet.",
+          "Install"
+        );
+        if (go === "Install") {
+          await installGraphide(this.context, this);
+          cli = findCli(this.context);
+        }
+        if (!cli) throw new Error("Graphide CLI not found. Run Graphide: Install (one click).");
+      }
       const args = ["review", "--root", root, "--json", "--progress"];
       const parent = parentRoot();
       if (parent) args.push("--parent", parent);
@@ -151,6 +188,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       const text = e?.message ?? String(e);
       if (/cancelled|SIGTERM|SIGINT|killed/i.test(text)) {
         this.view?.webview.postMessage({ type: "cancelled" });
+      } else if (/ENOENT|not found|spawn/i.test(text)) {
+        this.view?.webview.postMessage({
+          type: "setup",
+          text: text,
+        });
       } else {
         this.view?.webview.postMessage({ type: "error", text });
       }
@@ -416,19 +458,136 @@ function configuredFlows(): string[] {
   return raw.map((s) => s.trim()).filter(Boolean);
 }
 
-function resolveCli(): string {
+function exeName() {
+  return process.platform === "win32" ? "graphide.exe" : "graphide";
+}
+
+function homeCliPath() {
+  return path.join(os.homedir(), ".graphide", exeName());
+}
+
+function looksLikeRepo(dir: string) {
+  return fs.existsSync(path.join(dir, "crates", "graphide-cli", "Cargo.toml"));
+}
+
+function findCli(context?: vscode.ExtensionContext): string | undefined {
   const cfg = vscode.workspace.getConfiguration("graphide");
   const configured = cfg.get<string>("cliPath")?.trim();
   if (configured && fs.existsSync(configured)) return configured;
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const candidates = [
-    folder && path.join(folder, "target", "debug", "graphide.exe"),
-    folder && path.join(folder, "target", "debug", "graphide"),
-    folder && path.join(folder, "target", "release", "graphide.exe"),
-    folder && path.join(folder, "target", "release", "graphide"),
+    homeCliPath(),
+    context && path.join(context.globalStorageUri.fsPath, exeName()),
+    context && path.join(context.extensionPath, "bin", exeName()),
+    folder && path.join(folder, "target", "release", exeName()),
+    folder && path.join(folder, "target", "debug", exeName()),
   ].filter(Boolean) as string[];
   for (const c of candidates) if (fs.existsSync(c)) return c;
-  return "graphide";
+  return undefined;
+}
+
+function findRepo(context: vscode.ExtensionContext): string | undefined {
+  const remembered = context.globalState.get<string>("graphide.repo");
+  if (remembered && looksLikeRepo(remembered)) return remembered;
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    if (looksLikeRepo(folder.uri.fsPath)) return folder.uri.fsPath;
+  }
+  const ext = context.extensionPath;
+  for (const dir of [path.dirname(ext), path.join(ext, "..", "..")]) {
+    const resolved = path.resolve(dir);
+    if (looksLikeRepo(resolved)) return resolved;
+  }
+  return undefined;
+}
+
+function toolPath(): string {
+  const home = os.homedir();
+  const extra = [
+    path.join(home, ".cargo", "bin"),
+    path.join(home, ".volta", "bin"),
+    path.join(home, ".local", "bin"),
+    "/opt/homebrew/bin",
+    "/opt/homebrew/opt/node/bin",
+    "/usr/local/bin",
+    "/snap/bin",
+  ];
+  if (process.platform === "win32") {
+    const la = process.env.LOCALAPPDATA || "";
+    extra.push(
+      path.join(la, "Programs", "Microsoft VS Code", "bin"),
+      path.join(la, "Programs", "cursor", "resources", "app", "bin"),
+      "C:\\Program Files\\nodejs"
+    );
+  }
+  return extra.concat(process.env.PATH || "").join(path.delimiter);
+}
+
+function runCmd(command: string, args: string[], cwd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = cp.spawn(command, args, {
+      cwd,
+      windowsHide: true,
+      shell: process.platform === "win32",
+      env: { ...process.env, PATH: toolPath() },
+    });
+    let err = "";
+    child.stderr?.on("data", (d: Buffer) => {
+      err += d.toString("utf8");
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error((err || `${command} exited ${code}`).trim()));
+    });
+  });
+}
+
+async function installGraphide(context: vscode.ExtensionContext, provider?: ReviewViewProvider) {
+  let repo = findRepo(context);
+  if (!repo) {
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: "Select the Graphide git repo (folder with install.cmd / install.sh)",
+    });
+    if (!picked?.[0]) return;
+    repo = picked[0].fsPath;
+    if (!looksLikeRepo(repo)) {
+      vscode.window.showErrorMessage("That folder is not a Graphide repo (missing crates/graphide-cli).");
+      return;
+    }
+  }
+  await context.globalState.update("graphide.repo", repo);
+  await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: "Graphide: installing CLI" },
+    async () => {
+      await runCmd("cargo", ["build", "-p", "graphide-cli", "--release"], repo);
+      const built = path.join(repo, "target", "release", exeName());
+      if (!fs.existsSync(built)) throw new Error(`Build did not produce ${built}`);
+      const dests = [
+        homeCliPath(),
+        path.join(context.globalStorageUri.fsPath, exeName()),
+        path.join(context.extensionPath, "bin", exeName()),
+      ];
+      for (const dest of dests) {
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        try {
+          fs.copyFileSync(built, dest);
+          if (process.platform !== "win32") fs.chmodSync(dest, 0o755);
+        } catch {
+          /* extension folder may be read-only */
+        }
+      }
+    }
+  );
+  const cli = findCli(context);
+  if (!cli) {
+    vscode.window.showErrorMessage("Install finished but the CLI is still missing.");
+    return;
+  }
+  vscode.window.showInformationMessage("Graphide is ready. Open the Graphide view and click Review.");
+  provider?.notifySetup();
 }
 
 type StreamEvent = { kind: "progress" | "preview"; data: any };
@@ -448,9 +607,8 @@ function parseStreamLine(line: string): StreamEvent | undefined {
   return undefined;
 }
 
-function warmCli() {
+function warmCli(cli: string) {
   try {
-    const cli = resolveCli();
     const child = cp.spawn(cli, ["--help"], { windowsHide: true, stdio: "ignore" });
     child.unref?.();
   } catch {
