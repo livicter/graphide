@@ -2,5 +2,7 @@
 **/node_modules/
 extension/out/
 extension/*.vsix
+extension/bin/graphide
+extension/bin/graphide.exe
 .DS_Store
 *.pdb

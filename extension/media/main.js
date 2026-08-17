@@ -127,13 +127,27 @@ window.addEventListener("message", (event) => {
     backBtn.disabled = true;
     canvas.className = "";
     canvas.innerHTML =
-      '<div class="empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review. A language exists when a plugin can extract it.</div></div>';
+      '<div class="empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div></div>';
     meta.textContent = "";
     coverage.textContent = "";
     tabs.innerHTML = "";
     status.textContent = "";
     setZoomUi(false);
     hideTip();
+    return;
+  }
+  if (msg.type === "setup") {
+    finishWork();
+    setZoomUi(false);
+    hideTip();
+    canvas.className = "";
+    canvas.innerHTML =
+      '<div class="empty"><b>Install Graphide once.</b><div>' +
+      esc(msg.text || "Builds the local CLI and is only needed the first time.") +
+      '</div><button id="installBtn" class="primary">Install</button></div>';
+    const btn = document.getElementById("installBtn");
+    if (btn) btn.onclick = () => vscode.postMessage({ type: "install" });
+    status.textContent = "needs install";
     return;
   }
   if (msg.type === "progress") {

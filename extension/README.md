@@ -1,25 +1,18 @@
 # Graphide Review
 
-Local VS Code / Cursor extension for the Graphide review panel.
+Review any local repo as a flow graph. The panel talks to a `graphide` binary.
 
-This package is the UI only. It shells out to a `graphide` binary you build from the repo root:
+## One click
 
-```bat
-cargo build -p graphide-cli
-```
+From the **repo root** (not this folder):
 
-Then set `graphide.cliPath` to that binary, for example:
+- Windows: double-click `install.cmd`
+- macOS / Linux: `./install.sh`
 
-`C:\Users\user\Documents\Git\graphide\target\debug\graphide.exe`
+Or in the editor: **Graphide: Install (one click)**.
 
-## Package and install (Windows)
+That builds the CLI into `%USERPROFILE%\.graphide\` (or `~/.graphide/`) and installs this VSIX. No `graphide.cliPath` needed.
 
-From `extension\`:
+## After install
 
-```bat
-npm install
-npm run package
-code --install-extension graphide-0.1.0.vsix
-```
-
-In Cursor, use `cursor` instead of `code`.
+Reload the window → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
