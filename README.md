@@ -2,27 +2,36 @@
 
 Review agent changes as flow graphs. Point the panel at any local repo.
 
-## One-click install (Windows)
+Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
-1. Double-click **`install.cmd`** in this folder (or right-click → Run).
+## Windows
+
+1. Double-click **`install.cmd`**.
 2. Reload VS Code or Cursor.
-3. Open the folder you want to review → **Graphide** in the activity bar → **Review**.
+3. Open the folder to review → **Graphide** → **Review**.
 
-That builds the CLI, installs the extension, and puts the binary in `%USERPROFILE%\.graphide\`. You do not set `graphide.cliPath`.
+The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. You do not set `graphide.cliPath`.
 
-Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. If `code` / `cursor` is missing, use **Extensions → … → Install from VSIX…** and pick `extension\graphide-0.1.0.vsix`.
+## macOS
 
-## One-click install (macOS / Linux)
+1. Double-click **`install.command`** (or run `bash install.sh` in Terminal).
+2. If macOS blocks it: right-click → Open.
+3. Reload the editor → **Graphide** → **Review**.
+
+The CLI is copied to `~/.graphide/graphide`.
+
+## Linux (Ubuntu)
 
 ```bash
-./install.sh
+sudo apt install build-essential
+bash install.sh
 ```
 
-Then reload the editor.
+Then reload the editor. If `code` is a Snap or not on PATH, use **Extensions → … → Install from VSIX…** and pick `extension/graphide-0.1.0.vsix`.
 
 ## Already have the extension?
 
-Command Palette → **Graphide: Install (one click)**. Same build + copy. Then Review.
+Command Palette → **Graphide: Install (one click)**. Same build + copy on Windows, macOS, and Linux.
 
 ## Prompt
 

@@ -500,12 +500,35 @@ function findRepo(context: vscode.ExtensionContext): string | undefined {
   return undefined;
 }
 
+function toolPath(): string {
+  const home = os.homedir();
+  const extra = [
+    path.join(home, ".cargo", "bin"),
+    path.join(home, ".volta", "bin"),
+    path.join(home, ".local", "bin"),
+    "/opt/homebrew/bin",
+    "/opt/homebrew/opt/node/bin",
+    "/usr/local/bin",
+    "/snap/bin",
+  ];
+  if (process.platform === "win32") {
+    const la = process.env.LOCALAPPDATA || "";
+    extra.push(
+      path.join(la, "Programs", "Microsoft VS Code", "bin"),
+      path.join(la, "Programs", "cursor", "resources", "app", "bin"),
+      "C:\\Program Files\\nodejs"
+    );
+  }
+  return extra.concat(process.env.PATH || "").join(path.delimiter);
+}
+
 function runCmd(command: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = cp.spawn(command, args, {
       cwd,
       windowsHide: true,
       shell: process.platform === "win32",
+      env: { ...process.env, PATH: toolPath() },
     });
     let err = "";
     child.stderr?.on("data", (d: Buffer) => {
@@ -526,7 +549,7 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
       canSelectFiles: false,
       canSelectFolders: true,
       canSelectMany: false,
-      title: "Select the Graphide git repo (the folder with install.cmd)",
+      title: "Select the Graphide git repo (folder with install.cmd / install.sh)",
     });
     if (!picked?.[0]) return;
     repo = picked[0].fsPath;
@@ -551,6 +574,7 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         try {
           fs.copyFileSync(built, dest);
+          if (process.platform !== "win32") fs.chmodSync(dest, 0o755);
         } catch {
           /* extension folder may be read-only */
         }
