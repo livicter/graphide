@@ -637,6 +637,12 @@ function enterRun(flow, bubble, fromEl) {
 }
 
 function goBack() {
+  if (stack[stack.length - 1]?.kind === "programs" && graphFilter.bubble) {
+    graphFilter.bubble = null;
+    selectedNodeId = null;
+    renderProgramOverview();
+    return;
+  }
   if (stack.length <= 1) return;
   const top = stack[stack.length - 1];
   if (top.kind === "flow") {
@@ -663,7 +669,7 @@ function paint(opts) {
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
   const top = stack[stack.length - 1];
-  backBtn.disabled = stack.length <= 1;
+  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
   if (top.kind === "programs") {
     renderProgramOverview();
     return;
@@ -1045,6 +1051,17 @@ function coarseBubbles() {
   return top.length ? top : bs;
 }
 
+/** First clustering cut under the program — not every function. */
+function mapAltitudeBubbles() {
+  const bs = (snapshot && snapshot.bubbles) || [];
+  const roots = bs.filter((b) => b.parent == null);
+  if (roots.length === 1) {
+    const kids = bs.filter((b) => b.parent != null && idVal(b.parent) === idVal(roots[0].id));
+    if (kids.length) return kids;
+  }
+  return roots.length ? roots : bs;
+}
+
 function bubbleOf(id) {
   const sid = idVal(id);
   for (const b of coarseBubbles()) {
@@ -1195,10 +1212,23 @@ function renderProgramOverview() {
   if (skipBtn) skipBtn.disabled = true;
   if (progFocus >= programs.length) progFocus = 0;
   const filt = graphFilter.program ? esc(graphFilter.program.name) : "all";
+  const bub = graphFilter.bubble
+    ? mapAltitudeBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble))
+    : null;
   meta.innerHTML =
-    '<span class="crumb">Review</span> / <b>map</b> · ' +
+    '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-up="map">map</button>' +
+    (bub ? " / <b>" + esc(bub.label || "bubble") + "</b>" : "") +
+    " · " +
     filt +
-    " · search / filter · click a node for inspect · a flow tab slices Steiner";
+    (bub
+      ? " · click a node to inspect"
+      : " · communities only — click a bubble, then a flow tab");
+  const up = meta.querySelector("[data-up=map]");
+  if (up)
+    up.onclick = () => {
+      graphFilter.bubble = null;
+      renderProgramOverview();
+    };
   setGraphChrome(true);
   renderLegend();
   renderCommunityGraph();
@@ -1306,7 +1336,6 @@ function layoutCommunity(nodes) {
 function renderLegend() {
   if (!legendEl) return;
   const programs = snapshot.programs || [];
-  const bubbles = coarseBubbles();
   let html = "";
   programs.forEach((p, i) => {
     const on = graphFilter.program && programKeyOf(graphFilter.program) === programKeyOf(p);
@@ -1327,19 +1356,6 @@ function renderLegend() {
       (!graphFilter.program ? " on" : "") +
       '" data-prog="-1">All programs</button>';
   }
-  bubbles.forEach((b) => {
-    const on = String(graphFilter.bubble) === idVal(b.id);
-    html +=
-      '<button type="button" class="leg' +
-      (on ? " on" : "") +
-      '" data-bubble="' +
-      idVal(b.id) +
-      '"><span class="dot" style="background:' +
-      colorOfBubble(b) +
-      '"></span>' +
-      esc(b.label || "bubble") +
-      "</button>";
-  });
   legendEl.innerHTML = html;
   legendEl.querySelectorAll("[data-prog]").forEach((el) => {
     el.onclick = () => {
@@ -1359,6 +1375,11 @@ function renderLegend() {
 }
 
 function renderCommunityGraph() {
+  const clusters = mapAltitudeBubbles();
+  if (!graphFilter.bubble && clusters.length > 1) {
+    renderBubbleMap(clusters);
+    return;
+  }
   const degrees = degreeMap();
   const nodes = pickCommunityNodes(degrees);
   if (!nodes.length) {
@@ -1426,14 +1447,14 @@ function renderCommunityGraph() {
       esc(n.kind) +
       '" data-file="' +
       esc(n.span?.file || "") +
-      '"><span class="lbl">' +
-      esc(shortOf(n.fqn)) +
-      "</span></button>";
+      '" title="' +
+      esc(n.fqn) +
+      '"></button>';
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Derived map — bubbles are communities, size is degree</div>' +
+    '<div class="flow-title">Inside this community — hover a node, click to inspect</div>' +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -1468,6 +1489,75 @@ function renderCommunityGraph() {
   });
   applyGraphFilter();
   if (selectedNodeId) peekSource(selectedNodeId);
+}
+
+function renderBubbleMap(clusters) {
+  clusters = clusters
+    .slice()
+    .sort((a, b) => (b.members || []).length - (a.members || []).length)
+    .slice(0, 24);
+  const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(clusters.length))));
+  const cell = 108;
+  const W = Math.max(440, cols * cell + 24);
+  const rows = Math.ceil(clusters.length / cols);
+  const H = Math.max(260, rows * cell + 24);
+  let html = "";
+  clusters.forEach((b, i) => {
+    const n = (b.members || []).length;
+    const size = 78;
+    const x = 12 + (i % cols) * cell + cell / 2;
+    const y = 12 + Math.floor(i / cols) * cell + cell / 2;
+    const marks = bubbleMarks(b);
+    html +=
+      '<button type="button" class="bubble-card" style="left:' +
+      x +
+      "px;top:" +
+      y +
+      "px;width:" +
+      size +
+      "px;height:" +
+      size +
+      "px;--c:" +
+      colorOfBubble(b) +
+      '" data-bubble="' +
+      idVal(b.id) +
+      '"><span class="name">' +
+      esc(shortOf(b.label) || "bubble") +
+      '</span><span class="meta">' +
+      n +
+      (n === 1 ? " node" : " nodes") +
+      (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
+      "</span></button>";
+  });
+  canvas.className = "play has-stage programs-view";
+  canvas.innerHTML =
+    '<div class="stage"><div class="viewport" data-lod="0">' +
+    '<div class="flow-title">Communities — click one to see its nodes</div>' +
+    '<div class="comm-wrap" style="width:' +
+    W +
+    "px;height:" +
+    H +
+    'px">' +
+    html +
+    "</div></div></div>";
+  bindStage(canvas.querySelector(".stage"), { reset: true });
+  setZoomUi(true);
+  canvas.querySelectorAll(".bubble-card").forEach((el) => {
+    el.onclick = () => {
+      graphFilter.bubble = el.getAttribute("data-bubble");
+      selectedNodeId = null;
+      renderProgramOverview();
+    };
+  });
+}
+
+function bubbleMarks(b) {
+  const mem = new Set((b.members || []).map((m) => idVal(m)));
+  let uncovered = 0;
+  for (const id of (snapshot.coverage && snapshot.coverage.uncovered) || []) {
+    if (mem.has(idVal(id))) uncovered++;
+  }
+  return { uncovered };
 }
 
 function highlightCommunity(id) {
@@ -1932,40 +2022,34 @@ function renderCoverage(cov, findings, graph) {
     }
   }
   if (uncovered.length && graph) {
-    html +=
-      "<ul>" +
-      uncovered
-        .slice(0, 12)
-        .map((id) => '<li class="finding">' + esc(fqnOf(graph, id)) + "</li>")
-        .join("") +
-      (uncovered.length > 12 ? "<li>…</li>" : "") +
-      "</ul>";
+    const sample = uncovered
+      .slice(0, 3)
+      .map((id) => shortOf(fqnOf(graph, id)))
+      .filter(Boolean);
+    if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
+    if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
   }
-  const interesting = (findings || []).filter(
-    (f) => f.kind === "UnmatchedHint" || f.kind === "UncoveredNode" || f.kind === "StampBroken"
-  );
-  if (interesting.length) {
+  const scars = (findings || []).filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
+  if (scars.length) {
     html +=
       "<ul>" +
-      interesting
-        .slice(0, 8)
+      scars
+        .slice(0, 4)
         .map((f) => {
           if (f.kind === "UnmatchedHint")
             return '<li class="finding">unmatched ' + esc(f.fqn) + " in " + esc(f.flow) + "</li>";
-          if (f.kind === "UncoveredNode") return '<li class="finding">uncovered ' + esc(f.fqn) + "</li>";
-          if (f.kind === "StampBroken")
-            return (
-              '<li class="finding">stamp broken ' +
-              esc(f.flow) +
-              " · +" +
-              (f.added || []).length +
-              " / −" +
-              (f.removed || []).length +
-              "</li>"
-            );
-          return '<li class="finding">' + esc(f.kind) + "</li>";
+          return (
+            '<li class="finding">stamp broken ' +
+            esc(f.flow) +
+            " · +" +
+            (f.added || []).length +
+            " / −" +
+            (f.removed || []).length +
+            "</li>"
+          );
         })
         .join("") +
+      (scars.length > 4 ? "<li>…</li>" : "") +
       "</ul>";
   }
   coverage.innerHTML = html;
