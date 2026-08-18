@@ -37,7 +37,7 @@ Command Palette → **Graphide: Install (one click)**. Same build + copy on Wind
 
 Open that repo (e.g. SolarSim) and click **Review**. Do **not** run `cargo build -p graphide-cli` there — that package only exists in this Graphide source repo. Use `%USERPROFILE%\.graphide\graphide.exe` (or `~/.graphide/graphide`) instead.
 
-After Review, a repo with more than one binary or crate opens on a **program overview**. Pick a bin (or All) to open its flowchart. Zoom the flowchart (`+`, wheel, or click a node) to reveal file:line and source on the same canvas — zoom does not change clustering altitude. **Enter** (double-click a run) is still a world jump one level down.
+After Review, a repo with more than one binary or crate opens on a **program map** (a file projection, with Imports/Calls drawn between bins). Click a binary — or use arrows and Enter — to open its flowchart. Zoom the flowchart (`+`, wheel, or click a node) to reveal file:line and source. Click a node to keep a **source pane** beside the map (SPEC: the map stays; the span is lit). Zoom does not change clustering altitude. **Enter** (click a run) is still a world jump one level down.
 
 ## Prompt
 
