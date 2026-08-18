@@ -30,6 +30,12 @@ const srcTitle = document.getElementById("srcTitle");
 const srcBody = document.getElementById("srcBody");
 const srcEditor = document.getElementById("srcEditor");
 const srcClose = document.getElementById("srcClose");
+const graphBar = document.getElementById("graphBar");
+const graphSearch = document.getElementById("graphSearch");
+const kindFilters = document.getElementById("kindFilters");
+const legendEl = document.getElementById("legend");
+const inspMeta = document.getElementById("inspMeta");
+const inspEdges = document.getElementById("inspEdges");
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -66,8 +72,10 @@ let camRaf = 0;
 let progFocus = 0;
 let selectedNodeId = null;
 let sourceId = null;
+let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
+const BUBBLE_COLORS = ["#4ec9b0", "#569cd6", "#c586c0", "#dcdcaa", "#ce9178", "#9cdcfe", "#d7ba7d", "#3fb950", "#f85149", "#8b949e"];
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -154,11 +162,22 @@ if (zoomFitBtn) zoomFitBtn.onclick = () => setCamTarget(0, 0, 1);
 if (srcClose) srcClose.onclick = () => closeSourcePane();
 if (srcEditor)
   srcEditor.onclick = () => {
+    if (!sourceId) return;
     const flow = currentFlow();
-    if (sourceId && flow) {
-      vscode.postMessage({ type: "enterNode", flow: flow.name, id: sourceId, isLeaf: true });
-    }
+    vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
   };
+if (graphSearch)
+  graphSearch.addEventListener("input", () => {
+    graphFilter.q = graphSearch.value.trim();
+    applyGraphFilter();
+  });
+if (kindFilters)
+  kindFilters.querySelectorAll("input").forEach((el) => {
+    el.addEventListener("change", () => {
+      graphFilter.kinds[el.getAttribute("data-kind")] = el.checked;
+      applyGraphFilter();
+    });
+  });
 if (stampBtn)
   stampBtn.onclick = () => {
     const flow = currentFlow();
@@ -205,6 +224,7 @@ window.addEventListener("message", (event) => {
     setZoomUi(false);
     hideTip();
     closeSourcePane();
+    setGraphChrome(false);
     return;
   }
   if (msg.type === "setup") {
@@ -219,6 +239,7 @@ window.addEventListener("message", (event) => {
     const btn = document.getElementById("installBtn");
     if (btn) btn.onclick = () => vscode.postMessage({ type: "install" });
     status.textContent = "needs install";
+    setGraphChrome(false);
     return;
   }
   if (msg.type === "progress") {
@@ -348,14 +369,14 @@ function applySnapshot(msg, inner) {
   };
   if (msg.flow?.name) flowName = msg.flow.name;
   else if (!flowName && snapshot.flows[0]) flowName = snapshot.flows[0].name;
-  const many = (snapshot.programs || []).length > 1;
   if (inner) {
-    stack = (many ? [{ kind: "programs" }] : []).concat([
+    stack = [
+      { kind: "programs" },
       { kind: "flow" },
       { kind: "bubble", flow: msg.inner.flow, bubble: String(msg.inner.bubble) },
-    ]);
+    ];
   } else {
-    stack = many ? [{ kind: "programs" }, { kind: "flow" }] : [{ kind: "flow" }];
+    stack = [{ kind: "programs" }, { kind: "flow" }];
   }
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
@@ -390,6 +411,10 @@ function clamp(n, lo, hi) {
 function setZoomUi(on) {
   if (zoomBar) zoomBar.hidden = !on;
   if (on) updateZoomPct();
+}
+
+function setGraphChrome(on) {
+  if (graphBar) graphBar.hidden = !on;
 }
 
 function updateZoomPct() {
@@ -948,9 +973,92 @@ function showSource(msg) {
   if (workspace) workspace.classList.add("has-source");
   const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
   if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
+  fillInspect(msg);
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
   if (hot) hot.scrollIntoView({ block: "center" });
+}
+
+function fillInspect(msg) {
+  const id = msg.id;
+  const node = nodeById.get(idVal(id));
+  const deg = incidentEdges(id).length;
+  const bub = bubbleOf(id);
+  const file = msg.file || node?.span?.file || "";
+  const prog = file ? assignProgram(file, (snapshot && snapshot.programs) || []) : null;
+  const flags = nodeFlags(id);
+  if (inspMeta) {
+    const rows = [
+      ["kind", msg.kind || (node && node.kind) || ""],
+      ["degree", String(deg)],
+      ["bubble", bub ? bub.label || idVal(bub.id) : "—"],
+      ["program", prog ? prog.kind + " " + prog.name : "—"],
+      ["mark", flags.uncovered ? "uncovered" : flags.changed ? "changed" : "—"],
+    ];
+    inspMeta.innerHTML = rows
+      .map((r) => '<div class="row"><span class="k">' + esc(r[0]) + '</span><span>' + esc(r[1]) + "</span></div>")
+      .join("");
+  }
+  if (inspEdges) {
+    const edges = incidentEdges(id).slice(0, 18);
+    inspEdges.innerHTML = edges.length
+      ? edges
+          .map((e) => {
+            const other = e.dir === "out" ? e.to : e.from;
+            return (
+              '<div class="row" data-id="' +
+              esc(other) +
+              '"><span class="k">' +
+              esc(e.kind) +
+              " " +
+              (e.dir === "out" ? "→" : "←") +
+              '</span><span>' +
+              esc(shortOf(fqnOf(snapshot.graph, other))) +
+              "</span></div>"
+            );
+          })
+          .join("")
+      : '<div class="row"><span class="k">edges</span><span>none on the derived graph</span></div>';
+    inspEdges.querySelectorAll("[data-id]").forEach((el) => {
+      el.onclick = () => {
+        selectedNodeId = el.getAttribute("data-id");
+        highlightCommunity(selectedNodeId);
+        peekSource(selectedNodeId);
+      };
+    });
+  }
+}
+
+function incidentEdges(id) {
+  const sid = idVal(id);
+  const out = [];
+  for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
+    if (idVal(e.from) === sid) out.push({ dir: "out", kind: e.kind, from: sid, to: idVal(e.to) });
+    else if (idVal(e.to) === sid) out.push({ dir: "in", kind: e.kind, from: idVal(e.from), to: sid });
+  }
+  return out;
+}
+
+function coarseBubbles() {
+  const bs = (snapshot && snapshot.bubbles) || [];
+  const top = bs.filter((b) => b.parent == null);
+  return top.length ? top : bs;
+}
+
+function bubbleOf(id) {
+  const sid = idVal(id);
+  for (const b of coarseBubbles()) {
+    if ((b.members || []).some((m) => idVal(m) === sid)) return b;
+  }
+  return null;
+}
+
+function colorOfBubble(b) {
+  if (!b) return BUBBLE_COLORS[BUBBLE_COLORS.length - 1];
+  let h = 0;
+  const s = String(idVal(b.id));
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return BUBBLE_COLORS[Math.abs(h) % BUBBLE_COLORS.length];
 }
 
 function renderSourceLines(msg) {
@@ -981,6 +1089,8 @@ function closeSourcePane() {
   sourcePane.hidden = true;
   if (workspace) workspace.classList.remove("has-source");
   if (srcBody) srcBody.innerHTML = "";
+  if (inspMeta) inspMeta.innerHTML = "";
+  if (inspEdges) inspEdges.innerHTML = "";
   sourceId = null;
   return true;
 }
@@ -1037,9 +1147,8 @@ function moveProgFocus(delta) {
   const n = (snapshot && snapshot.programs) || [];
   if (!n.length) return;
   progFocus = (progFocus + delta + n.length) % n.length;
-  canvas.querySelectorAll(".prog-chip").forEach((el) => {
-    el.classList.toggle("on", Number(el.getAttribute("data-i")) === progFocus);
-  });
+  graphFilter.program = n[progFocus];
+  renderProgramOverview();
 }
 
 function openAllPrograms() {
@@ -1078,134 +1187,308 @@ function openProgram(p, fromEl) {
 
 function renderProgramOverview() {
   const programs = snapshot.programs || [];
-  const flows = snapshot.flows || [];
-  renderTabs([]);
+  renderTabs(snapshot.flows || [], null);
   renderStats(snapshot);
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
   hideTip();
-  closeSourcePane();
   if (stampBtn) stampBtn.disabled = true;
   if (skipBtn) skipBtn.disabled = true;
   if (progFocus >= programs.length) progFocus = 0;
+  const filt = graphFilter.program ? esc(graphFilter.program.name) : "all";
   meta.innerHTML =
-    '<span class="crumb">Review</span> / <b>programs</b> · click a binary · arrows + Enter · <button type="button" class="crumb-btn" data-all="1">All</button>';
-  const allBtn = meta.querySelector("[data-all]");
-  if (allBtn) allBtn.onclick = () => openAllPrograms();
-  const laid = layoutPrograms(programs);
-  const W = Math.max(560, 200 + programs.length * 70);
-  const H = Math.max(300, 220 + programs.length * 18);
-  const keyAt = {};
-  laid.forEach((row) => {
-    keyAt[programKeyOf(row.p)] = row;
+    '<span class="crumb">Review</span> / <b>map</b> · ' +
+    filt +
+    " · search / filter · click a node for inspect · a flow tab slices Steiner";
+  setGraphChrome(true);
+  renderLegend();
+  renderCommunityGraph();
+}
+
+function degreeMap() {
+  const m = new Map();
+  for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
+    m.set(idVal(e.from), (m.get(idVal(e.from)) || 0) + 1);
+    m.set(idVal(e.to), (m.get(idVal(e.to)) || 0) + 1);
+  }
+  return m;
+}
+
+function pickCommunityNodes(degrees) {
+  const must = new Set();
+  for (const id of ((snapshot.coverage && snapshot.coverage.uncovered) || []).concat(
+    (snapshot.coverage && snapshot.coverage.changed) || []
+  )) {
+    must.add(idVal(id));
+  }
+  for (const f of snapshot.flows || []) {
+    for (const id of f.tree?.nodes || []) must.add(idVal(id));
+  }
+  let nodes = ((snapshot.graph && snapshot.graph.nodes) || []).slice();
+  if (graphFilter.program) {
+    const want = programKeyOf(graphFilter.program);
+    nodes = nodes.filter(
+      (n) => n.span?.file && programKeyOf(assignProgram(n.span.file, snapshot.programs || [])) === want
+    );
+  }
+  if (graphFilter.bubble) {
+    const bub = coarseBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble));
+    const mem = new Set((bub?.members || []).map((m) => idVal(m)));
+    nodes = nodes.filter((n) => mem.has(idVal(n.id)));
+  }
+  nodes = nodes.filter((n) => graphFilter.kinds[n.kind] !== false);
+  const scored = nodes.map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0, must: must.has(idVal(n.id)) }));
+  scored.sort((a, b) => Number(b.must) - Number(a.must) || b.d - a.d);
+  return scored.slice(0, 160).map((x) => x.n);
+}
+
+function layoutCommunity(nodes) {
+  const W = 740,
+    H = 520;
+  const groups = new Map();
+  for (const n of nodes) {
+    const b = bubbleOf(n.id);
+    const key = b ? idVal(b.id) : "_";
+    if (!groups.has(key)) groups.set(key, { b, members: [] });
+    groups.get(key).members.push(n);
+  }
+  const keys = [...groups.keys()];
+  const cx = W / 2,
+    cy = H / 2;
+  const R = Math.min(W, H) * 0.32;
+  const centers = new Map();
+  keys.forEach((k, i) => {
+    const a = -Math.PI / 2 + (i / Math.max(keys.length, 1)) * Math.PI * 2;
+    centers.set(k, {
+      x: keys.length === 1 ? cx : cx + Math.cos(a) * R,
+      y: keys.length === 1 ? cy : cy + Math.sin(a) * R,
+    });
   });
-  const links = programLinks();
-  let svg =
-    '<svg class="links" viewBox="0 0 ' +
-    W +
-    " " +
-    H +
-    '" width="' +
-    W +
-    '" height="' +
-    H +
-    '">';
-  for (const link of links) {
-    const a = keyAt[link.from];
-    const b = keyAt[link.to];
-    if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2 - 10;
+  const pos = new Map();
+  for (const [k, g] of groups) {
+    const c = centers.get(k);
+    g.members.forEach((n, i) => {
+      const a = (i / Math.max(g.members.length, 1)) * Math.PI * 2;
+      const r = 16 + Math.min(72, g.members.length * 4);
+      pos.set(idVal(n.id), { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r });
+    });
+  }
+  const ids = nodes.map((n) => idVal(n.id));
+  for (let t = 0; t < 24; t++) {
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = pos.get(ids[i]),
+          b = pos.get(ids[j]);
+        const dx = a.x - b.x,
+          dy = a.y - b.y;
+        const dist = Math.hypot(dx, dy) || 0.1;
+        if (dist < 22) {
+          const f = ((22 - dist) / dist) * 0.35;
+          a.x += dx * f;
+          a.y += dy * f;
+          b.x -= dx * f;
+          b.y -= dy * f;
+        }
+      }
+    }
+    for (const n of nodes) {
+      const p = pos.get(idVal(n.id));
+      const b = bubbleOf(n.id);
+      const c = centers.get(b ? idVal(b.id) : "_");
+      p.x += (c.x - p.x) * 0.05;
+      p.y += (c.y - p.y) * 0.05;
+      p.x = clamp(p.x, 22, W - 22);
+      p.y = clamp(p.y, 22, H - 22);
+    }
+  }
+  return { W, H, pos };
+}
+
+function renderLegend() {
+  if (!legendEl) return;
+  const programs = snapshot.programs || [];
+  const bubbles = coarseBubbles();
+  let html = "";
+  programs.forEach((p, i) => {
+    const on = graphFilter.program && programKeyOf(graphFilter.program) === programKeyOf(p);
+    html +=
+      '<button type="button" class="leg' +
+      (on ? " on" : "") +
+      '" data-prog="' +
+      i +
+      '">' +
+      esc(p.kind) +
+      " " +
+      esc(p.name) +
+      "</button>";
+  });
+  if (programs.length > 1) {
+    html +=
+      '<button type="button" class="leg' +
+      (!graphFilter.program ? " on" : "") +
+      '" data-prog="-1">All programs</button>';
+  }
+  bubbles.forEach((b) => {
+    const on = String(graphFilter.bubble) === idVal(b.id);
+    html +=
+      '<button type="button" class="leg' +
+      (on ? " on" : "") +
+      '" data-bubble="' +
+      idVal(b.id) +
+      '"><span class="dot" style="background:' +
+      colorOfBubble(b) +
+      '"></span>' +
+      esc(b.label || "bubble") +
+      "</button>";
+  });
+  legendEl.innerHTML = html;
+  legendEl.querySelectorAll("[data-prog]").forEach((el) => {
+    el.onclick = () => {
+      const i = Number(el.getAttribute("data-prog"));
+      graphFilter.program = i >= 0 ? programs[i] : null;
+      progFocus = i >= 0 ? i : 0;
+      renderProgramOverview();
+    };
+  });
+  legendEl.querySelectorAll("[data-bubble]").forEach((el) => {
+    el.onclick = () => {
+      const id = el.getAttribute("data-bubble");
+      graphFilter.bubble = String(graphFilter.bubble) === id ? null : id;
+      renderProgramOverview();
+    };
+  });
+}
+
+function renderCommunityGraph() {
+  const degrees = degreeMap();
+  const nodes = pickCommunityNodes(degrees);
+  if (!nodes.length) {
+    canvas.className = "play";
+    canvas.innerHTML = '<div class="empty">No derived nodes in this filter. Clear the legend or kinds.</div>';
+    setZoomUi(false);
+    return;
+  }
+  const { W, H, pos } = layoutCommunity(nodes);
+  const picked = new Set(nodes.map((n) => idVal(n.id)));
+  let svg = '<svg class="comm-edges" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
+  let nEdge = 0;
+  for (const e of snapshot.graph?.edges || []) {
+    const a = idVal(e.from),
+      b = idVal(e.to);
+    if (!picked.has(a) || !picked.has(b)) continue;
+    const pa = pos.get(a),
+      pb = pos.get(b);
+    if (!pa || !pb) continue;
     svg +=
-      '<path d="M' +
-      a.x +
+      '<path data-from="' +
+      a +
+      '" data-to="' +
+      b +
+      '" d="M' +
+      pa.x +
       "," +
-      a.y +
-      " C" +
-      mx +
+      pa.y +
+      " L" +
+      pb.x +
       "," +
-      a.y +
-      " " +
-      mx +
-      "," +
-      b.y +
-      " " +
-      b.x +
-      "," +
-      b.y +
+      pb.y +
       '" />';
-    svg +=
-      '<text x="' +
-      mx +
-      '" y="' +
-      my +
-      '" text-anchor="middle">' +
-      esc(link.kind) +
-      (link.count > 1 ? " ×" + link.count : "") +
-      "</text>";
+    if (++nEdge > 280) break;
   }
   svg += "</svg>";
-  let chips = "";
-  for (const row of laid) {
-    const p = row.p;
-    const marks = programMarks(p);
-    const entry = (p.entries || [])[0] ? shortOf(p.entries[0]) : "";
-    chips +=
-      '<button type="button" class="prog-chip ' +
-      esc(p.kind) +
-      (row.i === progFocus ? " on" : "") +
+  let dots = "";
+  for (const n of nodes) {
+    const id = idVal(n.id);
+    const p = pos.get(id);
+    if (!p) continue;
+    const deg = degrees.get(id) || 1;
+    const size = 8 + Math.min(16, Math.sqrt(deg) * 3.2);
+    const bub = bubbleOf(id);
+    const flags = nodeFlags(id);
+    dots +=
+      '<button type="button" class="comm-node' +
+      (selectedNodeId === id ? " selected" : "") +
+      (flags.uncovered ? " uncovered" : "") +
       '" style="left:' +
-      row.x +
+      p.x +
       "px;top:" +
-      row.y +
-      'px" data-i="' +
-      row.i +
+      p.y +
+      "px;width:" +
+      size +
+      "px;height:" +
+      size +
+      "px;background:" +
+      colorOfBubble(bub) +
+      '" data-id="' +
+      id +
+      '" data-fqn="' +
+      esc(n.fqn) +
       '" data-kind="' +
-      esc(p.kind) +
-      '" data-name="' +
-      esc(p.name) +
-      '" data-root="' +
-      esc(p.root || "") +
-      '">';
-    chips += '<span class="kind">' + esc(p.kind) + "</span>";
-    chips += "<b>" + esc(p.name) + "</b>";
-    chips += '<span class="root">' + esc(p.root || ".") + "</span>";
-    chips +=
-      '<span class="meta">' +
-      (p.nodes || 0) +
-      " nodes" +
-      (entry ? " · " + esc(entry) : "") +
-      "</span>";
-    chips += '<span class="badges">';
-    if (marks.flows) chips += '<span class="badge">' + marks.flows + (marks.flows === 1 ? " flow" : " flows") + "</span>";
-    if (marks.uncovered) chips += '<span class="badge warn">' + marks.uncovered + " uncovered</span>";
-    chips += "</span></button>";
+      esc(n.kind) +
+      '" data-file="' +
+      esc(n.span?.file || "") +
+      '"><span class="lbl">' +
+      esc(shortOf(n.fqn)) +
+      "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Programs — file projection</div>' +
-    '<div class="prog-map" style="width:' +
+    '<div class="flow-title">Derived map — bubbles are communities, size is degree</div>' +
+    '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
     H +
     'px">' +
     svg +
-    chips +
+    dots +
     "</div></div></div>";
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
-  canvas.querySelectorAll(".prog-chip").forEach((el) => {
-    el.onclick = () => {
-      progFocus = Number(el.getAttribute("data-i")) || 0;
-      openProgram(
-        {
-          kind: el.getAttribute("data-kind"),
-          name: el.getAttribute("data-name"),
-          root: el.getAttribute("data-root") || "",
-        },
-        el
-      );
-    };
+  canvas.querySelectorAll(".comm-node").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    el.addEventListener("pointerenter", (ev) => {
+      highlightCommunity(id);
+      showTip(el.getAttribute("data-fqn"), ev);
+    });
+    el.addEventListener("pointerleave", () => {
+      highlightCommunity(selectedNodeId);
+      hideTip();
+    });
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      selectedNodeId = id;
+      highlightCommunity(id);
+      peekSource(id);
+    });
+    el.addEventListener("dblclick", (ev) => {
+      ev.stopPropagation();
+      const p = assignProgram(el.getAttribute("data-file") || "", snapshot.programs || []);
+      if (p) openProgram(p, el);
+    });
+  });
+  applyGraphFilter();
+  if (selectedNodeId) peekSource(selectedNodeId);
+}
+
+function highlightCommunity(id) {
+  const sid = id ? String(id) : "";
+  canvas.querySelectorAll(".comm-node").forEach((el) => {
+    el.classList.toggle("selected", el.getAttribute("data-id") === sid);
+  });
+  canvas.querySelectorAll(".comm-edges path").forEach((el) => {
+    el.classList.toggle("hot", el.getAttribute("data-from") === sid || el.getAttribute("data-to") === sid);
+  });
+}
+
+function applyGraphFilter() {
+  const q = (graphFilter.q || "").toLowerCase();
+  canvas.querySelectorAll(".comm-node, .vnode").forEach((el) => {
+    const fqn = (el.getAttribute("data-fqn") || "").toLowerCase();
+    const file = (el.getAttribute("data-file") || "").toLowerCase();
+    const kind = el.getAttribute("data-kind") || "";
+    const match = (!q || fqn.includes(q) || file.includes(q)) && graphFilter.kinds[kind] !== false;
+    el.classList.toggle("dim", !match);
+    el.classList.toggle("hit", !!(q && match));
   });
 }
 
@@ -1265,10 +1548,8 @@ function renderFlowchart(msg, opts) {
     return;
   }
   const prog = snapshot && snapshot.program;
-  const many = snapshot && (snapshot.programs || []).length > 1;
-  let crumb = many
-    ? '<button type="button" class="crumb-btn" data-go="programs">Programs</button>'
-    : '<span class="crumb">Review</span>';
+  setGraphChrome(true);
+  let crumb = '<button type="button" class="crumb-btn" data-go="programs">Map</button>';
   if (prog) crumb += " / <b>" + esc(prog.name) + "</b>";
   crumb +=
     " / <b>" +
@@ -1301,6 +1582,7 @@ function renderFlowchart(msg, opts) {
   bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
   bindGraphFx();
   setZoomUi(true);
+  applyGraphFilter();
 }
 
 function stampBadge(name) {
@@ -1440,6 +1722,10 @@ function renderSteiner(flow, graph, animate, scars) {
       nid +
       '" data-fqn="' +
       esc(fqn) +
+      '" data-kind="' +
+      esc(kindOf(graph, id) || "") +
+      '" data-file="' +
+      esc(file) +
       '">';
     cards += '<span class="kind">' + esc(kindOf(graph, id) || "Function") + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
@@ -1560,11 +1846,8 @@ function renderInner(msg, animate) {
   renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, null);
-  const many = snapshot && (snapshot.programs || []).length > 1;
   meta.innerHTML =
-    (many
-      ? '<button type="button" class="crumb-btn" data-go="programs">Programs</button> / '
-      : '<span class="crumb">Review</span> / ') +
+    '<button type="button" class="crumb-btn" data-go="programs">Map</button> / ' +
     esc(inner.flow) +
     " / <b>enter</b> · walk lit, siblings grey";
   const backToPrograms = meta.querySelector("[data-go=programs]");

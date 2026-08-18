@@ -20,6 +20,6 @@ The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Review tar
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
 
-If the repo has more than one binary or crate, Review opens a program map first. Pick a bin (arrows + Enter, or All), then zoom the flowchart. Click a node to keep its source pane beside the map.
+Review opens a community map of the derived graph (search, filters, inspect rail). Flow tabs slice Steiner. Click a node to inspect source beside the map. Not a Graphify embed — same page shape, Graphide objects.
 
 **Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.
