@@ -4,8 +4,11 @@ import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
 
+const log = vscode.window.createOutputChannel("Graphide");
+
 export function activate(context: vscode.ExtensionContext) {
   const provider = new ReviewViewProvider(context);
+  context.subscriptions.push(log);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ReviewViewProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -24,8 +27,19 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("graphide.skip", () => provider.skipFlow())
   );
   setTimeout(() => {
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+    log.appendLine("activate");
+    log.appendLine("workspace=" + folder);
+    log.appendLine("extension=" + context.extensionPath);
     const cli = findCli(context);
-    if (cli) warmCli(cli);
+    if (cli) {
+      log.appendLine("cli=" + cli);
+      pinCli(context, cli);
+      warmCli(cli);
+    } else {
+      log.appendLine("ERROR CLI missing. Searched:");
+      for (const p of cliCandidates(context)) log.appendLine("  " + p);
+    }
   }, 0);
 }
 
@@ -75,7 +89,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     }
     this.view?.webview.postMessage({
       type: "setup",
-      text: "One-click install builds the local CLI and is only needed once.",
+      text:
+        "The CLI is missing. Install once — it is copied to ~/.graphide and then reviews any folder, including this one.",
     });
   }
 
@@ -139,6 +154,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     try {
       const root = packageRoot();
       let cli = findCli(this.context);
+      if (cli) pinCli(this.context, cli);
       if (!cli) {
         const go = await vscode.window.showInformationMessage(
           "Graphide CLI is not installed yet.",
@@ -148,7 +164,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           await installGraphide(this.context, this);
           cli = findCli(this.context);
         }
-        if (!cli) throw new Error("Graphide CLI not found. Run Graphide: Install (one click).");
+        if (!cli) {
+          throw new Error(
+            "Graphide CLI not found. Click Install, or from the Graphide repo run install.cmd / install.sh. The binary goes to ~/.graphide and works in any workspace."
+          );
+        }
       }
       const args = ["review", "--root", root, "--json", "--progress"];
       const parent = parentRoot();
@@ -577,34 +597,137 @@ function looksLikeRepo(dir: string) {
   return fs.existsSync(path.join(dir, "crates", "graphide-cli", "Cargo.toml"));
 }
 
-function findCli(context?: vscode.ExtensionContext): string | undefined {
-  const cfg = vscode.workspace.getConfiguration("graphide");
-  const configured = cfg.get<string>("cliPath")?.trim();
-  if (configured && fs.existsSync(configured)) return configured;
-  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const candidates = [
-    homeCliPath(),
-    context && path.join(context.globalStorageUri.fsPath, exeName()),
-    context && path.join(context.extensionPath, "bin", exeName()),
-    folder && path.join(folder, "target", "release", exeName()),
-    folder && path.join(folder, "target", "debug", exeName()),
-  ].filter(Boolean) as string[];
-  for (const c of candidates) if (fs.existsSync(c)) return c;
+function fileIfExists(p?: string | null): string | undefined {
+  if (!p) return undefined;
+  try {
+    if (fs.existsSync(p) && fs.statSync(p).isFile()) return p;
+  } catch {
+    /* ignore */
+  }
   return undefined;
 }
 
-function findRepo(context: vscode.ExtensionContext): string | undefined {
-  const remembered = context.globalState.get<string>("graphide.repo");
-  if (remembered && looksLikeRepo(remembered)) return remembered;
-  for (const folder of vscode.workspace.workspaceFolders ?? []) {
-    if (looksLikeRepo(folder.uri.fsPath)) return folder.uri.fsPath;
-  }
-  const ext = context.extensionPath;
-  for (const dir of [path.dirname(ext), path.join(ext, "..", "..")]) {
-    const resolved = path.resolve(dir);
-    if (looksLikeRepo(resolved)) return resolved;
+function builtCli(repo: string): string | undefined {
+  return (
+    fileIfExists(path.join(repo, "target", "release", exeName())) ||
+    fileIfExists(path.join(repo, "extension", "bin", exeName())) ||
+    fileIfExists(path.join(repo, "target", "debug", exeName()))
+  );
+}
+
+function whichOnPath(): string | undefined {
+  try {
+    const cmd = process.platform === "win32" ? "where" : "which";
+    const out = cp.execFileSync(cmd, [exeName()], {
+      encoding: "utf8",
+      timeout: 4000,
+      windowsHide: true,
+      env: { ...process.env, PATH: toolPath() },
+    });
+    for (const line of out.split(/\r?\n/)) {
+      const hit = fileIfExists(line.trim());
+      if (hit) return hit;
+    }
+  } catch {
+    /* not on PATH */
   }
   return undefined;
+}
+
+function repoGuesses(context?: vscode.ExtensionContext): string[] {
+  const out: string[] = [];
+  const remembered = context?.globalState.get<string>("graphide.repo");
+  if (remembered) out.push(remembered);
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    const root = folder.uri.fsPath;
+    out.push(root, path.join(root, "..", "graphide"), path.join(root, "..", "Graphide"));
+  }
+  const home = os.homedir();
+  out.push(
+    path.join(home, "Documents", "Git", "graphide"),
+    path.join(home, "Documents", "git", "graphide"),
+    path.join(home, "Documents", "GitHub", "graphide"),
+    path.join(home, "source", "graphide"),
+    path.join(home, "src", "graphide"),
+    path.join(home, "dev", "graphide"),
+    path.join(home, "graphide")
+  );
+  if (context) {
+    const ext = context.extensionPath;
+    out.push(path.dirname(ext), path.resolve(ext, "..", ".."), path.resolve(ext, "..", "..", ".."));
+  }
+  return out.map((p) => path.resolve(p));
+}
+
+function findRepo(context?: vscode.ExtensionContext): string | undefined {
+  const seen = new Set<string>();
+  for (const dir of repoGuesses(context)) {
+    const key = dir.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (looksLikeRepo(dir)) return dir;
+  }
+  return undefined;
+}
+
+function cliCandidates(context?: vscode.ExtensionContext): string[] {
+  const cfg = vscode.workspace.getConfiguration("graphide");
+  const configured = cfg.get<string>("cliPath")?.trim();
+  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const list = [
+    configured,
+    homeCliPath(),
+    context && path.join(context.globalStorageUri.fsPath, exeName()),
+    context && path.join(context.extensionPath, "bin", exeName()),
+    context && path.join(context.extensionPath, exeName()),
+    folder && path.join(folder, "target", "release", exeName()),
+    folder && path.join(folder, "target", "debug", exeName()),
+    path.join(os.homedir(), ".cargo", "bin", exeName()),
+  ].filter(Boolean) as string[];
+  for (const repo of repoGuesses(context)) {
+    list.push(path.join(repo, "target", "release", exeName()));
+    list.push(path.join(repo, "extension", "bin", exeName()));
+    list.push(path.join(repo, "target", "debug", exeName()));
+  }
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const p of list) {
+    const key = path.normalize(p).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(p);
+  }
+  return unique;
+}
+
+function findCli(context?: vscode.ExtensionContext): string | undefined {
+  for (const c of cliCandidates(context)) {
+    const hit = fileIfExists(c);
+    if (hit) return hit;
+  }
+  return whichOnPath();
+}
+
+function copyCli(from: string, dest: string) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(from, dest);
+  if (process.platform !== "win32") fs.chmodSync(dest, 0o755);
+}
+
+function pinCli(context: vscode.ExtensionContext, from: string) {
+  const dests = [
+    homeCliPath(),
+    path.join(context.globalStorageUri.fsPath, exeName()),
+    path.join(context.extensionPath, "bin", exeName()),
+  ];
+  for (const dest of dests) {
+    if (path.resolve(dest) === path.resolve(from)) continue;
+    try {
+      copyCli(from, dest);
+    } catch {
+      /* extension folder may be read-only */
+    }
+  }
 }
 
 function toolPath(): string {
@@ -650,13 +773,22 @@ function runCmd(command: string, args: string[], cwd: string): Promise<void> {
 }
 
 async function installGraphide(context: vscode.ExtensionContext, provider?: ReviewViewProvider) {
+  const existing = findCli(context);
+  if (existing) {
+    pinCli(context, existing);
+    log.appendLine("cli=" + findCli(context));
+    vscode.window.showInformationMessage("Graphide CLI is ready. Click Review.");
+    provider?.notifySetup();
+    return;
+  }
+
   let repo = findRepo(context);
   if (!repo) {
     const picked = await vscode.window.showOpenDialog({
       canSelectFiles: false,
       canSelectFolders: true,
       canSelectMany: false,
-      title: "Select the Graphide git repo (folder with install.cmd / install.sh)",
+      title: "Select the Graphide git repo (the folder that contains install.cmd)",
     });
     if (!picked?.[0]) return;
     repo = picked[0].fsPath;
@@ -666,26 +798,17 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
     }
   }
   await context.globalState.update("graphide.repo", repo);
+  log.appendLine("repo=" + repo);
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Graphide: installing CLI" },
     async () => {
-      await runCmd("cargo", ["build", "-p", "graphide-cli", "--release"], repo);
-      const built = path.join(repo, "target", "release", exeName());
-      if (!fs.existsSync(built)) throw new Error(`Build did not produce ${built}`);
-      const dests = [
-        homeCliPath(),
-        path.join(context.globalStorageUri.fsPath, exeName()),
-        path.join(context.extensionPath, "bin", exeName()),
-      ];
-      for (const dest of dests) {
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        try {
-          fs.copyFileSync(built, dest);
-          if (process.platform !== "win32") fs.chmodSync(dest, 0o755);
-        } catch {
-          /* extension folder may be read-only */
-        }
+      let built = builtCli(repo);
+      if (!built) {
+        await runCmd("cargo", ["build", "-p", "graphide-cli", "--release"], repo);
+        built = builtCli(repo);
       }
+      if (!built) throw new Error(`Build did not produce ${exeName()} in ${repo}`);
+      pinCli(context, built);
     }
   );
   const cli = findCli(context);
@@ -693,7 +816,8 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
     vscode.window.showErrorMessage("Install finished but the CLI is still missing.");
     return;
   }
-  vscode.window.showInformationMessage("Graphide is ready. Open the Graphide view and click Review.");
+  log.appendLine("cli=" + cli);
+  vscode.window.showInformationMessage("Graphide is ready. Click Review — this workspace is fine.");
   provider?.notifySetup();
 }
 

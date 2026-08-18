@@ -14,7 +14,7 @@ From the **repo root**:
 
 Or in the editor: **Graphide: Install (one click)**.
 
-The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). No `graphide.cliPath` needed.
+The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). After one install, Review works in any workspace — the folder you review does not need to be the Graphide repo.
 
 ## After install
 

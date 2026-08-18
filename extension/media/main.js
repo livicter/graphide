@@ -209,7 +209,7 @@ window.addEventListener("message", (event) => {
     canvas.className = "";
     canvas.innerHTML =
       '<div class="empty"><b>Install Graphide once.</b><div>' +
-      esc(msg.text || "Builds the local CLI and is only needed the first time.") +
+      esc(msg.text || "Install once. The CLI is copied to ~/.graphide and then reviews any folder.") +
       '</div><button id="installBtn" class="primary">Install</button></div>';
     const btn = document.getElementById("installBtn");
     if (btn) btn.onclick = () => vscode.postMessage({ type: "install" });
