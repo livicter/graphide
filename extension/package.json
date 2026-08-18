@@ -2,7 +2,7 @@
   "name": "graphide",
   "displayName": "Graphide Review",
   "description": "Review agent changes as flow graphs — Steiner slices over derived bubbles.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "graphide",
   "license": "MIT",
   "engines": { "vscode": "^1.85.0" },
@@ -63,12 +63,12 @@
         "graphide.cliPath": {
           "type": "string",
           "default": "",
-          "description": "Optional override. Empty = ~/.graphide/graphide, then the VSIX bin, then the workspace target/ folder."
+          "description": "Optional override. Empty = ~/.graphide/graphide(.exe), then the extension bin/, then workspace target/. Building the CLI belongs in the Graphide source repo, never in the folder under review."
         },
         "graphide.packageRoot": {
           "type": "string",
           "default": "",
-          "description": "Repo root to review. Empty = the open workspace folder. Any language the deriver has a plugin for."
+          "description": "Folder to review (e.g. SolarSim). Empty = the open workspace folder. Not the Graphide source tree unless you are reviewing Graphide itself."
         },
         "graphide.parentRoot": {
           "type": "string",

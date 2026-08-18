@@ -31,7 +31,11 @@ Then reload the editor. If `code` is a Snap or not on PATH, use **Extensions →
 
 ## Already have the extension?
 
-Command Palette → **Graphide: Install (one click)**. Same build + copy on Windows, macOS, and Linux.
+Command Palette → **Graphide: Install (one click)**. Same build + copy on Windows, macOS, and Linux. If it asks for a folder, pick the **Graphide source repo** (this tree — has `crates/graphide-cli`), not the project you are reviewing.
+
+## Review another repo
+
+Open that repo (e.g. SolarSim) and click **Review**. Do **not** run `cargo build -p graphide-cli` there — that package only exists in this Graphide source repo. Use `%USERPROFILE%\.graphide\graphide.exe` (or `~/.graphide/graphide`) instead.
 
 ## Prompt
 

@@ -4,7 +4,7 @@ Review any local repo as a flow graph.
 
 ## Install (one click)
 
-From the **repo root**:
+From the **Graphide source repo** (the folder that contains `crates/graphide-cli` — not the project you want to review):
 
 | OS | What to run |
 |---|---|
@@ -12,9 +12,9 @@ From the **repo root**:
 | macOS | Double-click `install.command` or `bash install.sh` |
 | Ubuntu / Linux | `bash install.sh` (needs `build-essential`) |
 
-Or in the editor: **Graphide: Install (one click)**.
+Or in the editor: **Graphide: Install (one click)** and pick that Graphide source folder if asked.
 
-The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). No `graphide.cliPath` needed.
+The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Review targets (`SolarSim`, etc.) only need **Review** — never `cargo build -p graphide-cli` inside them. No `graphide.cliPath` needed.
 
 ## After install
 

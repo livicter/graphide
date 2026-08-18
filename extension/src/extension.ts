@@ -148,7 +148,12 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           await installGraphide(this.context, this);
           cli = findCli(this.context);
         }
-        if (!cli) throw new Error("Graphide CLI not found. Run Graphide: Install (one click).");
+        if (!cli) {
+          throw new Error(
+            "Graphide CLI not found (expected %USERPROFILE%\\.graphide\\graphide.exe). " +
+              "Run Graphide: Install (one click), or from the Graphide source repo (not the folder under review) run: cargo build -p graphide-cli --release && install.cmd"
+          );
+        }
       }
       const args = ["review", "--root", root, "--json", "--progress"];
       const parent = parentRoot();

@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "graphide: build",
+      "dependsOn": ["graphide: cargo", "graphide: tsc"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "graphide: cargo",
+      "type": "shell",
+      "command": "cargo build -p graphide-cli",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] }
+      },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "graphide: tsc",
+      "type": "shell",
+      "command": "node node_modules/typescript/bin/tsc -p .",
+      "options": {
+        "cwd": "${workspaceFolder}/extension",
+        "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] }
+      },
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}
