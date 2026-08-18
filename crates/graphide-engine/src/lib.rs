@@ -6,6 +6,7 @@ mod enter;
 mod flowchart;
 mod hints;
 mod link;
+mod programs;
 mod review;
 mod stamp;
 mod steiner;
@@ -15,6 +16,7 @@ pub use coverage::{changed_nodes, changed_nodes_with_sources, coverage};
 pub use enter::enter_bubble;
 pub use flowchart::build_flowchart;
 pub use hints::parse_flows_toml;
+pub use programs::{assign_file, package_of, programs_from_graph};
 pub use link::link;
 pub use review::{
     derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow, PreviewGraph,

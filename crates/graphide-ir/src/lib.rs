@@ -381,6 +381,19 @@ pub struct ReviewSnapshot {
     /// Human stamps loaded from `.graphide/stamps` and rechecked on this graph.
     #[serde(default)]
     pub stamps: Vec<StampCheck>,
+    /// File-projection of binaries / libs in this graph (SPEC: files are a projection).
+    #[serde(default)]
+    pub programs: Vec<ProgramView>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProgramView {
+    pub name: String,
+    /// `bin`, `lib`, or `pkg` — a file-layout projection, not a plugin kind.
+    pub kind: String,
+    pub root: String,
+    pub entries: Vec<String>,
+    pub nodes: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

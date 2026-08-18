@@ -114,6 +114,15 @@ fn steiner_of_hits_is_subscribes_edge() {
         "coarse flowchart should be subsystem runs, got {:?}",
         flow.flowchart.runs
     );
+    assert_eq!(
+        snap.programs
+            .iter()
+            .map(|p| (p.kind.as_str(), p.name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![("lib", "lib")],
+        "{:?}",
+        snap.programs
+    );
 }
 
 #[test]

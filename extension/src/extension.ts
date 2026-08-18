@@ -54,12 +54,16 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private snapshot: any;
   private flowName?: string;
-  private stack: Array<{ kind: "flow" } | { kind: "bubble"; flow: string; bubble: string }> = [
-    { kind: "flow" },
-  ];
+  private stack: Array<
+    | { kind: "programs" }
+    | { kind: "flow" }
+    | { kind: "bubble"; flow: string; bubble: string }
+  > = [{ kind: "flow" }];
   private running = false;
   private child?: cp.ChildProcess;
   private skipped: string[] = [];
+  /** File-projection key `kind\\0name\\0root`. Empty = all programs. */
+  private programKey?: string;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -90,7 +94,14 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       if (msg.type === "review") await this.runReview(msg.flows);
       else if (msg.type === "selectFlow") {
         this.flowName = msg.flow;
-        this.stack = [{ kind: "flow" }];
+        this.stack = this.stack[0]?.kind === "programs" || (this.snapshot?.programs || []).length > 1
+          ? [{ kind: "programs" }, { kind: "flow" }]
+          : [{ kind: "flow" }];
+        this.pushState();
+      } else if (msg.type === "selectProgram") {
+        this.programKey = msg.all ? undefined : programKeyOf(msg.kind, msg.name, msg.root);
+        this.stack = [{ kind: "programs" }, { kind: "flow" }];
+        this.flowName = msg.flow || this.pickFlowForProgram();
         this.pushState();
       } else if (msg.type === "enterRun") {
         this.stack.push({ kind: "bubble", flow: msg.flow, bubble: String(msg.bubble) });
@@ -98,7 +109,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       } else if (msg.type === "enterNode") await this.enterNode(msg);
       else if (msg.type === "back") {
         this.stack.pop();
-        if (this.stack.length === 0) this.stack.push({ kind: "flow" });
+        if (this.stack.length === 0) {
+          this.stack.push(
+            (this.snapshot?.programs || []).length > 1 ? { kind: "programs" } : { kind: "flow" }
+          );
+        }
         this.pushState();
       } else if (msg.type === "cancel") {
         this.cancelReview();
@@ -196,7 +211,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           if (!this.snapshot.stats) this.snapshot.stats = {};
           this.snapshot.stats.ui_ms = Date.now() - started;
           this.flowName = this.snapshot.flows?.[0]?.name;
-          this.stack = [{ kind: "flow" }];
+          this.programKey = undefined;
+          this.stack =
+            (this.snapshot.programs || []).length > 1
+              ? [{ kind: "programs" }]
+              : [{ kind: "flow" }];
           this.skipped = this.skipped.filter((n) =>
             (this.snapshot.flows || []).some((f: any) => f.name === n)
           );
@@ -326,6 +345,27 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  private filteredFlows(): any[] {
+    const all = this.snapshot?.flows || [];
+    if (!this.programKey) return all;
+    return all.filter((f: any) =>
+      flowTouchesProgram(f, this.snapshot.graph, this.programKey!, this.snapshot.programs || [])
+    );
+  }
+
+  private pickFlowForProgram(): string | undefined {
+    const flows = this.filteredFlows();
+    if (this.flowName && flows.some((f: any) => f.name === this.flowName)) return this.flowName;
+    return flows[0]?.name || this.snapshot?.flows?.[0]?.name;
+  }
+
+  private selectedProgram(): { kind: string; name: string; root: string } | undefined {
+    if (!this.programKey) return undefined;
+    return (this.snapshot?.programs || []).find(
+      (p: any) => programKeyOf(p.kind, p.name, p.root) === this.programKey
+    );
+  }
+
   private pushState() {
     if (!this.view) return;
     const top = this.stack[this.stack.length - 1];
@@ -335,11 +375,29 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     }
     const flow =
       this.snapshot.flows?.find((f: any) => f.name === this.flowName) || this.snapshot.flows?.[0];
+    if (top.kind === "programs") {
+      this.view.webview.postMessage({
+        type: "programs",
+        programs: this.snapshot.programs || [],
+        flows: this.snapshot.flows || [],
+        graph: this.snapshot.graph,
+        coverage: this.snapshot.coverage,
+        findings: this.snapshot.findings,
+        plugin: this.snapshot.plugin,
+        stats: this.snapshot.stats,
+        stamps: this.snapshot.stamps || [],
+        skipped: this.skipped,
+      });
+      return;
+    }
     if (top.kind === "flow") {
+      const flows = this.filteredFlows();
+      const shown =
+        flows.find((f: any) => f.name === this.flowName) || flows[0] || flow;
       this.view.webview.postMessage({
         type: "flowchart",
-        flows: this.snapshot.flows || [],
-        flow,
+        flows,
+        flow: shown,
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
         bubbles: this.snapshot.bubbles,
@@ -348,6 +406,9 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         stats: this.snapshot.stats,
         stamps: this.snapshot.stamps || [],
         skipped: this.skipped,
+        programs: this.snapshot.programs || [],
+        program: this.selectedProgram(),
+        snippets: snippetsFor(this.snapshot, shown),
         depth: 0,
       });
       return;
@@ -703,6 +764,151 @@ function parseStreamLine(line: string): StreamEvent | undefined {
     return undefined;
   }
   return undefined;
+}
+
+function programKeyOf(kind?: string, name?: string, root?: string) {
+  return `${kind || ""}\0${name || ""}\0${root || ""}`;
+}
+
+function nodeId(id: any): string {
+  if (id && typeof id === "object" && "0" in id) return String(id[0]);
+  return String(id);
+}
+
+/** Mirror of engine `assign_file` — files are a projection, not a plugin kind. */
+function assignProgram(file: string, programs: any[]): { kind: string; name: string; root: string } {
+  const hint = detectHint(file);
+  if (hint) return hint;
+  const root = crateRootOf(file);
+  const at = (programs || []).filter((p: any) => (p.root || "") === root);
+  const lib = at.find((p: any) => p.kind === "lib");
+  if (lib) return { kind: lib.kind, name: lib.name, root: lib.root || "" };
+  const pkgBin = pkgName(root, "main");
+  const bin = at.find((p: any) => p.kind === "bin" && p.name === pkgBin);
+  if (bin) return { kind: bin.kind, name: bin.name, root: bin.root || "" };
+  return fallbackPkg(file);
+}
+
+function detectHint(file: string): { kind: string; name: string; root: string } | undefined {
+  const f = String(file || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
+  const bin = splitSrcBin(f);
+  if (bin) {
+    const name = (bin.rest.split("/")[0] || "bin").replace(/\.rs$/, "").replace(/\.go$/, "");
+    return { kind: "bin", name, root: bin.root };
+  }
+  const mainRs = stripSrcFile(f, "main.rs");
+  if (mainRs !== undefined) return { kind: "bin", name: pkgName(mainRs, "main"), root: mainRs };
+  const libRs = stripSrcFile(f, "lib.rs");
+  if (libRs !== undefined) return { kind: "lib", name: pkgName(libRs, "lib"), root: libRs };
+  if (f.endsWith("/main.go") || f === "main.go") {
+    const root = f.replace(/main\.go$/, "").replace(/\/$/, "");
+    if (root.startsWith("cmd/")) {
+      const name = root.slice(4).split("/")[0] || "main";
+      return { kind: "bin", name, root: `cmd/${name}` };
+    }
+    return { kind: "bin", name: pkgName(root, "main"), root };
+  }
+  if (f.endsWith("/__main__.py") || f.endsWith("/main.py")) {
+    const root = f
+      .replace(/__main__\.py$/, "")
+      .replace(/main\.py$/, "")
+      .replace(/\/$/, "");
+    return { kind: "bin", name: pkgName(root, "main"), root };
+  }
+  return undefined;
+}
+
+function fallbackPkg(file: string): { kind: string; name: string; root: string } {
+  const f = String(file || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
+  const slash = f.indexOf("/");
+  if (slash >= 0) {
+    const a = f.slice(0, slash);
+    if (a === "src") return { kind: "pkg", name: "src", root: "" };
+    return { kind: "pkg", name: a, root: a };
+  }
+  return { kind: "pkg", name: "root", root: "" };
+}
+
+function crateRootOf(file: string): string {
+  const f = String(file || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
+  const bin = splitSrcBin(f);
+  if (bin) return bin.root;
+  if (f === "src" || f.startsWith("src/")) return "";
+  const i = f.indexOf("/src/");
+  if (i >= 0) return f.slice(0, i);
+  if (f === "main.go" || f === "main.py" || f === "__main__.py") return "";
+  if (f.startsWith("cmd/")) {
+    const name = f.slice(4).split("/")[0] || "main";
+    return `cmd/${name}`;
+  }
+  const slash = f.indexOf("/");
+  if (slash >= 0) return f.slice(0, slash);
+  return "";
+}
+
+function splitSrcBin(f: string): { root: string; rest: string } | undefined {
+  const i = f.indexOf("/src/bin/");
+  if (i >= 0) return { root: f.slice(0, i), rest: f.slice(i + 9) };
+  if (f.startsWith("src/bin/")) return { root: "", rest: f.slice(8) };
+  return undefined;
+}
+
+function stripSrcFile(f: string, name: string): string | undefined {
+  if (f === `src/${name}`) return "";
+  const suf = `/src/${name}`;
+  if (f.endsWith(suf)) return f.slice(0, f.length - suf.length);
+  return undefined;
+}
+
+function pkgName(root: string, fallback: string) {
+  if (!root) return fallback;
+  return root.split("/").filter(Boolean).pop() || fallback;
+}
+
+function flowTouchesProgram(flow: any, graph: any, key: string, programs: any[]): boolean {
+  const byId = new Map<string, any>((graph?.nodes || []).map((n: any) => [nodeId(n.id), n]));
+  for (const id of flow?.tree?.nodes || []) {
+    const n = byId.get(nodeId(id));
+    const file = n?.span?.file;
+    if (!file) continue;
+    const p = assignProgram(file, programs);
+    if (programKeyOf(p.kind, p.name, p.root) === key) return true;
+  }
+  return false;
+}
+
+function snippetsFor(snap: any, flow: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!snap || !flow?.tree) return out;
+  let root: string;
+  try {
+    root = packageRoot();
+  } catch {
+    return out;
+  }
+  const byId = new Map<string, any>((snap.graph?.nodes || []).map((n: any) => [nodeId(n.id), n]));
+  for (const id of flow.tree.nodes || []) {
+    const n = byId.get(nodeId(id));
+    const file = n?.span?.file;
+    if (!file || n?.span?.start == null) continue;
+    try {
+      const abs = path.isAbsolute(file) ? file : path.join(root, file);
+      if (!fs.existsSync(abs)) continue;
+      const lines = fs.readFileSync(abs, "utf8").split(/\r?\n/);
+      const start = Math.max(0, ((n.span.start.line as number) | 0) - 1);
+      const take = lines.slice(start, start + 8).join("\n").trimEnd();
+      if (take) out[nodeId(id)] = take.slice(0, 900);
+    } catch {
+      /* skip unreadable files */
+    }
+  }
+  return out;
 }
 
 function warmCli(cli: string) {
