@@ -6,7 +6,7 @@ Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubunt
 
 ## Windows
 
-1. Double-click **`install.cmd`**.
+1. Double-click **`install.cmd`** (cmd.exe — it does not run `install.ps1`).
 2. Reload VS Code or Cursor.
 3. Open the folder to review → **Graphide** → **Review**.
 
