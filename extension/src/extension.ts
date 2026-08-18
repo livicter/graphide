@@ -37,7 +37,21 @@ export function activate(context: vscode.ExtensionContext) {
       pinCli(context, cli);
       warmCli(cli);
     } else {
-      log.appendLine("ERROR CLI missing. Searched:");
+      const repo = findRepo(context);
+      log.appendLine("ERROR CLI missing. The open folder is the repo to review, not the Graphide source.");
+      log.appendLine("Do not run: cargo build -p graphide-cli   inside this workspace.");
+      if (repo) {
+        log.appendLine("From the Graphide repo run:");
+        log.appendLine("  cd /d " + repo);
+        log.appendLine("  install-cli.cmd");
+        log.appendLine("or:");
+        log.appendLine("  cargo build -p graphide-cli --release");
+        log.appendLine("  copy /Y target\\release\\graphide.exe %USERPROFILE%\\.graphide\\graphide.exe");
+      } else {
+        log.appendLine("Open the Graphide source (folder with install-cli.cmd / crates\\graphide-cli) and run install-cli.cmd.");
+        log.appendLine("Then set graphide.cliPath to %USERPROFILE%\\.graphide\\graphide.exe if this 0.1.0 build still cannot see it.");
+      }
+      log.appendLine("Searched:");
       for (const p of cliCandidates(context)) log.appendLine("  " + p);
     }
   }, 0);
@@ -90,7 +104,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     this.view?.webview.postMessage({
       type: "setup",
       text:
-        "The CLI is missing. Install once — it is copied to ~/.graphide and then reviews any folder, including this one.",
+        "The CLI is missing. Do not cargo-build inside this workspace. In the Graphide source folder (the one with install-cli.cmd) run install-cli.cmd, then reload. The exe goes to ~/.graphide and reviews any folder.",
     });
   }
 

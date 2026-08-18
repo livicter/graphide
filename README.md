@@ -12,6 +12,8 @@ Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubunt
 
 The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. After that, open **any** repo (for example `Documents\Git\SolarSim`) and click Review. You do not set `graphide.cliPath`.
 
+`cargo build -p graphide-cli` only works in the **Graphide** repo (`Documents\Git\graphide`). SolarSim has no such package. If the extension is already installed and you only need the binary, double-click **`install-cli.cmd`** in the Graphide repo. If an old 0.1.0 VSIX still says CLI missing, set `graphide.cliPath` to `%USERPROFILE%\.graphide\graphide.exe`.
+
 ## macOS
 
 1. Double-click **`install.command`** (or run `bash install.sh` in Terminal).
