@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const js = fs.readFileSync(path.join(__dirname, "../media/main.js"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../media/main.css"), "utf8");
+const ext = fs.readFileSync(path.join(__dirname, "../src/extension.ts"), "utf8");
 
 function assert(cond, msg) {
   if (!cond) {
@@ -15,6 +16,10 @@ function assert(cond, msg) {
 assert(js.includes("function renderBubbleMap"), "bubble-first map is missing");
 assert(js.includes("mapAltitudeBubbles"), "map altitude helper is missing");
 assert(js.includes("communities only"), "first-view copy still sells a function dump");
+assert(js.includes("msg.bubbles || snapshot?.bubbles"), "applyPrograms must keep bubbles from the programs message");
+assert(/type:\s*"programs"[\s\S]*bubbles:\s*this\.snapshot\.bubbles/.test(ext), "programs message must send bubbles");
+assert(js.includes("fallbackProgramBubbles"), "empty clustering must still show one program card");
+assert(!js.includes("clusters.length > 1"), "first view must not skip to unlabeled member dots");
 assert(!js.includes("uncovered crate"), "coverage must not dump UncoveredNode lines");
 assert(js.includes('+" + (uncovered.length - 3)'), "coverage should stay a one-line sample");
 assert(css.includes(".bubble-card"), "bubble card styles missing");

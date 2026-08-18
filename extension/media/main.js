@@ -169,13 +169,15 @@ if (srcEditor)
 if (graphSearch)
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
-    applyGraphFilter();
+    if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
+    else applyGraphFilter();
   });
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
       graphFilter.kinds[el.getAttribute("data-kind")] = el.checked;
-      applyGraphFilter();
+      if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
+      else applyGraphFilter();
     });
   });
 if (stampBtn)
@@ -326,7 +328,7 @@ function applyPrograms(msg) {
     flows: msg.flows || snapshot?.flows || [],
     flow: snapshot?.flow,
     graph: msg.graph || snapshot?.graph,
-    bubbles: snapshot?.bubbles || [],
+    bubbles: msg.bubbles || snapshot?.bubbles || [],
     coverage: msg.coverage,
     findings: msg.findings,
     plugin: msg.plugin,
@@ -1045,29 +1047,52 @@ function incidentEdges(id) {
   return out;
 }
 
+function allBubbles() {
+  return (snapshot && snapshot.bubbles) || [];
+}
+
 function coarseBubbles() {
-  const bs = (snapshot && snapshot.bubbles) || [];
+  const bs = allBubbles();
   const top = bs.filter((b) => b.parent == null);
   return top.length ? top : bs;
 }
 
 /** First clustering cut under the program — not every function. */
 function mapAltitudeBubbles() {
-  const bs = (snapshot && snapshot.bubbles) || [];
+  const bs = allBubbles();
   const roots = bs.filter((b) => b.parent == null);
   if (roots.length === 1) {
     const kids = bs.filter((b) => b.parent != null && idVal(b.parent) === idVal(roots[0].id));
     if (kids.length) return kids;
   }
-  return roots.length ? roots : bs;
+  if (roots.length) return roots;
+  if (bs.length) return bs;
+  return fallbackProgramBubbles();
+}
+
+function fallbackProgramBubbles() {
+  const nodes = ((snapshot && snapshot.graph && snapshot.graph.nodes) || []).map((n) => idVal(n.id));
+  if (!nodes.length) return [];
+  const name =
+    (snapshot.programs && snapshot.programs[0] && snapshot.programs[0].name) || "program";
+  return [{ id: "_program", label: name, parent: null, members: nodes }];
+}
+
+function findBubble(id) {
+  const sid = String(id);
+  if (sid === "_program") return fallbackProgramBubbles()[0] || null;
+  return allBubbles().find((b) => idVal(b.id) === sid) || null;
 }
 
 function bubbleOf(id) {
   const sid = idVal(id);
-  for (const b of coarseBubbles()) {
-    if ((b.members || []).some((m) => idVal(m) === sid)) return b;
+  const bs = allBubbles();
+  let found = null;
+  for (const b of bs) {
+    if (!(b.members || []).some((m) => idVal(m) === sid)) continue;
+    if (!found || (b.parent != null && found.parent == null)) found = b;
   }
-  return null;
+  return found;
 }
 
 function colorOfBubble(b) {
@@ -1261,11 +1286,23 @@ function pickCommunityNodes(degrees) {
     );
   }
   if (graphFilter.bubble) {
-    const bub = coarseBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble));
+    const bub = findBubble(graphFilter.bubble);
     const mem = new Set((bub?.members || []).map((m) => idVal(m)));
     nodes = nodes.filter((n) => mem.has(idVal(n.id)));
   }
   nodes = nodes.filter((n) => graphFilter.kinds[n.kind] !== false);
+  const q = (graphFilter.q || "").toLowerCase();
+  if (q) {
+    nodes = nodes.filter(
+      (n) =>
+        String(n.fqn || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(n.span?.file || "")
+          .toLowerCase()
+          .includes(q)
+    );
+  }
   const scored = nodes.map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0, must: must.has(idVal(n.id)) }));
   scored.sort((a, b) => Number(b.must) - Number(a.must) || b.d - a.d);
   return scored.slice(0, 160).map((x) => x.n);
@@ -1375,16 +1412,16 @@ function renderLegend() {
 }
 
 function renderCommunityGraph() {
-  const clusters = mapAltitudeBubbles();
-  if (!graphFilter.bubble && clusters.length > 1) {
-    renderBubbleMap(clusters);
+  if (!graphFilter.bubble) {
+    renderBubbleMap(mapAltitudeBubbles());
     return;
   }
   const degrees = degreeMap();
   const nodes = pickCommunityNodes(degrees);
   if (!nodes.length) {
     canvas.className = "play";
-    canvas.innerHTML = '<div class="empty">No derived nodes in this filter. Clear the legend or kinds.</div>';
+    canvas.innerHTML =
+      '<div class="empty">No derived nodes match this filter. Clear the search, program chip, or kinds.</div>';
     setZoomUi(false);
     return;
   }
@@ -1422,7 +1459,7 @@ function renderCommunityGraph() {
     const p = pos.get(id);
     if (!p) continue;
     const deg = degrees.get(id) || 1;
-    const size = 8 + Math.min(16, Math.sqrt(deg) * 3.2);
+    const size = 14 + Math.min(22, Math.sqrt(deg) * 4);
     const bub = bubbleOf(id);
     const flags = nodeFlags(id);
     dots +=
@@ -1449,12 +1486,18 @@ function renderCommunityGraph() {
       esc(n.span?.file || "") +
       '" title="' +
       esc(n.fqn) +
-      '"></button>';
+      '"><span class="lbl">' +
+      esc(shortOf(n.fqn)) +
+      "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Inside this community — hover a node, click to inspect</div>' +
+    '<div class="flow-title">' +
+    (graphFilter.q
+      ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
+      : "Inside this community — hover a node, click to inspect") +
+    "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -1492,10 +1535,16 @@ function renderCommunityGraph() {
 }
 
 function renderBubbleMap(clusters) {
-  clusters = clusters
+  clusters = (clusters || [])
     .slice()
     .sort((a, b) => (b.members || []).length - (a.members || []).length)
     .slice(0, 24);
+  if (!clusters.length) {
+    canvas.className = "play";
+    canvas.innerHTML = '<div class="empty">No communities yet. Review again after clustering finishes.</div>';
+    setZoomUi(false);
+    return;
+  }
   const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(clusters.length))));
   const cell = 108;
   const W = Math.max(440, cols * cell + 24);
@@ -1577,6 +1626,12 @@ function applyGraphFilter() {
     const file = (el.getAttribute("data-file") || "").toLowerCase();
     const kind = el.getAttribute("data-kind") || "";
     const match = (!q || fqn.includes(q) || file.includes(q)) && graphFilter.kinds[kind] !== false;
+    el.classList.toggle("dim", !match);
+    el.classList.toggle("hit", !!(q && match));
+  });
+  canvas.querySelectorAll(".bubble-card").forEach((el) => {
+    const name = ((el.querySelector(".name") && el.querySelector(".name").textContent) || "").toLowerCase();
+    const match = !q || name.includes(q);
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(q && match));
   });

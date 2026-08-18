@@ -393,6 +393,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         programs: this.snapshot.programs || [],
         flows: this.snapshot.flows || [],
         graph: this.snapshot.graph,
+        bubbles: this.snapshot.bubbles,
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
         plugin: this.snapshot.plugin,
