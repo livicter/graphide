@@ -1,6 +1,7 @@
 # Graphide installer for Windows (PowerShell 5+ and pwsh).
 # Usage:  powershell -ExecutionPolicy Bypass -File install.ps1
 # Or double-click install.cmd
+# Keep this file ASCII. Windows PowerShell 5.1 misparses UTF-8 arrows/ellipsis without a BOM.
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 Write-Host "Graphide install (Windows)"
@@ -89,7 +90,7 @@ foreach ($name in @("cursor", "code")) {
 
 if (-not $installed) {
   Write-Host "VSIX is ready: $($vsix.FullName)"
-  Write-Host "In the editor: Extensions → … → Install from VSIX…"
+  Write-Host 'In the editor: Extensions > ... > Install from VSIX...'
 } else {
-  Write-Host "Installed. Reload the editor window, open the Graphide view, click Review."
+  Write-Host 'Installed. Reload the editor window, open the Graphide view, click Review.'
 }

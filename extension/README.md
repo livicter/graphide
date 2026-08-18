@@ -14,10 +14,10 @@ From the **repo root**:
 
 Or in the editor: **Graphide: Install (one click)**.
 
-The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). No `graphide.cliPath` needed.
+The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). After one install, Review works in any workspace — the folder you review does not need to be the Graphide repo.
 
 ## After install
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
 
-**Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.
+**Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. `[` / `]` switch flows. Click a run to enter; crumbs pop altitude. Coverage chips list uncovered nodes — click one to open source. Git `HEAD^` is the default parent unless `graphide.parentRoot` is set.
