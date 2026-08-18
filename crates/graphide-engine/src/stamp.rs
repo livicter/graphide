@@ -291,6 +291,7 @@ mod tests {
             findings: vec![],
             stats: Default::default(),
             stamps: vec![],
+            programs: vec![],
         }
     }
 

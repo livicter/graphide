@@ -3,6 +3,7 @@ use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
 use crate::link::link;
+use crate::programs::programs_from_graph;
 use crate::steiner::steiner_tree;
 use graphide_ir::{
     Extract, Finding, FindingKind, Flow, FlowView, Graph, HintFile, NodeId, NodeKind,
@@ -239,6 +240,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         }
     }
 
+    let programs = programs_from_graph(&graph);
     opts.report(ProgressEvent::new("done", "Ready", 1, 1, 100));
     ReviewSnapshot {
         plugin: opts.plugin.clone(),
@@ -249,6 +251,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         findings,
         stats: Default::default(),
         stamps: vec![],
+        programs,
     }
 }
 

@@ -58,7 +58,7 @@ let cam = { x: 0, y: 0, k: 1 };
 let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
 const CAM_MIN = 0.35;
-const CAM_MAX = 3.6;
+const CAM_MAX = 6.5;
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -217,6 +217,11 @@ window.addEventListener("message", (event) => {
     hideTip();
     return;
   }
+  if (msg.type === "programs") {
+    clearTimeout(previewTimer);
+    applyPrograms(msg);
+    return;
+  }
   if (msg.type === "flowchart" || msg.type === "inner") {
     clearTimeout(previewTimer);
     applySnapshot(msg, msg.type === "inner");
@@ -241,8 +246,36 @@ function applyPreview(msg) {
     preview: true,
   };
   if (!flowName && flows[0]) flowName = flows[0].name;
+  stack = [{ kind: "flow" }];
   indexGraph(snapshot.graph);
   paint({ animate: "tree", preview: true, keepCam: !!canvas.querySelector(".stage") });
+}
+
+function applyPrograms(msg) {
+  snapshot = {
+    flows: msg.flows || snapshot?.flows || [],
+    flow: snapshot?.flow,
+    graph: msg.graph || snapshot?.graph,
+    bubbles: snapshot?.bubbles || [],
+    coverage: msg.coverage,
+    findings: msg.findings,
+    plugin: msg.plugin,
+    stats: msg.stats,
+    stamps: msg.stamps || [],
+    skipped: msg.skipped || [],
+    programs: msg.programs || [],
+    program: null,
+    snippets: {},
+    preview: false,
+    inner: null,
+    depth: 0,
+  };
+  stack = [{ kind: "programs" }];
+  indexGraph(snapshot.graph);
+  stampRows = snapshot.stamps || [];
+  skippedFlows = snapshot.skipped || [];
+  finishWork();
+  paint({ animate: "none" });
 }
 
 function applySnapshot(msg, inner) {
@@ -257,14 +290,24 @@ function applySnapshot(msg, inner) {
     stats: msg.stats,
     stamps: msg.stamps || [],
     skipped: msg.skipped || [],
+    programs: msg.programs || snapshot?.programs || [],
+    program: msg.program || null,
+    snippets: msg.snippets || {},
     preview: false,
     inner: inner ? msg.inner : null,
     depth: msg.depth || 0,
   };
   if (msg.flow?.name) flowName = msg.flow.name;
   else if (!flowName && snapshot.flows[0]) flowName = snapshot.flows[0].name;
-  if (inner) stack = [{ kind: "flow" }, { kind: "bubble", flow: msg.inner.flow, bubble: String(msg.inner.bubble) }];
-  else stack = [{ kind: "flow" }];
+  const many = (snapshot.programs || []).length > 1;
+  if (inner) {
+    stack = (many ? [{ kind: "programs" }] : []).concat([
+      { kind: "flow" },
+      { kind: "bubble", flow: msg.inner.flow, bubble: String(msg.inner.bubble) },
+    ]);
+  } else {
+    stack = many ? [{ kind: "programs" }, { kind: "flow" }] : [{ kind: "flow" }];
+  }
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
@@ -304,9 +347,17 @@ function updateZoomPct() {
   if (zoomPct) zoomPct.textContent = Math.round(cam.k * 100) + "%";
 }
 
+function lodOf(k) {
+  if (k < 1.25) return 0;
+  if (k < 2.2) return 1;
+  return 2;
+}
+
 function applyCam() {
   if (viewportEl) {
     viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
+    const lod = String(lodOf(cam.k));
+    if (viewportEl.getAttribute("data-lod") !== lod) viewportEl.setAttribute("data-lod", lod);
   }
   updateZoomPct();
 }
@@ -422,13 +473,15 @@ function bindStage(stage, opts) {
 }
 
 function bindGraphFx() {
+  const wrap = canvas.querySelector(".steiner-wrap");
   const svg = canvas.querySelector("svg.steiner");
   if (svg) {
     const edges = [...svg.querySelectorAll(".edge")];
     const flows = [...svg.querySelectorAll(".edge-flow")];
-    const nodes = [...svg.querySelectorAll(".vnode")];
+    const nodes = [...(wrap || canvas).querySelectorAll(".vnode")];
     const clearHot = () => {
       svg.classList.remove("focus");
+      if (wrap) wrap.classList.remove("focus");
       edges.forEach((el) => el.classList.remove("hot"));
       flows.forEach((el) => el.classList.remove("hot"));
       nodes.forEach((el) => el.classList.remove("hot"));
@@ -439,6 +492,7 @@ function bindGraphFx() {
       const fqn = g.getAttribute("data-fqn") || "";
       g.addEventListener("pointerenter", (ev) => {
         svg.classList.add("focus");
+        if (wrap) wrap.classList.add("focus");
         g.classList.add("hot");
         edges.forEach((el) => {
           if (el.dataset.from === id || el.dataset.to === id) el.classList.add("hot");
@@ -452,18 +506,28 @@ function bindGraphFx() {
       g.addEventListener("pointerleave", clearHot);
       g.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        zoomToEl(g, Math.min(2.2, Math.max(1.6, camTo.k * 1.35)));
+        zoomToEl(g, Math.min(CAM_MAX, Math.max(2.4, camTo.k * 1.45)));
       });
       g.addEventListener("dblclick", (ev) => {
         ev.stopPropagation();
         const run = [...canvas.querySelectorAll(".run")].find((el) =>
           (el.getAttribute("data-nodes") || "").split(",").includes(id)
         );
-        if (run) enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
+        if (run) {
+          enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
+          return;
+        }
+        const flow = currentFlow();
+        if (flow) {
+          vscode.postMessage({ type: "enterNode", flow: flow.name, id, isLeaf: true });
+        }
       });
     });
     if (!reduceMotion()) {
-      setTimeout(() => svg.classList.add("flowing"), 520);
+      setTimeout(() => {
+        svg.classList.add("flowing");
+        if (wrap) wrap.classList.add("flowing");
+      }, 520);
     }
   }
   canvas.querySelectorAll(".run").forEach((el) => {
@@ -475,9 +539,7 @@ function bindGraphFx() {
 }
 
 function selectFlow(name) {
-  flowName = name;
-  stack = [{ kind: "flow" }];
-  paint({ animate: "tree" });
+  vscode.postMessage({ type: "selectFlow", flow: name });
 }
 
 function enterRun(flow, bubble, fromEl) {
@@ -499,8 +561,13 @@ function enterRun(flow, bubble, fromEl) {
 
 function goBack() {
   if (stack.length <= 1) return;
+  const top = stack[stack.length - 1];
+  if (top.kind === "flow") {
+    vscode.postMessage({ type: "back" });
+    return;
+  }
   const token = ++navToken;
-  const fromInner = stack[stack.length - 1].kind === "bubble";
+  const fromInner = top.kind === "bubble";
   const go = () => {
     if (token !== navToken) return;
     stack.pop();
@@ -520,6 +587,10 @@ function paint(opts) {
   if (!snapshot) return;
   const top = stack[stack.length - 1];
   backBtn.disabled = stack.length <= 1;
+  if (top.kind === "programs") {
+    renderProgramOverview();
+    return;
+  }
   if (top.kind === "flow") {
     const flow = currentFlow();
     renderFlowchart(
@@ -681,6 +752,175 @@ function flowMark(name) {
   return row.holds ? "holds" : "broken";
 }
 
+function programKeyOf(p) {
+  return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+}
+
+function detectHint(file) {
+  const f = String(file || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
+  let i = f.indexOf("/src/bin/");
+  if (i >= 0) {
+    const rest = f.slice(i + 9);
+    const name = (rest.split("/")[0] || "bin").replace(/\.rs$/, "").replace(/\.go$/, "");
+    return { kind: "bin", name, root: f.slice(0, i) };
+  }
+  if (f.startsWith("src/bin/")) {
+    const rest = f.slice(8);
+    const name = (rest.split("/")[0] || "bin").replace(/\.rs$/, "").replace(/\.go$/, "");
+    return { kind: "bin", name, root: "" };
+  }
+  if (f === "src/main.rs") return { kind: "bin", name: "main", root: "" };
+  if (f.endsWith("/src/main.rs")) {
+    const root = f.slice(0, -"/src/main.rs".length);
+    return { kind: "bin", name: root.split("/").pop() || "main", root };
+  }
+  if (f === "src/lib.rs") return { kind: "lib", name: "lib", root: "" };
+  if (f.endsWith("/src/lib.rs")) {
+    const root = f.slice(0, -"/src/lib.rs".length);
+    return { kind: "lib", name: root.split("/").pop() || "lib", root };
+  }
+  if (f.endsWith("/main.go") || f === "main.go") {
+    const root = f.replace(/main\.go$/, "").replace(/\/$/, "");
+    if (root.startsWith("cmd/")) {
+      const name = root.slice(4).split("/")[0] || "main";
+      return { kind: "bin", name, root: "cmd/" + name };
+    }
+    return { kind: "bin", name: root.split("/").filter(Boolean).pop() || "main", root };
+  }
+  if (f.endsWith("/__main__.py") || f.endsWith("/main.py")) {
+    const root = f.replace(/__main__\.py$/, "").replace(/main\.py$/, "").replace(/\/$/, "");
+    return { kind: "bin", name: root.split("/").filter(Boolean).pop() || "main", root };
+  }
+  return null;
+}
+
+function crateRootOf(file) {
+  const f = String(file || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
+  const i = f.indexOf("/src/bin/");
+  if (i >= 0) return f.slice(0, i);
+  if (f.startsWith("src/bin/") || f === "src" || f.startsWith("src/")) return "";
+  const s = f.indexOf("/src/");
+  if (s >= 0) return f.slice(0, s);
+  if (f === "main.go" || f === "main.py" || f === "__main__.py") return "";
+  if (f.startsWith("cmd/")) return "cmd/" + (f.slice(4).split("/")[0] || "main");
+  const slash = f.indexOf("/");
+  return slash >= 0 ? f.slice(0, slash) : "";
+}
+
+function assignProgram(file, programs) {
+  const hint = detectHint(file);
+  if (hint) return hint;
+  const root = crateRootOf(file);
+  const at = (programs || []).filter((p) => (p.root || "") === root);
+  const lib = at.find((p) => p.kind === "lib");
+  if (lib) return lib;
+  const pkgBin = root ? root.split("/").filter(Boolean).pop() : "main";
+  const bin = at.find((p) => p.kind === "bin" && p.name === pkgBin);
+  if (bin) return bin;
+  const f = String(file || "").replace(/\\/g, "/");
+  const slash = f.indexOf("/");
+  if (slash >= 0) {
+    const a = f.slice(0, slash);
+    if (a === "src") return { kind: "pkg", name: "src", root: "" };
+    return { kind: "pkg", name: a, root: a };
+  }
+  return { kind: "pkg", name: "root", root: "" };
+}
+
+function flowTouchesProgram(flow, program) {
+  const want = programKeyOf(program);
+  const graph = snapshot && snapshot.graph;
+  const programs = (snapshot && snapshot.programs) || [];
+  for (const id of flow?.tree?.nodes || []) {
+    const n = nodeById.get(idVal(id)) || (graph?.nodes || []).find((x) => sameId(x.id, id));
+    const file = n?.span?.file;
+    if (file && programKeyOf(assignProgram(file, programs)) === want) return true;
+  }
+  return false;
+}
+
+function renderProgramOverview() {
+  const programs = snapshot.programs || [];
+  const flows = snapshot.flows || [];
+  renderTabs([]);
+  renderStats(snapshot);
+  renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
+  setZoomUi(false);
+  hideTip();
+  if (stampBtn) stampBtn.disabled = true;
+  if (skipBtn) skipBtn.disabled = true;
+  meta.innerHTML =
+    '<span class="crumb">Review</span> / <b>programs</b> · pick a binary — flowchart zoom then shows source';
+  const cards = programs
+    .map((p) => {
+      const n = flows.filter((f) => flowTouchesProgram(f, p)).length;
+      const entry = (p.entries || [])[0] ? shortOf(p.entries[0]) : "";
+      return (
+        '<button type="button" class="prog ' +
+        esc(p.kind) +
+        '" data-kind="' +
+        esc(p.kind) +
+        '" data-name="' +
+        esc(p.name) +
+        '" data-root="' +
+        esc(p.root || "") +
+        '">' +
+        '<span class="kind">' +
+        esc(p.kind) +
+        "</span>" +
+        "<b>" +
+        esc(p.name) +
+        "</b>" +
+        '<span class="root">' +
+        esc(p.root || ".") +
+        "</span>" +
+        '<span class="meta">' +
+        (p.nodes || 0) +
+        " nodes" +
+        (entry ? " · " + esc(entry) : "") +
+        (n ? " · " + n + (n === 1 ? " flow" : " flows") : "") +
+        "</span></button>"
+      );
+    })
+    .join("");
+  canvas.className = "play programs-view";
+  canvas.innerHTML =
+    '<div class="programs">' +
+    '<button type="button" class="prog all" data-all="1">' +
+    "<b>All programs</b>" +
+    '<span class="meta">' +
+    programs.length +
+    " binaries · " +
+    flows.length +
+    (flows.length === 1 ? " flow" : " flows") +
+    "</span></button>" +
+    cards +
+    "</div>";
+  canvas.querySelectorAll(".prog").forEach((el) => {
+    el.onclick = () => {
+      if (el.getAttribute("data-all") === "1") {
+        vscode.postMessage({ type: "selectProgram", all: true, flow: flows[0] && flows[0].name });
+        return;
+      }
+      const kind = el.getAttribute("data-kind");
+      const name = el.getAttribute("data-name");
+      const root = el.getAttribute("data-root") || "";
+      const first = flows.find((f) => flowTouchesProgram(f, { kind, name, root }));
+      vscode.postMessage({
+        type: "selectProgram",
+        kind,
+        name,
+        root,
+        flow: first ? first.name : flows[0] && flows[0].name,
+      });
+    };
+  });
+}
+
 function renderTabs(flows, current) {
   tabs.innerHTML = (flows || [])
     .map((f) => {
@@ -721,6 +961,8 @@ function renderFlowchart(msg, opts) {
   const flow = msg.flow;
   const animate = (opts && opts.animate) || "all";
   const preview = !!(opts && opts.preview);
+  if (stampBtn) stampBtn.disabled = !flow;
+  if (skipBtn) skipBtn.disabled = !flow;
   renderTabs(msg.flows, flow && flow.name);
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, msg.graph);
@@ -734,14 +976,23 @@ function renderFlowchart(msg, opts) {
     setZoomUi(false);
     return;
   }
-  meta.innerHTML =
-    '<span class="crumb">Review</span> / <b>' +
+  const prog = snapshot && snapshot.program;
+  const many = snapshot && (snapshot.programs || []).length > 1;
+  let crumb = many
+    ? '<button type="button" class="crumb-btn" data-go="programs">Programs</button>'
+    : '<span class="crumb">Review</span>';
+  if (prog) crumb += " / <b>" + esc(prog.name) + "</b>";
+  crumb +=
+    " / <b>" +
     esc(flow.name) +
     "</b> · " +
     (flow.tree?.nodes || []).length +
     " on tree" +
     (preview ? ' <span class="live">live preview</span>' : "") +
     stampBadge(flow.name);
+  meta.innerHTML = crumb;
+  const backToPrograms = meta.querySelector("[data-go=programs]");
+  if (backToPrograms) backToPrograms.onclick = () => vscode.postMessage({ type: "back" });
 
   const playTree = animate === "all" || animate === "tree";
   const playRuns = animate === "all" || animate === "runs";
@@ -813,7 +1064,7 @@ function renderSteiner(flow, graph, animate, scars) {
     buckets[d].push(id);
   }
   const W = 640,
-    H = Math.max(220, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 72 + 40);
+    H = Math.max(260, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 118 + 48);
   const colW = W / Math.max(buckets.length, 1);
   const pos = {};
   buckets.forEach((col, i) =>
@@ -822,11 +1073,15 @@ function renderSteiner(flow, graph, animate, scars) {
     })
   );
   let svg =
-    '<svg class="steiner' +
+    '<svg class="steiner steiner-edges' +
     (animate ? " play" : "") +
     '" viewBox="0 0 ' +
     W +
     " " +
+    H +
+    '" width="' +
+    W +
+    '" height="' +
     H +
     '"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" /></marker></defs>';
   for (const e of edges) {
@@ -863,46 +1118,61 @@ function renderSteiner(flow, graph, animate, scars) {
       '" />';
     svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
   }
+  svg += "</svg>";
+  const snippets = (snapshot && snapshot.snippets) || {};
+  let cards = "";
   for (const id of nodes) {
     const p = pos[idVal(id)];
     if (!p) continue;
+    const nid = idVal(id);
     const type = kindOf(graph, id) === "Type";
     const fqn = fqnOf(graph, id);
     const label = shortOf(fqn);
-    const w = Math.max(120, Math.min(200, 8 * label.length + 24));
-    const d = level[idVal(id)] || 0;
-    svg +=
-      '<g class="vnode" style="--d:' +
+    const d = level[nid] || 0;
+    const node = nodeById.get(nid);
+    const file = node?.span?.file || "";
+    const line = node?.span?.start?.line || "";
+    const where = file ? shortFile(file) + (line ? ":" + line : "") : "";
+    const snip = snippets[nid] || "";
+    cards +=
+      '<button type="button" class="vnode' +
+      (type ? " type" : "") +
+      '" style="left:' +
+      p.x +
+      "px;top:" +
+      p.y +
+      "px;--d:" +
       d +
       '" data-id="' +
-      idVal(id) +
+      nid +
       '" data-fqn="' +
       esc(fqn) +
       '">';
-    svg +=
-      '<rect class="node-box' +
-      (type ? " type" : "") +
-      '" x="' +
-      (p.x - w / 2) +
-      '" y="' +
-      (p.y - 20) +
-      '" width="' +
-      w +
-      '" height="40" rx="5" />';
-    svg += '<text class="kind" x="' + p.x + '" y="' + (p.y - 6) + '" text-anchor="middle">' + esc(kindOf(graph, id)) + "</text>";
-    svg +=
-      '<text class="label' +
-      (type ? " type" : "") +
-      '" x="' +
-      p.x +
-      '" y="' +
-      (p.y + 10) +
-      '" text-anchor="middle">' +
-      esc(label) +
-      "</text></g>";
+    cards += '<span class="kind">' + esc(kindOf(graph, id) || "Function") + "</span>";
+    cards += '<span class="name">' + esc(label) + "</span>";
+    if (where) cards += '<span class="where">' + esc(where) + "</span>";
+    cards += '<span class="fqn">' + esc(fqn) + "</span>";
+    if (snip) cards += "<pre class=\"snip\">" + esc(snip) + "</pre>";
+    cards += "</button>";
   }
-  svg += "</svg>";
-  return svg;
+  return (
+    '<div class="steiner-wrap' +
+    (animate ? " play" : "") +
+    '" style="width:' +
+    W +
+    "px;height:" +
+    H +
+    'px">' +
+    svg +
+    cards +
+    "</div>"
+  );
+}
+
+function shortFile(file) {
+  const f = String(file || "").replace(/\\/g, "/");
+  const parts = f.split("/");
+  return parts.length > 2 ? parts.slice(-2).join("/") : f;
 }
 
 function renderRuns(flow, msg, animate) {
@@ -997,10 +1267,15 @@ function renderInner(msg, animate) {
   renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, null);
+  const many = snapshot && (snapshot.programs || []).length > 1;
   meta.innerHTML =
-    '<span class="crumb">Review</span> / ' +
+    (many
+      ? '<button type="button" class="crumb-btn" data-go="programs">Programs</button> / '
+      : '<span class="crumb">Review</span> / ') +
     esc(inner.flow) +
     " / <b>enter</b> · walk lit, siblings grey";
+  const backToPrograms = meta.querySelector("[data-go=programs]");
+  if (backToPrograms) backToPrograms.onclick = () => vscode.postMessage({ type: "back" });
   let html = '<div class="inner-list' + (animate ? " play" : "") + '">';
   (inner.nodes || []).forEach((n, i) => {
     const cls = n.lit ? "lit" : "grey";
