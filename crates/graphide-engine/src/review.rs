@@ -1,4 +1,4 @@
-use crate::cluster::{cluster_with, sticky_match};
+use crate::cluster::{cluster, cluster_with, sticky_match};
 use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
@@ -178,8 +178,12 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
             ));
         }),
     );
+    let parent_linked = input.parent_extracts.as_ref().map(|e| link(e).0);
     if let Some(prev) = &input.previous_bubbles {
         sticky_match(prev, &mut bubbles);
+    } else if let Some(parent_graph) = &parent_linked {
+        let prev = cluster(parent_graph);
+        sticky_match(&prev, &mut bubbles);
     }
     opts.report(ProgressEvent::new(
         "cluster",
@@ -208,14 +212,10 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         ));
     }
 
-    let parent_graph = input
-        .parent_extracts
-        .as_ref()
-        .map(|e| link(e).0)
-        .unwrap_or_else(|| Graph {
-            nodes: vec![],
-            edges: vec![],
-        });
+    let parent_graph = parent_linked.unwrap_or_else(|| Graph {
+        nodes: vec![],
+        edges: vec![],
+    });
 
     let changed = if input.parent_extracts.is_some() {
         changed_nodes_with_sources(
@@ -248,6 +248,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         coverage: cov,
         findings,
         stats: Default::default(),
+        stamps: vec![],
     }
 }
 

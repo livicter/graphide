@@ -10,7 +10,9 @@
   "activationEvents": [
     "onView:graphide.reviewView",
     "onCommand:graphide.review",
-    "onCommand:graphide.install"
+    "onCommand:graphide.install",
+    "onCommand:graphide.stamp",
+    "onCommand:graphide.skip"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -27,6 +29,14 @@
       {
         "command": "graphide.install",
         "title": "Graphide: Install (one click)"
+      },
+      {
+        "command": "graphide.stamp",
+        "title": "Graphide: Stamp Current Flow"
+      },
+      {
+        "command": "graphide.skip",
+        "title": "Graphide: Skip Current Flow"
       }
     ],
     "viewsContainers": {
@@ -63,7 +73,7 @@
         "graphide.parentRoot": {
           "type": "string",
           "default": "",
-          "description": "Parent revision root for coverage. Empty = no parent (coverage stays empty)."
+          "description": "Parent revision root for coverage. Empty = git HEAD^ when the folder is a repo."
         },
         "graphide.promptFlows": {
           "type": "array",

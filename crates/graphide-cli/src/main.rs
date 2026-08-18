@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use graphide_engine::{
-    derive_repo, enter_bubble, hints_from_toml, make_stamp, progress_pct, recheck_stamp,
-    ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
+    apply_saved_stamps, derive_repo, enter_bubble, hints_from_toml, make_stamp, progress_pct,
+    recheck_stamp, stamp_filename, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 use graphide_ir::{Extract, FlowHint, HintFile, ReviewSnapshot, Stamp};
 use graphide_plugin::{extract_file, has_plugin, plugin_ids_for};
@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
@@ -47,6 +48,9 @@ enum Cmd {
         /// JSON progress lines on stderr (stdout stays the snapshot).
         #[arg(long)]
         progress: bool,
+        /// Do not extract a git parent even when HEAD^ exists.
+        #[arg(long)]
+        no_parent: bool,
     },
     /// Extract one file (debug).
     Extract {
@@ -72,8 +76,12 @@ enum Cmd {
         root: PathBuf,
         #[arg(long)]
         flow: String,
+        /// Default: `<root>/.graphide/stamps/<flow>.json`
         #[arg(long)]
-        out: PathBuf,
+        out: Option<PathBuf>,
+        /// Prompt a flow without a sidecar: name=hit,hit
+        #[arg(long)]
+        prompt: Vec<String>,
     },
     /// Recheck a stamp against the latest derived graph.
     Recheck {
@@ -95,8 +103,9 @@ fn main() -> Result<()> {
             flow,
             json,
             progress,
+            no_parent,
         } => {
-            let snap = review_roots(&root, parent.as_deref(), &flow, progress)?;
+            let snap = review_roots(&root, parent.as_deref(), &flow, progress, !no_parent)?;
             if json {
                 // Compact when the UI is streaming — faster parse, same snapshot.
                 if progress {
@@ -122,19 +131,25 @@ fn main() -> Result<()> {
             bubble,
             prompt,
         } => {
-            let snap = review_roots(&root, None, &prompt, false)?;
+            let snap = review_roots(&root, None, &prompt, false, false)?;
             let view = enter_bubble(&snap, &flow, bubble)
                 .with_context(|| format!("flow/bubble not found: {flow} / {bubble}"))?;
             println!("{}", serde_json::to_string_pretty(&view)?);
         }
-        Cmd::Stamp { root, flow, out } => {
-            let snap = review_roots(&root, None, &[], false)?;
+        Cmd::Stamp {
+            root,
+            flow,
+            out,
+            prompt,
+        } => {
+            let snap = review_roots(&root, None, &prompt, false, false)?;
             let view = snap
                 .flows
                 .iter()
                 .find(|f| f.name == flow)
                 .with_context(|| format!("flow not found: {flow}"))?;
             let stamp = make_stamp(&snap.graph, view, &snap.plugin);
+            let out = out.unwrap_or_else(|| default_stamp_path(&root, &flow));
             if let Some(parent) = out.parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -142,7 +157,7 @@ fn main() -> Result<()> {
             eprintln!("wrote stamp {}", out.display());
         }
         Cmd::Recheck { root, stamp, json } => {
-            let snap = review_roots(&root, None, &[], false)?;
+            let snap = review_roots(&root, None, &[], false, false)?;
             let text = fs::read_to_string(&stamp)?;
             let stamp: Stamp = serde_json::from_str(&text)?;
             let (view, finding) = recheck_stamp(&snap.graph, &stamp);
@@ -213,6 +228,12 @@ fn print_review(snap: &ReviewSnapshot) {
     for f in &snap.findings {
         println!("finding {:?}", f.kind);
     }
+    if !snap.stamps.is_empty() {
+        println!("stamps {}", snap.stamps.len());
+        for s in &snap.stamps {
+            println!("  {} {}", s.name, if s.holds { "holds" } else { "broken" });
+        }
+    }
 }
 
 struct ProgressSink {
@@ -258,6 +279,7 @@ fn review_roots(
     parent: Option<&Path>,
     prompt_flows: &[String],
     emit_progress: bool,
+    auto_parent: bool,
 ) -> Result<ReviewSnapshot> {
     let sink = ProgressSink::new(emit_progress);
     let report = |ev: &ProgressEvent| sink.emit(ev);
@@ -288,6 +310,10 @@ fn review_roots(
             let (e, s) = extract_repo(p, Some(&report), "parent", 60, 70)?;
             (Some(e), s)
         }
+        None if auto_parent => match git_parent_sources(root, &head_sources, &report) {
+            Some((e, s)) if !e.is_empty() => (Some(e), s),
+            _ => (None, HashMap::new()),
+        },
         None => (None, HashMap::new()),
     };
     let mut hints = load_hints(root);
@@ -313,7 +339,132 @@ fn review_roots(
     snap.stats.extract_ms = extract_ms;
     snap.stats.derive_ms = t1.elapsed().as_millis() as u64;
     snap.stats.elapsed_ms = t0.elapsed().as_millis() as u64;
+    let saved = load_stamps(root);
+    if !saved.is_empty() {
+        report(&ProgressEvent::new(
+            "flows",
+            format!("Rechecking {} stamps", saved.len()),
+            saved.len(),
+            saved.len(),
+            99,
+        ));
+        apply_saved_stamps(&mut snap, &saved);
+    }
     Ok(snap)
+}
+
+fn default_stamp_path(root: &Path, flow: &str) -> PathBuf {
+    root.join(".graphide")
+        .join("stamps")
+        .join(stamp_filename(flow))
+}
+
+fn load_stamps(root: &Path) -> Vec<Stamp> {
+    let dir = root.join(".graphide").join("stamps");
+    let mut out = Vec::new();
+    let entries = match fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(_) => return out,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
+        }
+        if let Ok(text) = fs::read_to_string(&path) {
+            if let Ok(stamp) = serde_json::from_str::<Stamp>(&text) {
+                out.push(stamp);
+            }
+        }
+    }
+    out
+}
+
+fn git_stdout(root: &Path, args: &[&str]) -> Option<String> {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+/// Like `git show`, but keeps empty files (stdout may be empty).
+fn git_show(root: &Path, spec: &str) -> Option<String> {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["show", spec])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    String::from_utf8(out.stdout).ok()
+}
+
+fn git_rel_prefix(root: &Path) -> Option<String> {
+    let inside = git_stdout(root, &["rev-parse", "--is-inside-work-tree"])?;
+    if inside != "true" {
+        return None;
+    }
+    let toplevel = git_stdout(root, &["rev-parse", "--show-toplevel"])?;
+    let rel = path_relative(Path::new(&toplevel), root).ok()?;
+    if rel.is_empty() || rel == "." {
+        Some(String::new())
+    } else {
+        Some(format!("{}/", rel.trim_end_matches('/')))
+    }
+}
+
+fn git_parent_sources(
+    root: &Path,
+    head_sources: &HashMap<String, String>,
+    report: &(dyn Fn(&ProgressEvent) + Send + Sync),
+) -> Option<(Vec<Extract>, HashMap<String, String>)> {
+    let prefix = git_rel_prefix(root)?;
+    let rev = git_stdout(root, &["rev-parse", "--verify", "HEAD^"])?;
+    report(&ProgressEvent::new(
+        "parent",
+        format!("Extracting git parent {rev:.7}…"),
+        0,
+        head_sources.len(),
+        60,
+    ));
+    let mut sources = HashMap::new();
+    for rel in head_sources.keys() {
+        let spec = format!("{rev}:{prefix}{rel}");
+        if let Some(src) = git_show(root, &spec) {
+            sources.insert(rel.clone(), src);
+        }
+    }
+    if sources.is_empty() {
+        return None;
+    }
+    let mut extracts = Vec::new();
+    let total = sources.len();
+    for (i, (rel, src)) in sources.iter().enumerate() {
+        report(&ProgressEvent::new(
+            "parent",
+            rel.clone(),
+            i + 1,
+            total,
+            progress_pct(60, 70, i + 1, total),
+        ));
+        if let Ok(Some(r)) = extract_file(rel, src) {
+            extracts.push(r.extract);
+        }
+    }
+    Some((extracts, sources))
 }
 
 fn parse_prompt_flows(args: &[String]) -> Result<Vec<FlowHint>> {
@@ -471,6 +622,7 @@ fn skip_dir(path: &Path) -> bool {
                     | ".venv"
                     | "venv"
                     | ".next"
+                    | ".graphide"
             )
         )
     })

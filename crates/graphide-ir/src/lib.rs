@@ -378,6 +378,15 @@ pub struct ReviewSnapshot {
     pub findings: Vec<Finding>,
     #[serde(default)]
     pub stats: ReviewStats,
+    /// Human stamps loaded from `.graphide/stamps` and rechecked on this graph.
+    #[serde(default)]
+    pub stamps: Vec<StampCheck>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StampCheck {
+    pub name: String,
+    pub holds: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

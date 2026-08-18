@@ -19,3 +19,5 @@ The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). No `graphi
 ## After install
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
+
+**Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.

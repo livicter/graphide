@@ -143,6 +143,15 @@ button:disabled { opacity: 0.45; cursor: default; }
   padding: 3px 8px; font-size: 11px;
 }
 .tab.on { border-color: var(--vscode-focusBorder); color: var(--vscode-textLink-foreground); }
+.tab .mark { margin-left: 6px; font-size: 9px; text-transform: uppercase; opacity: 0.75; }
+.tab.holds { border-color: #3fb950; }
+.tab.broken { border-color: var(--vscode-errorForeground); }
+.tab.skipped { opacity: 0.55; }
+#stampBtn, #skipBtn {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+}
 #meta, #coverage {
   padding: 6px 10px;
   border-bottom: 1px solid var(--vscode-panel-border);
@@ -160,6 +169,20 @@ button:disabled { opacity: 0.45; cursor: default; }
   color: var(--vscode-textLink-foreground);
   border: 1px solid var(--vscode-textLink-foreground);
   animation: pulse 1.1s ease-in-out infinite;
+}
+.live.holds {
+  color: #3fb950;
+  border-color: #3fb950;
+  animation: none;
+}
+.live.broken {
+  color: var(--vscode-errorForeground);
+  border-color: var(--vscode-errorForeground);
+  animation: none;
+}
+.live.skipped {
+  opacity: 0.7;
+  animation: none;
 }
 .hint-live { opacity: 0.65; font-size: 11px; margin-top: 12px; }
 #canvas { padding: 12px 10px 16px; overflow: auto; flex: 1; min-height: 160px; }
@@ -241,6 +264,8 @@ svg.steiner.flowing .edge-flow {
 svg.steiner.focus .edge,
 svg.steiner.focus .edge-flow,
 svg.steiner.focus .vnode { opacity: 0.2; }
+svg.steiner .edge.scar { stroke: var(--vscode-errorForeground); opacity: 0.95; stroke-width: 2.2; }
+svg.steiner .edge-flow.scar { stroke: var(--vscode-errorForeground); }
 svg.steiner.focus .edge.hot { opacity: 0.95; stroke-width: 2.2; }
 svg.steiner.focus .edge-flow.hot { opacity: 0.95; animation-duration: 0.65s; }
 svg.steiner.focus .vnode.hot { opacity: 1; }
