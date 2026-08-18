@@ -4,6 +4,7 @@
   const mode = params.get("mode") || "broken";
   const search = params.get("search") || "";
   const clickProgram = params.get("program") === "1" || params.get("program") === "main";
+  const drill = params.get("drill") === "1";
 
   const NAMES = [
     "ScreenshotFormat",
@@ -173,6 +174,10 @@
   setTimeout(function () {
     if (clickProgram) clickMainProgram();
     if (search) applySearch(search);
+    if (drill) {
+      const card = document.querySelector(".bubble-card");
+      if (card) card.click();
+    }
     setTimeout(probe, 120);
   }, 60);
 })();
