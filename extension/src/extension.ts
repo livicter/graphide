@@ -107,6 +107,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.stack.push({ kind: "bubble", flow: msg.flow, bubble: String(msg.bubble) });
         this.pushState();
       } else if (msg.type === "enterNode") await this.enterNode(msg);
+      else if (msg.type === "peekSource") this.peekSource(msg.id);
       else if (msg.type === "back") {
         this.stack.pop();
         if (this.stack.length === 0) {
@@ -345,6 +346,22 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  private peekSource(id: any) {
+    if (!this.view) return;
+    const node = this.snapshot?.graph?.nodes?.find((n: any) => String(n.id) === String(id));
+    if (!node?.span) {
+      this.view.webview.postMessage({ type: "source", id, missing: true });
+      return;
+    }
+    this.view.webview.postMessage({
+      type: "source",
+      id: String(node.id),
+      fqn: node.fqn,
+      kind: node.kind,
+      ...snippetAt(node),
+    });
+  }
+
   private filteredFlows(): any[] {
     const all = this.snapshot?.flows || [];
     if (!this.programKey) return all;
@@ -479,7 +496,17 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   </div>
   <nav id="tabs"></nav>
   <section id="meta"></section>
-  <section id="canvas"></section>
+  <section id="workspace">
+    <section id="canvas"></section>
+    <aside id="sourcePane" hidden>
+      <div class="src-bar">
+        <span id="srcTitle"></span>
+        <button id="srcEditor" title="Open this span in the editor">Editor</button>
+        <button id="srcClose" title="Close source pane (Esc)">Close</button>
+      </div>
+      <div id="srcBody"></div>
+    </aside>
+  </section>
   <section id="coverage"></section>
   <footer id="status"></footer>
   <script nonce="${nonce}" src="${scriptUri}"></script>
@@ -883,32 +910,49 @@ function flowTouchesProgram(flow: any, graph: any, key: string, programs: any[])
   return false;
 }
 
-function snippetsFor(snap: any, flow: any): Record<string, string> {
-  const out: Record<string, string> = {};
+function snippetsFor(snap: any, flow: any): Record<string, any> {
+  const out: Record<string, any> = {};
   if (!snap || !flow?.tree) return out;
+  const byId = new Map<string, any>((snap.graph?.nodes || []).map((n: any) => [nodeId(n.id), n]));
+  for (const id of flow.tree.nodes || []) {
+    const n = byId.get(nodeId(id));
+    const snip = snippetAt(n);
+    if (snip) out[nodeId(id)] = snip;
+  }
+  return out;
+}
+
+function snippetAt(n: any): {
+  text: string;
+  preview: string;
+  file: string;
+  line: number;
+  endLine: number;
+  from: number;
+} | undefined {
+  if (!n?.span?.file || n.span.start == null) return undefined;
   let root: string;
   try {
     root = packageRoot();
   } catch {
-    return out;
+    return undefined;
   }
-  const byId = new Map<string, any>((snap.graph?.nodes || []).map((n: any) => [nodeId(n.id), n]));
-  for (const id of flow.tree.nodes || []) {
-    const n = byId.get(nodeId(id));
-    const file = n?.span?.file;
-    if (!file || n?.span?.start == null) continue;
-    try {
-      const abs = path.isAbsolute(file) ? file : path.join(root, file);
-      if (!fs.existsSync(abs)) continue;
-      const lines = fs.readFileSync(abs, "utf8").split(/\r?\n/);
-      const start = Math.max(0, ((n.span.start.line as number) | 0) - 1);
-      const take = lines.slice(start, start + 8).join("\n").trimEnd();
-      if (take) out[nodeId(id)] = take.slice(0, 900);
-    } catch {
-      /* skip unreadable files */
-    }
+  try {
+    const file = n.span.file;
+    const abs = path.isAbsolute(file) ? file : path.join(root, file);
+    if (!fs.existsSync(abs)) return undefined;
+    const lines = fs.readFileSync(abs, "utf8").split(/\r?\n/);
+    const line = Math.max(1, (n.span.start.line as number) | 0);
+    const endLine = Math.max(line, (n.span.end.line as number) | 0);
+    const from = Math.max(1, line - 2);
+    const to = Math.min(lines.length, Math.max(endLine + 6, line + 18));
+    const text = lines.slice(from - 1, to).join("\n");
+    const preview = lines.slice(line - 1, line + 7).join("\n").trimEnd().slice(0, 900);
+    if (!text && !preview) return undefined;
+    return { text: text.slice(0, 4000), preview, file, line, endLine, from };
+  } catch {
+    return undefined;
   }
-  return out;
 }
 
 function warmCli(cli: string) {

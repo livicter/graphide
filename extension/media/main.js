@@ -24,6 +24,12 @@ const zoomOutBtn = document.getElementById("zoomOut");
 const zoomFitBtn = document.getElementById("zoomFit");
 const zoomPct = document.getElementById("zoomPct");
 const tip = document.getElementById("tip");
+const workspace = document.getElementById("workspace");
+const sourcePane = document.getElementById("sourcePane");
+const srcTitle = document.getElementById("srcTitle");
+const srcBody = document.getElementById("srcBody");
+const srcEditor = document.getElementById("srcEditor");
+const srcClose = document.getElementById("srcClose");
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -57,6 +63,9 @@ let viewportEl = null;
 let cam = { x: 0, y: 0, k: 1 };
 let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
+let progFocus = 0;
+let selectedNodeId = null;
+let sourceId = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 
@@ -80,6 +89,33 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (document.activeElement === prompt) return;
+  if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
+    e.preventDefault();
+    closeSourcePane();
+    return;
+  }
+  if (stack[stack.length - 1]?.kind === "programs") {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      moveProgFocus(1);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      moveProgFocus(-1);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      openFocusedProgram();
+      return;
+    }
+    if (e.key === "a" || e.key === "A") {
+      e.preventDefault();
+      openAllPrograms();
+      return;
+    }
+  }
   if (e.key === "+" || e.key === "=") {
     e.preventDefault();
     zoomBy(1.18);
@@ -115,6 +151,14 @@ document.addEventListener("keydown", (e) => {
 if (zoomInBtn) zoomInBtn.onclick = () => zoomBy(1.2);
 if (zoomOutBtn) zoomOutBtn.onclick = () => zoomBy(1 / 1.2);
 if (zoomFitBtn) zoomFitBtn.onclick = () => setCamTarget(0, 0, 1);
+if (srcClose) srcClose.onclick = () => closeSourcePane();
+if (srcEditor)
+  srcEditor.onclick = () => {
+    const flow = currentFlow();
+    if (sourceId && flow) {
+      vscode.postMessage({ type: "enterNode", flow: flow.name, id: sourceId, isLeaf: true });
+    }
+  };
 if (stampBtn)
   stampBtn.onclick = () => {
     const flow = currentFlow();
@@ -160,6 +204,7 @@ window.addEventListener("message", (event) => {
     status.textContent = "";
     setZoomUi(false);
     hideTip();
+    closeSourcePane();
     return;
   }
   if (msg.type === "setup") {
@@ -215,6 +260,10 @@ window.addEventListener("message", (event) => {
     status.textContent = "failed";
     setZoomUi(false);
     hideTip();
+    return;
+  }
+  if (msg.type === "source") {
+    showSource(msg);
     return;
   }
   if (msg.type === "programs") {
@@ -350,12 +399,14 @@ function updateZoomPct() {
 function lodOf(k) {
   if (k < 1.25) return 0;
   if (k < 2.2) return 1;
-  return 2;
+  if (k < 3.6) return 2;
+  return 3;
 }
 
 function applyCam() {
   if (viewportEl) {
     viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
+    viewportEl.style.setProperty("--cam-k", String(cam.k));
     const lod = String(lodOf(cam.k));
     if (viewportEl.getAttribute("data-lod") !== lod) viewportEl.setAttribute("data-lod", lod);
   }
@@ -506,7 +557,10 @@ function bindGraphFx() {
       g.addEventListener("pointerleave", clearHot);
       g.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        zoomToEl(g, Math.min(CAM_MAX, Math.max(2.4, camTo.k * 1.45)));
+        selectedNodeId = id;
+        canvas.querySelectorAll(".vnode").forEach((el) => el.classList.toggle("selected", el.getAttribute("data-id") === id));
+        zoomToEl(g, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+        peekSource(id);
       });
       g.addEventListener("dblclick", (ev) => {
         ev.stopPropagation();
@@ -518,9 +572,7 @@ function bindGraphFx() {
           return;
         }
         const flow = currentFlow();
-        if (flow) {
-          vscode.postMessage({ type: "enterNode", flow: flow.name, id, isLeaf: true });
-        }
+        if (flow) peekSource(id);
       });
     });
     if (!reduceMotion()) {
@@ -843,80 +895,316 @@ function flowTouchesProgram(flow, program) {
   return false;
 }
 
+function snippetPreview(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  return raw.preview || raw.text || "";
+}
+
+function nodeFlags(id) {
+  const sid = idVal(id);
+  const cov = (snapshot && snapshot.coverage) || {};
+  const uncovered = (cov.uncovered || []).some((x) => idVal(x) === sid);
+  const changed = (cov.changed || []).some((x) => idVal(x) === sid);
+  return { uncovered, changed };
+}
+
+function nodeAway(id) {
+  const prog = snapshot && snapshot.program;
+  if (!prog) return false;
+  const n = nodeById.get(idVal(id));
+  const file = n?.span?.file;
+  if (!file) return false;
+  return programKeyOf(assignProgram(file, snapshot.programs || [])) !== programKeyOf(prog);
+}
+
+function peekSource(id) {
+  if (!id) return;
+  sourceId = id;
+  const local = snapshot && snapshot.snippets && snapshot.snippets[id];
+  if (local) {
+    const node = nodeById.get(idVal(id));
+    showSource({
+      id,
+      fqn: (node && node.fqn) || id,
+      kind: node && node.kind,
+      ...(typeof local === "string" ? { text: local, preview: local } : local),
+    });
+    return;
+  }
+  vscode.postMessage({ type: "peekSource", id });
+}
+
+function showSource(msg) {
+  if (!sourcePane) return;
+  if (msg.missing) {
+    sourcePane.hidden = false;
+    if (srcTitle) srcTitle.textContent = "No span for this node";
+    if (srcBody) srcBody.textContent = "";
+    return;
+  }
+  sourceId = msg.id || sourceId;
+  sourcePane.hidden = false;
+  if (workspace) workspace.classList.add("has-source");
+  const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
+  if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
+  if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
+  const hot = srcBody && srcBody.querySelector(".src-line.hot");
+  if (hot) hot.scrollIntoView({ block: "center" });
+}
+
+function renderSourceLines(msg) {
+  const text = msg.text || msg.preview || "";
+  const lines = String(text).split("\n");
+  const from = msg.from || msg.line || 1;
+  const lo = msg.line || 0;
+  const hi = msg.endLine || lo;
+  return lines
+    .map((line, i) => {
+      const ln = from + i;
+      const hot = lo && ln >= lo && ln <= hi;
+      return (
+        '<div class="src-line' +
+        (hot ? " hot" : "") +
+        '"><span class="ln">' +
+        ln +
+        '</span><span class="tx">' +
+        esc(line) +
+        "</span></div>"
+      );
+    })
+    .join("");
+}
+
+function closeSourcePane() {
+  if (!sourcePane || sourcePane.hidden) return false;
+  sourcePane.hidden = true;
+  if (workspace) workspace.classList.remove("has-source");
+  if (srcBody) srcBody.innerHTML = "";
+  sourceId = null;
+  return true;
+}
+
+function programMarks(p) {
+  const key = programKeyOf(p);
+  const programs = (snapshot && snapshot.programs) || [];
+  let uncovered = 0;
+  for (const id of (snapshot && snapshot.coverage && snapshot.coverage.uncovered) || []) {
+    const n = nodeById.get(idVal(id));
+    if (n?.span?.file && programKeyOf(assignProgram(n.span.file, programs)) === key) uncovered++;
+  }
+  const flows = ((snapshot && snapshot.flows) || []).filter((f) => flowTouchesProgram(f, p)).length;
+  return { uncovered, flows };
+}
+
+function programLinks() {
+  const programs = (snapshot && snapshot.programs) || [];
+  const graph = snapshot && snapshot.graph;
+  const counts = new Map();
+  for (const e of graph?.edges || []) {
+    const a = nodeById.get(idVal(e.from));
+    const b = nodeById.get(idVal(e.to));
+    if (!a?.span?.file || !b?.span?.file) continue;
+    const ka = programKeyOf(assignProgram(a.span.file, programs));
+    const kb = programKeyOf(assignProgram(b.span.file, programs));
+    if (!ka || ka === kb) continue;
+    const kind = e.kind || "Imports";
+    const k = ka + "\t" + kb + "\t" + kind;
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const out = [];
+  for (const [k, count] of counts) {
+    const [from, to, kind] = k.split("\t");
+    out.push({ from, to, kind, count });
+  }
+  return out;
+}
+
+function layoutPrograms(programs) {
+  const n = programs.length;
+  const W = Math.max(560, 200 + n * 70);
+  const H = Math.max(300, 220 + n * 18);
+  const cx = W / 2;
+  const cy = H / 2;
+  const r = Math.min(W, H) * 0.3 + Math.max(0, n - 2) * 8;
+  return programs.map((p, i) => {
+    const a = -Math.PI / 2 + (i / Math.max(n, 1)) * Math.PI * 2;
+    return { p, i, x: n === 1 ? cx : cx + Math.cos(a) * r, y: n === 1 ? cy : cy + Math.sin(a) * r };
+  });
+}
+
+function moveProgFocus(delta) {
+  const n = (snapshot && snapshot.programs) || [];
+  if (!n.length) return;
+  progFocus = (progFocus + delta + n.length) % n.length;
+  canvas.querySelectorAll(".prog-chip").forEach((el) => {
+    el.classList.toggle("on", Number(el.getAttribute("data-i")) === progFocus);
+  });
+}
+
+function openAllPrograms() {
+  const flows = (snapshot && snapshot.flows) || [];
+  vscode.postMessage({ type: "selectProgram", all: true, flow: flows[0] && flows[0].name });
+}
+
+function openFocusedProgram() {
+  const programs = (snapshot && snapshot.programs) || [];
+  const p = programs[progFocus];
+  if (!p) return;
+  const el = canvas.querySelector('.prog-chip[data-i="' + progFocus + '"]');
+  openProgram(p, el);
+}
+
+function openProgram(p, fromEl) {
+  const flows = (snapshot && snapshot.flows) || [];
+  const first = flows.find((f) => flowTouchesProgram(f, p));
+  const go = () =>
+    vscode.postMessage({
+      type: "selectProgram",
+      kind: p.kind,
+      name: p.name,
+      root: p.root || "",
+      flow: first ? first.name : flows[0] && flows[0].name,
+    });
+  if (fromEl && !reduceMotion()) {
+    fromEl.classList.add("zoom-in");
+    canvas.classList.add("leaving");
+    zoomToEl(fromEl, 2.1);
+    setTimeout(go, 180);
+  } else {
+    go();
+  }
+}
+
 function renderProgramOverview() {
   const programs = snapshot.programs || [];
   const flows = snapshot.flows || [];
   renderTabs([]);
   renderStats(snapshot);
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
-  setZoomUi(false);
   hideTip();
+  closeSourcePane();
   if (stampBtn) stampBtn.disabled = true;
   if (skipBtn) skipBtn.disabled = true;
+  if (progFocus >= programs.length) progFocus = 0;
   meta.innerHTML =
-    '<span class="crumb">Review</span> / <b>programs</b> · pick a binary — flowchart zoom then shows source';
-  const cards = programs
-    .map((p) => {
-      const n = flows.filter((f) => flowTouchesProgram(f, p)).length;
-      const entry = (p.entries || [])[0] ? shortOf(p.entries[0]) : "";
-      return (
-        '<button type="button" class="prog ' +
-        esc(p.kind) +
-        '" data-kind="' +
-        esc(p.kind) +
-        '" data-name="' +
-        esc(p.name) +
-        '" data-root="' +
-        esc(p.root || "") +
-        '">' +
-        '<span class="kind">' +
-        esc(p.kind) +
-        "</span>" +
-        "<b>" +
-        esc(p.name) +
-        "</b>" +
-        '<span class="root">' +
-        esc(p.root || ".") +
-        "</span>" +
-        '<span class="meta">' +
-        (p.nodes || 0) +
-        " nodes" +
-        (entry ? " · " + esc(entry) : "") +
-        (n ? " · " + n + (n === 1 ? " flow" : " flows") : "") +
-        "</span></button>"
-      );
-    })
-    .join("");
-  canvas.className = "play programs-view";
+    '<span class="crumb">Review</span> / <b>programs</b> · click a binary · arrows + Enter · <button type="button" class="crumb-btn" data-all="1">All</button>';
+  const allBtn = meta.querySelector("[data-all]");
+  if (allBtn) allBtn.onclick = () => openAllPrograms();
+  const laid = layoutPrograms(programs);
+  const W = Math.max(560, 200 + programs.length * 70);
+  const H = Math.max(300, 220 + programs.length * 18);
+  const keyAt = {};
+  laid.forEach((row) => {
+    keyAt[programKeyOf(row.p)] = row;
+  });
+  const links = programLinks();
+  let svg =
+    '<svg class="links" viewBox="0 0 ' +
+    W +
+    " " +
+    H +
+    '" width="' +
+    W +
+    '" height="' +
+    H +
+    '">';
+  for (const link of links) {
+    const a = keyAt[link.from];
+    const b = keyAt[link.to];
+    if (!a || !b) continue;
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2 - 10;
+    svg +=
+      '<path d="M' +
+      a.x +
+      "," +
+      a.y +
+      " C" +
+      mx +
+      "," +
+      a.y +
+      " " +
+      mx +
+      "," +
+      b.y +
+      " " +
+      b.x +
+      "," +
+      b.y +
+      '" />';
+    svg +=
+      '<text x="' +
+      mx +
+      '" y="' +
+      my +
+      '" text-anchor="middle">' +
+      esc(link.kind) +
+      (link.count > 1 ? " ×" + link.count : "") +
+      "</text>";
+  }
+  svg += "</svg>";
+  let chips = "";
+  for (const row of laid) {
+    const p = row.p;
+    const marks = programMarks(p);
+    const entry = (p.entries || [])[0] ? shortOf(p.entries[0]) : "";
+    chips +=
+      '<button type="button" class="prog-chip ' +
+      esc(p.kind) +
+      (row.i === progFocus ? " on" : "") +
+      '" style="left:' +
+      row.x +
+      "px;top:" +
+      row.y +
+      'px" data-i="' +
+      row.i +
+      '" data-kind="' +
+      esc(p.kind) +
+      '" data-name="' +
+      esc(p.name) +
+      '" data-root="' +
+      esc(p.root || "") +
+      '">';
+    chips += '<span class="kind">' + esc(p.kind) + "</span>";
+    chips += "<b>" + esc(p.name) + "</b>";
+    chips += '<span class="root">' + esc(p.root || ".") + "</span>";
+    chips +=
+      '<span class="meta">' +
+      (p.nodes || 0) +
+      " nodes" +
+      (entry ? " · " + esc(entry) : "") +
+      "</span>";
+    chips += '<span class="badges">';
+    if (marks.flows) chips += '<span class="badge">' + marks.flows + (marks.flows === 1 ? " flow" : " flows") + "</span>";
+    if (marks.uncovered) chips += '<span class="badge warn">' + marks.uncovered + " uncovered</span>";
+    chips += "</span></button>";
+  }
+  canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
-    '<div class="programs">' +
-    '<button type="button" class="prog all" data-all="1">' +
-    "<b>All programs</b>" +
-    '<span class="meta">' +
-    programs.length +
-    " binaries · " +
-    flows.length +
-    (flows.length === 1 ? " flow" : " flows") +
-    "</span></button>" +
-    cards +
-    "</div>";
-  canvas.querySelectorAll(".prog").forEach((el) => {
+    '<div class="stage"><div class="viewport" data-lod="0">' +
+    '<div class="flow-title">Programs — file projection</div>' +
+    '<div class="prog-map" style="width:' +
+    W +
+    "px;height:" +
+    H +
+    'px">' +
+    svg +
+    chips +
+    "</div></div></div>";
+  bindStage(canvas.querySelector(".stage"), { reset: true });
+  setZoomUi(true);
+  canvas.querySelectorAll(".prog-chip").forEach((el) => {
     el.onclick = () => {
-      if (el.getAttribute("data-all") === "1") {
-        vscode.postMessage({ type: "selectProgram", all: true, flow: flows[0] && flows[0].name });
-        return;
-      }
-      const kind = el.getAttribute("data-kind");
-      const name = el.getAttribute("data-name");
-      const root = el.getAttribute("data-root") || "";
-      const first = flows.find((f) => flowTouchesProgram(f, { kind, name, root }));
-      vscode.postMessage({
-        type: "selectProgram",
-        kind,
-        name,
-        root,
-        flow: first ? first.name : flows[0] && flows[0].name,
-      });
+      progFocus = Number(el.getAttribute("data-i")) || 0;
+      openProgram(
+        {
+          kind: el.getAttribute("data-kind"),
+          name: el.getAttribute("data-name"),
+          root: el.getAttribute("data-root") || "",
+        },
+        el
+      );
     };
   });
 }
@@ -1133,10 +1421,15 @@ function renderSteiner(flow, graph, animate, scars) {
     const file = node?.span?.file || "";
     const line = node?.span?.start?.line || "";
     const where = file ? shortFile(file) + (line ? ":" + line : "") : "";
-    const snip = snippets[nid] || "";
+    const snip = snippetPreview(snippets[nid]);
+    const flags = nodeFlags(nid);
+    const away = nodeAway(nid);
     cards +=
       '<button type="button" class="vnode' +
       (type ? " type" : "") +
+      (away ? " away" : "") +
+      (flags.uncovered ? " uncovered" : flags.changed ? " changed" : "") +
+      (selectedNodeId === nid ? " selected" : "") +
       '" style="left:' +
       p.x +
       "px;top:" +
@@ -1313,12 +1606,8 @@ function renderInner(msg, animate) {
         enterRun(el.getAttribute("data-flow"), el.getAttribute("data-id"));
         return;
       }
-      vscode.postMessage({
-        type: "enterNode",
-        flow: el.getAttribute("data-flow"),
-        id: el.getAttribute("data-id"),
-        isLeaf: true,
-      });
+      selectedNodeId = el.getAttribute("data-id");
+      peekSource(selectedNodeId);
     });
   });
 }

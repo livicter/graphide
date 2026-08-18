@@ -20,6 +20,6 @@ The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Review tar
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
 
-If the repo has more than one binary or crate, Review opens a program overview first. Pick a bin, then zoom the flowchart for file:line and source on each node.
+If the repo has more than one binary or crate, Review opens a program map first. Pick a bin (arrows + Enter, or All), then zoom the flowchart. Click a node to keep its source pane beside the map.
 
 **Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.
