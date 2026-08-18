@@ -345,6 +345,25 @@ button:disabled { opacity: 0.45; cursor: default; }
 .comm-node.dim { opacity: 0.12; }
 .comm-node.selected { outline: 2px solid var(--vscode-focusBorder); z-index: 3; }
 .comm-node.uncovered { box-shadow: 0 0 0 2px var(--vscode-errorForeground); }
+.bubble-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--c, var(--vscode-focusBorder));
+  background: color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 18%, var(--vscode-editor-background));
+  color: inherit;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+.bubble-card .name { font-size: 11px; font-weight: 600; text-align: center; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bubble-card .meta { font-size: 9px; opacity: 0.7; }
+.bubble-card:hover { outline: 1px solid var(--vscode-focusBorder); }
 #canvas.leaving { animation: leave 150ms ease-in forwards; }
 .stage {
   position: relative;
