@@ -10,7 +10,7 @@ Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubunt
 2. Reload VS Code or Cursor.
 3. Open the folder to review → **Graphide** → **Review**.
 
-The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. You do not set `graphide.cliPath`.
+The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. After that, open **any** repo (for example `Documents\Git\SolarSim`) and click Review. You do not set `graphide.cliPath`.
 
 ## macOS
 
