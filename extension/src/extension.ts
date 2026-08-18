@@ -275,7 +275,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     const flow = name || this.flowName;
     if (!flow) return;
     if (!this.skipped.includes(flow)) this.skipped.push(flow);
-    this.pushState();
+    this.pushMarks(`Skipped ${flow}`);
   }
 
   writeStamp(name?: string) {
@@ -300,8 +300,17 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     this.snapshot.findings = (this.snapshot.findings || []).filter(
       (f: any) => !(f.kind === "StampBroken" && f.flow === flow.name)
     );
-    vscode.window.showInformationMessage(`Stamped ${flow.name}`);
-    this.pushState();
+    this.pushMarks(`Stamped ${flow.name}`);
+  }
+
+  private pushMarks(toast: string) {
+    this.view?.webview.postMessage({
+      type: "marks",
+      stamps: this.snapshot?.stamps || [],
+      skipped: this.skipped,
+      findings: this.snapshot?.findings || [],
+      toast,
+    });
   }
 
   private async enterNode(msg: any) {
@@ -319,6 +328,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       endLine: node.span.end.line,
       endColumn: node.span.end.column,
     });
+    this.view?.webview.postMessage({ type: "opened", id: String(node.id), file: node.span.file });
   }
 
   private pushState() {
@@ -376,24 +386,28 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
 <body>
   <header>
     <div class="brand">GRAPH<span>IDE</span></div>
-    <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
-    <button id="reviewBtn" title="Review workspace">Review</button>
-    <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
-    <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
-    <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
-    <div id="zoomBar" hidden>
-      <button id="zoomOut" title="Zoom out (−)">−</button>
-      <span id="zoomPct">100%</span>
-      <button id="zoomIn" title="Zoom in (+)">+</button>
-      <button id="zoomFit" title="Fit (0)">Fit</button>
+    <div class="actions">
+      <button id="backBtn" title="Pop one altitude (Backspace)" disabled>Back</button>
+      <button id="stampBtn" title="This flow still holds (S)" disabled>Stamp</button>
+      <button id="skipBtn" title="Skip this flow (X)" disabled>Skip</button>
+      <button id="reviewBtn" title="Review workspace (Enter in prompt)">Review</button>
+      <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
+      <div id="zoomBar" hidden>
+        <button id="zoomOut" title="Zoom out (−)">−</button>
+        <span id="zoomPct">100%</span>
+        <button id="zoomIn" title="Zoom in (+)">+</button>
+        <button id="zoomFit" title="Fit (0)">Fit</button>
+      </div>
     </div>
   </header>
+  <div id="toast" hidden></div>
   <div id="tip" hidden></div>
   <div id="progress">
     <div class="progress-inner">
       <ol id="phases">
         <li data-phase="walk">Scan</li>
         <li data-phase="extract">Extract</li>
+        <li data-phase="parent">Parent</li>
         <li data-phase="link">Link</li>
         <li data-phase="cluster">Cluster</li>
         <li data-phase="flows">Flows</li>

@@ -24,13 +24,14 @@ const zoomOutBtn = document.getElementById("zoomOut");
 const zoomFitBtn = document.getElementById("zoomFit");
 const zoomPct = document.getElementById("zoomPct");
 const tip = document.getElementById("tip");
+const toastEl = document.getElementById("toast");
 
-const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
+const PHASE_ORDER = ["walk", "extract", "parent", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
   start: "walk",
   walk: "walk",
   extract: "extract",
-  parent: "extract",
+  parent: "parent",
   link: "link",
   preview: "link",
   cluster: "cluster",
@@ -57,6 +58,11 @@ let viewportEl = null;
 let cam = { x: 0, y: 0, k: 1 };
 let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
+let viewMode = "runs";
+let openNodeId = null;
+let innerCursor = 0;
+let railOpen = "";
+let toastTimer = 0;
 const CAM_MIN = 0.35;
 const CAM_MAX = 3.6;
 
@@ -80,6 +86,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (document.activeElement === prompt) return;
+  if (busy) return;
   if (e.key === "+" || e.key === "=") {
     e.preventDefault();
     zoomBy(1.18);
@@ -98,6 +105,37 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Backspace") {
     e.preventDefault();
     goBack();
+    return;
+  }
+  if (e.key === "[" || e.key === "PageUp") {
+    e.preventDefault();
+    cycleFlow(-1);
+    return;
+  }
+  if (e.key === "]" || e.key === "PageDown") {
+    e.preventDefault();
+    cycleFlow(1);
+    return;
+  }
+  if (stack[stack.length - 1]?.kind === "bubble" && (e.key === "j" || e.key === "k" || e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
+    e.preventDefault();
+    if (e.key === "Enter") activateInner();
+    else moveInner(e.key === "j" || e.key === "ArrowDown" ? 1 : -1);
+    return;
+  }
+  if (e.key === "Enter" && stack[stack.length - 1]?.kind === "flow") {
+    const first = canvas.querySelector(".run");
+    if (first) {
+      e.preventDefault();
+      enterRun(first.getAttribute("data-flow"), first.getAttribute("data-bubble"), first);
+      return;
+    }
+    const flow = currentFlow();
+    const run = flow?.flowchart?.runs?.[0];
+    if (run) {
+      e.preventDefault();
+      enterRun(flow.name, idVal(run.bubble));
+    }
     return;
   }
   if (e.key === "s" || e.key === "S") {
@@ -153,13 +191,15 @@ window.addEventListener("message", (event) => {
     backBtn.disabled = true;
     canvas.className = "";
     canvas.innerHTML =
-      '<div class="empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div></div>';
+      '<div class="empty"><b>Review a change as flows.</b><div>Optional prompt <code>name=hit,hit</code>, then Review. Stamp or skip each proposed story.</div></div>';
     meta.textContent = "";
     coverage.textContent = "";
+    coverage.hidden = true;
     tabs.innerHTML = "";
     status.textContent = "";
     setZoomUi(false);
     hideTip();
+    setActionState();
     return;
   }
   if (msg.type === "setup") {
@@ -215,6 +255,23 @@ window.addEventListener("message", (event) => {
     status.textContent = "failed";
     setZoomUi(false);
     hideTip();
+    return;
+  }
+  if (msg.type === "marks") {
+    stampRows = msg.stamps || [];
+    skippedFlows = msg.skipped || [];
+    if (snapshot) {
+      snapshot.stamps = stampRows;
+      snapshot.skipped = skippedFlows;
+      if (msg.findings) snapshot.findings = msg.findings;
+    }
+    if (msg.toast) showToast(msg.toast);
+    if (snapshot) paint({ animate: "none", keepCam: true });
+    return;
+  }
+  if (msg.type === "opened") {
+    openNodeId = msg.id != null ? String(msg.id) : null;
+    if (snapshot) paint({ animate: "none", keepCam: true });
     return;
   }
   if (msg.type === "flowchart" || msg.type === "inner") {
@@ -472,6 +529,32 @@ function bindGraphFx() {
       enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"), el);
     });
   });
+  canvas.querySelectorAll(".walk-node").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-id");
+      const run = [...canvas.querySelectorAll(".run")].find((r) =>
+        (r.getAttribute("data-nodes") || "").split(",").includes(id)
+      );
+      if (run) {
+        zoomToEl(run, 1.55);
+        run.classList.add("hot");
+        setTimeout(() => run.classList.remove("hot"), 700);
+        return;
+      }
+      const g = [...canvas.querySelectorAll(".vnode")].find((n) => n.getAttribute("data-id") === id);
+      if (g) zoomToEl(g, 1.8);
+    });
+    el.addEventListener("dblclick", (ev) => {
+      ev.stopPropagation();
+      vscode.postMessage({
+        type: "enterNode",
+        flow: (currentFlow() || {}).name,
+        id: el.getAttribute("data-id"),
+        isLeaf: true,
+      });
+    });
+  });
 }
 
 function selectFlow(name) {
@@ -484,7 +567,9 @@ function enterRun(flow, bubble, fromEl) {
   const token = ++navToken;
   const go = () => {
     if (token !== navToken) return;
-    stack.push({ kind: "bubble", flow, bubble: String(bubble) });
+    const label = bubbleLabelOf(bubble);
+    stack.push({ kind: "bubble", flow, bubble: String(bubble), label });
+    innerCursor = 0;
     paint({ animate: "list" });
   };
   if (fromEl && !reduceMotion()) {
@@ -519,7 +604,7 @@ function paint(opts) {
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
   const top = stack[stack.length - 1];
-  backBtn.disabled = stack.length <= 1;
+  setActionState();
   if (top.kind === "flow") {
     const flow = currentFlow();
     renderFlowchart(
@@ -576,6 +661,50 @@ function setBusy(on) {
   reviewBtn.hidden = on;
   cancelBtn.hidden = !on;
   reviewBtn.disabled = on;
+  if (prompt) prompt.disabled = on;
+  setActionState();
+}
+
+function setActionState() {
+  const hasFlow = !!(snapshot && currentFlow() && !snapshot.preview);
+  if (stampBtn) stampBtn.disabled = busy || !hasFlow;
+  if (skipBtn) skipBtn.disabled = busy || !hasFlow;
+  if (backBtn) backBtn.disabled = busy || stack.length <= 1;
+}
+
+function showToast(text) {
+  if (!toastEl || !text) return;
+  toastEl.textContent = text;
+  toastEl.hidden = false;
+  toastEl.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove("on");
+    toastEl.hidden = true;
+  }, 2200);
+}
+
+function cycleFlow(dir) {
+  const flows = snapshot?.flows || [];
+  if (flows.length < 2) return;
+  const i = Math.max(0, flows.findIndex((f) => f.name === (currentFlow() || {}).name));
+  const next = flows[(i + dir + flows.length) % flows.length];
+  selectFlow(next.name);
+}
+
+function moveInner(dir) {
+  const items = [...canvas.querySelectorAll(".inode")];
+  if (!items.length) return;
+  innerCursor = (innerCursor + dir + items.length) % items.length;
+  items.forEach((el, i) => el.classList.toggle("cursor", i === innerCursor));
+  items[innerCursor].scrollIntoView({ block: "nearest" });
+}
+
+function activateInner() {
+  const items = [...canvas.querySelectorAll(".inode")];
+  const el = items[innerCursor] || items[0];
+  if (!el) return;
+  el.click();
 }
 
 function showProgress(msg) {
@@ -638,6 +767,7 @@ function finishWork() {
   setBusy(false);
   hideProgress();
   canvas.classList.remove("stale");
+  setActionState();
 }
 
 function formatMs(ms) {
@@ -725,43 +855,184 @@ function renderFlowchart(msg, opts) {
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, msg.graph);
   if (!flow) {
-    meta.innerHTML = "No proposed flows. Type a prompt or add <code>flows.toml</code>.";
+    renderCrumbs([{ label: "Review" }]);
     canvas.className = "play";
     canvas.innerHTML =
       '<div class="empty">Graph is ready (' +
       (msg.graph?.nodes?.length || msg.stats?.nodes || 0) +
-      " nodes). Prompt a story to slice it.</div>";
+      " nodes). Prompt a story or add <code>flows.toml</code>.</div>";
     setZoomUi(false);
     return;
   }
-  meta.innerHTML =
-    '<span class="crumb">Review</span> / <b>' +
-    esc(flow.name) +
-    "</b> · " +
-    (flow.tree?.nodes || []).length +
-    " on tree" +
-    (preview ? ' <span class="live">live preview</span>' : "") +
-    stampBadge(flow.name);
+  const scars = scarSet(msg.findings, flow.name);
+  const runHtml = renderRuns(flow, msg, animate === "all" || animate === "runs", scars);
+  const hasRuns = !!(flow.flowchart?.runs && flow.flowchart.runs.length >= 2);
+  const showTree = !hasRuns || viewMode === "tree";
+  const playTree = showTree && (animate === "all" || animate === "tree");
+  const keepCam = !!(opts && opts.keepCam) || animate === "runs" || animate === "none";
+  renderCrumbs(crumbTrail(flow.name), {
+    extra:
+      '<span class="hint-inline">' +
+      (flow.tree?.nodes || []).length +
+      " on tree</span>" +
+      (preview ? ' <span class="live">live preview</span>' : "") +
+      stampBadge(flow.name) +
+      (hasRuns
+        ? '<span class="view-toggle" role="group">' +
+          '<button type="button" data-view="runs"' +
+          (!showTree ? ' class="on"' : "") +
+          ">Runs</button>" +
+          '<button type="button" data-view="tree"' +
+          (showTree ? ' class="on"' : "") +
+          ">Walk</button></span>"
+        : ""),
+  });
 
-  const playTree = animate === "all" || animate === "tree";
-  const playRuns = animate === "all" || animate === "runs";
-  const keepCam = !!(opts && opts.keepCam) || animate === "runs";
-  const treeHtml = renderSteiner(flow, msg.graph, playTree, scarSet(msg.findings, flow.name));
-  const runHtml = renderRuns(flow, msg, playRuns);
+  const treeHtml = showTree ? renderSteiner(flow, msg.graph, playTree, scars) : "";
   canvas.className = "play has-stage";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport">' +
-    '<div class="flow-title">Steiner slice</div>' +
-    treeHtml +
-    (runHtml
-      ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
-      : preview
-        ? '<div class="hint-live">Runs appear when clustering finishes</div>'
-        : "") +
+    renderWalk(flow, msg.graph, scars) +
+    (showTree
+      ? '<div class="flow-title">Steiner walk</div>' + treeHtml
+      : '<div class="flow-title">Subsystem runs — click a box to enter</div>' + (runHtml || "")) +
+    (!runHtml && preview && !showTree
+      ? '<div class="hint-live">Runs appear when clustering finishes</div>'
+      : "") +
     "</div></div>";
   bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
   bindGraphFx();
+  bindCrumbs();
+  bindViewToggle(hasRuns);
   setZoomUi(true);
+}
+
+function crumbTrail(flowName) {
+  const crumbs = [{ label: "Review", to: 0 }];
+  if (flowName) crumbs.push({ label: flowName, to: 1 });
+  for (let i = 1; i < stack.length; i++) {
+    const step = stack[i];
+    crumbs.push({
+      label: step.label || bubbleLabelOf(step.bubble) || "enter",
+      to: i + 1,
+    });
+  }
+  return crumbs;
+}
+
+function renderCrumbs(crumbs, opts) {
+  const extra = (opts && opts.extra) || "";
+  meta.innerHTML =
+    '<div class="crumbs">' +
+    crumbs
+      .map((c, i) => {
+        const last = i === crumbs.length - 1;
+        const body = last ? "<b>" + esc(c.label) + "</b>" : esc(c.label);
+        if (c.to == null || last) return '<span class="crumb">' + body + "</span>";
+        return (
+          '<button type="button" class="crumb link" data-depth="' +
+          c.to +
+          '">' +
+          body +
+          "</button>"
+        );
+      })
+      .join('<span class="sep">/</span>') +
+    extra +
+    "</div>";
+}
+
+function bindCrumbs() {
+  meta.querySelectorAll(".crumb.link").forEach((el) => {
+    el.onclick = () => {
+      const depth = Number(el.getAttribute("data-depth"));
+      if (!depth) {
+        stack = [{ kind: "flow" }];
+        paint({ animate: "tree" });
+        return;
+      }
+      stack = stack.slice(0, depth);
+      if (!stack.length) stack = [{ kind: "flow" }];
+      paint({ animate: stack.length > 1 ? "list" : "tree" });
+    };
+  });
+}
+
+function bindViewToggle(hasRuns) {
+  if (!hasRuns) return;
+  meta.querySelectorAll(".view-toggle button").forEach((el) => {
+    el.onclick = () => {
+      viewMode = el.getAttribute("data-view") === "tree" ? "tree" : "runs";
+      paint({ animate: "none", keepCam: true });
+    };
+  });
+}
+
+function bubbleLabelOf(id) {
+  const b = (snapshot?.bubbles || []).find((x) => String(idVal(x.id)) === String(id));
+  return b ? shortOf(b.label) : "";
+}
+
+function renderWalk(flow, graph, scars) {
+  const nodes = flow.tree?.nodes || [];
+  const edges = flow.tree?.edges || [];
+  if (!nodes.length) return "";
+  const byFrom = {};
+  for (const e of edges) {
+    const a = idVal(e.from);
+    if (!byFrom[a]) byFrom[a] = [];
+    byFrom[a].push(e);
+  }
+  const incoming = {};
+  for (const id of nodes) incoming[idVal(id)] = 0;
+  for (const e of edges) {
+    const b = idVal(e.to);
+    if (b in incoming) incoming[b] += 1;
+  }
+  let start = nodes.map(idVal).find((id) => incoming[id] === 0) || idVal(nodes[0]);
+  const seen = new Set();
+  const steps = [];
+  let cur = start;
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    const nexts = byFrom[cur] || [];
+    steps.push({ id: cur, edge: nexts[0] });
+    cur = nexts[0] ? idVal(nexts[0].to) : null;
+  }
+  for (const id of nodes) {
+    if (!seen.has(idVal(id))) steps.push({ id: idVal(id), edge: null });
+  }
+  return (
+    '<div class="walk" title="Steiner walk">' +
+    steps
+      .map((step, i) => {
+        const fqn = fqnOf(graph, step.id);
+        const scar =
+          step.edge &&
+          scars &&
+          scars.has(fqnOf(graph, step.edge.from) + ">" + fqnOf(graph, step.edge.to));
+        const chip =
+          '<button type="button" class="walk-node' +
+          (String(step.id) === String(openNodeId) ? " open" : "") +
+          '" data-id="' +
+          esc(String(step.id)) +
+          '" title="' +
+          esc(fqn) +
+          '">' +
+          esc(shortOf(fqn)) +
+          "</button>";
+        const rel = step.edge
+          ? '<span class="walk-rel' +
+            (scar ? " scar" : "") +
+            '">' +
+            esc(step.edge.kind) +
+            "</span>"
+          : "";
+        return chip + (i < steps.length - 1 || step.edge ? rel : "");
+      })
+      .join("") +
+    "</div>"
+  );
 }
 
 function stampBadge(name) {
@@ -905,7 +1176,7 @@ function renderSteiner(flow, graph, animate, scars) {
   return svg;
 }
 
-function renderRuns(flow, msg, animate) {
+function renderRuns(flow, msg, animate, scars) {
   const fc = flow.flowchart || { runs: [], spine: [], positions: [] };
   if (!fc.runs || fc.runs.length < 2) return "";
   const pos = {};
@@ -971,8 +1242,11 @@ function renderRuns(flow, msg, animate) {
     const label = bubbleLabel[idVal(run.bubble)] || "run";
     const nodeIds = (run.nodes || []).map((n) => idVal(n)).join(",");
     const nodes = (run.nodes || []).map((n) => shortOf(fqnOf(msg.graph, n))).join(" → ");
+    const scar = runHasScar(run, msg.graph, scars);
     html +=
-      '<div class="run" style="left:' +
+      '<div class="run' +
+      (scar ? " scar" : "") +
+      '" style="left:' +
       p.x +
       "px;top:" +
       p.y +
@@ -992,18 +1266,38 @@ function renderRuns(flow, msg, animate) {
   return html;
 }
 
+function runHasScar(run, graph, scars) {
+  if (!scars || !scars.size) return false;
+  const ids = run.nodes || [];
+  for (let i = 0; i < ids.length - 1; i++) {
+    if (scars.has(fqnOf(graph, ids[i]) + ">" + fqnOf(graph, ids[i + 1]))) return true;
+  }
+  return ids.some((id) => {
+    const fqn = fqnOf(graph, id);
+    for (const key of scars) {
+      if (key.startsWith(fqn + ">") || key.endsWith(">" + fqn)) return true;
+    }
+    return false;
+  });
+}
+
 function renderInner(msg, animate) {
   const inner = msg.inner || { nodes: [] };
-  renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
+  renderTabs(snapshot?.flows || (msg.flow ? [msg.flow] : []), inner.flow);
   renderStats(msg);
-  renderCoverage(msg.coverage, msg.findings, null);
-  meta.innerHTML =
-    '<span class="crumb">Review</span> / ' +
-    esc(inner.flow) +
-    " / <b>enter</b> · walk lit, siblings grey";
-  let html = '<div class="inner-list' + (animate ? " play" : "") + '">';
+  renderCoverage(msg.coverage, msg.findings, snapshot?.graph);
+  renderCrumbs(crumbTrail(inner.flow), {
+    extra: ' <span class="hint-inline">walk lit · siblings grey by hop</span>',
+  });
+  let html = '<div class="inner-list' + (animate && animate !== "none" ? " play" : "") + '">';
   (inner.nodes || []).forEach((n, i) => {
-    const cls = n.lit ? "lit" : "grey";
+    const dist = n.lit ? 0 : Math.min(n.distance == null ? 3 : n.distance, 3);
+    const cls =
+      (n.lit ? "lit" : "grey d" + dist) +
+      (String(idVal(n.id)) === String(openNodeId) ? " open" : "") +
+      (i === innerCursor ? " cursor" : "");
+    const hop =
+      n.lit ? "on walk" : n.distance === 1 ? "1 hop" : (n.distance || 0) + " hops";
     html +=
       '<div class="inode ' +
       cls +
@@ -1021,8 +1315,9 @@ function renderInner(msg, animate) {
       esc(shortOf(n.fqn)) +
       '</b> <span class="meta">' +
       esc(n.kind) +
-      (n.is_leaf ? " · leaf · source" : " · bubble") +
-      (n.distance != null && !n.lit ? " · d" + n.distance : "") +
+      (n.is_leaf ? " · source" : " · enter") +
+      " · " +
+      hop +
       "</span></div>";
     html += '<div class="meta">' + esc(n.fqn) + "</div></div>";
   });
@@ -1031,8 +1326,11 @@ function renderInner(msg, animate) {
   canvas.innerHTML = html;
   setZoomUi(false);
   hideTip();
-  canvas.querySelectorAll(".inode").forEach((el) => {
+  bindCrumbs();
+  const items = [...canvas.querySelectorAll(".inode")];
+  items.forEach((el, i) => {
     el.addEventListener("click", () => {
+      innerCursor = i;
       const isLeaf = el.getAttribute("data-leaf") === "1";
       if (!isLeaf) {
         enterRun(el.getAttribute("data-flow"), el.getAttribute("data-id"));
@@ -1063,65 +1361,123 @@ function renderCoverage(cov, findings, graph) {
     else if (mark === "skipped") skipped++;
     else pending++;
   }
-  let html =
-    "Coverage " +
-    changed.length +
-    " changed · " +
-    uncovered.length +
-    " uncovered";
+  const complete = names.length && !pending && !broken && !uncovered.length;
+  const chips = [];
+  chips.push(chip("changed", changed.length + " changed", "changed", false));
+  chips.push(chip("uncovered", uncovered.length + " uncovered", "uncovered", !!uncovered.length));
   if (names.length) {
-    html +=
-      " · Review " +
-      holds +
-      " stamped · " +
-      skipped +
-      " skipped · " +
-      broken +
-      " broken · " +
-      pending +
-      " pending";
-    if (!pending && !broken && !uncovered.length) {
-      html += ' <span class="live holds">complete</span>';
-    }
+    chips.push(chip("pending", pending + " pending", "pending", !!pending));
+    chips.push(chip("holds", holds + " stamped", "holds", false));
+    if (skipped) chips.push(chip("skipped", skipped + " skipped", "skipped", false));
+    if (broken) chips.push(chip("broken", broken + " broken", "broken", true));
   }
-  if (uncovered.length && graph) {
-    html +=
+  let html = '<div class="rail-chips">' + chips.join("") + (complete ? '<span class="live holds">complete</span>' : "") + "</div>";
+  const details = [];
+  if (railOpen === "uncovered" && uncovered.length && graph) {
+    details.push(
       "<ul>" +
-      uncovered
-        .slice(0, 12)
-        .map((id) => '<li class="finding">' + esc(fqnOf(graph, id)) + "</li>")
-        .join("") +
-      (uncovered.length > 12 ? "<li>…</li>" : "") +
-      "</ul>";
+        uncovered
+          .slice(0, 12)
+          .map((id) => {
+            const fqn = fqnOf(graph, id);
+            return (
+              '<li><button type="button" class="finding jump" data-jump="node" data-id="' +
+              esc(String(idVal(id))) +
+              '">' +
+              esc(fqn) +
+              "</button></li>"
+            );
+          })
+          .join("") +
+        (uncovered.length > 12 ? "<li>…</li>" : "") +
+        "</ul>"
+    );
   }
   const interesting = (findings || []).filter(
     (f) => f.kind === "UnmatchedHint" || f.kind === "UncoveredNode" || f.kind === "StampBroken"
   );
-  if (interesting.length) {
-    html +=
+  if ((railOpen === "broken" || railOpen === "uncovered") && interesting.length) {
+    details.push(
       "<ul>" +
-      interesting
-        .slice(0, 8)
-        .map((f) => {
-          if (f.kind === "UnmatchedHint")
-            return '<li class="finding">unmatched ' + esc(f.fqn) + " in " + esc(f.flow) + "</li>";
-          if (f.kind === "UncoveredNode") return '<li class="finding">uncovered ' + esc(f.fqn) + "</li>";
-          if (f.kind === "StampBroken")
-            return (
-              '<li class="finding">stamp broken ' +
-              esc(f.flow) +
-              " · +" +
-              (f.added || []).length +
-              " / −" +
-              (f.removed || []).length +
-              "</li>"
-            );
-          return '<li class="finding">' + esc(f.kind) + "</li>";
-        })
-        .join("") +
-      "</ul>";
+        interesting
+          .filter((f) =>
+            railOpen === "broken" ? f.kind === "StampBroken" : f.kind !== "StampBroken"
+          )
+          .slice(0, 8)
+          .map((f) => {
+            if (f.kind === "UnmatchedHint")
+              return (
+                '<li class="finding">unmatched ' +
+                esc(f.fqn) +
+                " in " +
+                esc(f.flow) +
+                "</li>"
+              );
+            if (f.kind === "UncoveredNode")
+              return '<li class="finding">uncovered ' + esc(f.fqn) + "</li>";
+            if (f.kind === "StampBroken")
+              return (
+                '<li><button type="button" class="finding jump" data-jump="flow" data-flow="' +
+                esc(f.flow) +
+                '">stamp broken ' +
+                esc(f.flow) +
+                " · +" +
+                (f.added || []).length +
+                " / −" +
+                (f.removed || []).length +
+                "</button></li>"
+              );
+            return '<li class="finding">' + esc(f.kind) + "</li>";
+          })
+          .join("") +
+        "</ul>"
+    );
   }
+  if (details.length) html += '<div class="rail-detail">' + details.join("") + "</div>";
   coverage.innerHTML = html;
+  coverage.hidden = !html;
+  coverage.querySelectorAll(".chip").forEach((el) => {
+    el.onclick = () => {
+      const key = el.getAttribute("data-key");
+      railOpen = railOpen === key ? "" : key;
+      renderCoverage(cov, findings, graph);
+    };
+  });
+  coverage.querySelectorAll(".jump").forEach((el) => {
+    el.onclick = () => {
+      if (el.getAttribute("data-jump") === "flow") {
+        selectFlow(el.getAttribute("data-flow"));
+        return;
+      }
+      jumpNode(el.getAttribute("data-id"));
+    };
+  });
+}
+
+function chip(key, label, cls, warn) {
+  return (
+    '<button type="button" class="chip ' +
+    cls +
+    (warn ? " warn" : "") +
+    (railOpen === key ? " on" : "") +
+    '" data-key="' +
+    key +
+    '">' +
+    esc(label) +
+    "</button>"
+  );
+}
+
+function jumpNode(id) {
+  const flows = snapshot?.flows || [];
+  const hit = flows.find((f) => (f.tree?.nodes || []).some((n) => idVal(n) === idVal(id)));
+  if (hit && hit.name !== (currentFlow() || {}).name) selectFlow(hit.name);
+  vscode.postMessage({
+    type: "enterNode",
+    flow: (hit || currentFlow() || {}).name,
+    id,
+    isLeaf: true,
+  });
 }
 
 function enterBubble(snap, flowName, bubbleId) {
