@@ -20,5 +20,8 @@ pub use review::{
     derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow, PreviewGraph,
     PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
-pub use stamp::{make_stamp, recheck_stamp, stamp_from_graph};
+pub use stamp::{
+    apply_saved_stamps, make_stamp, recheck_stamp, recheck_stamp_on, stamp_filename,
+    stamp_from_graph,
+};
 pub use steiner::steiner_tree;

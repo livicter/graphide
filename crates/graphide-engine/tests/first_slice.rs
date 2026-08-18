@@ -219,3 +219,31 @@ fn derive_reports_progress_phases() {
     }
     assert_eq!(phases.last().map(String::as_str), Some("done"));
 }
+
+#[test]
+fn parent_bubbles_are_sticky_matched() {
+    let (head, head_src) = extract_dir(&fixture_root());
+    let (parent, parent_src) = extract_dir(&parent_root());
+    let parent_graph = graphide_engine::link(&parent).0;
+    let prev = graphide_engine::cluster(&parent_graph);
+    let snap = derive_repo(
+        ReviewInput {
+            head_extracts: head,
+            parent_extracts: Some(parent),
+            hints: hints(),
+            head_sources: head_src,
+            parent_sources: parent_src,
+            previous_bubbles: None,
+        },
+        &ReviewOptions {
+            plugin: "rust@0.1.0".into(),
+            progress: None,
+            preview: None,
+        },
+    );
+    let prev_ids: std::collections::HashSet<_> = prev.iter().map(|b| b.id.0).collect();
+    assert!(
+        snap.bubbles.iter().any(|b| prev_ids.contains(&b.id.0)),
+        "head bubbles should reuse parent ids when members overlap"
+    );
+}

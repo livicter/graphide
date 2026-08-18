@@ -17,6 +17,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.install", () => installGraphide(context, provider))
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.stamp", () => provider.writeStamp())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.skip", () => provider.skipFlow())
+  );
   setTimeout(() => {
     const cli = findCli(context);
     if (cli) warmCli(cli);
@@ -53,6 +59,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   ];
   private running = false;
   private child?: cp.ChildProcess;
+  private skipped: string[] = [];
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -97,6 +104,10 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.cancelReview();
       } else if (msg.type === "install") {
         await installGraphide(this.context, this);
+      } else if (msg.type === "stamp") {
+        this.writeStamp(msg.flow);
+      } else if (msg.type === "skip") {
+        this.skipFlow(msg.flow);
       }
     });
     if (this.snapshot) this.pushState();
@@ -181,6 +192,9 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           this.snapshot.stats.ui_ms = Date.now() - started;
           this.flowName = this.snapshot.flows?.[0]?.name;
           this.stack = [{ kind: "flow" }];
+          this.skipped = this.skipped.filter((n) =>
+            (this.snapshot.flows || []).some((f: any) => f.name === n)
+          );
           this.pushState();
         }
       );
@@ -257,6 +271,39 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  skipFlow(name?: string) {
+    const flow = name || this.flowName;
+    if (!flow) return;
+    if (!this.skipped.includes(flow)) this.skipped.push(flow);
+    this.pushState();
+  }
+
+  writeStamp(name?: string) {
+    if (!this.snapshot) return;
+    const flowName = name || this.flowName;
+    const flow =
+      this.snapshot.flows?.find((f: any) => f.name === flowName) || this.snapshot.flows?.[0];
+    if (!flow) {
+      vscode.window.showErrorMessage("No flow to stamp.");
+      return;
+    }
+    const stamp = stampFromView(this.snapshot, flow);
+    const dir = path.join(packageRoot(), ".graphide", "stamps");
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, stampFilename(flow.name));
+    fs.writeFileSync(file, JSON.stringify(stamp, null, 2));
+    this.skipped = this.skipped.filter((n) => n !== flow.name);
+    this.snapshot.stamps = this.snapshot.stamps || [];
+    const row = this.snapshot.stamps.find((s: any) => s.name === flow.name);
+    if (row) row.holds = true;
+    else this.snapshot.stamps.push({ name: flow.name, holds: true });
+    this.snapshot.findings = (this.snapshot.findings || []).filter(
+      (f: any) => !(f.kind === "StampBroken" && f.flow === flow.name)
+    );
+    vscode.window.showInformationMessage(`Stamped ${flow.name}`);
+    this.pushState();
+  }
+
   private async enterNode(msg: any) {
     if (!msg.isLeaf) {
       this.stack.push({ kind: "bubble", flow: msg.flow, bubble: msg.id });
@@ -294,6 +341,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         graph: this.snapshot.graph,
         plugin: this.snapshot.plugin,
         stats: this.snapshot.stats,
+        stamps: this.snapshot.stamps || [],
+        skipped: this.skipped,
         depth: 0,
       });
       return;
@@ -307,6 +356,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       findings: this.snapshot.findings,
       plugin: this.snapshot.plugin,
       stats: this.snapshot.stats,
+      stamps: this.snapshot.stamps || [],
+      skipped: this.skipped,
       depth: this.stack.length - 1,
     });
   }
@@ -328,6 +379,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
     <button id="reviewBtn" title="Review workspace">Review</button>
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
+    <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
+    <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -434,6 +487,46 @@ function enterBubble(snap: any, flowName: string, bubbleId: string) {
     (a, b) => Number(b.lit) - Number(a.lit) || (a.distance ?? 99) - (b.distance ?? 99) || String(a.fqn).localeCompare(String(b.fqn))
   );
   return { flow: flowName, bubble: bubbleId, nodes };
+}
+
+function stampFilename(name: string) {
+  const stem = Array.from(name, (c) =>
+    /[A-Za-z0-9_-]/.test(c) ? c : "-"
+  )
+    .join("")
+    .replace(/^-+|-+$/g, "");
+  return (stem || "flow") + ".json";
+}
+
+function stampFromView(snap: any, flow: any) {
+  const fqnOf = (id: any) => {
+    const n = (snap.graph?.nodes || []).find((x: any) => String(x.id) === String(id));
+    return n?.fqn ?? String(id);
+  };
+  const tree = (flow.tree?.edges || []).map((e: any) => ({
+    from: fqnOf(e.from),
+    to: fqnOf(e.to),
+    kind: e.kind,
+  }));
+  const visit: Record<string, number> = {};
+  const positions: any[] = [];
+  const runs = flow.flowchart?.runs || [];
+  const pos = flow.flowchart?.positions || [];
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    const bubble = String(run.bubble ?? "");
+    const idx = visit[bubble] || 0;
+    visit[bubble] = idx + 1;
+    const p = pos[i] || { x: 0, y: 0 };
+    positions.push({ run_key: `${bubble}#${idx}`, x: p.x, y: p.y });
+  }
+  return {
+    name: flow.name,
+    hits: flow.hits || [],
+    tree,
+    positions,
+    deriver: snap.plugin || "",
+  };
 }
 
 function packageRoot(): string {

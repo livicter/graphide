@@ -7,6 +7,8 @@ const status = document.getElementById("status");
 const prompt = document.getElementById("prompt");
 const reviewBtn = document.getElementById("reviewBtn");
 const cancelBtn = document.getElementById("cancelBtn");
+const stampBtn = document.getElementById("stampBtn");
+const skipBtn = document.getElementById("skipBtn");
 const backBtn = document.getElementById("backBtn");
 const progressEl = document.getElementById("progress");
 const progressFill = document.getElementById("progressFill");
@@ -38,6 +40,8 @@ const PHASE_ALIAS = {
 
 let snapshot = null;
 let flowName = null;
+let stampRows = [];
+let skippedFlows = [];
 let stack = [{ kind: "flow" }];
 let nodeById = new Map();
 let busy = false;
@@ -94,11 +98,33 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Backspace") {
     e.preventDefault();
     goBack();
+    return;
+  }
+  if (e.key === "s" || e.key === "S") {
+    e.preventDefault();
+    const flow = currentFlow();
+    if (flow) vscode.postMessage({ type: "stamp", flow: flow.name });
+    return;
+  }
+  if (e.key === "x" || e.key === "X") {
+    e.preventDefault();
+    const flow = currentFlow();
+    if (flow) vscode.postMessage({ type: "skip", flow: flow.name });
   }
 });
 if (zoomInBtn) zoomInBtn.onclick = () => zoomBy(1.2);
 if (zoomOutBtn) zoomOutBtn.onclick = () => zoomBy(1 / 1.2);
 if (zoomFitBtn) zoomFitBtn.onclick = () => setCamTarget(0, 0, 1);
+if (stampBtn)
+  stampBtn.onclick = () => {
+    const flow = currentFlow();
+    if (flow) vscode.postMessage({ type: "stamp", flow: flow.name });
+  };
+if (skipBtn)
+  skipBtn.onclick = () => {
+    const flow = currentFlow();
+    if (flow) vscode.postMessage({ type: "skip", flow: flow.name });
+  };
 
 function startReview() {
   targetPct = 0;
@@ -229,6 +255,8 @@ function applySnapshot(msg, inner) {
     findings: msg.findings,
     plugin: msg.plugin,
     stats: msg.stats,
+    stamps: msg.stamps || [],
+    skipped: msg.skipped || [],
     preview: false,
     inner: inner ? msg.inner : null,
     depth: msg.depth || 0,
@@ -238,6 +266,8 @@ function applySnapshot(msg, inner) {
   if (inner) stack = [{ kind: "flow" }, { kind: "bubble", flow: msg.inner.flow, bubble: String(msg.inner.bubble) }];
   else stack = [{ kind: "flow" }];
   indexGraph(snapshot.graph);
+  stampRows = snapshot.stamps || [];
+  skippedFlows = snapshot.skipped || [];
   finishWork();
   paint({ animate: lastTreeKey && treeKey(currentFlow()) === lastTreeKey ? "runs" : "all" });
 }
@@ -644,18 +674,29 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function flowMark(name) {
+  if (skippedFlows.indexOf(name) >= 0) return "skipped";
+  const row = stampRows.find((s) => s.name === name);
+  if (!row) return "";
+  return row.holds ? "holds" : "broken";
+}
+
 function renderTabs(flows, current) {
   tabs.innerHTML = (flows || [])
-    .map(
-      (f) =>
+    .map((f) => {
+      const mark = flowMark(f.name);
+      return (
         '<button class="tab' +
         (f.name === current ? " on" : "") +
+        (mark ? " " + mark : "") +
         '" data-flow="' +
         esc(f.name) +
         '">' +
         esc(f.name) +
+        (mark ? '<span class="mark">' + mark + "</span>" : "") +
         "</button>"
-    )
+      );
+    })
     .join("");
   tabs.querySelectorAll(".tab").forEach((el) => {
     el.onclick = () => selectFlow(el.getAttribute("data-flow"));
@@ -699,12 +740,13 @@ function renderFlowchart(msg, opts) {
     "</b> · " +
     (flow.tree?.nodes || []).length +
     " on tree" +
-    (preview ? ' <span class="live">live preview</span>' : "");
+    (preview ? ' <span class="live">live preview</span>' : "") +
+    stampBadge(flow.name);
 
   const playTree = animate === "all" || animate === "tree";
   const playRuns = animate === "all" || animate === "runs";
   const keepCam = !!(opts && opts.keepCam) || animate === "runs";
-  const treeHtml = renderSteiner(flow, msg.graph, playTree);
+  const treeHtml = renderSteiner(flow, msg.graph, playTree, scarSet(msg.findings, flow.name));
   const runHtml = renderRuns(flow, msg, playRuns);
   canvas.className = "play has-stage";
   canvas.innerHTML =
@@ -722,7 +764,22 @@ function renderFlowchart(msg, opts) {
   setZoomUi(true);
 }
 
-function renderSteiner(flow, graph, animate) {
+function stampBadge(name) {
+  const mark = flowMark(name);
+  if (!mark) return "";
+  return ' <span class="live ' + mark + '">' + mark + "</span>";
+}
+
+function scarSet(findings, flowName) {
+  const keys = new Set();
+  for (const f of findings || []) {
+    if (f.kind !== "StampBroken" || f.flow !== flowName) continue;
+    for (const e of f.added || []) keys.add(e.from + ">" + e.to);
+  }
+  return keys;
+}
+
+function renderSteiner(flow, graph, animate, scars) {
   const nodes = flow.tree?.nodes || [];
   const edges = flow.tree?.edges || [];
   if (!nodes.length) return '<div class="empty">Empty tree.</div>';
@@ -782,8 +839,12 @@ function renderSteiner(flow, graph, animate) {
       "M" + a.x + "," + a.y + " C" + mx + "," + a.y + " " + mx + "," + b.y + " " + b.x + "," + b.y;
     const from = idVal(e.from),
       to = idVal(e.to);
+    const scar =
+      scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
     svg +=
-      '<path class="edge" pathLength="1" marker-end="url(#arr)" data-from="' +
+      '<path class="edge' +
+      (scar ? " scar" : "") +
+      '" pathLength="1" marker-end="url(#arr)" data-from="' +
       from +
       '" data-to="' +
       to +
@@ -791,7 +852,9 @@ function renderSteiner(flow, graph, animate) {
       d +
       '" />';
     svg +=
-      '<path class="edge-flow" pathLength="1" data-from="' +
+      '<path class="edge-flow' +
+      (scar ? " scar" : "") +
+      '" pathLength="1" data-from="' +
       from +
       '" data-to="' +
       to +
@@ -988,7 +1051,39 @@ function renderInner(msg, animate) {
 function renderCoverage(cov, findings, graph) {
   const uncovered = (cov && cov.uncovered) || [];
   const changed = (cov && cov.changed) || [];
-  let html = "Coverage " + changed.length + " changed · " + uncovered.length + " uncovered";
+  const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
+  let holds = 0,
+    broken = 0,
+    skipped = 0,
+    pending = 0;
+  for (const name of names) {
+    const mark = flowMark(name);
+    if (mark === "holds") holds++;
+    else if (mark === "broken") broken++;
+    else if (mark === "skipped") skipped++;
+    else pending++;
+  }
+  let html =
+    "Coverage " +
+    changed.length +
+    " changed · " +
+    uncovered.length +
+    " uncovered";
+  if (names.length) {
+    html +=
+      " · Review " +
+      holds +
+      " stamped · " +
+      skipped +
+      " skipped · " +
+      broken +
+      " broken · " +
+      pending +
+      " pending";
+    if (!pending && !broken && !uncovered.length) {
+      html += ' <span class="live holds">complete</span>';
+    }
+  }
   if (uncovered.length && graph) {
     html +=
       "<ul>" +
@@ -1011,6 +1106,16 @@ function renderCoverage(cov, findings, graph) {
           if (f.kind === "UnmatchedHint")
             return '<li class="finding">unmatched ' + esc(f.fqn) + " in " + esc(f.flow) + "</li>";
           if (f.kind === "UncoveredNode") return '<li class="finding">uncovered ' + esc(f.fqn) + "</li>";
+          if (f.kind === "StampBroken")
+            return (
+              '<li class="finding">stamp broken ' +
+              esc(f.flow) +
+              " · +" +
+              (f.added || []).length +
+              " / −" +
+              (f.removed || []).length +
+              "</li>"
+            );
           return '<li class="finding">' + esc(f.kind) + "</li>";
         })
         .join("") +

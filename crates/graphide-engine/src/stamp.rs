@@ -1,5 +1,6 @@
 use crate::cluster::cluster;
 use crate::flowchart::build_flowchart;
+use crate::review::resolve_fqn;
 use crate::steiner::steiner_tree;
 use graphide_ir::{Bubble, Finding, FindingKind, FlowView, Graph, Stamp, StampEdge, StampPosition};
 use std::collections::HashSet;
@@ -59,7 +60,7 @@ pub fn stamp_from_graph(
 ) -> (FlowView, Stamp) {
     let resolved: Vec<_> = hits
         .iter()
-        .filter_map(|fqn| graph.nodes.iter().find(|n| n.fqn == *fqn).map(|n| n.id))
+        .filter_map(|fqn| resolve_fqn(graph, fqn))
         .collect();
     let tree = steiner_tree(graph, &resolved);
     let flowchart = build_flowchart(graph, bubbles, &tree);
@@ -74,10 +75,33 @@ pub fn stamp_from_graph(
     (view, stamp)
 }
 
+pub fn stamp_filename(name: &str) -> String {
+    let stem: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let stem = stem.trim_matches('-');
+    format!("{}.json", if stem.is_empty() { "flow" } else { stem })
+}
+
 /// Recheck: latest graph, same hits, new Steiner, FQN-pair diff, overlay positions.
 pub fn recheck_stamp(graph: &Graph, stamp: &Stamp) -> (FlowView, Option<Finding>) {
     let bubbles = cluster(graph);
-    let (mut view, _) = stamp_from_graph(graph, &bubbles, &stamp.name, &stamp.hits, &stamp.deriver);
+    recheck_stamp_on(graph, &bubbles, stamp)
+}
+
+pub fn recheck_stamp_on(
+    graph: &Graph,
+    bubbles: &[graphide_ir::Bubble],
+    stamp: &Stamp,
+) -> (FlowView, Option<Finding>) {
+    let (mut view, _) = stamp_from_graph(graph, bubbles, &stamp.name, &stamp.hits, &stamp.deriver);
     overlay_positions(&mut view, stamp);
 
     let old: HashSet<(String, String, graphide_ir::EdgeKind)> = stamp
@@ -131,6 +155,28 @@ pub fn recheck_stamp(graph: &Graph, stamp: &Stamp) -> (FlowView, Option<Finding>
         })
     };
     (view, finding)
+}
+
+/// Overlay stored flowchart positions and record hold/break on the snapshot.
+pub fn apply_saved_stamps(snap: &mut graphide_ir::ReviewSnapshot, stamps: &[Stamp]) {
+    for stamp in stamps {
+        let (view, finding) = recheck_stamp_on(&snap.graph, &snap.bubbles, stamp);
+        if let Some(flow) = snap.flows.iter_mut().find(|f| f.name == stamp.name) {
+            flow.flowchart.positions = view.flowchart.positions;
+        }
+        let holds = finding.is_none();
+        if let Some(f) = finding {
+            snap.findings.push(f);
+        }
+        if let Some(row) = snap.stamps.iter_mut().find(|s| s.name == stamp.name) {
+            row.holds = holds;
+        } else {
+            snap.stamps.push(graphide_ir::StampCheck {
+                name: stamp.name.clone(),
+                holds,
+            });
+        }
+    }
 }
 
 fn overlay_positions(view: &mut FlowView, stamp: &Stamp) {
@@ -219,5 +265,101 @@ mod tests {
             finding.unwrap().kind,
             FindingKind::StampBroken { .. }
         ));
+    }
+
+    #[test]
+    fn stamp_filename_sanitizes() {
+        assert_eq!(
+            stamp_filename("data-subscription"),
+            "data-subscription.json"
+        );
+        assert_eq!(stamp_filename("a/b c"), "a-b-c.json");
+    }
+
+    fn snapshot_for(graph: Graph, name: &str, hits: &[String]) -> ReviewSnapshot {
+        let bubbles = cluster(&graph);
+        let (view, _) = stamp_from_graph(&graph, &bubbles, name, hits, "rust@0.1.0");
+        ReviewSnapshot {
+            plugin: "rust@0.1.0".into(),
+            graph,
+            bubbles,
+            flows: vec![view],
+            coverage: Coverage {
+                changed: vec![],
+                uncovered: vec![],
+            },
+            findings: vec![],
+            stats: Default::default(),
+            stamps: vec![],
+        }
+    }
+
+    #[test]
+    fn apply_saved_stamps_records_hold() {
+        let a = node("crate::a", NodeKind::Function);
+        let c = node("crate::c", NodeKind::Function);
+        let graph = Graph {
+            nodes: vec![a.clone(), c.clone()],
+            edges: vec![Edge {
+                from: a.id,
+                to: c.id,
+                kind: EdgeKind::Calls,
+                span: a.span.clone(),
+            }],
+        };
+        let hits = vec!["crate::a".into(), "crate::c".into()];
+        let bubbles = cluster(&graph);
+        let (_, stamp) = stamp_from_graph(&graph, &bubbles, "login", &hits, "rust@0.1.0");
+        let mut snap = snapshot_for(graph, "login", &hits);
+        apply_saved_stamps(&mut snap, &[stamp]);
+        assert_eq!(snap.stamps.len(), 1);
+        assert!(snap.stamps[0].holds);
+        assert!(!snap
+            .findings
+            .iter()
+            .any(|f| matches!(f.kind, FindingKind::StampBroken { .. })));
+    }
+
+    #[test]
+    fn apply_saved_stamps_records_break() {
+        let a = node("crate::a", NodeKind::Function);
+        let b = node("crate::b", NodeKind::Function);
+        let c = node("crate::c", NodeKind::Function);
+        let old = Graph {
+            nodes: vec![a.clone(), c.clone()],
+            edges: vec![Edge {
+                from: a.id,
+                to: c.id,
+                kind: EdgeKind::Calls,
+                span: a.span.clone(),
+            }],
+        };
+        let hits = vec!["crate::a".into(), "crate::c".into()];
+        let (_, stamp) = stamp_from_graph(&old, &cluster(&old), "login", &hits, "rust@0.1.0");
+        let new = Graph {
+            nodes: vec![a.clone(), b.clone(), c.clone()],
+            edges: vec![
+                Edge {
+                    from: a.id,
+                    to: b.id,
+                    kind: EdgeKind::Calls,
+                    span: a.span.clone(),
+                },
+                Edge {
+                    from: b.id,
+                    to: c.id,
+                    kind: EdgeKind::Calls,
+                    span: b.span.clone(),
+                },
+            ],
+        };
+        let mut snap = snapshot_for(new, "login", &hits);
+        apply_saved_stamps(&mut snap, &[stamp]);
+        assert_eq!(snap.stamps.len(), 1);
+        assert!(!snap.stamps[0].holds);
+        assert!(snap
+            .findings
+            .iter()
+            .any(|f| matches!(f.kind, FindingKind::StampBroken { .. })));
     }
 }
