@@ -195,6 +195,55 @@ button:disabled { opacity: 0.45; cursor: default; }
   animation: none;
 }
 .hint-live { opacity: 0.65; font-size: 11px; margin-top: 12px; }
+#graphBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+#graphBar[hidden] { display: none; }
+#graphSearch {
+  flex: 1;
+  min-width: 120px;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  padding: 4px 8px;
+  border-radius: 3px;
+  font: inherit;
+}
+#kindFilters {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+}
+#kindFilters label { display: flex; align-items: center; gap: 3px; opacity: 0.85; cursor: pointer; }
+#legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+.leg {
+  border: 1px solid var(--vscode-panel-border);
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.leg.on { border-color: var(--vscode-focusBorder); color: var(--vscode-textLink-foreground); }
+.leg .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
 #workspace {
   display: flex;
   flex: 1;
@@ -250,6 +299,52 @@ button:disabled { opacity: 0.45; cursor: default; }
   background: color-mix(in srgb, var(--vscode-editor-selectionBackground, #264f78) 55%, transparent);
 }
 .src-line.hot .ln { opacity: 0.8; color: var(--vscode-textLink-foreground); }
+#inspMeta, #inspEdges {
+  padding: 8px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+#inspMeta .row, #inspEdges .row { display: flex; gap: 8px; margin: 2px 0; }
+#inspMeta .k, #inspEdges .k { opacity: 0.5; min-width: 64px; }
+#inspEdges .row { cursor: pointer; }
+#inspEdges .row:hover { color: var(--vscode-textLink-foreground); }
+.comm-wrap { position: relative; margin: 0 auto; }
+.comm-wrap svg.comm-edges {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+.comm-wrap svg.comm-edges path {
+  fill: none; stroke: var(--vscode-foreground); opacity: 0.22; stroke-width: 1;
+}
+.comm-wrap svg.comm-edges path.hot { opacity: 0.9; stroke: var(--vscode-textLink-foreground); stroke-width: 1.6; }
+.comm-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
+}
+.comm-node .lbl {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 3px);
+  transform: translateX(-50%);
+  font-size: 9px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+}
+.viewport[data-lod="1"] .comm-node .lbl,
+.viewport[data-lod="2"] .comm-node .lbl,
+.viewport[data-lod="3"] .comm-node .lbl,
+.comm-node:hover .lbl,
+.comm-node.selected .lbl,
+.comm-node.hit .lbl { opacity: 0.9; }
+.comm-node.dim { opacity: 0.12; }
+.comm-node.selected { outline: 2px solid var(--vscode-focusBorder); z-index: 3; }
+.comm-node.uncovered { box-shadow: 0 0 0 2px var(--vscode-errorForeground); }
 #canvas.leaving { animation: leave 150ms ease-in forwards; }
 .stage {
   position: relative;
@@ -432,6 +527,7 @@ button:disabled { opacity: 0.45; cursor: default; }
   outline: 1px solid var(--vscode-focusBorder);
   z-index: 3;
 }
+.steiner-wrap .vnode.dim { opacity: 0.18; }
 .steiner-wrap.play .vnode {
   animation: popIn 280ms ease-out both;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);

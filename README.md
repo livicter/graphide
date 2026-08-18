@@ -37,7 +37,9 @@ Command Palette → **Graphide: Install (one click)**. Same build + copy on Wind
 
 Open that repo (e.g. SolarSim) and click **Review**. Do **not** run `cargo build -p graphide-cli` there — that package only exists in this Graphide source repo. Use `%USERPROFILE%\.graphide\graphide.exe` (or `~/.graphide/graphide`) instead.
 
-After Review, a repo with more than one binary or crate opens on a **program map** (a file projection, with Imports/Calls drawn between bins). Click a binary — or use arrows and Enter — to open its flowchart. Zoom the flowchart (`+`, wheel, or click a node) to reveal file:line and source. Click a node to keep a **source pane** beside the map (SPEC: the map stays; the span is lit). Zoom does not change clustering altitude. **Enter** (click a run) is still a world jump one level down.
+After Review the panel opens a **derived map** (Graphify-like page, Graphide graph): community-colored bubbles, degree-sized nodes, search, kind filters, and an inspect rail with span, incident edges, coverage, and source. Programs are a legend filter (file projection), not a new IR kind. A flow tab lights the Steiner slice. Zoom does not change clustering altitude. **Enter** (click a run) is still a world jump.
+
+This is not built on [Graphify](https://github.com/Graphify-Labs/graphify). Graphify is an assistant knowledge graph with open/inferred kinds. Graphide keeps a closed review vocabulary (`Function|Type|Endpoint`, spanned edges, stamps, coverage).
 
 ## Prompt
 

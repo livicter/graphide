@@ -111,9 +111,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       else if (msg.type === "back") {
         this.stack.pop();
         if (this.stack.length === 0) {
-          this.stack.push(
-            (this.snapshot?.programs || []).length > 1 ? { kind: "programs" } : { kind: "flow" }
-          );
+          this.stack.push({ kind: "programs" });
         }
         this.pushState();
       } else if (msg.type === "cancel") {
@@ -213,10 +211,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           this.snapshot.stats.ui_ms = Date.now() - started;
           this.flowName = this.snapshot.flows?.[0]?.name;
           this.programKey = undefined;
-          this.stack =
-            (this.snapshot.programs || []).length > 1
-              ? [{ kind: "programs" }]
-              : [{ kind: "flow" }];
+          this.stack = [{ kind: "programs" }];
           this.skipped = this.skipped.filter((n) =>
             (this.snapshot.flows || []).some((f: any) => f.name === n)
           );
@@ -496,14 +491,25 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   </div>
   <nav id="tabs"></nav>
   <section id="meta"></section>
+  <div id="graphBar" hidden>
+    <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN or file…" />
+    <div id="kindFilters">
+      <label><input type="checkbox" data-kind="Function" checked /> Function</label>
+      <label><input type="checkbox" data-kind="Type" checked /> Type</label>
+      <label><input type="checkbox" data-kind="Endpoint" checked /> Endpoint</label>
+    </div>
+    <div id="legend"></div>
+  </div>
   <section id="workspace">
     <section id="canvas"></section>
     <aside id="sourcePane" hidden>
       <div class="src-bar">
         <span id="srcTitle"></span>
         <button id="srcEditor" title="Open this span in the editor">Editor</button>
-        <button id="srcClose" title="Close source pane (Esc)">Close</button>
+        <button id="srcClose" title="Close inspect (Esc)">Close</button>
       </div>
+      <div id="inspMeta"></div>
+      <div id="inspEdges"></div>
       <div id="srcBody"></div>
     </aside>
   </section>
