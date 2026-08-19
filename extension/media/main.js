@@ -379,7 +379,7 @@ function applyPrograms(msg) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
+  applyExplorerLanding();
   finishWork();
   paint({ animate: "none" });
 }
@@ -417,7 +417,7 @@ function applySnapshot(msg, inner) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
+  applyExplorerLanding();
   finishWork();
   paint({ animate: lastTreeKey && treeKey(currentFlow()) === lastTreeKey ? "runs" : "all" });
 }
@@ -495,6 +495,68 @@ function defaultRunFlow() {
 
 function defaultLandingWorkspace() {
   return defaultRunFlow() ? "overview" : "map";
+}
+
+function applyExplorerLanding() {
+  if (explorerPinned) return;
+  try {
+    const q = new URLSearchParams(location.search || "").get("ws");
+    if (q && WORKSPACES.indexOf(q) >= 0) {
+      explorerWs = q;
+      explorerPinned = true;
+      if (q === "lineage" && !egoMode) egoMode = true;
+      return;
+    }
+  } catch (e) {}
+  explorerWs = defaultLandingWorkspace();
+}
+
+let harnessConsumed = false;
+function consumeHarnessActions() {
+  if (harnessConsumed) return;
+  let q;
+  try {
+    q = new URLSearchParams(location.search || "");
+  } catch (e) {
+    return;
+  }
+  const drill = q.get("drill") === "1";
+  const hop = q.get("hop") === "1";
+  const ego = q.get("ego") === "1";
+  const zoom = parseFloat(q.get("zoom") || "");
+  if (!drill && !hop && !ego && !(Number.isFinite(zoom) && zoom > 0)) return;
+  harnessConsumed = true;
+  if (ego) {
+    egoMode = true;
+    if (egoBtn) egoBtn.classList.add("on");
+  }
+  if (drill) {
+    if (explorerWs !== "map") {
+      explorerWs = "map";
+      explorerPinned = true;
+      paint({ animate: "none" });
+    }
+    const card = document.querySelector(".bubble-card");
+    if (card) {
+      graphFilter.bubble = card.getAttribute("data-bubble");
+      selectedNodeId = null;
+      renderProgramOverview();
+    }
+  }
+  if (hop) {
+    if (!document.querySelector(".edge-hit, text.ekind")) {
+      explorerWs = "slice";
+      explorerPinned = true;
+      paint({ animate: "none" });
+    }
+    const hit = document.querySelector(".edge-hit, text.ekind");
+    if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  }
+  if (Number.isFinite(zoom) && zoom > 0) {
+    cam.k = zoom;
+    camTo.k = zoom;
+    applyCam();
+  }
 }
 
 function setWorkspace(name, pin) {
@@ -835,18 +897,22 @@ function paint(opts) {
       animate
     );
     applyEgoPaint();
+    consumeHarnessActions();
     return;
   }
   if (isListWorkspace(explorerWs) || explorerWs === "overview") {
     renderExplorerList(explorerWs);
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "lineage") {
     renderLineage();
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "map") {
     renderProgramOverview();
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "slice") {
@@ -866,10 +932,12 @@ function paint(opts) {
     );
     lastTreeKey = treeKey(flow);
     applyEgoPaint();
+    consumeHarnessActions();
     return;
   }
   if (top.kind === "programs") {
     renderProgramOverview();
+    consumeHarnessActions();
     return;
   }
   if (top.kind === "flow") {
@@ -894,6 +962,7 @@ function paint(opts) {
       applyCam();
       setCamTarget(0, 0, 1);
     }
+    consumeHarnessActions();
     return;
   }
   const inner = enterBubble(snapshot, top.flow, top.bubble);
@@ -908,6 +977,7 @@ function paint(opts) {
     },
     animate
   );
+  consumeHarnessActions();
 }
 
 function queueProgress(msg) {
@@ -1907,38 +1977,39 @@ function renderOverviewBody() {
     .sort((a, b) => b.d - a.d)
     .slice(0, 8);
   const q = (graphFilter.q || "").toLowerCase();
-  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 24);
+  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 8);
   return (
-    '<div class="stat-grid">' +
-    '<div class="stat-card"><div class="k">Nodes</div><div class="n">' +
+    '<div class="stat-strip">' +
+    '<span><i class="k">Nodes</i> <b class="n">' +
     nodes.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(kinds) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Hops</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Hops</i> <b class="n">' +
     edges.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(hops) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Communities</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Communities</i> <b class="n">' +
     bubbles.length +
-    '</div><button type="button" class="crumb-btn" data-ws="map">Open map</button></div>' +
-    '<div class="stat-card"><div class="k">Programs</div><div class="n">' +
+    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span>' +
+    '<span><i class="k">Programs</i> <b class="n">' +
     programs.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(countMap(programs, (p) => p.kind)) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Coverage</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Uncovered</i> <b class="n">' +
     (cov.uncovered || []).length +
-    "</div><div class=\"b\">uncovered of " +
+    "</b> of " +
     (cov.changed || []).length +
-    " changed</div></div>" +
-    '<div class="stat-card"><div class="k">Flows</div><div class="n">' +
+    " changed</span>" +
+    '<span><i class="k">Flows</i> <b class="n">' +
     flows.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(marks) +
-    "</div></div>" +
+    "</span>" +
     "</div>" +
+    renderDefaultCfg() +
     '<div class="flow-title">Communities</div>' +
     '<div class="expl-list compact">' +
     comms
@@ -1960,6 +2031,7 @@ function renderOverviewBody() {
     '<div class="flow-title">Highest degree</div>' +
     '<div class="expl-list compact">' +
     topDeg
+      .slice(0, 6)
       .map((x) => {
         const id = idVal(x.n.id);
         return (
@@ -1977,8 +2049,7 @@ function renderOverviewBody() {
         );
       })
       .join("") +
-    "</div>" +
-    renderDefaultCfg()
+    "</div>"
   );
 }
 
