@@ -36,6 +36,9 @@ const kindFilters = document.getElementById("kindFilters");
 const legendEl = document.getElementById("legend");
 const inspMeta = document.getElementById("inspMeta");
 const inspEdges = document.getElementById("inspEdges");
+const ledgerPane = document.getElementById("ledgerPane");
+const ledgerGrid = document.getElementById("ledgerGrid");
+const ledgerMeta = document.getElementById("ledgerMeta");
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -417,6 +420,8 @@ function setZoomUi(on) {
 
 function setGraphChrome(on) {
   if (graphBar) graphBar.hidden = !on;
+  if (ledgerPane) ledgerPane.hidden = !on;
+  if (workspace) workspace.classList.toggle("has-ledger", !!on);
 }
 
 function updateZoomPct() {
@@ -822,6 +827,20 @@ function shortOf(fqn) {
     .split(/::|\./)
     .pop();
 }
+function shortToken(id) {
+  const s = String(idVal(id) || "").replace(/^n/i, "");
+  return s.slice(-4).toUpperCase() || "0000";
+}
+function kindClass(kind) {
+  const k = String(kind || "Function");
+  if (k === "Type") return "kind-Type";
+  if (k === "Endpoint") return "kind-Endpoint";
+  return "kind-Function";
+}
+function orthoPath(a, b) {
+  const mx = Math.round((a.x + b.x) / 2);
+  return "M" + a.x + "," + a.y + " H" + mx + " V" + b.y + " H" + b.x;
+}
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -1034,6 +1053,16 @@ function fillInspect(msg) {
         peekSource(selectedNodeId);
       };
     });
+  }
+  if (ledgerGrid) {
+    ledgerGrid.querySelectorAll(".cell").forEach((el) => {
+      el.classList.toggle("on", el.getAttribute("data-id") === String(id));
+    });
+    if (ledgerMeta) {
+      const lit = ledgerGrid.querySelectorAll(".on").length;
+      const n = ledgerGrid.querySelectorAll(".cell").length;
+      ledgerMeta.textContent = "objects " + lit + "/" + n;
+    }
   }
 }
 
@@ -1309,8 +1338,8 @@ function pickCommunityNodes(degrees) {
 }
 
 function layoutCommunity(nodes) {
-  const W = 740,
-    H = 520;
+  const W = 860,
+    H = 560;
   const groups = new Map();
   for (const n of nodes) {
     const b = bubbleOf(n.id);
@@ -1335,7 +1364,7 @@ function layoutCommunity(nodes) {
     const c = centers.get(k);
     g.members.forEach((n, i) => {
       const a = (i / Math.max(g.members.length, 1)) * Math.PI * 2;
-      const r = 16 + Math.min(72, g.members.length * 4);
+      const r = 36 + Math.min(110, g.members.length * 6);
       pos.set(idVal(n.id), { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r });
     });
   }
@@ -1348,8 +1377,8 @@ function layoutCommunity(nodes) {
         const dx = a.x - b.x,
           dy = a.y - b.y;
         const dist = Math.hypot(dx, dy) || 0.1;
-        if (dist < 22) {
-          const f = ((22 - dist) / dist) * 0.35;
+        if (dist < 78) {
+          const f = ((78 - dist) / dist) * 0.35;
           a.x += dx * f;
           a.y += dy * f;
           b.x -= dx * f;
@@ -1363,8 +1392,8 @@ function layoutCommunity(nodes) {
       const c = centers.get(b ? idVal(b.id) : "_");
       p.x += (c.x - p.x) * 0.05;
       p.y += (c.y - p.y) * 0.05;
-      p.x = clamp(p.x, 22, W - 22);
-      p.y = clamp(p.y, 22, H - 22);
+      p.x = clamp(p.x, 56, W - 56);
+      p.y = clamp(p.y, 28, H - 28);
     }
   }
   return { W, H, pos };
@@ -1441,14 +1470,8 @@ function renderCommunityGraph() {
       a +
       '" data-to="' +
       b +
-      '" d="M' +
-      pa.x +
-      "," +
-      pa.y +
-      " L" +
-      pb.x +
-      "," +
-      pb.y +
+      '" d="' +
+      orthoPath(pa, pb) +
       '" />';
     if (++nEdge > 280) break;
   }
@@ -1458,24 +1481,17 @@ function renderCommunityGraph() {
     const id = idVal(n.id);
     const p = pos.get(id);
     if (!p) continue;
-    const deg = degrees.get(id) || 1;
-    const size = 14 + Math.min(22, Math.sqrt(deg) * 4);
-    const bub = bubbleOf(id);
     const flags = nodeFlags(id);
     dots +=
-      '<button type="button" class="comm-node' +
+      '<button type="button" class="comm-node ' +
+      kindClass(n.kind) +
       (selectedNodeId === id ? " selected" : "") +
       (flags.uncovered ? " uncovered" : "") +
       '" style="left:' +
       p.x +
       "px;top:" +
       p.y +
-      "px;width:" +
-      size +
-      "px;height:" +
-      size +
-      "px;background:" +
-      colorOfBubble(bub) +
+      "px" +
       '" data-id="' +
       id +
       '" data-fqn="' +
@@ -1486,8 +1502,12 @@ function renderCommunityGraph() {
       esc(n.span?.file || "") +
       '" title="' +
       esc(n.fqn) +
-      '"><span class="lbl">' +
+      '"><span class="name">' +
       esc(shortOf(n.fqn)) +
+      '</span><span class="meta">' +
+      esc(n.kind || "Function") +
+      " · " +
+      esc(shortToken(id)) +
       "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
@@ -1496,7 +1516,7 @@ function renderCommunityGraph() {
     '<div class="flow-title">' +
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
-      : "Inside this community — hover a node, click to inspect") +
+      : "Nodes — click one to inspect") +
     "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
@@ -1531,6 +1551,7 @@ function renderCommunityGraph() {
     });
   });
   applyGraphFilter();
+  renderLedger(nodes, { selected: selectedNodeId });
   if (selectedNodeId) peekSource(selectedNodeId);
 }
 
@@ -1546,26 +1567,21 @@ function renderBubbleMap(clusters) {
     return;
   }
   const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(clusters.length))));
-  const cell = 108;
-  const W = Math.max(440, cols * cell + 24);
+  const cell = 148;
+  const W = Math.max(520, cols * cell + 24);
   const rows = Math.ceil(clusters.length / cols);
-  const H = Math.max(260, rows * cell + 24);
+  const H = Math.max(280, rows * 92 + 24);
   let html = "";
   clusters.forEach((b, i) => {
     const n = (b.members || []).length;
-    const size = 78;
     const x = 12 + (i % cols) * cell + cell / 2;
-    const y = 12 + Math.floor(i / cols) * cell + cell / 2;
+    const y = 18 + Math.floor(i / cols) * 92 + 36;
     const marks = bubbleMarks(b);
     html +=
       '<button type="button" class="bubble-card" style="left:' +
       x +
       "px;top:" +
       y +
-      "px;width:" +
-      size +
-      "px;height:" +
-      size +
       "px;--c:" +
       colorOfBubble(b) +
       '" data-bubble="' +
@@ -1598,6 +1614,20 @@ function renderBubbleMap(clusters) {
       renderProgramOverview();
     };
   });
+  const sample = [];
+  const seen = new Set();
+  for (const b of clusters) {
+    for (const id of b.members || []) {
+      const sid = idVal(id);
+      if (seen.has(sid)) continue;
+      seen.add(sid);
+      const n = nodeById.get(sid);
+      if (n) sample.push(n);
+      if (sample.length >= 48) break;
+    }
+    if (sample.length >= 48) break;
+  }
+  renderLedger(sample, { selected: selectedNodeId });
 }
 
 function bubbleMarks(b) {
@@ -1617,6 +1647,11 @@ function highlightCommunity(id) {
   canvas.querySelectorAll(".comm-edges path").forEach((el) => {
     el.classList.toggle("hot", el.getAttribute("data-from") === sid || el.getAttribute("data-to") === sid);
   });
+  if (ledgerGrid) {
+    ledgerGrid.querySelectorAll(".cell").forEach((el) => {
+      if (sid) el.classList.toggle("on", el.getAttribute("data-id") === sid || el.classList.contains("uncovered"));
+    });
+  }
 }
 
 function applyGraphFilter() {
@@ -1656,6 +1691,44 @@ function renderTabs(flows, current) {
     .join("");
   tabs.querySelectorAll(".tab").forEach((el) => {
     el.onclick = () => selectFlow(el.getAttribute("data-flow"));
+  });
+}
+
+function renderLedger(nodes, opts) {
+  if (!ledgerGrid) return;
+  const selected = opts && opts.selected ? String(opts.selected) : "";
+  const onTree = (opts && opts.onTree) || null;
+  const list = (nodes || []).slice(0, 64);
+  ledgerGrid.innerHTML = list
+    .map((n) => {
+      const id = idVal(n.id || n);
+      const kind = n.kind || kindOf(snapshot && snapshot.graph, id);
+      const flags = nodeFlags(id);
+      const on = selected === id || flags.uncovered || (onTree && onTree.has(id));
+      return (
+        '<button type="button" class="cell ' +
+        kindClass(kind) +
+        (on ? " on" : "") +
+        (flags.uncovered ? " uncovered" : "") +
+        '" data-id="' +
+        id +
+        '"><span>' +
+        esc(shortToken(id)) +
+        '</span><span class="dots"><i></i><i></i><i></i></span></button>'
+      );
+    })
+    .join("");
+  if (ledgerMeta) {
+    const lit = ledgerGrid.querySelectorAll(".on").length;
+    ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+  }
+  ledgerGrid.querySelectorAll("[data-id]").forEach((el) => {
+    el.onclick = () => {
+      selectedNodeId = el.getAttribute("data-id");
+      highlightCommunity(selectedNodeId);
+      peekSource(selectedNodeId);
+      renderLedger(list, { selected: selectedNodeId, onTree });
+    };
   });
 }
 
@@ -1716,7 +1789,7 @@ function renderFlowchart(msg, opts) {
   canvas.className = "play has-stage";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport">' +
-    '<div class="flow-title">Steiner slice</div>' +
+    '<div class="flow-title">Flow · Steiner</div>' +
     treeHtml +
     (runHtml
       ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
@@ -1728,6 +1801,8 @@ function renderFlowchart(msg, opts) {
   bindGraphFx();
   setZoomUi(true);
   applyGraphFilter();
+  const treeIds = (flow.tree?.nodes || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(msg.graph, id), fqn: fqnOf(msg.graph, id) });
+  renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree?.nodes || []).map(idVal)) });
 }
 
 function stampBadge(name) {
@@ -1803,10 +1878,9 @@ function renderSteiner(flow, graph, animate, scars) {
     const a = pos[idVal(e.from)],
       b = pos[idVal(e.to)];
     if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2,
-      my = (a.y + b.y) / 2 - 8;
-    const d =
-      "M" + a.x + "," + a.y + " C" + mx + "," + a.y + " " + mx + "," + b.y + " " + b.x + "," + b.y;
+    const mx = Math.round((a.x + b.x) / 2),
+      my = Math.round((a.y + b.y) / 2) - 10;
+    const d = orthoPath(a, b);
     const from = idVal(e.from),
       to = idVal(e.to);
     const scar =
@@ -1832,6 +1906,14 @@ function renderSteiner(flow, graph, animate, scars) {
       d +
       '" />';
     svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
+    if (animate) {
+      svg +=
+        '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
+        esc(shortToken(to)) +
+        '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
+        d +
+        '" /></g>';
+    }
   }
   svg += "</svg>";
   const snippets = (snapshot && snapshot.snippets) || {};
@@ -1840,7 +1922,7 @@ function renderSteiner(flow, graph, animate, scars) {
     const p = pos[idVal(id)];
     if (!p) continue;
     const nid = idVal(id);
-    const type = kindOf(graph, id) === "Type";
+    const kind = kindOf(graph, id) || "Function";
     const fqn = fqnOf(graph, id);
     const label = shortOf(fqn);
     const d = level[nid] || 0;
@@ -1852,8 +1934,8 @@ function renderSteiner(flow, graph, animate, scars) {
     const flags = nodeFlags(nid);
     const away = nodeAway(nid);
     cards +=
-      '<button type="button" class="vnode' +
-      (type ? " type" : "") +
+      '<button type="button" class="vnode ' +
+      kindClass(kind) +
       (away ? " away" : "") +
       (flags.uncovered ? " uncovered" : flags.changed ? " changed" : "") +
       (selectedNodeId === nid ? " selected" : "") +
@@ -1868,11 +1950,11 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-fqn="' +
       esc(fqn) +
       '" data-kind="' +
-      esc(kindOf(graph, id) || "") +
+      esc(kind) +
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kindOf(graph, id) || "Function") + "</span>";
+    cards += '<span class="kind">' + esc(kind) + " · " + esc(shortToken(nid)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";

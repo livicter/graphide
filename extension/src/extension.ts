@@ -503,6 +503,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   </div>
   <section id="workspace">
     <section id="canvas"></section>
+    <aside id="ledgerPane" hidden>
+      <div class="led-head">SLICE</div>
+      <div id="ledgerGrid"></div>
+      <div id="ledgerMeta"></div>
+    </aside>
     <aside id="sourcePane" hidden>
       <div class="src-bar">
         <span id="srcTitle"></span>

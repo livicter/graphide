@@ -129,11 +129,17 @@
     const meta = document.getElementById("meta");
     const coverage = document.getElementById("coverage");
     const searchBox = document.getElementById("graphSearch");
+    const boxes = document.querySelectorAll(".vnode");
+    const ledger = document.querySelectorAll("#ledgerGrid .cell");
+    const pkts = document.querySelectorAll(".pkt");
     const lines = [
       "mode=" + mode,
       "title=" + (title ? title.textContent.trim() : "(none)"),
       "bubble-cards=" + cards.length,
       "comm-nodes=" + dots.length,
+      "vnodes=" + boxes.length,
+      "ledger=" + ledger.length,
+      "packets=" + pkts.length,
       "dim=" + dim.length,
       "uncovered-dots=" + uncovered.length,
       "crumb=" + (meta ? meta.textContent.replace(/\s+/g, " ").trim() : ""),
@@ -141,9 +147,11 @@
       "coverage=" + (coverage ? coverage.textContent.replace(/\s+/g, " ").trim().slice(0, 120) : ""),
     ];
     const communityFirst = /Communities/i.test(title && title.textContent);
-    const inside = /Inside this community/i.test(title && title.textContent);
+    const flowView = /Flow/i.test(title && title.textContent) && boxes.length > 0;
+    const boxedMembers = dots.length > 0 && document.querySelector(".comm-node .meta");
     el.textContent = lines.join("\n");
-    el.className = communityFirst && cards.length > 1 ? "good" : inside || cards.length === 0 ? "bad" : "";
+    el.className =
+      (communityFirst && cards.length >= 1) || flowView || boxedMembers ? "good" : "bad";
     document.title =
       "Graphide harness · " +
       mode +
@@ -167,8 +175,35 @@
     if (btn) btn.click();
   }
 
-  const includeBubbles = mode === "fixed" || mode === "bubbles";
-  const msg = solarsimPayload(includeBubbles);
+  function flowPayload() {
+    const base = solarsimPayload(true);
+    const hits = base.graph.nodes.slice(0, 8);
+    return {
+      type: "flowchart",
+      programs: base.programs,
+      flows: [{ name: "boot", tree: { nodes: hits.map((n) => n.id) } }],
+      graph: base.graph,
+      bubbles: base.bubbles,
+      coverage: base.coverage,
+      findings: [],
+      plugin: base.plugin,
+      stats: base.stats,
+      stamps: [],
+      skipped: [],
+      flow: {
+        name: "boot",
+        tree: {
+          nodes: hits.map((n) => n.id),
+          edges: hits.slice(1).map((n, i) => ({ from: hits[i].id, to: n.id, kind: "Calls" })),
+        },
+        flowchart: { runs: [], spine: [], positions: [] },
+      },
+      snippets: {},
+    };
+  }
+
+  const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow";
+  const msg = mode === "flow" ? flowPayload() : solarsimPayload(includeBubbles);
 
   window.postMessage(msg, "*");
   setTimeout(function () {
