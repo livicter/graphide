@@ -43,6 +43,7 @@ const ledgerMeta = document.getElementById("ledgerMeta");
 const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 const egoHopsEl = document.getElementById("egoHops");
+const reorgBtn = document.getElementById("reorgBtn");
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
 const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
@@ -87,6 +88,7 @@ let explorerPinned = false;
 let egoMode = false;
 let egoHops = 1;
 let selectedDecisionKey = "";
+let layoutPins = new Map();
 let zoomPopReady = false;
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
@@ -176,6 +178,11 @@ document.addEventListener("keydown", (e) => {
     setEgoMode(!egoMode);
     return;
   }
+  if (e.key === "r" || e.key === "R") {
+    e.preventDefault();
+    autoReorganize();
+    return;
+  }
   const wsIdx = "1234567".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
@@ -210,6 +217,7 @@ if (workspacesEl) {
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
+if (reorgBtn) reorgBtn.onclick = () => autoReorganize();
 if (egoHopsEl)
   egoHopsEl.addEventListener("change", () => {
     const n = parseInt(egoHopsEl.value, 10);
@@ -474,6 +482,7 @@ function setGraphChrome(on) {
     const wrap = egoHopsEl.closest(".ego-hops");
     if (wrap) wrap.hidden = !on;
   }
+  if (reorgBtn) reorgBtn.hidden = !on;
   syncWorkspaces();
 }
 
@@ -828,11 +837,12 @@ function bindGraphFx() {
       }, 520);
     }
   }
-  canvas.querySelectorAll(".run").forEach((el) => {
-    el.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"), el);
-    });
+  bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
+    onClick: (id, el) => selectNode(id, { zoomEl: el }),
+  });
+  bindDraggable(canvas.querySelector(".chart"), ".run", {
+    idAttr: "data-run",
+    onClick: (_id, el) => enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"), el),
   });
 }
 
@@ -1165,6 +1175,384 @@ function bindHopClicks(root) {
 function orthoPath(a, b) {
   const mx = Math.round((a.x + b.x) / 2);
   return "M" + a.x + "," + a.y + " H" + mx + " V" + b.y + " H" + b.x;
+}
+
+function layoutViewKey() {
+  return [
+    explorerWs || "map",
+    graphFilter.bubble || "",
+    (currentFlow() && currentFlow().name) || "",
+    (graphFilter.program && graphFilter.program.name) || "",
+  ].join("/");
+}
+
+function pinsForCurrent() {
+  const prefix = layoutViewKey() + ":";
+  const m = new Map();
+  for (const [k, v] of layoutPins) {
+    if (k.startsWith(prefix)) m.set(k.slice(prefix.length), { x: v.x, y: v.y });
+  }
+  return m;
+}
+
+function pinNode(id, x, y) {
+  layoutPins.set(layoutViewKey() + ":" + String(id), { x: x, y: y });
+}
+
+function clearCurrentPins() {
+  const prefix = layoutViewKey() + ":";
+  for (const k of [...layoutPins.keys()]) if (k.startsWith(prefix)) layoutPins.delete(k);
+}
+
+function autoReorganize() {
+  clearCurrentPins();
+  if (!snapshot) return;
+  paint({ animate: "none", keepCam: true });
+}
+
+function kindWeight(kind) {
+  if (kind === "Calls" || kind === "Publishes" || kind === "Subscribes") return 3;
+  if (kind === "Reads" || kind === "Writes") return 2;
+  return 1;
+}
+
+function baryOf(id, neighborIdx, edges) {
+  let sum = 0,
+    n = 0;
+  for (const e of edges) {
+    const other = e.from === id ? e.to : e.to === id ? e.from : null;
+    if (other == null || !neighborIdx.has(other)) continue;
+    sum += neighborIdx.get(other);
+    n++;
+  }
+  return n ? sum / n : 0;
+}
+
+function separateBoxes(pos, nodeW, nodeH, gap) {
+  const ids = [...pos.keys()];
+  const minX = nodeW + gap;
+  const minY = nodeH + gap;
+  for (let t = 0; t < 36; t++) {
+    let moved = false;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = pos.get(ids[i]),
+          b = pos.get(ids[j]);
+        const dx = a.x - b.x,
+          dy = a.y - b.y;
+        const ox = minX - Math.abs(dx);
+        const oy = minY - Math.abs(dy);
+        if (ox <= 0 || oy <= 0) continue;
+        moved = true;
+        if (ox < oy) {
+          const s = (dx < 0 ? -1 : 1) * (ox / 2 + 0.5);
+          a.x += s;
+          b.x -= s;
+        } else {
+          const s = (dy === 0 ? (i % 2 ? 1 : -1) : dy < 0 ? -1 : 1) * (oy / 2 + 0.5);
+          a.y += s;
+          b.y -= s;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+/** Sugiyama-lite: ranks by hop depth, barycenter order, boxes that never sit on each other. */
+function layeredPositions(ids, rawEdges, opts) {
+  opts = opts || {};
+  const nodeW = opts.nodeW || 196;
+  const nodeH = opts.nodeH || 72;
+  const gapX = opts.gapX || 80;
+  const gapY = opts.gapY || 40;
+  const pad = opts.pad || 48;
+  const list = (ids || []).map((id) => String(idVal(id)));
+  const idSet = new Set(list);
+  const edges = [];
+  for (const e of rawEdges || []) {
+    const a = String(idVal(e.from)),
+      b = String(idVal(e.to));
+    if (!idSet.has(a) || !idSet.has(b) || a === b) continue;
+    edges.push({ from: a, to: b, kind: e.kind || "Calls" });
+  }
+  const incoming = new Map(list.map((id) => [id, 0]));
+  const outs = new Map(list.map((id) => [id, []]));
+  for (const e of edges) {
+    incoming.set(e.to, (incoming.get(e.to) || 0) + 1);
+    (outs.get(e.from) || []).push(e.to);
+  }
+  let sources = list.filter((id) => incoming.get(id) === 0);
+  if (!sources.length && list.length) sources = [list[0]];
+  const rank = new Map();
+  const q = sources.map((id) => [id, 0]);
+  const seen = new Set();
+  while (q.length) {
+    const [id, d] = q.shift();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    rank.set(id, d);
+    for (const n of outs.get(id) || []) q.push([n, d + 1]);
+  }
+  for (const id of list) if (!rank.has(id)) rank.set(id, 0);
+  const buckets = [];
+  for (const id of list) {
+    const r = rank.get(id);
+    while (buckets.length <= r) buckets.push([]);
+    buckets[r].push(id);
+  }
+  for (let pass = 0; pass < 4; pass++) {
+    for (let i = 1; i < buckets.length; i++) {
+      const prevIdx = new Map(buckets[i - 1].map((id, j) => [id, j]));
+      buckets[i].sort((a, b) => baryOf(a, prevIdx, edges) - baryOf(b, prevIdx, edges) || a.localeCompare(b));
+    }
+    for (let i = buckets.length - 2; i >= 0; i--) {
+      const nextIdx = new Map(buckets[i + 1].map((id, j) => [id, j]));
+      buckets[i].sort((a, b) => baryOf(a, nextIdx, edges) - baryOf(b, nextIdx, edges) || a.localeCompare(b));
+    }
+  }
+  const colW = nodeW + gapX;
+  const rowH = nodeH + gapY;
+  const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+  let W = Math.max(opts.minW || 720, pad * 2 + Math.max(buckets.length, 1) * colW);
+  let H = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
+  const pos = new Map();
+  buckets.forEach((col, i) => {
+    const colH = col.length * rowH;
+    const y0 = (H - colH) / 2 + rowH / 2;
+    col.forEach((id, j) => {
+      pos.set(id, { x: pad + colW * i + nodeW / 2, y: y0 + j * rowH });
+    });
+  });
+  const pins = opts.pins || pinsForCurrent();
+  for (const [id, p] of pos) {
+    const pin = pins.get(id);
+    if (pin) {
+      p.x = pin.x;
+      p.y = pin.y;
+    }
+  }
+  separateBoxes(pos, nodeW, nodeH, 18);
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = 0,
+    maxY = 0;
+  for (const p of pos.values()) {
+    minX = Math.min(minX, p.x - nodeW / 2);
+    minY = Math.min(minY, p.y - nodeH / 2);
+    maxX = Math.max(maxX, p.x + nodeW / 2);
+    maxY = Math.max(maxY, p.y + nodeH / 2);
+  }
+  if (!pos.size) {
+    minX = 0;
+    minY = 0;
+  }
+  const dx = pad - minX,
+    dy = pad - minY;
+  if (dx || dy) for (const p of pos.values()) {
+    p.x += dx;
+    p.y += dy;
+  }
+  W = Math.max(W, maxX + dx + pad);
+  H = Math.max(H, maxY + dy + pad);
+  return { W: Math.round(W), H: Math.round(H), pos, rank };
+}
+
+function communityEdgeList(clusters) {
+  const memberTo = new Map();
+  for (const b of clusters || []) {
+    const bid = idVal(b.id);
+    for (const m of b.members || []) memberTo.set(idVal(m), bid);
+  }
+  const counts = new Map();
+  for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
+    const a = memberTo.get(idVal(e.from)),
+      b = memberTo.get(idVal(e.to));
+    if (!a || !b || a === b) continue;
+    const kind = e.kind || "Calls";
+    const k = a + "\t" + b;
+    const cur = counts.get(k);
+    const w = kindWeight(kind);
+    if (!cur || w > cur.w || (w === cur.w && (cur.count || 0) < 1)) {
+      counts.set(k, { from: a, to: b, kind, w, count: (cur && cur.count) + 1 || 1 });
+    } else {
+      cur.count += 1;
+      if (w > cur.w) {
+        cur.kind = kind;
+        cur.w = w;
+      }
+    }
+  }
+  const byFrom = new Map();
+  for (const e of counts.values()) {
+    if (!byFrom.has(e.from)) byFrom.set(e.from, []);
+    byFrom.get(e.from).push(e);
+  }
+  const out = [];
+  for (const list of byFrom.values()) {
+    list.sort((a, b) => b.count - a.count || b.w - a.w);
+    out.push(...list.slice(0, 2));
+  }
+  return out;
+}
+
+function edgeSvg(cls, edges, pos, W, H) {
+  let svg =
+    '<svg class="' +
+    cls +
+    '" viewBox="0 0 ' +
+    W +
+    " " +
+    H +
+    '" width="' +
+    W +
+    '" height="' +
+    H +
+    '">';
+  for (const e of edges || []) {
+    const a = pos.get ? pos.get(idVal(e.from)) : pos[idVal(e.from)];
+    const b = pos.get ? pos.get(idVal(e.to)) : pos[idVal(e.to)];
+    if (!a || !b) continue;
+    const kind = e.kind || "Calls";
+    const d = orthoPath(a, b);
+    const mx = Math.round((a.x + b.x) / 2),
+      my = Math.round((a.y + b.y) / 2) - 10;
+    svg +=
+      '<path class="edge-hit" data-from="' +
+      idVal(e.from) +
+      '" data-to="' +
+      idVal(e.to) +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
+    svg +=
+      '<path data-from="' +
+      idVal(e.from) +
+      '" data-to="' +
+      idVal(e.to) +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
+    svg +=
+      '<text class="ekind" x="' +
+      mx +
+      '" y="' +
+      my +
+      '" text-anchor="middle" data-from="' +
+      idVal(e.from) +
+      '" data-to="' +
+      idVal(e.to) +
+      '" data-kind="' +
+      esc(kind) +
+      '">' +
+      esc(kind) +
+      (e.count > 1 ? " · " + e.count : "") +
+      "</text>";
+  }
+  svg += "</svg>";
+  return svg;
+}
+
+function syncGraphEdges(wrap) {
+  if (!wrap) return;
+  const posOf = (id) => {
+    const escId =
+      typeof CSS !== "undefined" && CSS.escape ? CSS.escape(String(id)) : String(id).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const el =
+      wrap.querySelector('[data-id="' + escId + '"]') || wrap.querySelector('[data-bubble="' + escId + '"]');
+    if (!el) return null;
+    return { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
+  };
+  wrap.querySelectorAll("path[data-from][data-to]").forEach((p) => {
+    const a = posOf(p.getAttribute("data-from"));
+    const b = posOf(p.getAttribute("data-to"));
+    if (!a || !b) return;
+    p.setAttribute("d", orthoPath(a, b));
+  });
+  wrap.querySelectorAll("text.ekind").forEach((t) => {
+    const a = posOf(t.getAttribute("data-from"));
+    const b = posOf(t.getAttribute("data-to"));
+    if (!a || !b) return;
+    t.setAttribute("x", String(Math.round((a.x + b.x) / 2)));
+    t.setAttribute("y", String(Math.round((a.y + b.y) / 2) - 10));
+  });
+  wrap.querySelectorAll("animateMotion").forEach((m) => {
+    const path = m.getAttribute("path");
+    const parent = m.closest("g");
+    const from = parent && parent.previousElementSibling;
+    // keep packet on the last matching path if present
+    if (path && m.parentNode) {
+      const hit = wrap.querySelector('path.edge[data-from], path[data-from]');
+      if (hit) m.setAttribute("path", hit.getAttribute("d") || path);
+    }
+  });
+}
+
+function bindDraggable(root, selector, opts) {
+  opts = opts || {};
+  if (!root) return;
+  root.querySelectorAll(selector).forEach((el) => {
+    if (el.dataset.dragBound) return;
+    el.dataset.dragBound = "1";
+    let start = null;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      const id = el.getAttribute(opts.idAttr || "data-id") || el.getAttribute("data-bubble");
+      start = {
+        x: e.clientX,
+        y: e.clientY,
+        left: parseFloat(el.style.left) || 0,
+        top: parseFloat(el.style.top) || 0,
+        id,
+        moved: false,
+      };
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      el.classList.add("dragging");
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!start) return;
+      const k = cam && cam.k ? cam.k : 1;
+      const dx = (e.clientX - start.x) / k;
+      const dy = (e.clientY - start.y) / k;
+      if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+      start.moved = true;
+      el.dataset.didDrag = "1";
+      const nx = start.left + dx,
+        ny = start.top + dy;
+      el.style.left = nx + "px";
+      el.style.top = ny + "px";
+      if (start.id) pinNode(start.id, nx, ny);
+      syncGraphEdges(root);
+    });
+    const end = () => {
+      if (!start) return;
+      el.classList.remove("dragging");
+      start = null;
+    };
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener(
+      "click",
+      (e) => {
+        if (el.dataset.didDrag === "1") {
+          e.preventDefault();
+          e.stopPropagation();
+          el.dataset.didDrag = "";
+          return;
+        }
+        const id = el.getAttribute(opts.idAttr || "data-id") || el.getAttribute("data-bubble");
+        if (opts.onClick) opts.onClick(id, el, e);
+      },
+      true
+    );
+  });
 }
 function esc(s) {
   return String(s ?? "")
@@ -2450,14 +2838,21 @@ function renderLineage() {
   const shown = neighbors.filter(
     (n) => graphFilter.kinds[n.kind] !== false && matchesExplorerQuery(n.fqn + " " + n.hop)
   );
-  const W = 720,
-    H = Math.max(280, 120 + shown.length * 28);
-  const pos = new Map();
-  pos.set(id, { x: W / 2, y: H / 2 });
-  const ins = shown.filter((n) => n.dir === "in");
-  const outs = shown.filter((n) => n.dir === "out");
-  ins.forEach((n, i) => pos.set(n.id, { x: 110, y: 36 + ((i + 0.5) * (H - 48)) / Math.max(ins.length, 1) }));
-  outs.forEach((n, i) => pos.set(n.id, { x: W - 110, y: 36 + ((i + 0.5) * (H - 48)) / Math.max(outs.length, 1) }));
+  const laidIds = [id].concat(shown.map((n) => n.id));
+  const laidEdges = hops.map((e) => ({ from: e.from, to: e.to, kind: e.kind }));
+  const laid = layeredPositions(laidIds, laidEdges, {
+    nodeW: 176,
+    nodeH: 64,
+    gapX: 100,
+    gapY: 40,
+    pad: 48,
+    minW: 720,
+    minH: Math.max(300, 80 + shown.length * 36),
+    pins: pinsForCurrent(),
+  });
+  const W = laid.W,
+    H = laid.H,
+    pos = laid.pos;
 
   let svg = '<svg class="comm-edges lineage-edges" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
   hops.forEach((e) => {
@@ -2626,6 +3021,12 @@ function renderLineage() {
     "</div></div></div>";
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
+  bindDraggable(canvas.querySelector(".comm-wrap"), ".ego-node", {
+    onClick: (nid) => {
+      selectNode(nid, { peek: true });
+      paint({ animate: "none" });
+    },
+  });
   canvas.querySelectorAll(".ego-node, .path-chip").forEach((el) => {
     const nid = el.getAttribute("data-id");
     if (!nid) return;
@@ -2736,79 +3137,22 @@ function pickCommunityNodes(degrees) {
 }
 
 function layoutCommunity(nodes) {
-  if (graphFilter.bubble && nodes.length) {
-    const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(nodes.length))));
-    const cellW = 188;
-    const cellH = 86;
-    const W = Math.max(720, cols * cellW + 48);
-    const H = Math.max(280, Math.ceil(nodes.length / cols) * cellH + 48);
-    const pos = new Map();
-    nodes.forEach((n, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      pos.set(idVal(n.id), { x: 28 + col * cellW + cellW / 2, y: 32 + row * cellH + cellH / 2 });
-    });
-    return { W, H, pos };
-  }
-  const W = 860,
-    H = 560;
-  const groups = new Map();
-  for (const n of nodes) {
-    const b = bubbleOf(n.id);
-    const key = b ? idVal(b.id) : "_";
-    if (!groups.has(key)) groups.set(key, { b, members: [] });
-    groups.get(key).members.push(n);
-  }
-  const keys = [...groups.keys()];
-  const cx = W / 2,
-    cy = H / 2;
-  const R = Math.min(W, H) * 0.32;
-  const centers = new Map();
-  keys.forEach((k, i) => {
-    const a = -Math.PI / 2 + (i / Math.max(keys.length, 1)) * Math.PI * 2;
-    centers.set(k, {
-      x: keys.length === 1 ? cx : cx + Math.cos(a) * R,
-      y: keys.length === 1 ? cy : cy + Math.sin(a) * R,
-    });
+  const ids = (nodes || []).map((n) => idVal(n.id));
+  const edges = ((snapshot && snapshot.graph && snapshot.graph.edges) || []).filter((e) => {
+    const a = idVal(e.from),
+      b = idVal(e.to);
+    return ids.indexOf(a) >= 0 && ids.indexOf(b) >= 0;
   });
-  const pos = new Map();
-  for (const [k, g] of groups) {
-    const c = centers.get(k);
-    g.members.forEach((n, i) => {
-      const a = (i / Math.max(g.members.length, 1)) * Math.PI * 2;
-      const r = 36 + Math.min(110, g.members.length * 6);
-      pos.set(idVal(n.id), { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r });
-    });
-  }
-  const ids = nodes.map((n) => idVal(n.id));
-  for (let t = 0; t < 24; t++) {
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const a = pos.get(ids[i]),
-          b = pos.get(ids[j]);
-        const dx = a.x - b.x,
-          dy = a.y - b.y;
-        const dist = Math.hypot(dx, dy) || 0.1;
-        if (dist < 78) {
-          const f = ((78 - dist) / dist) * 0.35;
-          a.x += dx * f;
-          a.y += dy * f;
-          b.x -= dx * f;
-          b.y -= dy * f;
-        }
-      }
-    }
-    for (const n of nodes) {
-      const p = pos.get(idVal(n.id));
-      const b = bubbleOf(n.id);
-      const c = centers.get(b ? idVal(b.id) : "_");
-      p.x += (c.x - p.x) * 0.05;
-      p.y += (c.y - p.y) * 0.05;
-      p.x = clamp(p.x, 56, W - 56);
-      p.y = clamp(p.y, 28, H - 28);
-    }
-  }
-  return { W, H, pos };
+  return layeredPositions(ids, edges, {
+    nodeW: 176,
+    nodeH: 64,
+    gapX: 88,
+    gapY: 44,
+    pad: 56,
+    minW: 720,
+    minH: 300,
+    pins: pinsForCurrent(),
+  });
 }
 
 function renderLegend() {
@@ -2868,40 +3212,20 @@ function renderCommunityGraph() {
   }
   const { W, H, pos } = layoutCommunity(nodes);
   const picked = new Set(nodes.map((n) => idVal(n.id)));
-  let svg = '<svg class="comm-edges" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
-  let nEdge = 0;
+  const readable = [];
+  const byFrom = new Map();
   for (const e of snapshot.graph?.edges || []) {
     const a = idVal(e.from),
       b = idVal(e.to);
-    if (!picked.has(a) || !picked.has(b)) continue;
-    const pa = pos.get(a),
-      pb = pos.get(b);
-    if (!pa || !pb) continue;
-    const kind = e.kind || "Calls";
-    const d = orthoPath(pa, pb);
-    svg +=
-      '<path class="edge-hit" data-from="' +
-      a +
-      '" data-to="' +
-      b +
-      '" data-kind="' +
-      esc(kind) +
-      '" d="' +
-      d +
-      '" />';
-    svg +=
-      '<path data-from="' +
-      a +
-      '" data-to="' +
-      b +
-      '" data-kind="' +
-      esc(kind) +
-      '" d="' +
-      d +
-      '" />';
-    if (++nEdge > 280) break;
+    if (!picked.has(a) || !picked.has(b) || a === b) continue;
+    if (!byFrom.has(a)) byFrom.set(a, []);
+    byFrom.get(a).push(e);
   }
-  svg += "</svg>";
+  for (const list of byFrom.values()) {
+    list.sort((a, b) => kindWeight(b.kind || "Calls") - kindWeight(a.kind || "Calls"));
+    readable.push(...list.slice(0, 2));
+  }
+  const svg = edgeSvg("comm-edges", readable, pos, W, H);
   let dots = "";
   for (const n of nodes) {
     const id = idVal(n.id);
@@ -2941,11 +3265,11 @@ function renderCommunityGraph() {
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
       : graphFilter.bubble
-        ? "Inside this community — " +
+        ? "Inside this community — layered on derived hops · " +
           nodes.length +
           " review-relevant of " +
           ((findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members) || []).length +
-          " (uncovered / on-tree first). Search to narrow."
+          " (uncovered / on-tree first). Drag to rearrange."
         : "Nodes — zoom in for kind lines, click to inspect") +
     "</div>" +
     '<div class="comm-wrap" style="width:' +
@@ -2958,6 +3282,7 @@ function renderCommunityGraph() {
     "</div></div></div>";
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
+  const wrap = canvas.querySelector(".comm-wrap");
   canvas.querySelectorAll(".comm-node").forEach((el) => {
     const id = el.getAttribute("data-id");
     el.addEventListener("pointerenter", (ev) => {
@@ -2968,15 +3293,14 @@ function renderCommunityGraph() {
       highlightCommunity(selectedNodeId);
       hideTip();
     });
-    el.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      selectNode(id);
-    });
     el.addEventListener("dblclick", (ev) => {
       ev.stopPropagation();
       const p = assignProgram(el.getAttribute("data-file") || "", snapshot.programs || []);
       if (p) openProgram(p, el);
     });
+  });
+  bindDraggable(wrap, ".comm-node", {
+    onClick: (id) => selectNode(id),
   });
   applyGraphFilter();
   bindHopClicks(canvas.querySelector("svg.comm-edges"));
@@ -2996,26 +3320,36 @@ function renderBubbleMap(clusters) {
     setZoomUi(false);
     return;
   }
-  const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(clusters.length))));
-  const cell = 148;
-  const W = Math.max(520, cols * cell + 24);
-  const rows = Math.ceil(clusters.length / cols);
-  const H = Math.max(280, rows * 92 + 24);
+  const ids = clusters.map((b) => idVal(b.id));
+  const edges = communityEdgeList(clusters);
+  const laid = layeredPositions(ids, edges, {
+    nodeW: 220,
+    nodeH: 128,
+    gapX: 96,
+    gapY: 56,
+    pad: 64,
+    minW: 760,
+    minH: 340,
+    pins: pinsForCurrent(),
+  });
+  const { W, H, pos } = laid;
+  const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
   let html = "";
-  clusters.forEach((b, i) => {
+  for (const id of ids) {
+    const b = byId.get(id);
+    const p = pos.get(id);
+    if (!b || !p) continue;
     const n = (b.members || []).length;
-    const x = 12 + (i % cols) * cell + cell / 2;
-    const y = 18 + Math.floor(i / cols) * 92 + 36;
     const marks = bubbleMarks(b);
     html +=
       '<button type="button" class="bubble-card" style="left:' +
-      x +
+      p.x +
       "px;top:" +
-      y +
+      p.y +
       "px;--c:" +
       colorOfBubble(b) +
       '" data-bubble="' +
-      idVal(b.id) +
+      id +
       '"><span class="name">' +
       esc(shortOf(b.label) || "bubble") +
       '</span><span class="meta">' +
@@ -3024,29 +3358,33 @@ function renderBubbleMap(clusters) {
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
       (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
       "</span>" +
-      bubbleMemberChips(b, 6) +
+      bubbleMemberChips(b, 4) +
       "</button>";
-  });
+  }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Communities — zoom in to peek members, click to enter</div>' +
+    '<div class="flow-title">Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter</div>' +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
     H +
     'px">' +
+    edgeSvg("comm-edges", edges, pos, W, H) +
     html +
     "</div></div></div>";
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
-  canvas.querySelectorAll(".bubble-card").forEach((el) => {
-    el.onclick = () => {
-      graphFilter.bubble = el.getAttribute("data-bubble");
+  const wrap = canvas.querySelector(".comm-wrap");
+  bindDraggable(wrap, ".bubble-card", {
+    idAttr: "data-bubble",
+    onClick: (id) => {
+      graphFilter.bubble = id;
       selectedNodeId = null;
       renderProgramOverview();
-    };
+    },
   });
+  bindHopClicks(canvas.querySelector("svg.comm-edges"));
   applyGraphFilter();
   const sample = [];
   const seen = new Set();
@@ -3298,43 +3636,21 @@ function renderSteiner(flow, graph, animate, scars) {
   const edges = flow.tree?.edges || [];
   if (!nodes.length) return '<div class="empty">Empty tree.</div>';
   const ids = nodes.map(idVal);
-  const incoming = Object.fromEntries(ids.map((id) => [id, 0]));
-  const outs = Object.fromEntries(ids.map((id) => [id, []]));
-  for (const e of edges) {
-    const a = idVal(e.from),
-      b = idVal(e.to);
-    if (!(a in incoming) || !(b in incoming)) continue;
-    incoming[b] += 1;
-    outs[a].push(b);
-  }
-  let frontier = ids.filter((id) => incoming[id] === 0);
-  if (!frontier.length) frontier = [ids[0]];
-  const level = {},
-    seen = new Set(),
-    q = frontier.map((id) => [id, 0]);
-  while (q.length) {
-    const [id, d] = q.shift();
-    if (seen.has(id)) continue;
-    seen.add(id);
-    level[id] = d;
-    for (const n of outs[id] || []) q.push([n, d + 1]);
-  }
-  for (const id of ids) if (!(id in level)) level[id] = 0;
-  const buckets = [];
-  for (const id of ids) {
-    const d = level[id];
-    while (buckets.length <= d) buckets.push([]);
-    buckets[d].push(id);
-  }
-  const W = Math.max(720, buckets.length * 168),
-    H = Math.max(280, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 96 + 56);
-  const colW = W / Math.max(buckets.length, 1);
-  const pos = {};
-  buckets.forEach((col, i) =>
-    col.forEach((id, j) => {
-      pos[id] = { x: colW * (i + 0.5), y: (H / (col.length + 1)) * (j + 1) };
-    })
-  );
+  const laid = layeredPositions(ids, edges, {
+    nodeW: 176,
+    nodeH: 72,
+    gapX: 96,
+    gapY: 52,
+    pad: 56,
+    minW: 720,
+    minH: 300,
+    pins: pinsForCurrent(),
+  });
+  const W = laid.W,
+    H = laid.H;
+  const pos = Object.fromEntries(laid.pos);
+  const level = {};
+  for (const [id, r] of laid.rank || []) level[id] = r;
   let svg =
     '<svg class="steiner steiner-edges' +
     (animate ? " play" : "") +
@@ -3485,12 +3801,17 @@ function renderRuns(flow, msg, animate) {
   const fc = flow.flowchart || { runs: [], spine: [], positions: [] };
   if (!fc.runs || fc.runs.length < 2) return "";
   const pos = {};
-  for (const p of fc.positions || []) pos[idVal(p.run)] = p;
+  for (const p of fc.positions || []) pos[idVal(p.run)] = { x: p.x, y: p.y };
+  const pins = pinsForCurrent();
+  for (const run of fc.runs || []) {
+    const pin = pins.get(String(idVal(run.id)));
+    if (pin) pos[idVal(run.id)] = { x: pin.x, y: pin.y };
+  }
   let maxX = 200,
     maxY = 120;
-  for (const p of fc.positions || []) {
-    maxX = Math.max(maxX, p.x + 220);
-    maxY = Math.max(maxY, p.y + 100);
+  for (const p of Object.values(pos)) {
+    maxX = Math.max(maxX, p.x + 240);
+    maxY = Math.max(maxY, p.y + 120);
   }
   const bubbleLabel = {};
   for (const b of msg.bubbles || []) bubbleLabel[idVal(b.id)] = b.label;
@@ -3570,6 +3891,8 @@ function renderRuns(flow, msg, animate) {
       p.y +
       "px;--i:" +
       i +
+      '" data-run="' +
+      idVal(run.id) +
       '" data-flow="' +
       esc(flow.name) +
       '" data-bubble="' +

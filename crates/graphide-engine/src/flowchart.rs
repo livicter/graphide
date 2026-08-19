@@ -188,8 +188,8 @@ fn layout_positions(runs: &[Run], spine: &[RunSpine]) -> Vec<RunPosition> {
         for (i, id) in ids.iter().enumerate() {
             positions.push(RunPosition {
                 run: *id,
-                x: d as f32 * 220.0,
-                y: i as f32 * 120.0,
+                x: d as f32 * 260.0,
+                y: i as f32 * 150.0,
             });
         }
     }
