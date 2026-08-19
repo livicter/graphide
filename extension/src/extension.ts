@@ -505,7 +505,13 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <button type="button" data-ws="overview">Overview</button>
       <button type="button" data-ws="timeline">Timeline</button>
     </nav>
-    <button id="egoBtn" type="button" title="Ego: isolate the selected node and its 1-hop">Ego</button>
+    <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">Ego</button>
+    <label class="ego-hops" title="Ego hop depth on the derived graph">
+      <select id="egoHops">
+        <option value="1">1-hop</option>
+        <option value="2">2-hop</option>
+      </select>
+    </label>
     <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
     <div id="kindFilters">
       <label><input type="checkbox" data-kind="Function" checked /> Function</label>

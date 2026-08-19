@@ -42,6 +42,7 @@ const ledgerGrid = document.getElementById("ledgerGrid");
 const ledgerMeta = document.getElementById("ledgerMeta");
 const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
+const egoHopsEl = document.getElementById("egoHops");
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
 const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
@@ -84,6 +85,8 @@ let pathEnds = [];
 let explorerWs = "map";
 let explorerPinned = false;
 let egoMode = false;
+let egoHops = 1;
+let selectedDecisionKey = "";
 let zoomPopReady = false;
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
@@ -207,6 +210,13 @@ if (workspacesEl) {
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
+if (egoHopsEl)
+  egoHopsEl.addEventListener("change", () => {
+    const n = parseInt(egoHopsEl.value, 10);
+    egoHops = n === 2 ? 2 : 1;
+    applyEgoPaint();
+    if (explorerWs === "lineage") paint({ animate: "none" });
+  });
 if (stampBtn) stampBtn.onclick = () => requestStamp();
 if (skipBtn) skipBtn.onclick = () => requestSkip();
 
@@ -457,6 +467,12 @@ function setGraphChrome(on) {
   if (egoBtn) {
     egoBtn.hidden = !on;
     egoBtn.classList.toggle("on", !!egoMode);
+  }
+  if (egoHopsEl) {
+    egoHopsEl.disabled = !on;
+    egoHopsEl.value = String(egoHops);
+    const wrap = egoHopsEl.closest(".ego-hops");
+    if (wrap) wrap.hidden = !on;
   }
   syncWorkspaces();
 }
@@ -1726,21 +1742,58 @@ function consecutiveOnPath(path, a, b) {
   return false;
 }
 
-function applyEgoPaint() {
-  const sid = selectedNodeId ? String(selectedNodeId) : "";
-  const neighbors = new Set();
-  if (sid) {
-    neighbors.add(sid);
-    incidentEdges(sid).forEach((e) => {
-      neighbors.add(e.from);
-      neighbors.add(e.to);
+function neighborhood(id, hops) {
+  const start = id ? String(idVal(id)) : "";
+  const seen = new Set();
+  if (!start) return seen;
+  seen.add(start);
+  let frontier = [start];
+  const depth = hops === 2 ? 2 : 1;
+  for (let h = 0; h < depth; h++) {
+    const next = [];
+    for (const cur of frontier) {
+      incidentEdges(cur).forEach((e) => {
+        const other = e.from === cur ? e.to : e.from;
+        if (seen.has(other)) return;
+        seen.add(other);
+        next.push(other);
+      });
+    }
+    frontier = next;
+  }
+  return seen;
+}
+
+function hopDistance(from, to) {
+  const a = String(idVal(from)),
+    b = String(idVal(to));
+  if (!a || !b) return 99;
+  if (a === b) return 0;
+  const seen = new Set([a]);
+  const q = [[a, 0]];
+  for (let i = 0; i < q.length; i++) {
+    const cur = q[i][0],
+      d = q[i][1];
+    if (cur === b) return d;
+    incidentEdges(cur).forEach((e) => {
+      const other = e.from === cur ? e.to : e.from;
+      if (seen.has(other)) return;
+      seen.add(other);
+      q.push([other, d + 1]);
     });
   }
+  return 99;
+}
+
+function applyEgoPaint() {
+  const sid = selectedNodeId ? String(selectedNodeId) : "";
+  const neighbors = sid ? neighborhood(sid, egoHops) : new Set();
   const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
   const pathSet = new Set(path);
   canvas.querySelectorAll(".vnode, .comm-node, .ego-node").forEach((el) => {
     const id = el.getAttribute("data-id");
     const onEgo = neighbors.has(id);
+    if (sid && id) el.setAttribute("data-dist", String(hopDistance(sid, id)));
     const onPath = pathSet.has(id);
     el.classList.toggle("selected", id === sid);
     el.classList.toggle("ego", onEgo);
@@ -1750,7 +1803,7 @@ function applyEgoPaint() {
   canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
     const a = el.getAttribute("data-from"),
       b = el.getAttribute("data-to");
-    const incident = !!(sid && (a === sid || b === sid));
+    const incident = !!(sid && neighbors.has(a) && neighbors.has(b));
     const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
     el.classList.toggle("ego", incident);
     el.classList.toggle("on-path", onPath);
@@ -1808,6 +1861,7 @@ function decisionRecords() {
       verdict: s.holds ? "holds" : "broken",
       title: name,
       body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
+      outcome: s.holds ? "approved" : "rejected",
     });
   }
   for (const name of skippedFlows.concat((snapshot && snapshot.skipped) || [])) {
@@ -1819,6 +1873,7 @@ function decisionRecords() {
       verdict: "skipped",
       title: name,
       body: "Skipped this session — no stamp written.",
+      outcome: "deferred",
     });
   }
   for (const f of (snapshot && snapshot.findings) || []) {
@@ -1833,6 +1888,9 @@ function decisionRecords() {
         k === "StampBroken"
           ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops"
           : String(f.fqn || "unmatched hit"),
+      outcome: k === "StampBroken" ? "rejected" : "pending",
+      added: f.added || [],
+      removed: f.removed || [],
     });
   }
   return rows;
@@ -1885,6 +1943,217 @@ function timelineEvents() {
   return ev;
 }
 
+function decisionKey(r) {
+  return (r.verdict || r.kind || "") + ":" + (r.flow || "") + ":" + (r.title || "");
+}
+
+function provBucket(kind) {
+  if (kind === "Reads") return "used";
+  if (kind === "Writes" || kind === "Publishes") return "generated";
+  return "informed";
+}
+
+function causalChainFor(rec) {
+  const steps = [];
+  if (!rec) return steps;
+  const flow =
+    ((snapshot && snapshot.flows) || []).find((f) => f.name === rec.flow) ||
+    (rec.flow && rec.flow === (currentFlow() && currentFlow().name) ? currentFlow() : null) ||
+    ((snapshot && snapshot.flows) || []).find((f) => f.name === rec.flow);
+  const tree = (flow && flow.tree) || { nodes: [], edges: [] };
+  (tree.edges || []).forEach((e) => {
+    steps.push({
+      from: idVal(e.from),
+      to: idVal(e.to),
+      relationship: e.kind || "Calls",
+      content: shortOf(fqnOf(snapshot.graph, e.to)),
+      type: kindOf(snapshot.graph, e.to),
+      scar: "",
+    });
+  });
+  if (!steps.length && (tree.nodes || []).length) {
+    const id = idVal(tree.nodes[0]);
+    steps.push({
+      from: "",
+      to: id,
+      relationship: "hit",
+      content: shortOf(fqnOf(snapshot.graph, id)),
+      type: kindOf(snapshot.graph, id),
+      scar: "",
+    });
+  }
+  const scars = (snapshot.findings || []).filter(
+    (f) => findingKindOf(f) === "StampBroken" && (!rec.flow || f.flow === rec.flow)
+  );
+  scars.forEach((f) => {
+    (f.added || []).forEach((e) => {
+      steps.push({
+        from: idVal(e.from),
+        to: idVal(e.to),
+        relationship: e.kind || "Calls",
+        content: shortOf(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
+        type: kindOf(snapshot.graph, e.to),
+        scar: "added",
+      });
+    });
+    (f.removed || []).forEach((e) => {
+      steps.push({
+        from: idVal(e.from),
+        to: idVal(e.to),
+        relationship: e.kind || "Calls",
+        content: shortOf(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
+        type: kindOf(snapshot.graph, e.to),
+        scar: "removed",
+      });
+    });
+  });
+  return steps;
+}
+
+function renderChain(steps) {
+  if (!steps.length) return '<div class="empty">No derived hops for this decision. Open a flow tab after Review.</div>';
+  return (
+    '<div class="chain">' +
+    steps
+      .map((s, i) => {
+        return (
+          (i ? '<div class="chain-rel">' + esc(s.relationship) + (s.scar ? " · " + s.scar : "") + "</div>" : "") +
+          '<button type="button" class="chain-step ' +
+          esc(s.scar || "") +
+          '" data-from="' +
+          esc(s.from) +
+          '" data-to="' +
+          esc(s.to) +
+          '" data-kind="' +
+          esc(s.relationship) +
+          '"><div class="k">' +
+          esc(s.type || "node") +
+          (s.scar ? " · " + s.scar : "") +
+          '</div><div class="t">' +
+          esc(s.content || shortToken(s.to)) +
+          "</div></button>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function renderDecisionBody() {
+  const rows = decisionRecords().filter((r) =>
+    matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
+  );
+  if (!rows.length) return '<div class="empty">No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.</div>';
+  if (!selectedDecisionKey || !rows.some((r) => decisionKey(r) === selectedDecisionKey)) {
+    selectedDecisionKey = decisionKey(rows[0]);
+  }
+  const selected = rows.find((r) => decisionKey(r) === selectedDecisionKey) || rows[0];
+  const chain = causalChainFor(selected);
+  const list = rows
+    .map((r) => {
+      const key = decisionKey(r);
+      return (
+        '<article class="expl-card ' +
+        esc(r.verdict || r.kind) +
+        (key === selectedDecisionKey ? " on" : "") +
+        '" data-decision="' +
+        esc(key) +
+        '"><div class="k">' +
+        esc(r.outcome || r.verdict || r.kind) +
+        '</div><div class="t">' +
+        esc(r.title) +
+        '</div><div class="b">' +
+        esc(r.body) +
+        "</div></article>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="ws-split">' +
+    '<div class="ws-list">' +
+    list +
+    "</div>" +
+    '<div class="ws-detail">' +
+    '<div class="k">Decision record</div>' +
+    '<div class="t">' +
+    esc(selected.title) +
+    "</div>" +
+    '<div class="outcome ' +
+    esc(selected.verdict || "") +
+    '">' +
+    esc(selected.outcome || selected.verdict || "") +
+    "</div>" +
+    (selected.flow
+      ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected.flow) + '">Open slice</button>'
+      : "") +
+    '<div class="flow-title">Causal chain · ' +
+    chain.length +
+    " step" +
+    (chain.length === 1 ? "" : "s") +
+    " on the derived graph</div>" +
+    renderChain(chain) +
+    "</div></div>"
+  );
+}
+
+function renderRegistryBody() {
+  const ev = registryEvents().filter((r) =>
+    matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
+  );
+  if (!ev.length) return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
+  return (
+    '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' +
+    ev
+      .map((e) => {
+        return (
+          "<tr class=\"" +
+          esc(e.verdict || e.kind) +
+          '"' +
+          (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
+          "><td>" +
+          esc(e.verdict || e.kind) +
+          "</td><td>" +
+          esc(e.title) +
+          "</td><td>" +
+          esc(e.body) +
+          "</td></tr>"
+        );
+      })
+      .join("") +
+    "</tbody></table>"
+  );
+}
+
+function renderTimelineBody() {
+  const ev = timelineEvents().filter((r) =>
+    matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
+  );
+  if (!ev.length) return '<div class="empty">No parent cut or stamp events yet.</div>';
+  return (
+    '<div class="tl-rail">' +
+    ev
+      .map((e, i) => {
+        return (
+          '<article class="tl-item ' +
+          esc(e.kind || e.verdict || "") +
+          '"' +
+          (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
+          '><i class="tl-dot"></i><div class="tl-when">t' +
+          i +
+          '</div><div class="k">' +
+          esc(e.kind || e.verdict || "") +
+          '</div><div class="t">' +
+          esc(e.title) +
+          '</div><div class="b">' +
+          esc(e.body) +
+          "</div></article>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -1924,9 +2193,9 @@ function renderExplorerList(ws) {
     esc(titles[ws] || ws);
   let html = "";
   if (ws === "overview") html = renderOverviewBody();
-  else if (ws === "decisions") html = renderCardList(decisionRecords(), "No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.");
-  else if (ws === "registry") html = renderCardList(registryEvents(), "Review first — the registry is this snapshot’s audit log.");
-  else html = renderCardList(timelineEvents(), "No parent cut or stamp events yet.");
+  else if (ws === "decisions") html = renderDecisionBody();
+  else if (ws === "registry") html = renderRegistryBody();
+  else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
   if (ws === "overview") {
@@ -1944,6 +2213,28 @@ function renderExplorerList(ws) {
     if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
     setLedgerHead("RUN");
   }
+  canvas.querySelectorAll("[data-decision]").forEach((el) => {
+    el.onclick = () => {
+      selectedDecisionKey = el.getAttribute("data-decision") || "";
+      paint({ animate: "none" });
+    };
+  });
+  canvas.querySelectorAll("[data-open-slice]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const name = el.getAttribute("data-open-slice");
+      if (!name) return;
+      explorerWs = "slice";
+      explorerPinned = true;
+      selectFlow(name);
+    };
+  });
+  canvas.querySelectorAll(".chain-step[data-from][data-to]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
+    };
+  });
   canvas.querySelectorAll("[data-flow]").forEach((el) => {
     el.onclick = () => {
       const name = el.getAttribute("data-flow");
@@ -2271,12 +2562,49 @@ function renderLineage() {
         "</div>"
       : '<div class="path-row muted">Click a second node to draw the shortest path on the derived edges.</div>';
 
+  const buckets = { used: [], informed: [], generated: [] };
+  hops.forEach((e) => {
+    buckets[provBucket(e.kind)].push(e);
+  });
+  const provCol = (name, label, items) => {
+    return (
+      '<div class="prov-col" data-prov="' +
+      name +
+      '"><div class="k">' +
+      label +
+      "</div>" +
+      (items.length
+        ? items
+            .map((e) => {
+              const other = e.dir === "out" ? e.to : e.from;
+              return (
+                '<button type="button" class="expl-card hop" data-from="' +
+                esc(e.from) +
+                '" data-to="' +
+                esc(e.to) +
+                '" data-kind="' +
+                esc(e.kind) +
+                '"><div class="t">' +
+                esc(shortOf(fqnOf(snapshot.graph, other))) +
+                '</div><div class="b">' +
+                esc(e.kind) +
+                "</div></button>"
+              );
+            })
+            .join("")
+        : '<div class="empty">—</div>') +
+      "</div>"
+    );
+  };
+
   canvas.className = "play has-stage explorer-lineage";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
     '<div class="flow-title">Lineage · ego of ' +
     esc(shortOf((node && node.fqn) || id)) +
-    "</div>" +
+    " · " +
+    egoHops +
+    "-hop</div>" +
     pathRow +
     '<div class="comm-wrap" style="width:' +
     W +
@@ -2285,6 +2613,12 @@ function renderLineage() {
     'px">' +
     svg +
     dots +
+    "</div>" +
+    '<div class="flow-title">Provenance on derived edges</div>' +
+    '<div class="prov-row">' +
+    provCol("used", "Used · Reads", buckets.used) +
+    provCol("informed", "Informed · Calls", buckets.informed) +
+    provCol("generated", "Generated · Writes", buckets.generated) +
     "</div>" +
     '<div class="flow-title">Incident hops</div>' +
     '<div class="expl-list compact hops">' +
