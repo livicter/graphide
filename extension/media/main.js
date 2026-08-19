@@ -34,11 +34,17 @@ const graphBar = document.getElementById("graphBar");
 const graphSearch = document.getElementById("graphSearch");
 const kindFilters = document.getElementById("kindFilters");
 const legendEl = document.getElementById("legend");
+const hopCard = document.getElementById("hopCard");
 const inspMeta = document.getElementById("inspMeta");
 const inspEdges = document.getElementById("inspEdges");
 const ledgerPane = document.getElementById("ledgerPane");
 const ledgerGrid = document.getElementById("ledgerGrid");
 const ledgerMeta = document.getElementById("ledgerMeta");
+const workspacesEl = document.getElementById("workspaces");
+const egoBtn = document.getElementById("egoBtn");
+
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, overview: 1, timeline: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -74,6 +80,10 @@ let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
 let progFocus = 0;
 let selectedNodeId = null;
+let pathEnds = [];
+let explorerWs = "map";
+let explorerPinned = false;
+let egoMode = false;
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 const CAM_MIN = 0.35;
@@ -157,6 +167,17 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     const flow = currentFlow();
     if (flow) vscode.postMessage({ type: "skip", flow: flow.name });
+    return;
+  }
+  if (e.key === "e" || e.key === "E") {
+    e.preventDefault();
+    setEgoMode(!egoMode);
+    return;
+  }
+  const wsIdx = "1234567".indexOf(e.key);
+  if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
+    e.preventDefault();
+    setWorkspace(WORKSPACES[wsIdx], true);
   }
 });
 if (zoomInBtn) zoomInBtn.onclick = () => zoomBy(1.2);
@@ -172,17 +193,21 @@ if (srcEditor)
 if (graphSearch)
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
-    if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
-    else applyGraphFilter();
+    refreshExplorer();
   });
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
       graphFilter.kinds[el.getAttribute("data-kind")] = el.checked;
-      if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
-      else applyGraphFilter();
+      refreshExplorer();
     });
   });
+if (workspacesEl) {
+  workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
+    el.onclick = () => setWorkspace(el.getAttribute("data-ws"), true);
+  });
+}
+if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
 if (stampBtn)
   stampBtn.onclick = () => {
     const flow = currentFlow();
@@ -229,6 +254,10 @@ window.addEventListener("message", (event) => {
     setZoomUi(false);
     hideTip();
     closeSourcePane();
+    explorerPinned = false;
+    explorerWs = "map";
+    pathEnds = [];
+    selectedNodeId = null;
     setGraphChrome(false);
     return;
   }
@@ -349,6 +378,7 @@ function applyPrograms(msg) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
+  if (!explorerPinned) explorerWs = "map";
   finishWork();
   paint({ animate: "none" });
 }
@@ -386,6 +416,7 @@ function applySnapshot(msg, inner) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
+  if (!explorerPinned) explorerWs = "slice";
   finishWork();
   paint({ animate: lastTreeKey && treeKey(currentFlow()) === lastTreeKey ? "runs" : "all" });
 }
@@ -410,7 +441,11 @@ function indexGraph(graph) {
 }
 
 function reduceMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  try {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  } catch (e) {
+    return false;
+  }
 }
 
 function clamp(n, lo, hi) {
@@ -424,8 +459,59 @@ function setZoomUi(on) {
 
 function setGraphChrome(on) {
   if (graphBar) graphBar.hidden = !on;
-  if (ledgerPane) ledgerPane.hidden = !on;
-  if (workspace) workspace.classList.toggle("has-ledger", !!on);
+  const list = !!LIST_WORKSPACES[explorerWs];
+  if (ledgerPane) ledgerPane.hidden = !on || list;
+  if (workspace) workspace.classList.toggle("has-ledger", !!(on && !list));
+  if (kindFilters) kindFilters.hidden = list;
+  if (egoBtn) {
+    egoBtn.hidden = !on;
+    egoBtn.classList.toggle("on", !!egoMode);
+  }
+  syncWorkspaces();
+}
+
+function syncWorkspaces() {
+  if (!workspacesEl) return;
+  workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
+    el.classList.toggle("on", el.getAttribute("data-ws") === explorerWs);
+  });
+}
+
+function isListWorkspace(ws) {
+  return !!LIST_WORKSPACES[ws];
+}
+
+function setWorkspace(name, pin) {
+  if (WORKSPACES.indexOf(name) < 0) return;
+  explorerWs = name;
+  if (pin) explorerPinned = true;
+  if (name === "lineage" && !egoMode) egoMode = true;
+  paint({ animate: "none" });
+}
+
+function setEgoMode(on) {
+  egoMode = !!on;
+  if (egoBtn) egoBtn.classList.toggle("on", egoMode);
+  applyEgoPaint();
+}
+
+function refreshExplorer() {
+  if (!snapshot) return;
+  if (isListWorkspace(explorerWs) || explorerWs === "lineage") {
+    paint({ animate: "none" });
+    return;
+  }
+  if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") {
+    renderProgramOverview();
+    return;
+  }
+  applyGraphFilter();
+  applyEgoPaint();
+}
+
+function setLedgerHead(label) {
+  const el = document.querySelector("#ledgerPane .led-head");
+  if (el) el.textContent = label || "SLICE";
 }
 
 function updateZoomPct() {
@@ -593,10 +679,7 @@ function bindGraphFx() {
       g.addEventListener("pointerleave", clearHot);
       g.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        selectedNodeId = id;
-        canvas.querySelectorAll(".vnode").forEach((el) => el.classList.toggle("selected", el.getAttribute("data-id") === id));
-        zoomToEl(g, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
-        peekSource(id);
+        selectNode(id, { zoomEl: g });
       });
       g.addEventListener("dblclick", (ev) => {
         ev.stopPropagation();
@@ -611,6 +694,7 @@ function bindGraphFx() {
         if (flow) peekSource(id);
       });
     });
+    bindHopClicks(svg);
     if (!reduceMotion()) {
       setTimeout(() => {
         svg.classList.add("flowing");
@@ -627,7 +711,13 @@ function bindGraphFx() {
 }
 
 function selectFlow(name) {
+  if (name) flowName = name;
   vscode.postMessage({ type: "selectFlow", flow: name });
+  const flow = currentFlow();
+  if (flow && ((flow.tree && flow.tree.edges && flow.tree.edges.length) || (flow.tree && flow.tree.nodes && flow.tree.nodes.length))) {
+    explorerWs = "slice";
+    paint({ animate: "none" });
+  }
 }
 
 function enterRun(flow, bubble, fromEl) {
@@ -681,6 +771,54 @@ function paint(opts) {
   if (!snapshot) return;
   const top = stack[stack.length - 1];
   backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+  syncWorkspaces();
+  if (top && top.kind === "bubble") {
+    const inner = enterBubble(snapshot, top.flow, top.bubble);
+    renderInner(
+      {
+        inner,
+        flow: currentFlow(),
+        coverage: snapshot.coverage,
+        findings: snapshot.findings,
+        plugin: snapshot.plugin,
+        stats: snapshot.stats,
+      },
+      animate
+    );
+    applyEgoPaint();
+    return;
+  }
+  if (isListWorkspace(explorerWs)) {
+    renderExplorerList(explorerWs);
+    return;
+  }
+  if (explorerWs === "lineage") {
+    renderLineage();
+    return;
+  }
+  if (explorerWs === "map") {
+    renderProgramOverview();
+    return;
+  }
+  if (explorerWs === "slice") {
+    const flow = currentFlow();
+    renderFlowchart(
+      {
+        flows: snapshot.flows,
+        flow,
+        graph: snapshot.graph,
+        bubbles: snapshot.bubbles,
+        coverage: snapshot.coverage,
+        findings: snapshot.findings,
+        plugin: snapshot.plugin,
+        stats: snapshot.stats,
+      },
+      { animate: animate === "all" ? "none" : animate, preview, keepCam: !!(opts && opts.keepCam) }
+    );
+    lastTreeKey = treeKey(flow);
+    applyEgoPaint();
+    return;
+  }
   if (top.kind === "programs") {
     renderProgramOverview();
     return;
@@ -840,6 +978,49 @@ function kindClass(kind) {
   if (k === "Type") return "kind-Type";
   if (k === "Endpoint") return "kind-Endpoint";
   return "kind-Function";
+}
+function endpointOf(id) {
+  const n = nodeById.get(idVal(id)) || ((snapshot && snapshot.graph && snapshot.graph.nodes) || []).find((x) => sameId(x.id, id));
+  return n && n.endpoint ? n.endpoint : null;
+}
+function kindLine(id, kind) {
+  const ep = endpointOf(id);
+  if (ep && (ep.role || ep.channel)) {
+    return String(ep.role || "Endpoint") + (ep.channel ? " · " + ep.channel : "");
+  }
+  return String(kind || "Function") + " · " + shortToken(id);
+}
+function graphEdge(from, to, kind) {
+  const a = idVal(from),
+    b = idVal(to);
+  const pools = [];
+  const flow = currentFlow();
+  if (flow && flow.tree && flow.tree.edges) pools.push(flow.tree.edges);
+  if (snapshot && snapshot.graph && snapshot.graph.edges) pools.push(snapshot.graph.edges);
+  let found = null;
+  for (const edges of pools) {
+    for (const e of edges) {
+      if (idVal(e.from) !== a || idVal(e.to) !== b) continue;
+      if (kind && e.kind && e.kind !== kind) continue;
+      found = e;
+      break;
+    }
+    if (found) break;
+  }
+  return found;
+}
+function bindHopClicks(root) {
+  if (!root) return;
+  root.querySelectorAll("[data-from][data-to]").forEach((el) => {
+    if (el.dataset.hopBound) return;
+    el.dataset.hopBound = "1";
+    const go = (ev) => {
+      ev.stopPropagation();
+      showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
+    };
+    el.addEventListener("click", go);
+    el.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+  });
 }
 function orthoPath(a, b) {
   const mx = Math.round((a.x + b.x) / 2);
@@ -1007,7 +1188,58 @@ function showSource(msg) {
   fillInspect(msg);
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
-  if (hot) hot.scrollIntoView({ block: "center" });
+  if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
+}
+
+function showHop(from, to, kind) {
+  const a = idVal(from),
+    b = idVal(to);
+  const edge = graphEdge(a, b, kind);
+  const k = (edge && edge.kind) || kind || "Calls";
+  const span = (edge && edge.span) || {};
+  const where = span.file
+    ? shortFile(span.file) + (span.start && span.start.line ? ":" + span.start.line : span.line ? ":" + span.line : "")
+    : "";
+  if (sourcePane) {
+    sourcePane.hidden = false;
+    if (workspace) workspace.classList.add("has-source");
+  }
+  if (srcTitle) srcTitle.textContent = k + " · " + shortToken(a) + " → " + shortToken(b);
+  if (hopCard) {
+    hopCard.hidden = false;
+    hopCard.innerHTML =
+      '<div class="hop-k">Hop · ' +
+      esc(k) +
+      "</div><div class=\"hop-path\">" +
+      '<button type="button" data-id="' +
+      esc(a) +
+      '" class="' +
+      kindClass(kindOf(snapshot && snapshot.graph, a)) +
+      '">' +
+      esc(shortOf(fqnOf(snapshot && snapshot.graph, a))) +
+      " · " +
+      esc(shortToken(a)) +
+      "</button><span class=\"arr\">→</span>" +
+      '<button type="button" data-id="' +
+      esc(b) +
+      '" class="' +
+      kindClass(kindOf(snapshot && snapshot.graph, b)) +
+      '">' +
+      esc(shortOf(fqnOf(snapshot && snapshot.graph, b))) +
+      " · " +
+      esc(shortToken(b)) +
+      "</button></div>" +
+      (where ? '<div class="hop-span">' + esc(where) + "</div>" : "") +
+      '<div class="hop-fqn">' +
+      esc(fqnOf(snapshot && snapshot.graph, a)) +
+      "</div><div class=\"hop-fqn\">" +
+      esc(fqnOf(snapshot && snapshot.graph, b)) +
+      "</div>";
+    hopCard.querySelectorAll("[data-id]").forEach((el) => {
+      el.onclick = () => selectNode(el.getAttribute("data-id"));
+    });
+  }
+  selectNode(b, { peek: true });
 }
 
 function fillInspect(msg) {
@@ -1016,14 +1248,23 @@ function fillInspect(msg) {
   const deg = incidentEdges(id).length;
   const bub = bubbleOf(id);
   const file = msg.file || node?.span?.file || "";
+  const line = msg.line || node?.span?.start?.line || "";
   const prog = file ? assignProgram(file, (snapshot && snapshot.programs) || []) : null;
   const flags = nodeFlags(id);
+  const ep = (node && node.endpoint) || endpointOf(id);
+  const flow = currentFlow();
+  const onTree = !!(flow && (flow.tree?.nodes || []).some((n) => idVal(n) === idVal(id)));
   if (inspMeta) {
     const rows = [
       ["kind", msg.kind || (node && node.kind) || ""],
-      ["degree", String(deg)],
-      ["bubble", bub ? bub.label || idVal(bub.id) : "—"],
+      ["role", ep && ep.role ? ep.role : "—"],
+      ["channel", ep && ep.channel ? ep.channel : "—"],
+      ["span", file ? shortFile(file) + (line ? ":" + line : "") : "—"],
+      ["slice", onTree ? "on tree" : "off tree"],
+      ["community", bub ? bub.label || idVal(bub.id) : "—"],
+      ["file", file ? shortFile(file) : "—"],
       ["program", prog ? prog.kind + " " + prog.name : "—"],
+      ["degree", String(deg)],
       ["mark", flags.uncovered ? "uncovered" : flags.changed ? "changed" : "—"],
     ];
     inspMeta.innerHTML = rows
@@ -1037,8 +1278,12 @@ function fillInspect(msg) {
           .map((e) => {
             const other = e.dir === "out" ? e.to : e.from;
             return (
-              '<div class="row" data-id="' +
-              esc(other) +
+              '<div class="row" data-from="' +
+              esc(e.from) +
+              '" data-to="' +
+              esc(e.to) +
+              '" data-kind="' +
+              esc(e.kind) +
               '"><span class="k">' +
               esc(e.kind) +
               " " +
@@ -1050,13 +1295,7 @@ function fillInspect(msg) {
           })
           .join("")
       : '<div class="row"><span class="k">edges</span><span>none on the derived graph</span></div>';
-    inspEdges.querySelectorAll("[data-id]").forEach((el) => {
-      el.onclick = () => {
-        selectedNodeId = el.getAttribute("data-id");
-        highlightCommunity(selectedNodeId);
-        peekSource(selectedNodeId);
-      };
-    });
+    bindHopClicks(inspEdges);
   }
   if (ledgerGrid) {
     ledgerGrid.querySelectorAll(".cell").forEach((el) => {
@@ -1166,6 +1405,10 @@ function closeSourcePane() {
   if (srcBody) srcBody.innerHTML = "";
   if (inspMeta) inspMeta.innerHTML = "";
   if (inspEdges) inspEdges.innerHTML = "";
+  if (hopCard) {
+    hopCard.hidden = true;
+    hopCard.innerHTML = "";
+  }
   sourceId = null;
   return true;
 }
@@ -1260,6 +1503,627 @@ function openProgram(p, fromEl) {
   }
 }
 
+function selectNode(id, opts) {
+  const sid = id ? idVal(id) : "";
+  if (!sid) return;
+  if (selectedNodeId && selectedNodeId !== sid) pathEnds = [selectedNodeId, sid];
+  else if (pathEnds.length < 2) pathEnds = [sid];
+  selectedNodeId = sid;
+  highlightCommunity(sid);
+  applyEgoPaint();
+  if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+  if (!opts || opts.peek !== false) peekSource(sid);
+}
+
+function shortestPath(from, to) {
+  const a = idVal(from),
+    b = idVal(to);
+  if (!a || !b || a === b) return a ? [a] : [];
+  const adj = new Map();
+  const add = (x, y) => {
+    if (!adj.has(x)) adj.set(x, []);
+    adj.get(x).push(y);
+  };
+  for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
+    const u = idVal(e.from),
+      v = idVal(e.to);
+    add(u, v);
+    add(v, u);
+  }
+  const prev = new Map();
+  const q = [a];
+  prev.set(a, null);
+  for (let i = 0; i < q.length; i++) {
+    const cur = q[i];
+    if (cur === b) break;
+    for (const n of adj.get(cur) || []) {
+      if (prev.has(n)) continue;
+      prev.set(n, cur);
+      q.push(n);
+    }
+  }
+  if (!prev.has(b)) return [];
+  const path = [b];
+  while (path[0] !== a) {
+    const p = prev.get(path[0]);
+    if (p == null) return [];
+    path.unshift(p);
+  }
+  return path;
+}
+
+function pathHops(path) {
+  const hops = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const edge = graphEdge(path[i], path[i + 1]) || graphEdge(path[i + 1], path[i]);
+    hops.push({
+      from: path[i],
+      to: path[i + 1],
+      kind: (edge && edge.kind) || "Calls",
+    });
+  }
+  return hops;
+}
+
+function consecutiveOnPath(path, a, b) {
+  for (let i = 0; i < path.length - 1; i++) {
+    if ((path[i] === a && path[i + 1] === b) || (path[i] === a && path[i + 1] === b) || (path[i] === b && path[i + 1] === a))
+      return true;
+  }
+  return false;
+}
+
+function applyEgoPaint() {
+  const sid = selectedNodeId ? String(selectedNodeId) : "";
+  const neighbors = new Set();
+  if (sid) {
+    neighbors.add(sid);
+    incidentEdges(sid).forEach((e) => {
+      neighbors.add(e.from);
+      neighbors.add(e.to);
+    });
+  }
+  const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
+  const pathSet = new Set(path);
+  canvas.querySelectorAll(".vnode, .comm-node, .ego-node").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const onEgo = neighbors.has(id);
+    const onPath = pathSet.has(id);
+    el.classList.toggle("selected", id === sid);
+    el.classList.toggle("ego", onEgo);
+    el.classList.toggle("on-path", onPath);
+    el.classList.toggle("ego-dim", !!(egoMode && sid && !onEgo && !onPath));
+  });
+  canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
+    const a = el.getAttribute("data-from"),
+      b = el.getAttribute("data-to");
+    const incident = !!(sid && (a === sid || b === sid));
+    const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
+    el.classList.toggle("ego", incident);
+    el.classList.toggle("on-path", onPath);
+    el.classList.toggle("ego-dim", !!(egoMode && sid && !incident && !onPath));
+  });
+}
+
+function defaultFocusId() {
+  if (selectedNodeId) return selectedNodeId;
+  const flow = currentFlow();
+  const tree = (flow && flow.tree && flow.tree.nodes) || [];
+  if (tree[0]) return idVal(tree[0]);
+  const unc = (snapshot && snapshot.coverage && snapshot.coverage.uncovered) || [];
+  if (unc[0]) return idVal(unc[0]);
+  const n = snapshot && snapshot.graph && snapshot.graph.nodes && snapshot.graph.nodes[0];
+  return n ? idVal(n.id) : "";
+}
+
+function matchesExplorerQuery(text) {
+  const q = (graphFilter.q || "").toLowerCase();
+  if (!q) return true;
+  return String(text || "")
+    .toLowerCase()
+    .includes(q);
+}
+
+function findingKindOf(f) {
+  if (!f) return "";
+  if (typeof f.kind === "string") return f.kind;
+  return (f.kind && f.kind.kind) || "";
+}
+
+function findingTitle(f) {
+  const k = findingKindOf(f);
+  if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
+  if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
+  if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
+  if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
+  if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
+  if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
+  if (k === "PluginBug") return "PluginBug";
+  return k || "finding";
+}
+
+function decisionRecords() {
+  const rows = [];
+  const seen = new Set();
+  for (const s of stampRows.concat((snapshot && snapshot.stamps) || [])) {
+    const name = s.name || s.flow;
+    if (!name || seen.has("stamp:" + name)) continue;
+    seen.add("stamp:" + name);
+    rows.push({
+      kind: "stamp",
+      flow: name,
+      verdict: s.holds ? "holds" : "broken",
+      title: name,
+      body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
+    });
+  }
+  for (const name of skippedFlows.concat((snapshot && snapshot.skipped) || [])) {
+    if (!name || seen.has("skip:" + name)) continue;
+    seen.add("skip:" + name);
+    rows.push({
+      kind: "skip",
+      flow: name,
+      verdict: "skipped",
+      title: name,
+      body: "Skipped this session — no stamp written.",
+    });
+  }
+  for (const f of (snapshot && snapshot.findings) || []) {
+    const k = findingKindOf(f);
+    if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
+    rows.push({
+      kind: "finding",
+      flow: f.flow || "",
+      verdict: k === "StampBroken" ? "broken" : "hint",
+      title: findingTitle(f),
+      body:
+        k === "StampBroken"
+          ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops"
+          : String(f.fqn || "unmatched hit"),
+    });
+  }
+  return rows;
+}
+
+function registryEvents() {
+  const ev = [];
+  const s = (snapshot && snapshot.stats) || {};
+  ev.push({
+    kind: "review",
+    title: "Review snapshot",
+    body:
+      ((snapshot.graph && snapshot.graph.nodes) || []).length +
+      " nodes · " +
+      ((snapshot.graph && snapshot.graph.edges) || []).length +
+      " edges · " +
+      (s.files || 0) +
+      " files" +
+      (s.elapsed_ms != null ? " · " + s.elapsed_ms + "ms" : ""),
+  });
+  decisionRecords().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
+  const findings = ((snapshot && snapshot.findings) || []).filter((f) => findingKindOf(f) !== "UncoveredNode");
+  findings.forEach((f) => {
+    ev.push({ kind: "finding", title: findingTitle(f), body: f.message || f.fqn || f.plugin || "", flow: f.flow || "" });
+  });
+  return ev;
+}
+
+function timelineEvents() {
+  const cov = (snapshot && snapshot.coverage) || {};
+  const changed = cov.changed || [];
+  const uncovered = cov.uncovered || [];
+  const ev = [
+    {
+      kind: "parent",
+      title: "Parent cut",
+      body: changed.length + " nodes changed vs parent (HEAD^ unless overridden)",
+    },
+    {
+      kind: "coverage",
+      title: "Uncovered",
+      body: uncovered.length + " changed nodes sit off every proposed tree",
+      sample: uncovered.slice(0, 8).map((id) => idVal(id)),
+    },
+  ];
+  decisionRecords().forEach((d) => ev.push({ kind: d.verdict || d.kind, title: d.title, body: d.body, flow: d.flow }));
+  return ev;
+}
+
+function countMap(items, keyFn) {
+  const m = new Map();
+  for (const x of items || []) {
+    const k = keyFn(x) || "—";
+    m.set(k, (m.get(k) || 0) + 1);
+  }
+  return m;
+}
+
+function statChips(map) {
+  return [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>")
+    .join("");
+}
+
+function renderExplorerList(ws) {
+  renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
+  renderStats(snapshot);
+  renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
+  setGraphChrome(true);
+  setZoomUi(false);
+  hideTip();
+  setLedgerHead(ws.toUpperCase());
+  if (stampBtn) stampBtn.disabled = !currentFlow();
+  if (skipBtn) skipBtn.disabled = !currentFlow();
+  const titles = {
+    decisions: "Decisions — stamps, skips, and broken attestations",
+    registry: "Registry — audit of this review snapshot",
+    overview: "Overview — closed graph, not a force layout",
+    timeline: "Timeline — parent cut, coverage, stamp scars",
+  };
+  meta.innerHTML =
+    '<span class="crumb">Review</span> / <b>' +
+    esc(ws) +
+    "</b> · " +
+    esc(titles[ws] || ws);
+  let html = "";
+  if (ws === "overview") html = renderOverviewBody();
+  else if (ws === "decisions") html = renderCardList(decisionRecords(), "No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.");
+  else if (ws === "registry") html = renderCardList(registryEvents(), "Review first — the registry is this snapshot’s audit log.");
+  else html = renderCardList(timelineEvents(), "No parent cut or stamp events yet.");
+  canvas.className = "play explorer-list";
+  canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+  canvas.querySelectorAll("[data-flow]").forEach((el) => {
+    el.onclick = () => {
+      const name = el.getAttribute("data-flow");
+      if (!name) return;
+      explorerWs = "slice";
+      explorerPinned = true;
+      selectFlow(name);
+    };
+  });
+  canvas.querySelectorAll("[data-id]").forEach((el) => {
+    el.onclick = () => {
+      explorerWs = "lineage";
+      explorerPinned = true;
+      selectNode(el.getAttribute("data-id"));
+      paint({ animate: "none" });
+    };
+  });
+  canvas.querySelectorAll("[data-ws]").forEach((el) => {
+    el.onclick = () => setWorkspace(el.getAttribute("data-ws"), true);
+  });
+}
+
+function renderCardList(rows, empty) {
+  const shown = (rows || []).filter((r) =>
+    matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
+  );
+  if (!shown.length) return '<div class="empty">' + esc(empty) + "</div>";
+  return (
+    '<div class="expl-list">' +
+    shown
+      .map((r) => {
+        const mark = r.verdict || r.kind || "";
+        return (
+          '<article class="expl-card ' +
+          esc(mark) +
+          '"' +
+          (r.flow ? ' data-flow="' + esc(r.flow) + '"' : "") +
+          "><div class=\"k\">" +
+          esc(mark) +
+          "</div><div class=\"t\">" +
+          esc(r.title) +
+          "</div><div class=\"b\">" +
+          esc(r.body) +
+          "</div></article>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function renderOverviewBody() {
+  const nodes = (snapshot.graph && snapshot.graph.nodes) || [];
+  const edges = (snapshot.graph && snapshot.graph.edges) || [];
+  const bubbles = mapAltitudeBubbles();
+  const programs = snapshot.programs || [];
+  const flows = snapshot.flows || [];
+  const cov = snapshot.coverage || {};
+  const kinds = countMap(nodes, (n) => n.kind);
+  const hops = countMap(edges, (e) => e.kind);
+  const marks = countMap(
+    flows.map((f) => ({ m: flowMark(f.name) || "open" })),
+    (x) => x.m
+  );
+  const degrees = degreeMap();
+  const topDeg = nodes
+    .map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0 }))
+    .sort((a, b) => b.d - a.d)
+    .slice(0, 8);
+  const q = (graphFilter.q || "").toLowerCase();
+  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 24);
+  return (
+    '<div class="stat-grid">' +
+    '<div class="stat-card"><div class="k">Nodes</div><div class="n">' +
+    nodes.length +
+    "</div><div class=\"chips\">" +
+    statChips(kinds) +
+    "</div></div>" +
+    '<div class="stat-card"><div class="k">Hops</div><div class="n">' +
+    edges.length +
+    "</div><div class=\"chips\">" +
+    statChips(hops) +
+    "</div></div>" +
+    '<div class="stat-card"><div class="k">Communities</div><div class="n">' +
+    bubbles.length +
+    '</div><button type="button" class="crumb-btn" data-ws="map">Open map</button></div>' +
+    '<div class="stat-card"><div class="k">Programs</div><div class="n">' +
+    programs.length +
+    "</div><div class=\"chips\">" +
+    statChips(countMap(programs, (p) => p.kind)) +
+    "</div></div>" +
+    '<div class="stat-card"><div class="k">Coverage</div><div class="n">' +
+    (cov.uncovered || []).length +
+    "</div><div class=\"b\">uncovered of " +
+    (cov.changed || []).length +
+    " changed</div></div>" +
+    '<div class="stat-card"><div class="k">Flows</div><div class="n">' +
+    flows.length +
+    "</div><div class=\"chips\">" +
+    statChips(marks) +
+    "</div></div>" +
+    "</div>" +
+    '<div class="flow-title">Communities</div>' +
+    '<div class="expl-list compact">' +
+    comms
+      .map((b) => {
+        const marks = bubbleMarks(b);
+        return (
+          '<article class="expl-card" data-ws="map"><div class="k">community</div><div class="t">' +
+          esc(shortOf(b.label) || "bubble") +
+          '</div><div class="b">' +
+          (b.members || []).length +
+          " nodes" +
+          (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
+          (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
+          "</div></article>"
+        );
+      })
+      .join("") +
+    "</div>" +
+    '<div class="flow-title">Highest degree</div>' +
+    '<div class="expl-list compact">' +
+    topDeg
+      .map((x) => {
+        const id = idVal(x.n.id);
+        return (
+          '<article class="expl-card" data-id="' +
+          esc(id) +
+          '"><div class="k">' +
+          esc(x.n.kind) +
+          '</div><div class="t">' +
+          esc(shortOf(x.n.fqn)) +
+          '</div><div class="b">degree ' +
+          x.d +
+          " · " +
+          esc(shortToken(id)) +
+          "</div></article>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+function renderLineage() {
+  renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
+  renderStats(snapshot);
+  renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
+  setGraphChrome(true);
+  hideTip();
+  if (stampBtn) stampBtn.disabled = !currentFlow();
+  if (skipBtn) skipBtn.disabled = !currentFlow();
+  const id = defaultFocusId();
+  if (id && id !== selectedNodeId) selectedNodeId = id;
+  if (!id) {
+    meta.innerHTML = '<span class="crumb">Review</span> / <b>lineage</b>';
+    canvas.className = "play";
+    canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
+    setZoomUi(false);
+    return;
+  }
+  const node = nodeById.get(id);
+  const hops = incidentEdges(id);
+  const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [id];
+  const pathSet = new Set(path);
+  meta.innerHTML =
+    '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-ws="map">map</button> / <b>lineage</b> · ' +
+    esc(shortOf((node && node.fqn) || id)) +
+    " · " +
+    hops.length +
+    " incident hops" +
+    (path.length > 1 ? " · path " + path.length : "");
+  const up = meta.querySelector("[data-ws]");
+  if (up) up.onclick = () => setWorkspace("map", true);
+
+  const neighbors = [];
+  const seen = new Set([id]);
+  hops.forEach((e) => {
+    const other = e.dir === "out" ? e.to : e.from;
+    if (seen.has(other)) return;
+    seen.add(other);
+    const n = nodeById.get(other);
+    neighbors.push({
+      id: other,
+      fqn: (n && n.fqn) || other,
+      kind: (n && n.kind) || kindOf(snapshot.graph, other),
+      dir: e.dir,
+      hop: e.kind,
+    });
+  });
+  const shown = neighbors.filter(
+    (n) => graphFilter.kinds[n.kind] !== false && matchesExplorerQuery(n.fqn + " " + n.hop)
+  );
+  const W = 720,
+    H = Math.max(280, 120 + shown.length * 28);
+  const pos = new Map();
+  pos.set(id, { x: W / 2, y: H / 2 });
+  const ins = shown.filter((n) => n.dir === "in");
+  const outs = shown.filter((n) => n.dir === "out");
+  ins.forEach((n, i) => pos.set(n.id, { x: 110, y: 36 + ((i + 0.5) * (H - 48)) / Math.max(ins.length, 1) }));
+  outs.forEach((n, i) => pos.set(n.id, { x: W - 110, y: 36 + ((i + 0.5) * (H - 48)) / Math.max(outs.length, 1) }));
+
+  let svg = '<svg class="comm-edges lineage-edges" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
+  hops.forEach((e) => {
+    const pa = pos.get(e.from),
+      pb = pos.get(e.to);
+    if (!pa || !pb) return;
+    const d = orthoPath(pa, pb);
+    svg +=
+      '<path class="edge-hit" data-from="' +
+      e.from +
+      '" data-to="' +
+      e.to +
+      '" data-kind="' +
+      esc(e.kind) +
+      '" d="' +
+      d +
+      '" /><path data-from="' +
+      e.from +
+      '" data-to="' +
+      e.to +
+      '" data-kind="' +
+      esc(e.kind) +
+      '" d="' +
+      d +
+      '" />';
+  });
+  svg += "</svg>";
+
+  const box = (nid, extra) => {
+    const n = nodeById.get(nid) || { id: nid, fqn: fqnOf(snapshot.graph, nid), kind: kindOf(snapshot.graph, nid) };
+    const p = pos.get(nid);
+    if (!p) return "";
+    const flags = nodeFlags(nid);
+    return (
+      '<button type="button" class="comm-node ego-node ' +
+      kindClass(n.kind) +
+      (nid === id ? " selected" : "") +
+      (pathSet.has(nid) ? " on-path" : "") +
+      (flags.uncovered ? " uncovered" : "") +
+      (extra || "") +
+      '" style="left:' +
+      p.x +
+      "px;top:" +
+      p.y +
+      'px" data-id="' +
+      nid +
+      '" data-fqn="' +
+      esc(n.fqn) +
+      '" data-kind="' +
+      esc(n.kind) +
+      '"><span class="name">' +
+      esc(shortOf(n.fqn)) +
+      '</span><span class="meta">' +
+      esc(kindLine(nid, n.kind)) +
+      "</span></button>"
+    );
+  };
+
+  let dots = box(id, " ego");
+  shown.forEach((n) => {
+    dots += box(n.id, "");
+  });
+
+  const hopCards = hops.slice(0, 24).map((e) => {
+    return (
+      '<button type="button" class="expl-card hop" data-from="' +
+      esc(e.from) +
+      '" data-to="' +
+      esc(e.to) +
+      '" data-kind="' +
+      esc(e.kind) +
+      '"><div class="k">' +
+      esc(e.kind) +
+      " " +
+      (e.dir === "out" ? "→" : "←") +
+      '</div><div class="t">' +
+      esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) +
+      '</div><div class="b">' +
+      esc(shortToken(e.from)) +
+      " → " +
+      esc(shortToken(e.to)) +
+      "</div></button>"
+    );
+  });
+
+  const pathRow =
+    path.length > 1
+      ? '<div class="path-row">' +
+        path
+          .map((pid) => {
+            return (
+              '<button type="button" class="path-chip ' +
+              kindClass(kindOf(snapshot.graph, pid)) +
+              '" data-id="' +
+              esc(pid) +
+              '">' +
+              esc(shortOf(fqnOf(snapshot.graph, pid))) +
+              "</button>"
+            );
+          })
+          .join('<span class="arr">→</span>') +
+        "</div>"
+      : '<div class="path-row muted">Click a second node to draw the shortest path on the derived edges.</div>';
+
+  canvas.className = "play has-stage explorer-lineage";
+  canvas.innerHTML =
+    '<div class="stage"><div class="viewport" data-lod="0">' +
+    '<div class="flow-title">Lineage · ego of ' +
+    esc(shortOf((node && node.fqn) || id)) +
+    "</div>" +
+    pathRow +
+    '<div class="comm-wrap" style="width:' +
+    W +
+    "px;height:" +
+    H +
+    'px">' +
+    svg +
+    dots +
+    "</div>" +
+    '<div class="flow-title">Incident hops</div>' +
+    '<div class="expl-list compact hops">' +
+    (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') +
+    "</div></div></div>";
+  bindStage(canvas.querySelector(".stage"), { reset: true });
+  setZoomUi(true);
+  canvas.querySelectorAll(".ego-node, .path-chip").forEach((el) => {
+    const nid = el.getAttribute("data-id");
+    if (!nid) return;
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      selectNode(nid, { peek: true });
+      if (el.classList.contains("ego-node") || el.classList.contains("path-chip")) paint({ animate: "none" });
+    });
+  });
+  bindHopClicks(canvas);
+  canvas.querySelectorAll(".expl-card.hop").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
+    });
+  });
+  const focusNodes = [nodeById.get(id) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) }].concat(
+    shown.map((n) => nodeById.get(n.id) || n)
+  );
+  renderLedger(focusNodes, { selected: id });
+  setLedgerHead("EGO");
+  applyEgoPaint();
+  if (id) peekSource(id);
+}
+
 function renderProgramOverview() {
   const programs = snapshot.programs || [];
   renderTabs(snapshot.flows || [], null);
@@ -1288,8 +2152,10 @@ function renderProgramOverview() {
       renderProgramOverview();
     };
   setGraphChrome(true);
+  setLedgerHead("MAP");
   renderLegend();
   renderCommunityGraph();
+  applyEgoPaint();
 }
 
 function degreeMap() {
@@ -1469,13 +2335,27 @@ function renderCommunityGraph() {
     const pa = pos.get(a),
       pb = pos.get(b);
     if (!pa || !pb) continue;
+    const kind = e.kind || "Calls";
+    const d = orthoPath(pa, pb);
+    svg +=
+      '<path class="edge-hit" data-from="' +
+      a +
+      '" data-to="' +
+      b +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
     svg +=
       '<path data-from="' +
       a +
       '" data-to="' +
       b +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
-      orthoPath(pa, pb) +
+      d +
       '" />';
     if (++nEdge > 280) break;
   }
@@ -1509,9 +2389,7 @@ function renderCommunityGraph() {
       '"><span class="name">' +
       esc(shortOf(n.fqn)) +
       '</span><span class="meta">' +
-      esc(n.kind || "Function") +
-      " · " +
-      esc(shortToken(id)) +
+      esc(kindLine(id, n.kind)) +
       "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
@@ -1544,9 +2422,7 @@ function renderCommunityGraph() {
     });
     el.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      selectedNodeId = id;
-      highlightCommunity(id);
-      peekSource(id);
+      selectNode(id);
     });
     el.addEventListener("dblclick", (ev) => {
       ev.stopPropagation();
@@ -1555,7 +2431,9 @@ function renderCommunityGraph() {
     });
   });
   applyGraphFilter();
+  bindHopClicks(canvas.querySelector("svg.comm-edges"));
   renderLedger(nodes, { selected: selectedNodeId });
+  applyEgoPaint();
   if (selectedNodeId) peekSource(selectedNodeId);
 }
 
@@ -1596,6 +2474,7 @@ function renderBubbleMap(clusters) {
       n +
       (n === 1 ? " node" : " nodes") +
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
+      (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
       "</span></button>";
   });
   canvas.className = "play has-stage programs-view";
@@ -1640,7 +2519,12 @@ function bubbleMarks(b) {
   for (const id of (snapshot.coverage && snapshot.coverage.uncovered) || []) {
     if (mem.has(idVal(id))) uncovered++;
   }
-  return { uncovered };
+  let onTree = 0;
+  const flow = currentFlow();
+  for (const id of (flow && flow.tree && flow.tree.nodes) || []) {
+    if (mem.has(idVal(id))) onTree++;
+  }
+  return { uncovered, onTree };
 }
 
 function highlightCommunity(id) {
@@ -1728,9 +2612,7 @@ function renderLedger(nodes, opts) {
   }
   ledgerGrid.querySelectorAll("[data-id]").forEach((el) => {
     el.onclick = () => {
-      selectedNodeId = el.getAttribute("data-id");
-      highlightCommunity(selectedNodeId);
-      peekSource(selectedNodeId);
+      selectNode(el.getAttribute("data-id"));
       renderLedger(list, { selected: selectedNodeId, onTree });
     };
   });
@@ -1805,8 +2687,10 @@ function renderFlowchart(msg, opts) {
   bindGraphFx();
   setZoomUi(true);
   applyGraphFilter();
+  setLedgerHead("SLICE");
   const treeIds = (flow.tree?.nodes || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(msg.graph, id), fqn: fqnOf(msg.graph, id) });
   renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree?.nodes || []).map(idVal)) });
+  applyEgoPaint();
 }
 
 function stampBadge(name) {
@@ -1889,6 +2773,17 @@ function renderSteiner(flow, graph, animate, scars) {
       to = idVal(e.to);
     const scar =
       scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+    const kind = e.kind || "Calls";
+    svg +=
+      '<path class="edge-hit" pathLength="1" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
     svg +=
       '<path class="edge' +
       (scar ? " scar" : "") +
@@ -1896,6 +2791,8 @@ function renderSteiner(flow, graph, animate, scars) {
       from +
       '" data-to="' +
       to +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
       d +
       '" />';
@@ -1906,13 +2803,29 @@ function renderSteiner(flow, graph, animate, scars) {
       from +
       '" data-to="' +
       to +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
       d +
       '" />';
-    svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
     svg +=
-      '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
-      esc(shortToken(to)) +
+      '<text class="ekind" x="' +
+      mx +
+      '" y="' +
+      my +
+      '" text-anchor="middle" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" data-kind="' +
+      esc(kind) +
+      '">' +
+      esc(kind) +
+      "</text>";
+    const pkt = String(kind).toUpperCase().slice(0, 5) + " " + shortToken(to);
+    svg +=
+      '<g class="pkt"><rect x="-22" y="-7" width="44" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">' +
+      esc(pkt) +
       '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
       d +
       '" /></g>';
@@ -1956,7 +2869,7 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kind) + " · " + esc(shortToken(nid)) + "</span>";
+    cards += '<span class="kind">' + esc(kindLine(nid, kind)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";
@@ -2048,7 +2961,23 @@ function renderRuns(flow, msg, animate) {
     const p = pos[idVal(run.id)] || { x: 0, y: 0 };
     const label = bubbleLabel[idVal(run.bubble)] || "run";
     const nodeIds = (run.nodes || []).map((n) => idVal(n)).join(",");
-    const nodes = (run.nodes || []).map((n) => shortOf(fqnOf(msg.graph, n))).join(" → ");
+    const members = run.nodes || [];
+    const chips = members
+      .slice(0, 3)
+      .map((n) => {
+        const id = idVal(n);
+        const k = kindOf(msg.graph, n);
+        return (
+          '<span class="chip ' +
+          kindClass(k) +
+          '">' +
+          esc(shortOf(fqnOf(msg.graph, n))) +
+          " · " +
+          esc(shortToken(id)) +
+          "</span>"
+        );
+      })
+      .join("");
     html +=
       '<div class="run" style="left:' +
       p.x +
@@ -2064,7 +2993,11 @@ function renderRuns(flow, msg, animate) {
       nodeIds +
       '">';
     html += '<div class="label">' + esc(shortOf(label)) + "</div>";
-    html += '<div class="meta">' + esc(nodes) + "</div></div>";
+    html +=
+      '<div class="chips">' +
+      chips +
+      (members.length > 3 ? '<span class="chip">+' + (members.length - 3) + "</span>" : "") +
+      "</div></div>";
   });
   html += "</div>";
   return html;
