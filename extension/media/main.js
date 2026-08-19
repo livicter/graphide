@@ -379,7 +379,7 @@ function applyPrograms(msg) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
+  applyExplorerLanding();
   finishWork();
   paint({ animate: "none" });
 }
@@ -417,7 +417,7 @@ function applySnapshot(msg, inner) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
+  applyExplorerLanding();
   finishWork();
   paint({ animate: lastTreeKey && treeKey(currentFlow()) === lastTreeKey ? "runs" : "all" });
 }
@@ -495,6 +495,68 @@ function defaultRunFlow() {
 
 function defaultLandingWorkspace() {
   return defaultRunFlow() ? "overview" : "map";
+}
+
+function applyExplorerLanding() {
+  if (explorerPinned) return;
+  try {
+    const q = new URLSearchParams(location.search || "").get("ws");
+    if (q && WORKSPACES.indexOf(q) >= 0) {
+      explorerWs = q;
+      explorerPinned = true;
+      if (q === "lineage" && !egoMode) egoMode = true;
+      return;
+    }
+  } catch (e) {}
+  explorerWs = defaultLandingWorkspace();
+}
+
+let harnessConsumed = false;
+function consumeHarnessActions() {
+  let q;
+  try {
+    q = new URLSearchParams(location.search || "");
+  } catch (e) {
+    return;
+  }
+  const drill = q.get("drill") === "1";
+  const hop = q.get("hop") === "1";
+  const ego = q.get("ego") === "1";
+  const zoomK = parseFloat(q.get("zoom") || "");
+  if (!harnessConsumed && (drill || hop || ego)) {
+    harnessConsumed = true;
+    if (ego) {
+      egoMode = true;
+      if (egoBtn) egoBtn.classList.add("on");
+    }
+    if (drill) {
+      if (explorerWs !== "map") {
+        explorerWs = "map";
+        explorerPinned = true;
+        paint({ animate: "none" });
+      }
+      const card = document.querySelector(".bubble-card");
+      if (card) {
+        graphFilter.bubble = card.getAttribute("data-bubble");
+        selectedNodeId = null;
+        renderProgramOverview();
+      }
+    }
+    if (hop) {
+      if (!document.querySelector(".edge-hit, text.ekind")) {
+        explorerWs = "slice";
+        explorerPinned = true;
+        paint({ animate: "none" });
+      }
+      const hit = document.querySelector(".edge-hit, text.ekind");
+      if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  }
+  if (Number.isFinite(zoomK) && zoomK > 0) {
+    cam.k = zoomK;
+    camTo.k = zoomK;
+    applyCam();
+  }
 }
 
 function setWorkspace(name, pin) {
@@ -835,18 +897,22 @@ function paint(opts) {
       animate
     );
     applyEgoPaint();
+    consumeHarnessActions();
     return;
   }
   if (isListWorkspace(explorerWs) || explorerWs === "overview") {
     renderExplorerList(explorerWs);
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "lineage") {
     renderLineage();
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "map") {
     renderProgramOverview();
+    consumeHarnessActions();
     return;
   }
   if (explorerWs === "slice") {
@@ -866,10 +932,12 @@ function paint(opts) {
     );
     lastTreeKey = treeKey(flow);
     applyEgoPaint();
+    consumeHarnessActions();
     return;
   }
   if (top.kind === "programs") {
     renderProgramOverview();
+    consumeHarnessActions();
     return;
   }
   if (top.kind === "flow") {
@@ -894,6 +962,7 @@ function paint(opts) {
       applyCam();
       setCamTarget(0, 0, 1);
     }
+    consumeHarnessActions();
     return;
   }
   const inner = enterBubble(snapshot, top.flow, top.bubble);
@@ -908,6 +977,7 @@ function paint(opts) {
     },
     animate
   );
+  consumeHarnessActions();
 }
 
 function queueProgress(msg) {
@@ -1907,38 +1977,39 @@ function renderOverviewBody() {
     .sort((a, b) => b.d - a.d)
     .slice(0, 8);
   const q = (graphFilter.q || "").toLowerCase();
-  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 24);
+  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 8);
   return (
-    '<div class="stat-grid">' +
-    '<div class="stat-card"><div class="k">Nodes</div><div class="n">' +
+    '<div class="stat-strip">' +
+    '<span><i class="k">Nodes</i> <b class="n">' +
     nodes.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(kinds) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Hops</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Hops</i> <b class="n">' +
     edges.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(hops) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Communities</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Communities</i> <b class="n">' +
     bubbles.length +
-    '</div><button type="button" class="crumb-btn" data-ws="map">Open map</button></div>' +
-    '<div class="stat-card"><div class="k">Programs</div><div class="n">' +
+    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span>' +
+    '<span><i class="k">Programs</i> <b class="n">' +
     programs.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(countMap(programs, (p) => p.kind)) +
-    "</div></div>" +
-    '<div class="stat-card"><div class="k">Coverage</div><div class="n">' +
+    "</span>" +
+    '<span><i class="k">Uncovered</i> <b class="n">' +
     (cov.uncovered || []).length +
-    "</div><div class=\"b\">uncovered of " +
+    "</b> of " +
     (cov.changed || []).length +
-    " changed</div></div>" +
-    '<div class="stat-card"><div class="k">Flows</div><div class="n">' +
+    " changed</span>" +
+    '<span><i class="k">Flows</i> <b class="n">' +
     flows.length +
-    "</div><div class=\"chips\">" +
+    "</b> " +
     statChips(marks) +
-    "</div></div>" +
+    "</span>" +
     "</div>" +
+    renderDefaultCfg() +
     '<div class="flow-title">Communities</div>' +
     '<div class="expl-list compact">' +
     comms
@@ -1960,6 +2031,7 @@ function renderOverviewBody() {
     '<div class="flow-title">Highest degree</div>' +
     '<div class="expl-list compact">' +
     topDeg
+      .slice(0, 6)
       .map((x) => {
         const id = idVal(x.n.id);
         return (
@@ -1977,8 +2049,7 @@ function renderOverviewBody() {
         );
       })
       .join("") +
-    "</div>" +
-    renderDefaultCfg()
+    "</div>"
   );
 }
 
@@ -2289,10 +2360,25 @@ function pickCommunityNodes(degrees) {
   }
   const scored = nodes.map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0, must: must.has(idVal(n.id)) }));
   scored.sort((a, b) => Number(b.must) - Number(a.must) || b.d - a.d);
-  return scored.slice(0, 160).map((x) => x.n);
+  const cap = graphFilter.bubble ? 24 : 48;
+  return scored.slice(0, cap).map((x) => x.n);
 }
 
 function layoutCommunity(nodes) {
+  if (graphFilter.bubble && nodes.length) {
+    const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(nodes.length))));
+    const cellW = 188;
+    const cellH = 86;
+    const W = Math.max(720, cols * cellW + 48);
+    const H = Math.max(280, Math.ceil(nodes.length / cols) * cellH + 48);
+    const pos = new Map();
+    nodes.forEach((n, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      pos.set(idVal(n.id), { x: 28 + col * cellW + cellW / 2, y: 32 + row * cellH + cellH / 2 });
+    });
+    return { W, H, pos };
+  }
   const W = 860,
     H = 560;
   const groups = new Map();
@@ -2483,7 +2569,13 @@ function renderCommunityGraph() {
     '<div class="flow-title">' +
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
-      : "Nodes — zoom in for kind lines, click to inspect") +
+      : graphFilter.bubble
+        ? "Inside this community — " +
+          nodes.length +
+          " review-relevant of " +
+          ((findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members) || []).length +
+          " (uncovered / on-tree first). Search to narrow."
+        : "Nodes — zoom in for kind lines, click to inspect") +
     "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
