@@ -439,9 +439,10 @@
     const skipBtn = document.getElementById("skipBtn");
     if (skipBtn && !skipBtn.disabled) skipBtn.click();
     check("E5", "Skip (X) records a skip for the current flow", /skipped/i.test(document.body.innerText) && /boot/i.test(document.body.innerText), "");
-    const decCard = document.querySelector(".expl-card[data-flow]");
-    if (decCard) decCard.click();
-    check("E6", "Decision card opens Slice", wsOn() === "slice", wsOn());
+    check("K1", "Decisions shows a causal chain on derived hops", document.querySelectorAll(".chain-step").length >= 1, "steps=" + document.querySelectorAll(".chain-step").length);
+    const openSlice = document.querySelector("[data-open-slice]");
+    if (openSlice) openSlice.click();
+    check("E6", "Decision Open slice jumps to Slice", wsOn() === "slice", wsOn());
 
     clickWs("registry");
     const stampBrokenCards = [...document.querySelectorAll(".expl-card")].filter((el) => /StampBroken/i.test(el.textContent));
@@ -664,9 +665,35 @@
     const afterWheel = (document.getElementById("zoomPct") || {}).textContent || "";
     check("J20", "Wheel zoom on Slice changes the LOD chrome", afterWheel !== beforeWheel || /hops|source|1[1-9][0-9]%/.test(afterWheel), beforeWheel + " → " + afterWheel);
 
+    clickWs("decisions");
+    check("K2", "Decisions is a list + detail split (Semantica causal chain)", !!document.querySelector(".ws-split .chain"), "");
+    clickWs("registry");
+    check("K3", "Registry is an audit table, not a card dump", document.querySelectorAll("table.audit tr").length >= 3, "rows=" + document.querySelectorAll("table.audit tr").length);
+    clickWs("timeline");
+    check("K4", "Timeline is a vertical event rail", document.querySelectorAll(".tl-item").length >= 3, "items=" + document.querySelectorAll(".tl-item").length);
+    clickWs("lineage");
+    check("K5", "Lineage maps hops to Used / Informed / Generated", !!document.querySelector('.prov-col[data-prov="used"]') && !!document.querySelector('.prov-col[data-prov="informed"]') && !!document.querySelector('.prov-col[data-prov="generated"]'), "");
+    clickWs("slice");
+    const vnode5 = document.querySelector(".vnode");
+    if (vnode5) vnode5.click();
+    if (ego && !ego.classList.contains("on")) ego.click();
+    const dim1 = document.querySelectorAll(".ego-dim").length;
+    const hopSel = document.getElementById("egoHops");
+    if (hopSel) {
+      hopSel.value = "2";
+      hopSel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    const dim2 = document.querySelectorAll(".ego-dim").length;
+    check("K6", "2-hop ego keeps a wider neighborhood than 1-hop", dim2 <= dim1, "1-hop dim=" + dim1 + " 2-hop dim=" + dim2);
+    if (hopSel) {
+      hopSel.value = "1";
+      hopSel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (ego && ego.classList.contains("on")) ego.click();
+
     const failed = rows.filter((r) => !r.pass);
     const html =
-      "<h2>Feature checklist · pass 3</h2><div class=\"sum " +
+      "<h2>Feature checklist · Semantica review explorer</h2><div class=\"sum " +
       (failed.length ? "fail" : "ok") +
       "\">" +
       (rows.length - failed.length) +

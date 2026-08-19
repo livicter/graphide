@@ -74,6 +74,12 @@ assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stac
 assert(js.includes("graphFilter.bubble && (explorerWs === \"map\""), "Back must pop a Map bubble even when the stack is a flow");
 assert(js.includes("applyGraphFilter();"), "community cards must honor search/kind filters");
 assert(js.includes("popK"), "zoom-out pop must use the camera target, not the animated k");
+assert(js.includes("function causalChainFor"), "decisions must show a Semantica-style causal chain on derived hops");
+assert(js.includes("function renderTimelineBody"), "timeline must be a rail, not only cards");
+assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
+assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
+assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
+assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",
