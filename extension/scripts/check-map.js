@@ -66,6 +66,13 @@ assert(!/sigma|forceatlas|ForceAtlas/i.test(ext), "must not embed Sigma/ForceAtl
 assert(js.includes("window.matchMedia &&"), "reduceMotion must tolerate missing matchMedia");
 assert(js.includes('typeof hot.scrollIntoView === "function"'), "source peek must tolerate missing scrollIntoView");
 assert(js.includes("explorerWs = \"slice\""), "selecting a flow must open the slice workspace");
+assert(js.includes("function requestStamp"), "stamp must update the webview without waiting on the host");
+assert(js.includes("function requestSkip"), "skip must update the webview without waiting on the host");
+assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not steal workspace shortcuts");
+assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
+assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
+assert(js.includes("graphFilter.bubble && (explorerWs === \"map\""), "Back must pop a Map bubble even when the stack is a flow");
+assert(js.includes("applyGraphFilter();"), "community cards must honor search/kind filters");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",

@@ -39,6 +39,24 @@
     #probe.bad { border-color: #f85149; color: #ffb4b0; }
     #probe.good { border-color: #3fb950; color: #b7f0c0; }
     #probe[hidden] { display: none !important; }
+    #suite {
+      position: fixed;
+      left: 8px;
+      top: 8px;
+      z-index: 50;
+      max-width: 420px;
+      max-height: calc(100vh - 16px);
+      overflow: auto;
+      padding: 8px 10px;
+      background: #111;
+      border: 1px solid #555;
+      font: 11px/1.35 ui-monospace, monospace;
+      color: #ddd;
+    }
+    #suite h2 { margin: 0 0 6px; font-size: 12px; }
+    #suite .ok { color: #3fb950; }
+    #suite .fail { color: #f85149; }
+    #suite .sum { margin-bottom: 6px; }
   </style>
   <script>
     window.acquireVsCodeApi = function () {
@@ -133,6 +151,7 @@
   <section id="coverage"></section>
   <footer id="status"></footer>
   <div id="probe">waiting for programs message…</div>
+  <div id="suite" hidden></div>
   <script src="../media/main.js"></script>
   <script src="./webview-harness.js"></script>
 </body>
