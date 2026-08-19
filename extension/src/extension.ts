@@ -393,6 +393,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         programs: this.snapshot.programs || [],
         flows: this.snapshot.flows || [],
         graph: this.snapshot.graph,
+        bubbles: this.snapshot.bubbles,
         coverage: this.snapshot.coverage,
         findings: this.snapshot.findings,
         plugin: this.snapshot.plugin,
@@ -502,6 +503,11 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   </div>
   <section id="workspace">
     <section id="canvas"></section>
+    <aside id="ledgerPane" hidden>
+      <div class="led-head">SLICE</div>
+      <div id="ledgerGrid"></div>
+      <div id="ledgerMeta"></div>
+    </aside>
     <aside id="sourcePane" hidden>
       <div class="src-bar">
         <span id="srcTitle"></span>

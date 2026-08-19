@@ -36,6 +36,9 @@ const kindFilters = document.getElementById("kindFilters");
 const legendEl = document.getElementById("legend");
 const inspMeta = document.getElementById("inspMeta");
 const inspEdges = document.getElementById("inspEdges");
+const ledgerPane = document.getElementById("ledgerPane");
+const ledgerGrid = document.getElementById("ledgerGrid");
+const ledgerMeta = document.getElementById("ledgerMeta");
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -169,13 +172,15 @@ if (srcEditor)
 if (graphSearch)
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
-    applyGraphFilter();
+    if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
+    else applyGraphFilter();
   });
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
       graphFilter.kinds[el.getAttribute("data-kind")] = el.checked;
-      applyGraphFilter();
+      if (stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
+      else applyGraphFilter();
     });
   });
 if (stampBtn)
@@ -326,7 +331,7 @@ function applyPrograms(msg) {
     flows: msg.flows || snapshot?.flows || [],
     flow: snapshot?.flow,
     graph: msg.graph || snapshot?.graph,
-    bubbles: snapshot?.bubbles || [],
+    bubbles: msg.bubbles || snapshot?.bubbles || [],
     coverage: msg.coverage,
     findings: msg.findings,
     plugin: msg.plugin,
@@ -387,7 +392,11 @@ function applySnapshot(msg, inner) {
 
 function currentFlow() {
   if (!snapshot) return null;
-  return snapshot.flows.find((f) => f.name === flowName) || snapshot.flow || snapshot.flows[0];
+  const named = (snapshot.flows || []).find((f) => f.name === flowName);
+  const rich = snapshot.flow && (!flowName || snapshot.flow.name === flowName);
+  if (rich && (snapshot.flow.tree?.edges || []).length) return snapshot.flow;
+  if (named && (named.tree?.edges || []).length) return named;
+  return named || snapshot.flow || snapshot.flows[0];
 }
 
 function treeKey(flow) {
@@ -415,6 +424,8 @@ function setZoomUi(on) {
 
 function setGraphChrome(on) {
   if (graphBar) graphBar.hidden = !on;
+  if (ledgerPane) ledgerPane.hidden = !on;
+  if (workspace) workspace.classList.toggle("has-ledger", !!on);
 }
 
 function updateZoomPct() {
@@ -820,6 +831,20 @@ function shortOf(fqn) {
     .split(/::|\./)
     .pop();
 }
+function shortToken(id) {
+  const s = String(idVal(id) || "").replace(/^n/i, "");
+  return (s.slice(-4).toUpperCase() || "0").padStart(4, "0");
+}
+function kindClass(kind) {
+  const k = String(kind || "Function");
+  if (k === "Type") return "kind-Type";
+  if (k === "Endpoint") return "kind-Endpoint";
+  return "kind-Function";
+}
+function orthoPath(a, b) {
+  const mx = Math.round((a.x + b.x) / 2);
+  return "M" + a.x + "," + a.y + " H" + mx + " V" + b.y + " H" + b.x;
+}
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -1033,6 +1058,16 @@ function fillInspect(msg) {
       };
     });
   }
+  if (ledgerGrid) {
+    ledgerGrid.querySelectorAll(".cell").forEach((el) => {
+      el.classList.toggle("on", el.getAttribute("data-id") === String(id));
+    });
+    if (ledgerMeta) {
+      const lit = ledgerGrid.querySelectorAll(".on").length;
+      const n = ledgerGrid.querySelectorAll(".cell").length;
+      ledgerMeta.textContent = "objects " + lit + "/" + n;
+    }
+  }
 }
 
 function incidentEdges(id) {
@@ -1045,29 +1080,52 @@ function incidentEdges(id) {
   return out;
 }
 
+function allBubbles() {
+  return (snapshot && snapshot.bubbles) || [];
+}
+
 function coarseBubbles() {
-  const bs = (snapshot && snapshot.bubbles) || [];
+  const bs = allBubbles();
   const top = bs.filter((b) => b.parent == null);
   return top.length ? top : bs;
 }
 
 /** First clustering cut under the program — not every function. */
 function mapAltitudeBubbles() {
-  const bs = (snapshot && snapshot.bubbles) || [];
+  const bs = allBubbles();
   const roots = bs.filter((b) => b.parent == null);
   if (roots.length === 1) {
     const kids = bs.filter((b) => b.parent != null && idVal(b.parent) === idVal(roots[0].id));
     if (kids.length) return kids;
   }
-  return roots.length ? roots : bs;
+  if (roots.length) return roots;
+  if (bs.length) return bs;
+  return fallbackProgramBubbles();
+}
+
+function fallbackProgramBubbles() {
+  const nodes = ((snapshot && snapshot.graph && snapshot.graph.nodes) || []).map((n) => idVal(n.id));
+  if (!nodes.length) return [];
+  const name =
+    (snapshot.programs && snapshot.programs[0] && snapshot.programs[0].name) || "program";
+  return [{ id: "_program", label: name, parent: null, members: nodes }];
+}
+
+function findBubble(id) {
+  const sid = String(id);
+  if (sid === "_program") return fallbackProgramBubbles()[0] || null;
+  return allBubbles().find((b) => idVal(b.id) === sid) || null;
 }
 
 function bubbleOf(id) {
   const sid = idVal(id);
-  for (const b of coarseBubbles()) {
-    if ((b.members || []).some((m) => idVal(m) === sid)) return b;
+  const bs = allBubbles();
+  let found = null;
+  for (const b of bs) {
+    if (!(b.members || []).some((m) => idVal(m) === sid)) continue;
+    if (!found || (b.parent != null && found.parent == null)) found = b;
   }
-  return null;
+  return found;
 }
 
 function colorOfBubble(b) {
@@ -1261,19 +1319,31 @@ function pickCommunityNodes(degrees) {
     );
   }
   if (graphFilter.bubble) {
-    const bub = coarseBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble));
+    const bub = findBubble(graphFilter.bubble);
     const mem = new Set((bub?.members || []).map((m) => idVal(m)));
     nodes = nodes.filter((n) => mem.has(idVal(n.id)));
   }
   nodes = nodes.filter((n) => graphFilter.kinds[n.kind] !== false);
+  const q = (graphFilter.q || "").toLowerCase();
+  if (q) {
+    nodes = nodes.filter(
+      (n) =>
+        String(n.fqn || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(n.span?.file || "")
+          .toLowerCase()
+          .includes(q)
+    );
+  }
   const scored = nodes.map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0, must: must.has(idVal(n.id)) }));
   scored.sort((a, b) => Number(b.must) - Number(a.must) || b.d - a.d);
   return scored.slice(0, 160).map((x) => x.n);
 }
 
 function layoutCommunity(nodes) {
-  const W = 740,
-    H = 520;
+  const W = 860,
+    H = 560;
   const groups = new Map();
   for (const n of nodes) {
     const b = bubbleOf(n.id);
@@ -1298,7 +1368,7 @@ function layoutCommunity(nodes) {
     const c = centers.get(k);
     g.members.forEach((n, i) => {
       const a = (i / Math.max(g.members.length, 1)) * Math.PI * 2;
-      const r = 16 + Math.min(72, g.members.length * 4);
+      const r = 36 + Math.min(110, g.members.length * 6);
       pos.set(idVal(n.id), { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r });
     });
   }
@@ -1311,8 +1381,8 @@ function layoutCommunity(nodes) {
         const dx = a.x - b.x,
           dy = a.y - b.y;
         const dist = Math.hypot(dx, dy) || 0.1;
-        if (dist < 22) {
-          const f = ((22 - dist) / dist) * 0.35;
+        if (dist < 78) {
+          const f = ((78 - dist) / dist) * 0.35;
           a.x += dx * f;
           a.y += dy * f;
           b.x -= dx * f;
@@ -1326,8 +1396,8 @@ function layoutCommunity(nodes) {
       const c = centers.get(b ? idVal(b.id) : "_");
       p.x += (c.x - p.x) * 0.05;
       p.y += (c.y - p.y) * 0.05;
-      p.x = clamp(p.x, 22, W - 22);
-      p.y = clamp(p.y, 22, H - 22);
+      p.x = clamp(p.x, 56, W - 56);
+      p.y = clamp(p.y, 28, H - 28);
     }
   }
   return { W, H, pos };
@@ -1375,16 +1445,16 @@ function renderLegend() {
 }
 
 function renderCommunityGraph() {
-  const clusters = mapAltitudeBubbles();
-  if (!graphFilter.bubble && clusters.length > 1) {
-    renderBubbleMap(clusters);
+  if (!graphFilter.bubble) {
+    renderBubbleMap(mapAltitudeBubbles());
     return;
   }
   const degrees = degreeMap();
   const nodes = pickCommunityNodes(degrees);
   if (!nodes.length) {
     canvas.className = "play";
-    canvas.innerHTML = '<div class="empty">No derived nodes in this filter. Clear the legend or kinds.</div>';
+    canvas.innerHTML =
+      '<div class="empty">No derived nodes match this filter. Clear the search, program chip, or kinds.</div>';
     setZoomUi(false);
     return;
   }
@@ -1404,14 +1474,8 @@ function renderCommunityGraph() {
       a +
       '" data-to="' +
       b +
-      '" d="M' +
-      pa.x +
-      "," +
-      pa.y +
-      " L" +
-      pb.x +
-      "," +
-      pb.y +
+      '" d="' +
+      orthoPath(pa, pb) +
       '" />';
     if (++nEdge > 280) break;
   }
@@ -1421,24 +1485,17 @@ function renderCommunityGraph() {
     const id = idVal(n.id);
     const p = pos.get(id);
     if (!p) continue;
-    const deg = degrees.get(id) || 1;
-    const size = 8 + Math.min(16, Math.sqrt(deg) * 3.2);
-    const bub = bubbleOf(id);
     const flags = nodeFlags(id);
     dots +=
-      '<button type="button" class="comm-node' +
+      '<button type="button" class="comm-node ' +
+      kindClass(n.kind) +
       (selectedNodeId === id ? " selected" : "") +
       (flags.uncovered ? " uncovered" : "") +
       '" style="left:' +
       p.x +
       "px;top:" +
       p.y +
-      "px;width:" +
-      size +
-      "px;height:" +
-      size +
-      "px;background:" +
-      colorOfBubble(bub) +
+      "px" +
       '" data-id="' +
       id +
       '" data-fqn="' +
@@ -1449,12 +1506,22 @@ function renderCommunityGraph() {
       esc(n.span?.file || "") +
       '" title="' +
       esc(n.fqn) +
-      '"></button>';
+      '"><span class="name">' +
+      esc(shortOf(n.fqn)) +
+      '</span><span class="meta">' +
+      esc(n.kind || "Function") +
+      " · " +
+      esc(shortToken(id)) +
+      "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Inside this community — hover a node, click to inspect</div>' +
+    '<div class="flow-title">' +
+    (graphFilter.q
+      ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
+      : "Nodes — click one to inspect") +
+    "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -1488,35 +1555,37 @@ function renderCommunityGraph() {
     });
   });
   applyGraphFilter();
+  renderLedger(nodes, { selected: selectedNodeId });
   if (selectedNodeId) peekSource(selectedNodeId);
 }
 
 function renderBubbleMap(clusters) {
-  clusters = clusters
+  clusters = (clusters || [])
     .slice()
     .sort((a, b) => (b.members || []).length - (a.members || []).length)
     .slice(0, 24);
+  if (!clusters.length) {
+    canvas.className = "play";
+    canvas.innerHTML = '<div class="empty">No communities yet. Review again after clustering finishes.</div>';
+    setZoomUi(false);
+    return;
+  }
   const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(clusters.length))));
-  const cell = 108;
-  const W = Math.max(440, cols * cell + 24);
+  const cell = 148;
+  const W = Math.max(520, cols * cell + 24);
   const rows = Math.ceil(clusters.length / cols);
-  const H = Math.max(260, rows * cell + 24);
+  const H = Math.max(280, rows * 92 + 24);
   let html = "";
   clusters.forEach((b, i) => {
     const n = (b.members || []).length;
-    const size = 78;
     const x = 12 + (i % cols) * cell + cell / 2;
-    const y = 12 + Math.floor(i / cols) * cell + cell / 2;
+    const y = 18 + Math.floor(i / cols) * 92 + 36;
     const marks = bubbleMarks(b);
     html +=
       '<button type="button" class="bubble-card" style="left:' +
       x +
       "px;top:" +
       y +
-      "px;width:" +
-      size +
-      "px;height:" +
-      size +
       "px;--c:" +
       colorOfBubble(b) +
       '" data-bubble="' +
@@ -1549,6 +1618,20 @@ function renderBubbleMap(clusters) {
       renderProgramOverview();
     };
   });
+  const sample = [];
+  const seen = new Set();
+  for (const b of clusters) {
+    for (const id of b.members || []) {
+      const sid = idVal(id);
+      if (seen.has(sid)) continue;
+      seen.add(sid);
+      const n = nodeById.get(sid);
+      if (n) sample.push(n);
+      if (sample.length >= 48) break;
+    }
+    if (sample.length >= 48) break;
+  }
+  renderLedger(sample, { selected: selectedNodeId });
 }
 
 function bubbleMarks(b) {
@@ -1568,6 +1651,11 @@ function highlightCommunity(id) {
   canvas.querySelectorAll(".comm-edges path").forEach((el) => {
     el.classList.toggle("hot", el.getAttribute("data-from") === sid || el.getAttribute("data-to") === sid);
   });
+  if (ledgerGrid) {
+    ledgerGrid.querySelectorAll(".cell").forEach((el) => {
+      if (sid) el.classList.toggle("on", el.getAttribute("data-id") === sid || el.classList.contains("uncovered"));
+    });
+  }
 }
 
 function applyGraphFilter() {
@@ -1577,6 +1665,12 @@ function applyGraphFilter() {
     const file = (el.getAttribute("data-file") || "").toLowerCase();
     const kind = el.getAttribute("data-kind") || "";
     const match = (!q || fqn.includes(q) || file.includes(q)) && graphFilter.kinds[kind] !== false;
+    el.classList.toggle("dim", !match);
+    el.classList.toggle("hit", !!(q && match));
+  });
+  canvas.querySelectorAll(".bubble-card").forEach((el) => {
+    const name = ((el.querySelector(".name") && el.querySelector(".name").textContent) || "").toLowerCase();
+    const match = !q || name.includes(q);
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(q && match));
   });
@@ -1601,6 +1695,44 @@ function renderTabs(flows, current) {
     .join("");
   tabs.querySelectorAll(".tab").forEach((el) => {
     el.onclick = () => selectFlow(el.getAttribute("data-flow"));
+  });
+}
+
+function renderLedger(nodes, opts) {
+  if (!ledgerGrid) return;
+  const selected = opts && opts.selected ? String(opts.selected) : "";
+  const onTree = (opts && opts.onTree) || null;
+  const list = (nodes || []).slice(0, 64);
+  ledgerGrid.innerHTML = list
+    .map((n) => {
+      const id = idVal(n.id || n);
+      const kind = n.kind || kindOf(snapshot && snapshot.graph, id);
+      const flags = nodeFlags(id);
+      const on = selected === id || flags.uncovered || (onTree && onTree.has(id));
+      return (
+        '<button type="button" class="cell ' +
+        kindClass(kind) +
+        (on ? " on" : "") +
+        (flags.uncovered ? " uncovered" : "") +
+        '" data-id="' +
+        id +
+        '"><span>' +
+        esc(shortToken(id)) +
+        '</span><span class="dots"><i></i><i></i><i></i></span></button>'
+      );
+    })
+    .join("");
+  if (ledgerMeta) {
+    const lit = ledgerGrid.querySelectorAll(".on").length;
+    ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+  }
+  ledgerGrid.querySelectorAll("[data-id]").forEach((el) => {
+    el.onclick = () => {
+      selectedNodeId = el.getAttribute("data-id");
+      highlightCommunity(selectedNodeId);
+      peekSource(selectedNodeId);
+      renderLedger(list, { selected: selectedNodeId, onTree });
+    };
   });
 }
 
@@ -1661,7 +1793,7 @@ function renderFlowchart(msg, opts) {
   canvas.className = "play has-stage";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport">' +
-    '<div class="flow-title">Steiner slice</div>' +
+    '<div class="flow-title">Flow · Steiner</div>' +
     treeHtml +
     (runHtml
       ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
@@ -1673,6 +1805,8 @@ function renderFlowchart(msg, opts) {
   bindGraphFx();
   setZoomUi(true);
   applyGraphFilter();
+  const treeIds = (flow.tree?.nodes || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(msg.graph, id), fqn: fqnOf(msg.graph, id) });
+  renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree?.nodes || []).map(idVal)) });
 }
 
 function stampBadge(name) {
@@ -1723,8 +1857,8 @@ function renderSteiner(flow, graph, animate, scars) {
     while (buckets.length <= d) buckets.push([]);
     buckets[d].push(id);
   }
-  const W = 640,
-    H = Math.max(260, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 118 + 48);
+  const W = Math.max(720, buckets.length * 168),
+    H = Math.max(280, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 96 + 56);
   const colW = W / Math.max(buckets.length, 1);
   const pos = {};
   buckets.forEach((col, i) =>
@@ -1748,10 +1882,9 @@ function renderSteiner(flow, graph, animate, scars) {
     const a = pos[idVal(e.from)],
       b = pos[idVal(e.to)];
     if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2,
-      my = (a.y + b.y) / 2 - 8;
-    const d =
-      "M" + a.x + "," + a.y + " C" + mx + "," + a.y + " " + mx + "," + b.y + " " + b.x + "," + b.y;
+    const mx = Math.round((a.x + b.x) / 2),
+      my = Math.round((a.y + b.y) / 2) - 10;
+    const d = orthoPath(a, b);
     const from = idVal(e.from),
       to = idVal(e.to);
     const scar =
@@ -1777,6 +1910,12 @@ function renderSteiner(flow, graph, animate, scars) {
       d +
       '" />';
     svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
+    svg +=
+      '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
+      esc(shortToken(to)) +
+      '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
+      d +
+      '" /></g>';
   }
   svg += "</svg>";
   const snippets = (snapshot && snapshot.snippets) || {};
@@ -1785,7 +1924,7 @@ function renderSteiner(flow, graph, animate, scars) {
     const p = pos[idVal(id)];
     if (!p) continue;
     const nid = idVal(id);
-    const type = kindOf(graph, id) === "Type";
+    const kind = kindOf(graph, id) || "Function";
     const fqn = fqnOf(graph, id);
     const label = shortOf(fqn);
     const d = level[nid] || 0;
@@ -1797,8 +1936,8 @@ function renderSteiner(flow, graph, animate, scars) {
     const flags = nodeFlags(nid);
     const away = nodeAway(nid);
     cards +=
-      '<button type="button" class="vnode' +
-      (type ? " type" : "") +
+      '<button type="button" class="vnode ' +
+      kindClass(kind) +
       (away ? " away" : "") +
       (flags.uncovered ? " uncovered" : flags.changed ? " changed" : "") +
       (selectedNodeId === nid ? " selected" : "") +
@@ -1813,11 +1952,11 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-fqn="' +
       esc(fqn) +
       '" data-kind="' +
-      esc(kindOf(graph, id) || "") +
+      esc(kind) +
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kindOf(graph, id) || "Function") + "</span>";
+    cards += '<span class="kind">' + esc(kind) + " · " + esc(shortToken(nid)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";

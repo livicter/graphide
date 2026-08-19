@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Graphide webview harness</title>
+  <link href="../media/main.css" rel="stylesheet" />
+  <style>
+    :root {
+      --vscode-foreground: #dddddd;
+      --vscode-sideBar-background: #1e1e1e;
+      --vscode-editor-background: #252526;
+      --vscode-panel-border: #333333;
+      --vscode-focusBorder: #007acc;
+      --vscode-textLink-foreground: #4fc1ff;
+      --vscode-errorForeground: #f85149;
+      --vscode-font-family: system-ui, sans-serif;
+      --vscode-font-size: 13px;
+      --vscode-button-background: #0e639c;
+      --vscode-button-foreground: #ffffff;
+      --vscode-button-hoverBackground: #1177bb;
+      --vscode-input-background: #3c3c3c;
+      --vscode-input-foreground: #cccccc;
+      --vscode-input-border: #3c3c3c;
+    }
+    #probe {
+      position: fixed;
+      right: 8px;
+      bottom: 8px;
+      z-index: 40;
+      max-width: 360px;
+      padding: 8px 10px;
+      background: #111;
+      border: 1px solid #555;
+      font: 11px/1.4 ui-monospace, monospace;
+      color: #c6e0ff;
+      white-space: pre-wrap;
+      pointer-events: none;
+    }
+    #probe.bad { border-color: #f85149; color: #ffb4b0; }
+    #probe.good { border-color: #3fb950; color: #b7f0c0; }
+  </style>
+  <script>
+    window.acquireVsCodeApi = function () {
+      return {
+        postMessage: function (m) {
+          console.log("vscode.postMessage", m);
+        },
+        getState: function () { return null; },
+        setState: function () {},
+      };
+    };
+  </script>
+</head>
+<body>
+  <header>
+    <div class="brand">GRAPH<span>IDE</span></div>
+    <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
+    <button id="reviewBtn" title="Review workspace">Review</button>
+    <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
+    <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
+    <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
+    <div id="zoomBar" hidden>
+      <button id="zoomOut" title="Zoom out (−)">−</button>
+      <span id="zoomPct">100%</span>
+      <button id="zoomIn" title="Zoom in (+)">+</button>
+      <button id="zoomFit" title="Fit (0)">Fit</button>
+    </div>
+  </header>
+  <div id="tip" hidden></div>
+  <div id="progress">
+    <div class="progress-inner">
+      <ol id="phases">
+        <li data-phase="walk">Scan</li>
+        <li data-phase="extract">Extract</li>
+        <li data-phase="link">Link</li>
+        <li data-phase="cluster">Cluster</li>
+        <li data-phase="flows">Flows</li>
+      </ol>
+      <div id="progressBar"><i id="progressFill"></i></div>
+      <div id="progressMeta">
+        <span id="progressLabel"></span>
+        <span id="progressCounts"></span>
+        <span id="progressPct"></span>
+        <span id="progressTime"></span>
+      </div>
+    </div>
+  </div>
+  <div id="promptRow">
+    <input id="prompt" type="text" spellcheck="false"
+      placeholder="Optional prompt: name=hit,hit  (repeat with ; )" />
+  </div>
+  <nav id="tabs"></nav>
+  <section id="meta"></section>
+  <div id="graphBar" hidden>
+    <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN or file…" />
+    <div id="kindFilters">
+      <label><input type="checkbox" data-kind="Function" checked /> Function</label>
+      <label><input type="checkbox" data-kind="Type" checked /> Type</label>
+      <label><input type="checkbox" data-kind="Endpoint" checked /> Endpoint</label>
+    </div>
+    <div id="legend"></div>
+  </div>
+  <section id="workspace">
+    <section id="canvas"></section>
+    <aside id="ledgerPane" hidden>
+      <div class="led-head">SLICE</div>
+      <div id="ledgerGrid"></div>
+      <div id="ledgerMeta"></div>
+    </aside>
+    <aside id="sourcePane" hidden>
+      <div class="src-bar">
+        <span id="srcTitle"></span>
+        <button id="srcEditor" title="Open this span in the editor">Editor</button>
+        <button id="srcClose" title="Close inspect (Esc)">Close</button>
+      </div>
+      <div id="inspMeta"></div>
+      <div id="inspEdges"></div>
+      <div id="srcBody"></div>
+    </aside>
+  </section>
+  <section id="coverage"></section>
+  <footer id="status"></footer>
+  <div id="probe">waiting for programs message…</div>
+  <script src="../media/main.js"></script>
+  <script src="./webview-harness.js"></script>
+</body>
+</html>

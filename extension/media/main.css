@@ -5,6 +5,10 @@ html, body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   display: flex; flex-direction: column;
+  --g-fn: #6ea8fe;
+  --g-ty: #d4784a;
+  --g-ep: #3ecf7a;
+  --g-line: color-mix(in srgb, var(--vscode-foreground) 28%, transparent);
 }
 header {
   display: flex; align-items: center; gap: 8px;
@@ -250,8 +254,68 @@ button:disabled { opacity: 0.45; cursor: default; }
   min-height: 160px;
   overflow: hidden;
 }
+#workspace.has-ledger #canvas { padding-right: 6px; }
 #canvas { padding: 12px 10px 16px; overflow: auto; flex: 1; min-height: 160px; }
 #canvas.has-stage { overflow: hidden; }
+#ledgerPane {
+  width: 168px;
+  min-width: 148px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px dotted var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, #000);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#ledgerPane[hidden] { display: none; }
+.led-head, #ledgerMeta {
+  padding: 7px 8px 5px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+#ledgerGrid {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px 4px;
+  padding: 0 8px 8px;
+  align-content: start;
+}
+#ledgerGrid .cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 3px;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--vscode-foreground) 55%, transparent);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+#ledgerGrid .cell .dots {
+  display: flex;
+  gap: 1px;
+}
+#ledgerGrid .cell .dots i {
+  width: 4px;
+  height: 4px;
+  background: var(--c, var(--g-fn));
+  opacity: 0.35;
+}
+#ledgerGrid .cell.on {
+  color: var(--c, var(--vscode-foreground));
+  background: color-mix(in srgb, var(--c, var(--g-fn)) 22%, transparent);
+  border-color: color-mix(in srgb, var(--c, var(--g-fn)) 55%, transparent);
+}
+#ledgerGrid .cell.on .dots i { opacity: 1; }
+#ledgerGrid .cell.kind-Function { --c: var(--g-fn); }
+#ledgerGrid .cell.kind-Type { --c: var(--g-ty); }
+#ledgerGrid .cell.kind-Endpoint { --c: var(--g-ep); }
+#ledgerGrid .cell.uncovered { border-style: dashed; border-color: color-mix(in srgb, var(--c, var(--g-fn)) 40%, transparent); }
 #sourcePane {
   width: 42%;
   min-width: 180px;
@@ -314,56 +378,99 @@ button:disabled { opacity: 0.45; cursor: default; }
   pointer-events: none;
 }
 .comm-wrap svg.comm-edges path {
-  fill: none; stroke: var(--vscode-foreground); opacity: 0.22; stroke-width: 1;
+  fill: none; stroke: var(--g-line); opacity: 0.7; stroke-width: 1;
 }
 .comm-wrap svg.comm-edges path.hot { opacity: 0.9; stroke: var(--vscode-textLink-foreground); stroke-width: 1.6; }
 .comm-node {
   position: absolute;
   transform: translate(-50%, -50%);
-  border: none;
-  border-radius: 50%;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 92px;
+  max-width: 132px;
+  padding: 5px 7px 4px;
+  background: color-mix(in srgb, var(--c, var(--g-fn)) 10%, var(--vscode-editor-background));
+  color: inherit;
+  border: 1px solid var(--c, var(--g-fn));
+  border-radius: 3px;
   cursor: pointer;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
+  text-align: left;
+  font: inherit;
+  box-shadow: none;
 }
-.comm-node .lbl {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 3px);
-  transform: translateX(-50%);
-  font-size: 9px;
+.comm-node .name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
 }
-.viewport[data-lod="1"] .comm-node .lbl,
-.viewport[data-lod="2"] .comm-node .lbl,
-.viewport[data-lod="3"] .comm-node .lbl,
-.comm-node:hover .lbl,
-.comm-node.selected .lbl,
-.comm-node.hit .lbl { opacity: 0.9; }
-.comm-node.dim { opacity: 0.12; }
-.comm-node.selected { outline: 2px solid var(--vscode-focusBorder); z-index: 3; }
-.comm-node.uncovered { box-shadow: 0 0 0 2px var(--vscode-errorForeground); }
+.comm-node .meta,
+.comm-node .lbl {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.comm-node.kind-Function { --c: var(--g-fn); }
+.comm-node.kind-Type { --c: var(--g-ty); }
+.comm-node.kind-Endpoint { --c: var(--g-ep); }
+.comm-node.dim { opacity: 0.18; }
+.comm-node.selected {
+  outline: 1px solid var(--c, var(--vscode-focusBorder));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 45%, transparent);
+  z-index: 3;
+}
+.comm-node.uncovered { border-style: dashed; }
+.comm-node.hit .name { color: var(--c, var(--g-fn)); }
 .bubble-card {
   position: absolute;
   transform: translate(-50%, -50%);
-  border: 1.5px solid var(--c, var(--vscode-focusBorder));
-  background: color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 18%, var(--vscode-editor-background));
+  border: 1px solid var(--c, var(--vscode-focusBorder));
+  background: color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 10%, var(--vscode-editor-background));
   color: inherit;
-  border-radius: 50%;
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  padding: 8px;
+  min-width: 108px;
+  max-width: 140px;
+  padding: 8px 10px;
   cursor: pointer;
   font: inherit;
 }
-.bubble-card .name { font-size: 11px; font-weight: 600; text-align: center; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bubble-card .meta { font-size: 9px; opacity: 0.7; }
-.bubble-card:hover { outline: 1px solid var(--vscode-focusBorder); }
+.bubble-card .name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bubble-card .meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.bubble-card:hover { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
+.bubble-card.dim { opacity: 0.22; }
+.bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
 #canvas.leaving { animation: leave 150ms ease-in forwards; }
 .stage {
   position: relative;
@@ -477,24 +584,35 @@ button:disabled { opacity: 0.45; cursor: default; }
   min-width: 118px;
   max-width: 168px;
   padding: 6px 8px 5px;
-  background: var(--vscode-editor-background);
+  background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background));
   color: inherit;
-  border: 1.3px solid var(--vscode-focusBorder);
-  border-radius: 5px;
+  border: 1px solid var(--c, var(--g-fn));
+  border-radius: 3px;
   cursor: pointer;
   text-align: left;
   font: inherit;
   overflow: hidden;
 }
-.steiner-wrap .vnode.type { border-color: #4ec9b0; }
+.steiner-wrap .vnode.kind-Function { --c: var(--g-fn); }
+.steiner-wrap .vnode.kind-Type, .steiner-wrap .vnode.type { --c: var(--g-ty); }
+.steiner-wrap .vnode.kind-Endpoint { --c: var(--g-ep); }
 .steiner-wrap .vnode .kind {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 8px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.65;
+  opacity: 0.7;
 }
-.steiner-wrap .vnode .name { font-size: 11px; font-weight: 600; }
-.steiner-wrap .vnode.type .name { color: #4ec9b0; }
+.steiner-wrap .vnode .name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.steiner-wrap .vnode.kind-Type .name, .steiner-wrap .vnode.type .name { color: var(--g-ty); }
+.steiner-wrap .vnode.kind-Function .name { color: var(--g-fn); }
+.steiner-wrap .vnode.kind-Endpoint .name { color: var(--g-ep); }
 .steiner-wrap .vnode .where,
 .steiner-wrap .vnode .fqn,
 .steiner-wrap .vnode .snip { display: none; }
@@ -541,14 +659,14 @@ button:disabled { opacity: 0.45; cursor: default; }
 .viewport[data-lod="3"] .vnode .snip { max-height: 110px; }
 .steiner-wrap .vnode.away { opacity: 0.38; }
 .steiner-wrap .vnode.changed { box-shadow: inset 3px 0 0 #d29922; }
-.steiner-wrap .vnode.uncovered { box-shadow: inset 3px 0 0 var(--vscode-errorForeground); }
+.steiner-wrap .vnode.uncovered { border-style: dashed; box-shadow: none; }
 .steiner-wrap .vnode.selected {
   outline: 1px solid var(--vscode-focusBorder);
   z-index: 3;
 }
 .steiner-wrap .vnode.dim { opacity: 0.18; }
 .steiner-wrap.play .vnode {
-  animation: popIn 280ms ease-out both;
+  animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
 }
 .steiner-wrap.flowing .vnode { animation: none; }
@@ -558,7 +676,14 @@ button:disabled { opacity: 0.45; cursor: default; }
   outline: 1px solid var(--vscode-focusBorder);
   box-shadow: 0 0 10px color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
 }
-.flow-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; margin-bottom: 8px; }
+.flow-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.45;
+  margin-bottom: 10px;
+}
 .chart { position: relative; min-height: 120px; }
 .run {
   position: absolute; min-width: 140px; max-width: 200px;
@@ -594,7 +719,18 @@ svg.edges .spine-flow {
 }
 svg.steiner { width: 100%; height: auto; display: block; }
 svg.steiner { color: var(--vscode-descriptionForeground); }
-svg.steiner .edge { stroke: var(--vscode-foreground); fill: none; opacity: 0.45; stroke-width: 1.4; }
+svg.steiner .edge { stroke: var(--g-line); fill: none; opacity: 0.7; stroke-width: 1; }
+svg.steiner .pkt rect {
+  fill: var(--vscode-editor-background);
+  stroke: var(--g-fn);
+  stroke-width: 1;
+}
+svg.steiner .pkt text {
+  fill: var(--g-fn);
+  stroke: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 8px;
+}
 svg.steiner .edge-flow {
   fill: none;
   stroke: var(--vscode-textLink-foreground);
