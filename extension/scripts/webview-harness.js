@@ -178,10 +178,15 @@
   function flowPayload() {
     const base = solarsimPayload(true);
     const hits = base.graph.nodes.slice(0, 8);
+    const tree = {
+      nodes: hits.map((n) => n.id),
+      edges: hits.slice(1).map((n, i) => ({ from: hits[i].id, to: n.id, kind: "Calls" })),
+    };
+    const flow = { name: "boot", tree, flowchart: { runs: [], spine: [], positions: [] } };
     return {
       type: "flowchart",
       programs: base.programs,
-      flows: [{ name: "boot", tree: { nodes: hits.map((n) => n.id) } }],
+      flows: [flow],
       graph: base.graph,
       bubbles: base.bubbles,
       coverage: base.coverage,
@@ -190,14 +195,7 @@
       stats: base.stats,
       stamps: [],
       skipped: [],
-      flow: {
-        name: "boot",
-        tree: {
-          nodes: hits.map((n) => n.id),
-          edges: hits.slice(1).map((n, i) => ({ from: hits[i].id, to: n.id, kind: "Calls" })),
-        },
-        flowchart: { runs: [], spine: [], positions: [] },
-      },
+      flow,
       snippets: {},
     };
   }

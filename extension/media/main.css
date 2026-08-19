@@ -666,7 +666,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .steiner-wrap .vnode.dim { opacity: 0.18; }
 .steiner-wrap.play .vnode {
-  animation: popIn 280ms ease-out both;
+  animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
 }
 .steiner-wrap.flowing .vnode { animation: none; }

@@ -392,7 +392,11 @@ function applySnapshot(msg, inner) {
 
 function currentFlow() {
   if (!snapshot) return null;
-  return snapshot.flows.find((f) => f.name === flowName) || snapshot.flow || snapshot.flows[0];
+  const named = (snapshot.flows || []).find((f) => f.name === flowName);
+  const rich = snapshot.flow && (!flowName || snapshot.flow.name === flowName);
+  if (rich && (snapshot.flow.tree?.edges || []).length) return snapshot.flow;
+  if (named && (named.tree?.edges || []).length) return named;
+  return named || snapshot.flow || snapshot.flows[0];
 }
 
 function treeKey(flow) {
@@ -829,7 +833,7 @@ function shortOf(fqn) {
 }
 function shortToken(id) {
   const s = String(idVal(id) || "").replace(/^n/i, "");
-  return s.slice(-4).toUpperCase() || "0000";
+  return (s.slice(-4).toUpperCase() || "0").padStart(4, "0");
 }
 function kindClass(kind) {
   const k = String(kind || "Function");
@@ -1853,8 +1857,8 @@ function renderSteiner(flow, graph, animate, scars) {
     while (buckets.length <= d) buckets.push([]);
     buckets[d].push(id);
   }
-  const W = 640,
-    H = Math.max(260, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 118 + 48);
+  const W = Math.max(720, buckets.length * 168),
+    H = Math.max(280, buckets.reduce((m, c) => Math.max(m, c.length), 1) * 96 + 56);
   const colW = W / Math.max(buckets.length, 1);
   const pos = {};
   buckets.forEach((col, i) =>
@@ -1906,14 +1910,12 @@ function renderSteiner(flow, graph, animate, scars) {
       d +
       '" />';
     svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
-    if (animate) {
-      svg +=
-        '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
-        esc(shortToken(to)) +
-        '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
-        d +
-        '" /></g>';
-    }
+    svg +=
+      '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
+      esc(shortToken(to)) +
+      '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
+      d +
+      '" /></g>';
   }
   svg += "</svg>";
   const snippets = (snapshot && snapshot.snippets) || {};
