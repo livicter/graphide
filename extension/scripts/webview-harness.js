@@ -522,7 +522,7 @@
     clickWs("slice");
     const zfit = document.getElementById("zoomFit");
     if (zfit) zfit.click();
-    check("I1", "Fit resets zoom chrome to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
+    check("I1", "Fit frames the current chart (does not Enter or pop)", /overview|labels|100%/i.test((document.getElementById("zoomPct") || {}).textContent || "") && document.querySelectorAll(".comm-node").length === 0, (document.getElementById("zoomPct") || {}).textContent || "");
     const covText = (document.getElementById("coverage") || {}).textContent || "";
     check("I2", "Coverage line stays one line (no uncovered dump)", !/UncoveredNode/i.test(covText), covText.slice(0, 80));
 
@@ -584,7 +584,7 @@
     key("+");
     check("J5", "Keys + / − / 0 drive zoom", !/^100%/.test(((document.getElementById("zoomPct") || {}).textContent || "").trim()), (document.getElementById("zoomPct") || {}).textContent || "");
     key("0");
-    check("J6", "Key 0 fits back to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
+    check("J6", "Key 0 fits the whole chart", /overview|labels|100%/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
 
     const vnode2 = document.querySelector(".vnode");
     if (vnode2) vnode2.click();

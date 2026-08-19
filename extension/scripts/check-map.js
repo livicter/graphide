@@ -81,9 +81,11 @@ assert(js.includes("function renderRegistryBody"), "registry must be an audit ta
 assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
 assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
 assert(js.includes("function layeredPositions"), "map/slice must use a layered flowchart, not a pile");
+assert(js.includes("function fitChart"), "Fit must frame the whole chart, not only reset to 100%");
 assert(js.includes("function bindDraggable"), "boxes must be draggable");
 assert(js.includes("function autoReorganize"), "Reorganize must clear pins and relayout");
 assert(js.includes("function communityEdgeList"), "map must draw community hops");
+assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
 assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");

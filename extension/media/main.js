@@ -155,7 +155,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "0") {
     e.preventDefault();
-    setCamTarget(0, 0, 1);
+    fitChart();
     return;
   }
   if (e.key === "Backspace") {
@@ -191,7 +191,7 @@ document.addEventListener("keydown", (e) => {
 });
 if (zoomInBtn) zoomInBtn.onclick = () => zoomBy(1.2);
 if (zoomOutBtn) zoomOutBtn.onclick = () => zoomBy(1 / 1.2);
-if (zoomFitBtn) zoomFitBtn.onclick = () => setCamTarget(0, 0, 1);
+if (zoomFitBtn) zoomFitBtn.onclick = () => fitChart();
 if (srcClose) srcClose.onclick = () => closeSourcePane();
 if (srcEditor)
   srcEditor.onclick = () => {
@@ -701,6 +701,26 @@ function resetCam() {
   applyCam();
 }
 
+function fitChart() {
+  const stage = canvas.querySelector(".stage");
+  const wrap = (stage && stage.querySelector(".comm-wrap, .steiner-wrap")) || canvas.querySelector(".comm-wrap, .steiner-wrap");
+  if (!stage || !wrap) {
+    setCamTarget(0, 0, 1);
+    return;
+  }
+  const sr = stage.getBoundingClientRect();
+  const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
+  const H = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
+  const pad = 36;
+  let k = Math.min((sr.width - pad) / W, (sr.height - pad) / H, 1.05);
+  if (!Number.isFinite(k) || k <= 0) k = 1;
+  if (canPopAltitude()) k = Math.max(k, 0.78);
+  k = clamp(k, CAM_MIN, CAM_MAX);
+  zoomPopReady = false;
+  setCamTarget((sr.width - W * k) / 2, (sr.height - H * k) / 2, k);
+  zoomPopReady = k > 0.8;
+}
+
 function zoomBy(factor) {
   const stage = canvas.querySelector(".stage");
   if (!stage) return;
@@ -744,8 +764,10 @@ function showTip(text, ev) {
 
 function bindStage(stage, opts) {
   viewportEl = stage.querySelector(".viewport");
-  if (!opts || opts.reset) resetCam();
-  else applyCam();
+  if (!opts || opts.reset) {
+    resetCam();
+    requestAnimationFrame(() => fitChart());
+  } else applyCam();
   stage.addEventListener(
     "wheel",
     (e) => {
@@ -776,7 +798,7 @@ function bindStage(stage, opts) {
   stage.addEventListener("pointercancel", endDrag);
   stage.addEventListener("dblclick", (e) => {
     if (e.target.closest(".vnode, .run")) return;
-    setCamTarget(0, 0, 1);
+    fitChart();
   });
 }
 
@@ -1313,17 +1335,38 @@ function layeredPositions(ids, rawEdges, opts) {
   }
   const colW = nodeW + gapX;
   const rowH = nodeH + gapY;
-  const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
-  let W = Math.max(opts.minW || 720, pad * 2 + Math.max(buckets.length, 1) * colW);
-  let H = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
+  const maxCols = Math.max(1, opts.maxCols || 7);
   const pos = new Map();
-  buckets.forEach((col, i) => {
-    const colH = col.length * rowH;
-    const y0 = (H - colH) / 2 + rowH / 2;
-    col.forEach((id, j) => {
-      pos.set(id, { x: pad + colW * i + nodeW / 2, y: y0 + j * rowH });
+  if (buckets.length <= maxCols) {
+    const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+    const H0 = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
+    buckets.forEach((col, i) => {
+      const colH = col.length * rowH;
+      const y0 = (H0 - colH) / 2 + rowH / 2;
+      col.forEach((id, j) => {
+        pos.set(id, { x: pad + colW * i + nodeW / 2, y: y0 + j * rowH });
+      });
     });
-  });
+  } else {
+    const bandH = [];
+    for (let i = 0; i < buckets.length; i++) {
+      const b = Math.floor(i / maxCols);
+      bandH[b] = Math.max(bandH[b] || 1, buckets[i].length);
+    }
+    let yBand = pad;
+    const bandY = [];
+    bandH.forEach((rows) => {
+      bandY.push(yBand);
+      yBand += rows * rowH + 28;
+    });
+    buckets.forEach((col, i) => {
+      const band = Math.floor(i / maxCols);
+      const colI = i % maxCols;
+      col.forEach((id, j) => {
+        pos.set(id, { x: pad + colW * colI + nodeW / 2, y: bandY[band] + j * rowH + rowH / 2 });
+      });
+    });
+  }
   const pins = opts.pins || pinsForCurrent();
   for (const [id, p] of pos) {
     const pin = pins.get(id);
@@ -1353,8 +1396,8 @@ function layeredPositions(ids, rawEdges, opts) {
     p.x += dx;
     p.y += dy;
   }
-  W = Math.max(W, maxX + dx + pad);
-  H = Math.max(H, maxY + dy + pad);
+  const W = Math.max(opts.minW || 720, maxX + dx + pad);
+  const H = Math.max(opts.minH || 280, maxY + dy + pad);
   return { W: Math.round(W), H: Math.round(H), pos, rank };
 }
 
@@ -3136,21 +3179,35 @@ function pickCommunityNodes(degrees) {
   return scored.slice(0, cap).map((x) => x.n);
 }
 
-function layoutCommunity(nodes) {
-  const ids = (nodes || []).map((n) => idVal(n.id));
-  const edges = ((snapshot && snapshot.graph && snapshot.graph.edges) || []).filter((e) => {
+function readableEdgesAmong(ids) {
+  const picked = new Set((ids || []).map((id) => idVal(id)));
+  const byFrom = new Map();
+  for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
     const a = idVal(e.from),
       b = idVal(e.to);
-    return ids.indexOf(a) >= 0 && ids.indexOf(b) >= 0;
-  });
-  return layeredPositions(ids, edges, {
+    if (!picked.has(a) || !picked.has(b) || a === b) continue;
+    if (!byFrom.has(a)) byFrom.set(a, []);
+    byFrom.get(a).push(e);
+  }
+  const out = [];
+  for (const list of byFrom.values()) {
+    list.sort((a, b) => kindWeight(b.kind || "Calls") - kindWeight(a.kind || "Calls"));
+    out.push(...list.slice(0, 2));
+  }
+  return out;
+}
+
+function layoutCommunity(nodes) {
+  const ids = (nodes || []).map((n) => idVal(n.id));
+  return layeredPositions(ids, readableEdgesAmong(ids), {
     nodeW: 176,
     nodeH: 64,
-    gapX: 88,
-    gapY: 44,
-    pad: 56,
+    gapX: 72,
+    gapY: 36,
+    pad: 48,
     minW: 720,
-    minH: 300,
+    minH: 280,
+    maxCols: 6,
     pins: pinsForCurrent(),
   });
 }
@@ -3211,20 +3268,7 @@ function renderCommunityGraph() {
     return;
   }
   const { W, H, pos } = layoutCommunity(nodes);
-  const picked = new Set(nodes.map((n) => idVal(n.id)));
-  const readable = [];
-  const byFrom = new Map();
-  for (const e of snapshot.graph?.edges || []) {
-    const a = idVal(e.from),
-      b = idVal(e.to);
-    if (!picked.has(a) || !picked.has(b) || a === b) continue;
-    if (!byFrom.has(a)) byFrom.set(a, []);
-    byFrom.get(a).push(e);
-  }
-  for (const list of byFrom.values()) {
-    list.sort((a, b) => kindWeight(b.kind || "Calls") - kindWeight(a.kind || "Calls"));
-    readable.push(...list.slice(0, 2));
-  }
+  const readable = readableEdgesAmong(nodes.map((n) => idVal(n.id)));
   const svg = edgeSvg("comm-edges", readable, pos, W, H);
   let dots = "";
   for (const n of nodes) {
@@ -3330,6 +3374,7 @@ function renderBubbleMap(clusters) {
     pad: 64,
     minW: 760,
     minH: 340,
+    maxCols: 6,
     pins: pinsForCurrent(),
   });
   const { W, H, pos } = laid;
