@@ -244,6 +244,17 @@ button:disabled { opacity: 0.45; cursor: default; }
   background: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
 }
 #egoBtn[hidden] { display: none; }
+#reorgBtn {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#reorgBtn:hover { border-color: var(--vscode-focusBorder); }
+#reorgBtn[hidden] { display: none; }
 .ego-hops {
   display: inline-flex;
   align-items: center;
@@ -598,11 +609,20 @@ button:disabled { opacity: 0.45; cursor: default; }
 .comm-wrap svg.comm-edges {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none;
+  z-index: 1;
+  overflow: visible;
 }
 .comm-wrap svg.comm-edges path {
-  fill: none; stroke: var(--g-line); opacity: 0.7; stroke-width: 1;
+  fill: none; stroke: var(--g-line, #6e7681); opacity: 0.9; stroke-width: 1.4;
 }
-.comm-wrap svg.comm-edges path.hot { opacity: 0.9; stroke: var(--vscode-textLink-foreground); stroke-width: 1.6; }
+.comm-wrap svg.comm-edges path.hot { opacity: 1; stroke: var(--vscode-textLink-foreground); stroke-width: 1.8; }
+.comm-wrap svg.comm-edges text.ekind {
+  fill: var(--vscode-descriptionForeground, #8b949e);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
 .comm-wrap svg.comm-edges .edge-hit,
 svg.steiner .edge-hit {
   fill: none;
@@ -625,10 +645,12 @@ svg.steiner .edge-hit {
   color: inherit;
   border: 1px solid var(--c, var(--g-fn));
   border-radius: 3px;
-  cursor: pointer;
+  cursor: grab;
   text-align: left;
   font: inherit;
   box-shadow: none;
+  z-index: 2;
+  touch-action: none;
 }
 .comm-node .name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -673,11 +695,19 @@ svg.steiner .edge-hit {
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  min-width: 108px;
-  max-width: 140px;
-  padding: 8px 10px;
-  cursor: pointer;
+  min-width: 156px;
+  max-width: 200px;
+  min-height: 56px;
+  padding: 10px 12px;
+  cursor: grab;
   font: inherit;
+  z-index: 2;
+  touch-action: none;
+}
+.comm-node.dragging, .bubble-card.dragging, .steiner-wrap .vnode.dragging, .run.dragging {
+  cursor: grabbing;
+  z-index: 6;
+  outline: 1px dashed var(--vscode-focusBorder);
 }
 .bubble-card .name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -872,10 +902,11 @@ svg.steiner .edge-hit {
   color: inherit;
   border: 1px solid var(--c, var(--g-fn));
   border-radius: 3px;
-  cursor: pointer;
+  cursor: grab;
   text-align: left;
   font: inherit;
   overflow: hidden;
+  touch-action: none;
 }
 .steiner-wrap .vnode.kind-Function { --c: var(--g-fn); }
 .steiner-wrap .vnode.kind-Type, .steiner-wrap .vnode.type { --c: var(--g-ty); }
@@ -974,7 +1005,8 @@ svg.steiner .edge-hit {
   padding: 10px 12px;
   border: 1px solid var(--vscode-focusBorder);
   background: var(--vscode-editor-background);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   transition: outline 80ms ease, transform 80ms ease;
 }
 .chart.play .run {

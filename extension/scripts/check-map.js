@@ -20,6 +20,7 @@ assert(js.includes("function lodName"), "zoom LOD names missing");
 assert(js.includes("function popAltitudeFromZoom"), "zoom-out must pop one clustering level");
 assert(js.includes("function bubbleMemberChips"), "bubble member peek chips missing");
 assert(js.includes("zoom in to peek members"), "map title must teach geometric LOD");
+assert(js.includes("drag to rearrange"), "map title must teach drag + reorganize");
 assert(js.includes("msg.bubbles || snapshot?.bubbles"), "applyPrograms must keep bubbles from the programs message");
 assert(/type:\s*"programs"[\s\S]*bubbles:\s*this\.snapshot\.bubbles/.test(ext), "programs message must send bubbles");
 assert(js.includes("fallbackProgramBubbles"), "empty clustering must still show one program card");
@@ -79,6 +80,14 @@ assert(js.includes("function renderTimelineBody"), "timeline must be a rail, not
 assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
 assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
 assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
+assert(js.includes("function layeredPositions"), "map/slice must use a layered flowchart, not a pile");
+assert(js.includes("function fitChart"), "Fit must frame the whole chart, not only reset to 100%");
+assert(js.includes("function bindDraggable"), "boxes must be draggable");
+assert(js.includes("function autoReorganize"), "Reorganize must clear pins and relayout");
+assert(js.includes("function communityEdgeList"), "map must draw community hops");
+assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
+assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
+assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 
 const fakeNames = [

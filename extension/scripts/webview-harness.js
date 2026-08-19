@@ -66,6 +66,14 @@
         kind: i % 5 === 0 ? "Reads" : "Calls",
       });
     }
+    const groupCount = 12;
+    for (let gi = 0; gi < groupCount; gi++) {
+      const members = [];
+      for (let i = gi; i < nodeCount; i += groupCount) members.push("n" + i);
+      for (let j = 0; j < members.length - 1 && j < 40; j++) {
+        edges.push({ from: members[j], to: members[j + 1], kind: j % 4 === 0 ? "Reads" : "Calls" });
+      }
+    }
 
     const bubbles = [];
     if (includeBubbles) {
@@ -321,6 +329,27 @@
       if (tab) tab.click();
     };
     const key = (k) => document.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    const overlapCount = (sel, minX, minY) => {
+      const boxes = [...document.querySelectorAll(sel)].map((el) => ({
+        x: parseFloat(el.style.left) || 0,
+        y: parseFloat(el.style.top) || 0,
+      }));
+      let n = 0;
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          if (Math.abs(boxes[i].x - boxes[j].x) < minX && Math.abs(boxes[i].y - boxes[j].y) < minY) n++;
+        }
+      }
+      return n;
+    };
+    const dragEl = (el, dx, dy) => {
+      if (!el) return;
+      const x = 120,
+        y = 80;
+      el.dispatchEvent(new PointerEvent("pointerdown", { clientX: x, clientY: y, button: 0, bubbles: true, pointerId: 7 }));
+      el.dispatchEvent(new PointerEvent("pointermove", { clientX: x + dx, clientY: y + dy, bubbles: true, pointerId: 7 }));
+      el.dispatchEvent(new PointerEvent("pointerup", { clientX: x + dx, clientY: y + dy, bubbles: true, pointerId: 7 }));
+    };
 
     clickWs("overview");
     check("A1", "Overview tab is active after Review landing", wsOn() === "overview", wsOn());
@@ -347,7 +376,7 @@
     const firstCard = document.querySelector(".bubble-card");
     if (firstCard) firstCard.click();
     await later(50);
-    check("B3", "Enter bubble is a ≤24 labeled grid", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24 && /Inside this community/i.test(document.body.innerText), "nodes=" + document.querySelectorAll(".comm-node").length);
+    check("B3", "Enter bubble is ≤24 labeled boxes on a layered flow", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24 && /Inside this community/i.test(document.body.innerText), "nodes=" + document.querySelectorAll(".comm-node").length);
     check("B4", "Enter breadcrumb names the community", /map \/ \S+/i.test((document.getElementById("meta") || {}).textContent || "") || /render|integration|origin/i.test((document.getElementById("meta") || {}).textContent || ""), (document.getElementById("meta") || {}).textContent || "");
     const back = document.getElementById("backBtn");
     if (back && !back.disabled) back.click();
@@ -493,7 +522,7 @@
     clickWs("slice");
     const zfit = document.getElementById("zoomFit");
     if (zfit) zfit.click();
-    check("I1", "Fit resets zoom chrome to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
+    check("I1", "Fit frames the current chart (does not Enter or pop)", /overview|labels|100%/i.test((document.getElementById("zoomPct") || {}).textContent || "") && document.querySelectorAll(".comm-node").length === 0, (document.getElementById("zoomPct") || {}).textContent || "");
     const covText = (document.getElementById("coverage") || {}).textContent || "";
     check("I2", "Coverage line stays one line (no uncovered dump)", !/UncoveredNode/i.test(covText), covText.slice(0, 80));
 
@@ -555,7 +584,7 @@
     key("+");
     check("J5", "Keys + / − / 0 drive zoom", !/^100%/.test(((document.getElementById("zoomPct") || {}).textContent || "").trim()), (document.getElementById("zoomPct") || {}).textContent || "");
     key("0");
-    check("J6", "Key 0 fits back to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
+    check("J6", "Key 0 fits the whole chart", /overview|labels|100%/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
 
     const vnode2 = document.querySelector(".vnode");
     if (vnode2) vnode2.click();
@@ -690,6 +719,26 @@
       hopSel.dispatchEvent(new Event("change", { bubbles: true }));
     }
     if (ego && ego.classList.contains("on")) ego.click();
+
+    clickWs("map");
+    if (back && !back.disabled && document.querySelector(".comm-node")) back.click();
+    await later(80);
+    check("L1", "Map community boxes do not overlap", overlapCount(".bubble-card", 200, 110) === 0, "overlaps=" + overlapCount(".bubble-card", 200, 110));
+    check("L2", "Map draws community hops (readable flow, not a card dump)", document.querySelectorAll(".comm-wrap path[data-kind]").length >= 2, "edges=" + document.querySelectorAll(".comm-wrap path[data-kind]").length);
+    const cardLeft = document.querySelector(".bubble-card");
+    const leftBefore = cardLeft ? cardLeft.style.left : "";
+    dragEl(cardLeft, 90, 40);
+    check("L3", "Drag moves a community box", !!(cardLeft && cardLeft.style.left && cardLeft.style.left !== leftBefore), leftBefore + " → " + (cardLeft && cardLeft.style.left));
+    const reorg = document.getElementById("reorgBtn");
+    if (reorg) reorg.click();
+    await later(40);
+    check("L4", "Reorganize restores auto-layout after a drag", !!reorg && overlapCount(".bubble-card", 200, 110) === 0, "btn=" + !!reorg);
+    const enterAgain = document.querySelector(".bubble-card");
+    if (enterAgain) enterAgain.click();
+    await later(40);
+    check("L5", "Inside a community, boxes do not overlap", overlapCount(".comm-node", 150, 58) === 0, "overlaps=" + overlapCount(".comm-node", 150, 58) + " nodes=" + document.querySelectorAll(".comm-node").length);
+    check("L6", "Inside a community, derived hops are drawn", document.querySelectorAll(".comm-wrap path[data-kind]").length >= 1, "edges=" + document.querySelectorAll(".comm-wrap path[data-kind]").length);
+    if (back && !back.disabled) back.click();
 
     const failed = rows.filter((r) => !r.pass);
     const html =
