@@ -16,6 +16,10 @@ function assert(cond, msg) {
 assert(js.includes("function renderBubbleMap"), "bubble-first map is missing");
 assert(js.includes("mapAltitudeBubbles"), "map altitude helper is missing");
 assert(js.includes("communities only"), "first-view copy still sells a function dump");
+assert(js.includes("function lodName"), "zoom LOD names missing");
+assert(js.includes("function popAltitudeFromZoom"), "zoom-out must pop one clustering level");
+assert(js.includes("function bubbleMemberChips"), "bubble member peek chips missing");
+assert(js.includes("zoom in to peek members"), "map title must teach geometric LOD");
 assert(js.includes("msg.bubbles || snapshot?.bubbles"), "applyPrograms must keep bubbles from the programs message");
 assert(/type:\s*"programs"[\s\S]*bubbles:\s*this\.snapshot\.bubbles/.test(ext), "programs message must send bubbles");
 assert(js.includes("fallbackProgramBubbles"), "empty clustering must still show one program card");
@@ -29,6 +33,8 @@ assert(!js.includes("clusters.length > 1"), "first view must not skip to unlabel
 assert(!js.includes("uncovered crate"), "coverage must not dump UncoveredNode lines");
 assert(js.includes('+" + (uncovered.length - 3)'), "coverage should stay a one-line sample");
 assert(css.includes(".bubble-card"), "bubble card styles missing");
+assert(css.includes(".bubble-card .members"), "LOD member-chip styles missing");
+assert(css.includes('.viewport[data-lod="0"] .pkt'), "overview LOD must hide hop packets");
 assert(css.includes("#ledgerPane"), "ledger pane styles missing");
 assert(css.includes("--g-fn"), "kind color tokens missing");
 assert(js.includes("function renderLineage"), "lineage workspace missing");
@@ -62,6 +68,17 @@ const coverageLine =
 assert(!coverageLine.includes("<li"), "coverage line must not be a list");
 assert(coverageLine.length < 120, "coverage line still too long: " + coverageLine.length);
 
+function lodOf(k) {
+  if (k < 0.75) return 0;
+  if (k < 1.5) return 1;
+  if (k < 2.6) return 2;
+  return 3;
+}
+assert(lodOf(1) === 1, "100% camera should read as labels, not a function dump");
+assert(lodOf(0.5) === 0, "zoom-out should be overview");
+assert(lodOf(2) === 2, "zoom-in should reveal hops");
+assert(lodOf(3.2) === 3, "deep zoom should reveal source");
+
 const clusters = 80;
 const shown = Math.min(24, clusters);
 assert(shown === 24, "bubble map must cap clusters");
@@ -78,7 +95,7 @@ const preview = `<!DOCTYPE html>
 </style></head><body>
 <section id="canvas" class="play has-stage">
   <div class="stage"><div class="viewport" data-lod="0">
-    <div class="flow-title">Communities — click one to see its nodes</div>
+    <div class="flow-title">Communities — zoom in to peek members, click to enter</div>
     <div class="comm-wrap" style="width:720px;height:400px">
       ${fakeNames
         .map((name, i) => {
