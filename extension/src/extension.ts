@@ -514,6 +514,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         <button id="srcEditor" title="Open this span in the editor">Editor</button>
         <button id="srcClose" title="Close inspect (Esc)">Close</button>
       </div>
+      <div id="hopCard" hidden></div>
       <div id="inspMeta"></div>
       <div id="inspEdges"></div>
       <div id="srcBody"></div>

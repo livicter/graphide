@@ -20,7 +20,11 @@ assert(js.includes("msg.bubbles || snapshot?.bubbles"), "applyPrograms must keep
 assert(/type:\s*"programs"[\s\S]*bubbles:\s*this\.snapshot\.bubbles/.test(ext), "programs message must send bubbles");
 assert(js.includes("fallbackProgramBubbles"), "empty clustering must still show one program card");
 assert(js.includes("function renderLedger"), "slice ledger is missing");
+assert(js.includes("function showHop"), "hop card is missing");
+assert(js.includes("function kindLine"), "endpoint kind line is missing");
 assert(js.includes("function orthoPath"), "orthogonal edges missing");
+assert(css.includes("#hopCard"), "hop card styles missing");
+assert(css.includes(".edge-hit"), "clickable hop hit-path missing");
 assert(!js.includes("clusters.length > 1"), "first view must not skip to unlabeled member dots");
 assert(!js.includes("uncovered crate"), "coverage must not dump UncoveredNode lines");
 assert(js.includes('+" + (uncovered.length - 3)'), "coverage should stay a one-line sample");

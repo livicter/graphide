@@ -34,6 +34,7 @@ const graphBar = document.getElementById("graphBar");
 const graphSearch = document.getElementById("graphSearch");
 const kindFilters = document.getElementById("kindFilters");
 const legendEl = document.getElementById("legend");
+const hopCard = document.getElementById("hopCard");
 const inspMeta = document.getElementById("inspMeta");
 const inspEdges = document.getElementById("inspEdges");
 const ledgerPane = document.getElementById("ledgerPane");
@@ -611,6 +612,7 @@ function bindGraphFx() {
         if (flow) peekSource(id);
       });
     });
+    bindHopClicks(svg);
     if (!reduceMotion()) {
       setTimeout(() => {
         svg.classList.add("flowing");
@@ -841,6 +843,49 @@ function kindClass(kind) {
   if (k === "Endpoint") return "kind-Endpoint";
   return "kind-Function";
 }
+function endpointOf(id) {
+  const n = nodeById.get(idVal(id)) || ((snapshot && snapshot.graph && snapshot.graph.nodes) || []).find((x) => sameId(x.id, id));
+  return n && n.endpoint ? n.endpoint : null;
+}
+function kindLine(id, kind) {
+  const ep = endpointOf(id);
+  if (ep && (ep.role || ep.channel)) {
+    return String(ep.role || "Endpoint") + (ep.channel ? " · " + ep.channel : "");
+  }
+  return String(kind || "Function") + " · " + shortToken(id);
+}
+function graphEdge(from, to, kind) {
+  const a = idVal(from),
+    b = idVal(to);
+  const pools = [];
+  const flow = currentFlow();
+  if (flow && flow.tree && flow.tree.edges) pools.push(flow.tree.edges);
+  if (snapshot && snapshot.graph && snapshot.graph.edges) pools.push(snapshot.graph.edges);
+  let found = null;
+  for (const edges of pools) {
+    for (const e of edges) {
+      if (idVal(e.from) !== a || idVal(e.to) !== b) continue;
+      if (kind && e.kind && e.kind !== kind) continue;
+      found = e;
+      break;
+    }
+    if (found) break;
+  }
+  return found;
+}
+function bindHopClicks(root) {
+  if (!root) return;
+  root.querySelectorAll("[data-from][data-to]").forEach((el) => {
+    if (el.dataset.hopBound) return;
+    el.dataset.hopBound = "1";
+    const go = (ev) => {
+      ev.stopPropagation();
+      showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
+    };
+    el.addEventListener("click", go);
+    el.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+  });
+}
 function orthoPath(a, b) {
   const mx = Math.round((a.x + b.x) / 2);
   return "M" + a.x + "," + a.y + " H" + mx + " V" + b.y + " H" + b.x;
@@ -1010,20 +1055,86 @@ function showSource(msg) {
   if (hot) hot.scrollIntoView({ block: "center" });
 }
 
+function showHop(from, to, kind) {
+  const a = idVal(from),
+    b = idVal(to);
+  const edge = graphEdge(a, b, kind);
+  const k = (edge && edge.kind) || kind || "Calls";
+  const span = (edge && edge.span) || {};
+  const where = span.file
+    ? shortFile(span.file) + (span.start && span.start.line ? ":" + span.start.line : span.line ? ":" + span.line : "")
+    : "";
+  if (sourcePane) {
+    sourcePane.hidden = false;
+    if (workspace) workspace.classList.add("has-source");
+  }
+  if (srcTitle) srcTitle.textContent = k + " · " + shortToken(a) + " → " + shortToken(b);
+  if (hopCard) {
+    hopCard.hidden = false;
+    hopCard.innerHTML =
+      '<div class="hop-k">Hop · ' +
+      esc(k) +
+      "</div><div class=\"hop-path\">" +
+      '<button type="button" data-id="' +
+      esc(a) +
+      '" class="' +
+      kindClass(kindOf(snapshot && snapshot.graph, a)) +
+      '">' +
+      esc(shortOf(fqnOf(snapshot && snapshot.graph, a))) +
+      " · " +
+      esc(shortToken(a)) +
+      "</button><span class=\"arr\">→</span>" +
+      '<button type="button" data-id="' +
+      esc(b) +
+      '" class="' +
+      kindClass(kindOf(snapshot && snapshot.graph, b)) +
+      '">' +
+      esc(shortOf(fqnOf(snapshot && snapshot.graph, b))) +
+      " · " +
+      esc(shortToken(b)) +
+      "</button></div>" +
+      (where ? '<div class="hop-span">' + esc(where) + "</div>" : "") +
+      '<div class="hop-fqn">' +
+      esc(fqnOf(snapshot && snapshot.graph, a)) +
+      "</div><div class=\"hop-fqn\">" +
+      esc(fqnOf(snapshot && snapshot.graph, b)) +
+      "</div>";
+    hopCard.querySelectorAll("[data-id]").forEach((el) => {
+      el.onclick = () => {
+        selectedNodeId = el.getAttribute("data-id");
+        highlightCommunity(selectedNodeId);
+        peekSource(selectedNodeId);
+      };
+    });
+  }
+  selectedNodeId = b;
+  highlightCommunity(b);
+  peekSource(b);
+}
+
 function fillInspect(msg) {
   const id = msg.id;
   const node = nodeById.get(idVal(id));
   const deg = incidentEdges(id).length;
   const bub = bubbleOf(id);
   const file = msg.file || node?.span?.file || "";
+  const line = msg.line || node?.span?.start?.line || "";
   const prog = file ? assignProgram(file, (snapshot && snapshot.programs) || []) : null;
   const flags = nodeFlags(id);
+  const ep = (node && node.endpoint) || endpointOf(id);
+  const flow = currentFlow();
+  const onTree = !!(flow && (flow.tree?.nodes || []).some((n) => idVal(n) === idVal(id)));
   if (inspMeta) {
     const rows = [
       ["kind", msg.kind || (node && node.kind) || ""],
-      ["degree", String(deg)],
-      ["bubble", bub ? bub.label || idVal(bub.id) : "—"],
+      ["role", ep && ep.role ? ep.role : "—"],
+      ["channel", ep && ep.channel ? ep.channel : "—"],
+      ["span", file ? shortFile(file) + (line ? ":" + line : "") : "—"],
+      ["slice", onTree ? "on tree" : "off tree"],
+      ["community", bub ? bub.label || idVal(bub.id) : "—"],
+      ["file", file ? shortFile(file) : "—"],
       ["program", prog ? prog.kind + " " + prog.name : "—"],
+      ["degree", String(deg)],
       ["mark", flags.uncovered ? "uncovered" : flags.changed ? "changed" : "—"],
     ];
     inspMeta.innerHTML = rows
@@ -1037,8 +1148,12 @@ function fillInspect(msg) {
           .map((e) => {
             const other = e.dir === "out" ? e.to : e.from;
             return (
-              '<div class="row" data-id="' +
-              esc(other) +
+              '<div class="row" data-from="' +
+              esc(e.from) +
+              '" data-to="' +
+              esc(e.to) +
+              '" data-kind="' +
+              esc(e.kind) +
               '"><span class="k">' +
               esc(e.kind) +
               " " +
@@ -1050,13 +1165,7 @@ function fillInspect(msg) {
           })
           .join("")
       : '<div class="row"><span class="k">edges</span><span>none on the derived graph</span></div>';
-    inspEdges.querySelectorAll("[data-id]").forEach((el) => {
-      el.onclick = () => {
-        selectedNodeId = el.getAttribute("data-id");
-        highlightCommunity(selectedNodeId);
-        peekSource(selectedNodeId);
-      };
-    });
+    bindHopClicks(inspEdges);
   }
   if (ledgerGrid) {
     ledgerGrid.querySelectorAll(".cell").forEach((el) => {
@@ -1166,6 +1275,10 @@ function closeSourcePane() {
   if (srcBody) srcBody.innerHTML = "";
   if (inspMeta) inspMeta.innerHTML = "";
   if (inspEdges) inspEdges.innerHTML = "";
+  if (hopCard) {
+    hopCard.hidden = true;
+    hopCard.innerHTML = "";
+  }
   sourceId = null;
   return true;
 }
@@ -1469,13 +1582,27 @@ function renderCommunityGraph() {
     const pa = pos.get(a),
       pb = pos.get(b);
     if (!pa || !pb) continue;
+    const kind = e.kind || "Calls";
+    const d = orthoPath(pa, pb);
+    svg +=
+      '<path class="edge-hit" data-from="' +
+      a +
+      '" data-to="' +
+      b +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
     svg +=
       '<path data-from="' +
       a +
       '" data-to="' +
       b +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
-      orthoPath(pa, pb) +
+      d +
       '" />';
     if (++nEdge > 280) break;
   }
@@ -1509,9 +1636,7 @@ function renderCommunityGraph() {
       '"><span class="name">' +
       esc(shortOf(n.fqn)) +
       '</span><span class="meta">' +
-      esc(n.kind || "Function") +
-      " · " +
-      esc(shortToken(id)) +
+      esc(kindLine(id, n.kind)) +
       "</span></button>";
   }
   canvas.className = "play has-stage programs-view";
@@ -1555,6 +1680,7 @@ function renderCommunityGraph() {
     });
   });
   applyGraphFilter();
+  bindHopClicks(canvas.querySelector("svg.comm-edges"));
   renderLedger(nodes, { selected: selectedNodeId });
   if (selectedNodeId) peekSource(selectedNodeId);
 }
@@ -1596,6 +1722,7 @@ function renderBubbleMap(clusters) {
       n +
       (n === 1 ? " node" : " nodes") +
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
+      (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
       "</span></button>";
   });
   canvas.className = "play has-stage programs-view";
@@ -1640,7 +1767,12 @@ function bubbleMarks(b) {
   for (const id of (snapshot.coverage && snapshot.coverage.uncovered) || []) {
     if (mem.has(idVal(id))) uncovered++;
   }
-  return { uncovered };
+  let onTree = 0;
+  const flow = currentFlow();
+  for (const id of (flow && flow.tree && flow.tree.nodes) || []) {
+    if (mem.has(idVal(id))) onTree++;
+  }
+  return { uncovered, onTree };
 }
 
 function highlightCommunity(id) {
@@ -1889,6 +2021,17 @@ function renderSteiner(flow, graph, animate, scars) {
       to = idVal(e.to);
     const scar =
       scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+    const kind = e.kind || "Calls";
+    svg +=
+      '<path class="edge-hit" pathLength="1" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" data-kind="' +
+      esc(kind) +
+      '" d="' +
+      d +
+      '" />';
     svg +=
       '<path class="edge' +
       (scar ? " scar" : "") +
@@ -1896,6 +2039,8 @@ function renderSteiner(flow, graph, animate, scars) {
       from +
       '" data-to="' +
       to +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
       d +
       '" />';
@@ -1906,13 +2051,29 @@ function renderSteiner(flow, graph, animate, scars) {
       from +
       '" data-to="' +
       to +
+      '" data-kind="' +
+      esc(kind) +
       '" d="' +
       d +
       '" />';
-    svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle">' + esc(e.kind) + "</text>";
     svg +=
-      '<g class="pkt"><rect x="-18" y="-7" width="36" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">GET ' +
-      esc(shortToken(to)) +
+      '<text class="ekind" x="' +
+      mx +
+      '" y="' +
+      my +
+      '" text-anchor="middle" data-from="' +
+      from +
+      '" data-to="' +
+      to +
+      '" data-kind="' +
+      esc(kind) +
+      '">' +
+      esc(kind) +
+      "</text>";
+    const pkt = String(kind).toUpperCase().slice(0, 5) + " " + shortToken(to);
+    svg +=
+      '<g class="pkt"><rect x="-22" y="-7" width="44" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">' +
+      esc(pkt) +
       '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
       d +
       '" /></g>';
@@ -1956,7 +2117,7 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kind) + " · " + esc(shortToken(nid)) + "</span>";
+    cards += '<span class="kind">' + esc(kindLine(nid, kind)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";
@@ -2048,7 +2209,23 @@ function renderRuns(flow, msg, animate) {
     const p = pos[idVal(run.id)] || { x: 0, y: 0 };
     const label = bubbleLabel[idVal(run.bubble)] || "run";
     const nodeIds = (run.nodes || []).map((n) => idVal(n)).join(",");
-    const nodes = (run.nodes || []).map((n) => shortOf(fqnOf(msg.graph, n))).join(" → ");
+    const members = run.nodes || [];
+    const chips = members
+      .slice(0, 3)
+      .map((n) => {
+        const id = idVal(n);
+        const k = kindOf(msg.graph, n);
+        return (
+          '<span class="chip ' +
+          kindClass(k) +
+          '">' +
+          esc(shortOf(fqnOf(msg.graph, n))) +
+          " · " +
+          esc(shortToken(id)) +
+          "</span>"
+        );
+      })
+      .join("");
     html +=
       '<div class="run" style="left:' +
       p.x +
@@ -2064,7 +2241,11 @@ function renderRuns(flow, msg, animate) {
       nodeIds +
       '">';
     html += '<div class="label">' + esc(shortOf(label)) + "</div>";
-    html += '<div class="meta">' + esc(nodes) + "</div></div>";
+    html +=
+      '<div class="chips">' +
+      chips +
+      (members.length > 3 ? '<span class="chip">+' + (members.length - 3) + "</span>" : "") +
+      "</div></div>";
   });
   html += "</div>";
   return html;

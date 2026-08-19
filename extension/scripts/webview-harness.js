@@ -5,6 +5,7 @@
   const search = params.get("search") || "";
   const clickProgram = params.get("program") === "1" || params.get("program") === "main";
   const drill = params.get("drill") === "1";
+  const hop = params.get("hop") === "1";
 
   const NAMES = [
     "ScreenshotFormat",
@@ -132,6 +133,7 @@
     const boxes = document.querySelectorAll(".vnode");
     const ledger = document.querySelectorAll("#ledgerGrid .cell");
     const pkts = document.querySelectorAll(".pkt");
+    const hops = document.getElementById("hopCard");
     const lines = [
       "mode=" + mode,
       "title=" + (title ? title.textContent.trim() : "(none)"),
@@ -140,6 +142,7 @@
       "vnodes=" + boxes.length,
       "ledger=" + ledger.length,
       "packets=" + pkts.length,
+      "hop=" + (hops && !hops.hidden ? hops.textContent.replace(/\s+/g, " ").trim().slice(0, 80) : "(hidden)"),
       "dim=" + dim.length,
       "uncovered-dots=" + uncovered.length,
       "crumb=" + (meta ? meta.textContent.replace(/\s+/g, " ").trim() : ""),
@@ -178,16 +181,36 @@
   function flowPayload() {
     const base = solarsimPayload(true);
     const hits = base.graph.nodes.slice(0, 8);
+    hits[2].kind = "Endpoint";
+    hits[2].endpoint = { role: "Sink", channel: "Channel" };
+    const kinds = ["Calls", "Reads", "TypeUses", "Calls", "Writes", "Calls", "Reads"];
     const tree = {
       nodes: hits.map((n) => n.id),
-      edges: hits.slice(1).map((n, i) => ({ from: hits[i].id, to: n.id, kind: "Calls" })),
+      edges: hits.slice(1).map((n, i) => ({
+        from: hits[i].id,
+        to: n.id,
+        kind: kinds[i] || "Calls",
+        span: { file: n.span.file, start: { line: 12 + i, column: 1 }, end: { line: 12 + i, column: 20 } },
+      })),
     };
     const flow = { name: "boot", tree, flowchart: { runs: [], spine: [], positions: [] } };
+    const snippets = {};
+    hits.forEach((n, i) => {
+      snippets[n.id] = {
+        text: "// " + n.fqn + "\nfn hop_" + i + "() { /* evidence */ }",
+        file: n.span.file,
+        line: 2,
+        from: 1,
+        kind: n.kind,
+        id: n.id,
+        fqn: n.fqn,
+      };
+    });
     return {
       type: "flowchart",
       programs: base.programs,
       flows: [flow],
-      graph: base.graph,
+      graph: { ...base.graph, nodes: base.graph.nodes.map((n) => (n.id === hits[2].id ? hits[2] : n)), edges: tree.edges.concat(base.graph.edges) },
       bubbles: base.bubbles,
       coverage: base.coverage,
       findings: [],
@@ -196,7 +219,7 @@
       stamps: [],
       skipped: [],
       flow,
-      snippets: {},
+      snippets,
     };
   }
 
@@ -210,6 +233,10 @@
     if (drill) {
       const card = document.querySelector(".bubble-card");
       if (card) card.click();
+    }
+    if (hop) {
+      const hit = document.querySelector(".edge-hit, text.ekind");
+      if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     }
     setTimeout(probe, 120);
   }, 60);
