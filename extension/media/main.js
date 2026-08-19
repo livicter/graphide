@@ -44,7 +44,7 @@ const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, overview: 1, timeline: 1 };
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -256,7 +256,7 @@ window.addEventListener("message", (event) => {
     hideTip();
     closeSourcePane();
     explorerPinned = false;
-    explorerWs = "map";
+    explorerWs = "overview";
     pathEnds = [];
     selectedNodeId = null;
     setGraphChrome(false);
@@ -379,7 +379,7 @@ function applyPrograms(msg) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = "map";
+  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
   finishWork();
   paint({ animate: "none" });
 }
@@ -417,7 +417,7 @@ function applySnapshot(msg, inner) {
   indexGraph(snapshot.graph);
   stampRows = snapshot.stamps || [];
   skippedFlows = snapshot.skipped || [];
-  if (!explorerPinned) explorerWs = "slice";
+  if (!explorerPinned) explorerWs = defaultLandingWorkspace();
   finishWork();
   paint({ animate: lastTreeKey && treeKey(currentFlow()) === lastTreeKey ? "runs" : "all" });
 }
@@ -482,6 +482,21 @@ function isListWorkspace(ws) {
   return !!LIST_WORKSPACES[ws];
 }
 
+function defaultRunFlow() {
+  const flows = (snapshot && snapshot.flows) || [];
+  return (
+    flows.find((f) => f.name === "control-flow") ||
+    flows.find((f) => f.name === "overview") ||
+    currentFlow() ||
+    flows[0] ||
+    null
+  );
+}
+
+function defaultLandingWorkspace() {
+  return defaultRunFlow() ? "overview" : "map";
+}
+
 function setWorkspace(name, pin) {
   if (WORKSPACES.indexOf(name) < 0) return;
   explorerWs = name;
@@ -498,7 +513,7 @@ function setEgoMode(on) {
 
 function refreshExplorer() {
   if (!snapshot) return;
-  if (isListWorkspace(explorerWs) || explorerWs === "lineage") {
+  if (isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview") {
     paint({ animate: "none" });
     return;
   }
@@ -822,7 +837,7 @@ function paint(opts) {
     applyEgoPaint();
     return;
   }
-  if (isListWorkspace(explorerWs)) {
+  if (isListWorkspace(explorerWs) || explorerWs === "overview") {
     renderExplorerList(explorerWs);
     return;
   }
@@ -1792,7 +1807,7 @@ function renderExplorerList(ws) {
   const titles = {
     decisions: "Decisions — stamps, skips, and broken attestations",
     registry: "Registry — audit of this review snapshot",
-    overview: "Overview — closed graph, not a force layout",
+    overview: "Overview — default run and control-flow graph",
     timeline: "Timeline — parent cut, coverage, stamp scars",
   };
   meta.innerHTML =
@@ -1805,8 +1820,23 @@ function renderExplorerList(ws) {
   else if (ws === "decisions") html = renderCardList(decisionRecords(), "No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.");
   else if (ws === "registry") html = renderCardList(registryEvents(), "Review first — the registry is this snapshot’s audit log.");
   else html = renderCardList(timelineEvents(), "No parent cut or stamp events yet.");
-  canvas.className = "play explorer-list";
+  canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+  if (ws === "overview") {
+    const stage = canvas.querySelector(".stage");
+    if (stage) {
+      bindStage(stage, { reset: true });
+      setZoomUi(true);
+    } else {
+      setZoomUi(false);
+    }
+    bindGraphFx();
+    applyEgoPaint();
+    const flow = defaultRunFlow();
+    const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
+    if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
+    setLedgerHead("RUN");
+  }
   canvas.querySelectorAll("[data-flow]").forEach((el) => {
     el.onclick = () => {
       const name = el.getAttribute("data-flow");
@@ -1947,7 +1977,28 @@ function renderOverviewBody() {
         );
       })
       .join("") +
-    "</div>"
+    "</div>" +
+    renderDefaultCfg()
+  );
+}
+
+function renderDefaultCfg() {
+  const flow = defaultRunFlow();
+  if (!flow || !(flow.tree && (flow.tree.nodes || []).length)) {
+    return '<div class="flow-title">Default run</div><div class="empty">No control-flow yet. Review a repo — default run uses derived entries.</div>';
+  }
+  const treeHtml = renderSteiner(flow, snapshot.graph, false, scarSet(snapshot.findings, flow.name));
+  const runHtml = renderRuns(flow, snapshot, false);
+  return (
+    '<div class="flow-title">Default run · ' +
+    esc(flow.name) +
+    " — control-flow graph</div>" +
+    '<div class="stage"><div class="viewport" data-lod="' +
+    lodOf(cam.k) +
+    '">' +
+    treeHtml +
+    (runHtml ? '<div class="flow-title">Subsystem runs — click to enter</div>' + runHtml : "") +
+    "</div></div>"
   );
 }
 

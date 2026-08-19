@@ -106,8 +106,19 @@
       programs: [{ kind: "bin", name: "main", root: "" }],
       flows: [
         {
-          name: "boot",
-          tree: { nodes: ["n0", "n1", "n2"] },
+          name: "overview",
+          tree: { nodes: ["n0"], edges: [] },
+          flowchart: { runs: [], spine: [], positions: [] },
+        },
+        {
+          name: "control-flow",
+          tree: {
+            nodes: ["n0", "n1", "n2"],
+            edges: [
+              { from: "n0", to: "n1", kind: "Calls" },
+              { from: "n1", to: "n2", kind: "Calls" },
+            ],
+          },
           flowchart: { runs: [], spine: [], positions: [] },
         },
       ],

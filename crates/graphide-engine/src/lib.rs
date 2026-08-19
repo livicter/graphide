@@ -16,11 +16,11 @@ pub use coverage::{changed_nodes, changed_nodes_with_sources, coverage};
 pub use enter::enter_bubble;
 pub use flowchart::build_flowchart;
 pub use hints::parse_flows_toml;
-pub use programs::{assign_file, package_of, programs_from_graph};
+pub use programs::{assign_file, is_entry, package_of, programs_from_graph};
 pub use link::link;
 pub use review::{
-    derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow, PreviewGraph,
-    PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
+    default_review_hints, derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow,
+    PreviewGraph, PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 pub use stamp::{
     apply_saved_stamps, make_stamp, recheck_stamp, recheck_stamp_on, stamp_filename,

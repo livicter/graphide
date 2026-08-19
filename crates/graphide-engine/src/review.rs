@@ -3,11 +3,11 @@ use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
 use crate::link::link;
-use crate::programs::programs_from_graph;
+use crate::programs::{is_entry, programs_from_graph};
 use crate::steiner::steiner_tree;
 use graphide_ir::{
-    Extract, Finding, FindingKind, Flow, FlowView, Graph, HintFile, NodeId, NodeKind,
-    ReviewSnapshot, Steiner,
+    EdgeKind, EndRole, Extract, Finding, FindingKind, Flow, FlowHint, FlowView, Graph, HintFile,
+    NodeId, NodeKind, ReviewSnapshot, Steiner,
 };
 use serde::Serialize;
 use std::collections::HashMap;
@@ -120,10 +120,15 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
 
     // Steiner is cheap and enough to paint the story. Cluster after so the UI
     // can show the tree while the slow grouping still runs.
+    let hint_flows = if input.hints.flows.is_empty() {
+        default_review_hints(&graph)
+    } else {
+        input.hints.flows.clone()
+    };
     let mut flows = Vec::new();
     let mut partials: Vec<(String, Vec<String>, Vec<NodeId>, Steiner)> = Vec::new();
-    let flow_total = input.hints.flows.len().max(1);
-    for hint in &input.hints.flows {
+    let flow_total = hint_flows.len().max(1);
+    for hint in &hint_flows {
         let mut resolved = Vec::new();
         for fqn in &hint.hits {
             match resolve_fqn(&graph, fqn) {
@@ -253,6 +258,180 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         stamps: vec![],
         programs,
     }
+}
+
+/// When the sidecar is empty, Review still has a default run: an `overview`
+/// flow from derived entries, and a `control-flow` Steiner along call/data hops.
+/// Hits are derived FQNs only — not agent-drawn kinds.
+pub fn default_review_hints(graph: &Graph) -> Vec<FlowHint> {
+    let mut entries: Vec<String> = graph
+        .nodes
+        .iter()
+        .filter(|n| is_entry(n))
+        .map(|n| n.fqn.clone())
+        .collect();
+    entries.sort();
+    entries.dedup();
+    if entries.is_empty() {
+        entries = graph
+            .nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::Function)
+            .take(4)
+            .map(|n| n.fqn.clone())
+            .collect();
+    }
+    let overview: Vec<String> = entries.into_iter().take(8).collect();
+    let mut cfg = control_flow_hits(graph, &overview);
+    if cfg.len() < 2 {
+        cfg = calls_spine(graph);
+    }
+    let mut out = Vec::new();
+    if !overview.is_empty() {
+        out.push(FlowHint {
+            name: "overview".into(),
+            hits: overview.clone(),
+        });
+    }
+    if cfg.len() >= 2 {
+        out.push(FlowHint {
+            name: "control-flow".into(),
+            hits: cfg,
+        });
+    } else if overview.len() >= 2 {
+        out.push(FlowHint {
+            name: "control-flow".into(),
+            hits: overview,
+        });
+    }
+    out
+}
+
+fn control_flow_hits(graph: &Graph, seeds: &[String]) -> Vec<String> {
+    let id_of = |fqn: &str| graph.nodes.iter().find(|n| n.fqn == *fqn).map(|n| n.id);
+    let mut start = Vec::new();
+    for fqn in seeds {
+        if let Some(id) = id_of(fqn) {
+            start.push(id);
+        }
+    }
+    if start.is_empty() {
+        return seeds.to_vec();
+    }
+    let mut adj: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
+    for e in &graph.edges {
+        if !matches!(
+            e.kind,
+            EdgeKind::Calls
+                | EdgeKind::Reads
+                | EdgeKind::Writes
+                | EdgeKind::Publishes
+                | EdgeKind::Subscribes
+        ) {
+            continue;
+        }
+        adj.entry(e.from).or_default().push(e.to);
+    }
+    let mut seen = std::collections::HashSet::new();
+    let mut q = start.clone();
+    for id in &start {
+        seen.insert(*id);
+    }
+    let mut i = 0;
+    while i < q.len() && q.len() < 48 {
+        let cur = q[i];
+        i += 1;
+        for nxt in adj.get(&cur).into_iter().flatten() {
+            if seen.insert(*nxt) {
+                q.push(*nxt);
+            }
+        }
+    }
+    let fqn = |id: NodeId| {
+        graph
+            .nodes
+            .iter()
+            .find(|n| n.id == id)
+            .map(|n| n.fqn.clone())
+    };
+    let mut hits = Vec::new();
+    for id in &start {
+        if let Some(s) = fqn(*id) {
+            hits.push(s);
+        }
+    }
+    for id in &q {
+        let Some(n) = graph.nodes.iter().find(|n| n.id == *id) else {
+            continue;
+        };
+        let sink = n
+            .endpoint
+            .as_ref()
+            .is_some_and(|e| e.role == EndRole::Sink);
+        if n.kind == NodeKind::Endpoint || sink || n.kind == NodeKind::Function {
+            if !hits.iter().any(|h| h == &n.fqn) {
+                hits.push(n.fqn.clone());
+            }
+        }
+        if hits.len() >= 10 {
+            break;
+        }
+    }
+    hits
+}
+
+/// Bevy-style entries often have no extracted Calls from `main`. The default
+/// control-flow is then the derived Calls spine — still closed vocabulary.
+fn calls_spine(graph: &Graph) -> Vec<String> {
+    let mut out_deg: HashMap<NodeId, usize> = HashMap::new();
+    let mut adj: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
+    for e in &graph.edges {
+        if e.kind != EdgeKind::Calls {
+            continue;
+        }
+        adj.entry(e.from).or_default().push(e.to);
+        *out_deg.entry(e.from).or_default() += 1;
+        out_deg.entry(e.to).or_default();
+    }
+    let start = out_deg
+        .iter()
+        .max_by_key(|(id, d)| {
+            let fn_bonus = graph
+                .nodes
+                .iter()
+                .find(|n| n.id == **id)
+                .is_some_and(|n| n.kind == NodeKind::Function);
+            (*d, fn_bonus as usize)
+        })
+        .map(|(id, _)| *id);
+    let Some(start) = start else {
+        return Vec::new();
+    };
+    let mut seen = std::collections::HashSet::new();
+    let mut q = vec![start];
+    seen.insert(start);
+    let mut i = 0;
+    while i < q.len() && q.len() < 24 {
+        let cur = q[i];
+        i += 1;
+        for nxt in adj.get(&cur).into_iter().flatten() {
+            if seen.insert(*nxt) {
+                q.push(*nxt);
+            }
+        }
+    }
+    let mut hits = Vec::new();
+    for id in q {
+        if let Some(n) = graph.nodes.iter().find(|n| n.id == id) {
+            if n.kind == NodeKind::Function || n.kind == NodeKind::Endpoint {
+                hits.push(n.fqn.clone());
+            }
+        }
+        if hits.len() >= 10 {
+            break;
+        }
+    }
+    hits
 }
 
 /// Exact FQN, else a unique suffix / last-segment match.
