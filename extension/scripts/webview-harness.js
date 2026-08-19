@@ -238,6 +238,6 @@
       const hit = document.querySelector(".edge-hit, text.ekind");
       if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     }
-    setTimeout(probe, 120);
-  }, 60);
+    setTimeout(probe, 200);
+  }, 250);
 })();
