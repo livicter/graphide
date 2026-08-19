@@ -630,8 +630,9 @@ function applyCam() {
     if (viewportEl.getAttribute("data-lod") !== lod) viewportEl.setAttribute("data-lod", lod);
   }
   updateZoomPct();
-  if (cam.k > 0.8) zoomPopReady = true;
-  if (zoomPopReady && cam.k <= 0.42 && canPopAltitude()) {
+  const popK = camTo && camTo.k != null ? camTo.k : cam.k;
+  if (popK > 0.8) zoomPopReady = true;
+  if (zoomPopReady && popK <= 0.42 && canPopAltitude()) {
     zoomPopReady = false;
     popAltitudeFromZoom();
   }
@@ -654,6 +655,13 @@ function tickCam() {
 
 function setCamTarget(x, y, k) {
   camTo = { x: x, y: y, k: clamp(k, CAM_MIN, CAM_MAX) };
+  updateZoomPct();
+  if (camTo.k > 0.8) zoomPopReady = true;
+  if (zoomPopReady && camTo.k <= 0.42 && canPopAltitude()) {
+    zoomPopReady = false;
+    popAltitudeFromZoom();
+    return;
+  }
   if (reduceMotion()) {
     cam = { x: camTo.x, y: camTo.y, k: camTo.k };
     applyCam();
