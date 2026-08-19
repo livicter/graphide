@@ -256,3 +256,36 @@ fn parent_bubbles_are_sticky_matched() {
         "head bubbles should reuse parent ids when members overlap"
     );
 }
+
+#[test]
+fn empty_sidecar_gets_overview_and_control_flow() {
+    let (extracts, sources) = extract_dir(&fixture_root());
+    let snap = derive_repo(
+        ReviewInput {
+            head_extracts: extracts,
+            parent_extracts: None,
+            hints: HintFile { flows: vec![] },
+            head_sources: sources,
+            parent_sources: HashMap::new(),
+            previous_bubbles: None,
+        },
+        &ReviewOptions {
+            plugin: "rust@0.1.0".into(),
+            progress: None,
+            preview: None,
+        },
+    );
+    let names: Vec<_> = snap.flows.iter().map(|f| f.name.as_str()).collect();
+    assert!(names.contains(&"overview"), "{names:?}");
+    assert!(names.contains(&"control-flow"), "{names:?}");
+    let cfg = snap.flows.iter().find(|f| f.name == "control-flow").unwrap();
+    assert!(
+        !cfg.tree.nodes.is_empty(),
+        "default control-flow should have a Steiner tree"
+    );
+    assert!(
+        !cfg.tree.edges.is_empty(),
+        "default control-flow should have hops, got {:?}",
+        cfg.tree
+    );
+}

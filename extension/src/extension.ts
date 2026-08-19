@@ -209,9 +209,12 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           this.snapshot = snap;
           if (!this.snapshot.stats) this.snapshot.stats = {};
           this.snapshot.stats.ui_ms = Date.now() - started;
-          this.flowName = this.snapshot.flows?.[0]?.name;
+          this.flowName = pickDefaultRun(this.snapshot);
           this.programKey = undefined;
-          this.stack = [{ kind: "programs" }];
+          this.stack =
+            (this.snapshot.flows || []).length > 0
+              ? [{ kind: "programs" }, { kind: "flow" }]
+              : [{ kind: "programs" }];
           this.skipped = this.skipped.filter((n) =>
             (this.snapshot.flows || []).some((f: any) => f.name === n)
           );
@@ -603,6 +606,13 @@ function enterBubble(snap: any, flowName: string, bubbleId: string) {
     (a, b) => Number(b.lit) - Number(a.lit) || (a.distance ?? 99) - (b.distance ?? 99) || String(a.fqn).localeCompare(String(b.fqn))
   );
   return { flow: flowName, bubble: bubbleId, nodes };
+}
+
+function pickDefaultRun(snap: any): string | undefined {
+  const names = (snap?.flows || []).map((f: any) => f.name);
+  if (names.includes("control-flow")) return "control-flow";
+  if (names.includes("overview")) return "overview";
+  return names[0];
 }
 
 function stampFilename(name: string) {

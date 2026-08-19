@@ -86,7 +86,7 @@ fn kind_rank(kind: &str) -> u8 {
     }
 }
 
-fn is_entry(n: &Node) -> bool {
+pub fn is_entry(n: &Node) -> bool {
     if n.endpoint
         .as_ref()
         .is_some_and(|e| e.role == EndRole::Source)
