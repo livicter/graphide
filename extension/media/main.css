@@ -41,10 +41,12 @@ button:disabled { opacity: 0.45; cursor: default; }
   padding: 2px 7px;
 }
 #zoomPct {
-  font-size: 11px;
-  min-width: 38px;
+  font-size: 10px;
+  min-width: 92px;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
   opacity: 0.75;
 }
 #tip {
@@ -552,6 +554,60 @@ svg.steiner .edge-hit {
 .bubble-card:hover { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
 .bubble-card.dim { opacity: 0.22; }
 .bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
+.bubble-card .members {
+  display: none;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 6px;
+  max-width: 132px;
+}
+.bubble-card .members i {
+  display: inline-block;
+  max-width: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 4px;
+  border: 1px solid var(--c, var(--g-fn));
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  opacity: 0.85;
+}
+.bubble-card .members i.kind-Function { --c: var(--g-fn); }
+.bubble-card .members i.kind-Type { --c: var(--g-ty); }
+.bubble-card .members i.kind-Endpoint { --c: var(--g-ep); }
+.bubble-card .members i.more { opacity: 0.55; border-style: dashed; }
+.viewport[data-lod="0"] .bubble-card .members { display: none; }
+.viewport[data-lod="1"] .bubble-card .members { display: flex; }
+.viewport[data-lod="1"] .bubble-card .members i:nth-child(n+3) { display: none; }
+.viewport[data-lod="2"] .bubble-card .members,
+.viewport[data-lod="3"] .bubble-card .members { display: flex; }
+.viewport[data-lod="0"] .comm-node .meta,
+.viewport[data-lod="0"] .ego-node .meta { display: none; }
+.viewport[data-lod="0"] .comm-wrap svg.comm-edges path:not(.edge-hit) { opacity: 0.22; }
+.viewport[data-lod="0"] .comm-node {
+  min-width: 72px;
+  max-width: 96px;
+  padding: 3px 5px;
+}
+.viewport[data-lod="2"] .comm-node .meta,
+.viewport[data-lod="3"] .comm-node .meta { display: block; }
+.viewport[data-lod="0"] .pkt,
+.viewport[data-lod="0"] text.ekind,
+.viewport[data-lod="1"] .pkt { display: none; }
+.viewport[data-lod="0"] .steiner-wrap .vnode .kind { display: none; }
+.viewport[data-lod="0"] .steiner-wrap .vnode {
+  min-width: 72px;
+  max-width: 108px;
+  padding: 4px 6px;
+}
+.viewport[data-lod="3"] .chart { opacity: 0.42; }
+.viewport[data-lod="0"] .expl-list.hops { display: none; }
+.viewport[data-lod="0"] .path-row { opacity: 0.45; }
+.viewport[data-lod="3"] .expl-list.hops { display: grid; }
 #canvas.leaving { animation: leave 150ms ease-in forwards; }
 .stage {
   position: relative;
