@@ -441,7 +441,11 @@ function indexGraph(graph) {
 }
 
 function reduceMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  try {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  } catch (e) {
+    return false;
+  }
 }
 
 function clamp(n, lo, hi) {
@@ -707,7 +711,13 @@ function bindGraphFx() {
 }
 
 function selectFlow(name) {
+  if (name) flowName = name;
   vscode.postMessage({ type: "selectFlow", flow: name });
+  const flow = currentFlow();
+  if (flow && ((flow.tree && flow.tree.edges && flow.tree.edges.length) || (flow.tree && flow.tree.nodes && flow.tree.nodes.length))) {
+    explorerWs = "slice";
+    paint({ animate: "none" });
+  }
 }
 
 function enterRun(flow, bubble, fromEl) {
@@ -1178,7 +1188,7 @@ function showSource(msg) {
   fillInspect(msg);
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
-  if (hot) hot.scrollIntoView({ block: "center" });
+  if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
 }
 
 function showHop(from, to, kind) {

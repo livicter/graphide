@@ -47,6 +47,9 @@ assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(ext), "must not embed Sigma/ForceAtlas2 in extension");
+assert(js.includes("window.matchMedia &&"), "reduceMotion must tolerate missing matchMedia");
+assert(js.includes('typeof hot.scrollIntoView === "function"'), "source peek must tolerate missing scrollIntoView");
+assert(js.includes("explorerWs = \"slice\""), "selecting a flow must open the slice workspace");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",
