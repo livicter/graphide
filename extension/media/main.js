@@ -84,6 +84,7 @@ let pathEnds = [];
 let explorerWs = "map";
 let explorerPinned = false;
 let egoMode = false;
+let zoomPopReady = false;
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 const CAM_MIN = 0.35;
@@ -515,14 +516,42 @@ function setLedgerHead(label) {
 }
 
 function updateZoomPct() {
-  if (zoomPct) zoomPct.textContent = Math.round(cam.k * 100) + "%";
+  if (!zoomPct) return;
+  zoomPct.textContent = Math.round(cam.k * 100) + "% · " + lodName(lodOf(cam.k));
 }
 
 function lodOf(k) {
-  if (k < 1.25) return 0;
-  if (k < 2.2) return 1;
-  if (k < 3.6) return 2;
+  if (k < 0.75) return 0;
+  if (k < 1.5) return 1;
+  if (k < 2.6) return 2;
   return 3;
+}
+
+function lodName(lod) {
+  return ["overview", "labels", "hops", "source"][lod] || "labels";
+}
+
+function canPopAltitude() {
+  if (graphFilter.bubble) return true;
+  const top = stack[stack.length - 1];
+  return !!(top && top.kind === "bubble");
+}
+
+function popAltitudeFromZoom() {
+  if (graphFilter.bubble) {
+    graphFilter.bubble = null;
+    selectedNodeId = null;
+    resetCam();
+    zoomPopReady = false;
+    if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
+    else paint({ animate: "none" });
+    return;
+  }
+  if (stack[stack.length - 1]?.kind === "bubble") {
+    resetCam();
+    zoomPopReady = false;
+    goBack();
+  }
 }
 
 function applyCam() {
@@ -533,6 +562,11 @@ function applyCam() {
     if (viewportEl.getAttribute("data-lod") !== lod) viewportEl.setAttribute("data-lod", lod);
   }
   updateZoomPct();
+  if (cam.k > 0.8) zoomPopReady = true;
+  if (zoomPopReady && cam.k <= 0.42 && canPopAltitude()) {
+    zoomPopReady = false;
+    popAltitudeFromZoom();
+  }
 }
 
 function tickCam() {
@@ -2398,7 +2432,7 @@ function renderCommunityGraph() {
     '<div class="flow-title">' +
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
-      : "Nodes — click one to inspect") +
+      : "Nodes — zoom in for kind lines, click to inspect") +
     "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
@@ -2475,12 +2509,14 @@ function renderBubbleMap(clusters) {
       (n === 1 ? " node" : " nodes") +
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
       (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
-      "</span></button>";
+      "</span>" +
+      bubbleMemberChips(b, 6) +
+      "</button>";
   });
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Communities — click one to see its nodes</div>' +
+    '<div class="flow-title">Communities — zoom in to peek members, click to enter</div>' +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -2511,6 +2547,38 @@ function renderBubbleMap(clusters) {
     if (sample.length >= 48) break;
   }
   renderLedger(sample, { selected: selectedNodeId });
+}
+
+function bubblePreviewMembers(b, max) {
+  const scored = (b.members || []).map((id) => {
+    const sid = idVal(id);
+    const flags = nodeFlags(sid);
+    return { id: sid, n: nodeById.get(sid), must: flags.uncovered || flags.changed };
+  });
+  scored.sort((a, b) => Number(b.must) - Number(a.must));
+  return scored.slice(0, max);
+}
+
+function bubbleMemberChips(b, max) {
+  const preview = bubblePreviewMembers(b, max);
+  const extra = Math.max(0, (b.members || []).length - preview.length);
+  return (
+    '<span class="members">' +
+    preview
+      .map((x) => {
+        const kind = (x.n && x.n.kind) || kindOf(snapshot && snapshot.graph, x.id);
+        return (
+          '<i class="' +
+          kindClass(kind) +
+          '">' +
+          esc(shortOf((x.n && x.n.fqn) || x.id)) +
+          "</i>"
+        );
+      })
+      .join("") +
+    (extra ? '<i class="more">+' + extra + "</i>" : "") +
+    "</span>"
+  );
 }
 
 function bubbleMarks(b) {
@@ -2674,8 +2742,10 @@ function renderFlowchart(msg, opts) {
   const runHtml = renderRuns(flow, msg, playRuns);
   canvas.className = "play has-stage";
   canvas.innerHTML =
-    '<div class="stage"><div class="viewport">' +
-    '<div class="flow-title">Flow · Steiner</div>' +
+    '<div class="stage"><div class="viewport" data-lod="' +
+    lodOf(cam.k) +
+    '">' +
+    '<div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' +
     treeHtml +
     (runHtml
       ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
