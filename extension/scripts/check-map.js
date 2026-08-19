@@ -31,6 +31,22 @@ assert(js.includes('+" + (uncovered.length - 3)'), "coverage should stay a one-l
 assert(css.includes(".bubble-card"), "bubble card styles missing");
 assert(css.includes("#ledgerPane"), "ledger pane styles missing");
 assert(css.includes("--g-fn"), "kind color tokens missing");
+assert(js.includes("function renderLineage"), "lineage workspace missing");
+assert(js.includes("function renderExplorerList"), "explorer list workspaces missing");
+assert(js.includes("function shortestPath"), "path-between on derived edges missing");
+assert(js.includes("function applyEgoPaint"), "ego highlight missing");
+assert(js.includes("function decisionRecords"), "decisions ledger missing");
+assert(js.includes("function registryEvents"), "registry audit missing");
+assert(js.includes("function timelineEvents"), "timeline events missing");
+assert(js.includes('data-ws="overview"') || ext.includes('data-ws="overview"'), "overview workspace tab missing");
+assert(ext.includes('data-ws="decisions"'), "decisions workspace tab missing");
+assert(ext.includes('data-ws="lineage"'), "lineage workspace tab missing");
+assert(ext.includes('data-ws="registry"'), "registry workspace tab missing");
+assert(ext.includes('data-ws="timeline"'), "timeline workspace tab missing");
+assert(css.includes(".workspaces"), "workspace tab styles missing");
+assert(css.includes(".expl-card"), "explorer card styles missing");
+assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
+assert(!/sigma|forceatlas|ForceAtlas/i.test(ext), "must not embed Sigma/ForceAtlas2 in extension");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",

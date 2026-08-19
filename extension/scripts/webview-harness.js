@@ -6,6 +6,8 @@
   const clickProgram = params.get("program") === "1" || params.get("program") === "main";
   const drill = params.get("drill") === "1";
   const hop = params.get("hop") === "1";
+  const ws = params.get("ws") || "";
+  const ego = params.get("ego") === "1";
 
   const NAMES = [
     "ScreenshotFormat",
@@ -114,8 +116,12 @@
       findings: [],
       plugin: "rust@0.1.0",
       stats: { files: 136, elapsed_ms: 21041, nodes: nodeCount, edges: edgeCount },
-      stamps: [],
-      skipped: [],
+      stamps: [{ name: "boot", holds: true }],
+      skipped: ["legacy"],
+      findings: [
+        { kind: "StampBroken", flow: "boot", added: [{ from: "n0", to: "n3" }], removed: [] },
+        { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+      ],
       ...(includeBubbles ? { bubbles } : {}),
     };
   }
@@ -134,6 +140,8 @@
     const ledger = document.querySelectorAll("#ledgerGrid .cell");
     const pkts = document.querySelectorAll(".pkt");
     const hops = document.getElementById("hopCard");
+    const wsOn = document.querySelector("#workspaces [data-ws].on");
+    const expl = document.querySelectorAll(".expl-card, .stat-card");
     const lines = [
       "mode=" + mode,
       "title=" + (title ? title.textContent.trim() : "(none)"),
@@ -148,13 +156,16 @@
       "crumb=" + (meta ? meta.textContent.replace(/\s+/g, " ").trim() : ""),
       "search=" + JSON.stringify(searchBox ? searchBox.value : ""),
       "coverage=" + (coverage ? coverage.textContent.replace(/\s+/g, " ").trim().slice(0, 120) : ""),
+      "workspace=" + (wsOn ? wsOn.getAttribute("data-ws") : "(none)"),
+      "expl-cards=" + expl.length,
     ];
     const communityFirst = /Communities/i.test(title && title.textContent);
     const flowView = /Flow/i.test(title && title.textContent) && boxes.length > 0;
     const boxedMembers = dots.length > 0 && document.querySelector(".comm-node .meta");
+    const explorerOk = expl.length > 0 || document.querySelector(".path-row") || document.querySelector(".stat-grid");
     el.textContent = lines.join("\n");
     el.className =
-      (communityFirst && cards.length >= 1) || flowView || boxedMembers ? "good" : "bad";
+      (communityFirst && cards.length >= 1) || flowView || boxedMembers || explorerOk ? "good" : "bad";
     document.title =
       "Graphide harness · " +
       mode +
@@ -213,18 +224,21 @@
       graph: { ...base.graph, nodes: base.graph.nodes.map((n) => (n.id === hits[2].id ? hits[2] : n)), edges: tree.edges.concat(base.graph.edges) },
       bubbles: base.bubbles,
       coverage: base.coverage,
-      findings: [],
       plugin: base.plugin,
       stats: base.stats,
-      stamps: [],
-      skipped: [],
+      stamps: [{ name: "boot", holds: false }],
+      skipped: ["legacy"],
+      findings: [
+        { kind: "StampBroken", flow: "boot", added: [{ from: "n0", to: "n3" }], removed: [] },
+        { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+      ],
       flow,
       snippets,
     };
   }
 
-  const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow";
-  const msg = mode === "flow" ? flowPayload() : solarsimPayload(includeBubbles);
+  const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow" || mode === "explorer";
+  const msg = mode === "flow" || mode === "explorer" ? flowPayload() : solarsimPayload(includeBubbles);
 
   window.postMessage(msg, "*");
   setTimeout(function () {
@@ -237,6 +251,14 @@
     if (hop) {
       const hit = document.querySelector(".edge-hit, text.ekind");
       if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+    if (ws) {
+      const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+      if (tab) tab.click();
+    }
+    if (ego) {
+      const btn = document.getElementById("egoBtn");
+      if (btn) btn.click();
     }
     setTimeout(probe, 200);
   }, 250);

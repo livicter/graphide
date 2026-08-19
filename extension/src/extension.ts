@@ -493,7 +493,17 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   <nav id="tabs"></nav>
   <section id="meta"></section>
   <div id="graphBar" hidden>
-    <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN or file…" />
+    <nav id="workspaces" class="workspaces" aria-label="Explorer workspaces">
+      <button type="button" data-ws="map">Map</button>
+      <button type="button" data-ws="slice">Slice</button>
+      <button type="button" data-ws="lineage">Lineage</button>
+      <button type="button" data-ws="decisions">Decisions</button>
+      <button type="button" data-ws="registry">Registry</button>
+      <button type="button" data-ws="overview">Overview</button>
+      <button type="button" data-ws="timeline">Timeline</button>
+    </nav>
+    <button id="egoBtn" type="button" title="Ego: isolate the selected node and its 1-hop">Ego</button>
+    <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
     <div id="kindFilters">
       <label><input type="checkbox" data-kind="Function" checked /> Function</label>
       <label><input type="checkbox" data-kind="Type" checked /> Type</label>

@@ -20,6 +20,6 @@ The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Review tar
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
 
-Review opens a community map of the derived graph (search, filters, inspect rail). Flow tabs slice Steiner. Click a node to inspect source beside the map. Not a Graphify embed — same page shape, Graphide objects.
+Review opens explorer workspaces over the derived graph: Map, Slice, Lineage, Decisions, Registry, Overview, Timeline. Search, filters, hop cards, and the inspect rail stay. Not a Graphify or Semantica embed — same workbench shape, Graphide objects. No force-directed network dump.
 
 **Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.

@@ -208,6 +208,39 @@ button:disabled { opacity: 0.45; cursor: default; }
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 #graphBar[hidden] { display: none; }
+.workspaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+.workspaces button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.workspaces button.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+#egoBtn {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#egoBtn.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+#egoBtn[hidden] { display: none; }
 #graphSearch {
   flex: 1;
   min-width: 120px;
@@ -849,6 +882,109 @@ svg.steiner.flowing .vnode.hot .node-box {
 .inode.lit { border-left-color: #3fb950; background: color-mix(in srgb, #3fb950 8%, transparent); }
 .inode.grey { opacity: 0.48; }
 .finding { color: var(--vscode-errorForeground); }
+.expl-wrap { padding: 4px 4px 18px; }
+.expl-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.expl-list.compact { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.expl-list.hops { margin-top: 10px; }
+.expl-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, #000);
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 8px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.expl-card .k {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+.expl-card .t {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+.expl-card .b { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+.expl-card.holds { border-color: #3fb950; }
+.expl-card.broken, .expl-card.finding { border-color: var(--vscode-errorForeground); }
+.expl-card.skipped { opacity: 0.7; }
+.expl-card:hover { border-color: var(--vscode-focusBorder); }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.stat-card {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, #000);
+}
+.stat-card .k {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.stat-card .n {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 22px;
+  margin: 4px 0;
+}
+.stat-card .b { font-size: 11px; opacity: 0.7; }
+.stat-chip {
+  display: inline-block;
+  margin: 0 6px 4px 0;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.path-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 10px;
+  font-size: 11px;
+}
+.path-row.muted { opacity: 0.55; }
+.path-chip {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--c, var(--vscode-panel-border));
+  padding: 2px 7px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.path-chip.kind-Function { --c: var(--g-fn); }
+.path-chip.kind-Type { --c: var(--g-ty); }
+.path-chip.kind-Endpoint { --c: var(--g-ep); }
+.path-row .arr { opacity: 0.45; }
+.comm-node.ego, .vnode.ego { z-index: 2; }
+.comm-node.on-path, .vnode.on-path {
+  outline: 1px dashed var(--vscode-textLink-foreground);
+}
+.comm-node.ego-dim, .vnode.ego-dim, path.ego-dim { opacity: 0.12; }
+.comm-wrap svg.comm-edges path.on-path,
+svg.steiner path.on-path {
+  stroke: var(--vscode-textLink-foreground);
+  opacity: 1;
+  stroke-width: 1.8;
+}
 .empty { opacity: 0.8; padding: 20px 8px; line-height: 1.45; }
 .empty .primary { margin-top: 12px; }
 .empty.error { color: var(--vscode-errorForeground); opacity: 1; }

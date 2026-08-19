@@ -37,9 +37,9 @@ Command Palette → **Graphide: Install (one click)**. Same build + copy on Wind
 
 Open that repo (e.g. SolarSim) and click **Review**. Do **not** run `cargo build -p graphide-cli` there — that package only exists in this Graphide source repo. Use `%USERPROFILE%\.graphide\graphide.exe` (or `~/.graphide/graphide`) instead.
 
-After Review the panel opens a **derived map** (Graphify-like page, Graphide graph): community-colored bubbles, degree-sized nodes, search, kind filters, and an inspect rail with span, incident edges, coverage, and source. Programs are a legend filter (file projection), not a new IR kind. A flow tab lights the Steiner slice. Zoom does not change clustering altitude. **Enter** (click a run) is still a world jump.
+After Review the panel is a **review explorer** (Semantica-shaped workspaces, Graphide graph): **Map** (communities), **Slice** (Steiner boxed DAG), **Lineage** (ego + incident hops + shortest path on existing edges), **Decisions** (stamps / skips / stamp scars), **Registry** (audit of this snapshot), **Overview** (kinds, hops, coverage, degree), **Timeline** (parent cut → uncovered → stamp events). Search, kind filters, hop cards, and the inspect rail stay on every graph workspace. Programs are a legend filter (file projection), not a new IR kind. Zoom does not change clustering altitude. **Enter** (click a run) is still a world jump.
 
-This is not built on [Graphify](https://github.com/Graphify-Labs/graphify). Graphify is an assistant knowledge graph with open/inferred kinds. Graphide keeps a closed review vocabulary (`Function|Type|Endpoint`, spanned edges, stamps, coverage).
+This is not [Graphify](https://github.com/Graphify-Labs/graphify) and not a [Semantica](https://github.com/semantica-agi/semantica) embed. No Sigma.js / ForceAtlas2 hairball, no SPARQL, no ontology authoring, no entity merge. Graphide keeps a closed review vocabulary (`Function|Type|Endpoint`, spanned edges, stamps, coverage) and projects those objects through explorer workspaces.
 
 ## Prompt
 
