@@ -73,6 +73,7 @@ assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registr
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
 assert(js.includes("graphFilter.bubble && (explorerWs === \"map\""), "Back must pop a Map bubble even when the stack is a flow");
 assert(js.includes("applyGraphFilter();"), "community cards must honor search/kind filters");
+assert(js.includes("popK"), "zoom-out pop must use the camera target, not the animated k");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",

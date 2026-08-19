@@ -62,6 +62,8 @@
     window.acquireVsCodeApi = function () {
       return {
         postMessage: function (m) {
+          window.__vscodePosts = window.__vscodePosts || [];
+          window.__vscodePosts.push(m);
           console.log("vscode.postMessage", m);
         },
         getState: function () { return null; },

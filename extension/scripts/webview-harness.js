@@ -493,11 +493,180 @@
     const zfit = document.getElementById("zoomFit");
     if (zfit) zfit.click();
     check("I1", "Fit resets zoom chrome to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
-    check("I2", "Coverage line stays one line (no uncovered dump)", !/UncoveredNode/i.test((document.getElementById("coverage") || {}).textContent || "") && ((document.getElementById("coverage") || {}).textContent || "").indexOf("<li") < 0 || true, "");
+    const covText = (document.getElementById("coverage") || {}).textContent || "";
+    check("I2", "Coverage line stays one line (no uncovered dump)", !/UncoveredNode/i.test(covText), covText.slice(0, 80));
+
+    // --- Pass 3: zoom pop, LOD, crumbs, program chip, source close ---
+    clickWs("map");
+    const cardsBeforeZoom = document.querySelectorAll(".bubble-card").length;
+    if (zin) {
+      zin.click();
+      zin.click();
+    }
+    await later(40);
+    check("J1", "Geometric zoom on Map does not Enter a bubble", document.querySelectorAll(".bubble-card").length === cardsBeforeZoom && document.querySelectorAll(".comm-node").length === 0, "cards=" + document.querySelectorAll(".bubble-card").length + " nodes=" + document.querySelectorAll(".comm-node").length);
+    if (zfit) zfit.click();
+
+    const enterCard = document.querySelector(".bubble-card");
+    if (enterCard) enterCard.click();
+    await later(40);
+    const insideBefore = document.querySelectorAll(".comm-node").length;
+    if (zin) zin.click();
+    await later(20);
+    const zout = document.getElementById("zoomOut");
+    if (zout) {
+      zout.click();
+      zout.click();
+      zout.click();
+      zout.click();
+      zout.click();
+      zout.click();
+    }
+    await later(80);
+    check("J2", "Zoom-out past overview pops one Map altitude (not a Back click)", insideBefore > 0 && document.querySelectorAll(".bubble-card").length >= 8 && document.querySelectorAll(".comm-node").length === 0, "inside=" + insideBefore + " cards=" + document.querySelectorAll(".bubble-card").length);
+
+    clickWs("slice");
+    if (zfit) zfit.click();
+    if (zout) {
+      zout.click();
+      zout.click();
+      zout.click();
+      zout.click();
+    }
+    await later(40);
+    const vp = document.querySelector(".viewport");
+    const zoomOutLabel = (document.getElementById("zoomPct") || {}).textContent || "";
+    check("J3", "Slice zoom-out names overview LOD", /overview/i.test(zoomOutLabel) || (vp && vp.getAttribute("data-lod") === "0"), zoomOutLabel + " lod=" + (vp && vp.getAttribute("data-lod")));
+    if (zfit) zfit.click();
+    if (zin) {
+      zin.click();
+      zin.click();
+      zin.click();
+      zin.click();
+      zin.click();
+      zin.click();
+    }
+    await later(40);
+    const zoomHops = (document.getElementById("zoomPct") || {}).textContent || "";
+    check("J4", "Deep zoom names hops or source LOD", /hops|source/i.test(zoomHops), zoomHops);
+    if (zfit) zfit.click();
+    key("+");
+    key("+");
+    check("J5", "Keys + / − / 0 drive zoom", !/^100%/.test(((document.getElementById("zoomPct") || {}).textContent || "").trim()), (document.getElementById("zoomPct") || {}).textContent || "");
+    key("0");
+    check("J6", "Key 0 fits back to labels", /100%|labels/i.test((document.getElementById("zoomPct") || {}).textContent || ""), (document.getElementById("zoomPct") || {}).textContent || "");
+
+    const vnode2 = document.querySelector(".vnode");
+    if (vnode2) vnode2.click();
+    const closeBtn = document.getElementById("srcClose");
+    if (closeBtn) closeBtn.click();
+    check("J7", "Source Close button hides the inspect pane", !document.getElementById("sourcePane") || document.getElementById("sourcePane").hidden, "");
+    const hopHit = document.querySelector(".edge-hit, text.ekind");
+    if (hopHit) hopHit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const hopBtn = document.querySelector("#hopCard [data-id]");
+    if (hopBtn) hopBtn.click();
+    check("J8", "Hop-card node button inspects that node", !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden), "");
+
+    clickWs("lineage");
+    const crumbMap = document.querySelector('#meta [data-ws="map"], #meta .crumb-btn');
+    if (crumbMap) crumbMap.click();
+    check("J9", "Lineage map crumb returns to Map", wsOn() === "map", wsOn());
+
+    clickWs("overview");
+    const commCard = [...document.querySelectorAll(".expl-card")].find((el) => /community/i.test(el.textContent));
+    if (commCard) commCard.click();
+    check("J10", "Overview community card opens Map", wsOn() === "map", wsOn());
+
+    clickWs("map");
+    if (searchBox) {
+      searchBox.value = "render";
+      searchBox.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const dimmed = document.querySelectorAll(".bubble-card.dim").length;
+    if (searchBox) {
+      searchBox.value = "";
+      searchBox.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    check("J11", "Clearing search undims community cards", dimmed >= 1 && document.querySelectorAll(".bubble-card.dim").length === 0, "was=" + dimmed + " now=" + document.querySelectorAll(".bubble-card.dim").length);
+
+    clickWs("slice");
+    const vnode3 = document.querySelector(".vnode");
+    if (vnode3) vnode3.click();
+    if (ego && !ego.classList.contains("on")) ego.click();
+    const dimOn = document.querySelectorAll(".ego-dim").length;
+    if (ego && ego.classList.contains("on")) ego.click();
+    check("J12", "Ego off removes neighborhood dim", dimOn >= 1 && document.querySelectorAll(".ego-dim").length === 0, "on=" + dimOn + " off=" + document.querySelectorAll(".ego-dim").length);
+
+    const fnBox = document.querySelector('#kindFilters input[data-kind="Function"]');
+    clickWs("map");
+    const card2 = document.querySelector(".bubble-card");
+    if (card2) card2.click();
+    await later(40);
+    if (fnBox) {
+      fnBox.checked = false;
+      fnBox.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    const fnVisible = document.querySelectorAll(".comm-node.kind-Function:not(.dim)").length;
+    check("J13", "Unchecking Function hides Function members", fnVisible === 0, "visible=" + fnVisible);
+    if (fnBox) {
+      fnBox.checked = true;
+      fnBox.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (back && !back.disabled) back.click();
+    await later(80);
+
+    const bootTab = document.querySelector('#tabs [data-flow="boot"], .tab[data-flow="boot"]');
+    if (bootTab) bootTab.click();
+    check("J14", "Flow tab boot opens Slice", wsOn() === "slice" && /boot/i.test((document.getElementById("tabs") || {}).textContent || ""), wsOn());
+
+    clickWs("map");
+    const prog = document.querySelector("#legend [data-prog]");
+    if (prog) prog.click();
+    check("J15", "Program chip is selectable", !!(prog && (prog.classList.contains("on") || document.querySelector("#legend .leg.on"))), (document.getElementById("legend") || {}).textContent || "");
+
+    clickWs("slice");
+    const editor = document.getElementById("srcEditor");
+    const vnode4 = document.querySelector(".vnode");
+    if (vnode4) vnode4.click();
+    window.__vscodePosts = window.__vscodePosts || [];
+    const beforePosts = window.__vscodePosts.length;
+    if (editor) editor.click();
+    const posts = window.__vscodePosts || [];
+    check("J16", "Editor button posts enterNode to the host", posts.slice(beforePosts).some((m) => m && m.type === "enterNode"), JSON.stringify(posts.slice(-2)));
+
+    const kinds = [...document.querySelectorAll(".vnode .kind, .vnode [class*='kind']")].map((el) => el.textContent);
+    const badKind = [...document.querySelectorAll(".vnode")].some((el) => {
+      const k = el.getAttribute("data-kind") || "";
+      return k && k !== "Function" && k !== "Type" && k !== "Endpoint";
+    });
+    check("J17", "Slice nodes stay on the closed vocabulary", !badKind, kinds.slice(0, 4).join(","));
+
+    clickWs("slice");
+    const run2 = document.querySelector(".run");
+    if (run2) run2.click();
+    await later(260);
+    check("J18", "Enter-run inner list has a lit walk", document.querySelectorAll(".inode.lit").length >= 1, "lit=" + document.querySelectorAll(".inode.lit").length + " all=" + document.querySelectorAll(".inode").length);
+    if (back && !back.disabled) {
+      back.click();
+      await later(180);
+    }
+
+    clickWs("decisions");
+    check("J19", "Coverage still surfaces unmatched hint", /MissingHit|unmatched/i.test((document.getElementById("coverage") || {}).textContent || document.body.innerText), ((document.getElementById("coverage") || {}).textContent || "").slice(0, 120));
+
+    clickWs("slice");
+    if (zfit) zfit.click();
+    const beforeWheel = (document.getElementById("zoomPct") || {}).textContent || "";
+    const stage = document.querySelector(".stage");
+    if (stage) {
+      stage.dispatchEvent(new WheelEvent("wheel", { deltaY: -120, bubbles: true, cancelable: true }));
+    }
+    const afterWheel = (document.getElementById("zoomPct") || {}).textContent || "";
+    check("J20", "Wheel zoom on Slice changes the LOD chrome", afterWheel !== beforeWheel || /hops|source|1[1-9][0-9]%/.test(afterWheel), beforeWheel + " → " + afterWheel);
 
     const failed = rows.filter((r) => !r.pass);
     const html =
-      "<h2>Feature checklist · pass 2</h2><div class=\"sum " +
+      "<h2>Feature checklist · pass 3</h2><div class=\"sum " +
       (failed.length ? "fail" : "ok") +
       "\">" +
       (rows.length - failed.length) +
