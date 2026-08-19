@@ -250,27 +250,41 @@
 
   const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow" || mode === "explorer";
   const msg = mode === "flow" || mode === "explorer" ? flowPayload() : solarsimPayload(includeBubbles);
+  const hideProbe = params.get("probe") === "0";
+  if (hideProbe) {
+    const p = document.getElementById("probe");
+    if (p) p.hidden = true;
+  }
 
   window.postMessage(msg, "*");
   setTimeout(function () {
     if (clickProgram) clickMainProgram();
     if (search) applySearch(search);
+    if (ws) {
+      const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+      if (tab) tab.click();
+    }
     if (drill) {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      if (!on || on.getAttribute("data-ws") !== "map") {
+        const mapTab = document.querySelector('#workspaces [data-ws="map"]');
+        if (mapTab) mapTab.click();
+      }
       const card = document.querySelector(".bubble-card");
       if (card) card.click();
     }
     if (hop) {
+      if (!document.querySelector(".edge-hit, text.ekind")) {
+        const sliceTab = document.querySelector('#workspaces [data-ws="slice"]');
+        if (sliceTab) sliceTab.click();
+      }
       const hit = document.querySelector(".edge-hit, text.ekind");
       if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    }
-    if (ws) {
-      const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
-      if (tab) tab.click();
     }
     if (ego) {
       const btn = document.getElementById("egoBtn");
       if (btn) btn.click();
     }
-    setTimeout(probe, 200);
+    if (!hideProbe) setTimeout(probe, 200);
   }, 250);
 })();
