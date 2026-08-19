@@ -110,7 +110,7 @@ document.addEventListener("keydown", (e) => {
     vscode.postMessage({ type: "cancel" });
     return;
   }
-  if (document.activeElement === prompt) return;
+  if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
   if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
     e.preventDefault();
     closeSourcePane();
@@ -160,14 +160,12 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "s" || e.key === "S") {
     e.preventDefault();
-    const flow = currentFlow();
-    if (flow) vscode.postMessage({ type: "stamp", flow: flow.name });
+    requestStamp();
     return;
   }
   if (e.key === "x" || e.key === "X") {
     e.preventDefault();
-    const flow = currentFlow();
-    if (flow) vscode.postMessage({ type: "skip", flow: flow.name });
+    requestSkip();
     return;
   }
   if (e.key === "e" || e.key === "E") {
@@ -209,16 +207,8 @@ if (workspacesEl) {
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
-if (stampBtn)
-  stampBtn.onclick = () => {
-    const flow = currentFlow();
-    if (flow) vscode.postMessage({ type: "stamp", flow: flow.name });
-  };
-if (skipBtn)
-  skipBtn.onclick = () => {
-    const flow = currentFlow();
-    if (flow) vscode.postMessage({ type: "skip", flow: flow.name });
-  };
+if (stampBtn) stampBtn.onclick = () => requestStamp();
+if (skipBtn) skipBtn.onclick = () => requestSkip();
 
 function startReview() {
   targetPct = 0;
@@ -594,7 +584,8 @@ function setLedgerHead(label) {
 
 function updateZoomPct() {
   if (!zoomPct) return;
-  zoomPct.textContent = Math.round(cam.k * 100) + "% · " + lodName(lodOf(cam.k));
+  const k = camTo && camTo.k ? camTo.k : cam.k;
+  zoomPct.textContent = Math.round(k * 100) + "% · " + lodName(lodOf(k));
 }
 
 function lodOf(k) {
@@ -832,6 +823,7 @@ function selectFlow(name) {
 }
 
 function enterRun(flow, bubble, fromEl) {
+  vscode.postMessage({ type: "enterRun", flow, bubble });
   const token = ++navToken;
   const go = () => {
     if (token !== navToken) return;
@@ -849,7 +841,7 @@ function enterRun(flow, bubble, fromEl) {
 }
 
 function goBack() {
-  if (stack[stack.length - 1]?.kind === "programs" && graphFilter.bubble) {
+  if (graphFilter.bubble && (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs")) {
     graphFilter.bubble = null;
     selectedNodeId = null;
     renderProgramOverview();
@@ -858,7 +850,12 @@ function goBack() {
   if (stack.length <= 1) return;
   const top = stack[stack.length - 1];
   if (top.kind === "flow") {
+    stack.pop();
+    if (stack.length === 0) stack.push({ kind: "programs" });
+    explorerWs = defaultLandingWorkspace();
+    explorerPinned = false;
     vscode.postMessage({ type: "back" });
+    paint({ animate: "none" });
     return;
   }
   const token = ++navToken;
@@ -1158,6 +1155,35 @@ function flowMark(name) {
   const row = stampRows.find((s) => s.name === name);
   if (!row) return "";
   return row.holds ? "holds" : "broken";
+}
+
+function requestStamp(name) {
+  const flow = name || (currentFlow() && currentFlow().name);
+  if (!flow) return;
+  skippedFlows = skippedFlows.filter((n) => n !== flow);
+  const row = stampRows.find((s) => s.name === flow);
+  if (row) row.holds = true;
+  else stampRows.push({ name: flow, holds: true });
+  if (snapshot) {
+    snapshot.skipped = (snapshot.skipped || []).filter((n) => n !== flow);
+    snapshot.stamps = stampRows.slice();
+    snapshot.findings = (snapshot.findings || []).filter(
+      (f) => !(findingKindOf(f) === "StampBroken" && f.flow === flow)
+    );
+  }
+  vscode.postMessage({ type: "stamp", flow });
+  paint({ animate: "none" });
+}
+
+function requestSkip(name) {
+  const flow = name || (currentFlow() && currentFlow().name);
+  if (!flow) return;
+  if (skippedFlows.indexOf(flow) < 0) skippedFlows.push(flow);
+  if (snapshot && (snapshot.skipped || []).indexOf(flow) < 0) {
+    snapshot.skipped = (snapshot.skipped || []).concat([flow]);
+  }
+  vscode.postMessage({ type: "skip", flow });
+  paint({ animate: "none" });
 }
 
 function programKeyOf(p) {
@@ -1820,7 +1846,10 @@ function registryEvents() {
       (s.elapsed_ms != null ? " · " + s.elapsed_ms + "ms" : ""),
   });
   decisionRecords().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
-  const findings = ((snapshot && snapshot.findings) || []).filter((f) => findingKindOf(f) !== "UncoveredNode");
+  const findings = ((snapshot && snapshot.findings) || []).filter((f) => {
+    const k = findingKindOf(f);
+    return k && k !== "UncoveredNode" && k !== "StampBroken" && k !== "UnmatchedHint";
+  });
   findings.forEach((f) => {
     ev.push({ kind: "finding", title: findingTitle(f), body: f.message || f.fqn || f.plugin || "", flow: f.flow || "" });
   });
@@ -2676,6 +2705,7 @@ function renderBubbleMap(clusters) {
       renderProgramOverview();
     };
   });
+  applyGraphFilter();
   const sample = [];
   const seen = new Set();
   for (const b of clusters) {
@@ -2876,7 +2906,7 @@ function renderFlowchart(msg, opts) {
     stampBadge(flow.name);
   meta.innerHTML = crumb;
   const backToPrograms = meta.querySelector("[data-go=programs]");
-  if (backToPrograms) backToPrograms.onclick = () => vscode.postMessage({ type: "back" });
+  if (backToPrograms) backToPrograms.onclick = () => goBack();
 
   const playTree = animate === "all" || animate === "tree";
   const playRuns = animate === "all" || animate === "runs";
@@ -3226,7 +3256,7 @@ function renderInner(msg, animate) {
     esc(inner.flow) +
     " / <b>enter</b> · walk lit, siblings grey";
   const backToPrograms = meta.querySelector("[data-go=programs]");
-  if (backToPrograms) backToPrograms.onclick = () => vscode.postMessage({ type: "back" });
+  if (backToPrograms) backToPrograms.onclick = () => goBack();
   let html = '<div class="inner-list' + (animate ? " play" : "") + '">';
   (inner.nodes || []).forEach((n, i) => {
     const cls = n.lit ? "lit" : "grey";
@@ -3285,6 +3315,7 @@ function renderCoverage(cov, findings, graph) {
     else if (mark === "skipped") skipped++;
     else pending++;
   }
+  skipped += skippedFlows.filter((n) => names.indexOf(n) < 0).length;
   let html =
     "Coverage " +
     changed.length +
@@ -3406,5 +3437,6 @@ function enterBubble(snap, flowName, bubbleId) {
   nodes.sort(
     (a, b) => Number(b.lit) - Number(a.lit) || (a.distance ?? 99) - (b.distance ?? 99) || String(a.fqn).localeCompare(String(b.fqn))
   );
+  if (!children.length && nodes.length > 24) nodes = nodes.slice(0, 24);
   return { flow: flowName, bubble: bubbleId, nodes };
 }
