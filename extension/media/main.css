@@ -241,6 +241,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 #egoBtn.on {
   border-color: var(--vscode-focusBorder);
   color: var(--vscode-textLink-foreground);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
 }
 #egoBtn[hidden] { display: none; }
 #graphSearch {

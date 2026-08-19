@@ -513,7 +513,6 @@ function applyExplorerLanding() {
 
 let harnessConsumed = false;
 function consumeHarnessActions() {
-  if (harnessConsumed) return;
   let q;
   try {
     q = new URLSearchParams(location.search || "");
@@ -523,38 +522,39 @@ function consumeHarnessActions() {
   const drill = q.get("drill") === "1";
   const hop = q.get("hop") === "1";
   const ego = q.get("ego") === "1";
-  const zoom = parseFloat(q.get("zoom") || "");
-  if (!drill && !hop && !ego && !(Number.isFinite(zoom) && zoom > 0)) return;
-  harnessConsumed = true;
-  if (ego) {
-    egoMode = true;
-    if (egoBtn) egoBtn.classList.add("on");
-  }
-  if (drill) {
-    if (explorerWs !== "map") {
-      explorerWs = "map";
-      explorerPinned = true;
-      paint({ animate: "none" });
+  const zoomK = parseFloat(q.get("zoom") || "");
+  if (!harnessConsumed && (drill || hop || ego)) {
+    harnessConsumed = true;
+    if (ego) {
+      egoMode = true;
+      if (egoBtn) egoBtn.classList.add("on");
     }
-    const card = document.querySelector(".bubble-card");
-    if (card) {
-      graphFilter.bubble = card.getAttribute("data-bubble");
-      selectedNodeId = null;
-      renderProgramOverview();
+    if (drill) {
+      if (explorerWs !== "map") {
+        explorerWs = "map";
+        explorerPinned = true;
+        paint({ animate: "none" });
+      }
+      const card = document.querySelector(".bubble-card");
+      if (card) {
+        graphFilter.bubble = card.getAttribute("data-bubble");
+        selectedNodeId = null;
+        renderProgramOverview();
+      }
+    }
+    if (hop) {
+      if (!document.querySelector(".edge-hit, text.ekind")) {
+        explorerWs = "slice";
+        explorerPinned = true;
+        paint({ animate: "none" });
+      }
+      const hit = document.querySelector(".edge-hit, text.ekind");
+      if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     }
   }
-  if (hop) {
-    if (!document.querySelector(".edge-hit, text.ekind")) {
-      explorerWs = "slice";
-      explorerPinned = true;
-      paint({ animate: "none" });
-    }
-    const hit = document.querySelector(".edge-hit, text.ekind");
-    if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  }
-  if (Number.isFinite(zoom) && zoom > 0) {
-    cam.k = zoom;
-    camTo.k = zoom;
+  if (Number.isFinite(zoomK) && zoomK > 0) {
+    cam.k = zoomK;
+    camTo.k = zoomK;
     applyCam();
   }
 }
@@ -2360,10 +2360,25 @@ function pickCommunityNodes(degrees) {
   }
   const scored = nodes.map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0, must: must.has(idVal(n.id)) }));
   scored.sort((a, b) => Number(b.must) - Number(a.must) || b.d - a.d);
-  return scored.slice(0, 160).map((x) => x.n);
+  const cap = graphFilter.bubble ? 24 : 48;
+  return scored.slice(0, cap).map((x) => x.n);
 }
 
 function layoutCommunity(nodes) {
+  if (graphFilter.bubble && nodes.length) {
+    const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(nodes.length))));
+    const cellW = 188;
+    const cellH = 86;
+    const W = Math.max(720, cols * cellW + 48);
+    const H = Math.max(280, Math.ceil(nodes.length / cols) * cellH + 48);
+    const pos = new Map();
+    nodes.forEach((n, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      pos.set(idVal(n.id), { x: 28 + col * cellW + cellW / 2, y: 32 + row * cellH + cellH / 2 });
+    });
+    return { W, H, pos };
+  }
   const W = 860,
     H = 560;
   const groups = new Map();
@@ -2554,7 +2569,13 @@ function renderCommunityGraph() {
     '<div class="flow-title">' +
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
-      : "Nodes — zoom in for kind lines, click to inspect") +
+      : graphFilter.bubble
+        ? "Inside this community — " +
+          nodes.length +
+          " review-relevant of " +
+          ((findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members) || []).length +
+          " (uncovered / on-tree first). Search to narrow."
+        : "Nodes — zoom in for kind lines, click to inspect") +
     "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +

@@ -44,6 +44,7 @@ assert(js.includes("function renderDefaultCfg"), "overview must embed the defaul
 assert(js.includes("function defaultLandingWorkspace"), "Review must land on overview when a run exists");
 assert(js.includes("function applyExplorerLanding"), "harness ?ws= must pin the workspace on first paint");
 assert(js.includes("function consumeHarnessActions"), "harness drill/hop/ego must run after first paint");
+assert(js.includes("graphFilter.bubble ? 24 : 48"), "entering a bubble must not dump 160 overlapping nodes");
 assert(js.indexOf("renderDefaultCfg()") < js.indexOf('<div class="flow-title">Communities</div>'), "overview CFG must paint before community cards");
 assert(css.includes(".stat-strip"), "overview stats must be a compact strip so the CFG is on first paint");
 assert(css.includes("#canvas.has-stage.explorer-list"), "overview must scroll so the CFG is not clipped");

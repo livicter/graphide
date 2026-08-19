@@ -261,8 +261,11 @@
     if (clickProgram) clickMainProgram();
     if (search) applySearch(search);
     if (ws) {
-      const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
-      if (tab) tab.click();
+      const on = document.querySelector("#workspaces [data-ws].on");
+      if (!on || on.getAttribute("data-ws") !== ws) {
+        const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+        if (tab) tab.click();
+      }
     }
     if (drill) {
       const on = document.querySelector("#workspaces [data-ws].on");
