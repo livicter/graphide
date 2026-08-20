@@ -250,10 +250,19 @@
         fqn: n.fqn,
       };
     });
+    const controlFlow = { ...flow, name: "control-flow" };
     return {
       type: "flowchart",
       programs: base.programs,
-      flows: [flow],
+      flows: [
+        {
+          name: "overview",
+          tree: { nodes: ["n0"], edges: [] },
+          flowchart: { runs: [], spine: [], positions: [] },
+        },
+        controlFlow,
+        flow,
+      ],
       graph: { ...base.graph, nodes: base.graph.nodes.map((n) => (n.id === hits[2].id ? hits[2] : n)), edges: tree.edges.concat(base.graph.edges) },
       bubbles: base.bubbles,
       coverage: base.coverage,
@@ -744,6 +753,17 @@
     const ySpan = enterYs.length ? Math.max.apply(null, enterYs) - Math.min.apply(null, enterYs) : 0;
     check("L7", "Inside a community, boxes pack compactly (not a tall empty frame)", enterH > 0 && enterH <= 720 && ySpan <= 520, "H=" + enterH + " ySpan=" + Math.round(ySpan));
     if (back && !back.disabled) back.click();
+
+    clickWs("overview");
+    await later(40);
+    check("M1", "Overview shows start → features → end path", !!document.querySelector(".feature-path") && /Start → features → end/i.test(document.body.innerText), "");
+    clickWs("map");
+    if (back && !back.disabled && document.querySelector(".comm-node")) back.click();
+    await later(40);
+    const mapTitle = (document.querySelector(".flow-title") || {}).textContent || "";
+    check("M2", "Map title is the start → features story", /Start → features/i.test(mapTitle), mapTitle);
+    const firstName = ((document.querySelector(".bubble-card .name") || {}).textContent || "").toLowerCase();
+    check("M3", "First Map community is the start of the control-flow walk", /render/i.test(firstName), firstName);
 
     const failed = rows.filter((r) => !r.pass);
     const html =

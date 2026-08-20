@@ -709,6 +709,14 @@ svg.steiner .edge-hit {
   z-index: 6;
   outline: 1px dashed var(--vscode-focusBorder);
 }
+.bubble-card .role {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.bubble-card.start { outline: 1px solid #3fb950; }
+.bubble-card.end { outline: 1px solid #569cd6; }
 .bubble-card .name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
@@ -1145,6 +1153,40 @@ svg.steiner.flowing .vnode.hot .node-box {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px;
 }
+.feature-path {
+  margin: 2px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 72%, #000);
+}
+.feature-path-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 8px;
+}
+.feature-path-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.feat-chip {
+  background: var(--vscode-editor-background);
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.feat-chip.start { border-color: #3fb950; color: #3fb950; }
+.feat-chip.end { border-color: #569cd6; color: #569cd6; }
+.feat-chip:hover { border-color: var(--vscode-focusBorder); }
+.path-arrow { opacity: 0.45; }
 #canvas.explorer-list .expl-list.compact {
   max-height: 168px;
   overflow: auto;

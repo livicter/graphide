@@ -1967,6 +1967,95 @@ function bubbleOf(id) {
   return found;
 }
 
+/** BFS walk of a Steiner tree from its sources — the control-flow path of a run. */
+function flowWalk(flow) {
+  const nodes = (flow && flow.tree && flow.tree.nodes) || [];
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
+  if (!nodes.length) return [];
+  const kids = new Map();
+  for (const e of edges) {
+    const a = idVal(e.from),
+      b = idVal(e.to);
+    if (!kids.has(a)) kids.set(a, []);
+    kids.get(a).push(b);
+  }
+  const ids = new Set(nodes.map((n) => idVal(n)));
+  const incoming = new Set(edges.map((e) => idVal(e.to)));
+  const sources = nodes.map((n) => idVal(n)).filter((id) => !incoming.has(id));
+  const start = sources.length ? sources : [idVal(nodes[0])];
+  const seen = new Set();
+  const walk = [];
+  const q = start.slice();
+  while (q.length) {
+    const id = q.shift();
+    if (!ids.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    walk.push(id);
+    for (const t of kids.get(id) || []) q.push(t);
+  }
+  for (const n of nodes) {
+    const id = idVal(n);
+    if (!seen.has(id)) walk.push(id);
+  }
+  return walk;
+}
+
+function storyFlow() {
+  return defaultRunFlow() || currentFlow();
+}
+
+/** Unique communities along the control-flow walk — start → features → end. */
+function featurePath(flow) {
+  const f = flow || storyFlow();
+  const seen = new Set();
+  const path = [];
+  for (const id of flowWalk(f)) {
+    const b = bubbleOf(id);
+    if (!b) continue;
+    const bid = idVal(b.id);
+    if (seen.has(bid)) continue;
+    seen.add(bid);
+    path.push(b);
+  }
+  return path;
+}
+
+function featureRole(step, last) {
+  if (step === 0) return "START";
+  if (last > 0 && step === last) return "END";
+  if (step >= 0) return "STEP " + (step + 1);
+  return "";
+}
+
+function renderFeaturePathHtml() {
+  const path = featurePath(storyFlow());
+  if (!path.length) return "";
+  const chips = path
+    .map((b, i) => {
+      const name = shortOf(b.label) || "feature";
+      const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
+      const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
+      return (
+        (i ? '<span class="path-arrow">→</span>' : "") +
+        '<button type="button" class="feat-chip' +
+        (role ? " " + role : "") +
+        '" data-feature="' +
+        esc(idVal(b.id)) +
+        '">' +
+        esc(label) +
+        "</button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="feature-path">' +
+    '<div class="feature-path-label">Start → features → end</div>' +
+    '<div class="feature-path-row">' +
+    chips +
+    "</div></div>"
+  );
+}
+
 function colorOfBubble(b) {
   if (!b) return BUBBLE_COLORS[BUBBLE_COLORS.length - 1];
   let h = 0;
@@ -2686,6 +2775,15 @@ function renderExplorerList(ws) {
   canvas.querySelectorAll("[data-ws]").forEach((el) => {
     el.onclick = () => setWorkspace(el.getAttribute("data-ws"), true);
   });
+  canvas.querySelectorAll("[data-feature]").forEach((el) => {
+    el.onclick = () => {
+      graphFilter.bubble = el.getAttribute("data-feature");
+      selectedNodeId = null;
+      explorerWs = "map";
+      explorerPinned = true;
+      renderProgramOverview();
+    };
+  });
 }
 
 function renderCardList(rows, empty) {
@@ -2736,7 +2834,17 @@ function renderOverviewBody() {
     .sort((a, b) => b.d - a.d)
     .slice(0, 8);
   const q = (graphFilter.q || "").toLowerCase();
-  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 8);
+  const path = featurePath(storyFlow());
+  const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
+  const comms = bubbles
+    .filter((b) => !q || String(b.label || "").toLowerCase().includes(q))
+    .sort((a, b) => {
+      const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
+      const pb = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : 1000;
+      if (pa !== pb) return pa - pb;
+      return (b.members || []).length - (a.members || []).length;
+    })
+    .slice(0, 8);
   return (
     '<div class="stat-strip">' +
     '<span><i class="k">Nodes</i> <b class="n">' +
@@ -2768,14 +2876,19 @@ function renderOverviewBody() {
     statChips(marks) +
     "</span>" +
     "</div>" +
+    renderFeaturePathHtml() +
     renderDefaultCfg() +
     '<div class="flow-title">Communities</div>' +
     '<div class="expl-list compact">' +
     comms
       .map((b) => {
         const marks = bubbleMarks(b);
+        const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
+        const role = featureRole(step, path.length - 1);
         return (
-          '<article class="expl-card" data-ws="map"><div class="k">community</div><div class="t">' +
+          '<article class="expl-card" data-ws="map"><div class="k">community' +
+          (role ? " · " + esc(role) : "") +
+          '</div><div class="t">' +
           esc(shortOf(b.label) || "bubble") +
           '</div><div class="b">' +
           (b.members || []).length +
@@ -3354,9 +3467,16 @@ function renderCommunityGraph() {
 }
 
 function renderBubbleMap(clusters) {
+  const path = featurePath(storyFlow());
+  const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
   clusters = (clusters || [])
     .slice()
-    .sort((a, b) => (b.members || []).length - (a.members || []).length)
+    .sort((a, b) => {
+      const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
+      const pb = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : 1000;
+      if (pa !== pb) return pa - pb;
+      return (b.members || []).length - (a.members || []).length;
+    })
     .slice(0, 24);
   if (!clusters.length) {
     canvas.className = "play";
@@ -3365,8 +3485,22 @@ function renderBubbleMap(clusters) {
     return;
   }
   const ids = clusters.map((b) => idVal(b.id));
-  const edges = communityEdgeList(clusters);
-  const laid = layeredPositions(ids, edges, {
+  const idSet = new Set(ids);
+  const pathIds = path.map((b) => idVal(b.id)).filter((id) => idSet.has(id));
+  const rest = ids.filter((id) => pathIds.indexOf(id) < 0);
+  const pathEdges = [];
+  for (let i = 0; i < pathIds.length - 1; i++) {
+    pathEdges.push({ from: pathIds[i], to: pathIds[i + 1], kind: "Calls" });
+  }
+  const layoutEdges = pathEdges.slice();
+  if (pathIds.length && rest.length) {
+    layoutEdges.push({ from: pathIds[pathIds.length - 1], to: rest[0], kind: "Contains" });
+    for (let i = 0; i < rest.length - 1; i++) {
+      layoutEdges.push({ from: rest[i], to: rest[i + 1], kind: "Contains" });
+    }
+  }
+  const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
+  const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
     nodeW: 220,
     nodeH: 128,
     gapX: 96,
@@ -3386,8 +3520,13 @@ function renderBubbleMap(clusters) {
     if (!b || !p) continue;
     const n = (b.members || []).length;
     const marks = bubbleMarks(b);
+    const step = pathRank.has(id) ? pathRank.get(id) : -1;
+    const role = featureRole(step, path.length - 1);
+    const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : "";
     html +=
-      '<button type="button" class="bubble-card" style="left:' +
+      '<button type="button" class="bubble-card' +
+      roleClass +
+      '" style="left:' +
       p.x +
       "px;top:" +
       p.y +
@@ -3395,9 +3534,12 @@ function renderBubbleMap(clusters) {
       colorOfBubble(b) +
       '" data-bubble="' +
       id +
-      '"><span class="name">' +
+      '">' +
+      (role ? '<span class="role">' + esc(role) + "</span>" : "") +
+      '<span class="name">' +
       esc(shortOf(b.label) || "bubble") +
       '</span><span class="meta">' +
+      (role ? role + " · " : "") +
       n +
       (n === 1 ? " node" : " nodes") +
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
@@ -3409,7 +3551,11 @@ function renderBubbleMap(clusters) {
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter</div>' +
+    '<div class="flow-title">' +
+    (pathIds.length
+      ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter"
+      : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") +
+    "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -3779,6 +3925,7 @@ function renderSteiner(flow, graph, animate, scars) {
   }
   svg += "</svg>";
   const snippets = (snapshot && snapshot.snippets) || {};
+  const walk = flowWalk(flow);
   let cards = "";
   for (const id of nodes) {
     const p = pos[idVal(id)];
@@ -3816,7 +3963,9 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kindLine(nid, kind)) + "</span>";
+    const at = walk.indexOf(nid);
+    const hopRole = at === 0 ? "START · " : at === walk.length - 1 && walk.length > 1 ? "END · " : "";
+    cards += '<span class="kind">' + esc(hopRole + kindLine(nid, kind)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";
