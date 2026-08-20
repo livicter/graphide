@@ -3521,8 +3521,8 @@ function renderBubbleMap(clusters) {
     const n = (b.members || []).length;
     const marks = bubbleMarks(b);
     const step = pathRank.has(id) ? pathRank.get(id) : -1;
-    const role = featureRole(step, path.length - 1);
-    const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : "";
+    const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
+    const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
     html +=
       '<button type="button" class="bubble-card' +
       roleClass +

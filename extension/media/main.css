@@ -717,6 +717,7 @@ svg.steiner .edge-hit {
 }
 .bubble-card.start { outline: 1px solid #3fb950; }
 .bubble-card.end { outline: 1px solid #569cd6; }
+.bubble-card.off { opacity: 0.72; }
 .bubble-card .name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
