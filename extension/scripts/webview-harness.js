@@ -738,6 +738,11 @@
     await later(40);
     check("L5", "Inside a community, boxes do not overlap", overlapCount(".comm-node", 150, 58) === 0, "overlaps=" + overlapCount(".comm-node", 150, 58) + " nodes=" + document.querySelectorAll(".comm-node").length);
     check("L6", "Inside a community, derived hops are drawn", document.querySelectorAll(".comm-wrap path[data-kind]").length >= 1, "edges=" + document.querySelectorAll(".comm-wrap path[data-kind]").length);
+    const enterWrap = document.querySelector(".comm-wrap");
+    const enterH = enterWrap ? parseFloat(enterWrap.style.height) || enterWrap.offsetHeight : 0;
+    const enterYs = [...document.querySelectorAll(".comm-node")].map((el) => parseFloat(el.style.top) || 0);
+    const ySpan = enterYs.length ? Math.max.apply(null, enterYs) - Math.min.apply(null, enterYs) : 0;
+    check("L7", "Inside a community, boxes pack compactly (not a tall empty frame)", enterH > 0 && enterH <= 720 && ySpan <= 520, "H=" + enterH + " ySpan=" + Math.round(ySpan));
     if (back && !back.disabled) back.click();
 
     const failed = rows.filter((r) => !r.pass);
