@@ -468,6 +468,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <span id="zoomPct">100%</span>
       <button id="zoomIn" title="Zoom in (+)">+</button>
       <button id="zoomFit" title="Fit (0)">Fit</button>
+      <button type="button" class="reorg-btn" id="reorgBtn" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
     </div>
   </header>
   <div id="tip" hidden></div>
@@ -512,7 +513,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         <option value="2">2-hop</option>
       </select>
     </label>
-    <button id="reorgBtn" type="button" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
+    <button type="button" class="reorg-btn" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
     <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
     <div id="kindFilters">
       <label><input type="checkbox" data-kind="Function" checked /> Function</label>

@@ -244,7 +244,7 @@ button:disabled { opacity: 0.45; cursor: default; }
   background: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
 }
 #egoBtn[hidden] { display: none; }
-#reorgBtn {
+#reorgBtn, .reorg-btn {
   background: transparent;
   color: inherit;
   border: 1px solid var(--vscode-panel-border);
@@ -253,8 +253,8 @@ button:disabled { opacity: 0.45; cursor: default; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-#reorgBtn:hover { border-color: var(--vscode-focusBorder); }
-#reorgBtn[hidden] { display: none; }
+#reorgBtn:hover, .reorg-btn:hover { border-color: var(--vscode-focusBorder); }
+#reorgBtn[hidden], .reorg-btn[hidden] { display: none; }
 .ego-hops {
   display: inline-flex;
   align-items: center;

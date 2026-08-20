@@ -87,6 +87,7 @@ assert(js.includes("function autoReorganize"), "Reorganize must clear pins and r
 assert(js.includes("function communityEdgeList"), "map must draw community hops");
 assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
+assert(js.includes("maxRows > 4 || buckets.length > maxCols"), "tall ranks must pack into a compact wrap");
 assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 

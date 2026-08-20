@@ -43,7 +43,7 @@ const ledgerMeta = document.getElementById("ledgerMeta");
 const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 const egoHopsEl = document.getElementById("egoHops");
-const reorgBtn = document.getElementById("reorgBtn");
+const reorgBtns = document.querySelectorAll(".reorg-btn");
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
 const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
@@ -217,7 +217,9 @@ if (workspacesEl) {
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
-if (reorgBtn) reorgBtn.onclick = () => autoReorganize();
+reorgBtns.forEach((el) => {
+  el.onclick = () => autoReorganize();
+});
 if (egoHopsEl)
   egoHopsEl.addEventListener("change", () => {
     const n = parseInt(egoHopsEl.value, 10);
@@ -482,7 +484,9 @@ function setGraphChrome(on) {
     const wrap = egoHopsEl.closest(".ego-hops");
     if (wrap) wrap.hidden = !on;
   }
-  if (reorgBtn) reorgBtn.hidden = !on;
+  reorgBtns.forEach((el) => {
+    el.hidden = !on;
+  });
   syncWorkspaces();
 }
 
@@ -1336,9 +1340,10 @@ function layeredPositions(ids, rawEdges, opts) {
   const colW = nodeW + gapX;
   const rowH = nodeH + gapY;
   const maxCols = Math.max(1, opts.maxCols || 7);
+  const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+  const pack = maxRows > 4 || buckets.length > maxCols;
   const pos = new Map();
-  if (buckets.length <= maxCols) {
-    const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+  if (!pack) {
     const H0 = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
     buckets.forEach((col, i) => {
       const colH = col.length * rowH;
@@ -1348,23 +1353,13 @@ function layeredPositions(ids, rawEdges, opts) {
       });
     });
   } else {
-    const bandH = [];
-    for (let i = 0; i < buckets.length; i++) {
-      const b = Math.floor(i / maxCols);
-      bandH[b] = Math.max(bandH[b] || 1, buckets[i].length);
-    }
-    let yBand = pad;
-    const bandY = [];
-    bandH.forEach((rows) => {
-      bandY.push(yBand);
-      yBand += rows * rowH + 28;
-    });
-    buckets.forEach((col, i) => {
-      const band = Math.floor(i / maxCols);
-      const colI = i % maxCols;
-      col.forEach((id, j) => {
-        pos.set(id, { x: pad + colW * colI + nodeW / 2, y: bandY[band] + j * rowH + rowH / 2 });
-      });
+    const order = [];
+    buckets.forEach((col) => col.forEach((id) => order.push(id)));
+    const cols = Math.min(maxCols, Math.max(1, order.length));
+    order.forEach((id, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      pos.set(id, { x: pad + colW * c + nodeW / 2, y: pad + rowH * r + nodeH / 2 });
     });
   }
   const pins = opts.pins || pinsForCurrent();
@@ -1375,7 +1370,7 @@ function layeredPositions(ids, rawEdges, opts) {
       p.y = pin.y;
     }
   }
-  separateBoxes(pos, nodeW, nodeH, 18);
+  if (!pack) separateBoxes(pos, nodeW, nodeH, 18);
   let minX = Infinity,
     minY = Infinity,
     maxX = 0,
@@ -1541,7 +1536,31 @@ function bindDraggable(root, selector, opts) {
   root.querySelectorAll(selector).forEach((el) => {
     if (el.dataset.dragBound) return;
     el.dataset.dragBound = "1";
+    el.title = (el.title ? el.title + " · " : "") + "Drag to move · click to open";
     let start = null;
+    const moveTo = (ev) => {
+      if (!start) return;
+      const k = cam && cam.k ? cam.k : 1;
+      const dx = (ev.clientX - start.x) / k;
+      const dy = (ev.clientY - start.y) / k;
+      if (!start.moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 4) return;
+      start.moved = true;
+      el.dataset.didDrag = "1";
+      const nx = start.left + dx,
+        ny = start.top + dy;
+      el.style.left = nx + "px";
+      el.style.top = ny + "px";
+      if (start.id) pinNode(start.id, nx, ny);
+      syncGraphEdges(root);
+    };
+    const end = () => {
+      if (!start) return;
+      el.classList.remove("dragging");
+      start = null;
+      window.removeEventListener("pointermove", moveTo, true);
+      window.removeEventListener("pointerup", end, true);
+      window.removeEventListener("pointercancel", end, true);
+    };
     el.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       e.stopPropagation();
@@ -1558,29 +1577,10 @@ function bindDraggable(root, selector, opts) {
         el.setPointerCapture(e.pointerId);
       } catch (err) {}
       el.classList.add("dragging");
+      window.addEventListener("pointermove", moveTo, true);
+      window.addEventListener("pointerup", end, true);
+      window.addEventListener("pointercancel", end, true);
     });
-    el.addEventListener("pointermove", (e) => {
-      if (!start) return;
-      const k = cam && cam.k ? cam.k : 1;
-      const dx = (e.clientX - start.x) / k;
-      const dy = (e.clientY - start.y) / k;
-      if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-      start.moved = true;
-      el.dataset.didDrag = "1";
-      const nx = start.left + dx,
-        ny = start.top + dy;
-      el.style.left = nx + "px";
-      el.style.top = ny + "px";
-      if (start.id) pinNode(start.id, nx, ny);
-      syncGraphEdges(root);
-    });
-    const end = () => {
-      if (!start) return;
-      el.classList.remove("dragging");
-      start = null;
-    };
-    el.addEventListener("pointerup", end);
-    el.addEventListener("pointercancel", end);
     el.addEventListener(
       "click",
       (e) => {
@@ -3689,6 +3689,7 @@ function renderSteiner(flow, graph, animate, scars) {
     pad: 56,
     minW: 720,
     minH: 300,
+    maxCols: 8,
     pins: pinsForCurrent(),
   });
   const W = laid.W,
