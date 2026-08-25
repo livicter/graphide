@@ -23,3 +23,5 @@ Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
 Review lands on Overview with a default control-flow run (derived entries, no sidecar required). Other workspaces: Map, Slice, Lineage, Decisions, Registry, Timeline. Search, filters, hop cards, and the inspect rail stay. Wheel or +/− is automatic LOD (overview → labels → hops → source). Zooming out past overview pops one clustering level. Click a bubble or run to Enter. Not a Graphify or Semantica embed — same workbench shape, Graphide objects. No force-directed network dump.
 
 **Stamp** (`S`) writes `.graphide/stamps/<flow>.json`. **Skip** (`X`) is session-only. The next Review rechecks stamps and overlays scars when the tree changed. Git `HEAD^` is the default parent for coverage unless `graphide.parentRoot` is set.
+
+**LLM** (`L`) connects any OpenAI-compatible host (local Ollama / LM Studio / llama.cpp, or a cloud API key) and opens a local bridge on `127.0.0.1:8787` so other LLM clients can read this review. The model explains the derived path. It never stamps.

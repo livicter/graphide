@@ -44,6 +44,29 @@ const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 const egoHopsEl = document.getElementById("egoHops");
 const reorgBtn = document.getElementById("reorgBtn");
+const llmBtn = document.getElementById("llmBtn");
+const llmPane = document.getElementById("llmPane");
+const llmClose = document.getElementById("llmClose");
+const llmStatusEl = document.getElementById("llmStatus");
+const llmPreset = document.getElementById("llmPreset");
+const llmBaseUrl = document.getElementById("llmBaseUrl");
+const llmModel = document.getElementById("llmModel");
+const llmKey = document.getElementById("llmKey");
+const llmSave = document.getElementById("llmSave");
+const llmTest = document.getElementById("llmTest");
+const llmShowKey = document.getElementById("llmShowKey");
+const llmBridge = document.getElementById("llmBridge");
+const llmLog = document.getElementById("llmLog");
+const llmAsk = document.getElementById("llmAsk");
+const llmSend = document.getElementById("llmSend");
+const LLM_PRESETS = {
+  ollama: { url: "http://127.0.0.1:11434/v1", model: "llama3.2" },
+  lmstudio: { url: "http://127.0.0.1:1234/v1", model: "local-model" },
+  llamacpp: { url: "http://127.0.0.1:8080/v1", model: "local-model" },
+  openai: { url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  custom: { url: "", model: "" },
+};
+let llmTok = 0;
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
 const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
@@ -121,6 +144,11 @@ document.addEventListener("keydown", (e) => {
     closeSourcePane();
     return;
   }
+  if (e.key === "Escape" && llmPane && !llmPane.hidden) {
+    e.preventDefault();
+    setLlmPane(false);
+    return;
+  }
   if (stack[stack.length - 1]?.kind === "programs") {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
@@ -183,6 +211,11 @@ document.addEventListener("keydown", (e) => {
     autoReorganize();
     return;
   }
+  if (e.key === "l" || e.key === "L") {
+    e.preventDefault();
+    toggleLlmPane();
+    return;
+  }
   const wsIdx = "1234567".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
@@ -227,6 +260,35 @@ if (egoHopsEl)
   });
 if (stampBtn) stampBtn.onclick = () => requestStamp();
 if (skipBtn) skipBtn.onclick = () => requestSkip();
+if (llmBtn) llmBtn.onclick = () => toggleLlmPane();
+if (llmClose) llmClose.onclick = () => setLlmPane(false);
+if (llmPreset)
+  llmPreset.onchange = () => {
+    const p = LLM_PRESETS[llmPreset.value] || LLM_PRESETS.custom;
+    if (p.url && llmBaseUrl) llmBaseUrl.value = p.url;
+    if (p.model && llmModel) llmModel.value = p.model;
+  };
+if (llmSave)
+  llmSave.onclick = () => {
+    vscode.postMessage({
+      type: "llmSave",
+      baseUrl: llmBaseUrl ? llmBaseUrl.value : "",
+      model: llmModel ? llmModel.value : "",
+      apiKey: llmKey ? llmKey.value : "",
+    });
+    appendLlmLog("Saved host " + ((llmBaseUrl && llmBaseUrl.value) || "(empty)") + " · " + ((llmModel && llmModel.value) || "graph-only"), "ok");
+  };
+if (llmTest) llmTest.onclick = () => vscode.postMessage({ type: "llmTest" });
+if (llmShowKey) llmShowKey.onclick = () => vscode.postMessage({ type: "llmShowKey" });
+if (llmSend) llmSend.onclick = () => sendLlmAsk();
+if (llmAsk)
+  llmAsk.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendLlmAsk();
+    }
+  });
+if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
 
 function startReview() {
   targetPct = 0;
@@ -338,6 +400,19 @@ window.addEventListener("message", (event) => {
   if (msg.type === "flowchart" || msg.type === "inner") {
     clearTimeout(previewTimer);
     applySnapshot(msg, msg.type === "inner");
+  }
+  if (msg.type === "llmStatus") {
+    applyLlmStatus(msg);
+    return;
+  }
+  if (msg.type === "llmReply") {
+    llmTok++;
+    appendLlmLog(msg.text || "", msg.via === "graph" ? "graph" : "llm");
+    return;
+  }
+  if (msg.type === "llmError") {
+    llmTok++;
+    appendLlmLog(msg.text || "LLM error", "err");
   }
 });
 
@@ -4149,4 +4224,85 @@ function enterBubble(snap, flowName, bubbleId) {
   );
   if (!children.length && nodes.length > 24) nodes = nodes.slice(0, 24);
   return { flow: flowName, bubble: bubbleId, nodes };
+}
+
+function setLlmPane(on) {
+  if (!llmPane) return;
+  llmPane.hidden = !on;
+  if (on) {
+    vscode.postMessage({ type: "llmStatus" });
+    if (llmAsk) llmAsk.focus();
+  }
+}
+
+function toggleLlmPane() {
+  setLlmPane(!(llmPane && !llmPane.hidden));
+}
+
+function applyLlmStatus(msg) {
+  if (llmStatusEl) {
+    llmStatusEl.textContent = msg.connected
+      ? "Host " + (msg.baseUrl || "") + " · " + (msg.model || "")
+      : "Graph-only until you save a host. Agents never stamp.";
+  }
+  if (llmBaseUrl && msg.baseUrl) llmBaseUrl.value = msg.baseUrl;
+  if (llmModel && msg.model) llmModel.value = msg.model;
+  if (llmBridge) {
+    llmBridge.textContent = msg.bridge
+      ? "Bridge " + msg.bridge.url + " — any OpenAI-compatible client, Bearer key."
+      : "Bridge off. Enable graphide.bridge.enabled.";
+  }
+  if (msg.test) {
+    appendLlmLog((msg.test.ok ? "Test ok: " : "Test failed: ") + (msg.test.detail || ""), msg.test.ok ? "ok" : "err");
+  }
+}
+
+function appendLlmLog(text, kind) {
+  if (!llmLog) return;
+  const row = document.createElement("div");
+  row.className = "llm-msg " + (kind || "llm");
+  row.textContent = text;
+  llmLog.appendChild(row);
+  llmLog.scrollTop = llmLog.scrollHeight;
+}
+
+function localAsk(q) {
+  const flow = (typeof defaultRunFlow === "function" ? defaultRunFlow() : null) || currentFlow();
+  const nodes = (flow && flow.tree && flow.tree.nodes) || [];
+  const names = nodes.slice(0, 12).map((id) => {
+    const n = nodeById.get(idVal(id));
+    return shortOf((n && n.fqn) || id);
+  });
+  const path = [];
+  const seen = new Set();
+  for (const id of nodes) {
+    const b = typeof bubbleOf === "function" ? bubbleOf(id) : null;
+    const label = b && (b.label || b.id);
+    if (!label || seen.has(String(label))) continue;
+    seen.add(String(label));
+    path.push(String(b.label || b.id));
+  }
+  const lines = [
+    "Start → features → end: " + (path.join(" → ") || "(review a repo first)"),
+    names.length ? "Control-flow hops: " + names.join(" → ") : "",
+    "This answer is from the derived review graph. An LLM is optional. Agents never stamp.",
+  ];
+  if (/uncover|coverage/i.test(q || "") && snapshot && snapshot.coverage) {
+    lines.splice(2, 0, "Coverage: " + ((snapshot.coverage.changed || []).length) + " changed · " + ((snapshot.coverage.uncovered || []).length) + " uncovered");
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+function sendLlmAsk() {
+  if (!llmAsk) return;
+  const q = llmAsk.value.trim();
+  if (!q) return;
+  appendLlmLog(q, "user");
+  llmAsk.value = "";
+  const token = ++llmTok;
+  vscode.postMessage({ type: "llmAsk", prompt: q });
+  setTimeout(() => {
+    if (token !== llmTok) return;
+    appendLlmLog(localAsk(q), "graph");
+  }, 160);
 }

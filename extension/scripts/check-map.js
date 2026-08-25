@@ -88,6 +88,8 @@ assert(js.includes("function communityEdgeList"), "map must draw community hops"
 assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
 assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
+assert(ext.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
+assert(js.includes("function sendLlmAsk"), "LLM Ask must be wired in the webview");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 
 const fakeNames = [
