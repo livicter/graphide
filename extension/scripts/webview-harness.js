@@ -584,8 +584,10 @@
       zin.click();
       zin.click();
       zin.click();
+      zin.click();
+      zin.click();
     }
-    await later(40);
+    await later(80);
     const zoomHops = (document.getElementById("zoomPct") || {}).textContent || "";
     check("J4", "Deep zoom names hops or source LOD", /hops|source/i.test(zoomHops), zoomHops);
     if (zfit) zfit.click();
