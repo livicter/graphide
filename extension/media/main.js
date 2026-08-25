@@ -43,7 +43,7 @@ const ledgerMeta = document.getElementById("ledgerMeta");
 const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 const egoHopsEl = document.getElementById("egoHops");
-const reorgBtn = document.getElementById("reorgBtn");
+const reorgBtns = document.querySelectorAll(".reorg-btn");
 const llmBtn = document.getElementById("llmBtn");
 const llmPane = document.getElementById("llmPane");
 const llmClose = document.getElementById("llmClose");
@@ -250,7 +250,9 @@ if (workspacesEl) {
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
-if (reorgBtn) reorgBtn.onclick = () => autoReorganize();
+reorgBtns.forEach((el) => {
+  el.onclick = () => autoReorganize();
+});
 if (egoHopsEl)
   egoHopsEl.addEventListener("change", () => {
     const n = parseInt(egoHopsEl.value, 10);
@@ -557,7 +559,9 @@ function setGraphChrome(on) {
     const wrap = egoHopsEl.closest(".ego-hops");
     if (wrap) wrap.hidden = !on;
   }
-  if (reorgBtn) reorgBtn.hidden = !on;
+  reorgBtns.forEach((el) => {
+    el.hidden = !on;
+  });
   syncWorkspaces();
 }
 
@@ -1411,9 +1415,10 @@ function layeredPositions(ids, rawEdges, opts) {
   const colW = nodeW + gapX;
   const rowH = nodeH + gapY;
   const maxCols = Math.max(1, opts.maxCols || 7);
+  const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+  const pack = maxRows > 4 || buckets.length > maxCols;
   const pos = new Map();
-  if (buckets.length <= maxCols) {
-    const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
+  if (!pack) {
     const H0 = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
     buckets.forEach((col, i) => {
       const colH = col.length * rowH;
@@ -1423,23 +1428,13 @@ function layeredPositions(ids, rawEdges, opts) {
       });
     });
   } else {
-    const bandH = [];
-    for (let i = 0; i < buckets.length; i++) {
-      const b = Math.floor(i / maxCols);
-      bandH[b] = Math.max(bandH[b] || 1, buckets[i].length);
-    }
-    let yBand = pad;
-    const bandY = [];
-    bandH.forEach((rows) => {
-      bandY.push(yBand);
-      yBand += rows * rowH + 28;
-    });
-    buckets.forEach((col, i) => {
-      const band = Math.floor(i / maxCols);
-      const colI = i % maxCols;
-      col.forEach((id, j) => {
-        pos.set(id, { x: pad + colW * colI + nodeW / 2, y: bandY[band] + j * rowH + rowH / 2 });
-      });
+    const order = [];
+    buckets.forEach((col) => col.forEach((id) => order.push(id)));
+    const cols = Math.min(maxCols, Math.max(1, order.length));
+    order.forEach((id, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      pos.set(id, { x: pad + colW * c + nodeW / 2, y: pad + rowH * r + nodeH / 2 });
     });
   }
   const pins = opts.pins || pinsForCurrent();
@@ -1450,7 +1445,7 @@ function layeredPositions(ids, rawEdges, opts) {
       p.y = pin.y;
     }
   }
-  separateBoxes(pos, nodeW, nodeH, 18);
+  if (!pack) separateBoxes(pos, nodeW, nodeH, 18);
   let minX = Infinity,
     minY = Infinity,
     maxX = 0,
@@ -1616,7 +1611,31 @@ function bindDraggable(root, selector, opts) {
   root.querySelectorAll(selector).forEach((el) => {
     if (el.dataset.dragBound) return;
     el.dataset.dragBound = "1";
+    el.title = (el.title ? el.title + " · " : "") + "Drag to move · click to open";
     let start = null;
+    const moveTo = (ev) => {
+      if (!start) return;
+      const k = cam && cam.k ? cam.k : 1;
+      const dx = (ev.clientX - start.x) / k;
+      const dy = (ev.clientY - start.y) / k;
+      if (!start.moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 4) return;
+      start.moved = true;
+      el.dataset.didDrag = "1";
+      const nx = start.left + dx,
+        ny = start.top + dy;
+      el.style.left = nx + "px";
+      el.style.top = ny + "px";
+      if (start.id) pinNode(start.id, nx, ny);
+      syncGraphEdges(root);
+    };
+    const end = () => {
+      if (!start) return;
+      el.classList.remove("dragging");
+      start = null;
+      window.removeEventListener("pointermove", moveTo, true);
+      window.removeEventListener("pointerup", end, true);
+      window.removeEventListener("pointercancel", end, true);
+    };
     el.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       e.stopPropagation();
@@ -1633,29 +1652,10 @@ function bindDraggable(root, selector, opts) {
         el.setPointerCapture(e.pointerId);
       } catch (err) {}
       el.classList.add("dragging");
+      window.addEventListener("pointermove", moveTo, true);
+      window.addEventListener("pointerup", end, true);
+      window.addEventListener("pointercancel", end, true);
     });
-    el.addEventListener("pointermove", (e) => {
-      if (!start) return;
-      const k = cam && cam.k ? cam.k : 1;
-      const dx = (e.clientX - start.x) / k;
-      const dy = (e.clientY - start.y) / k;
-      if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-      start.moved = true;
-      el.dataset.didDrag = "1";
-      const nx = start.left + dx,
-        ny = start.top + dy;
-      el.style.left = nx + "px";
-      el.style.top = ny + "px";
-      if (start.id) pinNode(start.id, nx, ny);
-      syncGraphEdges(root);
-    });
-    const end = () => {
-      if (!start) return;
-      el.classList.remove("dragging");
-      start = null;
-    };
-    el.addEventListener("pointerup", end);
-    el.addEventListener("pointercancel", end);
     el.addEventListener(
       "click",
       (e) => {
@@ -2040,6 +2040,95 @@ function bubbleOf(id) {
     if (!found || (b.parent != null && found.parent == null)) found = b;
   }
   return found;
+}
+
+/** BFS walk of a Steiner tree from its sources — the control-flow path of a run. */
+function flowWalk(flow) {
+  const nodes = (flow && flow.tree && flow.tree.nodes) || [];
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
+  if (!nodes.length) return [];
+  const kids = new Map();
+  for (const e of edges) {
+    const a = idVal(e.from),
+      b = idVal(e.to);
+    if (!kids.has(a)) kids.set(a, []);
+    kids.get(a).push(b);
+  }
+  const ids = new Set(nodes.map((n) => idVal(n)));
+  const incoming = new Set(edges.map((e) => idVal(e.to)));
+  const sources = nodes.map((n) => idVal(n)).filter((id) => !incoming.has(id));
+  const start = sources.length ? sources : [idVal(nodes[0])];
+  const seen = new Set();
+  const walk = [];
+  const q = start.slice();
+  while (q.length) {
+    const id = q.shift();
+    if (!ids.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    walk.push(id);
+    for (const t of kids.get(id) || []) q.push(t);
+  }
+  for (const n of nodes) {
+    const id = idVal(n);
+    if (!seen.has(id)) walk.push(id);
+  }
+  return walk;
+}
+
+function storyFlow() {
+  return defaultRunFlow() || currentFlow();
+}
+
+/** Unique communities along the control-flow walk — start → features → end. */
+function featurePath(flow) {
+  const f = flow || storyFlow();
+  const seen = new Set();
+  const path = [];
+  for (const id of flowWalk(f)) {
+    const b = bubbleOf(id);
+    if (!b) continue;
+    const bid = idVal(b.id);
+    if (seen.has(bid)) continue;
+    seen.add(bid);
+    path.push(b);
+  }
+  return path;
+}
+
+function featureRole(step, last) {
+  if (step === 0) return "START";
+  if (last > 0 && step === last) return "END";
+  if (step >= 0) return "STEP " + (step + 1);
+  return "";
+}
+
+function renderFeaturePathHtml() {
+  const path = featurePath(storyFlow());
+  if (!path.length) return "";
+  const chips = path
+    .map((b, i) => {
+      const name = shortOf(b.label) || "feature";
+      const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
+      const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
+      return (
+        (i ? '<span class="path-arrow">→</span>' : "") +
+        '<button type="button" class="feat-chip' +
+        (role ? " " + role : "") +
+        '" data-feature="' +
+        esc(idVal(b.id)) +
+        '">' +
+        esc(label) +
+        "</button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="feature-path">' +
+    '<div class="feature-path-label">Start → features → end</div>' +
+    '<div class="feature-path-row">' +
+    chips +
+    "</div></div>"
+  );
 }
 
 function colorOfBubble(b) {
@@ -2761,6 +2850,15 @@ function renderExplorerList(ws) {
   canvas.querySelectorAll("[data-ws]").forEach((el) => {
     el.onclick = () => setWorkspace(el.getAttribute("data-ws"), true);
   });
+  canvas.querySelectorAll("[data-feature]").forEach((el) => {
+    el.onclick = () => {
+      graphFilter.bubble = el.getAttribute("data-feature");
+      selectedNodeId = null;
+      explorerWs = "map";
+      explorerPinned = true;
+      renderProgramOverview();
+    };
+  });
 }
 
 function renderCardList(rows, empty) {
@@ -2811,7 +2909,17 @@ function renderOverviewBody() {
     .sort((a, b) => b.d - a.d)
     .slice(0, 8);
   const q = (graphFilter.q || "").toLowerCase();
-  const comms = bubbles.filter((b) => !q || String(b.label || "").toLowerCase().includes(q)).slice(0, 8);
+  const path = featurePath(storyFlow());
+  const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
+  const comms = bubbles
+    .filter((b) => !q || String(b.label || "").toLowerCase().includes(q))
+    .sort((a, b) => {
+      const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
+      const pb = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : 1000;
+      if (pa !== pb) return pa - pb;
+      return (b.members || []).length - (a.members || []).length;
+    })
+    .slice(0, 8);
   return (
     '<div class="stat-strip">' +
     '<span><i class="k">Nodes</i> <b class="n">' +
@@ -2843,14 +2951,19 @@ function renderOverviewBody() {
     statChips(marks) +
     "</span>" +
     "</div>" +
+    renderFeaturePathHtml() +
     renderDefaultCfg() +
     '<div class="flow-title">Communities</div>' +
     '<div class="expl-list compact">' +
     comms
       .map((b) => {
         const marks = bubbleMarks(b);
+        const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
+        const role = featureRole(step, path.length - 1);
         return (
-          '<article class="expl-card" data-ws="map"><div class="k">community</div><div class="t">' +
+          '<article class="expl-card" data-ws="map"><div class="k">community' +
+          (role ? " · " + esc(role) : "") +
+          '</div><div class="t">' +
           esc(shortOf(b.label) || "bubble") +
           '</div><div class="b">' +
           (b.members || []).length +
@@ -3429,9 +3542,16 @@ function renderCommunityGraph() {
 }
 
 function renderBubbleMap(clusters) {
+  const path = featurePath(storyFlow());
+  const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
   clusters = (clusters || [])
     .slice()
-    .sort((a, b) => (b.members || []).length - (a.members || []).length)
+    .sort((a, b) => {
+      const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
+      const pb = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : 1000;
+      if (pa !== pb) return pa - pb;
+      return (b.members || []).length - (a.members || []).length;
+    })
     .slice(0, 24);
   if (!clusters.length) {
     canvas.className = "play";
@@ -3440,8 +3560,22 @@ function renderBubbleMap(clusters) {
     return;
   }
   const ids = clusters.map((b) => idVal(b.id));
-  const edges = communityEdgeList(clusters);
-  const laid = layeredPositions(ids, edges, {
+  const idSet = new Set(ids);
+  const pathIds = path.map((b) => idVal(b.id)).filter((id) => idSet.has(id));
+  const rest = ids.filter((id) => pathIds.indexOf(id) < 0);
+  const pathEdges = [];
+  for (let i = 0; i < pathIds.length - 1; i++) {
+    pathEdges.push({ from: pathIds[i], to: pathIds[i + 1], kind: "Calls" });
+  }
+  const layoutEdges = pathEdges.slice();
+  if (pathIds.length && rest.length) {
+    layoutEdges.push({ from: pathIds[pathIds.length - 1], to: rest[0], kind: "Contains" });
+    for (let i = 0; i < rest.length - 1; i++) {
+      layoutEdges.push({ from: rest[i], to: rest[i + 1], kind: "Contains" });
+    }
+  }
+  const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
+  const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
     nodeW: 220,
     nodeH: 128,
     gapX: 96,
@@ -3461,8 +3595,13 @@ function renderBubbleMap(clusters) {
     if (!b || !p) continue;
     const n = (b.members || []).length;
     const marks = bubbleMarks(b);
+    const step = pathRank.has(id) ? pathRank.get(id) : -1;
+    const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
+    const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
     html +=
-      '<button type="button" class="bubble-card" style="left:' +
+      '<button type="button" class="bubble-card' +
+      roleClass +
+      '" style="left:' +
       p.x +
       "px;top:" +
       p.y +
@@ -3470,9 +3609,12 @@ function renderBubbleMap(clusters) {
       colorOfBubble(b) +
       '" data-bubble="' +
       id +
-      '"><span class="name">' +
+      '">' +
+      (role ? '<span class="role">' + esc(role) + "</span>" : "") +
+      '<span class="name">' +
       esc(shortOf(b.label) || "bubble") +
       '</span><span class="meta">' +
+      (role ? role + " · " : "") +
       n +
       (n === 1 ? " node" : " nodes") +
       (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
@@ -3484,7 +3626,11 @@ function renderBubbleMap(clusters) {
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     '<div class="stage"><div class="viewport" data-lod="0">' +
-    '<div class="flow-title">Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter</div>' +
+    '<div class="flow-title">' +
+    (pathIds.length
+      ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter"
+      : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") +
+    "</div>" +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -3764,6 +3910,7 @@ function renderSteiner(flow, graph, animate, scars) {
     pad: 56,
     minW: 720,
     minH: 300,
+    maxCols: 8,
     pins: pinsForCurrent(),
   });
   const W = laid.W,
@@ -3853,6 +4000,7 @@ function renderSteiner(flow, graph, animate, scars) {
   }
   svg += "</svg>";
   const snippets = (snapshot && snapshot.snippets) || {};
+  const walk = flowWalk(flow);
   let cards = "";
   for (const id of nodes) {
     const p = pos[idVal(id)];
@@ -3890,7 +4038,9 @@ function renderSteiner(flow, graph, animate, scars) {
       '" data-file="' +
       esc(file) +
       '">';
-    cards += '<span class="kind">' + esc(kindLine(nid, kind)) + "</span>";
+    const at = walk.indexOf(nid);
+    const hopRole = at === 0 ? "START · " : at === walk.length - 1 && walk.length > 1 ? "END · " : "";
+    cards += '<span class="kind">' + esc(hopRole + kindLine(nid, kind)) + "</span>";
     cards += '<span class="name">' + esc(label) + "</span>";
     if (where) cards += '<span class="where">' + esc(where) + "</span>";
     cards += '<span class="fqn">' + esc(fqn) + "</span>";
