@@ -4407,18 +4407,12 @@ function enterBubble(snap, flowName, bubbleId) {
 
 function setLlmPane(on) {
   if (!llmPane) return;
+  llmPane.hidden = !on;
+  llmPane.classList.toggle("open", !!on);
+  document.body.classList.toggle("llm-open", !!on);
   if (on) {
-    llmPane.hidden = false;
-    requestAnimationFrame(() => {
-      llmPane.classList.add("open");
-      document.body.classList.add("llm-open");
-    });
     vscode.postMessage({ type: "llmStatus" });
     if (llmAsk) llmAsk.focus();
-  } else {
-    llmPane.classList.remove("open");
-    document.body.classList.remove("llm-open");
-    llmPane.hidden = true;
   }
 }
 

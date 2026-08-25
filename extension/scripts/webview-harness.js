@@ -769,6 +769,7 @@
 
     clickWs("overview");
     const llmBtn = document.getElementById("llmBtn");
+    const beforeLlm = (window.__vscodePosts || []).length;
     if (llmBtn) llmBtn.click();
     await later(40);
     check("N1", "LLM Ask panel opens from the LLM button", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
@@ -780,8 +781,8 @@
     if (modelBox) modelBox.value = "llama3.2";
     const saveHost = document.getElementById("llmSave");
     if (saveHost) saveHost.click();
-    const posts = window.__vscodePosts || [];
-    check("N3", "Save host posts llmSave (never a stamp)", posts.some((m) => m && m.type === "llmSave") && !posts.some((m) => m && m.type === "stamp"), JSON.stringify(posts.filter((m) => m && /^llm|stamp/.test(m.type)).slice(-3)));
+    const llmPosts = (window.__vscodePosts || []).slice(beforeLlm);
+    check("N3", "Save host posts llmSave (never a stamp)", llmPosts.some((m) => m && m.type === "llmSave") && !llmPosts.some((m) => m && m.type === "stamp"), JSON.stringify(llmPosts.filter((m) => m && /^llm|stamp/.test(m.type)).slice(-3)));
     const askBox = document.getElementById("llmAsk");
     const sendBtn = document.getElementById("llmSend");
     if (askBox) askBox.value = "Tell the start to end control-flow path";
@@ -789,7 +790,7 @@
     await later(220);
     const logText = (document.getElementById("llmLog") || {}).textContent || "";
     check("N4", "Ask returns a start → features → end graph answer", /Start → features → end/i.test(logText) && /never stamp/i.test(logText), logText.slice(0, 160));
-    check("N5", "Ask does not post a stamp", !(window.__vscodePosts || []).some((m) => m && m.type === "stamp"), "");
+    check("N5", "Ask does not post a stamp", !(window.__vscodePosts || []).slice(beforeLlm).some((m) => m && m.type === "stamp"), "");
     if (askBox) askBox.blur();
     document.body.focus();
     key("l");
