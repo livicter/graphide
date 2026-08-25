@@ -762,6 +762,8 @@
     await later(40);
     const mapTitle = (document.querySelector(".flow-title") || {}).textContent || "";
     check("M2", "Map title is the start → features story", /Start → features/i.test(mapTitle), mapTitle);
+    const glowStage = document.querySelector(".stage");
+    check("O1", "Map stage tracks the pointer for the interactive glow", !!(glowStage && glowStage.dataset.uiBound), "");
     const firstName = ((document.querySelector(".bubble-card .name") || {}).textContent || "").toLowerCase();
     check("M3", "First Map community is the start of the control-flow walk", /render/i.test(firstName), firstName);
 
@@ -770,6 +772,7 @@
     if (llmBtn) llmBtn.click();
     await later(40);
     check("N1", "LLM Ask panel opens from the LLM button", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
+    check("O2", "Ask panel uses the open slide class", !!(document.getElementById("llmPane") && document.getElementById("llmPane").classList.contains("open")), "");
     check("N2", "Connect form has host URL, model, and API key", !!(document.getElementById("llmBaseUrl") && document.getElementById("llmModel") && document.getElementById("llmKey")), "");
     const urlBox = document.getElementById("llmBaseUrl");
     if (urlBox) urlBox.value = "http://127.0.0.1:11434/v1";
@@ -791,6 +794,8 @@
     document.body.focus();
     key("l");
     check("N6", "Key L toggles the Ask panel", document.getElementById("llmPane") && document.getElementById("llmPane").hidden, "hidden=" + !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden));
+    const radius = getComputedStyle(document.body).getPropertyValue("--g-radius");
+    check("O3", "Modern radius tokens are live", /px/.test(radius), radius);
 
     const failed = rows.filter((r) => !r.pass);
     const html =
