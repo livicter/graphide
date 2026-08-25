@@ -765,6 +765,33 @@
     const firstName = ((document.querySelector(".bubble-card .name") || {}).textContent || "").toLowerCase();
     check("M3", "First Map community is the start of the control-flow walk", /render/i.test(firstName), firstName);
 
+    clickWs("overview");
+    const llmBtn = document.getElementById("llmBtn");
+    if (llmBtn) llmBtn.click();
+    await later(40);
+    check("N1", "LLM Ask panel opens from the LLM button", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
+    check("N2", "Connect form has host URL, model, and API key", !!(document.getElementById("llmBaseUrl") && document.getElementById("llmModel") && document.getElementById("llmKey")), "");
+    const urlBox = document.getElementById("llmBaseUrl");
+    if (urlBox) urlBox.value = "http://127.0.0.1:11434/v1";
+    const modelBox = document.getElementById("llmModel");
+    if (modelBox) modelBox.value = "llama3.2";
+    const saveHost = document.getElementById("llmSave");
+    if (saveHost) saveHost.click();
+    const posts = window.__vscodePosts || [];
+    check("N3", "Save host posts llmSave (never a stamp)", posts.some((m) => m && m.type === "llmSave") && !posts.some((m) => m && m.type === "stamp"), JSON.stringify(posts.filter((m) => m && /^llm|stamp/.test(m.type)).slice(-3)));
+    const askBox = document.getElementById("llmAsk");
+    const sendBtn = document.getElementById("llmSend");
+    if (askBox) askBox.value = "Tell the start to end control-flow path";
+    if (sendBtn) sendBtn.click();
+    await later(220);
+    const logText = (document.getElementById("llmLog") || {}).textContent || "";
+    check("N4", "Ask returns a start → features → end graph answer", /Start → features → end/i.test(logText) && /never stamp/i.test(logText), logText.slice(0, 160));
+    check("N5", "Ask does not post a stamp", !(window.__vscodePosts || []).some((m) => m && m.type === "stamp"), "");
+    if (askBox) askBox.blur();
+    document.body.focus();
+    key("l");
+    check("N6", "Key L toggles the Ask panel", document.getElementById("llmPane") && document.getElementById("llmPane").hidden, "hidden=" + !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden));
+
     const failed = rows.filter((r) => !r.pass);
     const html =
       "<h2>Feature checklist · Semantica review explorer</h2><div class=\"sum " +

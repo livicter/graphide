@@ -2,7 +2,7 @@
   "name": "graphide",
   "displayName": "Graphide Review",
   "description": "Review agent changes as flow graphs — explorer workspaces over a closed IR, not a force-directed hairball.",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "publisher": "graphide",
   "license": "MIT",
   "engines": { "vscode": "^1.85.0" },
@@ -12,7 +12,11 @@
     "onCommand:graphide.review",
     "onCommand:graphide.install",
     "onCommand:graphide.stamp",
-    "onCommand:graphide.skip"
+    "onCommand:graphide.skip",
+    "onCommand:graphide.connectLlm",
+    "onCommand:graphide.testLlm",
+    "onCommand:graphide.showBridgeKey",
+    "onCommand:graphide.rotateBridgeKey"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -37,6 +41,22 @@
       {
         "command": "graphide.skip",
         "title": "Graphide: Skip Current Flow"
+      },
+      {
+        "command": "graphide.connectLlm",
+        "title": "Graphide: Connect LLM"
+      },
+      {
+        "command": "graphide.testLlm",
+        "title": "Graphide: Test LLM Host"
+      },
+      {
+        "command": "graphide.showBridgeKey",
+        "title": "Graphide: Copy Bridge API Key"
+      },
+      {
+        "command": "graphide.rotateBridgeKey",
+        "title": "Graphide: Rotate Bridge API Key"
       }
     ],
     "viewsContainers": {
@@ -80,6 +100,36 @@
           "items": { "type": "string" },
           "default": [],
           "description": "Default --flow prompts (name=hit,hit). The Review input can override these."
+        },
+        "graphide.llm.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434/v1",
+          "description": "OpenAI-compatible host. Local Ollama is http://127.0.0.1:11434/v1, LM Studio http://127.0.0.1:1234/v1, llama.cpp http://127.0.0.1:8080/v1, OpenAI https://api.openai.com/v1."
+        },
+        "graphide.llm.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model name on that host (e.g. llama3.2, gpt-4o-mini). Empty = Ask answers from the derived graph only."
+        },
+        "graphide.llm.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Optional. Prefer Graphide: Connect LLM (Secret Storage). Empty is fine for most local hosts."
+        },
+        "graphide.bridge.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Listen on a local port so any LLM client can query this review with the bridge API key."
+        },
+        "graphide.bridge.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Bridge bind address. Keep 127.0.0.1 unless you intend LAN access."
+        },
+        "graphide.bridge.port": {
+          "type": "number",
+          "default": 8787,
+          "description": "Bridge port. If busy, Graphide tries the next free port."
         }
       }
     }
@@ -87,6 +137,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test:llm": "npm run compile && node ./scripts/check-llm.js && node ./scripts/test-llm-bridge.js",
     "package": "node ./scripts/bundle-cli.js && npm run compile && vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {

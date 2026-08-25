@@ -80,6 +80,7 @@
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
     <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
     <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
+    <button id="llmBtn" type="button" title="Connect an LLM or ask about this review path">LLM</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -159,6 +160,44 @@
     </aside>
   </section>
   <section id="coverage"></section>
+  <aside id="llmPane" hidden>
+    <div class="llm-head">
+      <b>Ask</b>
+      <span id="llmStatus">No host yet — graph answers still work. Agents never stamp.</span>
+      <button type="button" id="llmClose" title="Close Ask">Close</button>
+    </div>
+    <form id="llmConnect" class="llm-connect">
+      <label>Host
+        <select id="llmPreset">
+          <option value="ollama">Local Ollama · 11434</option>
+          <option value="lmstudio">Local LM Studio · 1234</option>
+          <option value="llamacpp">Local llama.cpp · 8080</option>
+          <option value="openai">OpenAI</option>
+          <option value="custom">Custom URL</option>
+        </select>
+      </label>
+      <label>Base URL
+        <input id="llmBaseUrl" type="url" spellcheck="false" placeholder="http://127.0.0.1:11434/v1" />
+      </label>
+      <label>Model
+        <input id="llmModel" type="text" spellcheck="false" placeholder="llama3.2" />
+      </label>
+      <label>API key
+        <input id="llmKey" type="password" spellcheck="false" placeholder="empty for most local hosts" />
+      </label>
+      <div class="llm-actions">
+        <button type="button" id="llmSave">Save host</button>
+        <button type="button" id="llmTest">Test</button>
+        <button type="button" id="llmShowKey">Copy bridge key</button>
+      </div>
+      <div id="llmBridge" class="llm-bridge">Bridge off until Review view loads.</div>
+    </form>
+    <div id="llmLog" class="llm-log"></div>
+    <div class="llm-ask-row">
+      <textarea id="llmAsk" rows="2" placeholder="Ask the start → features → end path, a hop, or coverage…"></textarea>
+      <button type="button" id="llmSend">Ask</button>
+    </div>
+  </aside>
   <footer id="status"></footer>
   <div id="probe">waiting for programs message…</div>
   <div id="suite" hidden></div>

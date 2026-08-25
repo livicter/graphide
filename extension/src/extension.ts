@@ -3,9 +3,17 @@ import * as cp from "child_process";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
+import { askReview, LLM_PRESETS, llmConfigured, LlmConfig, testLlmConnection } from "./llm";
+import { BridgeHandle, newBridgeToken, startBridge, stopBridge } from "./bridge";
+
+const SECRET_LLM_KEY = "graphide.llm.apiKey";
+const SECRET_BRIDGE = "graphide.bridge.token";
+
+let reviewProvider: ReviewViewProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new ReviewViewProvider(context);
+  reviewProvider = provider;
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ReviewViewProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -23,13 +31,29 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.skip", () => provider.skipFlow())
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.connectLlm", () => connectLlmWizard(context, provider))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.testLlm", () => provider.testLlm())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.showBridgeKey", () => provider.showBridgeKey())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.rotateBridgeKey", () => provider.rotateBridgeKey())
+  );
   setTimeout(() => {
     const cli = findCli(context);
     if (cli) warmCli(cli);
   }, 0);
+  void provider.ensureBridge();
 }
 
-export function deactivate() {}
+export async function deactivate() {
+  if (reviewProvider) await reviewProvider.disposeBridge();
+  reviewProvider = undefined;
+}
 
 async function openSource(args: {
   file: string;
@@ -64,8 +88,125 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private skipped: string[] = [];
   /** File-projection key `kind\\0name\\0root`. Empty = all programs. */
   private programKey?: string;
+  private bridge?: BridgeHandle;
+  private cachedLlmKey = "";
 
   constructor(private readonly context: vscode.ExtensionContext) {}
+
+  async disposeBridge() {
+    await stopBridge(this.bridge);
+    this.bridge = undefined;
+  }
+
+  async ensureBridge() {
+    const cfg = vscode.workspace.getConfiguration("graphide");
+    if (cfg.get<boolean>("bridge.enabled") === false) {
+      await this.disposeBridge();
+      this.pushLlmStatus();
+      return;
+    }
+    if (this.bridge) {
+      this.pushLlmStatus();
+      return;
+    }
+    const token = await this.bridgeToken();
+    const host = (cfg.get<string>("bridge.host") || "127.0.0.1").trim() || "127.0.0.1";
+    const port = cfg.get<number>("bridge.port") || 8787;
+    try {
+      this.bridge = await startBridge({
+        host,
+        port,
+        token,
+        getSnapshot: () => this.snapshot,
+        getFlowName: () => this.flowName,
+        getLlm: () => this.llmConfigSync(),
+      });
+    } catch (e: any) {
+      void vscode.window.showWarningMessage("Graphide LLM bridge failed to listen: " + (e?.message || e));
+    }
+    this.pushLlmStatus();
+  }
+
+  async bridgeToken(): Promise<string> {
+    let token = await this.context.secrets.get(SECRET_BRIDGE);
+    if (!token) {
+      token = newBridgeToken();
+      await this.context.secrets.store(SECRET_BRIDGE, token);
+    }
+    return token;
+  }
+
+  llmConfigSync(): LlmConfig {
+    const cfg = vscode.workspace.getConfiguration("graphide");
+    return {
+      baseUrl: cfg.get<string>("llm.baseUrl") || "",
+      model: cfg.get<string>("llm.model") || "",
+      apiKey: this.cachedLlmKey,
+    };
+  }
+
+  async refreshLlmKey() {
+    const fromSecret = (await this.context.secrets.get(SECRET_LLM_KEY)) || "";
+    const fromSettings = (vscode.workspace.getConfiguration("graphide").get<string>("llm.apiKey") || "").trim();
+    this.cachedLlmKey = fromSecret || fromSettings;
+  }
+
+  async llmConfig(): Promise<LlmConfig> {
+    await this.refreshLlmKey();
+    return this.llmConfigSync();
+  }
+
+  async showBridgeKey() {
+    await this.ensureBridge();
+    const token = await this.bridgeToken();
+    const url = this.bridge?.url || "http://127.0.0.1:8787/v1";
+    await vscode.env.clipboard.writeText(token);
+    void vscode.window.showInformationMessage(
+      "Bridge " + url + " — API key copied. Point any OpenAI-compatible client here. Agents never stamp."
+    );
+    this.pushLlmStatus();
+  }
+
+  async rotateBridgeKey() {
+    const token = newBridgeToken();
+    await this.context.secrets.store(SECRET_BRIDGE, token);
+    await this.disposeBridge();
+    await this.ensureBridge();
+    await vscode.env.clipboard.writeText(token);
+    void vscode.window.showInformationMessage("Rotated Graphide bridge key and copied it.");
+  }
+
+  async testLlm() {
+    const cfg = await this.llmConfig();
+    const result = await testLlmConnection(cfg);
+    this.view?.webview.postMessage({ ...this.llmStatusPayload(cfg), test: result });
+    if (result.ok) void vscode.window.showInformationMessage("LLM host ok: " + result.detail);
+    else void vscode.window.showWarningMessage("LLM host: " + result.detail);
+    return result;
+  }
+
+  private llmStatusPayload(cfg?: LlmConfig) {
+    const c = cfg || this.llmConfigSync();
+    return {
+      type: "llmStatus",
+      connected: llmConfigured(c),
+      baseUrl: c.baseUrl,
+      model: c.model,
+      hasKey: false,
+      bridge: this.bridge
+        ? { url: this.bridge.url, port: this.bridge.port, host: this.bridge.host }
+        : null,
+    };
+  }
+
+  pushLlmStatus() {
+    void this.llmConfig().then((cfg) => {
+      this.view?.webview.postMessage({
+        ...this.llmStatusPayload(cfg),
+        hasKey: !!cfg.apiKey,
+      });
+    });
+  }
 
   get extensionUri() {
     return this.context.extensionUri;
@@ -122,10 +263,46 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         this.writeStamp(msg.flow);
       } else if (msg.type === "skip") {
         this.skipFlow(msg.flow);
+      } else if (msg.type === "llmAsk") {
+        await this.handleLlmAsk(msg.prompt);
+      } else if (msg.type === "llmSave") {
+        await this.saveLlmFromWebview(msg);
+      } else if (msg.type === "llmTest") {
+        await this.testLlm();
+      } else if (msg.type === "llmStatus") {
+        this.pushLlmStatus();
+      } else if (msg.type === "llmShowKey") {
+        await this.showBridgeKey();
+      } else if (msg.type === "llmRotateKey") {
+        await this.rotateBridgeKey();
       }
     });
     if (this.snapshot) this.pushState();
     else this.notifySetup();
+    void this.ensureBridge();
+  }
+
+  private async handleLlmAsk(prompt: string) {
+    try {
+      const cfg = await this.llmConfig();
+      const result = await askReview(this.snapshot, String(prompt || ""), cfg, this.flowName);
+      this.view?.webview.postMessage({ type: "llmReply", prompt, ...result });
+    } catch (e: any) {
+      this.view?.webview.postMessage({ type: "llmError", text: e?.message || String(e) });
+    }
+  }
+
+  private async saveLlmFromWebview(msg: any) {
+    const cfg = vscode.workspace.getConfiguration("graphide");
+    if (typeof msg.baseUrl === "string") await cfg.update("llm.baseUrl", msg.baseUrl, vscode.ConfigurationTarget.Global);
+    if (typeof msg.model === "string") await cfg.update("llm.model", msg.model, vscode.ConfigurationTarget.Global);
+    if (typeof msg.apiKey === "string") {
+      if (msg.apiKey) await this.context.secrets.store(SECRET_LLM_KEY, msg.apiKey);
+      else await this.context.secrets.delete(SECRET_LLM_KEY);
+      this.cachedLlmKey = msg.apiKey || "";
+    }
+    await this.refreshLlmKey();
+    this.pushLlmStatus();
   }
 
   cancelReview() {
@@ -383,6 +560,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
 
   private pushState() {
     if (!this.view) return;
+    this.pushLlmStatus();
     const top = this.stack[this.stack.length - 1];
     if (!this.snapshot) {
       this.view.webview.postMessage({ type: "empty" });
@@ -463,6 +641,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
     <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
     <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
+    <button id="llmBtn" type="button" title="Connect an LLM or ask about this review path">LLM</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -542,6 +721,44 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     </aside>
   </section>
   <section id="coverage"></section>
+  <aside id="llmPane" hidden>
+    <div class="llm-head">
+      <b>Ask</b>
+      <span id="llmStatus">No host yet — graph answers still work. Agents never stamp.</span>
+      <button type="button" id="llmClose" title="Close Ask">Close</button>
+    </div>
+    <form id="llmConnect" class="llm-connect">
+      <label>Host
+        <select id="llmPreset">
+          <option value="ollama">Local Ollama · 11434</option>
+          <option value="lmstudio">Local LM Studio · 1234</option>
+          <option value="llamacpp">Local llama.cpp · 8080</option>
+          <option value="openai">OpenAI</option>
+          <option value="custom">Custom URL</option>
+        </select>
+      </label>
+      <label>Base URL
+        <input id="llmBaseUrl" type="url" spellcheck="false" placeholder="http://127.0.0.1:11434/v1" />
+      </label>
+      <label>Model
+        <input id="llmModel" type="text" spellcheck="false" placeholder="llama3.2" />
+      </label>
+      <label>API key
+        <input id="llmKey" type="password" spellcheck="false" placeholder="empty for most local hosts" />
+      </label>
+      <div class="llm-actions">
+        <button type="button" id="llmSave">Save host</button>
+        <button type="button" id="llmTest">Test</button>
+        <button type="button" id="llmShowKey">Copy bridge key</button>
+      </div>
+      <div id="llmBridge" class="llm-bridge">Bridge off until Review view loads.</div>
+    </form>
+    <div id="llmLog" class="llm-log"></div>
+    <div class="llm-ask-row">
+      <textarea id="llmAsk" rows="2" placeholder="Ask the start → features → end path, a hop, or coverage…"></textarea>
+      <button type="button" id="llmSend">Ask</button>
+    </div>
+  </aside>
   <footer id="status"></footer>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
@@ -815,6 +1032,43 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
   }
   vscode.window.showInformationMessage("Graphide is ready. Open the Graphide view and click Review.");
   provider?.notifySetup();
+}
+
+async function connectLlmWizard(context: vscode.ExtensionContext, provider: ReviewViewProvider) {
+  const picked = await vscode.window.showQuickPick(
+    LLM_PRESETS.map((p) => ({ label: p.label, description: p.baseUrl, id: p.id, model: p.model, baseUrl: p.baseUrl })),
+    { title: "Graphide: LLM host", placeHolder: "Local Ollama, LM Studio, llama.cpp, or a cloud API" }
+  );
+  if (!picked) return;
+  const baseUrl = await vscode.window.showInputBox({
+    title: "LLM base URL (OpenAI-compatible /v1)",
+    value: picked.baseUrl,
+    ignoreFocusOut: true,
+  });
+  if (baseUrl === undefined) return;
+  const model = await vscode.window.showInputBox({
+    title: "Model name",
+    value: picked.model,
+    ignoreFocusOut: true,
+  });
+  if (model === undefined) return;
+  const apiKey = await vscode.window.showInputBox({
+    title: "API key (empty for most local hosts)",
+    password: true,
+    ignoreFocusOut: true,
+    prompt: "Stored in Secret Storage. Not written into the review graph.",
+  });
+  if (apiKey === undefined) return;
+  const cfg = vscode.workspace.getConfiguration("graphide");
+  await cfg.update("llm.baseUrl", baseUrl, vscode.ConfigurationTarget.Global);
+  await cfg.update("llm.model", model, vscode.ConfigurationTarget.Global);
+  if (apiKey) await context.secrets.store(SECRET_LLM_KEY, apiKey);
+  else await context.secrets.delete(SECRET_LLM_KEY);
+  await provider.refreshLlmKey();
+  const test = await provider.testLlm();
+  if (test.ok) {
+    void vscode.window.showInformationMessage("LLM connected. Ask from the Review LLM panel.");
+  }
 }
 
 type StreamEvent = { kind: "progress" | "preview"; data: any };

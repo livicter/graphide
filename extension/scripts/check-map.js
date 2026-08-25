@@ -94,6 +94,8 @@ assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a 
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
 assert(js.includes("maxRows > 4 || buckets.length > maxCols"), "tall ranks must pack into a compact wrap");
 assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
+assert(ext.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
+assert(js.includes("function sendLlmAsk"), "LLM Ask must be wired in the webview");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 
 const fakeNames = [

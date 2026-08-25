@@ -210,6 +210,90 @@ button:disabled { opacity: 0.45; cursor: default; }
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 #graphBar[hidden] { display: none; }
+#llmBtn {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+}
+#llmPane {
+  border-top: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, #000);
+  padding: 8px 10px 10px;
+  max-height: 42vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#llmPane[hidden] { display: none; }
+.llm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.llm-head b { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+#llmStatus { opacity: 0.7; flex: 1; font-size: 11px; }
+#llmClose {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+}
+.llm-connect {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px 10px;
+  align-items: end;
+}
+.llm-connect label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.llm-connect input, .llm-connect select {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  padding: 4px 6px;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.llm-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; }
+.llm-actions button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+}
+.llm-bridge { grid-column: 1 / -1; font-size: 11px; opacity: 0.7; }
+.llm-log {
+  min-height: 64px;
+  max-height: 140px;
+  overflow: auto;
+  border: 1px solid var(--vscode-panel-border);
+  padding: 6px 8px;
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+.llm-msg { margin: 0 0 6px; }
+.llm-msg.user { opacity: 0.7; }
+.llm-msg.ok { color: #3fb950; }
+.llm-msg.err { color: var(--vscode-errorForeground); }
+.llm-msg.graph { color: #9cdcfe; }
+.llm-ask-row { display: flex; gap: 8px; }
+#llmAsk {
+  flex: 1;
+  resize: vertical;
+  min-height: 44px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  padding: 6px 8px;
+  font: inherit;
+}
 .workspaces {
   display: flex;
   flex-wrap: wrap;
