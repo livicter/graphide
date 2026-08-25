@@ -9,6 +9,11 @@ html, body {
   --g-ty: #d4784a;
   --g-ep: #3ecf7a;
   --g-line: color-mix(in srgb, var(--vscode-foreground) 28%, transparent);
+  --g-radius: 10px;
+  --g-radius-sm: 7px;
+  --g-lift: 0 10px 28px color-mix(in srgb, #000 38%, transparent);
+  --g-inset: inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent);
+  letter-spacing: 0.01em;
 }
 header {
   display: flex; align-items: center; gap: 8px;
@@ -53,14 +58,15 @@ button:disabled { opacity: 0.45; cursor: default; }
   position: fixed;
   z-index: 20;
   max-width: 280px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: var(--g-radius-sm, 7px);
   font-size: 11px;
   pointer-events: none;
-  background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background));
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 92%, transparent);
   color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
   border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  box-shadow: var(--g-lift, 0 4px 16px rgba(0,0,0,0.25));
+  backdrop-filter: blur(10px);
 }
 #progress {
   display: grid;
@@ -206,8 +212,10 @@ button:disabled { opacity: 0.45; cursor: default; }
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, transparent);
+  backdrop-filter: blur(10px);
 }
 #graphBar[hidden] { display: none; }
 #llmBtn {
@@ -893,9 +901,11 @@ svg.steiner .edge-hit {
   will-change: transform;
 }
 #status {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-top: 1px solid var(--vscode-panel-border);
   font-size: 11px; opacity: 0.75;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, transparent);
 }
 .prog-map {
   position: relative;
@@ -1403,10 +1413,178 @@ svg.steiner path.on-path {
 @keyframes bubbleIn { to { transform: scale(1.18); opacity: 0.15; } }
 code { font-size: 11px; }
 
+/* Modern interactive chrome — tokens stay VS Code theme-aware. */
+header {
+  padding: 9px 12px;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 82%, transparent);
+}
+.brand {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+}
+header > button {
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 11px;
+}
+#reviewBtn {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-button-background) 40%, transparent),
+    0 6px 16px color-mix(in srgb, var(--vscode-button-background) 28%, transparent);
+}
+#promptRow { padding: 8px 12px; }
+#prompt, #graphSearch, .llm-connect input, .llm-connect select, #llmAsk, .ego-hops select {
+  border-radius: var(--g-radius-sm);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+#prompt:focus, #graphSearch:focus, .llm-connect input:focus, .llm-connect select:focus, #llmAsk:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vscode-focusBorder) 28%, transparent);
+}
+.tab, .workspaces button, #egoBtn, #reorgBtn, .reorg-btn, .leg, .feat-chip {
+  border-radius: 999px;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.workspaces {
+  gap: 6px;
+  padding: 2px;
+}
+.workspaces button {
+  padding: 4px 11px;
+}
+.workspaces button.on, .tab.on, #egoBtn.on, .leg.on {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 18%, transparent);
+  box-shadow: var(--g-inset), 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
+}
+.tab:hover:not(:disabled), .workspaces button:hover, #egoBtn:hover, .reorg-btn:hover, .leg:hover {
+  transform: translateY(-1px);
+}
+.stage {
+  border-radius: var(--g-radius);
+  background:
+    radial-gradient(220px 180px at var(--mx, 50%) var(--my, 40%), color-mix(in srgb, var(--vscode-focusBorder) 16%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--vscode-foreground) 10%, transparent) 1px, transparent 0);
+  background-size: auto, 18px 18px;
+}
+#canvas.has-stage.explorer-list .stage {
+  border-radius: var(--g-radius);
+  box-shadow: var(--g-inset), 0 12px 40px color-mix(in srgb, #000 28%, transparent);
+}
+.bubble-card, .comm-node, .steiner-wrap .vnode, .expl-card, .chain-step, .tl-item, .prog-chip, .ws-detail {
+  border-radius: var(--g-radius-sm);
+}
+.bubble-card, .comm-node, .steiner-wrap .vnode {
+  transition: transform 160ms ease, box-shadow 160ms ease, outline-color 160ms ease, filter 160ms ease;
+  box-shadow: var(--g-inset);
+}
+.bubble-card:hover:not(.dragging):not(.dim),
+.comm-node:hover:not(.dragging):not(.dim),
+.steiner-wrap .vnode:hover:not(.dragging):not(.dim) {
+  transform: translate(-50%, calc(-50% - 5px)) scale(1.04);
+  box-shadow: var(--g-lift), 0 0 0 1px color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 55%, transparent);
+  z-index: 5;
+  filter: saturate(1.08);
+}
+.bubble-card.dragging, .comm-node.dragging, .steiner-wrap .vnode.dragging {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: var(--g-lift);
+}
+.feat-chip:hover, .expl-card:hover, .chain-step:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--g-lift);
+}
+.prog-chip:hover:not(.on) {
+  transform: translate(-50%, calc(-50% - 4px)) scale(1.03);
+  box-shadow: var(--g-lift);
+}
+.feat-chip:active, .expl-card:active, .workspaces button:active, .workspaces button.press {
+  transform: translateY(0) scale(0.98);
+}
+.feat-chip {
+  animation: rise 260ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 36ms);
+}
+.feat-chip.start {
+  box-shadow: 0 0 0 1px #3fb950, 0 0 16px color-mix(in srgb, #3fb950 28%, transparent);
+}
+.feat-chip.end {
+  box-shadow: 0 0 0 1px #569cd6, 0 0 16px color-mix(in srgb, #569cd6 28%, transparent);
+}
+.feature-path {
+  border-radius: var(--g-radius);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 70%, transparent), color-mix(in srgb, var(--vscode-editor-background) 92%, #000));
+  box-shadow: var(--g-inset);
+}
+.stat-strip span {
+  padding: 6px 10px 7px;
+  border-radius: var(--g-radius-sm);
+  background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
+}
+.comm-wrap svg.comm-edges path {
+  transition: stroke 140ms ease, opacity 140ms ease, stroke-width 140ms ease;
+}
+.comm-wrap svg.comm-edges path.hot,
+svg.steiner .edge.hot {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--vscode-textLink-foreground) 55%, transparent));
+}
+#llmPane {
+  border-radius: var(--g-radius) var(--g-radius) 0 0;
+  box-shadow: 0 -12px 40px color-mix(in srgb, #000 32%, transparent);
+  transform: translateY(8px);
+  opacity: 0.92;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+#llmPane.open {
+  transform: none;
+  opacity: 1;
+}
+.llm-log {
+  border-radius: var(--g-radius-sm);
+  background: color-mix(in srgb, var(--vscode-editor-background) 70%, #000);
+}
+.llm-msg {
+  padding: 6px 8px;
+  border-radius: 8px;
+  max-width: 92%;
+}
+.llm-msg.user {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--vscode-focusBorder) 16%, transparent);
+}
+.llm-msg.graph, .llm-msg.llm {
+  background: color-mix(in srgb, var(--vscode-editor-background) 40%, transparent);
+}
+#ledgerGrid .cell {
+  border-radius: 6px;
+  transition: background 120ms ease, transform 120ms ease;
+}
+#ledgerGrid .cell:hover { transform: translateY(-1px); }
+#hopCard {
+  border-radius: 0 0 var(--g-radius-sm) var(--g-radius-sm);
+}
+button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubble-card:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
   }
   #progressFill { transition: none; }
+  .bubble-card:hover:not(.dragging),
+  .comm-node:hover:not(.dragging),
+  .steiner-wrap .vnode:hover:not(.dragging) {
+    transform: translate(-50%, -50%);
+    box-shadow: none;
+  }
+  .stage { background-image: none; }
+  .prog-chip:hover:not(.on) {
+    transform: translate(-50%, -50%);
+    box-shadow: none;
+  }
 }

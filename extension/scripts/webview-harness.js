@@ -584,8 +584,10 @@
       zin.click();
       zin.click();
       zin.click();
+      zin.click();
+      zin.click();
     }
-    await later(40);
+    await later(80);
     const zoomHops = (document.getElementById("zoomPct") || {}).textContent || "";
     check("J4", "Deep zoom names hops or source LOD", /hops|source/i.test(zoomHops), zoomHops);
     if (zfit) zfit.click();
@@ -762,14 +764,18 @@
     await later(40);
     const mapTitle = (document.querySelector(".flow-title") || {}).textContent || "";
     check("M2", "Map title is the start → features story", /Start → features/i.test(mapTitle), mapTitle);
+    const glowStage = document.querySelector(".stage");
+    check("O1", "Map stage tracks the pointer for the interactive glow", !!(glowStage && glowStage.dataset.uiBound), "");
     const firstName = ((document.querySelector(".bubble-card .name") || {}).textContent || "").toLowerCase();
     check("M3", "First Map community is the start of the control-flow walk", /render/i.test(firstName), firstName);
 
     clickWs("overview");
     const llmBtn = document.getElementById("llmBtn");
+    const beforeLlm = (window.__vscodePosts || []).length;
     if (llmBtn) llmBtn.click();
     await later(40);
     check("N1", "LLM Ask panel opens from the LLM button", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
+    check("O2", "Ask panel uses the open slide class", !!(document.getElementById("llmPane") && document.getElementById("llmPane").classList.contains("open")), "");
     check("N2", "Connect form has host URL, model, and API key", !!(document.getElementById("llmBaseUrl") && document.getElementById("llmModel") && document.getElementById("llmKey")), "");
     const urlBox = document.getElementById("llmBaseUrl");
     if (urlBox) urlBox.value = "http://127.0.0.1:11434/v1";
@@ -777,8 +783,8 @@
     if (modelBox) modelBox.value = "llama3.2";
     const saveHost = document.getElementById("llmSave");
     if (saveHost) saveHost.click();
-    const posts = window.__vscodePosts || [];
-    check("N3", "Save host posts llmSave (never a stamp)", posts.some((m) => m && m.type === "llmSave") && !posts.some((m) => m && m.type === "stamp"), JSON.stringify(posts.filter((m) => m && /^llm|stamp/.test(m.type)).slice(-3)));
+    const llmPosts = (window.__vscodePosts || []).slice(beforeLlm);
+    check("N3", "Save host posts llmSave (never a stamp)", llmPosts.some((m) => m && m.type === "llmSave") && !llmPosts.some((m) => m && m.type === "stamp"), JSON.stringify(llmPosts.filter((m) => m && /^llm|stamp/.test(m.type)).slice(-3)));
     const askBox = document.getElementById("llmAsk");
     const sendBtn = document.getElementById("llmSend");
     if (askBox) askBox.value = "Tell the start to end control-flow path";
@@ -786,11 +792,13 @@
     await later(220);
     const logText = (document.getElementById("llmLog") || {}).textContent || "";
     check("N4", "Ask returns a start → features → end graph answer", /Start → features → end/i.test(logText) && /never stamp/i.test(logText), logText.slice(0, 160));
-    check("N5", "Ask does not post a stamp", !(window.__vscodePosts || []).some((m) => m && m.type === "stamp"), "");
+    check("N5", "Ask does not post a stamp", !(window.__vscodePosts || []).slice(beforeLlm).some((m) => m && m.type === "stamp"), "");
     if (askBox) askBox.blur();
     document.body.focus();
     key("l");
     check("N6", "Key L toggles the Ask panel", document.getElementById("llmPane") && document.getElementById("llmPane").hidden, "hidden=" + !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden));
+    const radius = getComputedStyle(document.body).getPropertyValue("--g-radius");
+    check("O3", "Modern radius tokens are live", /px/.test(radius), radius);
 
     const failed = rows.filter((r) => !r.pass);
     const html =

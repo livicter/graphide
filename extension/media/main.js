@@ -246,7 +246,11 @@ if (kindFilters)
   });
 if (workspacesEl) {
   workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
-    el.onclick = () => setWorkspace(el.getAttribute("data-ws"), true);
+    el.onclick = () => {
+      el.classList.add("press");
+      window.setTimeout(() => el.classList.remove("press"), 160);
+      setWorkspace(el.getAttribute("data-ws"), true);
+    };
   });
 }
 if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
@@ -847,6 +851,18 @@ function bindStage(stage, opts) {
     resetCam();
     requestAnimationFrame(() => fitChart());
   } else applyCam();
+  if (stage && !stage.dataset.uiBound) {
+    stage.dataset.uiBound = "1";
+    stage.addEventListener("pointermove", (e) => {
+      const r = stage.getBoundingClientRect();
+      stage.style.setProperty("--mx", e.clientX - r.left + "px");
+      stage.style.setProperty("--my", e.clientY - r.top + "px");
+    });
+    stage.addEventListener("pointerleave", () => {
+      stage.style.setProperty("--mx", "50%");
+      stage.style.setProperty("--my", "40%");
+    });
+  }
   stage.addEventListener(
     "wheel",
     (e) => {
@@ -2114,6 +2130,8 @@ function renderFeaturePathHtml() {
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
+        '" style="--i:' +
+        i +
         '" data-feature="' +
         esc(idVal(b.id)) +
         '">' +
@@ -3642,6 +3660,17 @@ function renderBubbleMap(clusters) {
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
   const wrap = canvas.querySelector(".comm-wrap");
+  canvas.querySelectorAll(".bubble-card").forEach((el) => {
+    const id = el.getAttribute("data-bubble");
+    el.addEventListener("pointerenter", () => {
+      canvas.querySelectorAll(".comm-edges path").forEach((p) => {
+        p.classList.toggle("hot", p.getAttribute("data-from") === id || p.getAttribute("data-to") === id);
+      });
+    });
+    el.addEventListener("pointerleave", () => {
+      canvas.querySelectorAll(".comm-edges path.hot").forEach((p) => p.classList.remove("hot"));
+    });
+  });
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
     onClick: (id) => {
@@ -4379,6 +4408,8 @@ function enterBubble(snap, flowName, bubbleId) {
 function setLlmPane(on) {
   if (!llmPane) return;
   llmPane.hidden = !on;
+  llmPane.classList.toggle("open", !!on);
+  document.body.classList.toggle("llm-open", !!on);
   if (on) {
     vscode.postMessage({ type: "llmStatus" });
     if (llmAsk) llmAsk.focus();
