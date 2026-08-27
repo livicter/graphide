@@ -1713,6 +1713,46 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
 #skipBtn.flash-skip {
   box-shadow: 0 0 0 1px var(--vscode-focusBorder), 0 0 16px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
 }
+.feature-path-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 8px;
+}
+.feature-path-head .feature-path-label { margin-bottom: 0; }
+.path-walk {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.path-walk button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.path-walk button.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+}
+#pathWalkMeta { font-size: 11px; opacity: 0.65; }
+.feat-chip.walk, .bubble-card.walk, .comm-node.walk, .steiner-wrap .vnode.walk {
+  box-shadow: 0 0 0 1px var(--vscode-textLink-foreground), 0 0 20px color-mix(in srgb, var(--vscode-textLink-foreground) 36%, transparent);
+  z-index: 5;
+}
+.comm-wrap svg.comm-edges path.walk,
+svg.steiner .edge.walk {
+  stroke: var(--vscode-textLink-foreground);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--vscode-textLink-foreground) 55%, transparent));
+}
 .feat-chip.here, .bubble-card.here {
   box-shadow: 0 0 0 1px var(--vscode-textLink-foreground), 0 0 18px color-mix(in srgb, var(--vscode-textLink-foreground) 28%, transparent);
 }

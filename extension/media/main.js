@@ -117,6 +117,7 @@ let egoHops = 1;
 let selectedDecisionKey = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
+let pathWalk = { i: -1, playing: false, timer: 0 };
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 const CAM_MIN = 0.35;
@@ -236,6 +237,23 @@ document.addEventListener("keydown", (e) => {
     setKeysPane(!(keysPane && !keysPane.hidden));
     return;
   }
+  if (e.key === "p" || e.key === "P") {
+    e.preventDefault();
+    togglePathWalk();
+    return;
+  }
+  if (e.key === "[") {
+    e.preventDefault();
+    stopPathWalk();
+    stepPathWalk(pathWalk.i < 0 ? 1 : -1);
+    return;
+  }
+  if (e.key === "]") {
+    e.preventDefault();
+    stopPathWalk();
+    stepPathWalk(1);
+    return;
+  }
   const wsIdx = "1234567".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
@@ -342,6 +360,7 @@ function startReview() {
 window.addEventListener("message", (event) => {
   const msg = event.data;
   if (msg.type === "empty") {
+    stopPathWalk();
     snapshot = null;
     finishWork();
     backBtn.disabled = true;
@@ -2215,11 +2234,144 @@ function renderFeaturePathHtml() {
     .join("");
   return (
     '<div class="feature-path">' +
+    '<div class="feature-path-head">' +
     '<div class="feature-path-label">Start → features → end</div>' +
+    '<div class="path-walk" role="group" aria-label="Walk the feature path">' +
+    '<button type="button" id="pathWalkPrev" title="Previous feature ([)">Prev</button>' +
+    '<button type="button" id="pathWalkBtn" title="Play start → features → end (P)">Play</button>' +
+    '<button type="button" id="pathWalkNext" title="Next feature (])">Next</button>' +
+    '<span id="pathWalkMeta">Play the start → features → end walk</span>' +
+    "</div></div>" +
     '<div class="feature-path-row">' +
     chips +
     "</div></div>"
   );
+}
+
+function pathWalkStops() {
+  return featurePath(storyFlow());
+}
+
+function stopPathWalk() {
+  pathWalk.playing = false;
+  if (pathWalk.timer) {
+    clearInterval(pathWalk.timer);
+    pathWalk.timer = 0;
+  }
+  applyPathWalkPaint();
+}
+
+function stepPathWalk(delta) {
+  const stops = pathWalkStops();
+  if (!stops.length) return;
+  let i = pathWalk.i + delta;
+  if (i < 0) i = 0;
+  if (i >= stops.length) {
+    i = stops.length - 1;
+    stopPathWalk();
+  }
+  pathWalk.i = i;
+  applyPathWalkPaint();
+}
+
+function togglePathWalk() {
+  if (pathWalk.playing) {
+    const stops = pathWalkStops();
+    stopPathWalk();
+    if (pathWalk.i >= 0) {
+      flashToast("Paused · " + (pathWalk.i + 1) + "/" + stops.length, "ok");
+    }
+    return;
+  }
+  const stops = pathWalkStops();
+  if (!stops.length) {
+    flashToast("No start → features → end path yet", "skip");
+    return;
+  }
+  const replay = pathWalk.i >= stops.length - 1;
+  if (pathWalk.i < 0 || replay) pathWalk.i = -1;
+  if (reduceMotion()) {
+    stepPathWalk(1);
+    return;
+  }
+  pathWalk.playing = true;
+  flashToast(replay ? "Replaying start → features → end" : "Walking start → features → end", "ok");
+  stepPathWalk(1);
+  pathWalk.timer = setInterval(() => {
+    const next = pathWalkStops();
+    if (pathWalk.i >= next.length - 1) {
+      stopPathWalk();
+      flashToast("End · start → features → end", "ok");
+      return;
+    }
+    stepPathWalk(1);
+  }, 720);
+}
+
+function applyPathWalkPaint() {
+  const stops = pathWalkStops();
+  const cur = pathWalk.i >= 0 ? stops[pathWalk.i] : null;
+  const bid = cur ? idVal(cur.id) : "";
+  document.querySelectorAll(".feat-chip").forEach((el) => {
+    const on = !!bid && el.getAttribute("data-feature") === bid;
+    el.classList.toggle("walk", on);
+    if (on) el.classList.add("here");
+  });
+  document.querySelectorAll(".bubble-card").forEach((el) => {
+    el.classList.toggle("walk", !!bid && el.getAttribute("data-bubble") === bid);
+  });
+  document.querySelectorAll(".vnode, .comm-node").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const b = id ? bubbleOf(id) : null;
+    el.classList.toggle("walk", !!(bid && b && idVal(b.id) === bid));
+  });
+  document.querySelectorAll(".comm-edges path, svg.steiner .edge").forEach((p) => {
+    if (!bid) {
+      p.classList.remove("walk");
+      return;
+    }
+    const a = p.getAttribute("data-from");
+    const t = p.getAttribute("data-to");
+    const ba = a && bubbleOf(a);
+    const bt = t && bubbleOf(t);
+    const hot = !!(
+      (ba && idVal(ba.id) === bid) ||
+      (bt && idVal(bt.id) === bid) ||
+      p.getAttribute("data-from") === bid ||
+      p.getAttribute("data-to") === bid
+    );
+    p.classList.toggle("walk", hot);
+    if (hot) p.classList.add("hot");
+  });
+  const play = document.getElementById("pathWalkBtn");
+  if (play) {
+    play.classList.toggle("on", !!pathWalk.playing);
+    play.textContent = pathWalk.playing ? "Pause" : "Play";
+  }
+  const metaEl = document.getElementById("pathWalkMeta");
+  if (metaEl) {
+    metaEl.textContent = cur
+      ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature")
+      : "Play the start → features → end walk";
+  }
+}
+
+function bindPathWalk() {
+  const play = document.getElementById("pathWalkBtn");
+  const prev = document.getElementById("pathWalkPrev");
+  const next = document.getElementById("pathWalkNext");
+  if (play) play.onclick = () => togglePathWalk();
+  if (prev)
+    prev.onclick = () => {
+      stopPathWalk();
+      stepPathWalk(pathWalk.i < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopPathWalk();
+      stepPathWalk(1);
+    };
+  applyPathWalkPaint();
 }
 
 function colorOfBubble(b) {
@@ -2943,6 +3095,7 @@ function renderExplorerList(ws) {
   });
   canvas.querySelectorAll("[data-feature]").forEach((el) => {
     el.onclick = () => {
+      stopPathWalk();
       graphFilter.bubble = el.getAttribute("data-feature");
       selectedNodeId = null;
       explorerWs = "map";
@@ -2950,6 +3103,7 @@ function renderExplorerList(ws) {
       renderProgramOverview();
     };
   });
+  bindPathWalk();
 }
 
 function renderCardList(rows, empty) {
@@ -3770,6 +3924,7 @@ function renderBubbleMap(clusters) {
     if (sample.length >= 48) break;
   }
   renderLedger(sample, { selected: selectedNodeId });
+  applyPathWalkPaint();
 }
 
 function bubblePreviewMembers(b, max) {
@@ -3984,6 +4139,7 @@ function renderFlowchart(msg, opts) {
   const treeIds = (flow.tree?.nodes || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(msg.graph, id), fqn: fqnOf(msg.graph, id) });
   renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree?.nodes || []).map(idVal)) });
   applyEgoPaint();
+  applyPathWalkPaint();
 }
 
 function stampBadge(name) {
