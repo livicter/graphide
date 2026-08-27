@@ -1759,12 +1759,19 @@ svg.steiner .edge.walk {
   gap: 6px;
   margin-bottom: 8px;
 }
+.outcome-k {
+  width: 100%;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
 .outcome-filter {
-  background: transparent;
+  background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
   color: inherit;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1781,10 +1788,11 @@ svg.steiner .edge.walk {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--vscode-panel-border);
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-focusBorder);
   border-radius: var(--g-radius);
   background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
+  box-shadow: var(--g-inset);
 }
 .tl-scrub label {
   display: inline-flex;
@@ -1807,10 +1815,11 @@ svg.steiner .edge.walk {
   display: inline-block;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 2px 8px;
   font-size: 10px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
 }
 .mut-holds, .mut-review { border-color: #3fb950; color: #3fb950; }
 .mut-broken, .mut-finding { border-color: var(--vscode-errorForeground); color: var(--vscode-errorForeground); }

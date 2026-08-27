@@ -2918,7 +2918,7 @@ function renderDecisionBody() {
     ["pending", "Pending"],
   ];
   const strip =
-    '<div class="outcome-strip" role="tablist" aria-label="Decision outcomes">' +
+    '<div class="outcome-strip" role="tablist" aria-label="Decision outcomes"><span class="outcome-k">Outcomes</span>' +
     outcomes
       .map((pair) => {
         const on = decisionOutcomeFilter === pair[0] ? " on" : "";
@@ -3004,7 +3004,7 @@ function renderTimelineBody() {
   return (
     '<div class="tl-page">' +
     '<div class="tl-scrub">' +
-    '<label>Scrub <input id="tlScrub" type="range" min="0" max="' +
+    '<label>Watch this review <input id="tlScrub" type="range" min="0" max="' +
     (ev.length - 1) +
     '" value="' +
     timelineCursor +
