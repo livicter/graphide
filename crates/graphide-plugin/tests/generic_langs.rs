@@ -121,6 +121,19 @@ pub fn subscribe() { helper(); }
 }
 
 #[test]
+fn every_language_query_compiles() {
+    for lang in graphide_plugin::LANGUAGES {
+        let q = tree_sitter::Query::new(&(lang.language)(), lang.queries);
+        assert!(
+            q.is_ok(),
+            "{} query does not compile: {:?}",
+            lang.id,
+            q.err()
+        );
+    }
+}
+
+#[test]
 fn smoke_covers_every_compiled_plugin() {
     let out = graphide_plugin::smoke_plugins().expect("smoke plugins");
     let ids: Vec<_> = out.iter().map(|(id, _)| id.as_str()).collect();

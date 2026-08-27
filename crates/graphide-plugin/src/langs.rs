@@ -100,8 +100,30 @@ pub const C: Lang = Lang {
     extensions: &["c", "h"],
     sep: "::",
     language: || tree_sitter_c::LANGUAGE.into(),
-    queries: C_FAMILY_QUERIES,
+    queries: C_QUERIES,
 };
+
+/// C grammar has no class / qualified / destructor nodes (those are C++ only).
+const C_QUERIES: &str = r#"
+(function_definition
+  declarator: (function_declarator
+    declarator: (identifier) @fn.name)) @fn.def
+
+(function_definition
+  declarator: (pointer_declarator
+    declarator: (function_declarator
+      declarator: (identifier) @fn.name))) @fn.def
+
+(struct_specifier
+  name: (type_identifier) @type.name) @type.def
+
+(call_expression
+  function: [
+    (identifier) @call.name
+    (field_expression
+      field: (field_identifier) @call.name)
+  ]) @call
+"#;
 
 pub const CPP: Lang = Lang {
     id: "cpp@0.1.0",
