@@ -287,41 +287,66 @@
     if (p) p.hidden = true;
   }
 
-  window.postMessage(msg, "*");
-  setTimeout(function () {
-    if (clickProgram) clickMainProgram();
-    if (search) applySearch(search);
-    if (ws) {
-      const on = document.querySelector("#workspaces [data-ws].on");
-      if (!on || on.getAttribute("data-ws") !== ws) {
-        const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
-        if (tab) tab.click();
+  function afterPaint() {
+    setTimeout(function () {
+      if (clickProgram) clickMainProgram();
+      if (search) applySearch(search);
+      if (ws) {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        if (!on || on.getAttribute("data-ws") !== ws) {
+          const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+          if (tab) tab.click();
+        }
       }
-    }
-    if (drill) {
-      const on = document.querySelector("#workspaces [data-ws].on");
-      if (!on || on.getAttribute("data-ws") !== "map") {
-        const mapTab = document.querySelector('#workspaces [data-ws="map"]');
-        if (mapTab) mapTab.click();
+      if (drill) {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        if (!on || on.getAttribute("data-ws") !== "map") {
+          const mapTab = document.querySelector('#workspaces [data-ws="map"]');
+          if (mapTab) mapTab.click();
+        }
+        const card = document.querySelector(".bubble-card");
+        if (card) card.click();
       }
-      const card = document.querySelector(".bubble-card");
-      if (card) card.click();
-    }
-    if (hop) {
-      if (!document.querySelector(".edge-hit, text.ekind")) {
-        const sliceTab = document.querySelector('#workspaces [data-ws="slice"]');
-        if (sliceTab) sliceTab.click();
+      if (hop) {
+        if (!document.querySelector(".edge-hit, text.ekind")) {
+          const sliceTab = document.querySelector('#workspaces [data-ws="slice"]');
+          if (sliceTab) sliceTab.click();
+        }
+        const hit = document.querySelector(".edge-hit, text.ekind");
+        if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       }
-      const hit = document.querySelector(".edge-hit, text.ekind");
-      if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    }
-    if (ego) {
-      const btn = document.getElementById("egoBtn");
-      if (btn) btn.click();
-    }
-    if (!hideProbe) setTimeout(probe, 200);
-    if (params.get("suite") === "1") setTimeout(function () { runFeatureSuite(); }, 400);
-  }, 250);
+      if (ego) {
+        const btn = document.getElementById("egoBtn");
+        if (btn) btn.click();
+      }
+      if (!hideProbe) setTimeout(probe, 200);
+      if (params.get("suite") === "1") setTimeout(function () { runFeatureSuite(); }, 400);
+    }, 250);
+  }
+
+  function loadLiveSnap(done) {
+    fetch("./live-snap.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no live snap");
+        return r.json();
+      })
+      .then(function (snap) {
+        const live = Object.assign({ type: "programs" }, snap);
+        window.__graphideLive = true;
+        window.postMessage(live, "*");
+        done();
+      })
+      .catch(function () {
+        window.postMessage(msg, "*");
+        done();
+      });
+  }
+
+  if (params.get("live") === "1") loadLiveSnap(afterPaint);
+  else {
+    window.postMessage(msg, "*");
+    afterPaint();
+  }
 
   async function runFeatureSuite() {
     const later = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -823,6 +848,17 @@
     check("S1", "Coverage is a review scorecard", !!document.querySelector("#coverage .score") && document.querySelectorAll(".score-chip").length >= 3, "chips=" + document.querySelectorAll(".score-chip").length);
     check("S2", "Desk mode is on after Review", document.body.classList.contains("desk") && !!document.getElementById("nowPill"), "desk=" + document.body.classList.contains("desk"));
     check("S3", "Inspect pane labels Evidence", !!(document.querySelector(".src-k") && /Evidence/i.test((document.querySelector(".src-k") || {}).textContent || "")), "");
+    clickWs("map");
+    if (document.querySelector(".comm-node") && document.getElementById("backBtn") && !document.getElementById("backBtn").disabled) {
+      document.getElementById("backBtn").click();
+    }
+    await later(60);
+    check("T1", "Map shows a start → features story rail", !!document.getElementById("storyRail") && /Start → features → end/i.test((document.getElementById("storyRail") || {}).textContent || ""), (document.getElementById("storyRail") || {}).textContent || "");
+    check("T2", "Now pill names the review altitude", /overview|map|slice|inside|lineage/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
+    clickWs("slice");
+    await later(40);
+    check("T3", "Slice keeps the story rail on the control-flow walk", !!document.getElementById("storyRail"), "");
+    check("T4", "Story rail sits outside the camera viewport", !!(document.getElementById("storyRail") && !document.querySelector(".viewport #storyRail")), "");
 
     const failed = rows.filter((r) => !r.pass);
     const html =

@@ -652,13 +652,25 @@ function reviewMarks() {
   return { names, holds, broken, skipped, pending };
 }
 
+function reviewAltitude() {
+  if (graphFilter.bubble) return "inside";
+  if (explorerWs === "slice") return "slice";
+  if (explorerWs === "map") return "map";
+  if (explorerWs === "overview") return "overview";
+  if (explorerWs === "lineage") return "lineage";
+  return explorerWs || "review";
+}
+
 function nowStripHtml() {
   if (!snapshot) return "";
   const m = reviewMarks();
   const ws = explorerWs || "overview";
+  const alt = reviewAltitude();
   return (
     '<span class="now-pill" id="nowPill">' +
     esc(ws) +
+    " · " +
+    esc(alt) +
     (m.names.length ? " · " + (m.pending ? m.pending + " left" : "queue clear") : "") +
     "</span>"
   );
@@ -1194,7 +1206,12 @@ function paint(opts) {
     return;
   }
   if (explorerWs === "slice") {
-    const flow = currentFlow();
+    let flow = currentFlow();
+    const story = storyFlow();
+    if (story && (flow?.tree?.nodes || []).length < 2 && (story.tree?.nodes || []).length >= 2) {
+      flowName = story.name;
+      flow = story;
+    }
     renderFlowchart(
       {
         flows: snapshot.flows,
@@ -2253,6 +2270,128 @@ function featureRole(step, last) {
   return "";
 }
 
+function bindStoryRail() {
+  canvas.querySelectorAll(".story-rail [data-feature]").forEach((el) => {
+    el.onclick = () => {
+      stopPathWalk();
+      graphFilter.bubble = el.getAttribute("data-feature");
+      selectedNodeId = null;
+      explorerWs = "map";
+      explorerPinned = true;
+      renderProgramOverview();
+    };
+  });
+  canvas.querySelectorAll(".story-rail [data-hop]").forEach((el) => {
+    el.onclick = () => {
+      stopPathWalk();
+      const id = el.getAttribute("data-hop");
+      selectedNodeId = id;
+      const story = storyFlow();
+      if (story && story.name) flowName = story.name;
+      explorerWs = "slice";
+      explorerPinned = true;
+      paint({ animate: "none" });
+      selectNode(id);
+    };
+  });
+}
+
+/** Communities on the Map cut that contain the control-flow walk. */
+function storyMapBubbles() {
+  const shown = mapAltitudeBubbles();
+  if (!shown.length) return featurePath(storyFlow());
+  const seen = new Set();
+  const path = [];
+  for (const id of flowWalk(storyFlow())) {
+    const b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id)));
+    if (!b) continue;
+    const bid = idVal(b.id);
+    if (seen.has(bid)) continue;
+    seen.add(bid);
+    path.push(b);
+  }
+  return path.length ? path : featurePath(storyFlow());
+}
+
+function storyRailPath() {
+  if (explorerWs === "map" && !graphFilter.bubble) return storyMapBubbles();
+  return featurePath(storyFlow());
+}
+
+function storyHopStops() {
+  const hops = [];
+  const seen = new Set();
+  for (const id of flowWalk(storyFlow())) {
+    const sid = idVal(id);
+    if (seen.has(sid)) continue;
+    seen.add(sid);
+    const n = nodeById.get(sid);
+    hops.push({
+      id: sid,
+      label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
+      kind: "hop",
+    });
+  }
+  return hops;
+}
+
+function storyRailStops() {
+  const comm = storyRailPath();
+  if (comm.length >= 2) {
+    return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+  }
+  const hops = storyHopStops();
+  if (hops.length >= 2) return hops;
+  return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+}
+
+function pinStoryClusters(clusters) {
+  const path = storyMapBubbles();
+  const byId = new Map();
+  for (const b of path) byId.set(idVal(b.id), b);
+  for (const b of clusters || []) byId.set(idVal(b.id), b);
+  return [...byId.values()];
+}
+
+function renderStoryRailHtml() {
+  const path = storyRailStops();
+  if (!path.length) return "";
+  const chips = path
+    .map((stop, i) => {
+      const name = shortOf(stop.label) || "feature";
+      const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
+      const hop = stop.kind === "hop";
+      const here = hop
+        ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id)
+          ? " here"
+          : ""
+        : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
+          ? " here"
+          : "";
+      return (
+        (i ? '<span class="path-arrow">→</span>' : "") +
+        '<button type="button" class="feat-chip' +
+        (role ? " " + role : "") +
+        here +
+        '" ' +
+        (hop ? "data-hop" : "data-feature") +
+        '="' +
+        esc(idVal(stop.id)) +
+        '">' +
+        esc((i === 0 ? "START · " : i === path.length - 1 ? "END · " : "") + name) +
+        "</button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="story-rail" id="storyRail">' +
+    '<div class="story-rail-label">Start → features → end</div>' +
+    '<div class="story-rail-row">' +
+    chips +
+    "</div></div>"
+  );
+}
+
 function renderFeaturePathHtml() {
   const path = featurePath(storyFlow());
   if (!path.length) return "";
@@ -2357,7 +2496,9 @@ function applyPathWalkPaint() {
   const cur = pathWalk.i >= 0 ? stops[pathWalk.i] : null;
   const bid = cur ? idVal(cur.id) : "";
   document.querySelectorAll(".feat-chip").forEach((el) => {
-    const on = !!bid && el.getAttribute("data-feature") === bid;
+    const on =
+      !!bid &&
+      (el.getAttribute("data-feature") === bid || el.getAttribute("data-hop") === bid);
     el.classList.toggle("walk", on);
     if (on) el.classList.add("here");
   });
@@ -3936,9 +4077,9 @@ function renderCommunityGraph() {
 }
 
 function renderBubbleMap(clusters) {
-  const path = featurePath(storyFlow());
+  const path = storyMapBubbles();
   const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
-  clusters = (clusters || [])
+  clusters = pinStoryClusters(clusters || [])
     .slice()
     .sort((a, b) => {
       const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
@@ -4021,6 +4162,7 @@ function renderBubbleMap(clusters) {
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
+    renderStoryRailHtml() +
     '<div class="stage"><div class="viewport" data-lod="0">' +
     '<div class="flow-title">' +
     (pathIds.length
@@ -4073,6 +4215,7 @@ function renderBubbleMap(clusters) {
     if (sample.length >= 48) break;
   }
   renderLedger(sample, { selected: selectedNodeId });
+  bindStoryRail();
   applyPathWalkPaint();
 }
 
@@ -4281,6 +4424,7 @@ function renderFlowchart(msg, opts) {
   const runHtml = renderRuns(flow, msg, playRuns);
   canvas.className = "play has-stage";
   canvas.innerHTML =
+    renderStoryRailHtml() +
     '<div class="stage"><div class="viewport" data-lod="' +
     lodOf(cam.k) +
     '">' +
@@ -4300,6 +4444,7 @@ function renderFlowchart(msg, opts) {
   const treeIds = (flow.tree?.nodes || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(msg.graph, id), fqn: fqnOf(msg.graph, id) });
   renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree?.nodes || []).map(idVal)) });
   applyEgoPaint();
+  bindStoryRail();
   applyPathWalkPaint();
 }
 
