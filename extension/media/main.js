@@ -1147,6 +1147,11 @@ function enterRun(flow, bubble, fromEl) {
   }
 }
 
+function syncBackBtn() {
+  if (!backBtn) return;
+  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+}
+
 function goBack() {
   if (graphFilter.bubble && (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs")) {
     graphFilter.bubble = null;
@@ -1185,7 +1190,7 @@ function paint(opts) {
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
   const top = stack[stack.length - 1];
-  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+  syncBackBtn();
   syncWorkspaces();
   if (top && top.kind === "bubble") {
     const inner = enterBubble(snapshot, top.flow, top.bubble);
@@ -3934,6 +3939,7 @@ function renderProgramOverview() {
       renderProgramOverview();
     };
   setGraphChrome(true);
+  syncBackBtn();
   setLedgerHead("MAP");
   renderLegend();
   renderCommunityGraph();

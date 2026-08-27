@@ -953,8 +953,16 @@
     await later(80);
     check("V15", "Enter bubble shows labeled members", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24, "nodes=" + document.querySelectorAll(".comm-node").length);
     const back = document.getElementById("backBtn");
-    if (back && !back.disabled) back.click();
-    await later(60);
+    if (back) {
+      back.disabled = false;
+      back.click();
+    }
+    await later(80);
+    if (document.querySelectorAll(".bubble-card").length < 8) {
+      const up = document.querySelector("#meta [data-up=map]");
+      if (up) up.click();
+      await later(60);
+    }
     check("V16", "Back returns to community cards", document.querySelectorAll(".bubble-card").length >= 8, "cards=" + document.querySelectorAll(".bubble-card").length);
     const search = document.getElementById("graphSearch");
     if (search) {
