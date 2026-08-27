@@ -51,6 +51,12 @@ assert(js.includes("stage.dataset.uiBound"), "map stage must track the pointer f
 assert(css.includes("translate(-50%, calc(-50% - 5px))"), "card hover must lift without dropping the layout center");
 assert(/\.prog-chip:hover[\s\S]*translate\(-50%/.test(css), "program chips must keep their layout center on hover");
 assert(js.includes('classList.toggle("open"') || js.includes('classList.add("open")'), "Ask panel must animate open");
+assert(js.includes("function flashToast"), "stamp/skip must flash a toast");
+assert(js.includes("function setKeysPane"), "shortcut sheet missing");
+assert(css.includes("#toast"), "toast styles missing");
+assert(css.includes(".search-wrap"), "find field must be a command wrap");
+assert(css.includes(".kind-pill"), "kind filters must be pills");
+assert(ext.includes('id="keysPane"'), "shortcut sheet missing from the webview chrome");
 assert(css.includes(".feat-chip"), "feature chip styles missing");
 assert(js.includes("function defaultLandingWorkspace"), "Review must land on overview when a run exists");
 assert(js.includes("function applyExplorerLanding"), "harness ?ws= must pin the workspace on first paint");
