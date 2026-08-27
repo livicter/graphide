@@ -78,3 +78,59 @@ pub fn has_plugin(path: &str) -> bool {
         .trim_start_matches('.');
     ext.eq_ignore_ascii_case("rs") || langs::for_extension(ext).is_some()
 }
+
+/// Compiled-in derivers: rust plus the query-plugin languages.
+pub fn plugin_manifest() -> Vec<(&'static str, &'static [&'static str])> {
+    let mut out = Vec::with_capacity(1 + langs::ALL.len());
+    out.push((RUST_PLUGIN, &["rs"] as &'static [&'static str]));
+    for lang in langs::ALL {
+        out.push((lang.id, lang.extensions));
+    }
+    out
+}
+
+/// Tiny snippets the installer runs so a missing grammar fails before Review.
+pub fn smoke_plugins() -> Result<Vec<(String, usize)>, PluginError> {
+    const SAMPLES: &[(&str, &str)] = &[
+        (
+            "src/lib.rs",
+            "pub fn helper() {}\npub fn subscribe() { helper(); }\n",
+        ),
+        (
+            "a.py",
+            "def helper():\n    return 1\n\ndef subscribe():\n    helper()\n",
+        ),
+        (
+            "a.js",
+            "function helper() { return 1; }\nfunction subscribe() { helper(); }\n",
+        ),
+        (
+            "a.ts",
+            "function helper(): number { return 1; }\nfunction subscribe(): number { return helper(); }\n",
+        ),
+        (
+            "a.go",
+            "package p\nfunc helper() int { return 1 }\nfunc Subscribe() int { return helper() }\n",
+        ),
+        (
+            "a.c",
+            "int helper(void) { return 1; }\nint subscribe(void) { return helper(); }\n",
+        ),
+        (
+            "a.cpp",
+            "int helper() { return 1; }\nint subscribe() { return helper(); }\n",
+        ),
+    ];
+    let mut out = Vec::new();
+    for (file, src) in SAMPLES {
+        let some = extract_file(file, src)?;
+        let r = some.ok_or_else(|| PluginError::Query(format!("no plugin for {file}")))?;
+        if r.extract.nodes.is_empty() {
+            return Err(PluginError::Query(format!(
+                "{file}: plugin returned no nodes"
+            )));
+        }
+        out.push((r.extract.plugin.clone(), r.extract.nodes.len()));
+    }
+    Ok(out)
+}

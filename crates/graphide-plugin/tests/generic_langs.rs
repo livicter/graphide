@@ -66,6 +66,23 @@ function subscribe(): number { return helper(); }
 }
 
 #[test]
+fn c_call() {
+    let src = r#"
+int helper(void) { return 1; }
+int subscribe(void) { return helper(); }
+"#;
+    let e = extract("sim/core.c", src);
+    assert_eq!(e.plugin, "c@0.1.0");
+    assert!(e
+        .nodes
+        .iter()
+        .any(|n| n.fqn.ends_with("helper") && n.kind == NodeKind::Function));
+    assert!(e.refs.iter().any(
+        |r| r.kind == EdgeKind::Calls && r.to.as_deref().is_some_and(|t| t.ends_with("helper"))
+    ));
+}
+
+#[test]
 fn cpp_call() {
     let src = r#"
 int helper() { return 1; }
@@ -101,6 +118,18 @@ pub fn subscribe() { helper(); }
     let e = extract("src/lib.rs", src);
     assert_eq!(e.plugin, "rust@0.1.0");
     assert!(e.refs.iter().any(|r| r.kind == EdgeKind::Calls));
+}
+
+#[test]
+fn smoke_covers_every_compiled_plugin() {
+    let out = graphide_plugin::smoke_plugins().expect("smoke plugins");
+    let ids: Vec<_> = out.iter().map(|(id, _)| id.as_str()).collect();
+    for (id, _) in graphide_plugin::plugin_manifest() {
+        assert!(
+            ids.contains(&id),
+            "installer smoke skipped compiled plugin {id}"
+        );
+    }
 }
 
 #[test]

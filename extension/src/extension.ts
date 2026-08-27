@@ -340,10 +340,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           cli = findCli(this.context);
         }
         if (!cli) {
-          throw new Error(
-            "Graphide CLI not found (expected %USERPROFILE%\\.graphide\\graphide.exe). " +
-              "Run Graphide: Install (one click), or from the Graphide source repo (not the folder under review) run: cargo build -p graphide-cli --release && install.cmd"
-          );
+          throw new Error(missingCliHint());
         }
       }
       const args = ["review", "--root", root, "--json", "--progress"];
@@ -924,6 +921,19 @@ function exeName() {
   return process.platform === "win32" ? "graphide.exe" : "graphide";
 }
 
+function missingCliHint() {
+  if (process.platform === "win32") {
+    return (
+      "Graphide CLI not found (expected %USERPROFILE%\\.graphide\\graphide.exe). " +
+      "Run Graphide: Install (one click), or from the Graphide source repo (not the folder under review) double-click install.cmd. Works in Cursor and VS Code."
+    );
+  }
+  return (
+    "Graphide CLI not found (expected ~/.graphide/graphide). " +
+    "Run Graphide: Install (one click), or from the Graphide source repo (not the folder under review) run bash install.sh. Works in Cursor and VS Code."
+  );
+}
+
 function homeCliPath() {
   return path.join(os.homedir(), ".graphide", exeName());
 }
@@ -1046,6 +1056,14 @@ async function installGraphide(context: vscode.ExtensionContext, provider?: Revi
   const cli = findCli(context);
   if (!cli) {
     vscode.window.showErrorMessage("Install finished but the CLI is still missing.");
+    return;
+  }
+  try {
+    await runCmd(cli, ["plugins", "--check"], repo);
+  } catch (e) {
+    vscode.window.showErrorMessage(
+      `CLI installed but a language plugin failed: ${e instanceof Error ? e.message : String(e)}`
+    );
     return;
   }
   vscode.window.showInformationMessage("Graphide is ready. Open the Graphide view and click Review.");
