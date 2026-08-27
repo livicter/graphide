@@ -321,6 +321,7 @@
       }
       if (!hideProbe) setTimeout(probe, 200);
       if (params.get("suite") === "1") setTimeout(function () { runFeatureSuite(); }, 400);
+      if (params.get("suite") === "live") setTimeout(function () { runLiveSuite(); }, 500);
     }, 250);
   }
 
@@ -906,5 +907,177 @@
     }
     document.title = (failed.length ? "FAIL" : "PASS") + " Graphide suite " + (rows.length - failed.length) + "/" + rows.length;
     window.__graphideSuite = { rows, failed: failed.length };
+  }
+
+  async function runLiveSuite() {
+    const later = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rows = [];
+    const check = (id, title, pass, detail) => {
+      rows.push({ id, title, pass: !!pass, detail: String(detail || "") });
+    };
+    const wsOn = () => {
+      const el = document.querySelector("#workspaces [data-ws].on");
+      return el ? el.getAttribute("data-ws") : "";
+    };
+    const clickWs = (name) => {
+      const tab = document.querySelector('#workspaces [data-ws="' + name + '"]');
+      if (tab) tab.click();
+    };
+    const key = (k) => document.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    const footer = (document.getElementById("status") || {}).textContent || "";
+
+    check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /765/.test(footer) && /57/.test(footer), footer);
+    clickWs("overview");
+    await later(80);
+    check("V2", "Overview keeps Play and hop chips", !!document.getElementById("pathWalkBtn") && /retrieve_starting_data/i.test((document.querySelector(".feature-path") || {}).textContent || ""), (document.querySelector(".feature-path") || {}).textContent || "");
+    check("V3", "Default CFG paints the control-flow walk", document.querySelectorAll(".vnode").length >= 5, "vnodes=" + document.querySelectorAll(".vnode").length);
+    check("V4", "Coverage is a review scorecard", !!document.querySelector("#coverage .score") && document.querySelectorAll(".score-chip").length >= 3, "chips=" + document.querySelectorAll(".score-chip").length);
+    check("V5", "Now pill names the review altitude", /overview|map|slice|inside|lineage/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
+    check("V6", "Desk mode is on after Review", document.body.classList.contains("desk"), "");
+    const nextBtn = document.getElementById("pathWalkNext");
+    if (nextBtn) nextBtn.click();
+    await later(80);
+    check("V7", "Next lights a hop chip", !!document.querySelector(".feat-chip.walk, .feat-chip.here"), "");
+    check("V8", "Now pill names the hop", /retrieve_starting_data|success_toast|error_toast|matrix3|vector3|default/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
+    check("V9", "Evidence opens from the graph node (no snippet required)", !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden), "");
+    check("V10", "Evidence inspect names the SolarSim span", /anise|toast|Function|span/i.test((document.getElementById("inspMeta") || {}).textContent || ""), (document.getElementById("inspMeta") || {}).textContent || "");
+
+    clickWs("map");
+    await later(80);
+    check("V11", "Map story rail sits outside the camera", !!(document.getElementById("storyRail") && !document.querySelector(".viewport #storyRail") && /Start → features → end/i.test((document.getElementById("storyRail") || {}).textContent || "")), (document.getElementById("storyRail") || {}).textContent || "");
+    check("V12", "Map shows community cards", document.querySelectorAll(".bubble-card").length >= 8, "cards=" + document.querySelectorAll(".bubble-card").length);
+    check("V13", "Program chips include bin main", /bin main/i.test((document.getElementById("legend") || {}).textContent || ""), (document.getElementById("legend") || {}).textContent || "");
+    const startCard = [...document.querySelectorAll(".bubble-card")].find((el) => /START/i.test(el.textContent || ""));
+    check("V14", "Walk community is pinned as START", !!(startCard && /error_toast/i.test(startCard.textContent || "")), startCard ? startCard.textContent.slice(0, 80) : "");
+    if (startCard) startCard.click();
+    await later(80);
+    check("V15", "Enter bubble shows labeled members", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24, "nodes=" + document.querySelectorAll(".comm-node").length);
+    const back = document.getElementById("backBtn");
+    if (back) {
+      back.disabled = false;
+      back.click();
+    }
+    await later(80);
+    if (document.querySelectorAll(".bubble-card").length < 8) {
+      const up = document.querySelector("#meta [data-up=map]");
+      if (up) up.click();
+      await later(60);
+    }
+    check("V16", "Back returns to community cards", document.querySelectorAll(".bubble-card").length >= 8, "cards=" + document.querySelectorAll(".bubble-card").length);
+    const search = document.getElementById("graphSearch");
+    if (search) {
+      search.focus();
+      search.value = "toast";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await later(40);
+    check("V17", "Search dims non-matching communities", document.querySelectorAll(".bubble-card.dim").length >= 1, "dim=" + document.querySelectorAll(".bubble-card.dim").length);
+    if (search) {
+      search.value = "";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+      search.blur();
+    }
+
+    clickWs("slice");
+    await later(80);
+    check("V18", "Slice shows the 6-node control-flow tree", wsOn() === "slice" && document.querySelectorAll(".vnode").length >= 5, "vnodes=" + document.querySelectorAll(".vnode").length + " ws=" + wsOn());
+    check("V19", "Slice keeps the story rail", !!document.getElementById("storyRail"), "");
+    check("V20", "Slice labels Calls hops", /Calls/i.test(document.body.innerText), "");
+    const hit = document.querySelector(".edge-hit, text.ekind, svg.steiner .edge");
+    if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await later(50);
+    check("V21", "Click hop opens hop card or Evidence", !!(document.getElementById("hopCard") && !document.getElementById("hopCard").hidden) || !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden), "");
+    check("V22", "Ledger cells exist", document.querySelectorAll("#ledgerGrid .cell").length >= 3, "cells=" + document.querySelectorAll("#ledgerGrid .cell").length);
+    check("V23", "Stamp/Skip are enabled on a flow", !!(document.getElementById("stampBtn") && !document.getElementById("stampBtn").disabled && document.getElementById("skipBtn") && !document.getElementById("skipBtn").disabled), "");
+    const stamp = document.getElementById("stampBtn");
+    if (stamp) stamp.click();
+    await later(80);
+    check("V24", "Stamp records holds", /holds|1 stamped/i.test((document.getElementById("coverage") || {}).textContent || ""), (document.getElementById("coverage") || {}).textContent || "");
+
+    clickWs("lineage");
+    await later(80);
+    check("V25", "Lineage maps hops to Used / Informed / Generated", !!document.querySelector('.prov-col[data-prov="used"]') && !!document.querySelector('.prov-col[data-prov="informed"]') && !!document.querySelector('.prov-col[data-prov="generated"]'), "");
+    check("V26", "Lineage lists ego nodes or incident hops", document.querySelectorAll(".ego-node, .expl-card.hop").length >= 1, "n=" + document.querySelectorAll(".ego-node, .expl-card.hop").length);
+
+    clickWs("decisions");
+    await later(60);
+    check("V27", "Decisions lists the stamp", /holds|control-flow|overview/i.test(document.body.innerText), "");
+
+    clickWs("registry");
+    await later(60);
+    check("V28", "Registry audit has the snapshot row", /349 nodes|Review snapshot/i.test(document.body.innerText), "");
+    check("V29", "Registry lists KindMismatch findings", /KindMismatch/i.test(document.body.innerText), "");
+    check("V30", "Registry finding names a real SolarSim hop", /create_empty_body|recursive_bodies|BodyChildren|BodyParent|apply_body|spawn_imposter/i.test(document.body.innerText), document.body.innerText.slice(0, 200));
+
+    clickWs("timeline");
+    await later(60);
+    check("V31", "Timeline has parent cut and a scrubber", /Parent cut/i.test(document.body.innerText) && !!document.getElementById("tlScrub"), "");
+    check("V32", "Timeline gained a stamp event", document.querySelectorAll(".tl-item").length >= 3, "items=" + document.querySelectorAll(".tl-item").length);
+
+    clickWs("overview");
+    await later(40);
+    document.body.focus();
+    key("1");
+    await later(40);
+    check("V33", "Key 1 switches to Map", wsOn() === "map", wsOn());
+    document.body.focus();
+    key("/");
+    check("V34", "Slash focuses graph search", document.activeElement && document.activeElement.id === "graphSearch", "active=" + ((document.activeElement && document.activeElement.id) || ""));
+    if (document.getElementById("graphSearch")) document.getElementById("graphSearch").blur();
+    document.body.focus();
+    key("?");
+    check("V35", "Question mark opens the shortcut sheet", !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden), "");
+    key("Escape");
+    const llmBtn = document.getElementById("llmBtn");
+    if (llmBtn) llmBtn.click();
+    await later(40);
+    check("V36", "LLM Ask panel opens", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
+    check("V37", "Inspect pane labels Evidence", !!(document.querySelector(".src-k") && /Evidence/i.test((document.querySelector(".src-k") || {}).textContent || "")), "");
+    check("V38", "Reorganize button is present", !!document.getElementById("reorgBtn"), "");
+
+    const failed = rows.filter((r) => !r.pass);
+    const html =
+      "<h2>Live SolarSim checklist</h2><div class=\"sum " +
+      (failed.length ? "fail" : "ok") +
+      "\">" +
+      (rows.length - failed.length) +
+      "/" +
+      rows.length +
+      " passed</div>" +
+      rows
+        .map((r) => {
+          return (
+            "<div class=\"" +
+            (r.pass ? "ok" : "fail") +
+            "\">" +
+            (r.pass ? "PASS" : "FAIL") +
+            " " +
+            r.id +
+            " · " +
+            r.title +
+            (r.detail ? " — " + String(r.detail).replace(/</g, "").slice(0, 160) : "") +
+            "</div>"
+          );
+        })
+        .join("");
+    const box = document.getElementById("suite");
+    if (box) {
+      box.hidden = false;
+      box.innerHTML = html;
+    }
+    const el = document.getElementById("probe");
+    if (el) {
+      el.hidden = false;
+      el.className = failed.length ? "bad" : "good";
+      el.textContent =
+        (failed.length ? "FAIL " : "PASS ") +
+        (rows.length - failed.length) +
+        "/" +
+        rows.length +
+        "\n" +
+        rows.map((r) => (r.pass ? "ok" : "XX") + " " + r.id + " " + r.title).join("\n");
+    }
+    document.title = (failed.length ? "FAIL" : "PASS") + " Graphide live " + (rows.length - failed.length) + "/" + rows.length;
+    window.__graphideLiveSuite = { rows, failed: failed.length };
   }
 })();

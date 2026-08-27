@@ -137,6 +137,10 @@ assert(js.includes("function storyRailStops"), "rail must choose communities or 
 assert(js.includes("function pathWalkStops") && js.includes("return storyRailStops()"), "Play must walk the same hops as the story rail");
 assert(js.includes("function focusWalkStop"), "Play must peek Evidence on each hop");
 assert(js.includes("function refreshNowPill"), "now-pill must follow the walk");
+assert(/peekSource[\s\S]{0,400}showSource/.test(js) && js.includes("No snippet on this snapshot"), "Evidence must open from the graph node when snippets are missing");
+assert(js.includes("shortOf(f.from)") && js.includes("shortOf(f.to)"), "Registry findings must name from → to hops");
+assert(harness.includes("runLiveSuite") && harness.includes('suite") === "live"'), "live SolarSim suite missing");
+assert(js.includes("function syncBackBtn"), "Back must enable after Enter a community");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");

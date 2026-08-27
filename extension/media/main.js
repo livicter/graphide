@@ -1147,6 +1147,11 @@ function enterRun(flow, bubble, fromEl) {
   }
 }
 
+function syncBackBtn() {
+  if (!backBtn) return;
+  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+}
+
 function goBack() {
   if (graphFilter.bubble && (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs")) {
     graphFilter.bubble = null;
@@ -1185,7 +1190,7 @@ function paint(opts) {
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
   const top = stack[stack.length - 1];
-  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+  syncBackBtn();
   syncWorkspaces();
   if (top && top.kind === "bubble") {
     const inner = enterBubble(snapshot, top.flow, top.bubble);
@@ -2014,19 +2019,36 @@ function nodeAway(id) {
 
 function peekSource(id) {
   if (!id) return;
-  sourceId = id;
-  const local = snapshot && snapshot.snippets && snapshot.snippets[id];
+  const sid = idVal(id);
+  sourceId = sid;
+  const node = nodeById.get(sid);
+  const bag = (snapshot && snapshot.snippets) || {};
+  const local = bag[sid] || bag[id];
+  const span = (node && node.span) || {};
+  const line = (span.start && span.start.line) || span.line;
+  const file = span.file || "";
   if (local) {
-    const node = nodeById.get(idVal(id));
     showSource({
-      id,
-      fqn: (node && node.fqn) || id,
+      id: sid,
+      fqn: (node && node.fqn) || sid,
       kind: node && node.kind,
+      file,
+      line,
       ...(typeof local === "string" ? { text: local, preview: local } : local),
     });
-    return;
+  } else if (node) {
+    showSource({
+      id: sid,
+      fqn: node.fqn || sid,
+      kind: node.kind,
+      file,
+      line,
+      endLine: (span.end && span.end.line) || span.endLine,
+      text: "",
+      preview: "",
+    });
   }
-  vscode.postMessage({ type: "peekSource", id });
+  vscode.postMessage({ type: "peekSource", id: sid });
 }
 
 function showSource(msg) {
@@ -2612,6 +2634,16 @@ function colorOfBubble(b) {
 
 function renderSourceLines(msg) {
   const text = msg.text || msg.preview || "";
+  if (!text) {
+    const span = msg.file
+      ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "")
+      : "";
+    return (
+      '<div class="src-line"><span class="ln">—</span><span class="tx">' +
+      esc(span ? "Span " + span + " · open Editor for the file" : "No snippet on this snapshot — inspect rows still hold") +
+      "</span></div>"
+    );
+  }
   const lines = String(text).split("\n");
   const from = msg.from || msg.line || 1;
   const lo = msg.line || 0;
@@ -2983,7 +3015,14 @@ function registryEvents() {
     return k && k !== "UncoveredNode" && k !== "StampBroken" && k !== "UnmatchedHint";
   });
   findings.forEach((f) => {
-    ev.push({ kind: "finding", title: findingTitle(f), body: f.message || f.fqn || f.plugin || "", flow: f.flow || "" });
+    const hop =
+      f.from && f.to ? shortOf(f.from) + " → " + shortOf(f.to) : "";
+    ev.push({
+      kind: "finding",
+      title: findingTitle(f),
+      body: f.message || f.fqn || hop || f.plugin || (f.span && f.span.file) || "",
+      flow: f.flow || "",
+    });
   });
   return ev;
 }
@@ -3900,6 +3939,7 @@ function renderProgramOverview() {
       renderProgramOverview();
     };
   setGraphChrome(true);
+  syncBackBtn();
   setLedgerHead("MAP");
   renderLegend();
   renderCommunityGraph();
