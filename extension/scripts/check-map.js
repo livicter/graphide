@@ -130,8 +130,11 @@ assert(ext.includes("Evidence"), "inspect pane must label Evidence");
 assert(ext.includes("src-k"), "evidence kicker missing from the webview chrome");
 assert(js.includes("function renderStoryRailHtml"), "map/slice story rail missing");
 assert(js.includes("function reviewAltitude"), "now-pill altitude missing");
+assert(js.includes("function storyMapBubbles"), "map must pin the story path into communities");
+assert(js.includes("function pinStoryClusters"), "map must keep start/end bubbles on the cut");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
+assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
 assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
 
 const fakeNames = [

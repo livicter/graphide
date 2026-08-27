@@ -2278,8 +2278,38 @@ function bindStoryRail() {
   });
 }
 
+/** Communities on the Map cut that contain the control-flow walk. */
+function storyMapBubbles() {
+  const shown = mapAltitudeBubbles();
+  if (!shown.length) return featurePath(storyFlow());
+  const seen = new Set();
+  const path = [];
+  for (const id of flowWalk(storyFlow())) {
+    const b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id)));
+    if (!b) continue;
+    const bid = idVal(b.id);
+    if (seen.has(bid)) continue;
+    seen.add(bid);
+    path.push(b);
+  }
+  return path.length ? path : featurePath(storyFlow());
+}
+
+function storyRailPath() {
+  if (explorerWs === "map" && !graphFilter.bubble) return storyMapBubbles();
+  return featurePath(storyFlow());
+}
+
+function pinStoryClusters(clusters) {
+  const path = storyMapBubbles();
+  const byId = new Map();
+  for (const b of path) byId.set(idVal(b.id), b);
+  for (const b of clusters || []) byId.set(idVal(b.id), b);
+  return [...byId.values()];
+}
+
 function renderStoryRailHtml() {
-  const path = featurePath(storyFlow());
+  const path = storyRailPath();
   if (path.length < 2) return "";
   const chips = path
     .map((b, i) => {
@@ -3991,9 +4021,9 @@ function renderCommunityGraph() {
 }
 
 function renderBubbleMap(clusters) {
-  const path = featurePath(storyFlow());
+  const path = storyMapBubbles();
   const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
-  clusters = (clusters || [])
+  clusters = pinStoryClusters(clusters || [])
     .slice()
     .sort((a, b) => {
       const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
@@ -4076,8 +4106,8 @@ function renderBubbleMap(clusters) {
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
-    '<div class="stage"><div class="viewport" data-lod="0">' +
     renderStoryRailHtml() +
+    '<div class="stage"><div class="viewport" data-lod="0">' +
     '<div class="flow-title">' +
     (pathIds.length
       ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter"
@@ -4338,10 +4368,10 @@ function renderFlowchart(msg, opts) {
   const runHtml = renderRuns(flow, msg, playRuns);
   canvas.className = "play has-stage";
   canvas.innerHTML =
+    renderStoryRailHtml() +
     '<div class="stage"><div class="viewport" data-lod="' +
     lodOf(cam.k) +
     '">' +
-    renderStoryRailHtml() +
     '<div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' +
     treeHtml +
     (runHtml

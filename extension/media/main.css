@@ -542,6 +542,16 @@ button:disabled { opacity: 0.45; cursor: default; }
 #canvas { padding: 12px 10px 16px; overflow: auto; flex: 1; min-height: 160px; }
 #canvas.has-stage { overflow: hidden; }
 #canvas.has-stage.explorer-list { overflow: auto; }
+#canvas.has-stage.programs-view,
+#canvas.has-stage:not(.explorer-list) {
+  display: flex;
+  flex-direction: column;
+}
+#canvas.has-stage.programs-view .stage,
+#canvas.has-stage:not(.explorer-list) .stage {
+  flex: 1;
+  min-height: 0;
+}
 #ledgerPane {
   width: 168px;
   min-width: 148px;
@@ -1978,8 +1988,10 @@ body.desk #workspace.has-source #canvas {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
+  flex: 0 0 auto;
   margin: 0 0 10px;
   padding: 8px 10px;
+  z-index: 2;
   border-radius: var(--g-radius);
   border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 35%, var(--vscode-panel-border));
   background: color-mix(in srgb, var(--vscode-editor-background) 72%, transparent);

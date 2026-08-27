@@ -858,6 +858,7 @@
     clickWs("slice");
     await later(40);
     check("T3", "Slice keeps the story rail on the control-flow walk", !!document.getElementById("storyRail"), "");
+    check("T4", "Story rail sits outside the camera viewport", !!(document.getElementById("storyRail") && !document.querySelector(".viewport #storyRail")), "");
 
     const failed = rows.filter((r) => !r.pass);
     const html =
