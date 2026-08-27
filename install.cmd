@@ -26,5 +26,5 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo Reload VS Code or Cursor, open the Graphide view, click Review.
+echo Reload Cursor or VS Code, open the Graphide view, click Review.
 pause

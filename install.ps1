@@ -47,6 +47,9 @@ New-Item -ItemType Directory -Force -Path $homeBin | Out-Null
 Copy-Item $exe (Join-Path $extBin "graphide.exe") -Force
 Copy-Item $exe (Join-Path $homeBin "graphide.exe") -Force
 Write-Host "CLI copied to $homeBin\graphide.exe"
+Write-Host "Checking language plugins..."
+& (Join-Path $homeBin "graphide.exe") plugins --check
+if ($LASTEXITCODE -ne 0) { throw "language plugin check failed" }
 
 Set-Location (Join-Path $PSScriptRoot "extension")
 if (-not (Test-Path "node_modules")) {
@@ -66,12 +69,19 @@ if (-not $vsix) { throw "VSIX not written" }
 function Find-Editor([string]$name) {
   $cmd = Get-Command $name -ErrorAction SilentlyContinue
   if ($cmd) { return $cmd.Source }
-  $guesses = @(
-    "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\$name.cmd",
-    "$env:ProgramFiles\Microsoft VS Code\bin\$name.cmd",
-    "$env:LOCALAPPDATA\Programs\cursor\resources\app\bin\$name.cmd",
-    "$env:LOCALAPPDATA\Programs\Cursor\resources\app\bin\$name.cmd"
-  )
+  $guesses = if ($name -eq "cursor") {
+    @(
+      "$env:LOCALAPPDATA\Programs\cursor\resources\app\bin\cursor.cmd",
+      "$env:LOCALAPPDATA\Programs\Cursor\resources\app\bin\cursor.cmd",
+      "$env:ProgramFiles\cursor\resources\app\bin\cursor.cmd",
+      "$env:ProgramFiles\Cursor\resources\app\bin\cursor.cmd"
+    )
+  } else {
+    @(
+      "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+      "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd"
+    )
+  }
   foreach ($g in $guesses) {
     if (Test-Path $g) { return $g }
   }
@@ -89,7 +99,7 @@ foreach ($name in @("cursor", "code")) {
 
 if (-not $installed) {
   Write-Host "VSIX is ready: $($vsix.FullName)"
-  Write-Host "In the editor: Extensions → … → Install from VSIX…"
+  Write-Host "In Cursor or VS Code: Extensions → … → Install from VSIX…"
 } else {
-  Write-Host "Installed. Reload the editor window, open the Graphide view, click Review."
+  Write-Host "Installed. Reload Cursor or VS Code, open the Graphide view, click Review."
 }

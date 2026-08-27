@@ -4,6 +4,8 @@ Review agent changes as flow graphs. Point the panel at any local repo.
 
 Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
+The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) are compiled into the CLI — `graphide plugins --check` verifies them after copy.
+
 ## Review panel
 
 After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live pass on SolarSim (349 nodes · 765 edges · 57 files). More in [`UIUX_sample/`](UIUX_sample/).
@@ -28,7 +30,7 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 ## Windows
 
 1. Double-click **`install.cmd`**.
-2. Reload VS Code or Cursor.
+2. Reload **Cursor** or VS Code.
 3. Open the folder to review → **Graphide** → **Review**.
 
 The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. You do not set `graphide.cliPath`.
@@ -48,7 +50,7 @@ sudo apt install build-essential
 bash install.sh
 ```
 
-Then reload the editor. If `code` is a Snap or not on PATH, use **Extensions → … → Install from VSIX…** and pick `extension/graphide-0.1.0.vsix`.
+Then reload **Cursor** or VS Code. If neither `cursor` nor `code` is on PATH, use **Extensions → … → Install from VSIX…** and pick the newest `extension/graphide-*.vsix`.
 
 ## Already have the extension?
 

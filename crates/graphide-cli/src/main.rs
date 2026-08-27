@@ -16,7 +16,7 @@ use graphide_engine::{
     recheck_stamp, stamp_filename, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 use graphide_ir::{Extract, FlowHint, HintFile, ReviewSnapshot, Stamp};
-use graphide_plugin::{extract_file, has_plugin, plugin_ids_for};
+use graphide_plugin::{extract_file, has_plugin, plugin_ids_for, plugin_manifest, smoke_plugins};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -103,6 +103,12 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
+    /// List compiled-in language plugins (the derivers, not editor extensions).
+    Plugins {
+        /// Extract a tiny snippet per language and exit non-zero if one fails.
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -166,6 +172,17 @@ fn main() -> Result<()> {
             }
             fs::write(&out, serde_json::to_string_pretty(&stamp)?)?;
             eprintln!("wrote stamp {}", out.display());
+        }
+        Cmd::Plugins { check } => {
+            for (id, exts) in plugin_manifest() {
+                println!("{id}\t{}", exts.join(","));
+            }
+            if check {
+                let rows = smoke_plugins()?;
+                for (id, nodes) in rows {
+                    println!("ok {id} ({nodes} nodes)");
+                }
+            }
         }
         Cmd::Recheck { root, stamp, json } => {
             let snap = review_roots(&root, None, &[], false, false)?;

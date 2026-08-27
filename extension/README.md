@@ -1,6 +1,6 @@
 # Graphide Review
 
-Review any local repo as a flow graph. Live panel caps from SolarSim live in [`UIUX_sample/`](../UIUX_sample/).
+Review any local repo as a flow graph. Live panel caps from SolarSim live in the repo-root `UIUX_sample/` folder.
 
 ## Install (one click)
 
@@ -12,9 +12,9 @@ From the **Graphide source repo** (the folder that contains `crates/graphide-cli
 | macOS | Double-click `install.command` or `bash install.sh` |
 | Ubuntu / Linux | `bash install.sh` (needs `build-essential`) |
 
-Or in the editor: **Graphide: Install (one click)** and pick that Graphide source folder if asked.
+Or in **Cursor** or VS Code: **Graphide: Install (one click)** and pick that Graphide source folder if asked. Same VSIX (`engines.vscode` ^1.85.0). Installers try `cursor` first, then `code`.
 
-The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Review targets (`SolarSim`, etc.) only need **Review** — never `cargo build -p graphide-cli` inside them. No `graphide.cliPath` needed.
+The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Language plugins ship inside that binary — `graphide plugins --check` after install. Review targets (`SolarSim`, etc.) only need **Review** — never `cargo build -p graphide-cli` inside them. No `graphide.cliPath` needed.
 
 ## After install
 

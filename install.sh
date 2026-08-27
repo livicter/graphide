@@ -63,6 +63,8 @@ cp "$src" "$ROOT/extension/bin/$bin_name"
 cp "$src" "$HOME/.graphide/$bin_name"
 chmod +x "$ROOT/extension/bin/$bin_name" "$HOME/.graphide/$bin_name"
 say "CLI copied to $HOME/.graphide/$bin_name"
+say "Checking language plugins..."
+"$HOME/.graphide/$bin_name" plugins --check
 
 cd "$ROOT/extension"
 if [[ ! -d node_modules ]]; then
@@ -73,7 +75,7 @@ say "Packaging VSIX..."
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
 
-vsix="$(ls -1 "$PWD"/graphide-*.vsix 2>/dev/null | tail -n 1 || true)"
+vsix="$(ls -1t "$PWD"/graphide-*.vsix 2>/dev/null | head -n 1 || true)"
 [[ -n "$vsix" && -f "$vsix" ]] || die "VSIX not written"
 
 editors=()
@@ -83,17 +85,23 @@ add_editor() {
   editors+=("$p")
 }
 
+# Cursor first — same VSIX as VS Code (engines.vscode ^1.85.0).
 add_editor "$(command -v cursor 2>/dev/null || true)"
 add_editor "$(command -v code 2>/dev/null || true)"
 add_editor "/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
+add_editor "$HOME/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
 add_editor "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+add_editor "$HOME/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+add_editor "/usr/share/cursor/bin/cursor"
+add_editor "/opt/cursor/bin/cursor"
+add_editor "/opt/Cursor/bin/cursor"
 add_editor "/usr/share/code/bin/code"
 add_editor "/usr/bin/code"
-add_editor "/snap/bin/code"
+add_editor "/usr/bin/cursor"
 add_editor "/snap/bin/cursor"
+add_editor "/snap/bin/code"
 add_editor "$HOME/.local/bin/cursor"
 add_editor "$HOME/.local/bin/code"
-add_editor "/usr/bin/cursor"
 
 # Dedup while keeping order
 seen=""
@@ -116,7 +124,7 @@ done
 
 if [[ "$installed" -eq 0 ]]; then
   say "VSIX is ready: $vsix"
-  say "In the editor: Extensions → … → Install from VSIX…"
+  say "In Cursor or VS Code: Extensions → … → Install from VSIX…"
 else
-  say "Installed. Reload the editor window, open the Graphide view, click Review."
+  say "Installed. Reload Cursor or VS Code, open the Graphide view, click Review."
 fi
