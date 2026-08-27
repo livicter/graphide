@@ -1206,7 +1206,12 @@ function paint(opts) {
     return;
   }
   if (explorerWs === "slice") {
-    const flow = currentFlow();
+    let flow = currentFlow();
+    const story = storyFlow();
+    if (story && (flow?.tree?.nodes || []).length < 2 && (story.tree?.nodes || []).length >= 2) {
+      flowName = story.name;
+      flow = story;
+    }
     renderFlowchart(
       {
         flows: snapshot.flows,
@@ -2276,6 +2281,19 @@ function bindStoryRail() {
       renderProgramOverview();
     };
   });
+  canvas.querySelectorAll(".story-rail [data-hop]").forEach((el) => {
+    el.onclick = () => {
+      stopPathWalk();
+      const id = el.getAttribute("data-hop");
+      selectedNodeId = id;
+      const story = storyFlow();
+      if (story && story.name) flowName = story.name;
+      explorerWs = "slice";
+      explorerPinned = true;
+      paint({ animate: "none" });
+      selectNode(id);
+    };
+  });
 }
 
 /** Communities on the Map cut that contain the control-flow walk. */
@@ -2300,6 +2318,33 @@ function storyRailPath() {
   return featurePath(storyFlow());
 }
 
+function storyHopStops() {
+  const hops = [];
+  const seen = new Set();
+  for (const id of flowWalk(storyFlow())) {
+    const sid = idVal(id);
+    if (seen.has(sid)) continue;
+    seen.add(sid);
+    const n = nodeById.get(sid);
+    hops.push({
+      id: sid,
+      label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
+      kind: "hop",
+    });
+  }
+  return hops;
+}
+
+function storyRailStops() {
+  const comm = storyRailPath();
+  if (comm.length >= 2) {
+    return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+  }
+  const hops = storyHopStops();
+  if (hops.length >= 2) return hops;
+  return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+}
+
 function pinStoryClusters(clusters) {
   const path = storyMapBubbles();
   const byId = new Map();
@@ -2309,20 +2354,29 @@ function pinStoryClusters(clusters) {
 }
 
 function renderStoryRailHtml() {
-  const path = storyRailPath();
-  if (path.length < 2) return "";
+  const path = storyRailStops();
+  if (!path.length) return "";
   const chips = path
-    .map((b, i) => {
-      const name = shortOf(b.label) || "feature";
+    .map((stop, i) => {
+      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
-      const here = graphFilter.bubble && idVal(b.id) === idVal(graphFilter.bubble) ? " here" : "";
+      const hop = stop.kind === "hop";
+      const here = hop
+        ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id)
+          ? " here"
+          : ""
+        : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
+          ? " here"
+          : "";
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
         here +
-        '" data-feature="' +
-        esc(idVal(b.id)) +
+        '" ' +
+        (hop ? "data-hop" : "data-feature") +
+        '="' +
+        esc(idVal(stop.id)) +
         '">' +
         esc((i === 0 ? "START · " : i === path.length - 1 ? "END · " : "") + name) +
         "</button>"
@@ -2442,7 +2496,9 @@ function applyPathWalkPaint() {
   const cur = pathWalk.i >= 0 ? stops[pathWalk.i] : null;
   const bid = cur ? idVal(cur.id) : "";
   document.querySelectorAll(".feat-chip").forEach((el) => {
-    const on = !!bid && el.getAttribute("data-feature") === bid;
+    const on =
+      !!bid &&
+      (el.getAttribute("data-feature") === bid || el.getAttribute("data-hop") === bid);
     el.classList.toggle("walk", on);
     if (on) el.classList.add("here");
   });
