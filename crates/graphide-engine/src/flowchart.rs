@@ -23,7 +23,13 @@ pub fn build_flowchart(graph: &Graph, bubbles: &[Bubble], tree: &Steiner) -> Flo
     }
 
     // Root: prefer node with fewest tree neighbors that looks like a source.
-    let root = pick_root(graph, tree, &adj);
+    let Some(root) = pick_root(graph, tree, &adj) else {
+        return Flowchart {
+            runs: vec![],
+            spine: vec![],
+            positions: vec![],
+        };
+    };
 
     // DFS order walk; when coarse bubble changes, start new run.
     let mut runs: Vec<Run> = Vec::new();
@@ -96,7 +102,7 @@ pub fn build_flowchart(graph: &Graph, bubbles: &[Bubble], tree: &Steiner) -> Flo
     }
 }
 
-fn pick_root(graph: &Graph, tree: &Steiner, adj: &HashMap<NodeId, Vec<NodeId>>) -> NodeId {
+fn pick_root(graph: &Graph, tree: &Steiner, adj: &HashMap<NodeId, Vec<NodeId>>) -> Option<NodeId> {
     tree.nodes
         .iter()
         .copied()
@@ -110,7 +116,7 @@ fn pick_root(graph: &Graph, tree: &Steiner, adj: &HashMap<NodeId, Vec<NodeId>>) 
                 .unwrap_or(false);
             (deg, !is_fn, id.0)
         })
-        .unwrap_or(tree.nodes[0])
+        .or_else(|| tree.nodes.first().copied())
 }
 
 fn dfs_order(
@@ -159,17 +165,21 @@ fn layout_positions(runs: &[Run], spine: &[RunSpine]) -> Vec<RunPosition> {
         .filter(|(_, d)| **d == 0)
         .map(|(id, _)| *id)
         .collect();
-    let start = roots.first().copied().unwrap_or(runs[0].id);
+    let Some(start) = roots.first().copied().or_else(|| runs.first().map(|r| r.id)) else {
+        return vec![];
+    };
 
     let mut depth: HashMap<RunId, i32> = HashMap::new();
     let mut q = VecDeque::from([start]);
     depth.insert(start, 0);
     while let Some(n) = q.pop_front() {
-        let d = depth[&n];
+        let Some(&d) = depth.get(&n) else {
+            continue;
+        };
         if let Some(cs) = children.get(&n) {
             for &c in cs {
-                if !depth.contains_key(&c) {
-                    depth.insert(c, d + 1);
+                if let std::collections::hash_map::Entry::Vacant(e) = depth.entry(c) {
+                    e.insert(d + 1);
                     q.push_back(c);
                 }
             }
@@ -181,7 +191,10 @@ fn layout_positions(runs: &[Run], spine: &[RunSpine]) -> Vec<RunPosition> {
 
     let mut by_depth: IndexMap<i32, Vec<RunId>> = IndexMap::new();
     for r in runs {
-        by_depth.entry(depth[&r.id]).or_default().push(r.id);
+        by_depth
+            .entry(depth.get(&r.id).copied().unwrap_or(0))
+            .or_default()
+            .push(r.id);
     }
     let mut positions = Vec::new();
     for (d, ids) in by_depth {

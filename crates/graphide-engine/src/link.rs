@@ -92,7 +92,9 @@ pub fn link(extracts: &[Extract]) -> (Graph, Vec<Finding>) {
             };
             let mut matched = None;
             for &cand in candidates {
-                let target = &id_to_node[&cand];
+                let Some(target) = id_to_node.get(&cand) else {
+                    continue;
+                };
                 if let Some(expected) = r.kind.expected_target_kind() {
                     if target.kind != expected {
                         findings.push(Finding {

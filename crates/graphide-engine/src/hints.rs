@@ -50,4 +50,10 @@ hits = ["crate::sub::subscribe", "crate::bus::Bus"]
         assert_eq!(h.flows[0].name, "data-subscription");
         assert_eq!(h.flows[0].hits.len(), 2);
     }
+
+    #[test]
+    fn invalid_toml_is_error_not_panic() {
+        assert!(parse_flows_toml("[[flow").is_err());
+        assert!(parse_flows_toml("").is_ok());
+    }
 }

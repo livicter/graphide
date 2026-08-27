@@ -170,7 +170,11 @@ fn split_at_articulation(
         }
         let mut sizes: Vec<usize> = comps.iter().map(|c| c.len()).collect();
         sizes.sort_unstable_by(|a, b| b.cmp(a));
-        let score = (sizes[0] as i64) * (sizes.get(1).copied().unwrap_or(0) as i64);
+        let score = match (sizes.first(), sizes.get(1)) {
+            (Some(&a), Some(&b)) => (a as i64) * (b as i64),
+            (Some(&a), None) => a as i64,
+            _ => continue,
+        };
         if score < 2 {
             continue;
         }
@@ -233,18 +237,23 @@ fn articulation_points(
                     children += 1;
                     parent.insert(v, u);
                     visit(v, set, adj, time, disc, low, parent, aps);
-                    let lu = low[&u];
-                    let lv = low[&v];
-                    low.insert(u, lu.min(lv));
+                    if let (Some(&lu), Some(&lv)) = (low.get(&u), low.get(&v)) {
+                        low.insert(u, lu.min(lv));
+                    }
                     if parent.get(&u).is_none() && children > 1 {
                         aps.insert(u);
                     }
-                    if parent.get(&u).is_some() && low[&v] >= disc[&u] {
-                        aps.insert(u);
+                    if parent.get(&u).is_some() {
+                        if let (Some(&lv), Some(&du)) = (low.get(&v), disc.get(&u)) {
+                            if lv >= du {
+                                aps.insert(u);
+                            }
+                        }
                     }
                 } else if parent.get(&u) != Some(&v) {
-                    let lu = low[&u];
-                    low.insert(u, lu.min(disc[&v]));
+                    if let (Some(&lu), Some(&dv)) = (low.get(&u), disc.get(&v)) {
+                        low.insert(u, lu.min(dv));
+                    }
                 }
             }
         }
@@ -318,14 +327,23 @@ fn mst_partition(
     let mut parent: HashMap<NodeId, NodeId> = members.iter().map(|&n| (n, n)).collect();
     fn find(p: &mut HashMap<NodeId, NodeId>, x: NodeId) -> NodeId {
         let mut r = x;
-        while p[&r] != r {
-            r = p[&r];
+        loop {
+            match p.get(&r).copied() {
+                Some(parent) if parent != r => r = parent,
+                Some(_) => break,
+                None => {
+                    p.insert(r, r);
+                    break;
+                }
+            }
         }
         let mut c = x;
-        while p[&c] != r {
-            let n = p[&c];
+        while let Some(parent) = p.get(&c).copied() {
+            if parent == r {
+                break;
+            }
             p.insert(c, r);
-            c = n;
+            c = parent;
         }
         r
     }

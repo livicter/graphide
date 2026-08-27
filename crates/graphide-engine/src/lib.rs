@@ -1,5 +1,16 @@
 //! Engine: link, cluster, Steiner, stamps, coverage, hints.
 
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::todo,
+        clippy::unimplemented
+    )
+)]
+
 mod cluster;
 mod coverage;
 mod enter;

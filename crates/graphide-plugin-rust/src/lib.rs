@@ -1,6 +1,17 @@
 //! Rust deriver plugin: tree-sitter queries -> Extract IR.
 //! Trusted like a compiler. FQN scheme is crate::path::Item[::method].
 
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::todo,
+        clippy::unimplemented
+    )
+)]
+
 mod queries;
 
 use graphide_ir::{
@@ -24,6 +35,8 @@ pub enum PluginError {
     Parse(String),
     #[error("extract query: {0}")]
     Query(String),
+    #[error("parser re-entered on the same thread")]
+    Reentered,
 }
 
 pub struct ExtractResult {
@@ -49,7 +62,7 @@ thread_local! {
 pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, PluginError> {
     let query = rust_query()?;
     let tree = PARSER.with(|slot| {
-        let mut cell = slot.borrow_mut();
+        let mut cell = slot.try_borrow_mut().map_err(|_| PluginError::Reentered)?;
         if cell.is_none() {
             let mut parser = Parser::new();
             let language = tree_sitter_rust::LANGUAGE.into();
@@ -59,7 +72,7 @@ pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, 
             *cell = Some(parser);
         }
         cell.as_mut()
-            .unwrap()
+            .ok_or(PluginError::Language)?
             .parse(source, None)
             .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))
     })?;
@@ -602,5 +615,17 @@ pub fn subscribe(_bus: Bus) {
     fn query_compiles() {
         let language = tree_sitter_rust::LANGUAGE.into();
         Query::new(&language, EXTRACT_QUERIES).expect("query must compile");
+    }
+
+    #[test]
+    fn extract_junk_is_result_not_panic() {
+        for src in ["", "fn", "fn {{{", "😊 pub fn x() {}", "use", "impl"] {
+            let caught = std::panic::catch_unwind(|| extract_file("src/x.rs", src));
+            assert!(caught.is_ok(), "panicked on {src:?}");
+            assert!(
+                caught.is_ok(),
+                "extract {src:?} panicked instead of returning a Result"
+            );
+        }
     }
 }
