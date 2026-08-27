@@ -4,6 +4,27 @@ Review agent changes as flow graphs. Point the panel at any local repo.
 
 Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
+## Review panel
+
+After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live pass on SolarSim (349 nodes · 765 edges · 57 files). More in [`UIUX_sample/`](UIUX_sample/).
+
+**Overview** — scorecard, Play / Prev / Next, Evidence on the current hop:
+
+![Overview desk](UIUX_sample/overview-desk.png)
+
+**Map** — communities on the walk; click a bubble to Enter. **Slice** — Steiner control-flow:
+
+![Map communities](UIUX_sample/map-communities.png)
+
+![Slice control-flow](UIUX_sample/slice-control-flow.png)
+
+**Lineage** — ego of the start hop, Used / Informed / Generated. **Registry** — snapshot audit:
+
+![Lineage hops](UIUX_sample/lineage-hops.png)
+
+![Registry audit](UIUX_sample/registry-audit.png)
+
+
 ## Windows
 
 1. Double-click **`install.cmd`**.
