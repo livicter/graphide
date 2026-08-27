@@ -2276,7 +2276,11 @@ function stepPathWalk(delta) {
 
 function togglePathWalk() {
   if (pathWalk.playing) {
+    const stops = pathWalkStops();
     stopPathWalk();
+    if (pathWalk.i >= 0) {
+      flashToast("Paused · " + (pathWalk.i + 1) + "/" + stops.length, "ok");
+    }
     return;
   }
   const stops = pathWalkStops();
@@ -2284,18 +2288,20 @@ function togglePathWalk() {
     flashToast("No start → features → end path yet", "skip");
     return;
   }
-  if (pathWalk.i < 0 || pathWalk.i >= stops.length - 1) pathWalk.i = -1;
+  const replay = pathWalk.i >= stops.length - 1;
+  if (pathWalk.i < 0 || replay) pathWalk.i = -1;
   if (reduceMotion()) {
     stepPathWalk(1);
     return;
   }
   pathWalk.playing = true;
-  flashToast("Walking start → features → end", "ok");
+  flashToast(replay ? "Replaying start → features → end" : "Walking start → features → end", "ok");
   stepPathWalk(1);
   pathWalk.timer = setInterval(() => {
     const next = pathWalkStops();
     if (pathWalk.i >= next.length - 1) {
       stopPathWalk();
+      flashToast("End · start → features → end", "ok");
       return;
     }
     stepPathWalk(1);
