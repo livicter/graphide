@@ -368,7 +368,8 @@ window.addEventListener("message", (event) => {
     backBtn.disabled = true;
     canvas.className = "";
     canvas.innerHTML =
-      '<div class="empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div></div>';
+      '<div class="empty desk-empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div><div class="desk-keys"><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>P</kbd> play · <kbd>/</kbd> find</div></div>';
+    setDeskMode(false);
     meta.textContent = "";
     coverage.textContent = "";
     tabs.innerHTML = "";
@@ -634,7 +635,48 @@ function setZoomUi(on) {
   if (on) updateZoomPct();
 }
 
+function reviewMarks() {
+  const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
+  let holds = 0,
+    broken = 0,
+    skipped = 0,
+    pending = 0;
+  for (const name of names) {
+    const mark = flowMark(name);
+    if (mark === "holds") holds++;
+    else if (mark === "broken") broken++;
+    else if (mark === "skipped") skipped++;
+    else pending++;
+  }
+  skipped += skippedFlows.filter((n) => names.indexOf(n) < 0).length;
+  return { names, holds, broken, skipped, pending };
+}
+
+function nowStripHtml() {
+  if (!snapshot) return "";
+  const m = reviewMarks();
+  const ws = explorerWs || "overview";
+  return (
+    '<span class="now-pill" id="nowPill">' +
+    esc(ws) +
+    (m.names.length ? " · " + (m.pending ? m.pending + " left" : "queue clear") : "") +
+    "</span>"
+  );
+}
+
+function setMeta(html) {
+  if (!meta) return;
+  const pill = nowStripHtml();
+  meta.innerHTML = (pill ? pill + " " : "") + (html || "");
+}
+
+function setDeskMode(on) {
+  document.body.classList.toggle("desk", !!on);
+  document.body.classList.toggle("reviewed", !!(on && snapshot));
+}
+
 function setGraphChrome(on) {
+  setDeskMode(!!on);
   if (graphBar) graphBar.hidden = !on;
   const list = !!LIST_WORKSPACES[explorerWs];
   if (ledgerPane) ledgerPane.hidden = !on || list;
@@ -3073,11 +3115,12 @@ function renderExplorerList(ws) {
     overview: "Overview — default run and control-flow graph",
     timeline: "Timeline — parent cut, coverage, stamp scars",
   };
-  meta.innerHTML =
+  setMeta(
     '<span class="crumb">Review</span> / <b>' +
     esc(ws) +
     "</b> · " +
-    esc(titles[ws] || ws);
+    esc(titles[ws] || ws)
+  );
   let html = "";
   if (ws === "overview") html = renderOverviewBody();
   else if (ws === "decisions") html = renderDecisionBody();
@@ -3380,7 +3423,7 @@ function renderLineage() {
   const id = defaultFocusId();
   if (id && id !== selectedNodeId) selectedNodeId = id;
   if (!id) {
-    meta.innerHTML = '<span class="crumb">Review</span> / <b>lineage</b>';
+    setMeta('<span class="crumb">Review</span> / <b>lineage</b>');
     canvas.className = "play";
     canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
     setZoomUi(false);
@@ -3390,13 +3433,14 @@ function renderLineage() {
   const hops = incidentEdges(id);
   const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [id];
   const pathSet = new Set(path);
-  meta.innerHTML =
+  setMeta(
     '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-ws="map">map</button> / <b>lineage</b> · ' +
     esc(shortOf((node && node.fqn) || id)) +
     " · " +
     hops.length +
     " incident hops" +
-    (path.length > 1 ? " · path " + path.length : "");
+    (path.length > 1 ? " · path " + path.length : "")
+  );
   const up = meta.querySelector("[data-ws]");
   if (up) up.onclick = () => setWorkspace("map", true);
 
@@ -3645,14 +3689,15 @@ function renderProgramOverview() {
   const bub = graphFilter.bubble
     ? mapAltitudeBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble))
     : null;
-  meta.innerHTML =
+  setMeta(
     '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-up="map">map</button>' +
     (bub ? " / <b>" + esc(bub.label || "bubble") + "</b>" : "") +
     " · " +
     filt +
     (bub
       ? " · click a node to inspect"
-      : " · communities only — click a bubble, then a flow tab");
+      : " · communities only — click a bubble, then a flow tab")
+  );
   const up = meta.querySelector("[data-up=map]");
   if (up)
     up.onclick = () => {
@@ -4111,7 +4156,17 @@ function applyGraphFilter() {
 }
 
 function renderTabs(flows, current) {
-  tabs.innerHTML = (flows || [])
+  const m = reviewMarks();
+  const head = m.names.length
+    ? '<span class="queue-left' +
+      (m.pending ? "" : " done") +
+      '">' +
+      (m.pending ? m.pending + " left" : "queue clear") +
+      "</span>"
+    : "";
+  tabs.innerHTML =
+    head +
+    (flows || [])
     .map((f) => {
       const mark = flowMark(f.name);
       return (
@@ -4194,7 +4249,7 @@ function renderFlowchart(msg, opts) {
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, msg.graph);
   if (!flow) {
-    meta.innerHTML = "No proposed flows. Type a prompt or add <code>flows.toml</code>.";
+    setMeta("No proposed flows. Type a prompt or add <code>flows.toml</code>.");
     canvas.className = "play";
     canvas.innerHTML =
       '<div class="empty">Graph is ready (' +
@@ -4215,7 +4270,7 @@ function renderFlowchart(msg, opts) {
     " on tree" +
     (preview ? ' <span class="live">live preview</span>' : "") +
     stampBadge(flow.name);
-  meta.innerHTML = crumb;
+  setMeta(crumb);
   const backToPrograms = meta.querySelector("[data-go=programs]");
   if (backToPrograms) backToPrograms.onclick = () => goBack();
 
@@ -4552,10 +4607,11 @@ function renderInner(msg, animate) {
   renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
   renderStats(msg);
   renderCoverage(msg.coverage, msg.findings, null);
-  meta.innerHTML =
+  setMeta(
     '<button type="button" class="crumb-btn" data-go="programs">Map</button> / ' +
     esc(inner.flow) +
-    " / <b>enter</b> · walk lit, siblings grey";
+    " / <b>enter</b> · walk lit, siblings grey"
+  );
   const backToPrograms = meta.querySelector("[data-go=programs]");
   if (backToPrograms) backToPrograms.onclick = () => goBack();
   let html = '<div class="inner-list' + (animate ? " play" : "") + '">';
@@ -4604,19 +4660,7 @@ function renderInner(msg, animate) {
 function renderCoverage(cov, findings, graph) {
   const uncovered = (cov && cov.uncovered) || [];
   const changed = (cov && cov.changed) || [];
-  const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
-  let holds = 0,
-    broken = 0,
-    skipped = 0,
-    pending = 0;
-  for (const name of names) {
-    const mark = flowMark(name);
-    if (mark === "holds") holds++;
-    else if (mark === "broken") broken++;
-    else if (mark === "skipped") skipped++;
-    else pending++;
-  }
-  skipped += skippedFlows.filter((n) => names.indexOf(n) < 0).length;
+  const { names, holds, broken, skipped, pending } = reviewMarks();
   let html =
     "Coverage " +
     changed.length +
@@ -4646,7 +4690,22 @@ function renderCoverage(cov, findings, graph) {
     if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
     if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
   }
-  html = '<span class="cov-chip">' + html + "</span>";
+  const score =
+    '<div class="score" id="scorecard">' +
+    '<span class="score-chip pending">' +
+    pending +
+    " left</span>" +
+    '<span class="score-chip holds">' +
+    holds +
+    " stamped</span>" +
+    '<span class="score-chip skip">' +
+    skipped +
+    " skipped</span>" +
+    '<span class="score-chip broken">' +
+    broken +
+    " broken</span>" +
+    "</div>";
+  html = score + '<span class="cov-chip">' + html + "</span>";
   const scars = (findings || []).filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
   if (scars.length) {
     html +=

@@ -118,6 +118,15 @@ assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webvie
 assert(ext.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
 assert(js.includes("function sendLlmAsk"), "LLM Ask must be wired in the webview");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
+assert(js.includes('id="scorecard"'), "review scorecard missing");
+assert(js.includes("function reviewMarks"), "review queue marks missing");
+assert(js.includes("now-pill"), "now context pill missing");
+assert(js.includes("function setDeskMode"), "review desk mode missing");
+assert(css.includes("body.desk"), "desk layout tokens missing");
+assert(css.includes(".score-chip"), "scorecard chip styles missing");
+assert(css.includes(".now-pill"), "now-pill styles missing");
+assert(ext.includes("Evidence"), "inspect pane must label Evidence");
+assert(ext.includes("src-k"), "evidence kicker missing from the webview chrome");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",
