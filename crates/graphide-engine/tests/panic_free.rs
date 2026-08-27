@@ -6,7 +6,7 @@ use graphide_engine::{
 };
 use graphide_ir::*;
 use std::collections::HashMap;
-use std::panic::catch_unwind;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 fn span(file: &str) -> Span {
     Span {
@@ -182,7 +182,7 @@ fn stamp_recheck_on_empty_graph_does_not_panic() {
         stamps: vec![],
         programs: vec![],
     };
-    assert!(catch_unwind(|| apply_saved_stamps(&mut snap, &[stamp])).is_ok());
+    assert!(catch_unwind(AssertUnwindSafe(|| apply_saved_stamps(&mut snap, &[stamp]))).is_ok());
 }
 
 #[test]

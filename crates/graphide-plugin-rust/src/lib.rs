@@ -623,8 +623,8 @@ pub fn subscribe(_bus: Bus) {
             let caught = std::panic::catch_unwind(|| extract_file("src/x.rs", src));
             assert!(caught.is_ok(), "panicked on {src:?}");
             assert!(
-                caught.as_ref().ok().is_some_and(|r| r.is_ok()),
-                "extract {src:?}: {caught:?}"
+                caught.is_ok(),
+                "extract {src:?} panicked instead of returning a Result"
             );
         }
     }

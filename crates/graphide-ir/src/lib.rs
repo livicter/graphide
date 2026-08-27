@@ -430,9 +430,25 @@ pub struct FlowView {
 pub fn span_snippet(source: &str, span: &Span) -> String {
     let start = pos_to_offset(source, span.start.line, span.start.column);
     let end = pos_to_offset(source, span.end.line, span.end.column);
-    let start = source.floor_char_boundary(start.min(source.len()));
-    let end = source.ceil_char_boundary(end.min(source.len())).max(start);
+    let start = floor_char_boundary(source, start);
+    let end = ceil_char_boundary(source, end).max(start);
     source.get(start..end).unwrap_or("").to_string()
+}
+
+fn floor_char_boundary(s: &str, i: usize) -> usize {
+    let mut i = i.min(s.len());
+    while i > 0 && !s.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+fn ceil_char_boundary(s: &str, i: usize) -> usize {
+    let mut i = i.min(s.len());
+    while i < s.len() && !s.is_char_boundary(i) {
+        i += 1;
+    }
+    i
 }
 
 fn pos_to_offset(source: &str, line: u32, column: u32) -> usize {

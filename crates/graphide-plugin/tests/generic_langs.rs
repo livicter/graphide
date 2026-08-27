@@ -120,8 +120,10 @@ fn extract_junk_is_result_not_panic() {
     ] {
         let caught = std::panic::catch_unwind(|| extract_file(file, src));
         assert!(caught.is_ok(), "panicked on {file}");
-        let inner = caught.expect("catch_unwind");
-        assert!(inner.is_ok(), "{file}: {inner:?}");
+        assert!(
+            caught.is_ok(),
+            "{file} panicked instead of returning a Result"
+        );
     }
 }
 
