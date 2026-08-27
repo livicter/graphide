@@ -859,6 +859,14 @@
     await later(40);
     check("T3", "Slice keeps the story rail on the control-flow walk", !!document.getElementById("storyRail"), "");
     check("T4", "Story rail sits outside the camera viewport", !!(document.getElementById("storyRail") && !document.querySelector(".viewport #storyRail")), "");
+    clickWs("overview");
+    await later(40);
+    check("U1", "Overview keeps Play on the start → features path", !!document.getElementById("pathWalkBtn") && /Start → features → end/i.test((document.querySelector(".feature-path") || {}).textContent || ""), (document.querySelector(".feature-path") || {}).textContent || "");
+    check("U2", "Overview chips are hops or communities", !!(document.querySelector(".feature-path [data-hop], .feature-path [data-feature]")), "");
+    const nextBtn = document.getElementById("pathWalkNext");
+    if (nextBtn) nextBtn.click();
+    await later(40);
+    check("U3", "Next names the walk stop on the now pill", /overview|map|slice|inside|lineage/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
 
     const failed = rows.filter((r) => !r.pass);
     const html =

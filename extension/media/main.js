@@ -666,14 +666,28 @@ function nowStripHtml() {
   const m = reviewMarks();
   const ws = explorerWs || "overview";
   const alt = reviewAltitude();
+  const walk = pathWalk.i >= 0 ? pathWalkStops()[pathWalk.i] : null;
+  const here = walk ? shortOf(walk.label) || "" : "";
   return (
     '<span class="now-pill" id="nowPill">' +
     esc(ws) +
     " · " +
     esc(alt) +
+    (here ? " · " + esc(here) : "") +
     (m.names.length ? " · " + (m.pending ? m.pending + " left" : "queue clear") : "") +
     "</span>"
   );
+}
+
+function refreshNowPill() {
+  const el = document.getElementById("nowPill");
+  if (!el) return;
+  const html = nowStripHtml();
+  if (!html) return;
+  const box = document.createElement("div");
+  box.innerHTML = html;
+  const next = box.firstElementChild;
+  if (next) el.replaceWith(next);
 }
 
 function setMeta(html) {
@@ -2393,22 +2407,32 @@ function renderStoryRailHtml() {
 }
 
 function renderFeaturePathHtml() {
-  const path = featurePath(storyFlow());
+  const path = storyRailStops();
   if (!path.length) return "";
   const chips = path
-    .map((b, i) => {
-      const name = shortOf(b.label) || "feature";
+    .map((stop, i) => {
+      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
+      const hop = stop.kind === "hop";
+      const here = hop
+        ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id)
+          ? " here"
+          : ""
+        : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
+          ? " here"
+          : "";
       const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
-        (graphFilter.bubble && idVal(b.id) === idVal(graphFilter.bubble) ? " here" : "") +
+        here +
         '" style="--i:' +
         i +
-        '" data-feature="' +
-        esc(idVal(b.id)) +
+        '" ' +
+        (hop ? "data-hop" : "data-feature") +
+        '="' +
+        esc(idVal(stop.id)) +
         '">' +
         esc(label) +
         "</button>"
@@ -2432,7 +2456,19 @@ function renderFeaturePathHtml() {
 }
 
 function pathWalkStops() {
-  return featurePath(storyFlow());
+  return storyRailStops();
+}
+
+function focusWalkStop(stop) {
+  if (!stop) return;
+  if (stop.kind === "hop") {
+    selectedNodeId = idVal(stop.id);
+    peekSource(stop.id);
+    return;
+  }
+  const bub = findBubble(stop.id);
+  const mem = bub && (bub.members || [])[0];
+  if (mem) peekSource(mem);
 }
 
 function stopPathWalk() {
@@ -2455,6 +2491,7 @@ function stepPathWalk(delta) {
   }
   pathWalk.i = i;
   applyPathWalkPaint();
+  focusWalkStop(stops[i]);
 }
 
 function togglePathWalk() {
@@ -2503,12 +2540,17 @@ function applyPathWalkPaint() {
     if (on) el.classList.add("here");
   });
   document.querySelectorAll(".bubble-card").forEach((el) => {
-    el.classList.toggle("walk", !!bid && el.getAttribute("data-bubble") === bid);
+    const bub = el.getAttribute("data-bubble");
+    const own = bubbleOf(bid);
+    el.classList.toggle(
+      "walk",
+      !!bid && (bub === bid || !!(own && idVal(own.id) === bub))
+    );
   });
   document.querySelectorAll(".vnode, .comm-node").forEach((el) => {
     const id = el.getAttribute("data-id");
     const b = id ? bubbleOf(id) : null;
-    el.classList.toggle("walk", !!(bid && b && idVal(b.id) === bid));
+    el.classList.toggle("walk", !!(bid && (id === bid || (b && idVal(b.id) === bid))));
   });
   document.querySelectorAll(".comm-edges path, svg.steiner .edge").forEach((p) => {
     if (!bid) {
@@ -2539,6 +2581,7 @@ function applyPathWalkPaint() {
       ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature")
       : "Play the start → features → end walk";
   }
+  refreshNowPill();
 }
 
 function bindPathWalk() {
@@ -3334,6 +3377,17 @@ function renderExplorerList(ws) {
       explorerWs = "map";
       explorerPinned = true;
       renderProgramOverview();
+    };
+  });
+  canvas.querySelectorAll(".feature-path [data-hop]").forEach((el) => {
+    el.onclick = () => {
+      stopPathWalk();
+      const id = el.getAttribute("data-hop");
+      const stops = pathWalkStops();
+      const idx = stops.findIndex((s) => idVal(s.id) === idVal(id));
+      if (idx >= 0) pathWalk.i = idx;
+      applyPathWalkPaint();
+      focusWalkStop(stops[idx] || { id: id, kind: "hop" });
     };
   });
   bindPathWalk();

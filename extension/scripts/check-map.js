@@ -134,6 +134,9 @@ assert(js.includes("function storyMapBubbles"), "map must pin the story path int
 assert(js.includes("function pinStoryClusters"), "map must keep start/end bubbles on the cut");
 assert(js.includes("function storyHopStops"), "rail must fall back to control-flow hops");
 assert(js.includes("function storyRailStops"), "rail must choose communities or hops");
+assert(js.includes("function pathWalkStops") && js.includes("return storyRailStops()"), "Play must walk the same hops as the story rail");
+assert(js.includes("function focusWalkStop"), "Play must peek Evidence on each hop");
+assert(js.includes("function refreshNowPill"), "now-pill must follow the walk");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
