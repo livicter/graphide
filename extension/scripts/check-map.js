@@ -5,6 +5,7 @@ const path = require("path");
 const js = fs.readFileSync(path.join(__dirname, "../media/main.js"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../media/main.css"), "utf8");
 const ext = fs.readFileSync(path.join(__dirname, "../src/extension.ts"), "utf8");
+const harness = fs.readFileSync(path.join(__dirname, "webview-harness.js"), "utf8");
 
 function assert(cond, msg) {
   if (!cond) {
@@ -127,6 +128,11 @@ assert(css.includes(".score-chip"), "scorecard chip styles missing");
 assert(css.includes(".now-pill"), "now-pill styles missing");
 assert(ext.includes("Evidence"), "inspect pane must label Evidence");
 assert(ext.includes("src-k"), "evidence kicker missing from the webview chrome");
+assert(js.includes("function renderStoryRailHtml"), "map/slice story rail missing");
+assert(js.includes("function reviewAltitude"), "now-pill altitude missing");
+assert(js.includes('id="storyRail"'), "story rail id missing");
+assert(css.includes(".story-rail"), "story rail styles missing");
+assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",
