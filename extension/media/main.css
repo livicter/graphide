@@ -1879,3 +1879,97 @@ svg.steiner .edge.walk {
   #canvas.swap { animation: none; }
   #toast, #keysPane { transition: none; transform: none; }
 }
+
+/* Review desk — quieter rails, more stage, a scorecard for the queue. */
+body.desk #promptRow {
+  padding: 4px 12px;
+  opacity: 0.78;
+}
+body.reviewed #promptRow {
+  border-bottom-style: dashed;
+}
+body.desk #tabs, body.desk #meta {
+  padding: 5px 12px;
+}
+body.desk #tabs {
+  align-items: center;
+  gap: 6px;
+}
+body.desk #meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+body.desk #workspace.has-source #canvas {
+  opacity: 0.88;
+  filter: saturate(0.92);
+}
+.now-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 70%, var(--vscode-panel-border));
+  color: var(--vscode-textLink-foreground);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 16%, transparent);
+}
+.queue-left {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.62;
+  margin-right: 4px;
+}
+.queue-left.done { color: #3fb950; opacity: 0.9; }
+#coverage .score {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.score-chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+}
+.score-chip.holds { border-color: #3fb950; color: #3fb950; }
+.score-chip.broken { border-color: var(--vscode-errorForeground); color: var(--vscode-errorForeground); }
+.score-chip.pending {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+.score-chip.skip { opacity: 0.75; }
+.src-k {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+.empty.desk-empty {
+  max-width: 440px;
+  margin: 10vh auto 0;
+  padding: 22px 24px;
+  border-radius: var(--g-radius);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
+  box-shadow: var(--g-inset), 0 16px 40px color-mix(in srgb, #000 22%, transparent);
+}
+.desk-keys {
+  margin-top: 14px;
+  font-size: 12px;
+  opacity: 0.72;
+}
+.desk-keys kbd {
+  font: 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--vscode-panel-border);
+}

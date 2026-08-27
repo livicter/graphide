@@ -820,6 +820,9 @@
     key("?");
     check("P3", "Question mark opens the shortcut sheet", !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden), "");
     key("Escape");
+    check("S1", "Coverage is a review scorecard", !!document.querySelector("#coverage .score") && document.querySelectorAll(".score-chip").length >= 3, "chips=" + document.querySelectorAll(".score-chip").length);
+    check("S2", "Desk mode is on after Review", document.body.classList.contains("desk") && !!document.getElementById("nowPill"), "desk=" + document.body.classList.contains("desk"));
+    check("S3", "Inspect pane labels Evidence", !!(document.querySelector(".src-k") && /Evidence/i.test((document.querySelector(".src-k") || {}).textContent || "")), "");
 
     const failed = rows.filter((r) => !r.pass);
     const html =
