@@ -59,6 +59,10 @@ const llmBridge = document.getElementById("llmBridge");
 const llmLog = document.getElementById("llmLog");
 const llmAsk = document.getElementById("llmAsk");
 const llmSend = document.getElementById("llmSend");
+const toastEl = document.getElementById("toast");
+const keysPane = document.getElementById("keysPane");
+const keysBtn = document.getElementById("keysBtn");
+const keysClose = document.getElementById("keysClose");
 const LLM_PRESETS = {
   ollama: { url: "http://127.0.0.1:11434/v1", model: "llama3.2" },
   lmstudio: { url: "http://127.0.0.1:1234/v1", model: "local-model" },
@@ -149,6 +153,11 @@ document.addEventListener("keydown", (e) => {
     setLlmPane(false);
     return;
   }
+  if (e.key === "Escape" && keysPane && !keysPane.hidden) {
+    e.preventDefault();
+    setKeysPane(false);
+    return;
+  }
   if (stack[stack.length - 1]?.kind === "programs") {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
@@ -216,6 +225,17 @@ document.addEventListener("keydown", (e) => {
     toggleLlmPane();
     return;
   }
+  if (e.key === "/" && graphSearch) {
+    e.preventDefault();
+    graphSearch.focus();
+    graphSearch.select();
+    return;
+  }
+  if (e.key === "?" || e.key === "F1") {
+    e.preventDefault();
+    setKeysPane(!(keysPane && !keysPane.hidden));
+    return;
+  }
   const wsIdx = "1234567".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
@@ -241,9 +261,13 @@ if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
       graphFilter.kinds[el.getAttribute("data-kind")] = el.checked;
+      syncKindPills();
       refreshExplorer();
     });
   });
+syncKindPills();
+if (keysBtn) keysBtn.onclick = () => setKeysPane(!(keysPane && !keysPane.hidden));
+if (keysClose) keysClose.onclick = () => setKeysPane(false);
 if (workspacesEl) {
   workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
     el.onclick = () => {
@@ -538,6 +562,48 @@ function reduceMotion() {
   }
 }
 
+function flashToast(text, kind) {
+  if (!toastEl) return;
+  toastEl.hidden = false;
+  toastEl.className = kind ? "on " + kind : "on";
+  toastEl.textContent = text;
+  clearTimeout(flashToast._t);
+  flashToast._t = setTimeout(() => {
+    toastEl.classList.remove("on");
+    toastEl.hidden = true;
+  }, 1600);
+}
+
+function flashBtn(el, cls) {
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 720);
+}
+
+function flashCanvas() {
+  if (!canvas || reduceMotion()) return;
+  canvas.classList.remove("swap");
+  void canvas.offsetWidth;
+  canvas.classList.add("swap");
+}
+
+function setKeysPane(on) {
+  if (!keysPane) return;
+  keysPane.hidden = !on;
+  keysPane.classList.toggle("open", !!on);
+  if (keysBtn) keysBtn.classList.toggle("on", !!on);
+}
+
+function syncKindPills() {
+  if (!kindFilters) return;
+  kindFilters.querySelectorAll("label").forEach((lab) => {
+    const box = lab.querySelector("input");
+    lab.classList.toggle("off", !!(box && !box.checked));
+  });
+}
+
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -663,6 +729,7 @@ function setWorkspace(name, pin) {
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
   paint({ animate: "none" });
+  flashCanvas();
 }
 
 function setEgoMode(on) {
@@ -1325,6 +1392,7 @@ function autoReorganize() {
   clearCurrentPins();
   if (!snapshot) return;
   paint({ animate: "none", keepCam: true });
+  flashToast("Reorganized", "ok");
 }
 
 function kindWeight(kind) {
@@ -1718,6 +1786,8 @@ function requestStamp(name) {
     );
   }
   vscode.postMessage({ type: "stamp", flow });
+  flashToast("Stamped " + flow + " · holds", "holds");
+  flashBtn(stampBtn, "flash-holds");
   paint({ animate: "none" });
 }
 
@@ -1729,6 +1799,8 @@ function requestSkip(name) {
     snapshot.skipped = (snapshot.skipped || []).concat([flow]);
   }
   vscode.postMessage({ type: "skip", flow });
+  flashToast("Skipped " + flow, "skip");
+  flashBtn(skipBtn, "flash-skip");
   paint({ animate: "none" });
 }
 
@@ -2130,6 +2202,7 @@ function renderFeaturePathHtml() {
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
+        (graphFilter.bubble && idVal(b.id) === idVal(graphFilter.bubble) ? " here" : "") +
         '" style="--i:' +
         i +
         '" data-feature="' +
@@ -3616,9 +3689,11 @@ function renderBubbleMap(clusters) {
     const step = pathRank.has(id) ? pathRank.get(id) : -1;
     const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
     const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
+    const here = graphFilter.bubble && idVal(id) === idVal(graphFilter.bubble) ? " here" : "";
     html +=
       '<button type="button" class="bubble-card' +
       roleClass +
+      here +
       '" style="left:' +
       p.x +
       "px;top:" +
@@ -4309,6 +4384,7 @@ function renderCoverage(cov, findings, graph) {
     if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
     if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
   }
+  html = '<span class="cov-chip">' + html + "</span>";
   const scars = (findings || []).filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
   if (scars.length) {
     html +=

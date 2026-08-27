@@ -799,6 +799,17 @@
     check("N6", "Key L toggles the Ask panel", document.getElementById("llmPane") && document.getElementById("llmPane").hidden, "hidden=" + !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden));
     const radius = getComputedStyle(document.body).getPropertyValue("--g-radius");
     check("O3", "Modern radius tokens are live", /px/.test(radius), radius);
+    check("P1", "Stamp/skip toast chrome is present", !!document.getElementById("toast"), "");
+    if (askBox) askBox.blur();
+    document.body.focus();
+    key("/");
+    const findBox = document.getElementById("graphSearch");
+    check("P2", "Slash focuses graph search", document.activeElement === findBox, "active=" + ((document.activeElement && document.activeElement.id) || ""));
+    if (findBox) findBox.blur();
+    document.body.focus();
+    key("?");
+    check("P3", "Question mark opens the shortcut sheet", !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden), "");
+    key("Escape");
 
     const failed = rows.filter((r) => !r.pass);
     const html =

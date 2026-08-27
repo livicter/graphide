@@ -81,6 +81,7 @@
     <button id="stampBtn" title="Human stamp: this flow still holds (S)">Stamp</button>
     <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
     <button id="llmBtn" type="button" title="Connect an LLM or ask about this review path">LLM</button>
+    <button id="keysBtn" type="button" title="Keyboard shortcuts (?)">?</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -90,6 +91,17 @@
     </div>
   </header>
   <div id="tip" hidden></div>
+  <div id="toast" hidden role="status"></div>
+  <aside id="keysPane" hidden>
+    <div class="keys-head"><b>Keys</b><button type="button" id="keysClose" title="Close shortcuts">Close</button></div>
+    <ul>
+      <li><kbd>1</kbd>–<kbd>7</kbd> workspaces</li>
+      <li><kbd>/</kbd> find · <kbd>?</kbd> this sheet</li>
+      <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
+      <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
+      <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
+    </ul>
+  </aside>
   <div id="progress">
     <div class="progress-inner">
       <ol id="phases">
@@ -132,11 +144,15 @@
       </select>
     </label>
     <button type="button" class="reorg-btn" id="reorgBtn" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
-    <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
+    <label class="search-wrap">
+      <span class="search-ico" aria-hidden="true">⌕</span>
+      <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
+      <kbd>/</kbd>
+    </label>
     <div id="kindFilters">
-      <label><input type="checkbox" data-kind="Function" checked /> Function</label>
-      <label><input type="checkbox" data-kind="Type" checked /> Type</label>
-      <label><input type="checkbox" data-kind="Endpoint" checked /> Endpoint</label>
+      <label class="kind-pill kind-Function"><input type="checkbox" data-kind="Function" checked /> Function</label>
+      <label class="kind-pill kind-Type"><input type="checkbox" data-kind="Type" checked /> Type</label>
+      <label class="kind-pill kind-Endpoint"><input type="checkbox" data-kind="Endpoint" checked /> Endpoint</label>
     </div>
     <div id="legend"></div>
   </div>
