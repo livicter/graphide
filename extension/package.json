@@ -2,7 +2,7 @@
   "name": "graphide",
   "displayName": "Graphide Review",
   "description": "Review agent changes as flow graphs — explorer workspaces over a closed IR, not a force-directed hairball.",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "publisher": "graphide",
   "license": "MIT",
   "engines": { "vscode": "^1.85.0" },

@@ -659,6 +659,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <li><kbd>1</kbd>–<kbd>7</kbd> workspaces</li>
       <li><kbd>/</kbd> find · <kbd>?</kbd> this sheet</li>
       <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
+      <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
       <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
     </ul>

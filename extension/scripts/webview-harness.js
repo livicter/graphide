@@ -759,6 +759,13 @@
     clickWs("overview");
     await later(40);
     check("M1", "Overview shows start → features → end path", !!document.querySelector(".feature-path") && /Start → features → end/i.test(document.body.innerText), "");
+    check("Q1", "Overview can play the start → features → end walk", !!document.getElementById("pathWalkBtn"), "");
+    const playPath = document.getElementById("pathWalkBtn");
+    if (playPath) playPath.click();
+    await later(80);
+    check("Q2", "Play lights the current feature chip", !!document.querySelector(".feat-chip.walk"), "");
+    if (playPath && playPath.classList.contains("on")) playPath.click();
+    check("Q3", "Walk chrome still says Start → features → end", /Start → features → end/i.test((document.querySelector(".feature-path") || {}).textContent || ""), "");
     clickWs("map");
     if (back && !back.disabled && document.querySelector(".comm-node")) back.click();
     await later(40);
