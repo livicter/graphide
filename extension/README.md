@@ -1,6 +1,6 @@
 # Graphide Review
 
-Review any local repo as a flow graph. Live panel caps from SolarSim live in the repo-root `UIUX_sample/` folder.
+Review any local repo as a flow graph. Live panel caps from SolarSim live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
 
 ## Install (one click)
 

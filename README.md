@@ -6,6 +6,22 @@ Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubunt
 
 The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) are compiled into the CLI — `graphide plugins --check` verifies them after copy.
 
+## Install (live)
+
+Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`install.command`) run the same steps. More in [`install_sample/`](install_sample/).
+
+**1. One-click scripts** in the Graphide source repo (not the folder you Review):
+
+![One-click installers](install_sample/01-scripts.png)
+
+**2. CLI + plugins + VSIX** — every deriver must pass before the panel is installed into Cursor, then VS Code:
+
+![Install plugins and Cursor](install_sample/02-install-plugins.png)
+
+**3. Check again, then reload Cursor** → Graphide → **Review**:
+
+![VSIX and plugin check](install_sample/03-vsix-cursor.png)
+
 ## Review panel
 
 After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live pass on SolarSim (349 nodes · 765 edges · 57 files). More in [`UIUX_sample/`](UIUX_sample/).
