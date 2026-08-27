@@ -141,6 +141,9 @@ assert(/peekSource[\s\S]{0,400}showSource/.test(js) && js.includes("No snippet o
 assert(js.includes("shortOf(f.from)") && js.includes("shortOf(f.to)"), "Registry findings must name from → to hops");
 assert(harness.includes("runLiveSuite") && harness.includes('suite") === "live"'), "live SolarSim suite missing");
 assert(js.includes("function syncBackBtn"), "Back must enable after Enter a community");
+assert(js.includes("storyTree.length >= 2"), "Lineage must prefer the control-flow walk over a one-node overview stub");
+assert(harness.includes("V39") && harness.includes("V40"), "live suite must prove Lineage lands on the start hop");
+assert(js.includes("Clear find to see the audit log"), "Registry must not look empty when Find filters the snapshot");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");

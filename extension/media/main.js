@@ -2910,7 +2910,12 @@ function applyEgoPaint() {
 }
 
 function defaultFocusId() {
-  if (selectedNodeId) return selectedNodeId;
+  const sid = selectedNodeId ? idVal(selectedNodeId) : "";
+  if (sid && incidentEdges(sid).length) return sid;
+  const story = storyFlow();
+  const storyTree = (story && story.tree && story.tree.nodes) || [];
+  if (storyTree.length >= 2) return idVal(storyTree[0]);
+  if (sid) return sid;
   const flow = currentFlow();
   const tree = (flow && flow.tree && flow.tree.nodes) || [];
   if (tree[0]) return idVal(tree[0]);
@@ -3148,7 +3153,16 @@ function renderDecisionBody() {
   const rows = decisionRecords().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
   );
-  if (!rows.length) return '<div class="empty">No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.</div>';
+  if (!rows.length) {
+    if (graphFilter.q) {
+      return (
+        '<div class="empty">No decisions match “' +
+        esc(graphFilter.q) +
+        '”. Clear find to see stamps and skips.</div>'
+      );
+    }
+    return '<div class="empty">No stamps, skips, or stamp scars yet. Stamp (S) or Skip (X) a flow.</div>';
+  }
   if (!selectedDecisionKey || !rows.some((r) => decisionKey(r) === selectedDecisionKey)) {
     selectedDecisionKey = decisionKey(rows[0]);
   }
@@ -3232,7 +3246,16 @@ function renderRegistryBody() {
   const ev = registryEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
   );
-  if (!ev.length) return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
+  if (!ev.length) {
+    if (graphFilter.q) {
+      return (
+        '<div class="empty">No registry rows match “' +
+        esc(graphFilter.q) +
+        '”. Clear find to see the audit log.</div>'
+      );
+    }
+    return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
+  }
   return (
     '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' +
     ev
@@ -3262,7 +3285,16 @@ function renderTimelineBody() {
   const ev = timelineEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
   );
-  if (!ev.length) return '<div class="empty">No parent cut or stamp events yet.</div>';
+  if (!ev.length) {
+    if (graphFilter.q) {
+      return (
+        '<div class="empty">No timeline events match “' +
+        esc(graphFilter.q) +
+        '”. Clear find to see the parent cut.</div>'
+      );
+    }
+    return '<div class="empty">No parent cut or stamp events yet.</div>';
+  }
   if (timelineCursor >= ev.length) timelineCursor = ev.length - 1;
   if (timelineCursor < 0) timelineCursor = 0;
   const cur = ev[timelineCursor];

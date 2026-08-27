@@ -927,6 +927,10 @@
     const footer = (document.getElementById("status") || {}).textContent || "";
 
     check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /765/.test(footer) && /57/.test(footer), footer);
+    clickWs("lineage");
+    await later(80);
+    check("V39", "Lineage lands on the control-flow start hop", /retrieve_starting_data/i.test((document.getElementById("meta") || {}).textContent || "") && document.querySelectorAll(".ego-node").length >= 2 && !/ 0 incident hops/.test((document.getElementById("meta") || {}).textContent || ""), (document.getElementById("meta") || {}).textContent || "");
+    check("V40", "Lineage Informed column lists Calls hops", /Calls|success_toast|error_toast|TypeUses/i.test((document.querySelector('.prov-col[data-prov="informed"]') || {}).textContent || ""), (document.querySelector('.prov-col[data-prov="informed"]') || {}).textContent || "");
     clickWs("overview");
     await later(80);
     check("V2", "Overview keeps Play and hop chips", !!document.getElementById("pathWalkBtn") && /retrieve_starting_data/i.test((document.querySelector(".feature-path") || {}).textContent || ""), (document.querySelector(".feature-path") || {}).textContent || "");
