@@ -2,11 +2,23 @@
 //! Default shape: tree-sitter grammar + declarative extract queries.
 //! Rust keeps the richer first-slice plugin; other languages share the query runner.
 
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::todo,
+        clippy::unimplemented
+    )
+)]
+
 mod langs;
 mod query;
 
 pub use graphide_plugin_rust::{
-    extract_file as extract_rust, ExtractResult as RustExtract, PLUGIN_ID as RUST_PLUGIN,
+    extract_file as extract_rust, ExtractResult as RustExtract, PluginError as RustPluginError,
+    PLUGIN_ID as RUST_PLUGIN,
 };
 pub use langs::{for_extension, Lang, ALL as LANGUAGES};
 pub use query::{extract_with, ExtractResult, PluginError};
@@ -20,8 +32,12 @@ pub fn extract_file(
 ) -> Result<Option<ExtractResult>, PluginError> {
     let ext = repo_relative.rsplit('.').next().unwrap_or("");
     if ext.eq_ignore_ascii_case("rs") {
-        let r =
-            extract_rust(repo_relative, source).map_err(|e| PluginError::Query(e.to_string()))?;
+        let r = extract_rust(repo_relative, source).map_err(|e| match e {
+            RustPluginError::Language => PluginError::Language,
+            RustPluginError::Parse(f) => PluginError::Parse(f),
+            RustPluginError::Reentered => PluginError::Reentered,
+            other => PluginError::Query(other.to_string()),
+        })?;
         return Ok(Some(ExtractResult {
             extract: r.extract,
             findings: r.findings,

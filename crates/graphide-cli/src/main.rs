@@ -1,3 +1,14 @@
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::todo,
+        clippy::unimplemented
+    )
+)]
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use graphide_engine::{
@@ -236,6 +247,10 @@ fn print_review(snap: &ReviewSnapshot) {
     }
 }
 
+fn recover_lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 struct ProgressSink {
     enabled: bool,
     last: Mutex<Instant>,
@@ -257,10 +272,10 @@ impl ProgressSink {
         }
         let now = Instant::now();
         {
-            let mut last = self.last.lock().expect("progress lock");
-            let mut phase = self.last_phase.lock().expect("progress lock");
+            let mut last = recover_lock(&self.last);
+            let mut phase = recover_lock(&self.last_phase);
             let force = ev.phase != *phase || ev.done == ev.total || ev.pct >= 100;
-            if !force && now.duration_since(*last).as_millis() < 40 {
+            if !force && now.saturating_duration_since(*last).as_millis() < 40 {
                 return;
             }
             *last = now;
@@ -631,4 +646,24 @@ fn skip_dir(path: &Path) -> bool {
 fn path_relative(root: &Path, file: &Path) -> Result<String> {
     let rel = file.strip_prefix(root).unwrap_or(file);
     Ok(rel.to_string_lossy().replace('\\', "/"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use std::thread;
+
+    #[test]
+    fn recover_lock_survives_poison() {
+        let m = Arc::new(Mutex::new(1u32));
+        let m2 = m.clone();
+        let _ = thread::spawn(move || {
+            let _g = recover_lock(&m2);
+            panic!("poison the mutex");
+        })
+        .join();
+        let g = recover_lock(&m);
+        assert_eq!(*g, 1);
+    }
 }

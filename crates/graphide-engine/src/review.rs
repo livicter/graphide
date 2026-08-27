@@ -339,7 +339,9 @@ fn control_flow_hits(graph: &Graph, seeds: &[String]) -> Vec<String> {
     }
     let mut i = 0;
     while i < q.len() && q.len() < 48 {
-        let cur = q[i];
+        let Some(cur) = q.get(i).copied() else {
+            break;
+        };
         i += 1;
         for nxt in adj.get(&cur).into_iter().flatten() {
             if seen.insert(*nxt) {
@@ -412,7 +414,9 @@ fn calls_spine(graph: &Graph) -> Vec<String> {
     seen.insert(start);
     let mut i = 0;
     while i < q.len() && q.len() < 24 {
-        let cur = q[i];
+        let Some(cur) = q.get(i).copied() else {
+            break;
+        };
         i += 1;
         for nxt in adj.get(&cur).into_iter().flatten() {
             if seen.insert(*nxt) {
@@ -454,7 +458,7 @@ pub fn resolve_fqn(graph: &Graph, fqn: &str) -> Option<NodeId> {
         })
         .collect();
     if hits.len() == 1 {
-        return Some(hits[0].id);
+        return hits.first().map(|n| n.id);
     }
     hits = graph
         .nodes
@@ -462,7 +466,7 @@ pub fn resolve_fqn(graph: &Graph, fqn: &str) -> Option<NodeId> {
         .filter(|n| last_seg(&n.fqn) == q)
         .collect();
     if hits.len() == 1 {
-        Some(hits[0].id)
+        hits.first().map(|n| n.id)
     } else {
         None
     }

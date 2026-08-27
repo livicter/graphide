@@ -17,6 +17,8 @@ pub enum PluginError {
     Parse(String),
     #[error("extract query: {0}")]
     Query(String),
+    #[error("parser re-entered on the same thread")]
+    Reentered,
 }
 
 pub struct ExtractResult {
@@ -50,7 +52,7 @@ pub fn extract_with(
 ) -> Result<ExtractResult, PluginError> {
     let query = cached_query(lang)?;
     let tree = PARSERS.with(|slot| {
-        let mut map = slot.borrow_mut();
+        let mut map = slot.try_borrow_mut().map_err(|_| PluginError::Reentered)?;
         if !map.contains_key(lang.id) {
             let mut parser = Parser::new();
             parser
@@ -59,7 +61,7 @@ pub fn extract_with(
             map.insert(lang.id, parser);
         }
         map.get_mut(lang.id)
-            .unwrap()
+            .ok_or(PluginError::Language)?
             .parse(source, None)
             .ok_or_else(|| PluginError::Parse(repo_relative.to_string()))
     })?;
@@ -224,7 +226,7 @@ fn resolve_name(nodes: &[NodeDef], module: &str, sep: &str, raw: &str) -> Option
         .map(|n| n.fqn.clone())
         .collect();
     if candidates.len() == 1 {
-        return Some(candidates[0].clone());
+        return candidates.first().cloned();
     }
     let local = qualify(module, sep, raw);
     if nodes

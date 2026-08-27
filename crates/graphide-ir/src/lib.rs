@@ -1,5 +1,16 @@
 //! Language-agnostic IR matching IR.md.
 
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::todo,
+        clippy::unimplemented
+    )
+)]
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::fmt;
@@ -108,7 +119,11 @@ impl NodeId {
         hasher.update(fqn.as_bytes());
         let digest = hasher.finalize();
         let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&digest[..8]);
+        if let Some(head) = digest.get(..8) {
+            if let Ok(arr) = <[u8; 8]>::try_from(head) {
+                bytes = arr;
+            }
+        }
         NodeId(u64::from_le_bytes(bytes))
     }
 }
@@ -415,9 +430,9 @@ pub struct FlowView {
 pub fn span_snippet(source: &str, span: &Span) -> String {
     let start = pos_to_offset(source, span.start.line, span.start.column);
     let end = pos_to_offset(source, span.end.line, span.end.column);
-    let end = end.min(source.len()).max(start.min(source.len()));
-    let start = start.min(source.len());
-    source[start..end].to_string()
+    let start = source.floor_char_boundary(start.min(source.len()));
+    let end = source.ceil_char_boundary(end.min(source.len())).max(start);
+    source.get(start..end).unwrap_or("").to_string()
 }
 
 fn pos_to_offset(source: &str, line: u32, column: u32) -> usize {
@@ -425,10 +440,64 @@ fn pos_to_offset(source: &str, line: u32, column: u32) -> usize {
     let bytes = source.as_bytes();
     let mut i = 0usize;
     while i < bytes.len() && cur_line < line {
-        if bytes[i] == b'\n' {
+        if bytes.get(i) == Some(&b'\n') {
             cur_line += 1;
         }
         i += 1;
     }
-    i + column.saturating_sub(1) as usize
+    i.saturating_add(column.saturating_sub(1) as usize)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn span_snippet_survives_utf8_and_out_of_range() {
+        let src = "fn 🦀x() {}";
+        let mid = span_snippet(
+            src,
+            &Span {
+                file: "a.rs".into(),
+                start: Pos { line: 1, column: 4 },
+                end: Pos { line: 1, column: 6 },
+            },
+        );
+        assert!(src.contains(&mid) || mid.is_empty());
+        let oob = span_snippet(
+            src,
+            &Span {
+                file: "a.rs".into(),
+                start: Pos {
+                    line: 99,
+                    column: 99,
+                },
+                end: Pos {
+                    line: 200,
+                    column: 1,
+                },
+            },
+        );
+        assert!(oob.is_empty());
+        let empty = span_snippet(
+            "",
+            &Span {
+                file: "a.rs".into(),
+                start: Pos { line: 1, column: 1 },
+                end: Pos {
+                    line: 1,
+                    column: 10,
+                },
+            },
+        );
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn node_id_from_identity_is_stable() {
+        let a = NodeId::from_identity(NodeKind::Function, "crate::a");
+        let b = NodeId::from_identity(NodeKind::Function, "crate::a");
+        assert_eq!(a, b);
+        assert_ne!(a, NodeId::from_identity(NodeKind::Type, "crate::a"));
+    }
 }

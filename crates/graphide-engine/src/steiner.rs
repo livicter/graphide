@@ -37,12 +37,13 @@ pub fn steiner_tree(graph: &Graph, hits: &[NodeId]) -> Steiner {
         };
     }
     if terminals.len() == 1 {
-        let only = *terminals.iter().next().unwrap();
-        if let Some(entry) = nearest_entry(graph, only) {
-            terminals.insert(entry);
-        }
-        if let Some(sink) = nearest_sink(graph, only) {
-            terminals.insert(sink);
+        if let Some(&only) = terminals.first() {
+            if let Some(entry) = nearest_entry(graph, only) {
+                terminals.insert(entry);
+            }
+            if let Some(sink) = nearest_sink(graph, only) {
+                terminals.insert(sink);
+            }
         }
     }
 
@@ -52,7 +53,12 @@ pub fn steiner_tree(graph: &Graph, hits: &[NodeId]) -> Steiner {
     let mut tree_nodes: IndexSet<NodeId> = IndexSet::new();
     let mut tree_edges: Vec<Edge> = Vec::new();
 
-    let start = *terminals.iter().next().unwrap();
+    let Some(&start) = terminals.first() else {
+        return Steiner {
+            nodes: vec![],
+            edges: vec![],
+        };
+    };
     tree_nodes.insert(start);
     let mut remaining: IndexSet<NodeId> = terminals.iter().copied().skip(1).collect();
 
@@ -70,8 +76,9 @@ pub fn steiner_tree(graph: &Graph, hits: &[NodeId]) -> Steiner {
         };
         remaining.swap_remove(&term);
         for w in path.windows(2) {
-            let a = w[0];
-            let b = w[1];
+            let (Some(&a), Some(&b)) = (w.first(), w.get(1)) else {
+                continue;
+            };
             tree_nodes.insert(a);
             tree_nodes.insert(b);
             if let Some(e) = edge_lookup
