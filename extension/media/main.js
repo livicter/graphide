@@ -2910,7 +2910,12 @@ function applyEgoPaint() {
 }
 
 function defaultFocusId() {
-  if (selectedNodeId) return selectedNodeId;
+  const sid = selectedNodeId ? idVal(selectedNodeId) : "";
+  if (sid && incidentEdges(sid).length) return sid;
+  const story = storyFlow();
+  const storyTree = (story && story.tree && story.tree.nodes) || [];
+  if (storyTree.length >= 2) return idVal(storyTree[0]);
+  if (sid) return sid;
   const flow = currentFlow();
   const tree = (flow && flow.tree && flow.tree.nodes) || [];
   if (tree[0]) return idVal(tree[0]);
