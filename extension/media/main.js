@@ -115,6 +115,8 @@ let explorerPinned = false;
 let egoMode = false;
 let egoHops = 1;
 let selectedDecisionKey = "";
+let timelineCursor = 0;
+let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -2896,6 +2898,8 @@ function renderDecisionBody() {
         (key === selectedDecisionKey ? " on" : "") +
         '" data-decision="' +
         esc(key) +
+        '" data-outcome="' +
+        esc(r.outcome || r.verdict || "") +
         '"><div class="k">' +
         esc(r.outcome || r.verdict || r.kind) +
         '</div><div class="t">' +
@@ -2906,9 +2910,34 @@ function renderDecisionBody() {
       );
     })
     .join("");
+  const outcomes = [
+    ["", "All"],
+    ["approved", "Approved"],
+    ["rejected", "Rejected"],
+    ["deferred", "Deferred"],
+    ["pending", "Pending"],
+  ];
+  const strip =
+    '<div class="outcome-strip" role="tablist" aria-label="Decision outcomes"><span class="outcome-k">Outcomes</span>' +
+    outcomes
+      .map((pair) => {
+        const on = decisionOutcomeFilter === pair[0] ? " on" : "";
+        return (
+          '<button type="button" class="outcome-filter' +
+          on +
+          '" data-outcome-filter="' +
+          esc(pair[0]) +
+          '">' +
+          esc(pair[1]) +
+          "</button>"
+        );
+      })
+      .join("") +
+    "</div>";
   return (
     '<div class="ws-split">' +
     '<div class="ws-list">' +
+    strip +
     list +
     "</div>" +
     '<div class="ws-detail">' +
@@ -2948,9 +2977,11 @@ function renderRegistryBody() {
           esc(e.verdict || e.kind) +
           '"' +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
-          "><td>" +
+          "><td><span class=\"mut mut-" +
           esc(e.verdict || e.kind) +
-          "</td><td>" +
+          '">' +
+          esc(e.verdict || e.kind) +
+          "</span></td><td>" +
           esc(e.title) +
           "</td><td>" +
           esc(e.body) +
@@ -2967,13 +2998,31 @@ function renderTimelineBody() {
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
   );
   if (!ev.length) return '<div class="empty">No parent cut or stamp events yet.</div>';
+  if (timelineCursor >= ev.length) timelineCursor = ev.length - 1;
+  if (timelineCursor < 0) timelineCursor = 0;
+  const cur = ev[timelineCursor];
   return (
+    '<div class="tl-page">' +
+    '<div class="tl-scrub">' +
+    '<label>Watch this review <input id="tlScrub" type="range" min="0" max="' +
+    (ev.length - 1) +
+    '" value="' +
+    timelineCursor +
+    '" /></label>' +
+    '<span id="tlScrubMeta">t' +
+    timelineCursor +
+    " · " +
+    esc((cur && cur.title) || "event") +
+    "</span></div>" +
     '<div class="tl-rail">' +
     ev
       .map((e, i) => {
         return (
           '<article class="tl-item ' +
           esc(e.kind || e.verdict || "") +
+          (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") +
+          '" data-t="' +
+          i +
           '"' +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
           '><i class="tl-dot"></i><div class="tl-when">t' +
@@ -2988,7 +3037,7 @@ function renderTimelineBody() {
         );
       })
       .join("") +
-    "</div>"
+    "</div></div>"
   );
 }
 
@@ -3104,6 +3153,61 @@ function renderExplorerList(ws) {
     };
   });
   bindPathWalk();
+  bindWorkbenchPages();
+}
+
+function applyDecisionOutcomeFilter() {
+  canvas.querySelectorAll(".expl-card[data-outcome]").forEach((el) => {
+    const out = el.getAttribute("data-outcome") || "";
+    el.classList.toggle("off", !!(decisionOutcomeFilter && out !== decisionOutcomeFilter));
+  });
+  canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
+    el.classList.toggle("on", (el.getAttribute("data-outcome-filter") || "") === decisionOutcomeFilter);
+  });
+}
+
+function applyTimelineScrub() {
+  const items = [...canvas.querySelectorAll(".tl-item")];
+  items.forEach((el, i) => {
+    const t = parseInt(el.getAttribute("data-t"), 10);
+    const idx = Number.isFinite(t) ? t : i;
+    el.classList.toggle("now", idx === timelineCursor);
+    el.classList.toggle("past", idx < timelineCursor);
+    el.classList.toggle("ahead", idx > timelineCursor);
+  });
+  const scrub = document.getElementById("tlScrub");
+  if (scrub) scrub.value = String(timelineCursor);
+  const metaEl = document.getElementById("tlScrubMeta");
+  const now = items[timelineCursor];
+  if (metaEl && now) {
+    const title = ((now.querySelector(".t") || {}).textContent || "event").trim();
+    metaEl.textContent = "t" + timelineCursor + " · " + title;
+  }
+}
+
+function bindWorkbenchPages() {
+  applyDecisionOutcomeFilter();
+  canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      decisionOutcomeFilter = el.getAttribute("data-outcome-filter") || "";
+      applyDecisionOutcomeFilter();
+    };
+  });
+  const scrub = document.getElementById("tlScrub");
+  if (scrub) {
+    scrub.oninput = () => {
+      timelineCursor = parseInt(scrub.value, 10) || 0;
+      applyTimelineScrub();
+    };
+  }
+  canvas.querySelectorAll(".tl-item").forEach((el) => {
+    el.addEventListener("click", () => {
+      const t = parseInt(el.getAttribute("data-t"), 10);
+      if (Number.isFinite(t)) timelineCursor = t;
+      applyTimelineScrub();
+    });
+  });
 }
 
 function renderCardList(rows, empty) {
@@ -3486,7 +3590,7 @@ function renderLineage() {
     dots +
     "</div>" +
     '<div class="flow-title">Provenance on derived edges</div>' +
-    '<div class="prov-row">' +
+    '<div class="prov-row xy">' +
     provCol("used", "Used · Reads", buckets.used) +
     provCol("informed", "Informed · Calls", buckets.informed) +
     provCol("generated", "Generated · Writes", buckets.generated) +
@@ -4040,14 +4144,16 @@ function renderLedger(nodes, opts) {
       const flags = nodeFlags(id);
       const on = selected === id || flags.uncovered || (onTree && onTree.has(id));
       return (
-        '<button type="button" class="cell ' +
+        '<button type="button" class="cell dag ' +
         kindClass(kind) +
         (on ? " on" : "") +
         (flags.uncovered ? " uncovered" : "") +
         '" data-id="' +
         id +
-        '"><span>' +
+        '"><span class="dag-id">' +
         esc(shortToken(id)) +
+        '</span><span class="dag-k">' +
+        esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") +
         '</span><span class="dots"><i></i><i></i><i></i></span></button>'
       );
     })

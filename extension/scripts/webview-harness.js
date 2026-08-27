@@ -707,10 +707,13 @@
 
     clickWs("decisions");
     check("K2", "Decisions is a list + detail split (Semantica causal chain)", !!document.querySelector(".ws-split .chain"), "");
+    check("R2", "Decisions has Semantica-style outcome badges", !!document.querySelector(".outcome-strip"), "");
     clickWs("registry");
     check("K3", "Registry is an audit table, not a card dump", document.querySelectorAll("table.audit tr").length >= 3, "rows=" + document.querySelectorAll("table.audit tr").length);
+    check("R3", "Registry marks mutations like an audit log", document.querySelectorAll("table.audit .mut").length >= 1, "mut=" + document.querySelectorAll("table.audit .mut").length);
     clickWs("timeline");
     check("K4", "Timeline is a vertical event rail", document.querySelectorAll(".tl-item").length >= 3, "items=" + document.querySelectorAll(".tl-item").length);
+    check("R1", "Timeline has a temporal scrubber", !!document.getElementById("tlScrub") && document.querySelectorAll(".tl-item").length >= 3, "");
     clickWs("lineage");
     check("K5", "Lineage maps hops to Used / Informed / Generated", !!document.querySelector('.prov-col[data-prov="used"]') && !!document.querySelector('.prov-col[data-prov="informed"]') && !!document.querySelector('.prov-col[data-prov="generated"]'), "");
     clickWs("slice");

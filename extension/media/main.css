@@ -1753,6 +1753,103 @@ svg.steiner .edge.walk {
   opacity: 1;
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--vscode-textLink-foreground) 55%, transparent));
 }
+.outcome-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.outcome-k {
+  width: 100%;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+.outcome-filter {
+  background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.outcome-filter.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+  box-shadow: var(--g-inset);
+}
+.expl-card[data-outcome].off { display: none; }
+.tl-page { display: flex; flex-direction: column; gap: 10px; }
+.tl-scrub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: var(--g-radius);
+  background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
+  box-shadow: var(--g-inset);
+}
+.tl-scrub label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.tl-scrub input[type="range"] { accent-color: var(--vscode-focusBorder); min-width: 160px; }
+#tlScrubMeta { font-size: 12px; opacity: 0.8; }
+.tl-item.now {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
+}
+.tl-item.ahead { opacity: 0.48; }
+.tl-item.past .tl-dot { background: #3fb950; }
+.mut {
+  display: inline-block;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
+}
+.mut-holds, .mut-review { border-color: #3fb950; color: #3fb950; }
+.mut-broken, .mut-finding { border-color: var(--vscode-errorForeground); color: var(--vscode-errorForeground); }
+.mut-skipped, .mut-skip { opacity: 0.75; }
+.prov-row.xy { gap: 14px; position: relative; }
+.prov-row.xy::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 18px;
+  height: 1px;
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 35%, transparent);
+  pointer-events: none;
+}
+.prov-col {
+  background: color-mix(in srgb, var(--vscode-editor-background) 72%, transparent);
+  box-shadow: var(--g-inset);
+}
+#ledgerGrid .cell.dag {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 36px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#ledgerGrid .cell.dag .dag-id { font-size: 10px; letter-spacing: 0.04em; }
+#ledgerGrid .cell.dag .dag-k { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.55; }
 .feat-chip.here, .bubble-card.here {
   box-shadow: 0 0 0 1px var(--vscode-textLink-foreground), 0 0 18px color-mix(in srgb, var(--vscode-textLink-foreground) 28%, transparent);
 }
