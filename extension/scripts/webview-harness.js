@@ -924,6 +924,7 @@
       if (tab) tab.click();
     };
     const key = (k) => document.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    if (typeof applyTheme === "function") applyTheme("day", false);
     const footer = (document.getElementById("status") || {}).textContent || "";
 
     check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /1222/.test(footer) && /57/.test(footer), footer);
