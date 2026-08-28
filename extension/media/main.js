@@ -125,8 +125,59 @@ let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
-if (document.documentElement) document.documentElement.classList.add("bright");
-if (document.body) document.body.classList.add("bright");
+const themeDayBtn = document.getElementById("themeDay");
+const themeNightBtn = document.getElementById("themeNight");
+
+function hostThemeGuess() {
+  try {
+    const q = new URLSearchParams(location.search).get("theme");
+    if (q === "night" || q === "day") return q;
+  } catch (_) {}
+  try {
+    const st = vscode.getState && vscode.getState();
+    if (st && (st.theme === "night" || st.theme === "day")) return st.theme;
+  } catch (_) {}
+  try {
+    const saved = localStorage.getItem("graphide-theme");
+    if (saved === "night" || saved === "day") return saved;
+  } catch (_) {}
+  if (document.body && (document.body.classList.contains("vscode-dark") || document.body.classList.contains("vscode-high-contrast"))) {
+    return "night";
+  }
+  if (document.documentElement && document.documentElement.classList.contains("night")) return "night";
+  return "day";
+}
+
+function applyTheme(mode, persist) {
+  const night = mode === "night";
+  if (document.documentElement) {
+    document.documentElement.classList.add("bright");
+    document.documentElement.classList.toggle("night", night);
+  }
+  if (document.body) {
+    document.body.classList.add("bright");
+    document.body.classList.toggle("night", night);
+  }
+  if (themeDayBtn) themeDayBtn.classList.toggle("on", !night);
+  if (themeNightBtn) themeNightBtn.classList.toggle("on", night);
+  if (!persist) return;
+  try {
+    const prev = (vscode.getState && vscode.getState()) || {};
+    vscode.setState(Object.assign({}, prev, { theme: night ? "night" : "day" }));
+  } catch (_) {}
+  try {
+    localStorage.setItem("graphide-theme", night ? "night" : "day");
+  } catch (_) {}
+  vscode.postMessage({ type: "setAppearance", appearance: night ? "night" : "day" });
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.classList.contains("night") ? "day" : "night", true);
+}
+
+applyTheme(hostThemeGuess(), false);
+if (themeDayBtn) themeDayBtn.onclick = () => applyTheme("day", true);
+if (themeNightBtn) themeNightBtn.onclick = () => applyTheme("night", true);
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -228,6 +279,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "l" || e.key === "L") {
     e.preventDefault();
     toggleLlmPane();
+    return;
+  }
+  if (e.key === "d" || e.key === "D") {
+    e.preventDefault();
+    toggleTheme();
     return;
   }
   if (e.key === "/" && graphSearch) {
@@ -363,6 +419,10 @@ function startReview() {
 
 window.addEventListener("message", (event) => {
   const msg = event.data;
+  if (msg.type === "appearance") {
+    applyTheme(msg.mode === "night" ? "night" : "day", false);
+    return;
+  }
   if (msg.type === "empty") {
     stopPathWalk();
     snapshot = null;

@@ -55,6 +55,14 @@ export async function deactivate() {
   reviewProvider = undefined;
 }
 
+function resolveAppearance(): "day" | "night" {
+  const pref = String(vscode.workspace.getConfiguration("graphide").get("appearance") || "auto").toLowerCase();
+  if (pref === "day" || pref === "night") return pref;
+  const kind = vscode.window.activeColorTheme.kind;
+  if (kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast) return "night";
+  return "day";
+}
+
 async function openSource(args: {
   file: string;
   line: number;
@@ -91,7 +99,19 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private bridge?: BridgeHandle;
   private cachedLlmKey = "";
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveColorTheme(() => this.pushAppearance()),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("graphide.appearance")) this.pushAppearance();
+      })
+    );
+  }
+
+  private pushAppearance() {
+    const mode = resolveAppearance();
+    this.view?.webview.postMessage({ type: "appearance", mode });
+  }
 
   async disposeBridge() {
     await stopBridge(this.bridge);
@@ -275,10 +295,14 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         await this.showBridgeKey();
       } else if (msg.type === "llmRotateKey") {
         await this.rotateBridgeKey();
+      } else if (msg.type === "setAppearance") {
+        const next = msg.appearance === "night" ? "night" : "day";
+        await vscode.workspace.getConfiguration("graphide").update("appearance", next, vscode.ConfigurationTarget.Global);
       }
     });
     if (this.snapshot) this.pushState();
     else this.notifySetup();
+    this.pushAppearance();
     void this.ensureBridge();
   }
 
@@ -623,14 +647,15 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", "main.js"));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", "main.css"));
     const nonce = String(Date.now());
+    const themeClass = resolveAppearance() === "night" ? "bright night" : "bright";
     return `<!DOCTYPE html>
-<html lang="en" class="bright">
+<html lang="en" class="${themeClass}">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
   <link href="${styleUri}" rel="stylesheet" />
 </head>
-<body class="bright">
+<body class="${themeClass}">
   <header>
     <div class="brand">Graph<span>ide</span></div>
     <span class="now-pill" id="nowPill" hidden></span>
@@ -643,6 +668,10 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
     <button id="llmBtn" type="button" title="Connect an LLM or ask about this review path">LLM</button>
     <button id="keysBtn" type="button" title="Keyboard shortcuts (?)">?</button>
+    <div id="themeSeg" class="theme-seg" role="group" aria-label="Appearance">
+      <button type="button" id="themeDay" data-theme="day" title="Day appearance (D)">Day</button>
+      <button type="button" id="themeNight" data-theme="night" title="Night appearance (D)">Night</button>
+    </div>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -661,6 +690,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
       <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
       <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
+      <li><kbd>D</kbd> day / night</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
     </ul>
   </aside>
