@@ -176,6 +176,8 @@ assert(harnessHtml.includes('class="bright"'), "harness must preview the bright 
 assert(js.includes("documentElement.classList.add(\"bright\")") || js.includes("classList.add(\"bright\")"), "webview script must keep the bright class");
 assert(harness.includes("/1222/") && harness.includes("/349/"), "live V1 must expect SolarSim 349 nodes / 1222 edges after Imports");
 assert(!js.includes("if (!pack) separateBoxes"), "packed Map cards must still separate so they do not sit on each other");
+assert(js.includes("function stackLayouts") && js.includes("noPack"), "Map must lay the story path above off-path cards, not one packed grid");
+assert(js.includes("function walkLabelForBubble"), "Map start card must name the walk hop, not an interior cluster label");
 assert(/#sourcePane\s*\{[^}]*overflow:\s*hidden/.test(css), "Evidence must clip long source lines so it cannot cover the object rail");
 assert(/#sourcePane\s*\{[^}]*max-width:\s*380px/.test(css), "Evidence must stay an inspector, not half the desk");
 

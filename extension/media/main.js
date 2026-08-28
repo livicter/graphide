@@ -1674,7 +1674,7 @@ function layeredPositions(ids, rawEdges, opts) {
   const rowH = nodeH + gapY;
   const maxCols = Math.max(1, opts.maxCols || 7);
   const maxRows = buckets.reduce((m, c) => Math.max(m, c.length), 1);
-  const pack = maxRows > 4 || buckets.length > maxCols;
+  const pack = opts.noPack ? false : maxRows > 4 || buckets.length > maxCols;
   const pos = new Map();
   if (!pack) {
     const H0 = Math.max(opts.minH || 280, pad * 2 + maxRows * rowH);
@@ -1727,6 +1727,49 @@ function layeredPositions(ids, rawEdges, opts) {
   const W = Math.max(opts.minW || 720, maxX + dx + pad);
   const H = Math.max(opts.minH || 280, maxY + dy + pad);
   return { W: Math.round(W), H: Math.round(H), pos, rank };
+}
+
+/** Story row on top, off-path communities below — never one packed grid. */
+function stackLayouts(top, bottom, nodeW, nodeH, gap) {
+  const pos = new Map();
+  let maxY = 0;
+  for (const [id, p] of top.pos || []) {
+    pos.set(id, { x: p.x, y: p.y });
+    maxY = Math.max(maxY, p.y + nodeH / 2);
+  }
+  let minBot = Infinity;
+  for (const p of (bottom.pos || []).values()) minBot = Math.min(minBot, p.y - nodeH / 2);
+  const dy = Number.isFinite(minBot) ? maxY + gap - minBot : 0;
+  for (const [id, p] of bottom.pos || []) {
+    pos.set(id, { x: p.x, y: p.y + dy });
+  }
+  separateBoxes(pos, nodeW, nodeH, 18);
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = 0,
+    maxYH = 0;
+  for (const p of pos.values()) {
+    minX = Math.min(minX, p.x - nodeW / 2);
+    minY = Math.min(minY, p.y - nodeH / 2);
+    maxX = Math.max(maxX, p.x + nodeW / 2);
+    maxYH = Math.max(maxYH, p.y + nodeH / 2);
+  }
+  if (!pos.size) {
+    minX = 0;
+    minY = 0;
+  }
+  const pad = 64;
+  const dx = pad - minX,
+    dyy = pad - minY;
+  if (dx || dyy) for (const p of pos.values()) {
+    p.x += dx;
+    p.y += dyy;
+  }
+  return {
+    W: Math.round(Math.max(760, maxX + dx + pad)),
+    H: Math.round(Math.max(340, maxYH + dyy + pad)),
+    pos,
+  };
 }
 
 function communityEdgeList(clusters) {
@@ -2411,10 +2454,23 @@ function bindStoryRail() {
 function storyMapBubbles() {
   const shown = mapAltitudeBubbles();
   if (!shown.length) return featurePath(storyFlow());
+  const shownIds = new Set(shown.map((b) => idVal(b.id)));
+  const byId = new Map(allBubbles().map((b) => [idVal(b.id), b]));
   const seen = new Set();
   const path = [];
   for (const id of flowWalk(storyFlow())) {
-    const b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id)));
+    let b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id)));
+    if (!b) {
+      let cur = bubbleOf(id);
+      while (cur) {
+        if (shownIds.has(idVal(cur.id))) {
+          b = cur;
+          break;
+        }
+        cur = cur.parent != null ? byId.get(idVal(cur.parent)) : null;
+      }
+      if (!b) b = bubbleOf(id);
+    }
     if (!b) continue;
     const bid = idVal(b.id);
     if (seen.has(bid)) continue;
@@ -2422,6 +2478,15 @@ function storyMapBubbles() {
     path.push(b);
   }
   return path.length ? path : featurePath(storyFlow());
+}
+
+function walkLabelForBubble(b) {
+  for (const id of flowWalk(storyFlow())) {
+    if (!(b.members || []).some((m) => idVal(m) === idVal(id))) continue;
+    const n = nodeById.get(idVal(id));
+    if (n) return shortOf(n.fqn) || n.fqn;
+  }
+  return b.label;
 }
 
 function storyRailPath() {
@@ -4303,25 +4368,23 @@ function renderBubbleMap(clusters) {
   for (let i = 0; i < pathIds.length - 1; i++) {
     pathEdges.push({ from: pathIds[i], to: pathIds[i + 1], kind: "Calls" });
   }
-  const layoutEdges = pathEdges.slice();
-  if (pathIds.length && rest.length) {
-    layoutEdges.push({ from: pathIds[pathIds.length - 1], to: rest[0], kind: "Contains" });
-    for (let i = 0; i < rest.length - 1; i++) {
-      layoutEdges.push({ from: rest[i], to: rest[i + 1], kind: "Contains" });
-    }
-  }
   const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
-  const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
-    nodeW: 220,
-    nodeH: 128,
-    gapX: 96,
-    gapY: 56,
-    pad: 64,
-    minW: 760,
-    minH: 340,
-    maxCols: 6,
-    pins: pinsForCurrent(),
-  });
+  const box = { nodeW: 220, nodeH: 128, gapX: 96, gapY: 56, pad: 64, minW: 760, minH: 340, pins: pinsForCurrent() };
+  let laid;
+  if (pathIds.length >= 1) {
+    const pathLaid = layeredPositions(pathIds, pathEdges, {
+      ...box,
+      minH: 220,
+      maxCols: Math.max(8, pathIds.length),
+      noPack: true,
+    });
+    const restLaid = rest.length
+      ? layeredPositions(rest, communityEdgeList(clusters), { ...box, minH: 200, maxCols: 6 })
+      : { pos: new Map(), W: 0, H: 0 };
+    laid = stackLayouts(pathLaid, restLaid, 220, 128, 64);
+  } else {
+    laid = layeredPositions(ids, edges, { ...box, maxCols: 6 });
+  }
   const { W, H, pos } = laid;
   const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
   let html = "";
@@ -4350,7 +4413,7 @@ function renderBubbleMap(clusters) {
       '">' +
       (role ? '<span class="role">' + esc(role) + "</span>" : "") +
       '<span class="name">' +
-      esc(shortOf(b.label) || "bubble") +
+      esc(shortOf((pathRank.has(id) ? walkLabelForBubble(b) : b.label) || "bubble") || "bubble") +
       '</span><span class="meta">' +
       (role ? role + " · " : "") +
       n +
