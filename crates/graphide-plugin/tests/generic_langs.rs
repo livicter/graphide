@@ -110,6 +110,75 @@ func Subscribe() int { return helper() }
 }
 
 #[test]
+fn python_type_uses() {
+    let src = r#"
+class Bus:
+    pass
+
+def subscribe(b: Bus):
+    return b
+"#;
+    let e = extract("pkg/bus.py", src);
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref().is_some_and(|t| t.ends_with("Bus"))
+    }));
+}
+
+#[test]
+fn javascript_type_uses() {
+    let src = r#"
+class Bus {}
+function subscribe() { return new Bus(); }
+"#;
+    let e = extract("src/bus.js", src);
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref().is_some_and(|t| t.ends_with("Bus"))
+    }));
+}
+
+#[test]
+fn typescript_type_uses() {
+    let src = r#"
+class Bus {}
+function subscribe(b: Bus): Bus { return b; }
+"#;
+    let e = extract("src/bus.ts", src);
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref().is_some_and(|t| t.ends_with("Bus"))
+    }));
+}
+
+#[test]
+fn c_type_uses() {
+    let src = r#"
+struct Bus { int x; };
+int subscribe(struct Bus b) { return b.x; }
+"#;
+    let e = extract("sim/bus.c", src);
+    assert!(e.refs.iter().any(|r| r.kind == EdgeKind::TypeUses));
+}
+
+#[test]
+fn go_type_uses() {
+    let src = r#"
+package p
+type Bus struct{}
+func subscribe(b Bus) Bus { return b }
+"#;
+    let e = extract("p/bus.go", src);
+    assert!(e
+        .refs
+        .iter()
+        .any(|r| { r.kind == EdgeKind::TypeUses && r.from.ends_with("subscribe") }));
+}
+
+#[test]
 fn rust_still_routed() {
     let src = r#"
 pub fn helper() {}
