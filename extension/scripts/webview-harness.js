@@ -1038,6 +1038,15 @@
     check("V36", "LLM Ask panel opens", !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden), "");
     check("V37", "Inspect pane labels Evidence", !!(document.querySelector(".src-k") && /Evidence/i.test((document.querySelector(".src-k") || {}).textContent || "")), "");
     check("V38", "Reorganize button is present", !!document.getElementById("reorgBtn"), "");
+    check("V41", "Bright Apple material is on", !!(document.documentElement.classList.contains("bright") && document.body.classList.contains("bright")), "html=" + document.documentElement.className + " body=" + document.body.className);
+    const bodyBg = getComputedStyle(document.body).backgroundColor || "";
+    const rgb = bodyBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    const lum = rgb ? (0.2126 * rgb[1] + 0.7152 * rgb[2] + 0.0722 * rgb[3]) / 255 : 0;
+    check("V42", "Canvas is a bright grouped surface", lum > 0.7, bodyBg + " lum=" + lum.toFixed(2));
+    const accent = (getComputedStyle(document.body).getPropertyValue("--vscode-focusBorder") || "").trim();
+    const blue = (getComputedStyle(document.body).getPropertyValue("--g-fn") || "").trim();
+    check("V43", "Accent is Apple system blue", /007aff|0,\s*122,\s*255/i.test(accent + " " + blue), accent + " " + blue);
+    check("V44", "Grouped canvas token is live", /f2f2f7|#ffffff|rgb\(242,\s*242,\s*247\)/i.test(getComputedStyle(document.body).getPropertyValue("--g-grouped") || getComputedStyle(document.body).backgroundColor || ""), getComputedStyle(document.body).getPropertyValue("--g-grouped"));
 
     const failed = rows.filter((r) => !r.pass);
     const html =

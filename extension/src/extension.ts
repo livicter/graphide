@@ -624,15 +624,15 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", "main.css"));
     const nonce = String(Date.now());
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bright">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
   <link href="${styleUri}" rel="stylesheet" />
 </head>
-<body>
+<body class="bright">
   <header>
-    <div class="brand">GRAPH<span>IDE</span></div>
+    <div class="brand">Graph<span>ide</span></div>
     <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
     <button id="reviewBtn" title="Review workspace">Review</button>
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>

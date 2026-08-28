@@ -1869,6 +1869,230 @@ svg.steiner .edge.walk {
 }
 #zoomBar button { border-radius: 999px; }
 
+/* Apple bright material — iOS grouped cards on #F2F2F7, system blue only for Review + selection. */
+html.bright, html.bright body, body.bright {
+  --vscode-foreground: #1d1d1f;
+  --vscode-sideBar-background: #f5f5f7;
+  --vscode-editor-background: #ffffff;
+  --vscode-panel-border: rgba(60, 60, 67, 0.12);
+  --vscode-focusBorder: #007aff;
+  --vscode-textLink-foreground: #007aff;
+  --vscode-errorForeground: #ff3b30;
+  --vscode-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-button-background: #007aff;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #0066d6;
+  --vscode-input-background: rgba(120, 120, 128, 0.12);
+  --vscode-input-foreground: #1d1d1f;
+  --vscode-input-border: transparent;
+  --vscode-descriptionForeground: rgba(60, 60, 67, 0.6);
+  --vscode-editorHoverWidget-background: #ffffff;
+  --vscode-editorHoverWidget-foreground: #1d1d1f;
+  --vscode-editorHoverWidget-border: rgba(60, 60, 67, 0.12);
+  --vscode-progressBar-background: #007aff;
+  --vscode-list-hoverBackground: rgba(0, 122, 255, 0.08);
+  --vscode-editor-selectionBackground: rgba(0, 122, 255, 0.18);
+  --g-fn: #007aff;
+  --g-ty: #ff9f0a;
+  --g-ep: #34c759;
+  --g-line: rgba(60, 60, 67, 0.22);
+  --g-radius: 12px;
+  --g-radius-sm: 10px;
+  --g-lift: 0 8px 24px rgba(0, 0, 0, 0.08), 0 1.5px 3px rgba(0, 0, 0, 0.04);
+  --g-inset: inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+  --g-grouped: #f2f2f7;
+  --g-fill: rgba(120, 120, 128, 0.12);
+  --g-label2: rgba(60, 60, 67, 0.6);
+  --g-hold: #34c759;
+  color-scheme: light;
+  background: var(--g-grouped);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  letter-spacing: -0.01em;
+}
+html.bright header {
+  background: rgba(245, 245, 247, 0.82);
+  border-bottom-color: var(--vscode-panel-border);
+}
+html.bright .brand {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+html.bright .brand span { color: #007aff; }
+html.bright header > button {
+  background: var(--g-fill);
+  color: #1d1d1f;
+  border: none;
+  box-shadow: none;
+  padding: 6px 13px;
+  min-height: 28px;
+  font-weight: 500;
+}
+html.bright header > button:hover:not(:disabled) { background: rgba(120, 120, 128, 0.2); }
+html.bright #reviewBtn {
+  background: #007aff;
+  color: #fff;
+  box-shadow: none;
+}
+html.bright #reviewBtn:hover:not(:disabled) { background: #0066d6; }
+html.bright #cancelBtn, html.bright #zoomBar button, html.bright #stampBtn, html.bright #skipBtn, html.bright #llmBtn, html.bright #keysBtn {
+  background: var(--g-fill);
+  color: #1d1d1f;
+  border: none;
+}
+html.bright #promptRow, html.bright #tabs, html.bright #meta, html.bright #graphBar, html.bright #coverage, html.bright #status, html.bright #hopCard, html.bright #inspMeta, html.bright #inspEdges {
+  border-bottom-color: var(--vscode-panel-border);
+  background: transparent;
+}
+html.bright #graphBar, html.bright #status {
+  background: rgba(245, 245, 247, 0.88);
+}
+html.bright #prompt, html.bright #graphSearch, html.bright .llm-connect input, html.bright .llm-connect select, html.bright #llmAsk, html.bright .ego-hops select {
+  background: var(--g-fill);
+  border: none;
+  box-shadow: none;
+}
+html.bright .search-wrap {
+  background: var(--g-fill);
+  border: none;
+  box-shadow: none;
+}
+html.bright .search-wrap:focus-within {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
+}
+html.bright .workspaces {
+  background: rgba(120, 120, 128, 0.16);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 0;
+}
+html.bright .workspaces button {
+  border: none;
+  border-radius: 7px;
+  padding: 5px 10px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  font-size: 11px;
+  font-weight: 500;
+}
+html.bright .workspaces button.on, html.bright .tab.on, html.bright #egoBtn.on, html.bright .leg.on {
+  background: #fff;
+  color: #1d1d1f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), var(--g-inset);
+}
+html.bright .tab, html.bright #egoBtn, html.bright #reorgBtn, html.bright .reorg-btn, html.bright .leg, html.bright .path-walk button, html.bright .outcome-filter, html.bright .feat-chip, html.bright .kind-pill {
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  text-transform: none;
+  letter-spacing: 0;
+}
+html.bright .feat-chip.start {
+  color: var(--g-hold);
+  box-shadow: 0 0 0 1px rgba(52, 199, 89, 0.35);
+}
+html.bright .feat-chip.end {
+  color: #007aff;
+  box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.35);
+}
+html.bright .now-pill {
+  background: rgba(0, 122, 255, 0.12);
+  border: none;
+  color: #007aff;
+}
+html.bright .score-chip.holds, html.bright .outcome.holds, html.bright .expl-card.holds, html.bright .live.holds, html.bright .tab.holds, html.bright .mut-holds, html.bright .queue-left.done {
+  color: var(--g-hold);
+  border-color: var(--g-hold);
+}
+html.bright .score-chip { background: #fff; border: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+html.bright .score-chip.broken, html.bright .finding, html.bright .expl-card.broken, html.bright .expl-card.finding { color: #ff3b30; }
+html.bright .stage {
+  background:
+    radial-gradient(220px 160px at var(--mx, 50%) var(--my, 36%), rgba(0, 122, 255, 0.07), transparent 72%),
+    #fff;
+  box-shadow: var(--g-lift);
+}
+html.bright #canvas.has-stage.explorer-list .stage,
+html.bright .feature-path,
+html.bright .expl-card,
+html.bright .stat-card,
+html.bright .ws-detail,
+html.bright .chain-step,
+html.bright .tl-item,
+html.bright .tl-scrub,
+html.bright .prov-col,
+html.bright .empty.desk-empty,
+html.bright #llmPane,
+html.bright #keysPane,
+html.bright #toast,
+html.bright #tip,
+html.bright #sourcePane,
+html.bright #ledgerPane,
+html.bright .prog-chip {
+  background: #fff;
+  box-shadow: var(--g-lift);
+  border-color: var(--vscode-panel-border);
+}
+html.bright .bubble-card,
+html.bright .comm-node,
+html.bright .steiner-wrap .vnode {
+  background: #fff;
+  box-shadow: var(--g-lift);
+  border-color: color-mix(in srgb, var(--c, #007aff) 48%, rgba(60, 60, 67, 0.16));
+}
+html.bright .bubble-card .name,
+html.bright .comm-node .name,
+html.bright .steiner-wrap .vnode .name,
+html.bright .prog-chip b {
+  text-transform: none;
+  letter-spacing: -0.02em;
+}
+html.bright .feature-path {
+  background: #fff;
+  border: none;
+}
+html.bright .stat-strip span {
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+html.bright .flow-title, html.bright .story-rail-label, html.bright .feature-path-label, html.bright .led-head, html.bright .expl-card .k, html.bright .llm-head b {
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.88;
+}
+html.bright .story-rail {
+  background: #fff;
+  border: none;
+  box-shadow: var(--g-lift);
+}
+html.bright #llmPane {
+  background: #fff;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.08);
+}
+html.bright .llm-log { background: var(--g-grouped); border: none; }
+html.bright .llm-msg.user { background: rgba(0, 122, 255, 0.1); }
+html.bright .llm-msg.ok { color: var(--g-hold); }
+html.bright #toast.holds { border-color: var(--g-hold); color: var(--g-hold); }
+html.bright .tl-item.past .tl-dot { background: var(--g-hold); }
+html.bright .src-line.hot { background: rgba(0, 122, 255, 0.12); }
+html.bright #canvas { background: var(--g-grouped); }
+html.bright .audit th, html.bright .audit td { border-bottom-color: var(--vscode-panel-border); }
+html.bright .inode.lit { border-left-color: var(--g-hold); background: rgba(52, 199, 89, 0.08); }
+html.bright .kind-pill:not(.off) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, #007aff) 40%, transparent);
+}
+html.bright #progressBar { background: rgba(60, 60, 67, 0.12); }
+html.bright .search-wrap kbd, html.bright #keysPane kbd, html.bright .desk-keys kbd {
+  background: #fff;
+  border-color: var(--vscode-panel-border);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
