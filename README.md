@@ -4,7 +4,7 @@ Review agent changes as flow graphs. Point the panel at any local repo.
 
 Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
-The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) are compiled into the CLI — `graphide plugins --check` verifies them after copy.
+The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs now emit **TypeUses** the same way Rust does. `graphide plugins --check` verifies every deriver after copy.
 
 ## Install (live)
 
@@ -24,7 +24,9 @@ Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`inst
 
 ## Review panel
 
-After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live pass on SolarSim (349 nodes · 765 edges · 57 files). More in [`UIUX_sample/`](UIUX_sample/).
+After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the TypeUses plugin match (**349 nodes · 765 edges · 57 files**, harness **PASS 40/40**). More in [`UIUX_sample/`](UIUX_sample/).
+
+![Live V1–V40](UIUX_sample/live-suite.png)
 
 **Overview** — scorecard, Play / Prev / Next, Evidence on the current hop:
 
@@ -41,6 +43,10 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 ![Lineage hops](UIUX_sample/lineage-hops.png)
 
 ![Registry audit](UIUX_sample/registry-audit.png)
+
+**Decisions** — stamps, skips, broken attestations:
+
+![Decisions stamps](UIUX_sample/decisions-stamps.png)
 
 
 ## Windows

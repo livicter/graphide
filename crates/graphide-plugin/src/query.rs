@@ -162,13 +162,36 @@ pub fn extract_with(
         };
         if let (Some(name), Some(call)) = (cap("call.name"), cap("call")) {
             if let Some(from) = enclosing_fn(&nodes, call) {
-                if let Some(to) = resolve_name(&nodes, &module_fqn, lang.sep, &text_of(name, bytes))
-                {
+                if let Some(to) = resolve_name(
+                    &nodes,
+                    &module_fqn,
+                    lang.sep,
+                    &text_of(name, bytes),
+                    NodeKind::Function,
+                ) {
                     refs.push(Ref {
                         from,
                         to: Some(to),
                         kind: EdgeKind::Calls,
                         span: span_of(&file, call),
+                    });
+                }
+            }
+        }
+        if let Some(ty) = cap("ty.use") {
+            if let Some(from) = enclosing_fn(&nodes, ty) {
+                if let Some(to) = resolve_name(
+                    &nodes,
+                    &module_fqn,
+                    lang.sep,
+                    &text_of(ty, bytes),
+                    NodeKind::Type,
+                ) {
+                    refs.push(Ref {
+                        from,
+                        to: Some(to),
+                        kind: EdgeKind::TypeUses,
+                        span: span_of(&file, ty),
                     });
                 }
             }
@@ -214,14 +237,20 @@ fn last_seg<'a>(name: &'a str, sep: &str) -> &'a str {
     name.rsplit(sep).next().unwrap_or(name)
 }
 
-fn resolve_name(nodes: &[NodeDef], module: &str, sep: &str, raw: &str) -> Option<String> {
-    let raw = raw.trim();
+fn resolve_name(
+    nodes: &[NodeDef],
+    module: &str,
+    sep: &str,
+    raw: &str,
+    kind: NodeKind,
+) -> Option<String> {
+    let raw = last_seg(raw.trim(), sep);
     if raw.is_empty() {
         return None;
     }
     let candidates: Vec<_> = nodes
         .iter()
-        .filter(|n| n.kind == NodeKind::Function)
+        .filter(|n| n.kind == kind)
         .filter(|n| n.fqn == raw || n.fqn.ends_with(&format!("{sep}{raw}")) || n.fqn.ends_with(raw))
         .map(|n| n.fqn.clone())
         .collect();
@@ -229,10 +258,7 @@ fn resolve_name(nodes: &[NodeDef], module: &str, sep: &str, raw: &str) -> Option
         return candidates.first().cloned();
     }
     let local = qualify(module, sep, raw);
-    if nodes
-        .iter()
-        .any(|n| n.fqn == local && n.kind == NodeKind::Function)
-    {
+    if nodes.iter().any(|n| n.fqn == local && n.kind == kind) {
         return Some(local);
     }
     None

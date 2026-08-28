@@ -34,6 +34,8 @@ pub const PYTHON: Lang = Lang {
     (identifier) @call.name
     (attribute attribute: (identifier) @call.name)
   ]) @call
+
+(type (identifier) @ty.use)
 "#,
 };
 
@@ -72,6 +74,9 @@ const JS_QUERIES: &str = r#"
     (member_expression
       property: (property_identifier) @call.name)
   ]) @call
+
+(new_expression
+  constructor: (identifier) @ty.use)
 "#;
 
 const TS_QUERIES: &str = r#"
@@ -93,6 +98,10 @@ const TS_QUERIES: &str = r#"
     (member_expression
       property: (property_identifier) @call.name)
   ]) @call
+
+(type_identifier) @ty.use
+(new_expression
+  constructor: (identifier) @ty.use)
 "#;
 
 pub const C: Lang = Lang {
@@ -123,6 +132,8 @@ const C_QUERIES: &str = r#"
     (field_expression
       field: (field_identifier) @call.name)
   ]) @call
+
+(type_identifier) @ty.use
 "#;
 
 pub const CPP: Lang = Lang {
@@ -157,6 +168,8 @@ const C_FAMILY_QUERIES: &str = r#"
     (qualified_identifier
       name: (identifier) @call.name)
   ]) @call
+
+(type_identifier) @ty.use
 "#;
 
 pub const GO: Lang = Lang {
@@ -187,6 +200,8 @@ pub const GO: Lang = Lang {
     (selector_expression
       field: (field_identifier) @call.name)
   ]) @call
+
+(type_identifier) @ty.use
 "#,
 };
 
