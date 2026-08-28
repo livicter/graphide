@@ -145,6 +145,10 @@ assert(js.includes("function syncBackBtn"), "Back must enable after Enter a comm
 assert(js.includes("storyTree.length >= 2"), "Lineage must prefer the control-flow walk over a one-node overview stub");
 assert(harness.includes("V39") && harness.includes("V40"), "live suite must prove Lineage lands on the start hop");
 assert(harness.includes("V41") && harness.includes("V43"), "live suite must prove the Apple bright look");
+assert(harness.includes("V45") && harness.includes("V48"), "live suite must prove the compact Apple chrome");
+assert(js.includes("ws === alt"), "now-pill must not repeat workspace · altitude");
+assert(/<header>[\s\S]*id="prompt"/.test(ext) && /<header>[\s\S]*id="prompt"/.test(harnessHtml), "prompt must sit in the header");
+assert(/id="graphBar"[\s\S]*id="tabs"/.test(ext) && /id="graphBar"[\s\S]*id="tabs"/.test(harnessHtml), "flow tabs must live in the toolbar");
 assert(js.includes("Clear find to see the audit log"), "Registry must not look empty when Find filters the snapshot");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");

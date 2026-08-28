@@ -372,6 +372,7 @@ window.addEventListener("message", (event) => {
     canvas.innerHTML =
       '<div class="empty desk-empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div><div class="desk-keys"><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>P</kbd> play · <kbd>/</kbd> find</div></div>';
     setDeskMode(false);
+    refreshNowPill();
     meta.textContent = "";
     coverage.textContent = "";
     tabs.innerHTML = "";
@@ -670,11 +671,10 @@ function nowStripHtml() {
   const alt = reviewAltitude();
   const walk = pathWalk.i >= 0 ? pathWalkStops()[pathWalk.i] : null;
   const here = walk ? shortOf(walk.label) || "" : "";
+  const place = ws === alt ? ws : ws + " · " + alt;
   return (
     '<span class="now-pill" id="nowPill">' +
-    esc(ws) +
-    " · " +
-    esc(alt) +
+    esc(place) +
     (here ? " · " + esc(here) : "") +
     (m.names.length ? " · " + (m.pending ? m.pending + " left" : "queue clear") : "") +
     "</span>"
@@ -685,17 +685,24 @@ function refreshNowPill() {
   const el = document.getElementById("nowPill");
   if (!el) return;
   const html = nowStripHtml();
-  if (!html) return;
+  if (!html) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
   const box = document.createElement("div");
   box.innerHTML = html;
   const next = box.firstElementChild;
-  if (next) el.replaceWith(next);
+  if (next) {
+    next.hidden = false;
+    el.replaceWith(next);
+  }
 }
 
 function setMeta(html) {
   if (!meta) return;
-  const pill = nowStripHtml();
-  meta.innerHTML = (pill ? pill + " " : "") + (html || "");
+  meta.innerHTML = html || "";
+  refreshNowPill();
 }
 
 function setDeskMode(on) {

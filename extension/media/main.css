@@ -2237,3 +2237,66 @@ body.desk #workspace.has-source #canvas {
 .story-rail .feat-chip {
   animation: none;
 }
+
+/* Iteration 2 — two-row glass chrome, kind-tinted objects, no repeated now-pill. */
+html.bright header {
+  gap: 8px;
+}
+html.bright header #prompt {
+  width: auto;
+  flex: 1 1 160px;
+  min-width: 110px;
+  max-width: 280px;
+  margin: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--g-fill);
+  color: inherit;
+  font: inherit;
+}
+html.bright body.reviewed header #prompt {
+  flex: 0 1 168px;
+  max-width: 168px;
+}
+html.bright header #prompt:focus {
+  outline: none;
+  max-width: 280px;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
+}
+html.bright header .now-pill[hidden] { display: none; }
+html.bright #graphBar {
+  gap: 8px;
+  padding: 6px 12px 8px;
+  border-bottom: none;
+  background: rgba(245, 245, 247, 0.9);
+}
+html.bright #graphBar #tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  min-height: 0;
+}
+html.bright #graphBar #tabs:empty { display: none; }
+html.bright #meta {
+  padding: 2px 14px 8px;
+  border: none;
+  font-size: 12px;
+  color: var(--g-label2, rgba(60, 60, 67, 0.6));
+  background: transparent;
+}
+html.bright:has(#zoomBar:not([hidden])) #graphBar > .reorg-btn { display: none; }
+html.bright .bubble-card,
+html.bright .comm-node,
+html.bright .steiner-wrap .vnode {
+  background: color-mix(in srgb, var(--c, #007aff) 11%, #fff);
+  border-color: color-mix(in srgb, var(--c, #007aff) 52%, rgba(60, 60, 67, 0.12));
+  border-radius: 12px;
+}
+html.bright .stat-strip { gap: 6px 10px; margin: 0 0 8px; }
+html.bright .stat-strip .n { font-size: 16px; }
+html.bright .expl-wrap { padding: 2px 6px 14px; }
+html.bright .flow-title { margin: 6px 0; }
