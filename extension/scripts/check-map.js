@@ -146,6 +146,11 @@ assert(js.includes("storyTree.length >= 2"), "Lineage must prefer the control-fl
 assert(harness.includes("V39") && harness.includes("V40"), "live suite must prove Lineage lands on the start hop");
 assert(harness.includes("V41") && harness.includes("V43"), "live suite must prove the Apple bright look");
 assert(harness.includes("V45") && harness.includes("V48"), "live suite must prove the compact Apple chrome");
+assert(harness.includes("V49") && harness.includes("V50"), "live suite must prove story-first Overview");
+assert((() => {
+  const body = js.slice(js.indexOf("function renderOverviewBody"));
+  return body.indexOf("renderFeaturePathHtml()") < body.indexOf('class="stat-strip"');
+})(), "overview story must sit above the metrics strip");
 assert(js.includes("ws === alt"), "now-pill must not repeat workspace · altitude");
 assert(/<header>[\s\S]*id="prompt"/.test(ext) && /<header>[\s\S]*id="prompt"/.test(harnessHtml), "prompt must sit in the header");
 assert(/id="graphBar"[\s\S]*id="tabs"/.test(ext) && /id="graphBar"[\s\S]*id="tabs"/.test(harnessHtml), "flow tabs must live in the toolbar");

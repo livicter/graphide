@@ -1057,6 +1057,11 @@
       ? (getComputedStyle(tintCard).getPropertyValue("--c") + " " + getComputedStyle(tintCard).getPropertyValue("--g-fn")).trim()
       : "";
     check("V48", "Cards keep a kind tint", !!(tintCard && /007aff|g-fn/i.test(tintToken)), tintToken + " n=" + document.querySelectorAll(".vnode.kind-Function").length);
+    const story = document.querySelector(".feature-path");
+    const metrics = document.querySelector(".stat-strip");
+    check("V49", "Overview story sits above the metrics strip", !!(story && metrics && (story.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING)), "");
+    const mh = metrics ? Math.round(metrics.getBoundingClientRect().height) : 0;
+    check("V50", "Metrics strip is one quiet line", mh > 0 && mh <= 48, "h=" + mh);
 
     const failed = rows.filter((r) => !r.pass);
     const html =
