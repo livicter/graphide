@@ -1,10 +1,10 @@
 # UI / UX samples
 
-Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in this cloud VM after query plugins and the Rust deriver emit **Imports** edges (plus TypeUses / the import map) and **Endpoint** / pub-sub hops: **349 nodes · 1222 edges · 57 files** (**457 Imports**, TypeUses 530, Calls 145). Endpoints did not change this repo’s mix. Harness `?live=1&suite=live` = **PASS 40/40**. Explorer pages over Graphide objects — not a Graphify or Semantica embed.
+Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in this cloud VM on the Apple-bright desk (iOS grouped cards, system blue): **349 nodes · 1222 edges · 57 files** (**457 Imports**, TypeUses 530, Calls 145). Harness `?live=1&suite=live` = **PASS 44/44**. Explorer pages over Graphide objects — not a Graphify or Semantica embed.
 
 | File | What it shows |
 |---|---|
-| [live-suite.png](live-suite.png) | V1–V40 live checklist **PASS 40/40** |
+| [live-suite.png](live-suite.png) | V1–V44 live checklist **PASS 44/44** |
 | [overview-desk.png](overview-desk.png) | Overview desk: Play **Start → features → end**, TypeUses 530 / Imports 457 / Calls 145 |
 | [map-communities.png](map-communities.png) | Map: community cards, story rail outside the camera |
 | [map-enter.png](map-enter.png) | Enter a bubble (one clustering level down) |

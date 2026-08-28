@@ -6,6 +6,7 @@ const js = fs.readFileSync(path.join(__dirname, "../media/main.js"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../media/main.css"), "utf8");
 const ext = fs.readFileSync(path.join(__dirname, "../src/extension.ts"), "utf8");
 const harness = fs.readFileSync(path.join(__dirname, "webview-harness.js"), "utf8");
+const harnessHtml = fs.readFileSync(path.join(__dirname, "webview-harness.html"), "utf8");
 
 function assert(cond, msg) {
   if (!cond) {
@@ -143,11 +144,18 @@ assert(harness.includes("runLiveSuite") && harness.includes('suite") === "live"'
 assert(js.includes("function syncBackBtn"), "Back must enable after Enter a community");
 assert(js.includes("storyTree.length >= 2"), "Lineage must prefer the control-flow walk over a one-node overview stub");
 assert(harness.includes("V39") && harness.includes("V40"), "live suite must prove Lineage lands on the start hop");
+assert(harness.includes("V41") && harness.includes("V43"), "live suite must prove the Apple bright look");
 assert(js.includes("Clear find to see the audit log"), "Registry must not look empty when Find filters the snapshot");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
 assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
+assert(css.includes("html.bright"), "Apple bright material tokens missing");
+assert(/#007aff|#007AFF/.test(css), "Apple system blue missing from the bright theme");
+assert(css.includes("#f2f2f7") || css.includes("--g-grouped"), "grouped gray canvas missing");
+assert(ext.includes('class="bright"'), "webview must opt into the bright look");
+assert(harnessHtml.includes('class="bright"'), "harness must preview the bright look");
+assert(js.includes("documentElement.classList.add(\"bright\")") || js.includes("classList.add(\"bright\")"), "webview script must keep the bright class");
 assert(harness.includes("/1222/") && harness.includes("/349/"), "live V1 must expect SolarSim 349 nodes / 1222 edges after Imports");
 
 const fakeNames = [
@@ -179,10 +187,10 @@ assert(shown === 24, "bubble map must cap clusters");
 const preview = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Graphide map preview</title>
 <style>
-  :root { --vscode-foreground:#ddd; --vscode-sideBar-background:#1e1e1e; --vscode-editor-background:#252526;
-    --vscode-panel-border:#333; --vscode-focusBorder:#007acc; --vscode-textLink-foreground:#4fc1ff;
-    --vscode-errorForeground:#f85149; --vscode-font-family:system-ui; --vscode-font-size:13px; }
-  body { margin:0; background:#1e1e1e; color:#ddd; font:13px system-ui; }
+  :root { --vscode-foreground:#1d1d1f; --vscode-sideBar-background:#f5f5f7; --vscode-editor-background:#fff;
+    --vscode-panel-border:rgba(60,60,67,.12); --vscode-focusBorder:#007aff; --vscode-textLink-foreground:#007aff;
+    --vscode-errorForeground:#ff3b30; --vscode-font-family:-apple-system,system-ui; --vscode-font-size:13px; }
+  body { margin:0; background:#f2f2f7; color:#1d1d1f; font:13px -apple-system,system-ui; }
   ${css}
   #canvas { height: 520px; }
 </style></head><body>

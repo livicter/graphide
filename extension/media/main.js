@@ -124,7 +124,9 @@ let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
-const BUBBLE_COLORS = ["#4ec9b0", "#569cd6", "#c586c0", "#dcdcaa", "#ce9178", "#9cdcfe", "#d7ba7d", "#3fb950", "#f85149", "#8b949e"];
+const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
+if (document.documentElement) document.documentElement.classList.add("bright");
+if (document.body) document.body.classList.add("bright");
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -2469,7 +2471,7 @@ function renderFeaturePathHtml() {
     '<button type="button" id="pathWalkPrev" title="Previous feature ([)">Prev</button>' +
     '<button type="button" id="pathWalkBtn" title="Play start → features → end (P)">Play</button>' +
     '<button type="button" id="pathWalkNext" title="Next feature (])">Next</button>' +
-    '<span id="pathWalkMeta">Play the start → features → end walk</span>' +
+    '<span id="pathWalkMeta"></span>' +
     "</div></div>" +
     '<div class="feature-path-row">' +
     chips +
@@ -2601,7 +2603,7 @@ function applyPathWalkPaint() {
   if (metaEl) {
     metaEl.textContent = cur
       ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature")
-      : "Play the start → features → end walk";
+      : "";
   }
   refreshNowPill();
 }
