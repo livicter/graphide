@@ -4,7 +4,7 @@ Review agent changes as flow graphs. Point the panel at any local repo.
 
 Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
-The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs emit **TypeUses** like Rust, including an **import map** (`from pkg import T` / `import { T }`). `graphide plugins --check` verifies every deriver after copy.
+The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs match the Rust deriver: **TypeUses**, an **import map**, and **Endpoint** / Publishes / Subscribes / Reads. `graphide plugins --check` verifies every deriver after copy.
 
 ## Install (live)
 
@@ -24,7 +24,7 @@ Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`inst
 
 ## Review panel
 
-After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the TypeUses plugin match (**349 nodes · 765 edges · 57 files**, harness **PASS 40/40**). More in [`UIUX_sample/`](UIUX_sample/).
+After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Endpoint plugin match (**349 nodes · 765 edges · 57 files**, harness **PASS 40/40**). More in [`UIUX_sample/`](UIUX_sample/).
 
 ![Live V1–V40](UIUX_sample/live-suite.png)
 

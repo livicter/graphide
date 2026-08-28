@@ -262,6 +262,40 @@ fn python_import_calls_join() {
 }
 
 #[test]
+fn python_endpoint_subscribes() {
+    let src = r#"
+events = BroadcastChannel()
+
+def subscribe():
+    return events
+"#;
+    let e = extract("pkg/bus.py", src);
+    assert!(e
+        .nodes
+        .iter()
+        .any(|n| n.kind == NodeKind::Endpoint && n.fqn.ends_with("events")));
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::Subscribes
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref().is_some_and(|t| t.ends_with("events"))
+    }));
+}
+
+#[test]
+fn javascript_endpoint_subscribes() {
+    let src = r#"
+const events = new BroadcastChannel();
+function subscribe() { return events; }
+"#;
+    let e = extract("src/bus.js", src);
+    assert!(e
+        .nodes
+        .iter()
+        .any(|n| n.kind == NodeKind::Endpoint && n.fqn.ends_with("events")));
+    assert!(e.refs.iter().any(|r| r.kind == EdgeKind::Subscribes));
+}
+
+#[test]
 fn rust_still_routed() {
     let src = r#"
 pub fn helper() {}
