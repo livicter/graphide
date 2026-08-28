@@ -1062,6 +1062,23 @@
     check("V49", "Overview story sits above the metrics strip", !!(story && metrics && (story.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING)), "");
     const mh = metrics ? Math.round(metrics.getBoundingClientRect().height) : 0;
     check("V50", "Metrics strip is one quiet line", mh > 0 && mh <= 48, "h=" + mh);
+    clickWs("overview");
+    await later(40);
+    const grid = document.getElementById("ledgerGrid");
+    const gridSt = grid ? getComputedStyle(grid) : null;
+    const colCount = gridSt && gridSt.gridTemplateColumns && gridSt.gridTemplateColumns !== "none"
+      ? gridSt.gridTemplateColumns.split(" ").filter(Boolean).length
+      : 0;
+    const sourceList = !!(gridSt && (gridSt.display === "flex" || colCount === 1));
+    check("V51", "Ledger is a source list, not a two-column ID grid", sourceList, gridSt ? gridSt.display + " cols=" + gridSt.gridTemplateColumns : "missing");
+    const named = [...document.querySelectorAll("#ledgerGrid .cell .dag-id")].map((el) => el.textContent || "");
+    check("V52", "Ledger cells name objects", named.some((t) => /[A-Za-z_]{3,}/.test(t)), named.slice(0, 4).join(" · "));
+    const chip = document.querySelector("#coverage .score-chip");
+    const chipSt = chip ? getComputedStyle(chip) : null;
+    const chipBox = chipSt ? chipSt.boxShadow : "";
+    const chipBg = chipSt ? chipSt.backgroundColor : "";
+    const caption = !!(chipSt && (chipBox === "none" || /^rgba\(0,\s*0,\s*0,\s*0\)$/.test(chipBox)) && (/transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(chipBg)));
+    check("V53", "Scorecard is caption text, not a chip row", caption, chipBg + " shadow=" + chipBox);
 
     const failed = rows.filter((r) => !r.pass);
     const html =

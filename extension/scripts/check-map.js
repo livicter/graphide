@@ -147,6 +147,8 @@ assert(harness.includes("V39") && harness.includes("V40"), "live suite must prov
 assert(harness.includes("V41") && harness.includes("V43"), "live suite must prove the Apple bright look");
 assert(harness.includes("V45") && harness.includes("V48"), "live suite must prove the compact Apple chrome");
 assert(harness.includes("V49") && harness.includes("V50"), "live suite must prove story-first Overview");
+assert(harness.includes("V51") && harness.includes("V53"), "live suite must prove the quiet ledger and caption footer");
+assert(js.includes("shortOf(n.fqn"), "ledger cells must name objects, not only hex tokens");
 assert((() => {
   const body = js.slice(js.indexOf("function renderOverviewBody"));
   return body.indexOf("renderFeaturePathHtml()") < body.indexOf('class="stat-strip"');
@@ -160,6 +162,7 @@ assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
 assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
+assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");
 assert(/#007aff|#007AFF/.test(css), "Apple system blue missing from the bright theme");
 assert(css.includes("#f2f2f7") || css.includes("--g-grouped"), "grouped gray canvas missing");
 assert(ext.includes('class="bright"'), "webview must opt into the bright look");

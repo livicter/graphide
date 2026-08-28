@@ -2331,15 +2331,94 @@ html.bright #coverage .cov-chip {
   opacity: 0.62;
 }
 html.bright #ledgerPane {
+  width: 200px;
+  min-width: 180px;
+  max-width: 240px;
   background: var(--g-grouped, #f2f2f7);
   box-shadow: none;
   border-left: none;
+  font-family: inherit;
 }
-html.bright #ledgerGrid .cell {
-  background: #fff;
+html.bright #ledgerGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 6px 10px;
+}
+html.bright #ledgerGrid .cell,
+html.bright #ledgerGrid .cell.dag {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   box-shadow: none;
+  font-family: inherit;
 }
-html.bright .led-head {
+html.bright #ledgerGrid .cell.dag .dag-id {
+  font-size: 13px;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.bright #ledgerGrid .cell.dag .dag-k {
+  flex: 0 0 auto;
+  width: 22px;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.48;
+}
+html.bright #ledgerGrid .cell.on {
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.12);
+  border-color: transparent;
+}
+html.bright .led-head,
+html.bright #ledgerMeta {
   text-transform: none;
   letter-spacing: -0.01em;
+  font-size: 12px;
+  opacity: 0.48;
+  padding: 10px 14px 6px;
+}
+html.bright #coverage {
+  padding: 4px 14px 0;
+  gap: 10px 16px;
+  background: transparent;
+}
+html.bright #coverage .score {
+  gap: 12px 14px;
+}
+html.bright #coverage .score-chip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 11px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  opacity: 0.62;
+}
+html.bright #coverage .score-chip.pending { color: #007aff; opacity: 0.85; }
+html.bright #coverage .score-chip.holds { color: #34c759; }
+html.bright #coverage .score-chip.broken { color: #ff3b30; }
+html.bright #coverage .cov-chip {
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  opacity: 0.55;
+  padding: 0;
+}
+html.bright #status {
+  padding: 2px 14px 8px;
+  border: none;
+  font-size: 11px;
+  color: var(--g-label2, rgba(60, 60, 67, 0.55));
+  background: transparent;
 }
