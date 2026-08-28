@@ -1,6 +1,6 @@
 # UI / UX samples
 
-Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in this cloud VM after query plugins gained **TypeUses** (same closed edge as the Rust deriver): **349 nodes · 765 edges · 57 files**. Harness `?live=1&suite=live` = **PASS 40/40**. Explorer pages over Graphide objects — not a Graphify or Semantica embed.
+Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in this cloud VM after query plugins gained **TypeUses** plus an **import map** (same resolution as the Rust deriver): **349 nodes · 765 edges · 57 files**. Harness `?live=1&suite=live` = **PASS 40/40**. Explorer pages over Graphide objects — not a Graphify or Semantica embed.
 
 | File | What it shows |
 |---|---|
