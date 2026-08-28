@@ -1,8 +1,8 @@
 //! Deriver front door. A language exists when it has a plugin (SPEC §3).
 //! Default shape: tree-sitter grammar + declarative extract queries.
 //! Rust keeps the richer first-slice plugin; other languages share the query runner
-//! and now emit TypeUses the same way (same-file type names, plus an import map
-//! like the Rust plugin, so `from pkg import T` / `import { T }` resolve).
+//! and now emit TypeUses (plus an import map) and Endpoint / Publishes /
+//! Subscribes / Reads with the same heuristics as the Rust plugin.
 
 #![cfg_attr(
     not(test),

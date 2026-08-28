@@ -3,6 +3,7 @@
 
 use crate::langs::Lang;
 use graphide_ir::{EdgeKind, Extract, Finding, FindingKind, NodeDef, NodeKind, Pos, Ref, Span};
+use graphide_plugin_rust::endpoint_meta;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -135,6 +136,27 @@ pub fn extract_with(
             push_node(&mut nodes, fqn, NodeKind::Function, span_of(&file, def));
         }
 
+        if let Some(name) = cap("const.name") {
+            let ty = cap("const.type")
+                .map(|n| text_of(n, bytes))
+                .unwrap_or_default();
+            let def = cap("const.def").unwrap_or(name);
+            if let Some(meta) = endpoint_meta(&text_of(name, bytes), &ty, &text_of(def, bytes)) {
+                let fqn = qualify(&module_fqn, lang.sep, &text_of(name, bytes));
+                if !nodes
+                    .iter()
+                    .any(|n| n.fqn == fqn && n.kind == NodeKind::Endpoint)
+                {
+                    nodes.push(NodeDef {
+                        fqn,
+                        kind: NodeKind::Endpoint,
+                        span: span_of(&file, def),
+                        endpoint: Some(meta),
+                    });
+                }
+            }
+        }
+
         if let Some(modn) = cap("import.mod") {
             let spec = text_of(modn, bytes);
             let name = cap("import.name")
@@ -209,6 +231,29 @@ pub fn extract_with(
                 }
             }
         }
+        if let Some(ident) = cap("ident") {
+            if cap("fn.name").is_some()
+                || cap("method.name").is_some()
+                || cap("const.name").is_some()
+                || cap("call.name").is_some()
+                || cap("type.name").is_some()
+                || cap("import.name").is_some()
+                || cap("ty.use").is_some()
+            {
+                continue;
+            }
+            if let Some(from) = enclosing_fn(&nodes, ident) {
+                emit_endpoint_ref(
+                    &mut refs,
+                    &nodes,
+                    &imports,
+                    from,
+                    &text_of(ident, bytes),
+                    span_of(&file, ident),
+                    lang.sep,
+                );
+            }
+        }
     }
 
     refs.retain(|r| r.to.as_deref() != Some(r.from.as_str()));
@@ -276,6 +321,47 @@ fn resolve_name(
         return Some(local);
     }
     imports.get(raw).cloned()
+}
+
+fn emit_endpoint_ref(
+    refs: &mut Vec<Ref>,
+    defs: &[NodeDef],
+    imports: &HashMap<String, String>,
+    from: String,
+    name: &str,
+    span: Span,
+    sep: &str,
+) {
+    let short = last_seg(name.trim(), sep);
+    let to = if let Some(resolved) = resolve_name(defs, imports, "", sep, short, NodeKind::Endpoint)
+    {
+        resolved
+    } else {
+        return;
+    };
+    let is_endpoint = defs
+        .iter()
+        .any(|d| d.fqn == to && d.kind == NodeKind::Endpoint)
+        || short.contains("events")
+        || to.ends_with("events")
+        || imports.get(short).is_some_and(|s| s.contains("events"));
+    if !is_endpoint {
+        return;
+    }
+    let from_short = last_seg(&from, sep);
+    let kind = if from_short.contains("publish") || from_short.contains("send") {
+        EdgeKind::Publishes
+    } else if from_short.contains("subscribe") || from_short.contains("recv") {
+        EdgeKind::Subscribes
+    } else {
+        EdgeKind::Reads
+    };
+    refs.push(Ref {
+        from,
+        to: Some(to),
+        kind,
+        span,
+    });
 }
 
 fn last_path_seg(spec: &str) -> String {
