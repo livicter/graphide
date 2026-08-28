@@ -55,6 +55,12 @@ pub const PYTHON: Lang = Lang {
   name: (aliased_import
     name: (dotted_name) @import.mod
     alias: (identifier) @import.name))
+
+(assignment
+  left: (identifier) @const.name
+  right: (_) @const.def)
+
+(identifier) @ident
 "#,
 };
 
@@ -113,6 +119,11 @@ const JS_QUERIES: &str = r#"
 (import_statement
   (import_clause (identifier) @import.name)
   source: (string) @import.mod)
+
+(variable_declarator
+  name: (identifier) @const.name) @const.def
+
+(identifier) @ident
 "#;
 
 const TS_QUERIES: &str = r#"
@@ -155,6 +166,11 @@ const TS_QUERIES: &str = r#"
 (import_statement
   (import_clause (identifier) @import.name)
   source: (string) @import.mod)
+
+(variable_declarator
+  name: (identifier) @const.name) @const.def
+
+(identifier) @ident
 "#;
 
 pub const C: Lang = Lang {
@@ -193,6 +209,12 @@ const C_QUERIES: &str = r#"
     (string_literal) @import.mod
     (system_lib_string) @import.mod
   ])
+
+(declaration
+  type: (_) @const.type
+  declarator: (identifier) @const.name) @const.def
+
+(identifier) @ident
 "#;
 
 pub const CPP: Lang = Lang {
@@ -242,6 +264,12 @@ const C_FAMILY_QUERIES: &str = r#"
     (string_literal) @import.mod
     (system_lib_string) @import.mod
   ])
+
+(declaration
+  type: (_) @const.type
+  declarator: (identifier) @const.name) @const.def
+
+(identifier) @ident
 "#;
 
 pub const GO: Lang = Lang {
@@ -281,6 +309,14 @@ pub const GO: Lang = Lang {
 
 (import_spec
   path: (interpreted_string_literal) @import.mod)
+
+(const_spec
+  name: (identifier) @const.name) @const.def
+
+(var_spec
+  name: (identifier) @const.name) @const.def
+
+(identifier) @ident
 "#,
 };
 

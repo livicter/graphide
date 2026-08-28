@@ -456,7 +456,7 @@ fn resolve_name(
     imports.get(short).cloned()
 }
 
-fn endpoint_meta(name: &str, ty: &str, whole: &str) -> Option<EndpointMeta> {
+pub fn endpoint_meta(name: &str, ty: &str, whole: &str) -> Option<EndpointMeta> {
     let blob = format!("{name} {ty} {whole}").to_ascii_lowercase();
     let channel = if blob.contains("broadcast") || blob.contains("channel") || blob.contains("mpsc")
     {

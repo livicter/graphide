@@ -3,7 +3,8 @@
 //! Rust keeps the richer first-slice plugin; other languages share the query runner
 //! and now emit TypeUses plus Imports edges the same way (same-file type names,
 //! plus an import map like the Rust plugin, so `from pkg import T` / `import { T }`
-//! resolve and become Imports when the name is not defined in this file).
+//! resolve and become Imports when the name is not defined in this file), and
+//! Endpoint / Publishes / Subscribes / Reads with the same heuristics as Rust.
 
 #![cfg_attr(
     not(test),
