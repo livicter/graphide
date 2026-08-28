@@ -2031,13 +2031,24 @@ html.bright #toast,
 html.bright #tip,
 html.bright #sourcePane,
 html.bright #ledgerPane,
-html.bright .prog-chip,
+html.bright .prog-chip {
+  background: #fff;
+  box-shadow: var(--g-lift);
+  border-color: var(--vscode-panel-border);
+}
 html.bright .bubble-card,
 html.bright .comm-node,
 html.bright .steiner-wrap .vnode {
   background: #fff;
   box-shadow: var(--g-lift);
-  border-color: var(--vscode-panel-border);
+  border-color: color-mix(in srgb, var(--c, #007aff) 48%, rgba(60, 60, 67, 0.16));
+}
+html.bright .bubble-card .name,
+html.bright .comm-node .name,
+html.bright .steiner-wrap .vnode .name,
+html.bright .prog-chip b {
+  text-transform: none;
+  letter-spacing: -0.02em;
 }
 html.bright .feature-path {
   background: #fff;

@@ -14,3 +14,4 @@ Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in
 | [registry-audit.png](registry-audit.png) | Registry: snapshot audit + KindMismatch hops |
 | [timeline-scrub.png](timeline-scrub.png) | Timeline: parent cut + coverage scrubber |
 | [llm-ask.png](llm-ask.png) | Ask panel (local host / bridge — the model never stamps) |
+| [keys-sheet.png](keys-sheet.png) | Shortcut sheet (`?`) on the bright desk |
