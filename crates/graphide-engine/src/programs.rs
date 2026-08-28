@@ -1,7 +1,7 @@
 //! Programs are a file projection of the derived graph (SPEC: files are a
 //! projection; "one binary" is the outermost program). Not plugin-authored.
 
-use graphide_ir::{EndRole, Graph, Node, ProgramView};
+use graphide_ir::{EndRole, Graph, Node, NodeKind, ProgramView};
 
 pub fn programs_from_graph(graph: &Graph) -> Vec<ProgramView> {
     use std::collections::BTreeMap;
@@ -86,6 +86,15 @@ fn kind_rank(kind: &str) -> u8 {
     }
 }
 
+fn last_seg(fqn: &str) -> &str {
+    fqn.rsplit([':', '.', '/', '#'])
+        .find(|s| !s.is_empty())
+        .unwrap_or(fqn)
+}
+
+/// Program entries are Endpoint sources and functions named `main`.
+/// Being *in* `main.rs` is not enough — Types and helpers there starve
+/// the default control-flow walk (alphabetized seeds never reach `fn main`).
 pub fn is_entry(n: &Node) -> bool {
     if n.endpoint
         .as_ref()
@@ -93,16 +102,7 @@ pub fn is_entry(n: &Node) -> bool {
     {
         return true;
     }
-    let fqn = n.fqn.as_str();
-    if fqn.ends_with("::main") || fqn == "main" || fqn.ends_with(".main") {
-        return true;
-    }
-    let file = n.span.file.replace('\\', "/");
-    file.ends_with("/main.rs")
-        || file.ends_with("/main.go")
-        || file.ends_with("/__main__.py")
-        || file.contains("/src/bin/")
-        || file.ends_with("/main.py")
+    n.kind == NodeKind::Function && last_seg(&n.fqn) == "main"
 }
 
 /// Map a single file with no sibling context (entry files only; else pkg).
@@ -311,6 +311,32 @@ mod tests {
         assert_eq!(ps.len(), 1, "{ps:?}");
         assert_eq!(ps[0].kind, "lib");
         assert_eq!(ps[0].nodes, 3);
+    }
+
+    fn typed(fqn: &str, file: &str) -> Node {
+        Node {
+            id: NodeId::from_identity(NodeKind::Type, fqn),
+            fqn: fqn.into(),
+            kind: NodeKind::Type,
+            span: Span {
+                file: file.into(),
+                start: Pos { line: 1, column: 1 },
+                end: Pos { line: 2, column: 1 },
+            },
+            endpoint: None,
+        }
+    }
+
+    #[test]
+    fn types_in_main_rs_are_not_entries() {
+        assert!(is_entry(&node("main", "src/main.rs")));
+        assert!(is_entry(&node("crate::main", "crates/cli/src/main.rs")));
+        assert!(is_entry(&node("pkg.main", "cmd/pkg/main.go")));
+        assert!(!is_entry(&typed("Cli", "src/main.rs")));
+        assert!(!is_entry(&typed("Cmd", "src/main.rs")));
+        assert!(!is_entry(&node("review_roots", "src/main.rs")));
+        assert!(!is_entry(&node("ProgressSink::new", "src/main.rs")));
+        assert!(!is_entry(&node("default_stamp_path", "src/main.rs")));
     }
 
     #[test]
