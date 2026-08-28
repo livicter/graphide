@@ -1047,6 +1047,16 @@
     const blue = (getComputedStyle(document.body).getPropertyValue("--g-fn") || "").trim();
     check("V43", "Accent is Apple system blue", /007aff|0,\s*122,\s*255/i.test(accent + " " + blue), accent + " " + blue);
     check("V44", "Grouped canvas token is live", /f2f2f7|#ffffff|rgb\(242,\s*242,\s*247\)/i.test(getComputedStyle(document.body).getPropertyValue("--g-grouped") || getComputedStyle(document.body).backgroundColor || ""), getComputedStyle(document.body).getPropertyValue("--g-grouped"));
+    check("V45", "Now pill does not repeat the workspace", !/overview\s*·\s*overview/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
+    check("V46", "Prompt lives in the header glass bar", !!(document.querySelector("header #prompt")), "");
+    check("V47", "Flow tabs sit in the toolbar, not their own row", !!(document.querySelector("#graphBar #tabs")), "");
+    clickWs("overview");
+    await later(40);
+    const tintCard = document.querySelector(".vnode.kind-Function");
+    const tintToken = tintCard
+      ? (getComputedStyle(tintCard).getPropertyValue("--c") + " " + getComputedStyle(tintCard).getPropertyValue("--g-fn")).trim()
+      : "";
+    check("V48", "Cards keep a kind tint", !!(tintCard && /007aff|g-fn/i.test(tintToken)), tintToken + " n=" + document.querySelectorAll(".vnode.kind-Function").length);
 
     const failed = rows.filter((r) => !r.pass);
     const html =

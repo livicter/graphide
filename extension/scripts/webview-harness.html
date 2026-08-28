@@ -80,6 +80,9 @@
 <body class="bright">
   <header>
     <div class="brand">Graph<span>ide</span></div>
+    <span class="now-pill" id="nowPill" hidden></span>
+    <input id="prompt" type="text" spellcheck="false"
+      placeholder="name=hit,hit" title="Optional prompt: name=hit,hit  (repeat with ; )" />
     <button id="backBtn" title="Back (Backspace)" disabled>Back</button>
     <button id="reviewBtn" title="Review workspace">Review</button>
     <button id="cancelBtn" title="Cancel review (Esc)" hidden>Cancel</button>
@@ -126,12 +129,6 @@
       </div>
     </div>
   </div>
-  <div id="promptRow">
-    <input id="prompt" type="text" spellcheck="false"
-      placeholder="Optional prompt: name=hit,hit  (repeat with ; )" />
-  </div>
-  <nav id="tabs"></nav>
-  <section id="meta"></section>
   <div id="graphBar" hidden>
     <nav id="workspaces" class="workspaces" aria-label="Explorer workspaces">
       <button type="button" data-ws="map">Map</button>
@@ -142,6 +139,7 @@
       <button type="button" data-ws="overview">Overview</button>
       <button type="button" data-ws="timeline">Timeline</button>
     </nav>
+    <nav id="tabs"></nav>
     <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">Ego</button>
     <label class="ego-hops" title="Ego hop depth on the derived graph">
       <select id="egoHops">
@@ -162,6 +160,7 @@
     </div>
     <div id="legend"></div>
   </div>
+  <section id="meta"></section>
   <section id="workspace">
     <section id="canvas"></section>
     <aside id="ledgerPane" hidden>
