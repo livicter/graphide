@@ -1,6 +1,6 @@
 # Graphide Review
 
-Review any local repo as a flow graph. The panel is Apple-bright (iOS grouped cards, system blue, two-row glass chrome) — live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
+Review any local repo as a flow graph. The panel is Apple-bright (iOS grouped cards, system blue, two-row glass chrome, story-first Overview, a source-list object rail) — live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
 
 ## Install (one click)
 

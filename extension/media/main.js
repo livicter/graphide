@@ -725,7 +725,7 @@ function setGraphChrome(on) {
     egoHopsEl.disabled = !on;
     egoHopsEl.value = String(egoHops);
     const wrap = egoHopsEl.closest(".ego-hops");
-    if (wrap) wrap.hidden = !on;
+    if (wrap) wrap.hidden = !on || !egoMode;
   }
   reorgBtns.forEach((el) => {
     el.hidden = !on;
@@ -833,6 +833,10 @@ function setWorkspace(name, pin) {
 function setEgoMode(on) {
   egoMode = !!on;
   if (egoBtn) egoBtn.classList.toggle("on", egoMode);
+  if (egoHopsEl) {
+    const wrap = egoHopsEl.closest(".ego-hops");
+    if (wrap) wrap.hidden = !egoMode;
+  }
   applyEgoPaint();
 }
 
@@ -852,7 +856,9 @@ function refreshExplorer() {
 
 function setLedgerHead(label) {
   const el = document.querySelector("#ledgerPane .led-head");
-  if (el) el.textContent = label || "SLICE";
+  if (!el) return;
+  const raw = String(label || "Slice");
+  el.textContent = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }
 
 function updateZoomPct() {
@@ -3588,6 +3594,8 @@ function renderOverviewBody() {
     })
     .slice(0, 8);
   return (
+    renderFeaturePathHtml() +
+    renderDefaultCfg() +
     '<div class="stat-strip">' +
     '<span><i class="k">Nodes</i> <b class="n">' +
     nodes.length +
@@ -3618,8 +3626,6 @@ function renderOverviewBody() {
     statChips(marks) +
     "</span>" +
     "</div>" +
-    renderFeaturePathHtml() +
-    renderDefaultCfg() +
     '<div class="flow-title">Communities</div>' +
     '<div class="expl-list compact">' +
     comms
@@ -4476,6 +4482,7 @@ function renderLedger(nodes, opts) {
       const kind = n.kind || kindOf(snapshot && snapshot.graph, id);
       const flags = nodeFlags(id);
       const on = selected === id || flags.uncovered || (onTree && onTree.has(id));
+      const name = shortOf(n.fqn || fqnOf(snapshot && snapshot.graph, id)) || shortToken(id);
       return (
         '<button type="button" class="cell dag ' +
         kindClass(kind) +
@@ -4483,11 +4490,11 @@ function renderLedger(nodes, opts) {
         (flags.uncovered ? " uncovered" : "") +
         '" data-id="' +
         id +
-        '"><span class="dag-id">' +
-        esc(shortToken(id)) +
-        '</span><span class="dag-k">' +
+        '"><span class="dag-k">' +
         esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") +
-        '</span><span class="dots"><i></i><i></i><i></i></span></button>'
+        '</span><span class="dag-id">' +
+        esc(name) +
+        "</span></button>"
       );
     })
     .join("");
