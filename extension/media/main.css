@@ -539,7 +539,13 @@ button:disabled { opacity: 0.45; cursor: default; }
   overflow: hidden;
 }
 #workspace.has-ledger #canvas { padding-right: 6px; }
-#canvas { padding: 12px 10px 16px; overflow: auto; flex: 1; min-height: 160px; }
+#canvas {
+  padding: 12px 10px 16px;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 160px;
+}
 #canvas.has-stage { overflow: hidden; }
 #canvas.has-stage.explorer-list { overflow: auto; }
 #canvas.has-stage.programs-view,
@@ -556,6 +562,8 @@ button:disabled { opacity: 0.45; cursor: default; }
   width: 168px;
   min-width: 148px;
   max-width: 200px;
+  flex: 0 0 auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   border-left: 1px dotted var(--vscode-panel-border);
@@ -612,9 +620,11 @@ button:disabled { opacity: 0.45; cursor: default; }
 #ledgerGrid .cell.kind-Endpoint { --c: var(--g-ep); }
 #ledgerGrid .cell.uncovered { border-style: dashed; border-color: color-mix(in srgb, var(--c, var(--g-fn)) 40%, transparent); }
 #sourcePane {
-  width: 42%;
-  min-width: 180px;
-  max-width: 52%;
+  flex: 0 1 360px;
+  width: min(360px, 38%);
+  min-width: 220px;
+  max-width: 380px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--vscode-panel-border);
@@ -2334,6 +2344,8 @@ html.bright #ledgerPane {
   width: 200px;
   min-width: 180px;
   max-width: 240px;
+  flex: 0 0 auto;
+  overflow: hidden;
   background: var(--g-grouped, #f2f2f7);
   box-shadow: none;
   border-left: none;

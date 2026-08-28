@@ -1703,7 +1703,7 @@ function layeredPositions(ids, rawEdges, opts) {
       p.y = pin.y;
     }
   }
-  if (!pack) separateBoxes(pos, nodeW, nodeH, 18);
+  separateBoxes(pos, nodeW, nodeH, 18);
   let minX = Infinity,
     minY = Infinity,
     maxX = 0,

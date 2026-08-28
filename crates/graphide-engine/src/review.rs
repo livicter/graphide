@@ -283,8 +283,11 @@ pub fn default_review_hints(graph: &Graph) -> Vec<FlowHint> {
     }
     let overview: Vec<String> = entries.into_iter().take(8).collect();
     let mut cfg = control_flow_hits(graph, &overview);
-    if cfg.len() < 2 {
-        cfg = calls_spine(graph);
+    if cfg.len() < 2 || !hits_have_walkable_hops(graph, &cfg) {
+        let spine = calls_spine(graph);
+        if spine.len() >= 2 {
+            cfg = spine;
+        }
     }
     let mut out = Vec::new();
     if !overview.is_empty() {
@@ -305,6 +308,28 @@ pub fn default_review_hints(graph: &Graph) -> Vec<FlowHint> {
         });
     }
     out
+}
+
+/// Isolated Types/consts as seeds never grow a Steiner path. Fall back
+/// when none of the hits leave on a walkable hop.
+fn hits_have_walkable_hops(graph: &Graph, hits: &[String]) -> bool {
+    let ids: std::collections::HashSet<NodeId> = hits
+        .iter()
+        .filter_map(|fqn| resolve_fqn(graph, fqn))
+        .collect();
+    if ids.len() < 2 {
+        return false;
+    }
+    graph.edges.iter().any(|e| {
+        matches!(
+            e.kind,
+            EdgeKind::Calls
+                | EdgeKind::Reads
+                | EdgeKind::Writes
+                | EdgeKind::Publishes
+                | EdgeKind::Subscribes
+        ) && ids.contains(&e.from)
+    })
 }
 
 fn control_flow_hits(graph: &Graph, seeds: &[String]) -> Vec<String> {
@@ -516,5 +541,78 @@ fn build_preview(
                 tree: tree.clone(),
             })
             .collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use graphide_ir::*;
+
+    fn span(file: &str) -> Span {
+        Span {
+            file: file.into(),
+            start: Pos { line: 1, column: 1 },
+            end: Pos { line: 2, column: 1 },
+        }
+    }
+
+    fn n(kind: NodeKind, fqn: &str, file: &str) -> Node {
+        Node {
+            id: NodeId::from_identity(kind, fqn),
+            fqn: fqn.into(),
+            kind,
+            span: span(file),
+            endpoint: None,
+        }
+    }
+
+    fn calls(from: &Node, to: &Node) -> Edge {
+        Edge {
+            from: from.id,
+            to: to.id,
+            kind: EdgeKind::Calls,
+            span: from.span.clone(),
+        }
+    }
+
+    #[test]
+    fn default_run_seeds_main_not_types_in_main_rs() {
+        let main = n(NodeKind::Function, "main", "src/main.rs");
+        let cli = n(NodeKind::Type, "Cli", "src/main.rs");
+        let cmd = n(NodeKind::Type, "Cmd", "src/main.rs");
+        let roots = n(NodeKind::Function, "review_roots", "src/main.rs");
+        let print = n(NodeKind::Function, "print_review", "src/main.rs");
+        let graph = Graph {
+            nodes: vec![
+                cli,
+                cmd,
+                n(NodeKind::Type, "MAX_FILE_BYTES", "src/main.rs"),
+                n(NodeKind::Function, "ProgressSink::new", "src/main.rs"),
+                main.clone(),
+                roots.clone(),
+                print.clone(),
+            ],
+            edges: vec![calls(&main, &roots), calls(&roots, &print)],
+        };
+        let hints = default_review_hints(&graph);
+        let overview = hints.iter().find(|h| h.name == "overview").expect("overview");
+        assert_eq!(overview.hits, vec!["main".to_string()], "{:?}", overview.hits);
+        let cfg = hints
+            .iter()
+            .find(|h| h.name == "control-flow")
+            .expect("control-flow");
+        assert!(
+            cfg.hits.iter().any(|h| h == "main" || h == "review_roots"),
+            "{:?}",
+            cfg.hits
+        );
+        assert!(cfg.hits.len() >= 2, "{:?}", cfg.hits);
+        let ids: Vec<_> = cfg.hits.iter().filter_map(|h| resolve_fqn(&graph, h)).collect();
+        let tree = crate::steiner::steiner_tree(&graph, &ids);
+        assert!(
+            !tree.edges.is_empty(),
+            "control-flow Steiner should walk main → callees, got {tree:?}"
+        );
     }
 }
