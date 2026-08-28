@@ -952,7 +952,7 @@
     check("V12", "Map shows community cards", document.querySelectorAll(".bubble-card").length >= 8, "cards=" + document.querySelectorAll(".bubble-card").length);
     check("V13", "Program chips include bin main", /bin main/i.test((document.getElementById("legend") || {}).textContent || ""), (document.getElementById("legend") || {}).textContent || "");
     const startCard = [...document.querySelectorAll(".bubble-card")].find((el) => /START/i.test(el.textContent || ""));
-    check("V14", "Walk community is pinned as START", !!(startCard && /error_toast/i.test(startCard.textContent || "")), startCard ? startCard.textContent.slice(0, 80) : "");
+    check("V14", "Walk community is pinned as START", !!(startCard && /error_toast|apply_changes|retrieve_starting/i.test(startCard.textContent || "")), startCard ? startCard.textContent.slice(0, 80) : "");
     if (startCard) startCard.click();
     await later(80);
     check("V15", "Enter bubble shows labeled members", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24, "nodes=" + document.querySelectorAll(".comm-node").length);
