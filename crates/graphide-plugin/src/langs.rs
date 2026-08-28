@@ -90,6 +90,9 @@ const JS_QUERIES: &str = r#"
     (method_definition
       name: (property_identifier) @method.name) @method.def))
 
+(method_definition
+  name: (property_identifier) @method.name) @method.def
+
 (call_expression
   function: [
     (identifier) @call.name
@@ -127,6 +130,9 @@ const TS_QUERIES: &str = r#"
   body: (class_body
     (method_definition
       name: (property_identifier) @method.name) @method.def))
+
+(method_definition
+  name: (property_identifier) @method.name) @method.def
 
 (call_expression
   function: [

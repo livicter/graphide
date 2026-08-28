@@ -926,7 +926,7 @@
     const key = (k) => document.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
     const footer = (document.getElementById("status") || {}).textContent || "";
 
-    check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /765/.test(footer) && /57/.test(footer), footer);
+    check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /1222/.test(footer) && /57/.test(footer), footer);
     clickWs("lineage");
     await later(80);
     check("V39", "Lineage lands on the control-flow start hop", /retrieve_starting_data/i.test((document.getElementById("meta") || {}).textContent || "") && document.querySelectorAll(".ego-node").length >= 2 && !/ 0 incident hops/.test((document.getElementById("meta") || {}).textContent || ""), (document.getElementById("meta") || {}).textContent || "");

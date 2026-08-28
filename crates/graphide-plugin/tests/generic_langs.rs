@@ -304,6 +304,24 @@ def subscribe(b: bus):
 }
 
 #[test]
+fn javascript_object_method_kept() {
+    let src = r#"
+const audio = {
+  construct(target, args) { return new target(...args); }
+};
+function subscribe() { return audio.construct; }
+"#;
+    let e = extract("wasm/restart-audio-context.js", src);
+    assert!(
+        e.nodes
+            .iter()
+            .any(|n| n.fqn.ends_with("construct") && n.kind == NodeKind::Function),
+        "nodes={:?}",
+        e.nodes.iter().map(|n| n.fqn.as_str()).collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn javascript_class_method_contains() {
     let src = r#"
 class Bus {

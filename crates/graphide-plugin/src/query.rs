@@ -105,6 +105,9 @@ pub fn extract_with(
         }
 
         if let (Some(method), Some(def)) = (cap("method.name"), cap("method.def")) {
+            if cap("impl.type").is_none() && ancestor_kind(def, CLASS_KINDS) {
+                continue;
+            }
             let ty = cap("impl.type").map(|n| text_of(n, bytes));
             let fqn = match ty.as_deref() {
                 Some(t) => format!(
@@ -389,6 +392,18 @@ fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
         };
     }
     qualify(&module, sep, name)
+}
+
+const CLASS_KINDS: &[&str] = &["class_declaration", "class_definition", "class_specifier"];
+
+fn ancestor_kind(mut node: Node, kinds: &[&str]) -> bool {
+    while let Some(p) = node.parent() {
+        if kinds.contains(&p.kind()) {
+            return true;
+        }
+        node = p;
+    }
+    false
 }
 
 fn enclosing_fn(defs: &[NodeDef], node: Node) -> Option<String> {
