@@ -1050,9 +1050,13 @@
     check("V45", "Now pill does not repeat the workspace", !/overview\s*·\s*overview/i.test((document.getElementById("nowPill") || {}).textContent || ""), (document.getElementById("nowPill") || {}).textContent || "");
     check("V46", "Prompt lives in the header glass bar", !!(document.querySelector("header #prompt")), "");
     check("V47", "Flow tabs sit in the toolbar, not their own row", !!(document.querySelector("#graphBar #tabs")), "");
-    const tintCard = document.querySelector(".vnode, .bubble-card, .comm-node");
-    const tint = tintCard ? getComputedStyle(tintCard).borderColor + " " + getComputedStyle(tintCard).backgroundColor : "";
-    check("V48", "Cards keep a kind tint", /0,\s*122,\s*255|007aff|255,\s*159,\s*10|52,\s*199,\s*89|234,\s*246,\s*255/i.test(tint), tint);
+    clickWs("overview");
+    await later(40);
+    const tintCard = document.querySelector(".vnode.kind-Function");
+    const tintToken = tintCard
+      ? (getComputedStyle(tintCard).getPropertyValue("--c") + " " + getComputedStyle(tintCard).getPropertyValue("--g-fn")).trim()
+      : "";
+    check("V48", "Cards keep a kind tint", !!(tintCard && /007aff|g-fn/i.test(tintToken)), tintToken + " n=" + document.querySelectorAll(".vnode.kind-Function").length);
 
     const failed = rows.filter((r) => !r.pass);
     const html =
