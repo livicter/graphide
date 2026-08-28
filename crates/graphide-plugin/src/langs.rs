@@ -36,6 +36,17 @@ pub const PYTHON: Lang = Lang {
   ]) @call
 
 (type (identifier) @ty.use)
+
+(import_from_statement
+  module_name: (dotted_name) @import.mod
+  name: (dotted_name
+    (identifier) @import.name))
+
+(import_from_statement
+  module_name: (dotted_name) @import.mod
+  name: (aliased_import
+    name: (dotted_name
+      (identifier) @import.name)))
 "#,
 };
 
@@ -77,6 +88,17 @@ const JS_QUERIES: &str = r#"
 
 (new_expression
   constructor: (identifier) @ty.use)
+
+(import_statement
+  (import_clause
+    (named_imports
+      (import_specifier
+        name: (identifier) @import.name)))
+  source: (string) @import.mod)
+
+(import_statement
+  (import_clause (identifier) @import.name)
+  source: (string) @import.mod)
 "#;
 
 const TS_QUERIES: &str = r#"
@@ -102,6 +124,17 @@ const TS_QUERIES: &str = r#"
 (type_identifier) @ty.use
 (new_expression
   constructor: (identifier) @ty.use)
+
+(import_statement
+  (import_clause
+    (named_imports
+      (import_specifier
+        name: (identifier) @import.name)))
+  source: (string) @import.mod)
+
+(import_statement
+  (import_clause (identifier) @import.name)
+  source: (string) @import.mod)
 "#;
 
 pub const C: Lang = Lang {
@@ -202,6 +235,9 @@ pub const GO: Lang = Lang {
   ]) @call
 
 (type_identifier) @ty.use
+
+(import_spec
+  path: (interpreted_string_literal) @import.mod)
 "#,
 };
 

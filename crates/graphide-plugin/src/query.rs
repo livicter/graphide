@@ -72,6 +72,7 @@ pub fn extract_with(
     let mut nodes = Vec::new();
     let mut refs = Vec::new();
     let mut findings = Vec::new();
+    let mut imports: HashMap<String, String> = HashMap::new();
     let idx = |name: &str| query.capture_index_for_name(name);
 
     let mut cursor = QueryCursor::new();
@@ -133,6 +134,16 @@ pub fn extract_with(
             }
             push_node(&mut nodes, fqn, NodeKind::Function, span_of(&file, def));
         }
+
+        if let Some(modn) = cap("import.mod") {
+            let spec = text_of(modn, bytes);
+            let name = cap("import.name")
+                .map(|n| text_of(n, bytes))
+                .unwrap_or_else(|| last_path_seg(&spec));
+            if !name.is_empty() {
+                imports.insert(name.clone(), import_target(&file, lang.sep, &spec, &name));
+            }
+        }
     }
 
     let mut seen = HashMap::new();
@@ -164,6 +175,7 @@ pub fn extract_with(
             if let Some(from) = enclosing_fn(&nodes, call) {
                 if let Some(to) = resolve_name(
                     &nodes,
+                    &imports,
                     &module_fqn,
                     lang.sep,
                     &text_of(name, bytes),
@@ -182,6 +194,7 @@ pub fn extract_with(
             if let Some(from) = enclosing_fn(&nodes, ty) {
                 if let Some(to) = resolve_name(
                     &nodes,
+                    &imports,
                     &module_fqn,
                     lang.sep,
                     &text_of(ty, bytes),
@@ -239,6 +252,7 @@ fn last_seg<'a>(name: &'a str, sep: &str) -> &'a str {
 
 fn resolve_name(
     nodes: &[NodeDef],
+    imports: &HashMap<String, String>,
     module: &str,
     sep: &str,
     raw: &str,
@@ -261,7 +275,66 @@ fn resolve_name(
     if nodes.iter().any(|n| n.fqn == local && n.kind == kind) {
         return Some(local);
     }
-    None
+    imports.get(raw).cloned()
+}
+
+fn last_path_seg(spec: &str) -> String {
+    let spec = spec
+        .trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim_matches('`')
+        .trim_end_matches(".js")
+        .trim_end_matches(".ts")
+        .trim_end_matches(".py")
+        .trim_end_matches('/');
+    spec.rsplit(['/', '.', ':'])
+        .find(|s| !s.is_empty() && *s != "." && *s != "..")
+        .unwrap_or("")
+        .to_string()
+}
+
+fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
+    let spec = spec
+        .trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim_matches('`');
+    let module = if spec.starts_with('.') {
+        let dir = file.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+        let joined = if spec.starts_with("./") {
+            format!("{dir}/{}", spec.trim_start_matches("./"))
+        } else if spec == "." {
+            dir.to_string()
+        } else {
+            let mut parts: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+            let mut rest = spec;
+            while rest.starts_with("../") {
+                if !parts.is_empty() {
+                    parts.pop();
+                }
+                rest = rest.trim_start_matches("../");
+            }
+            rest = rest.trim_start_matches("./");
+            if rest.is_empty() {
+                parts.join("/")
+            } else if parts.is_empty() {
+                rest.to_string()
+            } else {
+                format!("{}/{rest}", parts.join("/"))
+            }
+        };
+        module_fqn_from_path(&joined, sep)
+    } else {
+        let p = spec
+            .trim_end_matches(".js")
+            .trim_end_matches(".jsx")
+            .trim_end_matches(".ts")
+            .trim_end_matches(".tsx")
+            .trim_end_matches(".py");
+        p.replace('/', sep)
+    };
+    qualify(&module, sep, name)
 }
 
 fn enclosing_fn(defs: &[NodeDef], node: Node) -> Option<String> {
