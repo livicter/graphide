@@ -3574,6 +3574,11 @@ function renderOverviewBody() {
     flows.map((f) => ({ m: flowMark(f.name) || "open" })),
     (x) => x.m
   );
+  const degrees = degreeMap();
+  const topDeg = nodes
+    .map((n) => ({ n, d: degrees.get(idVal(n.id)) || 0 }))
+    .sort((a, b) => b.d - a.d)
+    .slice(0, 8);
   const q = (graphFilter.q || "").toLowerCase();
   const path = featurePath(storyFlow());
   const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
@@ -3636,6 +3641,28 @@ function renderOverviewBody() {
           " nodes" +
           (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
           (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
+          "</div></article>"
+        );
+      })
+      .join("") +
+    "</div>" +
+    '<div class="flow-title">Highest degree</div>' +
+    '<div class="expl-list compact">' +
+    topDeg
+      .slice(0, 6)
+      .map((x) => {
+        const id = idVal(x.n.id);
+        return (
+          '<article class="expl-card" data-id="' +
+          esc(id) +
+          '"><div class="k">' +
+          esc(x.n.kind) +
+          '</div><div class="t">' +
+          esc(shortOf(x.n.fqn)) +
+          '</div><div class="b">degree ' +
+          x.d +
+          " · " +
+          esc(shortToken(id)) +
           "</div></article>"
         );
       })
