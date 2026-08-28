@@ -1,6 +1,6 @@
 # Graphide Review
 
-Review any local repo as a flow graph. The panel is Apple Day / Night (iOS grouped cards, system blue, two-row glass chrome, story-first Overview, a source-list object rail). Switch appearance with the header **Day / Night** control, key `D`, or `graphide.appearance` (`auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. Live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
+Review any local repo as a flow graph. The panel is Apple Day / Night (iOS grouped cards, system blue, two-row glass chrome, story-first Overview, a source-list object rail). Switch appearance with the header **Day / Night** control, key `D`, or `graphide.appearance` (`auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. Live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder. A feature-by-feature walk of Graphide reviewing **this** repo lives in `self_sample/` (and the root README section *Learn Graphide on this repo*).
 
 ## Install (one click)
 

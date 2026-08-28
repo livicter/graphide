@@ -24,7 +24,7 @@ Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`inst
 
 ## Review panel
 
-After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Imports plugin match (**349 nodes · 1222 edges · 57 files**, **457 Imports**, harness **PASS 57/57**). The desk has **Day** and **Night** appearance (header control, key `D`, or `graphide.appearance`: `auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. The object rail is a source list of names; the footer is one caption. Endpoint / pub-sub hops match Rust on the same derivers; SolarSim’s edge mix did not change from Endpoints. More in [`UIUX_sample/`](UIUX_sample/).
+After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Imports plugin match (**349 nodes · 1222 edges · 57 files**, **457 Imports**, harness **PASS 57/57**). The desk has **Day** and **Night** appearance (header control, key `D`, or `graphide.appearance`: `auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. The object rail is a source list of names; the footer is one caption. Endpoint / pub-sub hops match Rust on the same derivers; SolarSim’s edge mix did not change from Endpoints. More in [`UIUX_sample/`](UIUX_sample/). To learn **every workspace on this Graphide repo**, skip to [Learn Graphide on this repo](#learn-graphide-on-this-repo).
 
 ![Live V1–V57](UIUX_sample/live-suite.png)
 
@@ -54,6 +54,115 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 
 ![Decisions stamps](UIUX_sample/decisions-stamps.png)
 
+## Learn Graphide on this repo
+
+Open **this** Graphide source folder (the tree that has `crates/graphide-cli`) and click **Review**. You do not need a prompt. The shots below are that live pass: **688 nodes · 3012 hops · 38 files** (576 Function · 63 Type · 49 Endpoint; 1695 Calls · 1216 Reads). Plugins: javascript, python, rust, typescript. Full catalog in [`self_sample/`](self_sample/).
+
+### 1. Overview is the landing
+
+After Review you land on **Overview** with two pending flows: `overview` and `control-flow`. The strip is the story Graphide will walk:
+
+`START · main` → `review_roots` → `print_review` → `path_relative` → `END · default_stamp_path`
+
+The graph is the same walk: `main` **Calls** those four helpers in `crates/graphide-cli/src/main.rs`. The Run rail on the right is a source list of those names. The footer is the scorecard (nodes, hops, communities, programs).
+
+![Overview — default run on this repo](self_sample/01-overview.png)
+
+### 2. Play walks Start → features → end
+
+**Play** (`P`) steps the strip. **Prev** / **Next** (`[` `]`) step one hop. Evidence opens on the current hop (`review_roots` at `src/main.rs:309` here). Pause stops the walk.
+
+![Play walks the strip](self_sample/02-overview-play.png)
+
+### 3. Keys
+
+`?` opens the sheet. `1`–`7` switch workspaces. `S` stamps, `X` skips, `L` asks, `P` plays, `R` reorganizes, `E` is ego, `D` flips Day / Night, `+` `−` zoom, `0` fits, Backspace goes back.
+
+![Keys sheet](self_sample/04-keys.png)
+
+### 4. Map — communities, not a hairball
+
+**Map** lays the walk through communities. `START · main` sits on its own row. Everything else is **OFF PATH**. Drag a card; **Reorganize** (`R`) auto-lays the chart. **Zoom in to peek members. Click to Enter.** Geometric zoom is not Enter.
+
+![Map communities](self_sample/05-map.png)
+
+### 5. Enter is a world jump
+
+Click the START bubble. You drop one clustering level into the members (`main`, `review_roots`, CALLS hops). **Back** pops back to communities.
+
+![Enter START · main](self_sample/06-map-enter.png)
+
+### 6. Evidence
+
+Click a hop. The inspector is kind, file:line, program, degree, and Calls. Long source stays in that pane — it does not cover the object rail. **Editor** opens the span.
+
+![Evidence on review_roots](self_sample/07-evidence.png)
+
+**Ego** (`E`) isolates the selected node and its 1-hop (or 2-hop) neighborhood.
+
+![Ego of the selected hop](self_sample/08-ego.png)
+
+### 7. Find, kinds, programs, zoom
+
+`/` finds an FQN, file, flow, or hop. Kind pills hide Function / Type / Endpoint. Program chips (`bin graphide-cli`, `lib graphide-engine`, …) are a **legend filter** — a file projection, not a new IR kind. Wheel or `+` `−` is automatic LOD: overview → labels → hops → source. Zooming out past overview pops one clustering level.
+
+![Find review_roots](self_sample/10-find.png)
+
+![Kind filters](self_sample/11-kinds.png)
+
+### 8. Slice — the Steiner tree
+
+**Slice** is the same walk as a control-flow tree. Each card has file:line (`main` at `src/main.rs:114`, then the four callees). Zoom out for runs, in for hops and source.
+
+![Slice control-flow](self_sample/14-slice.png)
+
+Click a hop for Evidence plus the source span.
+
+![Slice hop Evidence](self_sample/15-slice-hop.png)
+
+### 9. Lineage
+
+**Lineage** is the 1-hop ego of the start hop (`main`). Used / Informed / Generated sit on derived edges. Evidence lists Calls and TypeUses.
+
+![Lineage ego of main](self_sample/16-lineage.png)
+
+### 10. Stamp, Skip, Decisions
+
+**Stamp** (`S`) is a human attestation: this flow still holds. It writes `.graphide/stamps/<flow>.json`. The toast says *Stamped control-flow · holds*. **Skip** (`X`) leaves that flow unstamped for this session only.
+
+![Stamp toast](self_sample/17-stamp.png)
+
+**Decisions** is the ledger: stamps, skips, and broken attestations. A new hop on the next Review is a scar (`StampBroken`).
+
+![Decisions HOLDS](self_sample/18-decisions.png)
+
+![Skip is session-only](self_sample/19-skip.png)
+
+### 11. Registry and Timeline
+
+**Registry** audits this snapshot: node/edge/file counts, HOLDS, SKIPPED.
+
+![Registry audit](self_sample/21-registry.png)
+
+**Timeline** is the parent cut, coverage, and stamp scars. `HEAD^` is the default parent unless `graphide.parentRoot` is set. The scrubber watches this review (`t0` parent → coverage → holds → skipped).
+
+![Timeline scars](self_sample/22-timeline.png)
+
+### 12. Ask — the model never stamps
+
+**LLM** (`L`) opens Ask. Without a host, answers still come from the derived graph (the same start → features → end path). Connect Ollama / LM Studio / llama.cpp / OpenAI if you want a model. **Agents never stamp.**
+
+![Ask retells the path](self_sample/23-ask.png)
+
+### 13. Night
+
+Header **Night**, key `D`, or `graphide.appearance`: `night`. Same objects, Apple dark desk.
+
+![Night Overview](self_sample/24-night-overview.png)
+
+![Night Map](self_sample/25-night-map.png)
+
+![Night Slice](self_sample/26-night-slice.png)
 
 ## Windows
 
