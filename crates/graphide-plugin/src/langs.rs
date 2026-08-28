@@ -47,6 +47,14 @@ pub const PYTHON: Lang = Lang {
   name: (aliased_import
     name: (dotted_name
       (identifier) @import.name)))
+
+(import_statement
+  name: (dotted_name) @import.mod)
+
+(import_statement
+  name: (aliased_import
+    name: (dotted_name) @import.mod
+    alias: (identifier) @import.name))
 "#,
 };
 
@@ -76,8 +84,11 @@ const JS_QUERIES: &str = r#"
 (class_declaration
   name: (identifier) @type.name) @type.def
 
-(method_definition
-  name: (property_identifier) @method.name) @method.def
+(class_declaration
+  name: (identifier) @impl.type
+  body: (class_body
+    (method_definition
+      name: (property_identifier) @method.name) @method.def))
 
 (call_expression
   function: [
@@ -111,8 +122,11 @@ const TS_QUERIES: &str = r#"
 (class_declaration
   name: (type_identifier) @type.name) @type.def
 
-(method_definition
-  name: (property_identifier) @method.name) @method.def
+(class_declaration
+  name: (type_identifier) @impl.type
+  body: (class_body
+    (method_definition
+      name: (property_identifier) @method.name) @method.def))
 
 (call_expression
   function: [
@@ -167,6 +181,12 @@ const C_QUERIES: &str = r#"
   ]) @call
 
 (type_identifier) @ty.use
+
+(preproc_include
+  path: [
+    (string_literal) @import.mod
+    (system_lib_string) @import.mod
+  ])
 "#;
 
 pub const CPP: Lang = Lang {
@@ -203,6 +223,19 @@ const C_FAMILY_QUERIES: &str = r#"
   ]) @call
 
 (type_identifier) @ty.use
+
+(class_specifier
+  name: (type_identifier) @impl.type
+  body: (field_declaration_list
+    (function_definition
+      declarator: (function_declarator
+        declarator: (identifier) @method.name)) @method.def))
+
+(preproc_include
+  path: [
+    (string_literal) @import.mod
+    (system_lib_string) @import.mod
+  ])
 "#;
 
 pub const GO: Lang = Lang {
@@ -235,6 +268,10 @@ pub const GO: Lang = Lang {
   ]) @call
 
 (type_identifier) @ty.use
+
+(import_spec
+  name: (package_identifier) @import.name
+  path: (interpreted_string_literal) @import.mod)
 
 (import_spec
   path: (interpreted_string_literal) @import.mod)

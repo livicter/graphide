@@ -317,12 +317,16 @@ fn emit_call(
     let Some(to) = resolve_name(short, defs, imports, Some(NodeKind::Function)) else {
         return;
     };
-    refs.push(Ref {
+    push_resolved(
+        refs,
+        defs,
+        imports,
         from,
-        to: Some(to),
-        kind: EdgeKind::Calls,
+        to,
+        EdgeKind::Calls,
+        Some(NodeKind::Function),
         span,
-    });
+    );
 }
 
 fn emit_type_use(
@@ -339,12 +343,16 @@ fn emit_type_use(
     if defs.iter().any(|d| d.fqn == to && d.kind == NodeKind::Type)
         || imports.values().any(|v| v == &to)
     {
-        refs.push(Ref {
+        push_resolved(
+            refs,
+            defs,
+            imports,
             from,
-            to: Some(to),
-            kind: EdgeKind::TypeUses,
+            to,
+            EdgeKind::TypeUses,
+            Some(NodeKind::Type),
             span,
-        });
+        );
     }
 }
 
@@ -382,12 +390,44 @@ fn emit_endpoint_ref(
     } else {
         EdgeKind::Reads
     };
-    refs.push(Ref {
+    push_resolved(
+        refs,
+        defs,
+        imports,
         from,
-        to: Some(to),
+        to,
         kind,
+        Some(NodeKind::Endpoint),
         span,
+    );
+}
+
+fn push_resolved(
+    refs: &mut Vec<Ref>,
+    defs: &[NodeDef],
+    imports: &HashMap<String, String>,
+    from: String,
+    to: String,
+    kind: EdgeKind,
+    expect: Option<NodeKind>,
+    span: Span,
+) {
+    let local = expect.is_some_and(|k| defs.iter().any(|d| d.fqn == to && d.kind == k));
+    let via_import = imports.values().any(|v| v == &to) && !local;
+    refs.push(Ref {
+        from: from.clone(),
+        to: Some(to.clone()),
+        kind,
+        span: span.clone(),
     });
+    if via_import {
+        refs.push(Ref {
+            from,
+            to: Some(to),
+            kind: EdgeKind::Imports,
+            span,
+        });
+    }
 }
 
 fn resolve_name(
@@ -608,6 +648,11 @@ pub fn subscribe(_bus: Bus) {
             e.from == "crate::sub::subscribe"
                 && e.to.as_deref() == Some("crate::bus::Bus")
                 && e.kind == EdgeKind::TypeUses
+        }));
+        assert!(r.extract.refs.iter().any(|e| {
+            e.from == "crate::sub::subscribe"
+                && e.to.as_deref() == Some("crate::bus::Bus")
+                && e.kind == EdgeKind::Imports
         }));
     }
 
