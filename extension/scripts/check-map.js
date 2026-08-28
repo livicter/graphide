@@ -148,6 +148,7 @@ assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
 assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
+assert(harness.includes("/1222/") && harness.includes("/349/"), "live V1 must expect SolarSim 349 nodes / 1222 edges after Imports");
 
 const fakeNames = [
   "SimPosition", "Simulation", "Scale", "Mass", "Velocity", "Body", "Shape", "Star",

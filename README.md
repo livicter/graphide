@@ -24,7 +24,7 @@ Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`inst
 
 ## Review panel
 
-After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the TypeUses plugin match (**349 nodes · 765 edges · 57 files**, harness **PASS 40/40**). More in [`UIUX_sample/`](UIUX_sample/).
+After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Imports plugin match (**349 nodes · 1222 edges · 57 files**, **457 Imports**, harness **PASS 40/40**). More in [`UIUX_sample/`](UIUX_sample/).
 
 ![Live V1–V40](UIUX_sample/live-suite.png)
 
