@@ -111,6 +111,7 @@ assert(js.includes("function neighborhood"), "ego must support k-hop on derived 
 assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
 assert(js.includes("function layeredPositions"), "map/slice must use a layered flowchart, not a pile");
 assert(js.includes("function fitChart"), "Fit must frame the whole chart, not only reset to 100%");
+assert(js.includes("function watchStageFit") && /sr\.width < 80/.test(js), "Fit must wait for a real webview size so Overview does not keep only the END card");
 assert(js.includes("function bindDraggable"), "boxes must be draggable");
 assert(js.includes("function autoReorganize"), "Reorganize must clear pins and relayout");
 assert(js.includes("function communityEdgeList"), "map must draw community hops");

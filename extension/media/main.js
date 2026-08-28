@@ -1015,6 +1015,34 @@ function resetCam() {
   applyCam();
 }
 
+const stageFitWatch = new WeakMap();
+
+function stageReady(stage) {
+  const sr = stage.getBoundingClientRect();
+  return sr.width >= 80 && sr.height >= 80;
+}
+
+/** VS Code webviews often paint the Overview stage at 0×0 first. Fitting
+ *  then pans to a huge negative offset — only the END card stays on screen. */
+function watchStageFit(stage) {
+  if (!stage || stageFitWatch.has(stage)) return;
+  const kick = () => {
+    if (!stage.isConnected) return;
+    if (!stageReady(stage)) return;
+    const ro = stageFitWatch.get(stage);
+    if (ro && ro.disconnect) ro.disconnect();
+    stageFitWatch.delete(stage);
+    resetCam();
+    fitChart();
+  };
+  const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(kick) : null;
+  stageFitWatch.set(stage, ro);
+  if (ro) ro.observe(stage);
+  requestAnimationFrame(kick);
+  setTimeout(kick, 160);
+  setTimeout(kick, 480);
+}
+
 function fitChart() {
   const stage = canvas.querySelector(".stage");
   const wrap = (stage && stage.querySelector(".comm-wrap, .steiner-wrap")) || canvas.querySelector(".comm-wrap, .steiner-wrap");
@@ -1023,6 +1051,11 @@ function fitChart() {
     return;
   }
   const sr = stage.getBoundingClientRect();
+  if (sr.width < 80 || sr.height < 80) {
+    watchStageFit(stage);
+    setCamTarget(0, 0, 1);
+    return;
+  }
   const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
   const H = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
   const pad = 36;
