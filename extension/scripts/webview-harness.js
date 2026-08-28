@@ -924,6 +924,7 @@
       if (tab) tab.click();
     };
     const key = (k) => document.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    if (typeof applyTheme === "function") applyTheme("day", false);
     const footer = (document.getElementById("status") || {}).textContent || "";
 
     check("V1", "Live snapshot is SolarSim scale", /349/.test(footer) && /1222/.test(footer) && /57/.test(footer), footer);
@@ -1079,6 +1080,21 @@
     const chipBg = chipSt ? chipSt.backgroundColor : "";
     const caption = !!(chipSt && (chipBox === "none" || /^rgba\(0,\s*0,\s*0,\s*0\)$/.test(chipBox)) && (/transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(chipBg)));
     check("V53", "Scorecard is caption text, not a chip row", caption, chipBg + " shadow=" + chipBox);
+    check("V54", "Day / Night appearance control is in the header", !!(document.getElementById("themeSeg") && document.getElementById("themeDay") && document.getElementById("themeNight")), "");
+    if (typeof applyTheme === "function") applyTheme("night", false);
+    await later(40);
+    const nightBg = getComputedStyle(document.body).backgroundColor || "";
+    const nightRgb = nightBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    const nightLum = nightRgb ? (0.2126 * nightRgb[1] + 0.7152 * nightRgb[2] + 0.0722 * nightRgb[3]) / 255 : 1;
+    const nightAccent = (getComputedStyle(document.body).getPropertyValue("--vscode-focusBorder") + " " + getComputedStyle(document.body).getPropertyValue("--g-fn")).trim();
+    check("V55", "Night remaps the desk to a dark grouped surface", !!(document.documentElement.classList.contains("night") && document.body.classList.contains("night") && nightLum < 0.35), nightBg + " lum=" + nightLum.toFixed(2));
+    check("V56", "Night accent is Apple dark-mode system blue", /0a84ff|10,\s*132,\s*255/i.test(nightAccent), nightAccent);
+    if (typeof applyTheme === "function") applyTheme("day", false);
+    await later(40);
+    const dayBg = getComputedStyle(document.body).backgroundColor || "";
+    const dayRgb = dayBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    const dayLum = dayRgb ? (0.2126 * dayRgb[1] + 0.7152 * dayRgb[2] + 0.0722 * dayRgb[3]) / 255 : 0;
+    check("V57", "Day restores the bright grouped surface", !!(!document.documentElement.classList.contains("night") && dayLum > 0.7), dayBg + " lum=" + dayLum.toFixed(2));
 
     const failed = rows.filter((r) => !r.pass);
     const html =

@@ -1,6 +1,6 @@
 # Graphide Review
 
-Review any local repo as a flow graph. The panel is Apple-bright (iOS grouped cards, system blue, two-row glass chrome, story-first Overview, a source-list object rail) — live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
+Review any local repo as a flow graph. The panel is Apple Day / Night (iOS grouped cards, system blue, two-row glass chrome, story-first Overview, a source-list object rail). Switch appearance with the header **Day / Night** control, key `D`, or `graphide.appearance` (`auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. Live SolarSim caps live in the repo-root `UIUX_sample/` folder. Live installer caps live in the repo-root `install_sample/` folder.
 
 ## Install (one click)
 
@@ -19,6 +19,14 @@ The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Language p
 ## After install
 
 Reload → Graphide view → **Review**. Optional prompt: `name=hit,hit`.
+
+**Day / Night.** The header segmented control pins the desk. `D` flips it. Setting `graphide.appearance`:
+
+| Value | What you get |
+|---|---|
+| `auto` (default) | Follows the Cursor / VS Code color theme (light → Day, dark → Night) |
+| `day` | Apple light desk (`#F2F2F7`, `#007AFF`) |
+| `night` | Apple dark desk (`#000` / `#1C1C1E`, `#0A84FF`) |
 
 Review lands on Overview with a default control-flow run (derived entries, no sidecar required). Overview and Map show **start → features → end**: the communities the control-flow walk visits, in order. Cards lift on hover, hops glow when you aim at them, and the map stage follows the pointer. Drag a card, then **Reorganize** (`R`) to auto-layout. **Stamp** (`S`) and **Skip** (`X`) flash a toast. `/` focuses find; `?` opens the key sheet. **Play** (`P`) walks start → features → end; `[` `]` step. Other workspaces follow the Semantica / Graphify / git-DAG **page** shape (outcome badges, audit mutations, timeline scrub, PROV columns, object ledger) on Graphide objects — not those engines. Other workspaces: Map, Slice, Lineage, Decisions, Registry, Timeline. Search, filters, hop cards, and the inspect rail stay. Wheel or +/− is automatic LOD (overview → labels → hops → source). Zooming out past overview pops one clustering level. Click a bubble or run to Enter. Not a Graphify or Semantica embed — same workbench shape, Graphide objects. No force-directed network dump.
 

@@ -2422,3 +2422,168 @@ html.bright #status {
   color: var(--g-label2, rgba(60, 60, 67, 0.55));
   background: transparent;
 }
+
+html.bright .theme-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--g-fill);
+}
+html.bright .theme-seg button {
+  border: none;
+  background: transparent;
+  color: #1d1d1f;
+  box-shadow: none;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-weight: 500;
+}
+html.bright .theme-seg button.on {
+  background: #fff;
+  color: #1d1d1f;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Night — Apple dark grouped (#1C1C1E on #000), system blue #0A84FF. Layout stays the bright desk. */
+html.bright.night, html.bright.night body, body.bright.night {
+  --vscode-foreground: #f5f5f7;
+  --vscode-sideBar-background: #1c1c1e;
+  --vscode-editor-background: #2c2c2e;
+  --vscode-panel-border: rgba(255, 255, 255, 0.08);
+  --vscode-focusBorder: #0a84ff;
+  --vscode-textLink-foreground: #0a84ff;
+  --vscode-errorForeground: #ff453a;
+  --vscode-button-background: #0a84ff;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #409cff;
+  --vscode-input-background: rgba(120, 120, 128, 0.28);
+  --vscode-input-foreground: #f5f5f7;
+  --vscode-input-border: transparent;
+  --vscode-descriptionForeground: rgba(235, 235, 245, 0.6);
+  --vscode-editorHoverWidget-background: #2c2c2e;
+  --vscode-editorHoverWidget-foreground: #f5f5f7;
+  --vscode-editorHoverWidget-border: rgba(255, 255, 255, 0.08);
+  --vscode-progressBar-background: #0a84ff;
+  --vscode-list-hoverBackground: rgba(10, 132, 255, 0.16);
+  --vscode-editor-selectionBackground: rgba(10, 132, 255, 0.28);
+  --g-fn: #0a84ff;
+  --g-ty: #ff9f0a;
+  --g-ep: #30d158;
+  --g-line: rgba(235, 235, 245, 0.18);
+  --g-lift: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --g-inset: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  --g-grouped: #1c1c1e;
+  --g-fill: rgba(120, 120, 128, 0.32);
+  --g-label2: rgba(235, 235, 245, 0.55);
+  --g-hold: #30d158;
+  color-scheme: dark;
+  background: #000;
+  color: var(--vscode-foreground);
+}
+html.bright.night header {
+  background: rgba(28, 28, 30, 0.86);
+}
+html.bright.night .brand { color: #f5f5f7; }
+html.bright.night .brand span { color: #0a84ff; }
+html.bright.night header > button,
+html.bright.night #cancelBtn,
+html.bright.night #zoomBar button,
+html.bright.night #stampBtn,
+html.bright.night #skipBtn,
+html.bright.night #llmBtn,
+html.bright.night #keysBtn {
+  background: var(--g-fill);
+  color: #f5f5f7;
+}
+html.bright.night header > button:hover:not(:disabled) { background: rgba(120, 120, 128, 0.44); }
+html.bright.night #reviewBtn {
+  background: #0a84ff;
+  color: #fff;
+}
+html.bright.night #reviewBtn:hover:not(:disabled) { background: #409cff; }
+html.bright.night #graphBar,
+html.bright.night #status {
+  background: rgba(28, 28, 30, 0.92);
+}
+html.bright.night header #prompt,
+html.bright.night #graphSearch,
+html.bright.night .llm-connect input,
+html.bright.night .llm-connect select,
+html.bright.night #llmAsk,
+html.bright.night .ego-hops select,
+html.bright.night .search-wrap {
+  background: var(--g-fill);
+  color: #f5f5f7;
+}
+html.bright.night header #prompt:focus,
+html.bright.night .search-wrap:focus-within {
+  background: #2c2c2e;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
+}
+html.bright.night .workspaces { background: rgba(120, 120, 128, 0.28); }
+html.bright.night .workspaces button.on,
+html.bright.night .tab.on,
+html.bright.night #egoBtn.on,
+html.bright.night .leg.on,
+html.bright.night .theme-seg button.on {
+  background: #3a3a3c;
+  color: #f5f5f7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+html.bright.night .theme-seg button { color: #f5f5f7; }
+html.bright.night .now-pill {
+  background: rgba(10, 132, 255, 0.22);
+  color: #0a84ff;
+}
+html.bright.night .stage,
+html.bright.night #canvas.has-stage.explorer-list .stage,
+html.bright.night .feature-path,
+html.bright.night .expl-card,
+html.bright.night .stat-card,
+html.bright.night .ws-detail,
+html.bright.night .chain-step,
+html.bright.night .tl-item,
+html.bright.night .tl-scrub,
+html.bright.night .prov-col,
+html.bright.night .empty.desk-empty,
+html.bright.night #llmPane,
+html.bright.night #keysPane,
+html.bright.night #toast,
+html.bright.night #tip,
+html.bright.night #sourcePane,
+html.bright.night .prog-chip {
+  background: #2c2c2e;
+  box-shadow: var(--g-lift);
+  border-color: var(--vscode-panel-border);
+}
+html.bright.night #ledgerPane {
+  background: var(--g-grouped);
+  box-shadow: none;
+}
+html.bright.night .bubble-card,
+html.bright.night .comm-node,
+html.bright.night .steiner-wrap .vnode {
+  background: color-mix(in srgb, var(--c, #0a84ff) 18%, #2c2c2e);
+  border-color: color-mix(in srgb, var(--c, #0a84ff) 55%, rgba(255, 255, 255, 0.08));
+}
+html.bright.night #canvas { background: var(--g-grouped); }
+html.bright.night .llm-log { background: #1c1c1e; }
+html.bright.night .llm-msg.user { background: rgba(10, 132, 255, 0.16); }
+html.bright.night .src-line.hot { background: rgba(10, 132, 255, 0.2); }
+html.bright.night #progressBar { background: rgba(255, 255, 255, 0.1); }
+html.bright.night #ledgerGrid .cell.on {
+  color: #0a84ff;
+  background: rgba(10, 132, 255, 0.2);
+}
+html.bright.night #coverage .score-chip.pending { color: #0a84ff; }
+html.bright.night #coverage .score-chip.holds { color: #30d158; }
+html.bright.night #coverage .score-chip.broken { color: #ff453a; }
+html.bright.night .search-wrap kbd,
+html.bright.night #keysPane kbd,
+html.bright.night .desk-keys kbd {
+  background: #3a3a3c;
+  color: #f5f5f7;
+}
