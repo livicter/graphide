@@ -106,6 +106,9 @@ pub fn extract_with(
         }
 
         if let (Some(method), Some(def)) = (cap("method.name"), cap("method.def")) {
+            if cap("impl.type").is_none() && ancestor_kind(def, CLASS_KINDS) {
+                continue;
+            }
             let ty = cap("impl.type").map(|n| text_of(n, bytes));
             let fqn = match ty.as_deref() {
                 Some(t) => format!(
@@ -203,12 +206,16 @@ pub fn extract_with(
                     &text_of(name, bytes),
                     NodeKind::Function,
                 ) {
-                    refs.push(Ref {
+                    push_resolved(
+                        &mut refs,
+                        &nodes,
+                        &imports,
                         from,
-                        to: Some(to),
-                        kind: EdgeKind::Calls,
-                        span: span_of(&file, call),
-                    });
+                        to,
+                        EdgeKind::Calls,
+                        NodeKind::Function,
+                        span_of(&file, call),
+                    );
                 }
             }
         }
@@ -222,12 +229,16 @@ pub fn extract_with(
                     &text_of(ty, bytes),
                     NodeKind::Type,
                 ) {
-                    refs.push(Ref {
+                    push_resolved(
+                        &mut refs,
+                        &nodes,
+                        &imports,
                         from,
-                        to: Some(to),
-                        kind: EdgeKind::TypeUses,
-                        span: span_of(&file, ty),
-                    });
+                        to,
+                        EdgeKind::TypeUses,
+                        NodeKind::Type,
+                        span_of(&file, ty),
+                    );
                 }
             }
         }
@@ -356,24 +367,77 @@ fn emit_endpoint_ref(
     } else {
         EdgeKind::Reads
     };
-    refs.push(Ref {
+    push_resolved(
+        refs,
+        defs,
+        imports,
         from,
-        to: Some(to),
+        to,
         kind,
+        NodeKind::Endpoint,
         span,
+    );
+}
+
+fn push_resolved(
+    refs: &mut Vec<Ref>,
+    defs: &[NodeDef],
+    imports: &HashMap<String, String>,
+    from: String,
+    to: String,
+    kind: EdgeKind,
+    expect: NodeKind,
+    span: Span,
+) {
+    let via_import =
+        imports.values().any(|v| v == &to) && !defs.iter().any(|d| d.fqn == to && d.kind == expect);
+    refs.push(Ref {
+        from: from.clone(),
+        to: Some(to.clone()),
+        kind,
+        span: span.clone(),
     });
+    if via_import {
+        refs.push(Ref {
+            from,
+            to: Some(to),
+            kind: EdgeKind::Imports,
+            span,
+        });
+    }
+}
+
+fn strip_src_ext(p: &str) -> &str {
+    let p = p.trim().trim_matches(['<', '>', '"', '\'', '`']);
+    match p.rsplit_once('.') {
+        Some((base, ext))
+            if matches!(
+                ext,
+                "js" | "jsx"
+                    | "mjs"
+                    | "cjs"
+                    | "ts"
+                    | "tsx"
+                    | "py"
+                    | "go"
+                    | "c"
+                    | "h"
+                    | "cc"
+                    | "cpp"
+                    | "cxx"
+                    | "hpp"
+                    | "hh"
+                    | "hxx"
+            ) =>
+        {
+            base
+        }
+        _ => p,
+    }
 }
 
 fn last_path_seg(spec: &str) -> String {
-    let spec = spec
-        .trim()
-        .trim_matches('"')
-        .trim_matches('\'')
-        .trim_matches('`')
-        .trim_end_matches(".js")
-        .trim_end_matches(".ts")
-        .trim_end_matches(".py")
-        .trim_end_matches('/');
+    let spec = strip_src_ext(spec).trim_end_matches('/');
     spec.rsplit(['/', '.', ':'])
         .find(|s| !s.is_empty() && *s != "." && *s != "..")
         .unwrap_or("")
@@ -381,11 +445,7 @@ fn last_path_seg(spec: &str) -> String {
 }
 
 fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
-    let spec = spec
-        .trim()
-        .trim_matches('"')
-        .trim_matches('\'')
-        .trim_matches('`');
+    let spec = strip_src_ext(spec);
     let module = if spec.starts_with('.') {
         let dir = file.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
         let joined = if spec.starts_with("./") {
@@ -412,15 +472,28 @@ fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
         };
         module_fqn_from_path(&joined, sep)
     } else {
-        let p = spec
-            .trim_end_matches(".js")
-            .trim_end_matches(".jsx")
-            .trim_end_matches(".ts")
-            .trim_end_matches(".tsx")
-            .trim_end_matches(".py");
-        p.replace('/', sep)
+        spec.replace('/', sep)
     };
+    if name == last_seg(&module, sep) {
+        return if module.is_empty() {
+            name.to_string()
+        } else {
+            module
+        };
+    }
     qualify(&module, sep, name)
+}
+
+const CLASS_KINDS: &[&str] = &["class_declaration", "class_definition", "class_specifier"];
+
+fn ancestor_kind(mut node: Node, kinds: &[&str]) -> bool {
+    while let Some(p) = node.parent() {
+        if kinds.contains(&p.kind()) {
+            return true;
+        }
+        node = p;
+    }
+    false
 }
 
 fn enclosing_fn(defs: &[NodeDef], node: Node) -> Option<String> {

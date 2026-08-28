@@ -58,13 +58,29 @@ fn build_adj(graph: &Graph) -> HashMap<NodeId, Vec<(NodeId, f64)>> {
     for n in &graph.nodes {
         adj.entry(n.id).or_default();
     }
+    // Strongest kind wins. TypeUses + Imports on the same pair must stay 0.25,
+    // not 0.50, or communities collapse (SPEC weights are per kind, not stacked).
+    let mut best: HashMap<(u64, u64), f64> = HashMap::new();
     for e in &graph.edges {
         let w = e.kind.cluster_weight();
         if w <= 0.0 {
             continue;
         }
-        adj.entry(e.from).or_default().push((e.to, w));
-        adj.entry(e.to).or_default().push((e.from, w));
+        let (a, b) = if e.from.0 <= e.to.0 {
+            (e.from.0, e.to.0)
+        } else {
+            (e.to.0, e.from.0)
+        };
+        let slot = best.entry((a, b)).or_insert(0.0);
+        if w > *slot {
+            *slot = w;
+        }
+    }
+    for ((a, b), w) in best {
+        let a = NodeId(a);
+        let b = NodeId(b);
+        adj.entry(a).or_default().push((b, w));
+        adj.entry(b).or_default().push((a, w));
     }
     adj
 }
@@ -426,15 +442,28 @@ fn label_for(members: &[NodeId], fqn: &HashMap<NodeId, String>, graph: &Graph) -
     // Lightweight PageRank-ish: highest weighted degree inside the bubble.
     let set: HashSet<_> = members.iter().copied().collect();
     let mut score: HashMap<NodeId, f64> = members.iter().map(|&n| (n, 0.0)).collect();
+    let mut best: HashMap<(u64, u64), f64> = HashMap::new();
     for e in &graph.edges {
         let w = e.kind.cluster_weight();
         if w <= 0.0 {
             continue;
         }
-        if set.contains(&e.from) && set.contains(&e.to) {
-            *score.entry(e.from).or_default() += w;
-            *score.entry(e.to).or_default() += w;
+        if !set.contains(&e.from) || !set.contains(&e.to) {
+            continue;
         }
+        let (a, b) = if e.from.0 <= e.to.0 {
+            (e.from.0, e.to.0)
+        } else {
+            (e.to.0, e.from.0)
+        };
+        let slot = best.entry((a, b)).or_insert(0.0);
+        if w > *slot {
+            *slot = w;
+        }
+    }
+    for ((a, b), w) in best {
+        *score.entry(NodeId(a)).or_default() += w;
+        *score.entry(NodeId(b)).or_default() += w;
     }
     let best = members
         .iter()

@@ -192,6 +192,11 @@ def subscribe(b: Bus):
             && r.from.ends_with("subscribe")
             && r.to.as_deref() == Some("pkg.bus.Bus")
     }));
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::Imports
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref() == Some("pkg.bus.Bus")
+    }));
 }
 
 #[test]
@@ -203,6 +208,11 @@ function subscribe() { return new Bus(); }
     let e = extract("src/sub.js", src);
     assert!(e.refs.iter().any(|r| {
         r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref() == Some("bus.Bus")
+    }));
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::Imports
             && r.from.ends_with("subscribe")
             && r.to.as_deref() == Some("bus.Bus")
     }));
@@ -227,6 +237,11 @@ function subscribe(b: Bus): Bus { return b; }
             .map(|r| format!("{:?} {} -> {:?}", r.kind, r.from, r.to))
             .collect::<Vec<_>>()
     );
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::Imports
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref() == Some("bus.Bus")
+    }));
 }
 
 #[test]
@@ -243,6 +258,10 @@ fn python_import_calls_join() {
         .refs
         .iter()
         .any(|r| { r.kind == EdgeKind::Calls && r.to.as_deref() == Some("pkg.bus.helper") }));
+    assert!(sub
+        .refs
+        .iter()
+        .any(|r| { r.kind == EdgeKind::Imports && r.to.as_deref() == Some("pkg.bus.helper") }));
     let snap = derive_repo(
         ReviewInput {
             head_extracts: vec![bus, sub],
@@ -259,6 +278,88 @@ fn python_import_calls_join() {
         },
     );
     assert!(snap.graph.edges.iter().any(|e| e.kind == EdgeKind::Calls));
+}
+
+#[test]
+fn python_plain_import_map() {
+    let src = r#"
+import pkg.bus as bus
+
+def subscribe(b: bus):
+    return b
+"#;
+    let e = extract("pkg/sub.py", src);
+    assert!(
+        e.refs.iter().any(|r| {
+            r.kind == EdgeKind::Imports
+                && r.from.ends_with("subscribe")
+                && r.to.as_deref() == Some("pkg.bus")
+        }),
+        "refs={:?}",
+        e.refs
+            .iter()
+            .map(|r| format!("{:?} {} -> {:?}", r.kind, r.from, r.to))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn javascript_object_method_kept() {
+    let src = r#"
+const audio = {
+  construct(target, args) { return new target(...args); }
+};
+function subscribe() { return audio.construct; }
+"#;
+    let e = extract("wasm/restart-audio-context.js", src);
+    assert!(
+        e.nodes
+            .iter()
+            .any(|n| n.fqn.ends_with("construct") && n.kind == NodeKind::Function),
+        "nodes={:?}",
+        e.nodes.iter().map(|n| n.fqn.as_str()).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn javascript_class_method_contains() {
+    let src = r#"
+class Bus {
+  publish() { return 1; }
+}
+function subscribe() { return new Bus(); }
+"#;
+    let e = extract("src/bus.js", src);
+    assert!(e
+        .nodes
+        .iter()
+        .any(|n| n.fqn == "bus.Bus.publish" && n.kind == NodeKind::Function));
+    assert!(e.refs.iter().any(|r| {
+        r.from == "bus.Bus"
+            && r.to.as_deref() == Some("bus.Bus.publish")
+            && r.kind == EdgeKind::Contains
+    }));
+}
+
+#[test]
+fn c_include_imports() {
+    let src = r#"
+#include "Bus.h"
+int subscribe(Bus b) { return b.x; }
+"#;
+    let e = extract("sim/sub.c", src);
+    assert!(
+        e.refs.iter().any(|r| {
+            r.kind == EdgeKind::Imports
+                && r.from.ends_with("subscribe")
+                && r.to.as_deref().is_some_and(|t| t.ends_with("Bus"))
+        }),
+        "refs={:?}",
+        e.refs
+            .iter()
+            .map(|r| format!("{:?} {} -> {:?}", r.kind, r.from, r.to))
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]
