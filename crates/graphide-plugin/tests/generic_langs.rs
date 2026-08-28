@@ -179,6 +179,89 @@ func subscribe(b Bus) Bus { return b }
 }
 
 #[test]
+fn python_import_typeuses() {
+    let src = r#"
+from pkg.bus import Bus
+
+def subscribe(b: Bus):
+    return b
+"#;
+    let e = extract("pkg/sub.py", src);
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref() == Some("pkg.bus.Bus")
+    }));
+}
+
+#[test]
+fn javascript_import_typeuses() {
+    let src = r#"
+import { Bus } from './bus.js';
+function subscribe() { return new Bus(); }
+"#;
+    let e = extract("src/sub.js", src);
+    assert!(e.refs.iter().any(|r| {
+        r.kind == EdgeKind::TypeUses
+            && r.from.ends_with("subscribe")
+            && r.to.as_deref() == Some("bus.Bus")
+    }));
+}
+
+#[test]
+fn typescript_import_typeuses() {
+    let src = r#"
+import { Bus } from './bus';
+function subscribe(b: Bus): Bus { return b; }
+"#;
+    let e = extract("src/sub.ts", src);
+    assert!(
+        e.refs.iter().any(|r| {
+            r.kind == EdgeKind::TypeUses
+                && r.from.ends_with("subscribe")
+                && r.to.as_deref() == Some("bus.Bus")
+        }),
+        "refs={:?}",
+        e.refs
+            .iter()
+            .map(|r| format!("{:?} {} -> {:?}", r.kind, r.from, r.to))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn python_import_calls_join() {
+    let bus = extract(
+        "pkg/bus.py",
+        "class Bus:\n    pass\ndef helper():\n    return 1\n",
+    );
+    let sub = extract(
+        "pkg/sub.py",
+        "from pkg.bus import helper\ndef subscribe():\n    helper()\n",
+    );
+    assert!(sub
+        .refs
+        .iter()
+        .any(|r| { r.kind == EdgeKind::Calls && r.to.as_deref() == Some("pkg.bus.helper") }));
+    let snap = derive_repo(
+        ReviewInput {
+            head_extracts: vec![bus, sub],
+            parent_extracts: None,
+            hints: HintFile { flows: vec![] },
+            head_sources: Default::default(),
+            parent_sources: Default::default(),
+            previous_bubbles: None,
+        },
+        &ReviewOptions {
+            plugin: "python@0.1.0".into(),
+            progress: None,
+            preview: None,
+        },
+    );
+    assert!(snap.graph.edges.iter().any(|e| e.kind == EdgeKind::Calls));
+}
+
+#[test]
 fn rust_still_routed() {
     let src = r#"
 pub fn helper() {}

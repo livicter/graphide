@@ -4,7 +4,7 @@ Review agent changes as flow graphs. Point the panel at any local repo.
 
 Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
 
-The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs now emit **TypeUses** the same way Rust does. `graphide plugins --check` verifies every deriver after copy.
+The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs emit **TypeUses** like Rust, including an **import map** (`from pkg import T` / `import { T }`). `graphide plugins --check` verifies every deriver after copy.
 
 ## Install (live)
 
