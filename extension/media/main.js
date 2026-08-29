@@ -860,7 +860,7 @@ function consumeHarnessActions() {
       const card = document.querySelector(".bubble-card");
       if (card) {
         graphFilter.bubble = card.getAttribute("data-bubble");
-        selectedNodeId = null;
+        selectedNodeId = walkHopInBubble(findBubble(graphFilter.bubble));
         renderProgramOverview();
       }
     }
@@ -2462,7 +2462,7 @@ function bindStoryRail() {
     el.onclick = () => {
       stopPathWalk();
       graphFilter.bubble = el.getAttribute("data-feature");
-      selectedNodeId = null;
+      selectedNodeId = walkHopInBubble(findBubble(graphFilter.bubble));
       explorerWs = "map";
       explorerPinned = true;
       renderProgramOverview();
@@ -2514,12 +2514,22 @@ function storyMapBubbles() {
 }
 
 function walkLabelForBubble(b) {
-  for (const id of flowWalk(storyFlow())) {
-    if (!(b.members || []).some((m) => idVal(m) === idVal(id))) continue;
-    const n = nodeById.get(idVal(id));
+  const hop = walkHopInBubble(b);
+  if (hop) {
+    const n = nodeById.get(idVal(hop));
     if (n) return shortOf(n.fqn) || n.fqn;
   }
-  return b.label;
+  return b && b.label;
+}
+
+/** Prefer the control-flow hop inside a community, not an arbitrary first member. */
+function walkHopInBubble(b) {
+  if (!b) return null;
+  for (const id of flowWalk(storyFlow())) {
+    if ((b.members || []).some((m) => idVal(m) === idVal(id))) return idVal(id);
+  }
+  const first = (b.members || [])[0];
+  return first != null ? idVal(first) : null;
 }
 
 function storyRailPath() {
@@ -2547,7 +2557,11 @@ function storyHopStops() {
 function storyRailStops() {
   const comm = storyRailPath();
   if (comm.length >= 2) {
-    return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+    return comm.map((b) => ({
+      id: idVal(b.id),
+      label: walkLabelForBubble(b) || b.label,
+      kind: "feature",
+    }));
   }
   const hops = storyHopStops();
   if (hops.length >= 2) return hops;
@@ -2662,8 +2676,11 @@ function focusWalkStop(stop) {
     return;
   }
   const bub = findBubble(stop.id);
-  const mem = bub && (bub.members || [])[0];
-  if (mem) peekSource(mem);
+  const mem = walkHopInBubble(bub);
+  if (mem) {
+    selectedNodeId = idVal(mem);
+    peekSource(mem);
+  }
 }
 
 function stopPathWalk() {
@@ -3617,7 +3634,7 @@ function renderExplorerList(ws) {
     el.onclick = () => {
       stopPathWalk();
       graphFilter.bubble = el.getAttribute("data-feature");
-      selectedNodeId = null;
+      selectedNodeId = walkHopInBubble(findBubble(graphFilter.bubble));
       explorerWs = "map";
       explorerPinned = true;
       renderProgramOverview();
@@ -4492,7 +4509,7 @@ function renderBubbleMap(clusters) {
     idAttr: "data-bubble",
     onClick: (id) => {
       graphFilter.bubble = id;
-      selectedNodeId = null;
+      selectedNodeId = walkHopInBubble(findBubble(id));
       renderProgramOverview();
     },
   });
@@ -5289,22 +5306,18 @@ function appendLlmLog(text, kind) {
 
 function localAsk(q) {
   const flow = (typeof defaultRunFlow === "function" ? defaultRunFlow() : null) || currentFlow();
-  const nodes = (flow && flow.tree && flow.tree.nodes) || [];
-  const names = nodes.slice(0, 12).map((id) => {
-    const n = nodeById.get(idVal(id));
-    return shortOf((n && n.fqn) || id);
-  });
-  const path = [];
+  const walk = typeof flowWalk === "function" ? flowWalk(flow) : ((flow && flow.tree && flow.tree.nodes) || []);
+  const names = [];
   const seen = new Set();
-  for (const id of nodes) {
-    const b = typeof bubbleOf === "function" ? bubbleOf(id) : null;
-    const label = b && (b.label || b.id);
-    if (!label || seen.has(String(label))) continue;
-    seen.add(String(label));
-    path.push(String(b.label || b.id));
+  for (const id of walk) {
+    const n = nodeById.get(idVal(id));
+    const label = shortOf((n && n.fqn) || id);
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    names.push(label);
   }
   const lines = [
-    "Start → features → end: " + (path.join(" → ") || "(review a repo first)"),
+    "Start → features → end: " + (names.join(" → ") || "(review a repo first)"),
     names.length ? "Control-flow hops: " + names.join(" → ") : "",
     "This answer is from the derived review graph. An LLM is optional. Agents never stamp.",
   ];

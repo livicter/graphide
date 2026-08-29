@@ -46,10 +46,10 @@ const snap = {
 };
 
 const brief = reviewBrief(snap, "control-flow");
-assert(brief.path[0] === "render" && brief.path[brief.path.length - 1] === "ui", "feature path should be render…ui: " + brief.path);
+assert(brief.path[0] === "main" && brief.path[brief.path.length - 1] === "sink", "feature path should be hop names: " + brief.path);
 assert(normalizeBaseUrl("127.0.0.1:11434") === "http://127.0.0.1:11434/v1", "normalize should add http and /v1");
 const graph = groundedFallback(snap, "path");
-assert(/Start → features → end: render → integration → ui/.test(graph), graph);
+assert(/Start → features → end: main → boot → sink/.test(graph), graph);
 assert(/never stamp/i.test(graph), "fallback must refuse stamp");
 
 const noLlm = askReview(snap, "tell the path", { baseUrl: "", model: "", apiKey: "" });
@@ -133,7 +133,7 @@ async function jsonReq(url, opts) {
   const health = await jsonReq(root + "/health");
   assert(health.status === 200 && health.body.ok && health.body.llm, JSON.stringify(health.body));
   const review = await jsonReq(root + "/v1/review", { headers });
-  assert(review.status === 200 && review.body.path && review.body.path[0] === "render", JSON.stringify(review.body.path));
+  assert(review.status === 200 && review.body.path && review.body.path[0] === "main", JSON.stringify(review.body.path));
   const ask = await jsonReq(root + "/v1/ask", {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },

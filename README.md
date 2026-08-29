@@ -88,7 +88,7 @@ The graph is the same walk: `main` **Calls** those four helpers in `crates/graph
 
 ### 5. Enter is a world jump
 
-Click the START bubble. You drop one clustering level into the members (`main`, `review_roots`, CALLS hops). **Back** pops back to communities.
+Click the START bubble. You drop one clustering level into the members. Evidence opens on the **walk hop** (`main` at `src/main.rs:114`), not an arbitrary first member. **Back** pops back to communities.
 
 ![Enter START · main](self_sample/06-map-enter.png)
 
@@ -150,7 +150,7 @@ Click a hop for Evidence plus the source span.
 
 ### 12. Ask — the model never stamps
 
-**LLM** (`L`) opens Ask. Without a host, answers still come from the derived graph (the same start → features → end path). Connect Ollama / LM Studio / llama.cpp / OpenAI if you want a model. **Agents never stamp.**
+**LLM** (`L`) opens Ask. Without a host, answers still come from the derived graph — the same hop strip as Overview (`main → review_roots → print_review → path_relative → default_stamp_path`). Connect Ollama / LM Studio / llama.cpp / OpenAI if you want a model. **Agents never stamp.**
 
 ![Ask retells the path](self_sample/23-ask.png)
 

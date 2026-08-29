@@ -179,6 +179,9 @@ assert(harness.includes("/1222/") && harness.includes("/349/"), "live V1 must ex
 assert(!js.includes("if (!pack) separateBoxes"), "packed Map cards must still separate so they do not sit on each other");
 assert(js.includes("function stackLayouts") && js.includes("noPack"), "Map must lay the story path above off-path cards, not one packed grid");
 assert(js.includes("function walkLabelForBubble"), "Map start card must name the walk hop, not an interior cluster label");
+assert(js.includes("function walkHopInBubble"), "Enter / Play must peek the walk hop in a community, not members[0]");
+assert(/flex-wrap:\s*nowrap/.test(css) && css.includes(".workspaces"), "workspace tabs must stay one row");
+assert(js.includes("Control-flow hops:"), "Ask must retell hop names, not a cluster label");
 assert(/#sourcePane\s*\{[^}]*overflow:\s*hidden/.test(css), "Evidence must clip long source lines so it cannot cover the object rail");
 assert(/#sourcePane\s*\{[^}]*max-width:\s*380px/.test(css), "Evidence must stay an inspector, not half the desk");
 

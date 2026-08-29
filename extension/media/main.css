@@ -304,9 +304,11 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .workspaces {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .workspaces button {
   background: transparent;
@@ -1974,6 +1976,10 @@ html.bright .search-wrap:focus-within {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
 }
 html.bright .workspaces {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  width: auto;
+  max-width: 100%;
   background: rgba(120, 120, 128, 0.16);
   border-radius: 9px;
   padding: 2px;

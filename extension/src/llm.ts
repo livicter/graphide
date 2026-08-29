@@ -50,6 +50,12 @@ function fqnOf(snap: any, id: any): string {
   return n && n.fqn ? String(n.fqn) : sid;
 }
 
+function shortOf(fqn: string): string {
+  const s = String(fqn || "");
+  const parts = s.split(/::|\./);
+  return parts[parts.length - 1] || s;
+}
+
 function kindOf(snap: any, id: any): string {
   const sid = idVal(id);
   const n = ((snap && snap.graph && snap.graph.nodes) || []).find((x: any) => idVal(x.id) === sid);
@@ -108,25 +114,13 @@ export function flowWalk(flow: any): string[] {
   return walk;
 }
 
-function bubbleOf(snap: any, id: string): any {
-  const sid = idVal(id);
-  const bs = (snap && snap.bubbles) || [];
-  let found: any = null;
-  for (const b of bs) {
-    if (!(b.members || []).some((m: any) => idVal(m) === sid)) continue;
-    if (!found || (b.parent != null && found.parent == null)) found = b;
-  }
-  return found;
-}
-
-/** Unique communities along the control-flow walk — start → features → end. */
+/** Unique hop names along the control-flow walk — same strip as Overview. */
 export function featurePath(snap: any, flowName?: string): string[] {
   const flow = flowByName(snap, flowName);
   const seen = new Set<string>();
   const path: string[] = [];
   for (const id of flowWalk(flow)) {
-    const b = bubbleOf(snap, id);
-    const label = b && (b.label || b.id) ? String(b.label || b.id) : "";
+    const label = shortOf(fqnOf(snap, id));
     if (!label || seen.has(label)) continue;
     seen.add(label);
     path.push(label);

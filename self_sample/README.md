@@ -15,7 +15,7 @@ SolarSim caps stay in [`../UIUX_sample/`](../UIUX_sample/).
 | [03-overview-step.png](03-overview-step.png) | **Next** (`]`) steps one hop |
 | [04-keys.png](04-keys.png) | **Keys** (`?`): workspaces, stamp, skip, play, day/night, fit |
 | [05-map.png](05-map.png) | **Map**: START · main on its own row; off-path communities below |
-| [06-map-enter.png](06-map-enter.png) | **Enter** a bubble: members + CALLS (zoom does not do this) |
+| [06-map-enter.png](06-map-enter.png) | **Enter** START: Evidence on the walk hop `main` (`src/main.rs:114`), not an interior cluster member |
 | [07-evidence.png](07-evidence.png) | **Evidence**: kind, file:line, program, Calls — stays off the object rail |
 | [08-ego.png](08-ego.png) | **Ego** (`E`): isolate the selected node and its 1-hop neighborhood |
 | [09-map-back.png](09-map-back.png) | **Back**: pop one clustering level to communities |
@@ -32,7 +32,7 @@ SolarSim caps stay in [`../UIUX_sample/`](../UIUX_sample/).
 | [20-decisions-skip.png](20-decisions-skip.png) | Decisions after Skip: approved + skipped records |
 | [21-registry.png](21-registry.png) | **Registry**: snapshot audit (holds / skipped) |
 | [22-timeline.png](22-timeline.png) | **Timeline**: parent cut, coverage, stamp scars |
-| [23-ask.png](23-ask.png) | **Ask** (`L`): graph answer, no host required; agents never stamp |
+| [23-ask.png](23-ask.png) | **Ask** (`L`): same hop strip as Overview (`main → review_roots → …`); agents never stamp |
 | [24-night-overview.png](24-night-overview.png) | **Night** Overview (`D`) |
 | [25-night-map.png](25-night-map.png) | Night Map |
 | [26-night-slice.png](26-night-slice.png) | Night Slice |
