@@ -41,6 +41,8 @@ Do **not**:
 
 `mode=explorer` leaves a current flow (`overview` / `control-flow` / `boot`), so the buttons are enabled after first paint.
 
+The self-review step (`graphide review` + `?live=1&require=1`) must **not** write `.graphide/stamps/`. It may leave Stamp/Skip enabled; it must not treat that as coverage.
+
 ## Gotchas
 
 - **Coverage rule** (human, not agent-enforced): every changed derived node on a proposed Steiner flow must be stamped or skipped by a person. Document it; do not invent an agent that writes stamps.

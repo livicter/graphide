@@ -166,7 +166,15 @@ assert(js.includes("Clear find to see the audit log"), "Registry must not look e
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
-assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live SolarSim snap loader missing");
+assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live snap loader missing");
+assert(harness.includes("__graphideLiveError") && harness.includes('params.get("require")'), "required live snap must not silently fall back to synthetic");
+
+const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
+const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
+assert(workflow.includes("cargo build -p graphide-cli"), "CI must compile graphide-cli");
+assert(/graphide review/.test(workflow) && workflow.includes("--no-parent"), "CI must run graphide review of this checkout");
+assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
+assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");
 assert(/#007aff|#007AFF/.test(css), "Apple system blue missing from the bright theme");

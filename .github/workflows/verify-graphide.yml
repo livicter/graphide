@@ -34,6 +34,24 @@ jobs:
       - name: Workspace tests (includes panic_free)
         run: cargo test --workspace
 
+      - name: Build Graphide CLI
+        run: cargo build -p graphide-cli
+
+      - name: Check compiled-in plugins
+        run: ./target/debug/graphide plugins --check
+
+      # Shallow Actions checkouts often lack HEAD^; --no-parent still proves
+      # derive on this repo. Parent coverage is optional and must not flake.
+      - name: Self-review this checkout
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root "$GITHUB_WORKSPACE" --json --progress --no-parent \
+            > extension/scripts/live-snap.json
+          test -s extension/scripts/live-snap.json
+
+      - name: Assert self-review snapshot
+        run: node scripts/verify-graphide.js --assert-snap
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 

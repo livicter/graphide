@@ -52,6 +52,7 @@ Chrome parity to keep in the maps (ids must exist in **both** `extension.ts` `ht
 
 - The harness HTML is a **copy** of the extension chrome, not generated from `extension.ts`. If you add an id to one side, add it to the other or `check-map.js` / this loop will lie.
 - CSP: the real webview sets `script-src 'nonce-…'`. The harness has no CSP. Do not treat harness-only `eval` as product-safe.
-- `?suite=live` + missing `live-snap.json` silently falls back to the synthetic payload (`loadLiveSnap` catch). That is not a live host.
+- `?live=1` without `require=1` still falls back to the synthetic payload (`loadLiveSnap` catch). That is not a live host and not a self-review.
+- CI writes `extension/scripts/live-snap.json` via `graphide review` and opens `?live=1&probe=0&require=1`. `require=1` posts `{ type: "error" }` instead of the explorer fixture when the snap is missing or invalid. `window.__graphideLive` / `__graphideLiveError` are the hooks.
 - Never point the driver at `file://` if a later suite needs `fetch("./live-snap.json")`. HTTP from `extension/` keeps relative URLs identical to a webview.
-- Do not add a second language plugin, a desk restyle, or a live-snap generator to make this adapter “more real.” Synthetic explorer mode is the first floor.
+- Do not add a second language plugin, a desk restyle, or a SolarSim-only snap generator. Self-review derives **this** checkout. Synthetic explorer mode stays the chrome 17/17 floor.

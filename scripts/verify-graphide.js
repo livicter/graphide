@@ -12,10 +12,16 @@ const http = require("http");
 const path = require("path");
 const zlib = require("zlib");
 
+const { spawnSync } = require("child_process");
+
 const ROOT = path.resolve(__dirname, "..");
 const EXT = path.join(ROOT, "extension");
 const OUT = path.join(ROOT, "verification");
+const SNAP = path.join(EXT, "scripts", "live-snap.json");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
+const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
+const SYNTHETIC_NODES = 2050;
+const SYNTHETIC_EDGES = 4568;
 
 const checks = [];
 
@@ -167,9 +173,10 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
+    "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
     "",
   ];
   const dest = path.join(OUT, "report.md");
@@ -177,8 +184,152 @@ function writeReport(extra) {
   return dest;
 }
 
+function mapAltitudeBubbles(bubbles) {
+  const bs = Array.isArray(bubbles) ? bubbles : [];
+  const idOf = (v) => String(v == null ? "" : v);
+  const roots = bs.filter((b) => b && b.parent == null);
+  if (roots.length === 1) {
+    const rid = idOf(roots[0].id);
+    const kids = bs.filter((b) => b && b.parent != null && idOf(b.parent) === rid);
+    if (kids.length) return kids;
+  }
+  if (roots.length) return roots;
+  return bs;
+}
+
+function findGraphideBin() {
+  const env = process.env.GRAPHIDE_BIN;
+  if (env && fs.existsSync(env)) return env;
+  const candidates = [
+    path.join(ROOT, "target", "debug", "graphide"),
+    path.join(ROOT, "target", "release", "graphide"),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || "";
+}
+
+function deriveSelfReviewSnap() {
+  const bin = findGraphideBin();
+  if (!bin) {
+    failFast(
+      "no self-review snapshot: compile `cargo build -p graphide-cli` then run " +
+        "`graphide review --root <this checkout> --json --progress --no-parent` into " +
+        "extension/scripts/live-snap.json (CI writes this file before npm run verify)"
+    );
+  }
+  console.log("derive " + bin + " review --root " + ROOT + " --json --progress --no-parent");
+  const r = spawnSync(
+    bin,
+    ["review", "--root", ROOT, "--json", "--progress", "--no-parent"],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 15 * 60 * 1000 }
+  );
+  if (r.stderr) process.stderr.write(r.stderr);
+  if (r.status !== 0) {
+    failFast("graphide review failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
+  }
+  const text = String(r.stdout || "").trim();
+  if (!text) failFast("graphide review wrote an empty snapshot");
+  fs.mkdirSync(path.dirname(SNAP), { recursive: true });
+  fs.writeFileSync(SNAP, text.endsWith("\n") ? text : text + "\n");
+  return text;
+}
+
+function loadSelfReviewSnap() {
+  let text = "";
+  if (fs.existsSync(SNAP)) {
+    text = fs.readFileSync(SNAP, "utf8");
+  } else {
+    text = deriveSelfReviewSnap();
+  }
+  let snap;
+  try {
+    snap = JSON.parse(text);
+  } catch (e) {
+    failFast("self-review snapshot is not JSON: " + (e && e.message ? e.message : e));
+  }
+  if (!snap || typeof snap !== "object") failFast("self-review snapshot is empty");
+  return snap;
+}
+
+function assertSelfReviewSnap(snap) {
+  const nodes = (snap.graph && snap.graph.nodes) || [];
+  const edges = (snap.graph && snap.graph.edges) || [];
+  const files = snap.stats && snap.stats.files != null ? Number(snap.stats.files) : 0;
+  const plugin = String(snap.plugin || "");
+  const rustFiles = nodes.filter((n) => /\.rs$/i.test(((n && n.span) || {}).file || "")).length;
+  const altitude = mapAltitudeBubbles(snap.bubbles);
+  const labels = altitude.map((b) => String((b && b.label) || "")).filter(Boolean);
+  const loneStart =
+    altitude.length <= 1 &&
+    (labels.length === 0 || /^(main|program|start|_program)$/i.test(labels[0] || ""));
+  const synthetic =
+    nodes.length === SYNTHETIC_NODES &&
+    edges.length === SYNTHETIC_EDGES &&
+    labels.includes("render") &&
+    labels.includes("integration");
+
+  record("G1", "self-review rust plugin is in play", /rust@/i.test(plugin), plugin || "(none)");
+  record(
+    "G2",
+    "self-review graph has nodes, edges, and files",
+    nodes.length > 0 && edges.length > 0 && files > 0,
+    "nodes=" + nodes.length + " edges=" + edges.length + " files=" + files
+  );
+  record("G3", "self-review graph includes Rust files", rustFiles > 0, "rs=" + rustFiles);
+  record(
+    "G4",
+    "self-review Map altitude is a real community cut, not a lone START",
+    altitude.length >= 2 && !loneStart,
+    "bubbles=" + ((snap.bubbles || []).length) + " altitude=" + altitude.length + " names=" + labels.slice(0, 8).join(",")
+  );
+  record(
+    "G5",
+    "self-review snapshot is this checkout, not the synthetic explorer fixture",
+    !synthetic && nodes.length > 0,
+    "nodes=" + nodes.length + " edges=" + edges.length
+  );
+
+  const failed = checks.filter((c) => !c.pass && /^G\d/.test(c.id));
+  if (failed.length) {
+    writeReport("Self-review snapshot failed structural checks (desk not driven).");
+    failFast(
+      "broken deriver or empty graph — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { nodes: nodes.length, edges: edges.length, files, plugin, altitude: altitude.length, labels };
+}
+
+function finish(extra, passLine) {
+  const failed = checks.filter((c) => !c.pass);
+  writeReport(extra);
+  if (failed.length) {
+    console.error("FAIL verify-graphide · " + failed.length + "/" + checks.length);
+    failed.forEach((c) => console.error("  XX " + c.id + " " + c.title + (c.detail ? " — " + c.detail : "")));
+    process.exit(1);
+  }
+  console.log(passLine || "PASS verify-graphide · " + checks.length + "/" + checks.length);
+}
+
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
+  const assertOnly = process.argv.includes("--assert-snap");
+
+  const snap = loadSelfReviewSnap();
+  const graph = assertSelfReviewSnap(snap);
+  if (assertOnly) {
+    finish(
+      "Self-review snapshot `" + path.relative(ROOT, SNAP) + "` (assert-snap, desk not driven).",
+      "PASS verify-graphide · self-review snapshot · nodes=" +
+        graph.nodes +
+        " edges=" +
+        graph.edges +
+        " files=" +
+        graph.files +
+        " · rust plugin"
+    );
+    return;
+  }
+
   if (!fs.existsSync(path.join(EXT, "scripts", "webview-harness.html"))) {
     failFast("missing extension/scripts/webview-harness.html");
   }
@@ -365,19 +516,137 @@ async function main() {
     record("H3", "Editor button posts enterNode to the host stub", editor.posted, JSON.stringify(editor.posts.slice(-2)));
 
     await shot(page, "stamp-host.png");
+
+    const liveUrl = origin + LIVE_HARNESS;
+    console.log("self-review " + liveUrl);
+    await page.goto(liveUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const liveBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideLiveError) return "error";
+          if (window.__graphideLive === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /live-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => {
+        return "timeout:" + String(e && e.message ? e.message : e);
+      });
+
+    const liveHost = await page.evaluate(() => {
+      const status = (document.getElementById("status") || {}).textContent || "";
+      const legend = (document.getElementById("legend") || {}).textContent || "";
+      return {
+        live: window.__graphideLive === true,
+        error: window.__graphideLiveError || "",
+        desk: document.body.classList.contains("desk"),
+        bright: document.documentElement.classList.contains("bright"),
+        status,
+        legend,
+        empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      };
+    });
+
+    if (liveBoot !== "ok" || !liveHost.live) {
+      const why =
+        liveHost.error ||
+        liveHost.empty ||
+        (liveBoot && liveBoot !== "ok" ? liveBoot : "") ||
+        "harness did not set window.__graphideLive (silent synthetic fallback is not a self-review)";
+      record(
+        "R1",
+        "self-review desk loaded the derived snapshot (not synthetic fallback)",
+        false,
+        why
+      );
+      writeReport(
+        "Harness `" + HARNESS + "` then `" + LIVE_HARNESS + "`. Desk could not be driven: " + why
+      );
+      failFast("desk could not be driven from the self-review snapshot — " + why);
+    }
+    record(
+      "R1",
+      "self-review desk loaded the derived snapshot (not synthetic fallback)",
+      true,
+      liveHost.status.slice(0, 120)
+    );
+    record(
+      "R2",
+      "self-review desk mode is on after live snap",
+      liveHost.desk && liveHost.bright,
+      JSON.stringify({ desk: liveHost.desk, bright: liveHost.bright, status: liveHost.status.slice(0, 80) })
+    );
+
+    const statusHits =
+      liveHost.status.includes(String(graph.nodes)) && liveHost.status.includes(String(graph.edges));
+    record(
+      "R3",
+      "self-review chrome shows this checkout's graph counts",
+      statusHits || /node/i.test(liveHost.status),
+      liveHost.status.slice(0, 160)
+    );
+
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 15000 });
+    await page.waitForTimeout(250);
+
+    const liveMap = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const start = [...document.querySelectorAll(".bubble-card.start")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const legend = (document.getElementById("legend") || {}).textContent || "";
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "";
+      return {
+        ws,
+        cards: cards.length,
+        start: start.length,
+        comm: document.querySelectorAll(".comm-node").length,
+        names,
+        legend,
+        loneStart: cards.length === 1 && (start.length === 1 || /^(main|program|start)$/i.test(names[0] || "")),
+      };
+    });
+    record("R4", "self-review Map workspace is active", liveMap.ws === "map", liveMap.ws);
+    record(
+      "R5",
+      "self-review Map shows communities on this repo, not a lone START",
+      liveMap.cards >= 2 && liveMap.comm === 0 && !liveMap.loneStart && liveMap.cards >= Math.min(2, graph.altitude),
+      "cards=" + liveMap.cards + " start=" + liveMap.start + " comm=" + liveMap.comm + " names=" + liveMap.names.slice(0, 8).join(",")
+    );
+    record(
+      "R6",
+      "self-review program chips name a Graphide crate",
+      /graphide/i.test(liveMap.legend),
+      liveMap.legend.slice(0, 120)
+    );
+    await shot(page, "self-review.png");
+
+    const stampDirAfter = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampAfter = fs.existsSync(stampDirAfter) && fs.readdirSync(stampDirAfter).length > 0;
+    record("R7", "Self-review step did not write .graphide/stamps/", !wroteStampAfter, wroteStampAfter ? fs.readdirSync(stampDirAfter).join(",") : "absent");
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
   }
 
-  const failed = checks.filter((c) => !c.pass);
-  writeReport("Harness `" + HARNESS + "` served from `extension/`.");
-  if (failed.length) {
-    console.error("FAIL verify-graphide · " + failed.length + "/" + checks.length);
-    failed.forEach((c) => console.error("  XX " + c.id + " " + c.title + (c.detail ? " — " + c.detail : "")));
-    process.exit(1);
-  }
-  console.log("PASS verify-graphide · " + checks.length + "/" + checks.length + " · map community · evidence clipped · stamp posted");
+  finish(
+    "Harness `" +
+      HARNESS +
+      "` (chrome 17) then `" +
+      LIVE_HARNESS +
+      "` (self-review of this checkout) served from `extension/`.",
+    "PASS verify-graphide · " +
+      checks.length +
+      "/" +
+      checks.length +
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted"
+  );
 }
 
 main().catch((err) => {
