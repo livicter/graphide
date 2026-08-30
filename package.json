@@ -1,0 +1,14 @@
+{
+  "name": "graphide",
+  "private": true,
+  "description": "Graphide Review desk — workspace tests plus the webview verify harness",
+  "scripts": {
+    "verify": "node scripts/verify-graphide.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
