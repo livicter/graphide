@@ -32,6 +32,11 @@ Then click `#workspaces [data-ws="map"]`.
 
 `mode=explorer` posts `flowPayload()`: one root bubble `SolarSim` plus 12 children (`render`, `integration`, `origin`, …). `mapAltitudeBubbles()` returns those children when there is a single root — a real community map.
 
+The self-review pass (`?live=1&probe=0&require=1`) repeats the Map click on **this
+repo's** derived bubbles. Fail if that snap paints one START / `fallbackProgramBubbles()`
+card. See [self-review.md](self-review.md). The explorer 17/17 gates stay on the
+synthetic payload.
+
 Assertions the driver owns:
 
 - `document.querySelectorAll(".bubble-card").length >= 8`
