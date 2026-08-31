@@ -2880,7 +2880,9 @@ body.present #status,
 body.present #progress,
 body.present #ledgerPane,
 body.present #sourcePane,
-body.present #llmPane {
+body.present #llmPane,
+body.present #toast,
+body.present #tip {
   display: none !important;
 }
 body.present #workspace {
