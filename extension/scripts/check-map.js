@@ -204,6 +204,7 @@ assert(chrome.includes('id="exportBtn"'), "Export button missing from chrome");
 assert(chrome.includes('id="exportMenu"'), "Export menu missing from chrome");
 assert(chrome.includes('id="exportPng"') && chrome.includes('id="exportSvg"') && chrome.includes('id="exportShare"'), "Export PNG / SVG / Share Card items missing");
 assert(js.includes("function setExportMenu") && js.includes("function stripExportViewerState"), "export menu / canonical strip missing");
+assert(js.includes("window.buildCanonicalSvg") && js.includes("window.stripExportViewerState"), "export harness hooks must stay on window after bootDesk");
 assert(js.includes("function buildCanonicalSvg") && js.includes("function paintShareCard"), "canonical SVG / Share Card missing");
 assert(js.includes("function paintCloneToCanvas") && js.includes("function rasterizeCanonical"), "export rasterize fallback missing");
 assert(js.includes("1200") && js.includes("630") && js.includes("Graphide · "), "Share Card must be 1200×630 with Graphide · title");
