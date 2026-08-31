@@ -116,6 +116,38 @@ fn steiner_of_hits_is_subscribes_edge() {
         "sequence hops={:?}",
         flow.sequence.hops
     );
+    assert!(
+        flow.dataflow
+            .nodes
+            .iter()
+            .any(|n| n.role == DataflowRole::Source),
+        "data-subscription Data-flow needs a Source, got {:?}",
+        flow.dataflow.nodes
+    );
+    assert!(
+        flow.dataflow
+            .nodes
+            .iter()
+            .any(|n| n.role == DataflowRole::Sink),
+        "data-subscription Data-flow needs a Sink, got {:?}",
+        flow.dataflow.nodes
+    );
+    assert!(
+        flow.dataflow.hops.iter().any(|h| {
+            h.kind == EdgeKind::Subscribes
+                && h.from_fqn.contains("events")
+                && h.to_fqn.contains("subscribe")
+        }),
+        "dataflow hops={:?}",
+        flow.dataflow.hops
+    );
+    assert!(
+        flow.dataflow.hops.iter().any(|h| {
+            h.kind == EdgeKind::Publishes && h.to_fqn.contains("events")
+        }),
+        "bus Publishes should be a data hop, hops={:?}",
+        flow.dataflow.hops
+    );
     let bus = snap
         .graph
         .nodes

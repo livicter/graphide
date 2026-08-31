@@ -91,6 +91,7 @@ assert(ext.includes('data-ws="registry"'), "registry workspace tab missing");
 assert(ext.includes('data-ws="timeline"'), "timeline workspace tab missing");
 assert(ext.includes('data-ws="delta"') && harnessHtml.includes('data-ws="delta"'), "delta workspace tab missing");
 assert(ext.includes('data-ws="sequence"') && harnessHtml.includes('data-ws="sequence"'), "sequence workspace tab missing");
+assert(ext.includes('data-ws="dataflow"') && harnessHtml.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -113,6 +114,9 @@ assert(js.includes('id="deltaPlay"') && js.includes('id="deltaFacts"'), "Delta R
 assert(js.includes("function renderSequenceBody"), "Sequence workspace missing");
 assert(js.includes('id="seqPlay"') && js.includes('id="seqHops"') && js.includes('id="seqParts"'), "Sequence Play walk and hop list missing");
 assert(js.includes("function flow_sequence") || js.includes("function sequenceOf"), "Sequence must read Steiner hops");
+assert(js.includes("function renderDataflowBody"), "Data-flow workspace missing");
+assert(js.includes('id="dfPlay"') && js.includes('id="dfHops"') && js.includes('id="dfStages"'), "Data-flow Play walk and pipeline missing");
+assert(js.includes("function flow_dataflow") || js.includes("function dataflowOf"), "Data-flow must read Steiner data hops");
 assert(js.includes("data-delta-view") && js.includes('["before", "Before"]') && js.includes('["after", "After"]'), "Delta Before/After switch missing");
 assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
 assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
@@ -178,6 +182,7 @@ assert(harness.includes("loadNamedSnap") && harness.includes("live-snap.json"), 
 assert(harness.includes("__graphideLiveError") && harness.includes('params.get("require")'), "required live snap must not silently fall back to synthetic");
 assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"), "delta fixture snap loader missing");
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
+assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
@@ -185,9 +190,11 @@ assert(workflow.includes("cargo build -p graphide-cli"), "CI must compile graphi
 assert(/graphide review/.test(workflow) && workflow.includes("--no-parent"), "CI must run graphide review of this checkout");
 assert(workflow.includes("fixtures/demo-parent") && workflow.includes("delta-snap.json"), "CI must derive demo vs demo-parent for Delta");
 assert(workflow.includes("sequence-snap.json") && workflow.includes("fixtures/demo"), "CI must derive fixtures/demo for Sequence");
+assert(workflow.includes("dataflow-snap.json") && workflow.includes("fixtures/demo"), "CI must derive fixtures/demo for Data-flow");
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
 assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
 assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") && driver.includes("subscribe"), "verify driver must drive Sequence on the demo fixture");
+assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");

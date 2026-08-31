@@ -68,6 +68,13 @@ jobs:
             > extension/scripts/sequence-snap.json
           test -s extension/scripts/sequence-snap.json
 
+      - name: Data-flow fixture
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root fixtures/demo --json --progress --no-parent \
+            > extension/scripts/dataflow-snap.json
+          test -s extension/scripts/dataflow-snap.json
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 
