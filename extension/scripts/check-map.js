@@ -200,6 +200,18 @@ assert(!/validat|verified|checked/.test((js.match(/function exportFileBase[\s\S]
 assert(js.includes('type: "exportFile"') && ext.includes("saveExportFile"), "host exportFile save path missing");
 assert(ext.includes(".graphide") && ext.includes("stamps") && ext.includes("Export cannot write"), "export must refuse .graphide/stamps/");
 assert(!js.includes("writeStamp") || !/function runExport[\s\S]{0,1200}writeStamp/.test(js), "export must not stamp");
+assert(ext.includes('id="presentBtn"') && harnessHtml.includes('id="presentBtn"'), "Present button missing from chrome");
+assert(ext.includes('id="presetBtn"') && harnessHtml.includes('id="presetBtn"'), "Style button missing from chrome");
+assert(js.includes("function applyPresent") && js.includes("function togglePresent"), "presentation stage missing");
+assert(js.includes("function applyPreset") && js.includes("function cyclePreset") && js.includes("function currentPreset"), "visual preset cycle missing");
+assert(js.includes('data-preset="classic"') || ext.includes('data-preset="classic"'), "classic must be the default preset");
+assert(css.includes("body.present") && css.includes('data-preset="signal-flow"') && css.includes('data-preset="blueprint"'), "present / preset styles missing");
+assert(css.includes("32px 32px") || css.includes("background-size: 32px"), "blueprint drafting grid missing");
+assert(/e.key === "f"[\s\S]{0,80}togglePresent/.test(js) || /e.key === "F"[\s\S]{0,120}togglePresent/.test(js), "F must toggle Presentation Stage");
+assert(/isPresenting\(\)[\s\S]{0,80}cyclePreset[\s\S]{0,80}requestStamp/.test(js), "S must stamp on the desk and cycle Style on the stage");
+assert(js.includes('data-preset="') && js.includes("art.preset"), "canonical export must carry the current preset");
+assert(harness.includes("V58") && harness.includes("V61"), "live suite must prove present and preset");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md")), "presentation feature map missing");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
@@ -215,6 +227,7 @@ assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") &&
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
+assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");

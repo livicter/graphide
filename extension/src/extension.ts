@@ -673,13 +673,13 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     const nonce = String(Date.now());
     const themeClass = resolveAppearance() === "night" ? "bright night" : "bright";
     return `<!DOCTYPE html>
-<html lang="en" class="${themeClass}">
+<html lang="en" class="${themeClass}" data-preset="classic">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob:;" />
   <link href="${styleUri}" rel="stylesheet" />
 </head>
-<body class="${themeClass}">
+<body class="${themeClass}" data-preset="classic">
   <header>
     <div class="brand">Graph<span>ide</span></div>
     <span class="now-pill" id="nowPill" hidden></span>
@@ -697,6 +697,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <button type="button" id="themeDay" data-theme="day" title="Day appearance (D)">Day</button>
       <button type="button" id="themeNight" data-theme="night" title="Night appearance (D)">Night</button>
     </div>
+    <button id="presetBtn" type="button" data-preset="classic" title="Style: Classic. Cycles Classic / Signal / Blueprint">Classic</button>
+    <button id="presentBtn" type="button" title="Presentation Stage (F)" aria-pressed="false">Present</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -715,6 +717,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
       <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
       <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
+      <li><kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint</li>
       <li><kbd>D</kbd> day / night</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
     </ul>

@@ -1699,7 +1699,7 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
 }
 #keysPane[hidden] { display: none; }
 #keysPane.open { transform: none; opacity: 1; }
-#exportBtn.on {
+#exportBtn.on, #presentBtn.on, #presetBtn.on {
   border-color: var(--vscode-focusBorder);
   color: var(--vscode-textLink-foreground);
 }
@@ -2202,7 +2202,7 @@ html.bright #reviewBtn {
   box-shadow: none;
 }
 html.bright #reviewBtn:hover:not(:disabled) { background: #0066d6; }
-html.bright #cancelBtn, html.bright #zoomBar button, html.bright #stampBtn, html.bright #skipBtn, html.bright #llmBtn, html.bright #keysBtn, html.bright #exportBtn {
+html.bright #cancelBtn, html.bright #zoomBar button, html.bright #stampBtn, html.bright #skipBtn, html.bright #llmBtn, html.bright #keysBtn, html.bright #exportBtn, html.bright #presetBtn, html.bright #presentBtn {
   background: var(--g-fill);
   color: #1d1d1f;
   border: none;
@@ -2764,7 +2764,9 @@ html.bright.night #stampBtn,
 html.bright.night #skipBtn,
 html.bright.night #llmBtn,
 html.bright.night #keysBtn,
-html.bright.night #exportBtn {
+html.bright.night #exportBtn,
+html.bright.night #presetBtn,
+html.bright.night #presentBtn {
   background: var(--g-fill);
   color: #f5f5f7;
 }
@@ -2857,4 +2859,146 @@ html.bright.night #keysPane kbd,
 html.bright.night .desk-keys kbd {
   background: #3a3a3c;
   color: #f5f5f7;
+}
+
+/* Presentation Stage — hide supporting chrome; canvas keeps the current workspace. */
+body.present {
+  overflow: hidden;
+}
+body.present #prompt,
+body.present #backBtn,
+body.present #reviewBtn,
+body.present #cancelBtn,
+body.present #stampBtn,
+body.present #skipBtn,
+body.present #llmBtn,
+body.present #nowPill,
+body.present #graphBar,
+body.present #meta,
+body.present #coverage,
+body.present #status,
+body.present #progress,
+body.present #ledgerPane,
+body.present #sourcePane,
+body.present #llmPane {
+  display: none !important;
+}
+body.present #workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+body.present #canvas {
+  padding: 8px;
+}
+body.present header {
+  flex: 0 0 auto;
+}
+
+/* Visual presets over the same derived topology. Day/Night stays independent.
+   Classic is the current Apple desk (no extra rules). Signal Flow saturates
+   kind colors. Blueprint uses hairline frames and a drafting grid on the stage. */
+html.bright[data-preset="signal-flow"],
+.export-root.bright[data-preset="signal-flow"] {
+  --g-fn: #0050d6;
+  --g-ty: #ff7a00;
+  --g-ep: #12b886;
+}
+html.bright.night[data-preset="signal-flow"],
+.export-root.bright.night[data-preset="signal-flow"] {
+  --g-fn: #5aa7ff;
+  --g-ty: #ffb340;
+  --g-ep: #3ee89a;
+}
+html.bright[data-preset="signal-flow"] .stage,
+.export-root.bright[data-preset="signal-flow"] .stage {
+  background:
+    radial-gradient(280px 180px at var(--mx, 50%) var(--my, 36%), color-mix(in srgb, var(--g-fn) 16%, transparent), transparent 70%),
+    #fff;
+}
+html.bright.night[data-preset="signal-flow"] .stage,
+.export-root.bright.night[data-preset="signal-flow"] .stage {
+  background:
+    radial-gradient(280px 180px at var(--mx, 50%) var(--my, 36%), color-mix(in srgb, var(--g-fn) 22%, transparent), transparent 70%),
+    #2c2c2e;
+}
+html.bright[data-preset="signal-flow"] .bubble-card,
+html.bright[data-preset="signal-flow"] .comm-node,
+html.bright[data-preset="signal-flow"] .steiner-wrap .vnode,
+.export-root.bright[data-preset="signal-flow"] .bubble-card,
+.export-root.bright[data-preset="signal-flow"] .comm-node,
+.export-root.bright[data-preset="signal-flow"] .steiner-wrap .vnode {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c, var(--g-fn)) 55%, transparent),
+    0 10px 28px color-mix(in srgb, var(--c, var(--g-fn)) 18%, transparent);
+}
+
+html.bright[data-preset="blueprint"],
+.export-root.bright[data-preset="blueprint"] {
+  --g-fn: #1e4d8c;
+  --g-ty: #0b7285;
+  --g-ep: #2b6cb0;
+  --g-line: rgba(30, 77, 140, 0.35);
+}
+html.bright.night[data-preset="blueprint"],
+.export-root.bright.night[data-preset="blueprint"] {
+  --g-fn: #7ec8ff;
+  --g-ty: #5ee4d4;
+  --g-ep: #9ad0ff;
+  --g-line: rgba(126, 200, 255, 0.35);
+}
+html.bright[data-preset="blueprint"] #canvas,
+html.bright[data-preset="blueprint"] .stage,
+.export-root.bright[data-preset="blueprint"] #canvas,
+.export-root.bright[data-preset="blueprint"] .stage {
+  background-color: #e8eef5;
+  background-image:
+    linear-gradient(rgba(30, 77, 140, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 77, 140, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+html.bright.night[data-preset="blueprint"] #canvas,
+html.bright.night[data-preset="blueprint"] .stage,
+.export-root.bright.night[data-preset="blueprint"] #canvas,
+.export-root.bright.night[data-preset="blueprint"] .stage {
+  background-color: #0a1628;
+  background-image:
+    linear-gradient(rgba(126, 200, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 200, 255, 0.1) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+html.bright[data-preset="blueprint"] .bubble-card,
+html.bright[data-preset="blueprint"] .comm-node,
+html.bright[data-preset="blueprint"] .steiner-wrap .vnode,
+html.bright[data-preset="blueprint"] .seq-row,
+html.bright[data-preset="blueprint"] .df-node,
+html.bright[data-preset="blueprint"] .lc-state,
+.export-root.bright[data-preset="blueprint"] .bubble-card,
+.export-root.bright[data-preset="blueprint"] .comm-node,
+.export-root.bright[data-preset="blueprint"] .steiner-wrap .vnode,
+.export-root.bright[data-preset="blueprint"] .df-node,
+.export-root.bright[data-preset="blueprint"] .lc-state {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 2px;
+  border-width: 1px;
+  border-style: solid;
+}
+html.bright.night[data-preset="blueprint"] .bubble-card,
+html.bright.night[data-preset="blueprint"] .comm-node,
+html.bright.night[data-preset="blueprint"] .steiner-wrap .vnode,
+html.bright.night[data-preset="blueprint"] .df-node,
+html.bright.night[data-preset="blueprint"] .lc-state,
+.export-root.bright.night[data-preset="blueprint"] .bubble-card,
+.export-root.bright.night[data-preset="blueprint"] .comm-node,
+.export-root.bright.night[data-preset="blueprint"] .steiner-wrap .vnode,
+.export-root.bright.night[data-preset="blueprint"] .df-node,
+.export-root.bright.night[data-preset="blueprint"] .lc-state {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.present #canvas,
+  body.present #workspace {
+    transition: none !important;
+  }
 }

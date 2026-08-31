@@ -1,7 +1,8 @@
 # Export
 
 Canonical PNG, SVG, and one 1200×630 Share Card of the current Review
-canvas. Theme (day / night) is kept. Temporary viewer state is stripped.
+canvas. Theme (day / night) and the current visual preset are kept.
+Temporary viewer state is stripped.
 Not Archify's Node renderer. Stamp / skip stay human — export never writes
 `.graphide/stamps/`.
 
@@ -67,4 +68,5 @@ Driver assertions:
 - Do not add `data-component` / `data-testid`. `#exportBtn`, `#exportMenu`,
   `#exportPng`, `#exportSvg`, `#exportShare` are the hooks.
 - Do not vendor Archify's Node renderer. The clone is Graphide DOM.
-- Theme stays. Play head, search query, and focus do not.
+- Theme stays. The current visual preset (`data-preset`) stays. Play head,
+  search query, focus, and Presentation Stage do not.
