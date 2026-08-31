@@ -89,6 +89,7 @@ assert(ext.includes('data-ws="decisions"'), "decisions workspace tab missing");
 assert(ext.includes('data-ws="lineage"'), "lineage workspace tab missing");
 assert(ext.includes('data-ws="registry"'), "registry workspace tab missing");
 assert(ext.includes('data-ws="timeline"'), "timeline workspace tab missing");
+assert(ext.includes('data-ws="delta"') && harnessHtml.includes('data-ws="delta"'), "delta workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -106,6 +107,9 @@ assert(js.includes("applyGraphFilter();"), "community cards must honor search/ki
 assert(js.includes("popK"), "zoom-out pop must use the camera target, not the animated k");
 assert(js.includes("function causalChainFor"), "decisions must show a Semantica-style causal chain on derived hops");
 assert(js.includes("function renderTimelineBody"), "timeline must be a rail, not only cards");
+assert(js.includes("function renderDeltaBody"), "Architecture Delta workspace missing");
+assert(js.includes('id="deltaPlay"') && js.includes('id="deltaFacts"'), "Delta Review walk and fact list missing");
+assert(js.includes("data-delta-view") && js.includes('["before", "Before"]') && js.includes('["after", "After"]'), "Delta Before/After switch missing");
 assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
 assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
 assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
@@ -166,14 +170,17 @@ assert(js.includes("Clear find to see the audit log"), "Registry must not look e
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
-assert(harness.includes("loadLiveSnap") && harness.includes("live-snap.json"), "live snap loader missing");
+assert(harness.includes("loadNamedSnap") && harness.includes("live-snap.json"), "live snap loader missing");
 assert(harness.includes("__graphideLiveError") && harness.includes('params.get("require")'), "required live snap must not silently fall back to synthetic");
+assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"), "delta fixture snap loader missing");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
 assert(workflow.includes("cargo build -p graphide-cli"), "CI must compile graphide-cli");
 assert(/graphide review/.test(workflow) && workflow.includes("--no-parent"), "CI must run graphide review of this checkout");
+assert(workflow.includes("fixtures/demo-parent") && workflow.includes("delta-snap.json"), "CI must derive demo vs demo-parent for Delta");
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
+assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");

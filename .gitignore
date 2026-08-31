@@ -2,6 +2,7 @@
 **/node_modules/
 extension/out/
 extension/scripts/live-snap.json
+extension/scripts/delta-snap.json
 extension/*.vsix
 extension/bin/graphide
 extension/bin/graphide.exe

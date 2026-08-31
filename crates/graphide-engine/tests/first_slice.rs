@@ -166,6 +166,18 @@ fn coverage_flags_sneaky_helper_only() {
         .findings
         .iter()
         .any(|f| matches!(&f.kind, FindingKind::UncoveredNode { fqn } if fqn == "crate::bus::sneaky_helper")));
+    assert!(
+        !snap.delta.facts.is_empty(),
+        "demo vs demo-parent must produce a non-empty Architecture Delta"
+    );
+    assert!(
+        snap.delta.facts.iter().any(|f| {
+            f.status == DeltaStatus::Added && f.fqn == "crate::bus::sneaky_helper"
+        }),
+        "delta facts={:?}",
+        snap.delta.facts
+    );
+    assert!(snap.delta.parent.is_some());
 }
 
 #[test]

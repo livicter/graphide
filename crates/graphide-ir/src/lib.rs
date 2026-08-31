@@ -312,6 +312,69 @@ pub struct Coverage {
     pub uncovered: Vec<NodeId>,
 }
 
+/// One machine fact from pairing two derived Graphs by `(kind, fqn)`.
+/// Status names match the Archify Architecture Delta contract (added /
+/// removed / changed / moved / rerouted). Identity is Graphide's, not
+/// an authored snapshot id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeltaStatus {
+    Added,
+    Removed,
+    Changed,
+    Moved,
+    Rerouted,
+}
+
+/// Archify-style classification. Graphide maps span/identity → semantic,
+/// hops → topology, file move → presentation. No blast-radius class.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeltaClass {
+    Semantic,
+    Topology,
+    Presentation,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeltaFact {
+    pub status: DeltaStatus,
+    pub class: DeltaClass,
+    /// `Function` / `Type` / `Endpoint` for nodes; hop kind for edges.
+    pub subject: String,
+    /// Stable Graphide identity: FQN (nodes) or `from → to` (hops).
+    pub fqn: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_fqn: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_fqn: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edge_kind: Option<EdgeKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+    pub detail: String,
+}
+
+/// Derived Architecture Delta. Empty when no parent Graph was supplied.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct ArchitectureDelta {
+    #[serde(default)]
+    pub facts: Vec<DeltaFact>,
+    #[serde(default)]
+    pub added: u32,
+    #[serde(default)]
+    pub removed: u32,
+    #[serde(default)]
+    pub changed: u32,
+    #[serde(default)]
+    pub moved: u32,
+    #[serde(default)]
+    pub rerouted: u32,
+    /// Parent linked graph, for the Before reading. Absent when no parent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<Graph>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "PascalCase")]
 pub enum FindingKind {
@@ -399,6 +462,9 @@ pub struct ReviewSnapshot {
     /// File-projection of binaries / libs in this graph (SPEC: files are a projection).
     #[serde(default)]
     pub programs: Vec<ProgramView>,
+    /// Parent vs head Architecture Delta. Empty when Review ran without a parent.
+    #[serde(default)]
+    pub delta: ArchitectureDelta,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

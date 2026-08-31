@@ -230,6 +230,36 @@ Coverage {
 
 Incomplete iff `uncovered` is non-empty.
 
+### Architecture Delta
+
+Two `Graph`s. Pair by `(kind, fqn)` (the same identity Coverage uses). The
+deriver still owns both sides — no authored Archify ids, no agent-drawn
+topology.
+
+```
+DeltaFact {
+  status: Added | Removed | Changed | Moved | Rerouted
+  class:  Semantic | Topology | Presentation
+  subject, fqn, from_fqn?, to_fqn?, edge_kind?, file?, detail
+}
+
+ArchitectureDelta {
+  facts: DeltaFact[]
+  added, removed, changed, moved, rerouted: u32
+  parent: Graph?             // Before reading; absent when no parent
+}
+```
+
+- **Added / removed** — identity only on one side (`semantic` for nodes,
+  `topology` for hops).
+- **Changed** — same identity, span text or incident edges differ (`semantic`).
+- **Moved** — same identity, `span.file` differs (`presentation`).
+- **Rerouted** — a hop kept `from`+kind (or `to`+kind) and changed the other
+  end (`topology`).
+
+Truth before spectacle: the list is exact facts. It does not infer blast
+radius, merge safety, or risk.
+
 ---
 
 ## 4. Findings (not graph)

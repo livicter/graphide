@@ -253,6 +253,19 @@ fn print_review(snap: &ReviewSnapshot) {
             println!("  uncovered {}", n.fqn);
         }
     }
+    if !snap.delta.facts.is_empty() {
+        println!(
+            "delta {} added / {} removed / {} changed / {} moved / {} rerouted",
+            snap.delta.added,
+            snap.delta.removed,
+            snap.delta.changed,
+            snap.delta.moved,
+            snap.delta.rerouted
+        );
+        for f in &snap.delta.facts {
+            println!("  {:?} {} {}", f.status, f.subject, f.fqn);
+        }
+    }
     for f in &snap.findings {
         println!("finding {:?}", f.kind);
     }

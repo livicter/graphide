@@ -1,5 +1,6 @@
 use crate::cluster::{cluster, cluster_with, sticky_match};
 use crate::coverage::{changed_nodes_with_sources, coverage};
+use crate::delta::architecture_delta;
 use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
 use crate::link::link;
@@ -236,6 +237,16 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     };
 
     let cov = coverage(&changed, &flows);
+    let delta = if input.parent_extracts.is_some() {
+        architecture_delta(
+            &parent_graph,
+            &graph,
+            &input.parent_sources,
+            &input.head_sources,
+        )
+    } else {
+        graphide_ir::ArchitectureDelta::default()
+    };
     for id in &cov.uncovered {
         if let Some(n) = graph.nodes.iter().find(|n| n.id == *id) {
             findings.push(Finding {
@@ -257,6 +268,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         stats: Default::default(),
         stamps: vec![],
         programs,
+        delta,
     }
 }
 
