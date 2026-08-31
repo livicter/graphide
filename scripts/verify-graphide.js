@@ -18,8 +18,12 @@ const ROOT = path.resolve(__dirname, "..");
 const EXT = path.join(ROOT, "extension");
 const OUT = path.join(ROOT, "verification");
 const SNAP = path.join(EXT, "scripts", "live-snap.json");
+const DELTA_SNAP = path.join(EXT, "scripts", "delta-snap.json");
+const DEMO = path.join(ROOT, "fixtures", "demo");
+const DEMO_PARENT = path.join(ROOT, "fixtures", "demo-parent");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
 const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
+const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
 const SYNTHETIC_NODES = 2050;
 const SYNTHETIC_EDGES = 4568;
 
@@ -173,7 +177,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -231,6 +235,73 @@ function deriveSelfReviewSnap() {
   fs.mkdirSync(path.dirname(SNAP), { recursive: true });
   fs.writeFileSync(SNAP, text.endsWith("\n") ? text : text + "\n");
   return text;
+}
+
+function deriveDeltaSnap() {
+  const bin = findGraphideBin();
+  if (!bin) {
+    failFast(
+      "no delta snapshot: compile `cargo build -p graphide-cli` then run " +
+        "`graphide review --root fixtures/demo --parent fixtures/demo-parent --json` into " +
+        "extension/scripts/delta-snap.json"
+    );
+  }
+  console.log("derive " + bin + " review --root " + DEMO + " --parent " + DEMO_PARENT + " --json --progress");
+  const r = spawnSync(
+    bin,
+    ["review", "--root", DEMO, "--parent", DEMO_PARENT, "--json", "--progress"],
+    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
+  );
+  if (r.stderr) process.stderr.write(r.stderr);
+  if (r.status !== 0) {
+    failFast("graphide review (delta fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
+  }
+  const text = String(r.stdout || "").trim();
+  if (!text) failFast("graphide review (delta fixture) wrote an empty snapshot");
+  fs.mkdirSync(path.dirname(DELTA_SNAP), { recursive: true });
+  fs.writeFileSync(DELTA_SNAP, text.endsWith("\n") ? text : text + "\n");
+  return text;
+}
+
+function loadDeltaSnap() {
+  let text = "";
+  if (fs.existsSync(DELTA_SNAP)) {
+    text = fs.readFileSync(DELTA_SNAP, "utf8");
+  } else {
+    text = deriveDeltaSnap();
+  }
+  let snap;
+  try {
+    snap = JSON.parse(text);
+  } catch (e) {
+    failFast("delta snapshot is not JSON: " + (e && e.message ? e.message : e));
+  }
+  if (!snap || typeof snap !== "object") failFast("delta snapshot is empty");
+  return snap;
+}
+
+function assertDeltaSnap(snap) {
+  const facts = (snap.delta && snap.delta.facts) || [];
+  const added = facts.filter((f) => f && f.status === "added");
+  const sneaky = facts.some((f) => f && f.status === "added" && /sneaky_helper/.test(String(f.fqn || "")));
+  const parentNodes = ((((snap.delta || {}).parent || {}).nodes) || []).length;
+  record("D0", "delta fixture snap has Architecture Delta facts", facts.length > 0, "facts=" + facts.length);
+  record(
+    "D0b",
+    "delta fixture includes added crate::bus::sneaky_helper",
+    sneaky,
+    added.map((f) => f.fqn).slice(0, 6).join(",")
+  );
+  record("D0c", "delta fixture snap carries a parent graph", parentNodes > 0, "parent.nodes=" + parentNodes);
+  const failed = checks.filter((c) => !c.pass && /^D0/.test(c.id));
+  if (failed.length) {
+    writeReport("Delta snapshot failed structural checks (desk not driven).");
+    failFast(
+      "empty Architecture Delta on demo vs demo-parent — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { facts: facts.length, sneaky };
 }
 
 function loadSelfReviewSnap() {
@@ -630,6 +701,140 @@ async function main() {
     const stampDirAfter = path.join(ROOT, ".graphide", "stamps");
     const wroteStampAfter = fs.existsSync(stampDirAfter) && fs.readdirSync(stampDirAfter).length > 0;
     record("R7", "Self-review step did not write .graphide/stamps/", !wroteStampAfter, wroteStampAfter ? fs.readdirSync(stampDirAfter).join(",") : "absent");
+
+    const deltaSnap = loadDeltaSnap();
+    const deltaGraph = assertDeltaSnap(deltaSnap);
+    const deltaUrl = origin + DELTA_HARNESS;
+    console.log("delta " + deltaUrl);
+    await page.goto(deltaUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const deltaBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideDeltaError) return "error";
+          if (window.__graphideDelta === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /delta-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+
+    const deltaHost = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        live: window.__graphideDelta === true,
+        error: window.__graphideDeltaError || "",
+        desk: document.body.classList.contains("desk"),
+        ws: on ? on.getAttribute("data-ws") : "",
+        empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      };
+    });
+    if (deltaBoot !== "ok" || !deltaHost.live) {
+      const why =
+        deltaHost.error ||
+        deltaHost.empty ||
+        (deltaBoot && deltaBoot !== "ok" ? deltaBoot : "") ||
+        "harness did not set window.__graphideDelta";
+      record("D1", "delta desk loaded the demo vs demo-parent snap", false, why);
+      failFast("desk could not be driven from the delta fixture — " + why);
+    }
+    record("D1", "delta desk loaded the demo vs demo-parent snap", true, deltaHost.ws);
+
+    if (deltaHost.ws !== "delta") {
+      await page.click('#workspaces [data-ws="delta"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#deltaFacts .delta-fact", { timeout: 10000 });
+
+    const deltaDesk = await page.evaluate(() => {
+      const facts = [...document.querySelectorAll("#deltaFacts .delta-fact")];
+      const views = [...document.querySelectorAll("#deltaView [data-delta-view]")].map((el) =>
+        el.getAttribute("data-delta-view")
+      );
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        facts: facts.length,
+        kinds: facts.map((el) => el.getAttribute("data-delta-kind")),
+        text: facts.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()),
+        sneaky: facts.some((el) => /sneaky_helper/.test(el.textContent || "")),
+        views,
+        play: !!document.getElementById("deltaPlay"),
+        prev: !!document.getElementById("deltaPrev"),
+        next: !!document.getElementById("deltaNext"),
+        overview: !!document.getElementById("deltaOverview"),
+        canvas: !!document.getElementById("deltaCanvas"),
+      };
+    });
+    record("D2", "Delta workspace is active", deltaDesk.ws === "delta", deltaDesk.ws);
+    record(
+      "D3",
+      "Delta fact list is not empty on demo vs demo-parent",
+      deltaDesk.facts > 0 && deltaDesk.facts >= Math.min(1, deltaGraph.facts),
+      "facts=" + deltaDesk.facts + " kinds=" + deltaDesk.kinds.join(",")
+    );
+    record("D4", "Delta lists added crate::bus::sneaky_helper", deltaDesk.sneaky, deltaDesk.text.slice(0, 4).join(" | "));
+    record(
+      "D5",
+      "Delta has Before / Delta / After plus Review walk controls",
+      ["before", "delta", "after"].every((v) => deltaDesk.views.indexOf(v) >= 0) &&
+        deltaDesk.play &&
+        deltaDesk.prev &&
+        deltaDesk.next &&
+        deltaDesk.overview &&
+        deltaDesk.canvas,
+      JSON.stringify({ views: deltaDesk.views, play: deltaDesk.play, canvas: deltaDesk.canvas })
+    );
+
+    await page.click('#deltaView [data-delta-view="before"]');
+    await page.waitForTimeout(150);
+    await page.click('#deltaView [data-delta-view="after"]');
+    await page.waitForTimeout(150);
+    await page.click('#deltaView [data-delta-view="delta"]');
+    await page.waitForTimeout(150);
+    const viewAfter = await page.evaluate(() => {
+      const canvas = document.getElementById("deltaCanvas");
+      return canvas ? canvas.getAttribute("data-delta-view") : "";
+    });
+    record("D6", "Delta canvas three-state lands on Delta after the switcher", viewAfter === "delta", viewAfter);
+
+    if (deltaDesk.overview) await page.click("#deltaOverview");
+    await page.waitForTimeout(120);
+    for (let i = 0; i < deltaDesk.facts + 2; i++) {
+      await page.click("#deltaNext");
+      await page.waitForTimeout(40);
+    }
+    const walked = await page.evaluate(() => {
+      const on = document.querySelector("#deltaFacts .delta-fact.on");
+      const play = document.getElementById("deltaPlay");
+      const n = document.querySelectorAll("#deltaFacts .delta-fact").length;
+      return {
+        i: on ? on.getAttribute("data-delta-i") : "",
+        n,
+        playing: !!(play && play.getAttribute("aria-pressed") === "true"),
+      };
+    });
+    record(
+      "D7",
+      "Delta Review walk is finite (stays on last fact, does not loop)",
+      String(walked.i) === String(Math.max(0, walked.n - 1)) && !walked.playing,
+      JSON.stringify(walked)
+    );
+
+    await shot(page, "delta.png");
+
+    const stampDirDelta = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampDelta = fs.existsSync(stampDirDelta) && fs.readdirSync(stampDirDelta).length > 0;
+    record(
+      "D8",
+      "Delta step did not write .graphide/stamps/",
+      !wroteStampDelta,
+      wroteStampDelta ? fs.readdirSync(stampDirDelta).join(",") : "absent"
+    );
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -640,12 +845,14 @@ async function main() {
       HARNESS +
       "` (chrome 17) then `" +
       LIVE_HARNESS +
-      "` (self-review of this checkout) served from `extension/`.",
+      "` (self-review of this checkout) then `" +
+      DELTA_HARNESS +
+      "` (Architecture Delta on fixtures/demo vs demo-parent) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta"
   );
 }
 

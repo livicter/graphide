@@ -150,6 +150,7 @@ fn unmatched_hint_and_missing_enter_are_none_or_finding() {
         stats: Default::default(),
         stamps: vec![],
         programs: vec![],
+        delta: Default::default(),
     };
     assert!(enter_bubble(&snap, "missing", 1).is_none());
 }
@@ -181,6 +182,7 @@ fn stamp_recheck_on_empty_graph_does_not_panic() {
         stats: Default::default(),
         stamps: vec![],
         programs: vec![],
+        delta: Default::default(),
     };
     assert!(catch_unwind(AssertUnwindSafe(|| apply_saved_stamps(&mut snap, &[stamp]))).is_ok());
 }

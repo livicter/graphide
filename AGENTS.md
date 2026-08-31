@@ -11,3 +11,4 @@ This pack is **goodness / de-slop** (would you ship the surface). It is separate
 For Review-desk correctness, load:
 
 - [Verify Graphide](.cursor/skills/verify-graphide/SKILL.md)
+- [Harness engineering](.cursor/skills/harness-engineering/SKILL.md)

@@ -52,6 +52,14 @@ jobs:
       - name: Assert self-review snapshot
         run: node scripts/verify-graphide.js --assert-snap
 
+      # Fixture parent, not git HEAD^ — shallow Actions clones stay flake-free.
+      - name: Architecture Delta fixture
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root fixtures/demo --parent fixtures/demo-parent --json --progress \
+            > extension/scripts/delta-snap.json
+          test -s extension/scripts/delta-snap.json
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 

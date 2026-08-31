@@ -304,9 +304,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .workspaces {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
 }
 .workspaces button {
   background: transparent;
@@ -1831,6 +1832,40 @@ svg.steiner .edge.walk {
 }
 .tl-item.ahead { opacity: 0.48; }
 .tl-item.past .tl-dot { background: #3fb950; }
+.delta-page { display: flex; flex-direction: column; gap: 10px; }
+.review-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.review-step {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--g-radius, 6px);
+  padding: 6px 10px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.review-step.on, .review-step[aria-pressed="true"] {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+#deltaStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
+.delta-canvas { overflow: auto; min-height: 220px; }
+.delta-canvas .steiner-wrap { position: relative; }
+.delta-fact .k { letter-spacing: 0.06em; text-transform: uppercase; }
+#deltaCanvas [data-delta-state="same"] { opacity: 0.38; }
+#deltaCanvas [data-delta-state="added"] { outline-color: #3fb950; }
+#deltaCanvas [data-delta-state="removed"] { outline-color: var(--vscode-errorForeground); }
+#deltaCanvas .vnode[data-delta-review-current] {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+#deltaCanvas path[data-delta-state="removed"] { stroke-dasharray: 6 4; }
+#deltaCanvas path[data-delta-state="added"] { stroke: #3fb950; }
 .mut {
   display: inline-block;
   border: 1px solid var(--vscode-panel-border);
@@ -1974,6 +2009,7 @@ html.bright .search-wrap:focus-within {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
 }
 html.bright .workspaces {
+  flex-wrap: nowrap;
   background: rgba(120, 120, 128, 0.16);
   border-radius: 9px;
   padding: 2px;
@@ -1993,7 +2029,7 @@ html.bright .workspaces button.on, html.bright .tab.on, html.bright #egoBtn.on, 
   color: #1d1d1f;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), var(--g-inset);
 }
-html.bright .tab, html.bright #egoBtn, html.bright #reorgBtn, html.bright .reorg-btn, html.bright .leg, html.bright .path-walk button, html.bright .outcome-filter, html.bright .feat-chip, html.bright .kind-pill {
+html.bright .tab, html.bright #egoBtn, html.bright #reorgBtn, html.bright .reorg-btn, html.bright .leg, html.bright .path-walk button, html.bright .outcome-filter, html.bright .feat-chip, html.bright .kind-pill, html.bright .review-step {
   background: #fff;
   border: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);

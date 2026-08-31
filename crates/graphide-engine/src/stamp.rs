@@ -292,6 +292,7 @@ mod tests {
             stats: Default::default(),
             stamps: vec![],
             programs: vec![],
+            delta: Default::default(),
         }
     }
 

@@ -72,8 +72,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -116,6 +116,9 @@ let egoMode = false;
 let egoHops = 1;
 let selectedDecisionKey = "";
 let timelineCursor = 0;
+let deltaView = "delta";
+let deltaCursor = -1;
+let deltaWalk = { playing: false, timer: 0 };
 let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -299,22 +302,33 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "p" || e.key === "P") {
     e.preventDefault();
-    togglePathWalk();
+    if (explorerWs === "delta") toggleDeltaReview();
+    else togglePathWalk();
     return;
   }
   if (e.key === "[") {
     e.preventDefault();
-    stopPathWalk();
-    stepPathWalk(pathWalk.i < 0 ? 1 : -1);
+    if (explorerWs === "delta") {
+      stopDeltaWalk();
+      stepDeltaWalk(deltaCursor < 0 ? 1 : -1);
+    } else {
+      stopPathWalk();
+      stepPathWalk(pathWalk.i < 0 ? 1 : -1);
+    }
     return;
   }
   if (e.key === "]") {
     e.preventDefault();
-    stopPathWalk();
-    stepPathWalk(1);
+    if (explorerWs === "delta") {
+      stopDeltaWalk();
+      stepDeltaWalk(1);
+    } else {
+      stopPathWalk();
+      stepPathWalk(1);
+    }
     return;
   }
-  const wsIdx = "1234567".indexOf(e.key);
+  const wsIdx = "12345678".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
     setWorkspace(WORKSPACES[wsIdx], true);
@@ -567,6 +581,7 @@ function applyPrograms(msg) {
     stamps: msg.stamps || [],
     skipped: msg.skipped || [],
     programs: msg.programs || [],
+    delta: msg.delta || { facts: [] },
     program: null,
     snippets: {},
     preview: false,
@@ -595,6 +610,7 @@ function applySnapshot(msg, inner) {
     stamps: msg.stamps || [],
     skipped: msg.skipped || [],
     programs: msg.programs || snapshot?.programs || [],
+    delta: msg.delta || snapshot?.delta || { facts: [] },
     program: msg.program || null,
     snippets: msg.snippets || {},
     preview: false,
@@ -3413,6 +3429,434 @@ function renderTimelineBody() {
   );
 }
 
+function deltaFacts() {
+  const facts = ((snapshot && snapshot.delta && snapshot.delta.facts) || []).slice();
+  if (!graphFilter.q) return facts;
+  return facts.filter((f) =>
+    matchesExplorerQuery([f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn].join(" "))
+  );
+}
+
+function deltaMarker(status) {
+  if (status === "added") return "+";
+  if (status === "removed") return "−";
+  if (status === "changed") return "~";
+  if (status === "moved") return "↔";
+  if (status === "rerouted") return "↝";
+  return "·";
+}
+
+function applyDeltaFactView(fact) {
+  if (!fact) return;
+  if (fact.status === "added") deltaView = "after";
+  else if (fact.status === "removed") deltaView = "before";
+  else deltaView = "delta";
+}
+
+function stopDeltaWalk() {
+  deltaWalk.playing = false;
+  if (deltaWalk.timer) {
+    clearInterval(deltaWalk.timer);
+    deltaWalk.timer = 0;
+  }
+  const play = document.getElementById("deltaPlay");
+  if (play) {
+    play.classList.remove("on");
+    play.setAttribute("aria-pressed", "false");
+  }
+}
+
+function stepDeltaWalk(dir) {
+  const facts = deltaFacts();
+  if (!facts.length) return;
+  let i = deltaCursor + dir;
+  if (i < 0) i = 0;
+  if (i >= facts.length) {
+    i = facts.length - 1;
+    stopDeltaWalk();
+  }
+  deltaCursor = i;
+  applyDeltaFactView(facts[i]);
+  paint({ animate: "none" });
+}
+
+function toggleDeltaReview() {
+  if (deltaWalk.playing) {
+    stopDeltaWalk();
+    const facts = deltaFacts();
+    flashToast("Paused · " + Math.max(deltaCursor, 0) + "/" + facts.length, "ok");
+    return;
+  }
+  const facts = deltaFacts();
+  if (!facts.length) {
+    flashToast("No delta facts", "skip");
+    return;
+  }
+  if (deltaCursor >= facts.length - 1) deltaCursor = -1;
+  deltaWalk.playing = true;
+  flashToast("Review · " + facts.length + " facts", "ok");
+  stepDeltaWalk(1);
+  if (reduceMotion()) {
+    stopDeltaWalk();
+    return;
+  }
+  deltaWalk.timer = setInterval(() => {
+    const next = deltaFacts();
+    if (deltaCursor >= next.length - 1) {
+      stopDeltaWalk();
+      flashToast("End · " + next.length + " facts", "ok");
+      return;
+    }
+    stepDeltaWalk(1);
+  }, 720);
+}
+
+function resetDeltaOverview() {
+  stopDeltaWalk();
+  deltaCursor = -1;
+  deltaView = "delta";
+  paint({ animate: "none" });
+}
+
+function deltaGraphPair() {
+  const head = (snapshot && snapshot.graph) || { nodes: [], edges: [] };
+  const parent =
+    (snapshot && snapshot.delta && snapshot.delta.parent) || { nodes: [], edges: [] };
+  return { head, parent };
+}
+
+function deltaNodeState(fqn) {
+  const facts = ((snapshot && snapshot.delta && snapshot.delta.facts) || []).filter((f) => f.fqn === fqn && !f.from_fqn);
+  if (facts.some((f) => f.status === "added")) return "added";
+  if (facts.some((f) => f.status === "removed")) return "removed";
+  if (facts.some((f) => f.status === "moved")) return "moved";
+  if (facts.some((f) => f.status === "changed")) return "changed";
+  return "same";
+}
+
+function deltaHopState(fromFqn, toFqn, kind) {
+  const facts = (snapshot && snapshot.delta && snapshot.delta.facts) || [];
+  for (const f of facts) {
+    if (f.from_fqn === fromFqn && f.to_fqn === toFqn && (!kind || !f.edge_kind || f.edge_kind === kind)) {
+      if (f.status === "added" || f.status === "removed" || f.status === "rerouted") return f.status;
+    }
+  }
+  const { head, parent } = deltaGraphPair();
+  const inHead = (head.edges || []).some(
+    (e) => fqnOf(head, e.from) === fromFqn && fqnOf(head, e.to) === toFqn
+  );
+  const inParent = (parent.edges || []).some(
+    (e) => fqnOf(parent, e.from) === fromFqn && fqnOf(parent, e.to) === toFqn
+  );
+  if (inHead && !inParent) return "added";
+  if (inParent && !inHead) return "removed";
+  return "same";
+}
+
+function renderDeltaCanvas(view, hot) {
+  const { head, parent } = deltaGraphPair();
+  const src = view === "before" ? parent : view === "after" ? head : null;
+  const nodesById = new Map();
+  const pushNode = (n) => {
+    if (!n) return;
+    nodesById.set(idVal(n.id), n);
+  };
+  if (src) {
+    (src.nodes || []).forEach(pushNode);
+  } else {
+    (parent.nodes || []).forEach(pushNode);
+    (head.nodes || []).forEach(pushNode);
+  }
+  const want = new Set();
+  deltaFacts().forEach((f) => {
+    if (f.from_fqn) want.add(f.from_fqn);
+    if (f.to_fqn) want.add(f.to_fqn);
+    if (f.fqn && !f.from_fqn) want.add(f.fqn);
+  });
+  let nodes = [...nodesById.values()].filter((n) => !want.size || want.has(n.fqn));
+  if (nodes.length < 2) nodes = [...nodesById.values()].slice(0, 16);
+  if (nodes.length > 24) nodes = nodes.slice(0, 24);
+  if (!nodes.length) {
+    return '<div class="empty" id="deltaCanvas">No derived nodes for this reading.</div>';
+  }
+  const ids = nodes.map((n) => idVal(n.id));
+  const idSet = new Set(ids);
+  const edgeSrc =
+    view === "before"
+      ? parent.edges || []
+      : view === "after"
+        ? head.edges || []
+        : [].concat(parent.edges || [], head.edges || []);
+  const seenE = new Set();
+  const edges = [];
+  edgeSrc.forEach((e) => {
+    const a = idVal(e.from);
+    const b = idVal(e.to);
+    if (!idSet.has(a) || !idSet.has(b)) return;
+    const k = a + "\t" + b + "\t" + (e.kind || "");
+    if (seenE.has(k)) return;
+    seenE.add(k);
+    edges.push(e);
+  });
+  const laid = layeredPositions(ids, edges, {
+    nodeW: 176,
+    nodeH: 64,
+    gapX: 88,
+    gapY: 40,
+    pad: 40,
+    minW: 560,
+    minH: 240,
+    maxCols: 6,
+    pins: new Map(),
+  });
+  const W = laid.W;
+  const H = laid.H;
+  const pos = laid.pos;
+  let svg =
+    '<svg class="steiner steiner-edges" viewBox="0 0 ' +
+    W +
+    " " +
+    H +
+    '" width="' +
+    W +
+    '" height="' +
+    H +
+    '">';
+  edges.forEach((e) => {
+    const a = pos.get(idVal(e.from));
+    const b = pos.get(idVal(e.to));
+    if (!a || !b) return;
+    const fromN = nodesById.get(idVal(e.from));
+    const toN = nodesById.get(idVal(e.to));
+    const state = deltaHopState((fromN && fromN.fqn) || "", (toN && toN.fqn) || "", e.kind);
+    const hotHop =
+      !!(hot &&
+        hot.from_fqn &&
+        fromN &&
+        toN &&
+        hot.from_fqn === fromN.fqn &&
+        hot.to_fqn === toN.fqn);
+    const d = orthoPath(a, b);
+    svg +=
+      '<path class="edge-hit" data-from="' +
+      idVal(e.from) +
+      '" data-to="' +
+      idVal(e.to) +
+      '" data-kind="' +
+      esc(e.kind || "") +
+      '" data-delta-state="' +
+      state +
+      (hotHop ? '" data-delta-review-current="1' : "") +
+      '" d="' +
+      d +
+      '" /><path class="edge' +
+      (hotHop ? " walk" : "") +
+      '" data-from="' +
+      idVal(e.from) +
+      '" data-to="' +
+      idVal(e.to) +
+      '" data-kind="' +
+      esc(e.kind || "") +
+      '" data-delta-state="' +
+      state +
+      '" d="' +
+      d +
+      '" />';
+  });
+  svg += "</svg>";
+  let cards = "";
+  nodes.forEach((n) => {
+    const p = pos.get(idVal(n.id));
+    if (!p) return;
+    const state = deltaNodeState(n.fqn);
+    const hotNode = !!(hot && !hot.from_fqn && hot.fqn === n.fqn);
+    cards +=
+      '<button type="button" class="vnode ' +
+      kindClass(n.kind) +
+      (hotNode ? " walk" : "") +
+      '" style="left:' +
+      p.x +
+      "px;top:" +
+      p.y +
+      'px" data-id="' +
+      idVal(n.id) +
+      '" data-fqn="' +
+      esc(n.fqn) +
+      '" data-kind="' +
+      esc(n.kind || "") +
+      '" data-delta-state="' +
+      state +
+      (hotNode ? '" data-delta-review-current="1' : "") +
+      '"><span class="kind">' +
+      esc(n.kind || "node") +
+      '</span><span class="name">' +
+      esc(shortOf(n.fqn)) +
+      '</span><span class="fqn">' +
+      esc(n.fqn) +
+      "</span></button>";
+  });
+  return (
+    '<div id="deltaCanvas" class="delta-canvas" data-delta-view="' +
+    esc(view) +
+    '"><div class="steiner-wrap" style="width:' +
+    W +
+    "px;height:" +
+    H +
+    'px">' +
+    svg +
+    cards +
+    "</div></div>"
+  );
+}
+
+function renderDeltaBody() {
+  const facts = deltaFacts();
+  const raw = (snapshot && snapshot.delta) || {};
+  const hasParent = !!(raw.parent && (raw.parent.nodes || []).length);
+  if (!facts.length && !hasParent) {
+    if (graphFilter.q) {
+      return (
+        '<div class="empty">No delta facts match “' +
+        esc(graphFilter.q) +
+        '”.</div>'
+      );
+    }
+    return '<div class="empty">No parent cut. Review with a parent root (fixtures/demo vs demo-parent, or git HEAD^) to read Architecture Delta.</div>';
+  }
+  if (deltaCursor >= facts.length) deltaCursor = facts.length - 1;
+  const hot = deltaCursor >= 0 ? facts[deltaCursor] : null;
+  const views = [
+    ["before", "Before"],
+    ["delta", "Delta"],
+    ["after", "After"],
+  ];
+  const switcher =
+    '<div class="outcome-strip" id="deltaView" role="tablist" aria-label="Delta view">' +
+    views
+      .map((pair) => {
+        const on = deltaView === pair[0] ? " on" : "";
+        return (
+          '<button type="button" class="outcome-filter' +
+          on +
+          '" data-delta-view="' +
+          pair[0] +
+          '" aria-selected="' +
+          (deltaView === pair[0] ? "true" : "false") +
+          '">' +
+          pair[1] +
+          "</button>"
+        );
+      })
+      .join("") +
+    '<span class="outcome-k">' +
+    (raw.added || 0) +
+    " + · " +
+    (raw.removed || 0) +
+    " − · " +
+    (raw.changed || 0) +
+    " ~ · " +
+    (raw.moved || 0) +
+    " ↔ · " +
+    (raw.rerouted || 0) +
+    " ↝</span></div>";
+  const review =
+    '<div class="review-strip" id="deltaReview">' +
+    '<button type="button" class="review-step" id="deltaOverview">Overview</button>' +
+    '<button type="button" class="review-step" id="deltaPrev">Previous</button>' +
+    '<button type="button" class="review-step' +
+    (deltaWalk.playing ? " on" : "") +
+    '" id="deltaPlay" aria-pressed="' +
+    (deltaWalk.playing ? "true" : "false") +
+    '">Review</button>' +
+    '<button type="button" class="review-step" id="deltaNext">Next</button>' +
+    '<span id="deltaStatus">' +
+    (hot
+      ? deltaCursor + 1 + "/" + facts.length + " · " + deltaMarker(hot.status) + " " + (hot.fqn || "")
+      : facts.length
+        ? facts.length + " facts"
+        : "identical pair") +
+    "</span></div>";
+  const list = facts
+    .map((f, i) => {
+      return (
+        '<article class="delta-fact expl-card ' +
+        esc(f.status || "") +
+        (i === deltaCursor ? " on" : "") +
+        '" data-delta-kind="' +
+        esc(f.status || "") +
+        '" data-delta-class="' +
+        esc(f.class || "") +
+        '" data-fqn="' +
+        esc(f.fqn || "") +
+        '" data-delta-i="' +
+        i +
+        '"><div class="k">' +
+        esc(deltaMarker(f.status) + " " + (f.status || "")) +
+        '</div><div class="t">' +
+        esc((f.subject || "") + " · " + (f.fqn || "")) +
+        '</div><div class="b">' +
+        esc(f.detail || f.class || "") +
+        "</div></article>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="delta-page">' +
+    switcher +
+    review +
+    '<div class="ws-split">' +
+    '<div class="ws-list" id="deltaFacts">' +
+    (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') +
+    "</div>" +
+    '<div class="ws-detail">' +
+    '<div class="k">' +
+    esc(deltaView) +
+    " · derived</div>" +
+    renderDeltaCanvas(deltaView, hot) +
+    "</div></div></div>"
+  );
+}
+
+function bindDeltaPage() {
+  canvas.querySelectorAll("[data-delta-view]").forEach((el) => {
+    if (el.id === "deltaCanvas") return;
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const v = el.getAttribute("data-delta-view");
+      if (v === "before" || v === "delta" || v === "after") {
+        deltaView = v;
+        paint({ animate: "none" });
+      }
+    };
+  });
+  canvas.querySelectorAll("#deltaFacts .delta-fact").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const i = parseInt(el.getAttribute("data-delta-i"), 10);
+      if (!Number.isFinite(i)) return;
+      deltaCursor = i;
+      applyDeltaFactView(deltaFacts()[i]);
+      paint({ animate: "none" });
+    };
+  });
+  const overview = document.getElementById("deltaOverview");
+  const prev = document.getElementById("deltaPrev");
+  const next = document.getElementById("deltaNext");
+  const play = document.getElementById("deltaPlay");
+  if (overview) overview.onclick = () => resetDeltaOverview();
+  if (prev)
+    prev.onclick = () => {
+      stopDeltaWalk();
+      stepDeltaWalk(deltaCursor < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopDeltaWalk();
+      stepDeltaWalk(1);
+    };
+  if (play) play.onclick = () => toggleDeltaReview();
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -3444,6 +3888,7 @@ function renderExplorerList(ws) {
     registry: "Registry — audit of this review snapshot",
     overview: "Overview — default run and control-flow graph",
     timeline: "Timeline — parent cut, coverage, stamp scars",
+    delta: "Delta — derived parent vs head",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -3455,6 +3900,7 @@ function renderExplorerList(ws) {
   if (ws === "overview") html = renderOverviewBody();
   else if (ws === "decisions") html = renderDecisionBody();
   else if (ws === "registry") html = renderRegistryBody();
+  else if (ws === "delta") html = renderDeltaBody();
   else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
@@ -3538,6 +3984,7 @@ function renderExplorerList(ws) {
   });
   bindPathWalk();
   bindWorkbenchPages();
+  if (ws === "delta") bindDeltaPage();
 }
 
 function applyDecisionOutcomeFilter() {

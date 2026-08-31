@@ -325,28 +325,28 @@
     }, 250);
   }
 
-  function loadLiveSnap(done, required) {
-    fetch("./live-snap.json", { cache: "no-store" })
+  function loadNamedSnap(file, flag, errFlag, done, required) {
+    fetch("./" + file, { cache: "no-store" })
       .then(function (r) {
-        if (!r.ok) throw new Error("no live snap (" + r.status + ")");
+        if (!r.ok) throw new Error("no " + file + " (" + r.status + ")");
         return r.json();
       })
       .then(function (snap) {
         if (!snap || !snap.graph || !Array.isArray(snap.graph.nodes)) {
-          throw new Error("live snap is not a ReviewSnapshot");
+          throw new Error(file + " is not a ReviewSnapshot");
         }
         const live = Object.assign({ type: "programs" }, snap);
-        window.__graphideLive = true;
-        window.__graphideLiveError = "";
+        window[flag] = true;
+        window[errFlag] = "";
         window.postMessage(live, "*");
         done();
       })
       .catch(function (err) {
-        window.__graphideLive = false;
-        window.__graphideLiveError = String(err && err.message ? err.message : err);
+        window[flag] = false;
+        window[errFlag] = String(err && err.message ? err.message : err);
         if (required) {
           window.postMessage(
-            { type: "error", text: "live-snap.json: " + window.__graphideLiveError },
+            { type: "error", text: file + ": " + window[errFlag] },
             "*"
           );
           done();
@@ -357,8 +357,11 @@
       });
   }
 
-  if (params.get("live") === "1") loadLiveSnap(afterPaint, params.get("require") === "1");
-  else {
+  if (params.get("delta") === "1") {
+    loadNamedSnap("delta-snap.json", "__graphideDelta", "__graphideDeltaError", afterPaint, params.get("require") === "1");
+  } else if (params.get("live") === "1") {
+    loadNamedSnap("live-snap.json", "__graphideLive", "__graphideLiveError", afterPaint, params.get("require") === "1");
+  } else {
     window.postMessage(msg, "*");
     afterPaint();
   }
