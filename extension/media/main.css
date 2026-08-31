@@ -304,9 +304,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .workspaces {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
 }
 .workspaces button {
   background: transparent;
@@ -2008,6 +2009,7 @@ html.bright .search-wrap:focus-within {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
 }
 html.bright .workspaces {
+  flex-wrap: nowrap;
   background: rgba(120, 120, 128, 0.16);
   border-radius: 9px;
   padding: 2px;
