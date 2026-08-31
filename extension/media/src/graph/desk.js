@@ -1,6 +1,14 @@
 /** Vanilla graph paint + host wiring. React mounts chrome; bootDesk binds the same ids. */
 import { acquireHost } from "../host/adapter.js";
-import { renderSequenceCanvas, unmountSequenceCanvas } from "./sequence-canvas.jsx";
+import {
+  renderSequenceCanvas,
+  renderDeltaCanvas as mountDeltaCanvas,
+  renderDataflowCanvas,
+  renderLifecycleCanvas,
+  renderSliceCanvas,
+  unmountSequenceCanvas,
+  unmountReviewCanvas,
+} from "./sequence-canvas.jsx";
 
 export function bootDesk() {
   const vscode = acquireHost();
@@ -82,6 +90,21 @@ let llmTok = 0;
 
 const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
 const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
+const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1 };
+
+function reviewCanvasWorkspace(ws) {
+  return !!REVIEW_CANVAS_WS[ws || explorerWs];
+}
+
+function unmountAllReviewCanvases() {
+  unmountReviewCanvas();
+  unmountSequenceCanvas();
+  seqBodyKey = "";
+  deltaBodyKey = "";
+  dfBodyKey = "";
+  lcBodyKey = "";
+  sliceBodyKey = "";
+}
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -130,10 +153,14 @@ let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
 let seqBodyKey = "";
+let deltaBodyKey = "";
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
+let dfBodyKey = "";
 let lcCursor = -1;
 let lcWalk = { playing: false, timer: 0 };
+let lcBodyKey = "";
+let sliceBodyKey = "";
 let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -894,6 +921,7 @@ function exportDiagramRoot() {
     document.getElementById("dfCanvas") ||
     document.getElementById("lcCanvas") ||
     document.getElementById("deltaCanvas") ||
+    document.getElementById("sliceCanvas") ||
     document.querySelector("#canvas .stage") ||
     document.getElementById("canvas")
   );
@@ -1705,7 +1733,9 @@ function resetCam() {
 
 function fitChart() {
   const stage = canvas.querySelector(".stage");
-  const wrap = (stage && stage.querySelector(".comm-wrap, .steiner-wrap")) || canvas.querySelector(".comm-wrap, .steiner-wrap");
+  const wrap =
+    (stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas")) ||
+    canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas");
   if (!stage || !wrap) {
     setCamTarget(0, 0, 1);
     return;
@@ -1819,6 +1849,7 @@ function bindStage(stage, opts) {
 function bindGraphFx() {
   const wrap = canvas.querySelector(".steiner-wrap");
   const svg = canvas.querySelector("svg.steiner");
+  const xyHost = document.getElementById("sliceCanvas");
   if (svg) {
     const edges = [...svg.querySelectorAll(".edge")];
     const flows = [...svg.querySelectorAll(".edge-flow")];
@@ -1872,10 +1903,20 @@ function bindGraphFx() {
         if (wrap) wrap.classList.add("flowing");
       }, 520);
     }
+  } else if (xyHost) {
+    stampXyFlowAttrs();
+    xyHost.querySelectorAll(".vnode").forEach((g) => {
+      const fqn = g.getAttribute("data-fqn") || "";
+      g.addEventListener("pointerenter", (ev) => showTip(fqn, ev));
+      g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
+      g.addEventListener("pointerleave", hideTip);
+    });
   }
-  bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
-    onClick: (id, el) => selectNode(id, { zoomEl: el }),
-  });
+  if (!xyHost) {
+    bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
+      onClick: (id, el) => selectNode(id, { zoomEl: el }),
+    });
+  }
   bindDraggable(canvas.querySelector(".chart"), ".run", {
     idAttr: "data-run",
     onClick: (_id, el) => enterRun(el.getAttribute("data-flow"), el.getAttribute("data-bubble"), el),
@@ -1952,9 +1993,8 @@ function paint(opts) {
   const animate = (opts && opts.animate) || "all";
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
-  if (explorerWs !== "sequence") {
-    unmountSequenceCanvas();
-    seqBodyKey = "";
+  if (!reviewCanvasWorkspace(explorerWs)) {
+    unmountAllReviewCanvases();
   }
   const top = stack[stack.length - 1];
   syncBackBtn();
@@ -2098,7 +2138,7 @@ function showProgress(msg) {
   else if (!canvas.childElementCount || canvas.querySelector(".empty")) {
     canvas.classList.remove("stale");
     if (!canvas.querySelector(".skeleton")) {
-      unmountSequenceCanvas();
+      unmountAllReviewCanvases();
       canvas.innerHTML =
         '<div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div><div class="empty pulse">' +
         esc(msg.label || "Working…") +
@@ -3342,7 +3382,8 @@ function applyPathWalkPaint() {
     const b = id ? bubbleOf(id) : null;
     el.classList.toggle("walk", !!(bid && (id === bid || (b && idVal(b.id) === bid))));
   });
-  document.querySelectorAll(".comm-edges path, svg.steiner .edge").forEach((p) => {
+  stampXyFlowAttrs();
+  document.querySelectorAll(".comm-edges path, svg.steiner .edge, .react-flow__edge").forEach((p) => {
     if (!bid) {
       p.classList.remove("walk");
       return;
@@ -3651,7 +3692,21 @@ function hopDistance(from, to) {
   return 99;
 }
 
+function stampXyFlowAttrs() {
+  document.querySelectorAll(".react-flow__edge").forEach((el) => {
+    const raw = el.getAttribute("data-id") || el.id || "";
+    const id = raw.indexOf("xy:") === 0 ? raw : (raw.split("xy:")[1] ? "xy:" + raw.split("xy:")[1] : raw);
+    if (id.indexOf("xy:") !== 0) return;
+    const parts = id.slice(3).split(":");
+    if (parts.length < 2) return;
+    el.setAttribute("data-from", parts[0]);
+    el.setAttribute("data-to", parts[1]);
+    if (parts[2]) el.setAttribute("data-kind", parts[2]);
+  });
+}
+
 function applyEgoPaint() {
+  stampXyFlowAttrs();
   const sid = selectedNodeId ? String(selectedNodeId) : "";
   const neighbors = sid ? neighborhood(sid, egoHops) : new Set();
   const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
@@ -4638,7 +4693,7 @@ function deltaHopState(fromFqn, toFqn, kind) {
   return "same";
 }
 
-function renderDeltaCanvas(view, hot) {
+function deltaReading(view, hot) {
   const { head, parent } = deltaGraphPair();
   const src = view === "before" ? parent : view === "after" ? head : null;
   const nodesById = new Map();
@@ -4661,9 +4716,6 @@ function renderDeltaCanvas(view, hot) {
   let nodes = [...nodesById.values()].filter((n) => !want.size || want.has(n.fqn));
   if (nodes.length < 2) nodes = [...nodesById.values()].slice(0, 16);
   if (nodes.length > 24) nodes = nodes.slice(0, 24);
-  if (!nodes.length) {
-    return '<div class="empty" id="deltaCanvas">No derived nodes for this reading.</div>';
-  }
   const ids = nodes.map((n) => idVal(n.id));
   const idSet = new Set(ids);
   const edgeSrc =
@@ -4673,125 +4725,154 @@ function renderDeltaCanvas(view, hot) {
         ? head.edges || []
         : [].concat(parent.edges || [], head.edges || []);
   const seenE = new Set();
-  const edges = [];
-  edgeSrc.forEach((e) => {
+  const hops = [];
+  edgeSrc.forEach((e, i) => {
     const a = idVal(e.from);
     const b = idVal(e.to);
     if (!idSet.has(a) || !idSet.has(b)) return;
     const k = a + "\t" + b + "\t" + (e.kind || "");
     if (seenE.has(k)) return;
     seenE.add(k);
-    edges.push(e);
-  });
-  const laid = layeredPositions(ids, edges, {
-    nodeW: 176,
-    nodeH: 64,
-    gapX: 88,
-    gapY: 40,
-    pad: 40,
-    minW: 560,
-    minH: 240,
-    maxCols: 6,
-    pins: new Map(),
-  });
-  const W = laid.W;
-  const H = laid.H;
-  const pos = laid.pos;
-  let svg =
-    '<svg class="steiner steiner-edges" viewBox="0 0 ' +
-    W +
-    " " +
-    H +
-    '" width="' +
-    W +
-    '" height="' +
-    H +
-    '">';
-  edges.forEach((e) => {
-    const a = pos.get(idVal(e.from));
-    const b = pos.get(idVal(e.to));
-    if (!a || !b) return;
-    const fromN = nodesById.get(idVal(e.from));
-    const toN = nodesById.get(idVal(e.to));
+    const fromN = nodesById.get(a);
+    const toN = nodesById.get(b);
     const state = deltaHopState((fromN && fromN.fqn) || "", (toN && toN.fqn) || "", e.kind);
-    const hotHop =
-      !!(hot &&
-        hot.from_fqn &&
-        fromN &&
-        toN &&
-        hot.from_fqn === fromN.fqn &&
-        hot.to_fqn === toN.fqn);
-    const d = orthoPath(a, b);
-    svg +=
-      '<path class="edge-hit" data-from="' +
-      idVal(e.from) +
-      '" data-to="' +
-      idVal(e.to) +
-      '" data-kind="' +
-      esc(e.kind || "") +
-      '" data-delta-state="' +
-      state +
-      (hotHop ? '" data-delta-review-current="1' : "") +
-      '" d="' +
-      d +
-      '" /><path class="edge' +
-      (hotHop ? " walk" : "") +
-      '" data-from="' +
-      idVal(e.from) +
-      '" data-to="' +
-      idVal(e.to) +
-      '" data-kind="' +
-      esc(e.kind || "") +
-      '" data-delta-state="' +
-      state +
-      '" d="' +
-      d +
-      '" />';
+    const hotHop = !!(
+      hot &&
+      hot.from_fqn &&
+      fromN &&
+      toN &&
+      hot.from_fqn === fromN.fqn &&
+      hot.to_fqn === toN.fqn
+    );
+    hops.push({
+      i,
+      from: a,
+      to: b,
+      kind: e.kind || "",
+      state,
+      hot: hotHop,
+    });
   });
-  svg += "</svg>";
-  let cards = "";
-  nodes.forEach((n) => {
-    const p = pos.get(idVal(n.id));
-    if (!p) return;
-    const state = deltaNodeState(n.fqn);
+  const items = nodes.map((n) => {
     const hotNode = !!(hot && !hot.from_fqn && hot.fqn === n.fqn);
-    cards +=
-      '<button type="button" class="vnode ' +
-      kindClass(n.kind) +
-      (hotNode ? " walk" : "") +
-      '" style="left:' +
-      p.x +
-      "px;top:" +
-      p.y +
-      'px" data-id="' +
-      idVal(n.id) +
-      '" data-fqn="' +
-      esc(n.fqn) +
-      '" data-kind="' +
-      esc(n.kind || "") +
-      '" data-delta-state="' +
-      state +
-      (hotNode ? '" data-delta-review-current="1' : "") +
-      '"><span class="kind">' +
-      esc(n.kind || "node") +
-      '</span><span class="name">' +
-      esc(shortOf(n.fqn)) +
-      '</span><span class="fqn">' +
-      esc(n.fqn) +
-      "</span></button>";
+    return {
+      id: idVal(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: kindClass(n.kind),
+      state: deltaNodeState(n.fqn),
+      label: shortOf(n.fqn),
+      hot: hotNode,
+    };
   });
+  const hotIds = items.filter((n) => n.hot).map((n) => n.id);
+  hops.forEach((h) => {
+    if (h.hot) {
+      hotIds.push(h.from);
+      hotIds.push(h.to);
+    }
+  });
+  return { nodes: items, hops, hotIds };
+}
+
+function renderDeltaCanvas(view) {
   return (
-    '<div id="deltaCanvas" class="delta-canvas" data-delta-view="' +
+    '<div id="deltaCanvas" class="delta-canvas seq-canvas" data-delta-view="' +
     esc(view) +
-    '"><div class="steiner-wrap" style="width:' +
-    W +
-    "px;height:" +
-    H +
-    'px">' +
-    svg +
-    cards +
-    "</div></div>"
+    '"></div>'
   );
+}
+
+function deltaWorkspaceKey() {
+  const facts = deltaFacts();
+  return [facts.length, graphFilter.q || "", facts[0] && facts[0].fqn].join("\0");
+}
+
+function deltaCanvasProps() {
+  const facts = deltaFacts();
+  const hot = deltaCursor >= 0 ? facts[deltaCursor] : null;
+  const reading = deltaReading(deltaView, hot);
+  return {
+    nodes: reading.nodes,
+    hops: reading.hops,
+    cursor: deltaCursor,
+    hotIds: reading.hotIds,
+    onNodeClick: (id) => {
+      if (!id) return;
+      selectedNodeId = id;
+      peekSource(id);
+    },
+    onHopClick: (iOrHop) => {
+      const hops = reading.hops;
+      const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+      if (!hop) return;
+      const facts = deltaFacts();
+      const idx = facts.findIndex(
+        (f) =>
+          (f.from_fqn &&
+            reading.nodes.some((n) => n.id === hop.from && n.fqn === f.from_fqn) &&
+            reading.nodes.some((n) => n.id === hop.to && n.fqn === f.to_fqn)) ||
+          (!f.from_fqn && reading.nodes.some((n) => n.id === hop.from && n.fqn === f.fqn))
+      );
+      if (idx >= 0) {
+        deltaCursor = idx;
+        applyDeltaFactView(facts[idx]);
+        paint({ animate: "none" });
+      }
+    },
+  };
+}
+
+function patchDeltaChrome() {
+  const facts = deltaFacts();
+  const hot = deltaCursor >= 0 ? facts[deltaCursor] : null;
+  canvas.querySelectorAll("#deltaFacts .delta-fact").forEach((el) => {
+    const i = parseInt(el.getAttribute("data-delta-i"), 10);
+    el.classList.toggle("on", i === deltaCursor);
+  });
+  canvas.querySelectorAll("#deltaView [data-delta-view]").forEach((el) => {
+    if (el.id === "deltaCanvas") return;
+    const on = el.getAttribute("data-delta-view") === deltaView;
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  const host = document.getElementById("deltaCanvas");
+  if (host) host.setAttribute("data-delta-view", deltaView);
+  const status = document.getElementById("deltaStatus");
+  if (status) {
+    status.textContent = hot
+      ? deltaCursor + 1 + "/" + facts.length + " · " + deltaMarker(hot.status) + " " + (hot.fqn || "")
+      : facts.length
+        ? facts.length + " facts"
+        : "identical pair";
+  }
+  const play = document.getElementById("deltaPlay");
+  if (play) {
+    play.classList.toggle("on", !!deltaWalk.playing);
+    play.setAttribute("aria-pressed", deltaWalk.playing ? "true" : "false");
+  }
+}
+
+function paintDeltaWorkspace(title) {
+  canvas.className = "play explorer-list";
+  const html = renderDeltaBody();
+  const key = deltaWorkspaceKey();
+  const keep = !!(
+    canvas.querySelector(".delta-page") &&
+    document.getElementById("deltaCanvas") &&
+    key === deltaBodyKey &&
+    html.indexOf('id="deltaCanvas"') >= 0
+  );
+  if (keep) {
+    patchDeltaChrome();
+  } else {
+    unmountReviewCanvas();
+    canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+    deltaBodyKey = html.indexOf('id="deltaCanvas"') >= 0 ? key : "";
+  }
+  const host = document.getElementById("deltaCanvas");
+  if (host && !host.classList.contains("empty")) mountDeltaCanvas(host, deltaCanvasProps());
+  else if (!host) unmountReviewCanvas();
 }
 
 function renderDeltaBody() {
@@ -5688,6 +5769,11 @@ function renderDataflowBody() {
   return (
     '<div class="df-page">' +
     review +
+    '<div class="df-stages" id="dfStages" style="--df-n:' +
+    stages.length +
+    '">' +
+    stageCols +
+    "</div>" +
     '<div class="ws-split">' +
     '<div class="ws-list" id="dfHops">' +
     list +
@@ -5696,13 +5782,100 @@ function renderDataflowBody() {
     '<div class="k">' +
     esc((flow && flow.name) || "flow") +
     " · pipeline</div>" +
-    '<div id="dfCanvas" class="df-canvas">' +
-    '<div class="df-stages" id="dfStages" style="--df-n:' +
-    stages.length +
-    '">' +
-    stageCols +
-    "</div></div></div></div></div>"
+    '<div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>'
   );
+}
+
+function dataflowWorkspaceKey() {
+  const flow = dataflowFlow();
+  const reading = dataflowOf(flow);
+  return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || ""].join("\0");
+}
+
+function dataflowCanvasProps() {
+  const reading = dataflowOf(dataflowFlow());
+  return {
+    nodes: reading.nodes.map((n) => {
+      const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+      return {
+        id: idVal(n.id),
+        fqn: n.fqn,
+        kind: n.kind || "Function",
+        label: shortOf(n.fqn),
+        role: n.role,
+        endRole: n.end_role || "",
+        channel: n.channel || "",
+        ep,
+      };
+    }),
+    hops: reading.hops.map((h, i) => ({
+      i,
+      from: idVal(h.from),
+      to: idVal(h.to),
+      kind: h.kind || "",
+    })),
+    cursor: dfCursor,
+    onNodeClick: (id) => {
+      if (!id) return;
+      selectedNodeId = id;
+      peekSource(id);
+    },
+    onHopClick: (i) => {
+      if (!Number.isFinite(i)) return;
+      stopDfWalk();
+      dfCursor = i;
+      paint({ animate: "none" });
+      focusDfHop(dfHops()[i]);
+    },
+  };
+}
+
+function patchDataflowChrome() {
+  const hops = dfHops();
+  const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+  canvas.querySelectorAll("#dfHops .df-hop").forEach((el) => {
+    const i = parseInt(el.getAttribute("data-df-i"), 10);
+    el.classList.toggle("on", i === dfCursor);
+  });
+  canvas.querySelectorAll("#dfStages .df-node").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
+    el.classList.toggle("on", on);
+  });
+  const status = document.getElementById("dfStatus");
+  const flow = dataflowFlow();
+  if (status) {
+    status.textContent = hot
+      ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
+      : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
+  }
+  const play = document.getElementById("dfPlay");
+  if (play) {
+    play.classList.toggle("on", !!dfWalk.playing);
+    play.setAttribute("aria-pressed", dfWalk.playing ? "true" : "false");
+  }
+}
+
+function paintDataflowWorkspace(title) {
+  canvas.className = "play explorer-list";
+  const html = renderDataflowBody();
+  const key = dataflowWorkspaceKey();
+  const keep = !!(
+    canvas.querySelector(".df-page") &&
+    document.getElementById("dfCanvas") &&
+    key === dfBodyKey &&
+    html.indexOf('id="dfCanvas"') >= 0
+  );
+  if (keep) {
+    patchDataflowChrome();
+  } else {
+    unmountReviewCanvas();
+    canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+    dfBodyKey = html.indexOf('id="dfCanvas"') >= 0 ? key : "";
+  }
+  const host = document.getElementById("dfCanvas");
+  if (host) renderDataflowCanvas(host, dataflowCanvasProps());
+  else unmountReviewCanvas();
 }
 
 function bindDataflowPage() {
@@ -6037,6 +6210,11 @@ function renderLifecycleBody() {
   return (
     '<div class="lc-page">' +
     review +
+    '<div class="lc-lanes" id="lcLanes" style="--lc-n:' +
+    lanes.length +
+    '">' +
+    laneCols +
+    "</div>" +
     '<div class="ws-split">' +
     '<div class="ws-list" id="lcTrans">' +
     list +
@@ -6045,15 +6223,107 @@ function renderLifecycleBody() {
     '<div class="k">' +
     esc((flow && flow.name) || "flow") +
     " · review machine</div>" +
-    '<div id="lcCanvas" class="lc-canvas">' +
-    '<div class="lc-lanes" id="lcLanes" style="--lc-n:' +
-    lanes.length +
-    '">' +
-    laneCols +
-    "</div>" +
+    '<div id="lcCanvas" class="lc-canvas seq-canvas"></div>' +
     endsBlock +
-    "</div></div></div></div>"
+    "</div></div></div>"
   );
+}
+
+function lifecycleWorkspaceKey() {
+  const flow = lifecycleFlow();
+  const reading = lifecycleOf(flow);
+  return [flow && flow.name, reading.states.length, reading.transitions.length, graphFilter.q || ""].join("\0");
+}
+
+function lifecycleCanvasProps() {
+  const flow = lifecycleFlow();
+  const reading = lifecycleOf(flow);
+  const hops = reading.transitions;
+  const hot = lcCursor >= 0 ? hops[lcCursor] : null;
+  const now = hot ? hot.to : lcCurrentId(flow);
+  return {
+    nodes: reading.states.map((s) => ({
+      id: s.id,
+      label: s.label || s.id,
+      type: lcStateKind(s),
+      lane: s.lane || "",
+      col: s.col,
+      sublabel: s.sublabel || "",
+    })),
+    hops: hops.map((h, i) => ({
+      i,
+      from: h.from,
+      to: h.to,
+      kind: h.label || "",
+      label: h.label || "",
+    })),
+    cursor: lcCursor,
+    nowId: now,
+    onNodeClick: (id) => {
+      const i = hops.findIndex((h) => h.to === id || h.from === id);
+      if (i >= 0) {
+        stopLcWalk();
+        lcCursor = i;
+        paint({ animate: "none" });
+        focusLcTrans(hops[i]);
+      }
+    },
+    onHopClick: (i) => {
+      if (!Number.isFinite(i)) return;
+      stopLcWalk();
+      lcCursor = i;
+      paint({ animate: "none" });
+      focusLcTrans(hops[i]);
+    },
+  };
+}
+
+function patchLifecycleChrome() {
+  const hops = lcTrans();
+  const hot = lcCursor >= 0 ? hops[lcCursor] : null;
+  const flow = lifecycleFlow();
+  const now = hot ? hot.to : lcCurrentId(flow);
+  canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el) => {
+    const i = parseInt(el.getAttribute("data-lc-i"), 10);
+    el.classList.toggle("on", i === lcCursor);
+  });
+  canvas.querySelectorAll("#lcLanes .lc-state").forEach((el) => {
+    const id = el.getAttribute("data-lc-id");
+    el.classList.toggle("on", now === id || !!(hot && (hot.from === id || hot.to === id)));
+  });
+  const status = document.getElementById("lcStatus");
+  if (status) {
+    status.textContent = hot
+      ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to
+      : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now;
+  }
+  const play = document.getElementById("lcPlay");
+  if (play) {
+    play.classList.toggle("on", !!lcWalk.playing);
+    play.setAttribute("aria-pressed", lcWalk.playing ? "true" : "false");
+  }
+}
+
+function paintLifecycleWorkspace(title) {
+  canvas.className = "play explorer-list";
+  const html = renderLifecycleBody();
+  const key = lifecycleWorkspaceKey();
+  const keep = !!(
+    canvas.querySelector(".lc-page") &&
+    document.getElementById("lcCanvas") &&
+    key === lcBodyKey &&
+    html.indexOf('id="lcCanvas"') >= 0
+  );
+  if (keep) {
+    patchLifecycleChrome();
+  } else {
+    unmountReviewCanvas();
+    canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+    lcBodyKey = html.indexOf('id="lcCanvas"') >= 0 ? key : "";
+  }
+  const host = document.getElementById("lcCanvas");
+  if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
+  else unmountReviewCanvas();
 }
 
 function bindLifecyclePage() {
@@ -6159,18 +6429,51 @@ function renderExplorerList(ws) {
     applyProbePaint();
     return;
   }
-  unmountSequenceCanvas();
-  seqBodyKey = "";
+  if (ws === "delta") {
+    paintDeltaWorkspace(titles.delta);
+    bindWorkbenchPages();
+    bindDeltaPage();
+    applyProbePaint();
+    return;
+  }
+  if (ws === "dataflow") {
+    paintDataflowWorkspace(titles.dataflow);
+    bindWorkbenchPages();
+    bindDataflowPage();
+    applyProbePaint();
+    return;
+  }
+  if (ws === "lifecycle") {
+    paintLifecycleWorkspace(titles.lifecycle);
+    bindWorkbenchPages();
+    bindLifecyclePage();
+    applyProbePaint();
+    return;
+  }
+  if (ws !== "overview") {
+    unmountAllReviewCanvases();
+  }
   let html = "";
   if (ws === "overview") html = renderOverviewBody();
   else if (ws === "decisions") html = renderDecisionBody();
   else if (ws === "registry") html = renderRegistryBody();
-  else if (ws === "delta") html = renderDeltaBody();
-  else if (ws === "dataflow") html = renderDataflowBody();
-  else if (ws === "lifecycle") html = renderLifecycleBody();
   else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
-  canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+  if (ws === "overview") {
+    const key = sliceWorkspaceKey();
+    const keep = !!(
+      canvas.querySelector("#sliceCanvas") &&
+      key === sliceBodyKey &&
+      canvas.querySelector(".expl-wrap")
+    );
+    if (!keep) {
+      unmountReviewCanvas();
+      canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+      sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
+    }
+  } else {
+    canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+  }
   if (ws === "overview") {
     const stage = canvas.querySelector(".stage");
     if (stage) {
@@ -6179,9 +6482,10 @@ function renderExplorerList(ws) {
     } else {
       setZoomUi(false);
     }
+    const flow = defaultRunFlow();
+    mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
     bindGraphFx();
     applyEgoPaint();
-    const flow = defaultRunFlow();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
     if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
     setLedgerHead("RUN");
@@ -6218,6 +6522,7 @@ function renderExplorerList(ws) {
     };
   });
   canvas.querySelectorAll("[data-id]").forEach((el) => {
+    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas")) return;
     el.onclick = () => {
       explorerWs = "lineage";
       explorerPinned = true;
@@ -7341,21 +7646,35 @@ function renderFlowchart(msg, opts) {
   const keepCam = !!(opts && opts.keepCam) || animate === "runs";
   const treeHtml = renderSteiner(flow, msg.graph, playTree, scarSet(msg.findings, flow.name));
   const runHtml = renderRuns(flow, msg, playRuns);
+  const key = sliceWorkspaceKey();
+  const keep = !!(
+    canvas.classList.contains("has-stage") &&
+    document.getElementById("sliceCanvas") &&
+    key === sliceBodyKey &&
+    lastTreeKey === treeKey(flow)
+  );
   canvas.className = "play has-stage";
-  canvas.innerHTML =
-    renderStoryRailHtml() +
-    '<div class="stage"><div class="viewport" data-lod="' +
-    lodOf(cam.k) +
-    '">' +
-    '<div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' +
-    treeHtml +
-    (runHtml
-      ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
-      : preview
-        ? '<div class="hint-live">Runs appear when clustering finishes</div>'
-        : "") +
-    "</div></div>";
-  bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+  if (!keep) {
+    unmountReviewCanvas();
+    canvas.innerHTML =
+      renderStoryRailHtml() +
+      '<div class="stage"><div class="viewport" data-lod="' +
+      lodOf(cam.k) +
+      '">' +
+      '<div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' +
+      treeHtml +
+      (runHtml
+        ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml
+        : preview
+          ? '<div class="hint-live">Runs appear when clustering finishes</div>'
+          : "") +
+      "</div></div>";
+    sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
+    bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+  } else {
+    bindStage(canvas.querySelector(".stage"), { reset: false });
+  }
+  mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
   bindGraphFx();
   setZoomUi(true);
   applyGraphFilter();
@@ -7382,167 +7701,93 @@ function scarSet(findings, flowName) {
   return keys;
 }
 
-function renderSteiner(flow, graph, animate, scars) {
-  const nodes = flow.tree?.nodes || [];
-  const edges = flow.tree?.edges || [];
-  if (!nodes.length) return '<div class="empty">Empty tree.</div>';
-  const ids = nodes.map(idVal);
-  const laid = layeredPositions(ids, edges, {
-    nodeW: 176,
-    nodeH: 72,
-    gapX: 96,
-    gapY: 52,
-    pad: 56,
-    minW: 720,
-    minH: 300,
-    maxCols: 8,
-    pins: pinsForCurrent(),
-  });
-  const W = laid.W,
-    H = laid.H;
-  const pos = Object.fromEntries(laid.pos);
-  const level = {};
-  for (const [id, r] of laid.rank || []) level[id] = r;
-  let svg =
-    '<svg class="steiner steiner-edges' +
-    (animate ? " play" : "") +
-    '" viewBox="0 0 ' +
-    W +
-    " " +
-    H +
-    '" width="' +
-    W +
-    '" height="' +
-    H +
-    '"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" /></marker></defs>';
-  for (const e of edges) {
-    const a = pos[idVal(e.from)],
-      b = pos[idVal(e.to)];
-    if (!a || !b) continue;
-    const mx = Math.round((a.x + b.x) / 2),
-      my = Math.round((a.y + b.y) / 2) - 10;
-    const d = orthoPath(a, b);
-    const from = idVal(e.from),
-      to = idVal(e.to);
-    const scar =
-      scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
-    const kind = e.kind || "Calls";
-    svg +=
-      '<path class="edge-hit" pathLength="1" data-from="' +
-      from +
-      '" data-to="' +
-      to +
-      '" data-kind="' +
-      esc(kind) +
-      '" d="' +
-      d +
-      '" />';
-    svg +=
-      '<path class="edge' +
-      (scar ? " scar" : "") +
-      '" pathLength="1" marker-end="url(#arr)" data-from="' +
-      from +
-      '" data-to="' +
-      to +
-      '" data-kind="' +
-      esc(kind) +
-      '" d="' +
-      d +
-      '" />';
-    svg +=
-      '<path class="edge-flow' +
-      (scar ? " scar" : "") +
-      '" pathLength="1" data-from="' +
-      from +
-      '" data-to="' +
-      to +
-      '" data-kind="' +
-      esc(kind) +
-      '" d="' +
-      d +
-      '" />';
-    svg +=
-      '<text class="ekind" x="' +
-      mx +
-      '" y="' +
-      my +
-      '" text-anchor="middle" data-from="' +
-      from +
-      '" data-to="' +
-      to +
-      '" data-kind="' +
-      esc(kind) +
-      '">' +
-      esc(kind) +
-      "</text>";
-    const pkt = String(kind).toUpperCase().slice(0, 5) + " " + shortToken(to);
-    svg +=
-      '<g class="pkt"><rect x="-22" y="-7" width="44" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">' +
-      esc(pkt) +
-      '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' +
-      d +
-      '" /></g>';
-  }
-  svg += "</svg>";
+function sliceWorkspaceKey() {
+  const flow = currentFlow() || defaultRunFlow();
+  const tree = (flow && flow.tree) || { nodes: [], edges: [] };
+  return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
+}
+
+function sliceCanvasProps(flow, graph, scars) {
+  const nodes = (flow && flow.tree && flow.tree.nodes) || [];
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
   const snippets = (snapshot && snapshot.snippets) || {};
   const walk = flowWalk(flow);
-  let cards = "";
-  for (const id of nodes) {
-    const p = pos[idVal(id)];
-    if (!p) continue;
+  const items = nodes.slice(0, 48).map((id) => {
     const nid = idVal(id);
     const kind = kindOf(graph, id) || "Function";
     const fqn = fqnOf(graph, id);
-    const label = shortOf(fqn);
-    const d = level[nid] || 0;
     const node = nodeById.get(nid);
-    const file = node?.span?.file || "";
-    const line = node?.span?.start?.line || "";
-    const where = file ? shortFile(file) + (line ? ":" + line : "") : "";
-    const snip = snippetPreview(snippets[nid]);
+    const file = node && node.span ? node.span.file : "";
+    const line = node && node.span && node.span.start ? node.span.start.line : "";
     const flags = nodeFlags(nid);
-    const away = nodeAway(nid);
-    cards +=
-      '<button type="button" class="vnode ' +
-      kindClass(kind) +
-      (away ? " away" : "") +
-      (flags.uncovered ? " uncovered" : flags.changed ? " changed" : "") +
-      (selectedNodeId === nid ? " selected" : "") +
-      '" style="left:' +
-      p.x +
-      "px;top:" +
-      p.y +
-      "px;--d:" +
-      d +
-      '" data-id="' +
-      nid +
-      '" data-fqn="' +
-      esc(fqn) +
-      '" data-kind="' +
-      esc(kind) +
-      '" data-file="' +
-      esc(file) +
-      '">';
     const at = walk.indexOf(nid);
     const hopRole = at === 0 ? "START · " : at === walk.length - 1 && walk.length > 1 ? "END · " : "";
-    cards += '<span class="kind">' + esc(hopRole + kindLine(nid, kind)) + "</span>";
-    cards += '<span class="name">' + esc(label) + "</span>";
-    if (where) cards += '<span class="where">' + esc(where) + "</span>";
-    cards += '<span class="fqn">' + esc(fqn) + "</span>";
-    if (snip) cards += "<pre class=\"snip\">" + esc(snip) + "</pre>";
-    cards += "</button>";
+    return {
+      id: nid,
+      fqn,
+      kind,
+      kindClass: kindClass(kind),
+      label: shortOf(fqn),
+      kindLine: hopRole + kindLine(nid, kind),
+      where: file ? shortFile(file) + (line ? ":" + line : "") : "",
+      file: file || "",
+      snip: snippetPreview(snippets[nid]),
+      away: nodeAway(nid),
+      uncovered: !!flags.uncovered,
+      changed: !!flags.changed,
+      selected: selectedNodeId === nid,
+      depth: at < 0 ? 0 : at,
+    };
+  });
+  const idSet = new Set(items.map((n) => n.id));
+  const hops = [];
+  (edges || []).slice(0, 80).forEach((e, i) => {
+    const from = idVal(e.from);
+    const to = idVal(e.to);
+    if (!idSet.has(from) || !idSet.has(to)) return;
+    const scar =
+      scars &&
+      (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+    hops.push({
+      i,
+      from,
+      to,
+      kind: e.kind || "Calls",
+      scar: !!scar,
+    });
+  });
+  return {
+    nodes: items,
+    hops,
+    embed: true,
+    onNodeClick: (id) => {
+      if (!id) return;
+      selectNode(id);
+    },
+    onHopClick: (iOrHop) => {
+      const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+      if (hop) showHop(hop.from, hop.to, hop.kind);
+    },
+  };
+}
+
+function mountSliceCanvas(flow, graph, scars) {
+  const host = document.getElementById("sliceCanvas");
+  if (!host || !flow) {
+    if (!host) unmountReviewCanvas();
+    return;
   }
+  renderSliceCanvas(host, sliceCanvasProps(flow, graph, scars));
+  stampXyFlowAttrs();
+}
+
+function renderSteiner(flow, graph, animate, scars) {
+  const nodes = flow.tree?.nodes || [];
+  if (!nodes.length) return '<div class="empty">Empty tree.</div>';
   return (
-    '<div class="steiner-wrap' +
+    '<div id="sliceCanvas" class="slice-canvas steiner-wrap' +
     (animate ? " play" : "") +
-    '" style="width:' +
-    W +
-    "px;height:" +
-    H +
-    'px">' +
-    svg +
-    cards +
-    "</div>"
+    '"></div>'
   );
 }
 

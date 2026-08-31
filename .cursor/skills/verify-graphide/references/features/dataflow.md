@@ -16,7 +16,9 @@ workspace is the left-to-right pipeline, not a second ego tab.
   (`data-end-role`, `data-channel`).
 - Ordered hops `#dfHops .df-hop` with `data-df-i`, `data-kind`, `data-from`,
   `data-to`. Reads / Subscribes are reversed so each hop is producer → consumer.
-- Canvas `#dfCanvas` is the left-to-right pipeline. Movement is the hop list.
+- Canvas `#dfCanvas` mounts XYFlow (`#dfCanvas .react-flow`, `.react-flow__node`)
+  for the pipeline (cap 48). Stage strip `#dfStages` and hop list `#dfHops`
+  stay HTML. Movement is the hop list.
 - Play strip `#dfReview`: `#dfOverview` · `#dfPrev` · `#dfPlay` · `#dfNext` ·
   `#dfStatus`.
 - Play (`#dfPlay` / `P` on this workspace) walks hops finitely. At the last
@@ -66,6 +68,7 @@ Driver assertions:
 - `#dfHops .df-hop` length `>= 1` and hops are ordered (`data-df-i`)
 - some hop or node text matches `subscribe` / `publish` / `events`
 - `#dfPlay` / `#dfPrev` / `#dfNext` / `#dfOverview` / `#dfCanvas` exist
+- `#dfCanvas .react-flow__node` length `> 1` and `<= 48`
 - stepping Next past the end stays on the last `data-df-i` (no loop)
 - screenshot `verification/dataflow.png` is not a black frame
 - `.graphide/stamps/` is still empty
@@ -81,6 +84,7 @@ Driver assertions:
 - `P` on Data-flow walks hops. `P` on Sequence still walks callers. `P` on
   Delta still walks facts. `P` on Map / Overview still walks the story rail.
 - Do not add `data-component` / `data-testid`. `#dfHops`, `#dfStages`,
-  `[data-ws="dataflow"]`, `.df-node[data-df-role]` are the product hooks.
-- Do not vendor Archify's Node renderer. This reading uses Graphide `.vnode`
-  / explorer list chrome.
+  `[data-ws="dataflow"]`, `.df-node[data-df-role]`, `#dfCanvas .react-flow__node`
+  are the product hooks.
+- Do not vendor Archify's Node renderer. XYFlow nodes reuse `.df-node.vnode`
+  / kind pills from `main.css`.

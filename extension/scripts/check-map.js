@@ -133,6 +133,14 @@ assert(!chrome.includes("MiniMap") && !chrome.includes("<Controls"), "Sequence m
 assert(fs.existsSync(path.join(__dirname, "../media/xyflow.css")), "XYFlow CSS must ship as extension/media/xyflow.css");
 assert(css.includes('@import url("xyflow.css")'), "main.css must import the shipped XYFlow stylesheet");
 assert(css.includes("#seqCanvas .react-flow"), "Sequence XYFlow must be contained in #seqCanvas");
+assert(css.includes("#deltaCanvas .react-flow") && css.includes("#dfCanvas .react-flow") && css.includes("#lcCanvas .react-flow") && css.includes("#sliceCanvas .react-flow"), "Delta / Data-flow / Lifecycle / Slice XYFlow must be contained in their canvas hosts");
+assert(js.includes("function renderDeltaCanvas") || chrome.includes("mountDeltaCanvas") || chrome.includes("renderDeltaCanvas"), "Delta XYFlow mount missing");
+assert(js.includes("DELTA_NODE_CAP") || chrome.includes("DELTA_NODE_CAP") || chrome.includes("nodeCap: 24"), "Delta must cap at 24");
+assert(js.includes("function renderDataflowCanvas") || chrome.includes("renderDataflowCanvas"), "Data-flow XYFlow mount missing");
+assert(js.includes("function renderLifecycleCanvas") || chrome.includes("renderLifecycleCanvas"), "Lifecycle XYFlow mount missing");
+assert(js.includes("function renderSliceCanvas") || chrome.includes("renderSliceCanvas"), "Slice XYFlow mount missing");
+assert(js.includes('id="sliceCanvas"') || chrome.includes('id="sliceCanvas"'), "Slice must host XYFlow on #sliceCanvas");
+assert(js.includes("unmountReviewCanvas") || chrome.includes("unmountReviewCanvas"), "Review canvases must unmount when leaving the workspace");
 assert(/style-src \$\{webview.cspSource\}/.test(ext) && !/style-src[^;]*unsafe-inline/.test(ext), "CSP must not add style-src unsafe-inline");
 assert(!/script-src[^;]*unsafe-eval/.test(ext) && !/script-src[^;]*unsafe-inline/.test(ext), "CSP must not add script-src unsafe-eval / unsafe-inline");
 assert(js.includes(".slice(0, 24)"), "Map community LOD must stay cap 24");
@@ -263,9 +271,13 @@ assert(workflow.includes("dataflow-snap.json") && workflow.includes("fixtures/de
 assert(workflow.includes("lifecycle-snap.json") && workflow.includes("fixtures/demo"), "CI must derive fixtures/demo for Lifecycle");
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
 assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
+assert(driver.includes("D6b") && driver.includes("#deltaCanvas .react-flow__node"), "verify driver must prove Delta XYFlow");
 assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") && driver.includes("subscribe"), "verify driver must drive Sequence on the demo fixture");
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
+assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
+assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
+assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");

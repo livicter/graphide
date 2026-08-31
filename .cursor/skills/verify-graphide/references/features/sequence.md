@@ -84,4 +84,5 @@ Driver assertions:
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.seq-part.vnode`
   / kind pills from `main.css`.
 - Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not React-mount
-  the raw IR. XYFlow lives only in `#seqCanvas`.
+  the raw IR. Sequence XYFlow lives in `#seqCanvas`. Delta / Data-flow /
+  Lifecycle / Slice have their own canvas hosts.

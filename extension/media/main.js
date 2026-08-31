@@ -18667,62 +18667,91 @@
   // extension/media/src/graph/sequence-layout.js
   var SEQ_NODE_CAP = 48;
   var SEQ_HOP_CAP = 80;
-  var NODE_W = 168;
-  var NODE_H = 58;
-  function capSequence(participants, hops) {
-    const parts = (participants || []).slice(0, SEQ_NODE_CAP);
+  var GRAPH_NODE_CAP = 48;
+  var GRAPH_HOP_CAP = 80;
+  var DEFAULT_W = 168;
+  var DEFAULT_H = 58;
+  function capGraph(nodes, hops, nodeCap, hopCap) {
+    const capN = nodeCap == null ? GRAPH_NODE_CAP : nodeCap;
+    const capH = hopCap == null ? GRAPH_HOP_CAP : hopCap;
+    const parts = (nodes || []).slice(0, capN);
     const ids = new Set(parts.map((p) => String(p.id)));
-    const kept = (hops || []).filter((h) => ids.has(String(h.from)) && ids.has(String(h.to))).slice(0, SEQ_HOP_CAP);
-    return { participants: parts, hops: kept };
+    const kept = (hops || []).filter((h) => ids.has(String(h.from)) && ids.has(String(h.to))).slice(0, capH);
+    return { nodes: parts, hops: kept };
   }
-  function fallbackPositions(parts) {
+  function capSequence(participants, hops) {
+    const capped = capGraph(participants, hops, SEQ_NODE_CAP, SEQ_HOP_CAP);
+    return { participants: capped.nodes, hops: capped.hops };
+  }
+  function fallbackPositions(parts, nodeW, nodeH) {
     const gapX = 72;
     const gapY = 28;
     const pad = 24;
     return parts.map((p, i) => ({
       id: String(p.id),
-      x: pad + i * (NODE_W + gapX),
-      y: pad + i % 2 * (NODE_H + gapY)
+      x: pad + i * (nodeW + gapX),
+      y: pad + i % 2 * (nodeH + gapY)
     }));
   }
-  function dagrePositions(parts, hops) {
+  function dagrePositions(parts, hops, opts) {
+    const nodeW = opts.nodeW || DEFAULT_W;
+    const nodeH = opts.nodeH || DEFAULT_H;
     const g = new T({ multigraph: true });
-    g.setGraph({ rankdir: "LR", nodesep: 36, ranksep: 72, marginx: 24, marginy: 24 });
+    g.setGraph({
+      rankdir: opts.rankdir || "LR",
+      nodesep: opts.nodesep == null ? 36 : opts.nodesep,
+      ranksep: opts.ranksep == null ? 72 : opts.ranksep,
+      marginx: opts.marginx == null ? 24 : opts.marginx,
+      marginy: opts.marginy == null ? 24 : opts.marginy
+    });
     g.setDefaultEdgeLabel(() => ({}));
     for (const p of parts) {
-      g.setNode(String(p.id), { width: NODE_W, height: NODE_H });
+      g.setNode(String(p.id), { width: nodeW, height: nodeH });
     }
     for (const h of hops) {
       if (!g.hasNode(String(h.from)) || !g.hasNode(String(h.to))) continue;
-      g.setEdge(String(h.from), String(h.to), {}, "h" + h.i);
+      const key = h.i != null ? "h" + h.i : String(h.from) + ">" + String(h.to) + ">" + (h.kind || "");
+      g.setEdge(String(h.from), String(h.to), {}, key);
     }
     Oe(g);
     return parts.map((p) => {
       const n = g.node(String(p.id));
       return {
         id: String(p.id),
-        x: (n && n.x != null ? n.x : 0) - NODE_W / 2,
-        y: (n && n.y != null ? n.y : 0) - NODE_H / 2
+        x: (n && n.x != null ? n.x : 0) - nodeW / 2,
+        y: (n && n.y != null ? n.y : 0) - nodeH / 2
       };
     });
   }
+  function layoutGraph(nodes, hops, opts) {
+    opts = opts || {};
+    const nodeW = opts.nodeW || DEFAULT_W;
+    const nodeH = opts.nodeH || DEFAULT_H;
+    const capped = capGraph(nodes, hops, opts.nodeCap, opts.hopCap);
+    const parts = capped.nodes;
+    const hs = capped.hops;
+    if (!parts.length) return { nodes: [], hops: hs, width: nodeW, height: nodeH };
+    let laid;
+    try {
+      laid = dagrePositions(parts, hs, { ...opts, nodeW, nodeH });
+    } catch (err) {
+      laid = fallbackPositions(parts, nodeW, nodeH);
+    }
+    return { nodes: laid, hops: hs, width: nodeW, height: nodeH };
+  }
   function layoutSequence(participants, hops) {
     const capped = capSequence(participants, hops);
-    const parts = capped.participants;
-    const hs = capped.hops;
-    if (!parts.length) return { nodes: [], hops: hs, width: NODE_W, height: NODE_H };
-    let nodes;
-    try {
-      nodes = dagrePositions(parts, hs);
-    } catch (err) {
-      nodes = fallbackPositions(parts);
-    }
-    return { nodes, hops: hs, width: NODE_W, height: NODE_H };
+    const laid = layoutGraph(capped.participants, capped.hops, {
+      nodeCap: SEQ_NODE_CAP,
+      hopCap: SEQ_HOP_CAP,
+      nodeW: DEFAULT_W,
+      nodeH: DEFAULT_H
+    });
+    return laid;
   }
 
   // extension/media/src/graph/sequence-canvas.jsx
   var import_jsx_runtime11 = __toESM(require_jsx_runtime());
-  var NODE_TYPES = { seqPart: SeqParticipantNode };
   function SeqParticipantNode({ data }) {
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "div",
@@ -18740,6 +18769,99 @@
       }
     );
   }
+  function DeltaVnode({ data }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+      "div",
+      {
+        className: "vnode " + (data.kindClass || "kind-Function") + (data.hot ? " walk" : ""),
+        "data-id": data.id,
+        "data-fqn": data.fqn,
+        "data-kind": data.kind || "",
+        "data-delta-state": data.state || "same",
+        ...data.hot ? { "data-delta-review-current": "1" } : {},
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: data.kind || "node" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "fqn", children: data.fqn }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+        ]
+      }
+    );
+  }
+  function DfNode({ data }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+      "div",
+      {
+        className: "df-node vnode kind-" + (data.kind || "Function") + (data.on ? " on" : ""),
+        "data-id": data.id,
+        "data-fqn": data.fqn,
+        "data-kind": data.kind || "",
+        "data-df-role": data.role || "",
+        ...data.endRole ? { "data-end-role": data.endRole } : {},
+        ...data.channel ? { "data-channel": data.channel } : {},
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "meta", children: [
+            data.kind,
+            data.ep ? " · " + data.ep : ""
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+        ]
+      }
+    );
+  }
+  function LcStateNode({ data }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+      "div",
+      {
+        className: "lc-state vnode" + (data.on ? " on" : ""),
+        "data-lc-id": data.id,
+        "data-lc-type": data.lcType || "neutral",
+        "data-lc-lane": data.lane || "",
+        "data-lc-col": data.col == null ? "0" : String(data.col),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "meta", children: [
+            data.lcType,
+            data.sublabel ? " · " + data.sublabel : ""
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+        ]
+      }
+    );
+  }
+  function SliceVnode({ data }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+      "div",
+      {
+        className: "vnode " + (data.kindClass || "kind-Function") + (data.away ? " away" : "") + (data.uncovered ? " uncovered" : data.changed ? " changed" : "") + (data.selected ? " selected" : ""),
+        "data-id": data.id,
+        "data-fqn": data.fqn,
+        "data-kind": data.kind || "",
+        "data-file": data.file || "",
+        style: data.depth != null ? { "--d": data.depth } : void 0,
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: data.kindLine }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
+          data.where ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "where", children: data.where }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "fqn", children: data.fqn }),
+          data.snip ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("pre", { className: "snip", children: data.snip }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+        ]
+      }
+    );
+  }
+  var NODE_TYPES = {
+    seqPart: SeqParticipantNode,
+    deltaVnode: DeltaVnode,
+    dfNode: DfNode,
+    lcState: LcStateNode,
+    sliceVnode: SliceVnode
+  };
   function FitOnce({ graphKey }) {
     const rf = useReactFlow();
     const last = (0, import_react3.useRef)("");
@@ -18753,50 +18875,60 @@
     }, [graphKey, rf]);
     return null;
   }
-  function SequenceCanvas({ participants, hops, cursor, onNodeClick, onHopClick }) {
-    const laid = (0, import_react3.useMemo)(() => layoutSequence(participants, hops), [participants, hops]);
+  function ReviewCanvas({
+    nodeType,
+    laid,
+    items,
+    hops,
+    cursor,
+    hotIds,
+    onNodeClick,
+    onHopClick,
+    embed
+  }) {
     const graphKey = (0, import_react3.useMemo)(
-      () => laid.nodes.map((n) => n.id).join("|") + ":" + laid.hops.map((h) => h.i + ":" + h.from + ":" + h.to + ":" + h.kind).join(","),
+      () => laid.nodes.map((n) => n.id).join("|") + ":" + laid.hops.map((h) => h.i + ":" + h.from + ":" + h.to + ":" + (h.kind || "")).join(","),
       [laid]
     );
-    const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
     const nodes = (0, import_react3.useMemo)(
       () => laid.nodes.map((n) => {
-        const p = (participants || []).find((x) => String(x.id) === n.id) || { id: n.id };
-        const on2 = !!(hot && (String(hot.from) === n.id || String(hot.to) === n.id));
+        const item = (items || []).find((x) => String(x.id) === n.id) || { id: n.id };
+        const on2 = !!(hotIds && (hotIds.has(n.id) || hotIds.has(String(n.id))));
         return {
           id: n.id,
-          type: "seqPart",
+          type: nodeType,
           position: { x: n.x, y: n.y },
           width: laid.width,
           height: laid.height,
-          data: {
-            id: n.id,
-            fqn: p.fqn || "",
-            kind: p.kind || "Function",
-            label: p.label || n.id,
-            on: on2
-          },
+          data: { ...item, on: on2, hot: on2 },
           draggable: false,
           connectable: false
         };
       }),
-      [laid, participants, hot]
+      [laid, items, hotIds, nodeType]
     );
     const edges = (0, import_react3.useMemo)(
       () => laid.hops.map((h) => {
-        const on2 = h.i === cursor;
+        const on2 = h.i === cursor || !!h.hot;
         const ret = h.variant === "return";
+        const state = h.state || "";
         return {
-          id: "seq-h-" + h.i,
+          id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
           source: String(h.from),
           target: String(h.to),
           type: "smoothstep",
-          label: (h.kind || "") + (ret ? " return" : ""),
-          className: (on2 ? "on" : "") + (ret ? " ret" : ""),
-          data: { i: h.i, from: String(h.from), to: String(h.to), kind: h.kind, variant: h.variant },
+          label: (h.kind || h.label || "") + (ret ? " return" : ""),
+          className: (on2 ? "on" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
+          data: {
+            i: h.i,
+            from: String(h.from),
+            to: String(h.to),
+            kind: h.kind,
+            variant: h.variant,
+            state
+          },
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-          style: ret ? { strokeDasharray: "5 4" } : void 0
+          style: ret || state === "removed" ? { strokeDasharray: "5 4" } : void 0
         };
       }),
       [laid, cursor]
@@ -18808,8 +18940,10 @@
         edges,
         nodeTypes: NODE_TYPES,
         proOptions: { hideAttribution: true },
-        fitView: true,
+        fitView: !embed,
         fitViewOptions: { padding: 0.18 },
+        minZoom: embed ? 1 : 0.2,
+        maxZoom: embed ? 1 : 2,
         nodesDraggable: false,
         nodesConnectable: false,
         edgesReconnectable: false,
@@ -18818,51 +18952,259 @@
         selectionKeyCode: null,
         multiSelectionKeyCode: null,
         zoomOnScroll: false,
+        zoomOnPinch: !embed,
+        zoomOnDoubleClick: !embed,
         preventScrolling: false,
-        panOnDrag: true,
+        panOnDrag: !embed,
+        panOnScroll: false,
         onNodeClick: (_, node) => {
-          if (onNodeClick) onNodeClick(node.id);
+          if (onNodeClick) onNodeClick(node.id, node.data);
         },
         onEdgeClick: (_, edge) => {
           const i = edge.data && edge.data.i;
           if (Number.isFinite(i) && onHopClick) onHopClick(i);
+          else if (onHopClick && edge.data) onHopClick(edge.data);
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(FitOnce, { graphKey })
+        children: embed ? null : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(FitOnce, { graphKey })
       }
     ) });
   }
-  var seqRoot = null;
-  var seqHost = null;
-  function unmountSequenceCanvas() {
-    if (!seqRoot) return;
-    seqRoot.unmount();
-    seqRoot = null;
-    seqHost = null;
+  function layoutBounds(laid) {
+    let maxX = laid.width || 176;
+    let maxY = laid.height || 72;
+    for (const n of laid.nodes || []) {
+      maxX = Math.max(maxX, (n.x || 0) + (laid.width || 176));
+      maxY = Math.max(maxY, (n.y || 0) + (laid.height || 72));
+    }
+    return { W: Math.max(720, Math.ceil(maxX + 56)), H: Math.max(300, Math.ceil(maxY + 56)) };
   }
-  function renderSequenceCanvas(host, props) {
+  var graphRoot = null;
+  var graphHost = null;
+  function unmountReviewCanvas() {
+    if (!graphRoot) return;
+    graphRoot.unmount();
+    graphRoot = null;
+    graphHost = null;
+  }
+  function unmountSequenceCanvas() {
+    unmountReviewCanvas();
+  }
+  function mountReviewCanvas(host, element) {
     if (!host) {
-      unmountSequenceCanvas();
+      unmountReviewCanvas();
       return;
     }
-    if (seqRoot && seqHost !== host) unmountSequenceCanvas();
-    if (!seqRoot) {
-      seqRoot = (0, import_client.createRoot)(host);
-      seqHost = host;
+    if (graphRoot && graphHost !== host) unmountReviewCanvas();
+    if (!graphRoot) {
+      graphRoot = (0, import_client.createRoot)(host);
+      graphHost = host;
     }
     (0, import_react_dom2.flushSync)(() => {
-      seqRoot.render(
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
-          SequenceCanvas,
-          {
-            participants: props.participants,
-            hops: props.hops,
-            cursor: props.cursor,
-            onNodeClick: props.onNodeClick,
-            onHopClick: props.onHopClick
-          }
-        )
-      );
+      graphRoot.render(element);
     });
+  }
+  function renderSequenceCanvas(host, props) {
+    const participants = props.participants || [];
+    const hops = props.hops || [];
+    const laid = layoutSequence(participants, hops);
+    const cursor = props.cursor;
+    const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
+    const hotIds = /* @__PURE__ */ new Set();
+    if (hot) {
+      hotIds.add(String(hot.from));
+      hotIds.add(String(hot.to));
+    }
+    const items = participants.map((p) => ({
+      id: String(p.id),
+      fqn: p.fqn || "",
+      kind: p.kind || "Function",
+      label: p.label || String(p.id)
+    }));
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "seqPart",
+          laid,
+          items,
+          hops,
+          cursor,
+          hotIds,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
+  function renderDeltaCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: 24,
+      hopCap: 80,
+      nodeW: 176,
+      nodeH: 64
+    });
+    const hotIds = new Set((props.hotIds || []).map(String));
+    const items = nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      state: n.state || "same",
+      label: n.label || n.fqn || String(n.id),
+      hot: hotIds.has(String(n.id))
+    }));
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "deltaVnode",
+          laid,
+          items,
+          hops,
+          cursor: props.cursor,
+          hotIds,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
+  function renderDataflowCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: 48,
+      hopCap: 80,
+      nodeW: 168,
+      nodeH: 58
+    });
+    const cursor = props.cursor;
+    const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
+    const hotIds = /* @__PURE__ */ new Set();
+    if (hot) {
+      hotIds.add(String(hot.from));
+      hotIds.add(String(hot.to));
+    }
+    const items = nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      label: n.label || n.fqn || String(n.id),
+      role: n.role || "",
+      endRole: n.endRole || n.end_role || "",
+      channel: n.channel || "",
+      ep: n.ep || ""
+    }));
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "dfNode",
+          laid,
+          items,
+          hops,
+          cursor,
+          hotIds,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
+  function renderLifecycleCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: 24,
+      hopCap: 40,
+      nodeW: 168,
+      nodeH: 58
+    });
+    const cursor = props.cursor;
+    const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
+    const hotIds = /* @__PURE__ */ new Set();
+    if (hot) {
+      hotIds.add(String(hot.from));
+      hotIds.add(String(hot.to));
+    }
+    if (props.nowId) hotIds.add(String(props.nowId));
+    const items = nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label || n.id,
+      lcType: n.type || n.kind || "neutral",
+      lane: n.lane || "",
+      col: n.col,
+      sublabel: n.sublabel || ""
+    }));
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "lcState",
+          laid,
+          items,
+          hops,
+          cursor,
+          hotIds,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
+  function renderSliceCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: 48,
+      hopCap: 80,
+      nodeW: 176,
+      nodeH: 72
+    });
+    const hotIds = new Set((props.hotIds || []).map(String));
+    const items = nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      label: n.label || n.fqn || String(n.id),
+      kindLine: n.kindLine || n.kind || "Function",
+      where: n.where || "",
+      file: n.file || "",
+      snip: n.snip || "",
+      away: !!n.away,
+      uncovered: !!n.uncovered,
+      changed: !!n.changed,
+      selected: !!n.selected,
+      depth: n.depth
+    }));
+    const box = layoutBounds(laid);
+    host.style.width = box.W + "px";
+    host.style.height = box.H + "px";
+    host.classList.add("steiner-wrap");
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "sliceVnode",
+          laid,
+          items,
+          hops,
+          cursor: props.cursor,
+          hotIds,
+          embed: true,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
   }
 
   // extension/media/src/graph/desk.js
@@ -18945,6 +19287,19 @@
     let llmTok = 0;
     const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
     const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
+    const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1 };
+    function reviewCanvasWorkspace(ws) {
+      return !!REVIEW_CANVAS_WS[ws || explorerWs];
+    }
+    function unmountAllReviewCanvases() {
+      unmountReviewCanvas();
+      unmountSequenceCanvas();
+      seqBodyKey = "";
+      deltaBodyKey = "";
+      dfBodyKey = "";
+      lcBodyKey = "";
+      sliceBodyKey = "";
+    }
     const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
     const PHASE_ALIAS = {
       start: "walk",
@@ -18991,10 +19346,14 @@
     let seqCursor = -1;
     let seqWalk = { playing: false, timer: 0 };
     let seqBodyKey = "";
+    let deltaBodyKey = "";
     let dfCursor = -1;
     let dfWalk = { playing: false, timer: 0 };
+    let dfBodyKey = "";
     let lcCursor = -1;
     let lcWalk = { playing: false, timer: 0 };
+    let lcBodyKey = "";
+    let sliceBodyKey = "";
     let decisionOutcomeFilter = "";
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
@@ -19725,7 +20084,7 @@
     }
     const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
     function exportDiagramRoot() {
-      return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
+      return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
     function stripExportViewerState(root3) {
       if (!root3) return root3;
@@ -20426,7 +20785,7 @@
     }
     function fitChart() {
       const stage = canvas.querySelector(".stage");
-      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap") || canvas.querySelector(".comm-wrap, .steiner-wrap");
+      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas");
       if (!stage || !wrap) {
         setCamTarget(0, 0, 1);
         return;
@@ -20533,6 +20892,7 @@
     function bindGraphFx() {
       const wrap = canvas.querySelector(".steiner-wrap");
       const svg = canvas.querySelector("svg.steiner");
+      const xyHost = document.getElementById("sliceCanvas");
       if (svg) {
         const edges = [...svg.querySelectorAll(".edge")];
         const flows = [...svg.querySelectorAll(".edge-flow")];
@@ -20586,10 +20946,20 @@
             if (wrap) wrap.classList.add("flowing");
           }, 520);
         }
+      } else if (xyHost) {
+        stampXyFlowAttrs();
+        xyHost.querySelectorAll(".vnode").forEach((g) => {
+          const fqn = g.getAttribute("data-fqn") || "";
+          g.addEventListener("pointerenter", (ev) => showTip(fqn, ev));
+          g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
+          g.addEventListener("pointerleave", hideTip);
+        });
       }
-      bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
-        onClick: (id2, el2) => selectNode(id2, { zoomEl: el2 })
-      });
+      if (!xyHost) {
+        bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
+          onClick: (id2, el2) => selectNode(id2, { zoomEl: el2 })
+        });
+      }
       bindDraggable(canvas.querySelector(".chart"), ".run", {
         idAttr: "data-run",
         onClick: (_id, el2) => enterRun(el2.getAttribute("data-flow"), el2.getAttribute("data-bubble"), el2)
@@ -20661,9 +21031,8 @@
       const animate = opts && opts.animate || "all";
       const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
       if (!snapshot) return;
-      if (explorerWs !== "sequence") {
-        unmountSequenceCanvas();
-        seqBodyKey = "";
+      if (!reviewCanvasWorkspace(explorerWs)) {
+        unmountAllReviewCanvases();
       }
       const top = stack[stack.length - 1];
       syncBackBtn();
@@ -20803,7 +21172,7 @@
       else if (!canvas.childElementCount || canvas.querySelector(".empty")) {
         canvas.classList.remove("stale");
         if (!canvas.querySelector(".skeleton")) {
-          unmountSequenceCanvas();
+          unmountAllReviewCanvases();
           canvas.innerHTML = '<div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div><div class="empty pulse">' + esc(msg.label || "Working…") + "</div>";
         } else {
           const empty2 = canvas.querySelector(".empty");
@@ -21798,7 +22167,8 @@
         const b = id2 ? bubbleOf(id2) : null;
         el2.classList.toggle("walk", !!(bid && (id2 === bid || b && idVal(b.id) === bid)));
       });
-      document.querySelectorAll(".comm-edges path, svg.steiner .edge").forEach((p) => {
+      stampXyFlowAttrs();
+      document.querySelectorAll(".comm-edges path, svg.steiner .edge, .react-flow__edge").forEach((p) => {
         if (!bid) {
           p.classList.remove("walk");
           return;
@@ -22061,7 +22431,20 @@
       }
       return 99;
     }
+    function stampXyFlowAttrs() {
+      document.querySelectorAll(".react-flow__edge").forEach((el2) => {
+        const raw = el2.getAttribute("data-id") || el2.id || "";
+        const id2 = raw.indexOf("xy:") === 0 ? raw : raw.split("xy:")[1] ? "xy:" + raw.split("xy:")[1] : raw;
+        if (id2.indexOf("xy:") !== 0) return;
+        const parts = id2.slice(3).split(":");
+        if (parts.length < 2) return;
+        el2.setAttribute("data-from", parts[0]);
+        el2.setAttribute("data-to", parts[1]);
+        if (parts[2]) el2.setAttribute("data-kind", parts[2]);
+      });
+    }
     function applyEgoPaint() {
+      stampXyFlowAttrs();
       const sid = selectedNodeId ? String(selectedNodeId) : "";
       const neighbors = sid ? neighborhood(sid, egoHops) : /* @__PURE__ */ new Set();
       const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
@@ -22783,7 +23166,7 @@
       if (inParent && !inHead) return "removed";
       return "same";
     }
-    function renderDeltaCanvas(view, hot) {
+    function deltaReading(view, hot) {
       const { head, parent } = deltaGraphPair();
       const src = view === "before" ? parent : view === "after" ? head : null;
       const nodesById = /* @__PURE__ */ new Map();
@@ -22806,59 +23189,129 @@
       let nodes = [...nodesById.values()].filter((n) => !want.size || want.has(n.fqn));
       if (nodes.length < 2) nodes = [...nodesById.values()].slice(0, 16);
       if (nodes.length > 24) nodes = nodes.slice(0, 24);
-      if (!nodes.length) {
-        return '<div class="empty" id="deltaCanvas">No derived nodes for this reading.</div>';
-      }
       const ids = nodes.map((n) => idVal(n.id));
       const idSet = new Set(ids);
       const edgeSrc = view === "before" ? parent.edges || [] : view === "after" ? head.edges || [] : [].concat(parent.edges || [], head.edges || []);
       const seenE = /* @__PURE__ */ new Set();
-      const edges = [];
-      edgeSrc.forEach((e) => {
+      const hops = [];
+      edgeSrc.forEach((e, i) => {
         const a = idVal(e.from);
         const b = idVal(e.to);
         if (!idSet.has(a) || !idSet.has(b)) return;
         const k = a + "	" + b + "	" + (e.kind || "");
         if (seenE.has(k)) return;
         seenE.add(k);
-        edges.push(e);
-      });
-      const laid = layeredPositions(ids, edges, {
-        nodeW: 176,
-        nodeH: 64,
-        gapX: 88,
-        gapY: 40,
-        pad: 40,
-        minW: 560,
-        minH: 240,
-        maxCols: 6,
-        pins: /* @__PURE__ */ new Map()
-      });
-      const W = laid.W;
-      const H2 = laid.H;
-      const pos = laid.pos;
-      let svg = '<svg class="steiner steiner-edges" viewBox="0 0 ' + W + " " + H2 + '" width="' + W + '" height="' + H2 + '">';
-      edges.forEach((e) => {
-        const a = pos.get(idVal(e.from));
-        const b = pos.get(idVal(e.to));
-        if (!a || !b) return;
-        const fromN = nodesById.get(idVal(e.from));
-        const toN = nodesById.get(idVal(e.to));
+        const fromN = nodesById.get(a);
+        const toN = nodesById.get(b);
         const state = deltaHopState(fromN && fromN.fqn || "", toN && toN.fqn || "", e.kind);
         const hotHop = !!(hot && hot.from_fqn && fromN && toN && hot.from_fqn === fromN.fqn && hot.to_fqn === toN.fqn);
-        const d = orthoPath(a, b);
-        svg += '<path class="edge-hit" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(e.kind || "") + '" data-delta-state="' + state + (hotHop ? '" data-delta-review-current="1' : "") + '" d="' + d + '" /><path class="edge' + (hotHop ? " walk" : "") + '" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(e.kind || "") + '" data-delta-state="' + state + '" d="' + d + '" />';
+        hops.push({
+          i,
+          from: a,
+          to: b,
+          kind: e.kind || "",
+          state,
+          hot: hotHop
+        });
       });
-      svg += "</svg>";
-      let cards = "";
-      nodes.forEach((n) => {
-        const p = pos.get(idVal(n.id));
-        if (!p) return;
-        const state = deltaNodeState(n.fqn);
+      const items = nodes.map((n) => {
         const hotNode = !!(hot && !hot.from_fqn && hot.fqn === n.fqn);
-        cards += '<button type="button" class="vnode ' + kindClass(n.kind) + (hotNode ? " walk" : "") + '" style="left:' + p.x + "px;top:" + p.y + 'px" data-id="' + idVal(n.id) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-delta-state="' + state + (hotNode ? '" data-delta-review-current="1' : "") + '"><span class="kind">' + esc(n.kind || "node") + '</span><span class="name">' + esc(shortOf(n.fqn)) + '</span><span class="fqn">' + esc(n.fqn) + "</span></button>";
+        return {
+          id: idVal(n.id),
+          fqn: n.fqn || "",
+          kind: n.kind || "Function",
+          kindClass: kindClass(n.kind),
+          state: deltaNodeState(n.fqn),
+          label: shortOf(n.fqn),
+          hot: hotNode
+        };
       });
-      return '<div id="deltaCanvas" class="delta-canvas" data-delta-view="' + esc(view) + '"><div class="steiner-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + svg + cards + "</div></div>";
+      const hotIds = items.filter((n) => n.hot).map((n) => n.id);
+      hops.forEach((h) => {
+        if (h.hot) {
+          hotIds.push(h.from);
+          hotIds.push(h.to);
+        }
+      });
+      return { nodes: items, hops, hotIds };
+    }
+    function renderDeltaCanvas2(view) {
+      return '<div id="deltaCanvas" class="delta-canvas seq-canvas" data-delta-view="' + esc(view) + '"></div>';
+    }
+    function deltaWorkspaceKey() {
+      const facts = deltaFacts();
+      return [facts.length, graphFilter.q || "", facts[0] && facts[0].fqn].join("\0");
+    }
+    function deltaCanvasProps() {
+      const facts = deltaFacts();
+      const hot = deltaCursor >= 0 ? facts[deltaCursor] : null;
+      const reading = deltaReading(deltaView, hot);
+      return {
+        nodes: reading.nodes,
+        hops: reading.hops,
+        cursor: deltaCursor,
+        hotIds: reading.hotIds,
+        onNodeClick: (id2) => {
+          if (!id2) return;
+          selectedNodeId = id2;
+          peekSource(id2);
+        },
+        onHopClick: (iOrHop) => {
+          const hops = reading.hops;
+          const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+          if (!hop) return;
+          const facts2 = deltaFacts();
+          const idx = facts2.findIndex(
+            (f) => f.from_fqn && reading.nodes.some((n) => n.id === hop.from && n.fqn === f.from_fqn) && reading.nodes.some((n) => n.id === hop.to && n.fqn === f.to_fqn) || !f.from_fqn && reading.nodes.some((n) => n.id === hop.from && n.fqn === f.fqn)
+          );
+          if (idx >= 0) {
+            deltaCursor = idx;
+            applyDeltaFactView(facts2[idx]);
+            paint({ animate: "none" });
+          }
+        }
+      };
+    }
+    function patchDeltaChrome() {
+      const facts = deltaFacts();
+      const hot = deltaCursor >= 0 ? facts[deltaCursor] : null;
+      canvas.querySelectorAll("#deltaFacts .delta-fact").forEach((el2) => {
+        const i = parseInt(el2.getAttribute("data-delta-i"), 10);
+        el2.classList.toggle("on", i === deltaCursor);
+      });
+      canvas.querySelectorAll("#deltaView [data-delta-view]").forEach((el2) => {
+        if (el2.id === "deltaCanvas") return;
+        const on2 = el2.getAttribute("data-delta-view") === deltaView;
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-selected", on2 ? "true" : "false");
+      });
+      const host = document.getElementById("deltaCanvas");
+      if (host) host.setAttribute("data-delta-view", deltaView);
+      const status2 = document.getElementById("deltaStatus");
+      if (status2) {
+        status2.textContent = hot ? deltaCursor + 1 + "/" + facts.length + " · " + deltaMarker(hot.status) + " " + (hot.fqn || "") : facts.length ? facts.length + " facts" : "identical pair";
+      }
+      const play = document.getElementById("deltaPlay");
+      if (play) {
+        play.classList.toggle("on", !!deltaWalk.playing);
+        play.setAttribute("aria-pressed", deltaWalk.playing ? "true" : "false");
+      }
+    }
+    function paintDeltaWorkspace(title) {
+      canvas.className = "play explorer-list";
+      const html = renderDeltaBody();
+      const key = deltaWorkspaceKey();
+      const keep = !!(canvas.querySelector(".delta-page") && document.getElementById("deltaCanvas") && key === deltaBodyKey && html.indexOf('id="deltaCanvas"') >= 0);
+      if (keep) {
+        patchDeltaChrome();
+      } else {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+        deltaBodyKey = html.indexOf('id="deltaCanvas"') >= 0 ? key : "";
+      }
+      const host = document.getElementById("deltaCanvas");
+      if (host && !host.classList.contains("empty")) renderDeltaCanvas(host, deltaCanvasProps());
+      else if (!host) unmountReviewCanvas();
     }
     function renderDeltaBody() {
       const facts = deltaFacts();
@@ -22885,7 +23338,7 @@
       const list = facts.map((f, i) => {
         return '<article class="delta-fact expl-card ' + esc(f.status || "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '" data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc((f.subject || "") + " · " + (f.fqn || "")) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
       }).join("");
-      return '<div class="delta-page">' + switcher + review + '<div class="ws-split"><div class="ws-list" id="deltaFacts">' + (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') + '</div><div class="ws-detail"><div class="k">' + esc(deltaView) + " · derived</div>" + renderDeltaCanvas(deltaView, hot) + "</div></div></div>";
+      return '<div class="delta-page">' + switcher + review + '<div class="ws-split"><div class="ws-list" id="deltaFacts">' + (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') + '</div><div class="ws-detail"><div class="k">' + esc(deltaView) + " · derived</div>" + renderDeltaCanvas2(deltaView, hot) + "</div></div></div>";
     }
     function bindDeltaPage() {
       canvas.querySelectorAll("[data-delta-view]").forEach((el2) => {
@@ -23479,7 +23932,88 @@
       const list = hops.map((h, i) => {
         return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
       }).join("");
-      return '<div class="df-page">' + review + '<div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas"><div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + "</div></div></div></div></div>";
+      return '<div class="df-page">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
+    }
+    function dataflowWorkspaceKey() {
+      const flow = dataflowFlow();
+      const reading = dataflowOf(flow);
+      return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || ""].join("\0");
+    }
+    function dataflowCanvasProps() {
+      const reading = dataflowOf(dataflowFlow());
+      return {
+        nodes: reading.nodes.map((n) => {
+          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          return {
+            id: idVal(n.id),
+            fqn: n.fqn,
+            kind: n.kind || "Function",
+            label: shortOf(n.fqn),
+            role: n.role,
+            endRole: n.end_role || "",
+            channel: n.channel || "",
+            ep
+          };
+        }),
+        hops: reading.hops.map((h, i) => ({
+          i,
+          from: idVal(h.from),
+          to: idVal(h.to),
+          kind: h.kind || ""
+        })),
+        cursor: dfCursor,
+        onNodeClick: (id2) => {
+          if (!id2) return;
+          selectedNodeId = id2;
+          peekSource(id2);
+        },
+        onHopClick: (i) => {
+          if (!Number.isFinite(i)) return;
+          stopDfWalk();
+          dfCursor = i;
+          paint({ animate: "none" });
+          focusDfHop(dfHops()[i]);
+        }
+      };
+    }
+    function patchDataflowChrome() {
+      const hops = dfHops();
+      const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+      canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
+        const i = parseInt(el2.getAttribute("data-df-i"), 10);
+        el2.classList.toggle("on", i === dfCursor);
+      });
+      canvas.querySelectorAll("#dfStages .df-node").forEach((el2) => {
+        const id2 = el2.getAttribute("data-id");
+        const on2 = !!(hot && (idVal(hot.from) === id2 || idVal(hot.to) === id2));
+        el2.classList.toggle("on", on2);
+      });
+      const status2 = document.getElementById("dfStatus");
+      const flow = dataflowFlow();
+      if (status2) {
+        status2.textContent = hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
+      }
+      const play = document.getElementById("dfPlay");
+      if (play) {
+        play.classList.toggle("on", !!dfWalk.playing);
+        play.setAttribute("aria-pressed", dfWalk.playing ? "true" : "false");
+      }
+    }
+    function paintDataflowWorkspace(title) {
+      canvas.className = "play explorer-list";
+      const html = renderDataflowBody();
+      const key = dataflowWorkspaceKey();
+      const keep = !!(canvas.querySelector(".df-page") && document.getElementById("dfCanvas") && key === dfBodyKey && html.indexOf('id="dfCanvas"') >= 0);
+      if (keep) {
+        patchDataflowChrome();
+      } else {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+        dfBodyKey = html.indexOf('id="dfCanvas"') >= 0 ? key : "";
+      }
+      const host = document.getElementById("dfCanvas");
+      if (host) renderDataflowCanvas(host, dataflowCanvasProps());
+      else unmountReviewCanvas();
     }
     function bindDataflowPage() {
       canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
@@ -23714,7 +24248,93 @@
         return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
       }).join("");
       const endsBlock = ends.length ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>" : "";
-      return '<div class="lc-page">' + review + '<div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas"><div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + "</div>" + endsBlock + "</div></div></div></div>";
+      return '<div class="lc-page">' + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
+    }
+    function lifecycleWorkspaceKey() {
+      const flow = lifecycleFlow();
+      const reading = lifecycleOf(flow);
+      return [flow && flow.name, reading.states.length, reading.transitions.length, graphFilter.q || ""].join("\0");
+    }
+    function lifecycleCanvasProps() {
+      const flow = lifecycleFlow();
+      const reading = lifecycleOf(flow);
+      const hops = reading.transitions;
+      const hot = lcCursor >= 0 ? hops[lcCursor] : null;
+      const now2 = hot ? hot.to : lcCurrentId(flow);
+      return {
+        nodes: reading.states.map((s) => ({
+          id: s.id,
+          label: s.label || s.id,
+          type: lcStateKind(s),
+          lane: s.lane || "",
+          col: s.col,
+          sublabel: s.sublabel || ""
+        })),
+        hops: hops.map((h, i) => ({
+          i,
+          from: h.from,
+          to: h.to,
+          kind: h.label || "",
+          label: h.label || ""
+        })),
+        cursor: lcCursor,
+        nowId: now2,
+        onNodeClick: (id2) => {
+          const i = hops.findIndex((h) => h.to === id2 || h.from === id2);
+          if (i >= 0) {
+            stopLcWalk();
+            lcCursor = i;
+            paint({ animate: "none" });
+            focusLcTrans(hops[i]);
+          }
+        },
+        onHopClick: (i) => {
+          if (!Number.isFinite(i)) return;
+          stopLcWalk();
+          lcCursor = i;
+          paint({ animate: "none" });
+          focusLcTrans(hops[i]);
+        }
+      };
+    }
+    function patchLifecycleChrome() {
+      const hops = lcTrans();
+      const hot = lcCursor >= 0 ? hops[lcCursor] : null;
+      const flow = lifecycleFlow();
+      const now2 = hot ? hot.to : lcCurrentId(flow);
+      canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
+        const i = parseInt(el2.getAttribute("data-lc-i"), 10);
+        el2.classList.toggle("on", i === lcCursor);
+      });
+      canvas.querySelectorAll("#lcLanes .lc-state").forEach((el2) => {
+        const id2 = el2.getAttribute("data-lc-id");
+        el2.classList.toggle("on", now2 === id2 || !!(hot && (hot.from === id2 || hot.to === id2)));
+      });
+      const status2 = document.getElementById("lcStatus");
+      if (status2) {
+        status2.textContent = hot ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now2;
+      }
+      const play = document.getElementById("lcPlay");
+      if (play) {
+        play.classList.toggle("on", !!lcWalk.playing);
+        play.setAttribute("aria-pressed", lcWalk.playing ? "true" : "false");
+      }
+    }
+    function paintLifecycleWorkspace(title) {
+      canvas.className = "play explorer-list";
+      const html = renderLifecycleBody();
+      const key = lifecycleWorkspaceKey();
+      const keep = !!(canvas.querySelector(".lc-page") && document.getElementById("lcCanvas") && key === lcBodyKey && html.indexOf('id="lcCanvas"') >= 0);
+      if (keep) {
+        patchLifecycleChrome();
+      } else {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+        lcBodyKey = html.indexOf('id="lcCanvas"') >= 0 ? key : "";
+      }
+      const host = document.getElementById("lcCanvas");
+      if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
+      else unmountReviewCanvas();
     }
     function bindLifecyclePage() {
       canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
@@ -23810,18 +24430,47 @@
         applyProbePaint();
         return;
       }
-      unmountSequenceCanvas();
-      seqBodyKey = "";
+      if (ws === "delta") {
+        paintDeltaWorkspace(titles.delta);
+        bindWorkbenchPages();
+        bindDeltaPage();
+        applyProbePaint();
+        return;
+      }
+      if (ws === "dataflow") {
+        paintDataflowWorkspace(titles.dataflow);
+        bindWorkbenchPages();
+        bindDataflowPage();
+        applyProbePaint();
+        return;
+      }
+      if (ws === "lifecycle") {
+        paintLifecycleWorkspace(titles.lifecycle);
+        bindWorkbenchPages();
+        bindLifecyclePage();
+        applyProbePaint();
+        return;
+      }
+      if (ws !== "overview") {
+        unmountAllReviewCanvases();
+      }
       let html = "";
       if (ws === "overview") html = renderOverviewBody();
       else if (ws === "decisions") html = renderDecisionBody();
       else if (ws === "registry") html = renderRegistryBody();
-      else if (ws === "delta") html = renderDeltaBody();
-      else if (ws === "dataflow") html = renderDataflowBody();
-      else if (ws === "lifecycle") html = renderLifecycleBody();
       else html = renderTimelineBody();
       canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
-      canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+      if (ws === "overview") {
+        const key = sliceWorkspaceKey();
+        const keep = !!(canvas.querySelector("#sliceCanvas") && key === sliceBodyKey && canvas.querySelector(".expl-wrap"));
+        if (!keep) {
+          unmountReviewCanvas();
+          canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+          sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
+        }
+      } else {
+        canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
+      }
       if (ws === "overview") {
         const stage = canvas.querySelector(".stage");
         if (stage) {
@@ -23830,9 +24479,10 @@
         } else {
           setZoomUi(false);
         }
+        const flow = defaultRunFlow();
+        mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
         bindGraphFx();
         applyEgoPaint();
-        const flow = defaultRunFlow();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
         if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
         setLedgerHead("RUN");
@@ -23869,6 +24519,7 @@
         };
       });
       canvas.querySelectorAll("[data-id]").forEach((el2) => {
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas")) return;
         el2.onclick = () => {
           explorerWs = "lineage";
           explorerPinned = true;
@@ -24556,9 +25207,18 @@
       const keepCam = !!(opts && opts.keepCam) || animate === "runs";
       const treeHtml = renderSteiner(flow, msg.graph, playTree, scarSet(msg.findings, flow.name));
       const runHtml = renderRuns(flow, msg, playRuns);
+      const key = sliceWorkspaceKey();
+      const keep = !!(canvas.classList.contains("has-stage") && document.getElementById("sliceCanvas") && key === sliceBodyKey && lastTreeKey === treeKey(flow));
       canvas.className = "play has-stage";
-      canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
-      bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+      if (!keep) {
+        unmountReviewCanvas();
+        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
+        sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
+        bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+      } else {
+        bindStage(canvas.querySelector(".stage"), { reset: false });
+      }
+      mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
       bindGraphFx();
       setZoomUi(true);
       applyGraphFilter();
@@ -24582,72 +25242,85 @@
       }
       return keys;
     }
-    function renderSteiner(flow, graph, animate, scars) {
-      const nodes = flow.tree?.nodes || [];
-      const edges = flow.tree?.edges || [];
-      if (!nodes.length) return '<div class="empty">Empty tree.</div>';
-      const ids = nodes.map(idVal);
-      const laid = layeredPositions(ids, edges, {
-        nodeW: 176,
-        nodeH: 72,
-        gapX: 96,
-        gapY: 52,
-        pad: 56,
-        minW: 720,
-        minH: 300,
-        maxCols: 8,
-        pins: pinsForCurrent()
-      });
-      const W = laid.W, H2 = laid.H;
-      const pos = Object.fromEntries(laid.pos);
-      const level = {};
-      for (const [id2, r] of laid.rank || []) level[id2] = r;
-      let svg = '<svg class="steiner steiner-edges' + (animate ? " play" : "") + '" viewBox="0 0 ' + W + " " + H2 + '" width="' + W + '" height="' + H2 + '"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" /></marker></defs>';
-      for (const e of edges) {
-        const a = pos[idVal(e.from)], b = pos[idVal(e.to)];
-        if (!a || !b) continue;
-        const mx = Math.round((a.x + b.x) / 2), my = Math.round((a.y + b.y) / 2) - 10;
-        const d = orthoPath(a, b);
-        const from = idVal(e.from), to = idVal(e.to);
-        const scar = scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
-        const kind = e.kind || "Calls";
-        svg += '<path class="edge-hit" pathLength="1" data-from="' + from + '" data-to="' + to + '" data-kind="' + esc(kind) + '" d="' + d + '" />';
-        svg += '<path class="edge' + (scar ? " scar" : "") + '" pathLength="1" marker-end="url(#arr)" data-from="' + from + '" data-to="' + to + '" data-kind="' + esc(kind) + '" d="' + d + '" />';
-        svg += '<path class="edge-flow' + (scar ? " scar" : "") + '" pathLength="1" data-from="' + from + '" data-to="' + to + '" data-kind="' + esc(kind) + '" d="' + d + '" />';
-        svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle" data-from="' + from + '" data-to="' + to + '" data-kind="' + esc(kind) + '">' + esc(kind) + "</text>";
-        const pkt = String(kind).toUpperCase().slice(0, 5) + " " + shortToken(to);
-        svg += '<g class="pkt"><rect x="-22" y="-7" width="44" height="14" rx="2" /><text x="0" y="3" text-anchor="middle">' + esc(pkt) + '</text><animateMotion dur="1.8s" repeatCount="indefinite" path="' + d + '" /></g>';
-      }
-      svg += "</svg>";
+    function sliceWorkspaceKey() {
+      const flow = currentFlow() || defaultRunFlow();
+      const tree = flow && flow.tree || { nodes: [], edges: [] };
+      return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
+    }
+    function sliceCanvasProps(flow, graph, scars) {
+      const nodes = flow && flow.tree && flow.tree.nodes || [];
+      const edges = flow && flow.tree && flow.tree.edges || [];
       const snippets = snapshot && snapshot.snippets || {};
       const walk = flowWalk(flow);
-      let cards = "";
-      for (const id2 of nodes) {
-        const p = pos[idVal(id2)];
-        if (!p) continue;
+      const items = nodes.slice(0, 48).map((id2) => {
         const nid = idVal(id2);
         const kind = kindOf(graph, id2) || "Function";
         const fqn = fqnOf(graph, id2);
-        const label = shortOf(fqn);
-        const d = level[nid] || 0;
         const node = nodeById.get(nid);
-        const file = node?.span?.file || "";
-        const line = node?.span?.start?.line || "";
-        const where = file ? shortFile(file) + (line ? ":" + line : "") : "";
-        const snip = snippetPreview(snippets[nid]);
+        const file = node && node.span ? node.span.file : "";
+        const line = node && node.span && node.span.start ? node.span.start.line : "";
         const flags = nodeFlags(nid);
-        const away = nodeAway(nid);
-        cards += '<button type="button" class="vnode ' + kindClass(kind) + (away ? " away" : "") + (flags.uncovered ? " uncovered" : flags.changed ? " changed" : "") + (selectedNodeId === nid ? " selected" : "") + '" style="left:' + p.x + "px;top:" + p.y + "px;--d:" + d + '" data-id="' + nid + '" data-fqn="' + esc(fqn) + '" data-kind="' + esc(kind) + '" data-file="' + esc(file) + '">';
         const at2 = walk.indexOf(nid);
         const hopRole = at2 === 0 ? "START · " : at2 === walk.length - 1 && walk.length > 1 ? "END · " : "";
-        cards += '<span class="kind">' + esc(hopRole + kindLine(nid, kind)) + "</span>";
-        cards += '<span class="name">' + esc(label) + "</span>";
-        if (where) cards += '<span class="where">' + esc(where) + "</span>";
-        cards += '<span class="fqn">' + esc(fqn) + "</span>";
-        if (snip) cards += '<pre class="snip">' + esc(snip) + "</pre>";
-        cards += "</button>";
+        return {
+          id: nid,
+          fqn,
+          kind,
+          kindClass: kindClass(kind),
+          label: shortOf(fqn),
+          kindLine: hopRole + kindLine(nid, kind),
+          where: file ? shortFile(file) + (line ? ":" + line : "") : "",
+          file: file || "",
+          snip: snippetPreview(snippets[nid]),
+          away: nodeAway(nid),
+          uncovered: !!flags.uncovered,
+          changed: !!flags.changed,
+          selected: selectedNodeId === nid,
+          depth: at2 < 0 ? 0 : at2
+        };
+      });
+      const idSet = new Set(items.map((n) => n.id));
+      const hops = [];
+      (edges || []).slice(0, 80).forEach((e, i) => {
+        const from = idVal(e.from);
+        const to = idVal(e.to);
+        if (!idSet.has(from) || !idSet.has(to)) return;
+        const scar = scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+        hops.push({
+          i,
+          from,
+          to,
+          kind: e.kind || "Calls",
+          scar: !!scar
+        });
+      });
+      return {
+        nodes: items,
+        hops,
+        embed: true,
+        onNodeClick: (id2) => {
+          if (!id2) return;
+          selectNode(id2);
+        },
+        onHopClick: (iOrHop) => {
+          const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+          if (hop) showHop(hop.from, hop.to, hop.kind);
+        }
+      };
+    }
+    function mountSliceCanvas(flow, graph, scars) {
+      const host = document.getElementById("sliceCanvas");
+      if (!host || !flow) {
+        if (!host) unmountReviewCanvas();
+        return;
       }
-      return '<div class="steiner-wrap' + (animate ? " play" : "") + '" style="width:' + W + "px;height:" + H2 + 'px">' + svg + cards + "</div>";
+      renderSliceCanvas(host, sliceCanvasProps(flow, graph, scars));
+      stampXyFlowAttrs();
+    }
+    function renderSteiner(flow, graph, animate, scars) {
+      const nodes = flow.tree?.nodes || [];
+      if (!nodes.length) return '<div class="empty">Empty tree.</div>';
+      return '<div id="sliceCanvas" class="slice-canvas steiner-wrap' + (animate ? " play" : "") + '"></div>';
     }
     function shortFile(file) {
       const f = String(file || "").replace(/\\/g, "/");
