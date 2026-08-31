@@ -1089,7 +1089,19 @@ async function main() {
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector(".vnode", { timeout: 10000 });
+    await page.waitForSelector("#sliceCanvas .react-flow__node", { timeout: 10000 });
     await page.waitForTimeout(200);
+    const sliceXy = await page.evaluate(() => ({
+      xy: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+      xyFlow: !!document.querySelector("#sliceCanvas .react-flow"),
+      mapXy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "M2c",
+      "Slice canvas mounts XYFlow Steiner nodes (capped, not the raw IR)",
+      sliceXy.xyFlow && sliceXy.xy > 1 && sliceXy.xy <= 48,
+      "xy=" + sliceXy.xy
+    );
     await page.locator(".vnode").first().click();
     await page.waitForFunction(
       () => {
@@ -1352,6 +1364,7 @@ async function main() {
       await page.waitForTimeout(200);
     }
     await page.waitForSelector("#deltaFacts .delta-fact", { timeout: 10000 });
+    await page.waitForSelector("#deltaCanvas .react-flow__node", { timeout: 10000 });
 
     const deltaDesk = await page.evaluate(() => {
       const facts = [...document.querySelectorAll("#deltaFacts .delta-fact")];
@@ -1372,6 +1385,8 @@ async function main() {
         next: !!document.getElementById("deltaNext"),
         overview: !!document.getElementById("deltaOverview"),
         canvas: !!document.getElementById("deltaCanvas"),
+        xy: document.querySelectorAll("#deltaCanvas .react-flow__node").length,
+        xyFlow: !!document.querySelector("#deltaCanvas .react-flow"),
       };
     });
     record("D2", "Delta workspace is active", deltaDesk.ws === "delta", deltaDesk.ws);
@@ -1405,6 +1420,12 @@ async function main() {
       return canvas ? canvas.getAttribute("data-delta-view") : "";
     });
     record("D6", "Delta canvas three-state lands on Delta after the switcher", viewAfter === "delta", viewAfter);
+    record(
+      "D6b",
+      "Delta canvas mounts XYFlow nodes (capped, not the raw IR)",
+      deltaDesk.xyFlow && deltaDesk.xy > 1 && deltaDesk.xy <= 24,
+      "xy=" + deltaDesk.xy
+    );
 
     if (deltaDesk.overview) await page.click("#deltaOverview");
     await page.waitForTimeout(120);
@@ -1627,6 +1648,7 @@ async function main() {
     }
     await page.waitForSelector("#dfCanvas .df-node", { timeout: 10000 });
     await page.waitForSelector("#dfHops .df-hop", { timeout: 10000 });
+    await page.waitForSelector("#dfCanvas .react-flow__node", { timeout: 10000 });
 
     const dataflowDesk = await page.evaluate(() => {
       const nodes = [...document.querySelectorAll("#dfCanvas .df-node")];
@@ -1654,6 +1676,8 @@ async function main() {
         next: !!document.getElementById("dfNext"),
         overview: !!document.getElementById("dfOverview"),
         canvas: !!document.getElementById("dfCanvas"),
+        xy: document.querySelectorAll("#dfCanvas .react-flow__node").length,
+        xyFlow: !!document.querySelector("#dfCanvas .react-flow"),
       };
     });
     record("F2", "Data-flow workspace is active", dataflowDesk.ws === "dataflow", dataflowDesk.ws);
@@ -1680,6 +1704,12 @@ async function main() {
       "Data-flow has Play / Prev / Next plus canvas",
       dataflowDesk.play && dataflowDesk.prev && dataflowDesk.next && dataflowDesk.overview && dataflowDesk.canvas,
       JSON.stringify({ play: dataflowDesk.play, canvas: dataflowDesk.canvas })
+    );
+    record(
+      "F6b",
+      "Data-flow canvas mounts XYFlow nodes (capped, not the raw IR)",
+      dataflowDesk.xyFlow && dataflowDesk.xy > 1 && dataflowDesk.xy <= 48,
+      "xy=" + dataflowDesk.xy + " nodes=" + dataflowDesk.nodes
     );
 
     if (dataflowDesk.overview) await page.click("#dfOverview");
@@ -1763,6 +1793,7 @@ async function main() {
     }
     await page.waitForSelector("#lcCanvas .lc-state", { timeout: 10000 });
     await page.waitForSelector("#lcTrans .lc-trans", { timeout: 10000 });
+    await page.waitForSelector("#lcCanvas .react-flow__node", { timeout: 10000 });
 
     const lifecycleDesk = await page.evaluate(() => {
       const states = [...document.querySelectorAll("#lcCanvas .lc-state")];
@@ -1796,6 +1827,8 @@ async function main() {
         next: !!document.getElementById("lcNext"),
         overview: !!document.getElementById("lcOverview"),
         canvas: !!document.getElementById("lcCanvas"),
+        xy: document.querySelectorAll("#lcCanvas .react-flow__node").length,
+        xyFlow: !!document.querySelector("#lcCanvas .react-flow"),
         text,
       };
     });
@@ -1826,6 +1859,12 @@ async function main() {
       "Lifecycle has Play / Prev / Next plus canvas",
       lifecycleDesk.play && lifecycleDesk.prev && lifecycleDesk.next && lifecycleDesk.overview && lifecycleDesk.canvas,
       JSON.stringify({ play: lifecycleDesk.play, canvas: lifecycleDesk.canvas })
+    );
+    record(
+      "L6b",
+      "Lifecycle canvas mounts XYFlow review-machine nodes",
+      lifecycleDesk.xyFlow && lifecycleDesk.xy > 1 && lifecycleDesk.xy <= 24,
+      "xy=" + lifecycleDesk.xy + " states=" + lifecycleDesk.states
     );
 
     if (lifecycleDesk.overview) await page.click("#lcOverview");

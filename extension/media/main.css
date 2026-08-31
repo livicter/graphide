@@ -1987,7 +1987,6 @@ html.bright .route-hop {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 #deltaStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
-.delta-canvas { overflow: auto; min-height: 220px; }
 .delta-canvas .steiner-wrap { position: relative; }
 .delta-fact .k { letter-spacing: 0.06em; text-transform: uppercase; }
 #deltaCanvas [data-delta-state="same"] { opacity: 0.38; }
@@ -2035,13 +2034,23 @@ html.bright .route-hop {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
 }
-.seq-canvas {
+.seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
   overflow: hidden;
   min-height: 280px;
   height: min(52vh, 420px);
 }
-#seqCanvas .react-flow {
+.slice-canvas {
+  position: relative;
+  overflow: hidden;
+  min-height: 300px;
+  margin: 0 auto;
+}
+#seqCanvas .react-flow,
+#deltaCanvas .react-flow,
+#dfCanvas .react-flow,
+#lcCanvas .react-flow,
+#sliceCanvas .react-flow {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2053,25 +2062,74 @@ html.bright .route-hop {
   --xy-node-background-color-default: transparent;
   --xy-node-border-default: none;
 }
-#seqCanvas .react-flow__node-seqPart {
+#seqCanvas .react-flow__node-seqPart,
+#deltaCanvas .react-flow__node-deltaVnode,
+#dfCanvas .react-flow__node-dfNode,
+#lcCanvas .react-flow__node-lcState,
+#sliceCanvas .react-flow__node-sliceVnode {
   padding: 0;
   border: none;
   background: transparent;
   box-shadow: none;
-  width: 168px;
 }
-#seqCanvas .react-flow__handle {
+#seqCanvas .react-flow__node-seqPart { width: 168px; }
+#deltaCanvas .react-flow__node-deltaVnode { width: 176px; }
+#dfCanvas .react-flow__node-dfNode { width: 168px; }
+#lcCanvas .react-flow__node-lcState { width: 168px; }
+#sliceCanvas .react-flow__node-sliceVnode { width: 176px; }
+#seqCanvas .react-flow__handle,
+#deltaCanvas .react-flow__handle,
+#dfCanvas .react-flow__handle,
+#lcCanvas .react-flow__handle,
+#sliceCanvas .react-flow__handle {
   opacity: 0;
   pointer-events: none;
 }
-#seqCanvas .react-flow__edge.on .react-flow__edge-path {
+#seqCanvas .react-flow__edge.on .react-flow__edge-path,
+#deltaCanvas .react-flow__edge.on .react-flow__edge-path,
+#dfCanvas .react-flow__edge.on .react-flow__edge-path,
+#lcCanvas .react-flow__edge.on .react-flow__edge-path,
+#sliceCanvas .react-flow__edge.on .react-flow__edge-path {
   stroke: var(--vscode-focusBorder);
   stroke-width: 2;
 }
-#seqCanvas .react-flow__edge.ret .react-flow__edge-path {
+#seqCanvas .react-flow__edge.ret .react-flow__edge-path,
+#deltaCanvas .react-flow__edge.delta-removed .react-flow__edge-path {
   stroke-dasharray: 5 4;
   opacity: 0.78;
 }
+#sliceCanvas .vnode {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 168px;
+  cursor: pointer;
+}
+#deltaCanvas .vnode {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 168px;
+  min-width: 118px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 8px 5px;
+  border: 1px solid var(--c, var(--g-fn));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background));
+}
+#deltaCanvas .vnode .kind {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+#deltaCanvas .vnode .name { font-weight: 600; }
+#deltaCanvas .vnode .fqn { display: none; }
 .seq-rows {
   display: grid;
   gap: 8px 0;
@@ -2110,7 +2168,6 @@ html.bright .route-hop {
 .seq-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
 .df-page { display: flex; flex-direction: column; gap: 10px; }
 #dfStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
-.df-canvas { overflow: auto; min-height: 180px; }
 .df-stages {
   display: grid;
   grid-template-columns: repeat(var(--df-n, 2), minmax(88px, 1fr));
@@ -2155,7 +2212,6 @@ html.bright .route-hop {
 .df-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
 .lc-page { display: flex; flex-direction: column; gap: 10px; }
 #lcStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
-.lc-canvas { overflow: auto; min-height: 180px; }
 .lc-lanes {
   display: grid;
   grid-template-columns: repeat(var(--lc-n, 3), minmax(88px, 1fr));

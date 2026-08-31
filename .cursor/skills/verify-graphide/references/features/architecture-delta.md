@@ -10,7 +10,9 @@ walks that list once and stops.
   as Timeline — not a second chrome row.
 - Three-state switch `#deltaView [data-delta-view="before"]` /
   `[data-delta-view="delta"]` / `[data-delta-view="after"]`. `#deltaCanvas`
-  repeats the current `data-delta-view`.
+  repeats the current `data-delta-view` and mounts XYFlow
+  (`#deltaCanvas .react-flow`, `.react-flow__node`) for the derived pair
+  (cap 24). Fact list `#deltaFacts .delta-fact` is still the walk.
 - Fact list `#deltaFacts .delta-fact` with `data-delta-kind` (`added` /
   `removed` / `changed` / `moved` / `rerouted`) and `data-fqn`.
 - Review strip `#deltaReview`: `#deltaOverview` · `#deltaPrev` · `#deltaPlay`
@@ -29,8 +31,9 @@ walks that list once and stops.
 1. Review a folder that has a parent (`graphide review --parent …`, or git
    `HEAD^`). The desk lands on Overview.
 2. Click **Delta** (`#workspaces [data-ws="delta"]`) or press `8`.
-3. You should see Before / Delta / After, a fact list, and Review / Previous /
-   Next. Selecting a fact highlights that `(kind, fqn)` on the canvas.
+3. You should see Before / Delta / After, a fact list, an XYFlow graph in
+   `#deltaCanvas`, and Review / Previous / Next. Selecting a fact highlights
+   that `(kind, fqn)` on the list and on the graph.
 4. Review plays the list once. Stamp and Skip are still the human attestation
    for flows — they are not this walk.
 
@@ -62,6 +65,7 @@ Driver assertions:
 - some `.delta-fact` text matches `sneaky_helper`
 - `#deltaView` has `before`, `delta`, `after`
 - `#deltaPlay` / `#deltaPrev` / `#deltaNext` / `#deltaOverview` exist
+- `#deltaCanvas .react-flow__node` length `> 1` and `<= 24`
 - stepping Next past the end stays on the last `data-delta-i` (no loop)
 - screenshot `verification/delta.png` is not a black frame
 - `.graphide/stamps/` is still empty
@@ -75,6 +79,9 @@ Driver assertions:
 - Timeline (`data-ws="timeline"`) is unchanged. Chrome 17/17 still clicks it.
 - `P` on Delta walks facts. `P` on Map / Overview still walks the story rail.
 - Do not add `data-component` / `data-testid`. `#deltaFacts`, `[data-ws="delta"]`,
-  `[data-delta-view]`, `.delta-fact[data-delta-kind]` are the product hooks.
-- Do not vendor Archify's Node renderer. This reading uses Graphide `.vnode`
-  / explorer list chrome.
+  `[data-delta-view]`, `.delta-fact[data-delta-kind]`, `#deltaCanvas .react-flow__node`
+  are the product hooks.
+- Do not vendor Archify's Node renderer. XYFlow nodes reuse Graphide `.vnode`
+  / kind pills from `main.css`.
+- Map stays vanilla community LOD. XYFlow lives in `#deltaCanvas` (and the
+  other derived-graph hosts), not on Map.

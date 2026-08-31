@@ -22,6 +22,9 @@ them.
   `terminal`). States `#lcCanvas .lc-state` with `data-lc-id` /
   `data-lc-type` (`start` / `active` / `waiting` / `success` / `neutral` /
   `failure`) / `data-lc-lane` / `data-lc-col`.
+- Canvas `#lcCanvas` mounts XYFlow (`#lcCanvas .react-flow`, `.react-flow__node`)
+  for the review machine. Lane strip `#lcLanes` and event list `#lcTrans`
+  stay HTML. Plugin ends `#lcEnds` stay a list.
 - Ordered events `#lcTrans .lc-trans` with `data-lc-i`, `data-from`,
   `data-to`, `data-lc-event` (`play` / `wait` / `stamp` / `skip` / `break`
   / `recover`). Recover is `broken → walking`, not a card that says retry.
@@ -71,6 +74,7 @@ Driver assertions:
 - `#lcTrans .lc-trans` length `>= 1` and events are ordered (`data-lc-i`)
 - some transition is `broken → walking` (`data-lc-event="recover"`)
 - `#lcPlay` / `#lcPrev` / `#lcNext` / `#lcOverview` / `#lcCanvas` exist
+- `#lcCanvas .react-flow__node` length `> 1` and `<= 24`
 - stepping Next past the end stays on the last `data-lc-i` (no loop)
 - screenshot `verification/lifecycle.png` is not a black frame
 - `.graphide/stamps/` is still empty
@@ -87,6 +91,7 @@ Driver assertions:
   on Data-flow still walks hops. `P` on Delta still walks facts. `P` on
   Map / Overview still walks the story rail.
 - Do not add `data-component` / `data-testid`. `#lcTrans`, `#lcCanvas`,
-  `[data-ws="lifecycle"]`, `.lc-state[data-lc-type]` are the product hooks.
-- Do not vendor Archify's Node renderer. This reading uses Graphide `.vnode`
-  / explorer list chrome.
+  `[data-ws="lifecycle"]`, `.lc-state[data-lc-type]`, `#lcCanvas .react-flow__node`
+  are the product hooks.
+- Do not vendor Archify's Node renderer. XYFlow nodes reuse `.lc-state.vnode`
+  from `main.css`.

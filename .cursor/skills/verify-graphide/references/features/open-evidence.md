@@ -10,7 +10,8 @@ Inspect a node or hop without covering the object rail.
 - **Editor** `#srcEditor` posts `{ type: "enterNode" }` to the host (open the span in the editor).
 - **Close** `#srcClose` or `Escape` hides the pane (`sourcePane.hidden = true`, `#workspace` drops `has-source`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
-- Graph open: click `.vnode[data-id]` (Slice / Overview CFG) → `selectNode` → `peekSource`.
+- Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
+  `#sliceCanvas .react-flow .vnode`) → `selectNode` → `peekSource`.
 - Clip rules (PR #45 / `main.css`): `#sourcePane` has `overflow: hidden` and `max-width: 380px` (flex basis ~360px). Long source lines must not cover `#ledgerPane`.
 
 ## How to get to it (user POV)
