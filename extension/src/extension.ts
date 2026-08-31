@@ -726,6 +726,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <button type="button" data-ws="delta">Delta</button>
       <button type="button" data-ws="sequence">Sequence</button>
       <button type="button" data-ws="dataflow">Data-flow</button>
+      <button type="button" data-ws="lifecycle">Lifecycle</button>
     </nav>
     <nav id="tabs"></nav>
     <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">Ego</button>

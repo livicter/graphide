@@ -75,6 +75,13 @@ jobs:
             > extension/scripts/dataflow-snap.json
           test -s extension/scripts/dataflow-snap.json
 
+      - name: Lifecycle fixture
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root fixtures/demo --json --progress --no-parent \
+            > extension/scripts/lifecycle-snap.json
+          test -s extension/scripts/lifecycle-snap.json
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 

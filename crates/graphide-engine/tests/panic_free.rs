@@ -2,8 +2,8 @@
 
 use graphide_engine::{
     apply_saved_stamps, build_flowchart, cluster, derive_repo, enter_bubble, flow_dataflow,
-    flow_sequence, parse_flows_toml, recheck_stamp, resolve_fqn, steiner_tree, ReviewInput,
-    ReviewOptions,
+    flow_lifecycle, flow_sequence, parse_flows_toml, recheck_stamp, resolve_fqn, steiner_tree,
+    ReviewInput, ReviewOptions,
 };
 use graphide_ir::*;
 use std::collections::HashMap;
@@ -116,6 +116,14 @@ fn cluster_and_steiner_tolerate_empty_and_unknown_ids() {
         }
     ))
     .is_ok());
+    assert!(catch_unwind(|| flow_lifecycle(
+        &empty,
+        &Steiner {
+            nodes: vec![],
+            edges: vec![],
+        }
+    ))
+    .is_ok());
 
     let a = node("crate::a", NodeKind::Function);
     let b = node("crate::b", NodeKind::Function);
@@ -152,6 +160,15 @@ fn cluster_and_steiner_tolerate_empty_and_unknown_ids() {
     assert!(
         df.nodes.is_empty() && df.hops.is_empty(),
         "Calls-only tree is Sequence, not Data-flow, got {df:?}"
+    );
+    let lc = flow_lifecycle(&g, &tree);
+    assert!(
+        lc.states.len() >= 6
+            && lc
+                .transitions
+                .iter()
+                .any(|t| t.from == "broken" && t.to == "walking"),
+        "{lc:?}"
     );
 }
 

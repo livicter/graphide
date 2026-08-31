@@ -72,8 +72,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -123,6 +123,8 @@ let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
+let lcCursor = -1;
+let lcWalk = { playing: false, timer: 0 };
 let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -309,6 +311,7 @@ document.addEventListener("keydown", (e) => {
     if (explorerWs === "delta") toggleDeltaReview();
     else if (explorerWs === "sequence") toggleSeqReview();
     else if (explorerWs === "dataflow") toggleDfReview();
+    else if (explorerWs === "lifecycle") toggleLcReview();
     else togglePathWalk();
     return;
   }
@@ -323,6 +326,9 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "dataflow") {
       stopDfWalk();
       stepDfWalk(dfCursor < 0 ? 1 : -1);
+    } else if (explorerWs === "lifecycle") {
+      stopLcWalk();
+      stepLcWalk(lcCursor < 0 ? 1 : -1);
     } else {
       stopPathWalk();
       stepPathWalk(pathWalk.i < 0 ? 1 : -1);
@@ -340,6 +346,9 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "dataflow") {
       stopDfWalk();
       stepDfWalk(1);
+    } else if (explorerWs === "lifecycle") {
+      stopLcWalk();
+      stepLcWalk(1);
     } else {
       stopPathWalk();
       stepPathWalk(1);
@@ -4630,6 +4639,371 @@ function bindDataflowPage() {
   if (play) play.onclick = () => toggleDfReview();
 }
 
+/** Current flow's review machine. Engine `lifecycle` when present; else derive. */
+function lifecycleFlow() {
+  const cur = currentFlow();
+  if (cur && lifecycleOf(cur).transitions.length) return cur;
+  const named = ((snapshot && snapshot.flows) || []).find((f) => f && f.name === "data-subscription");
+  if (named && lifecycleOf(named).transitions.length) return named;
+  const story = storyFlow();
+  if (story && lifecycleOf(story).transitions.length) return story;
+  for (const f of (snapshot && snapshot.flows) || []) {
+    if (lifecycleOf(f).transitions.length) return f;
+  }
+  return cur || story || named || null;
+}
+
+function lifecycleOf(flow) {
+  const ready = flow && flow.lifecycle;
+  if (ready && (ready.states || []).length && (ready.transitions || []).length) {
+    return {
+      lanes: (ready.lanes || []).slice(),
+      states: ready.states.slice(),
+      transitions: ready.transitions.slice(),
+      endpoints: (ready.endpoints || []).slice(),
+    };
+  }
+  return deriveLifecycle(flow);
+}
+
+function deriveLifecycle(flow) {
+  if (!flow) return { lanes: [], states: [], transitions: [], endpoints: [] };
+  const tree = flow.tree || { nodes: [], edges: [] };
+  const hops = (tree.edges || []).length;
+  const walkingSub = hops === 0 ? "" : hops === 1 ? "1 hop" : hops + " hops";
+  const ends = [];
+  const seen = new Set();
+  for (const id of tree.nodes || []) {
+    const key = idVal(id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const n = nodeById.get(key);
+    if (!n || (n.kind !== "Type" && n.kind !== "Endpoint")) continue;
+    ends.push({
+      id: key,
+      fqn: n.fqn || key,
+      kind: n.kind,
+      file: n.span ? n.span.file : "",
+    });
+  }
+  ends.sort((a, b) => String(a.fqn).localeCompare(String(b.fqn)));
+  return {
+    lanes: [
+      { id: "main", label: "Review" },
+      { id: "events", label: "Wait / retry" },
+      { id: "terminal", label: "Outcomes" },
+    ],
+    states: [
+      { id: "proposed", type: "start", label: "Proposed", lane: "main", col: 0 },
+      { id: "walking", type: "active", label: "Walking", sublabel: walkingSub, lane: "main", col: 1 },
+      { id: "waiting", type: "waiting", label: "Waiting", sublabel: "stamp / skip", lane: "events", col: 0 },
+      { id: "stamped", type: "success", label: "Stamped", lane: "terminal", col: 0 },
+      { id: "skipped", type: "neutral", label: "Skipped", lane: "terminal", col: 1 },
+      { id: "broken", type: "failure", label: "Broken", lane: "events", col: 1 },
+    ],
+    transitions: [
+      { from: "proposed", to: "walking", label: "play" },
+      { from: "walking", to: "waiting", label: "wait" },
+      { from: "waiting", to: "stamped", label: "stamp" },
+      { from: "waiting", to: "skipped", label: "skip" },
+      { from: "stamped", to: "broken", label: "break" },
+      { from: "broken", to: "walking", label: "recover" },
+    ],
+    endpoints: ends,
+  };
+}
+
+function lcTrans() {
+  return lifecycleOf(lifecycleFlow()).transitions;
+}
+
+function lcStates() {
+  return lifecycleOf(lifecycleFlow()).states;
+}
+
+function lcCurrentId(flow) {
+  const mark = flowMark(flow && flow.name);
+  if (mark === "holds") return "stamped";
+  if (mark === "skipped") return "skipped";
+  if (mark === "broken") return "broken";
+  return "proposed";
+}
+
+function stopLcWalk() {
+  lcWalk.playing = false;
+  if (lcWalk.timer) {
+    clearInterval(lcWalk.timer);
+    lcWalk.timer = 0;
+  }
+  const play = document.getElementById("lcPlay");
+  if (play) {
+    play.classList.remove("on");
+    play.setAttribute("aria-pressed", "false");
+    play.textContent = "Play";
+  }
+}
+
+function stepLcWalk(dir) {
+  const hops = lcTrans();
+  if (!hops.length) return;
+  let i = lcCursor + dir;
+  if (i < 0) i = 0;
+  if (i >= hops.length) {
+    i = hops.length - 1;
+    stopLcWalk();
+  }
+  lcCursor = i;
+  paint({ animate: "none" });
+  focusLcTrans(hops[i]);
+}
+
+function toggleLcReview() {
+  if (lcWalk.playing) {
+    stopLcWalk();
+    const hops = lcTrans();
+    flashToast("Paused · " + Math.max(lcCursor, 0) + "/" + hops.length, "ok");
+    return;
+  }
+  const hops = lcTrans();
+  if (!hops.length) {
+    flashToast("No derived review machine on this flow", "skip");
+    return;
+  }
+  if (lcCursor >= hops.length - 1) lcCursor = -1;
+  lcWalk.playing = true;
+  flashToast("Walking review states", "ok");
+  stepLcWalk(1);
+  if (reduceMotion()) {
+    stopLcWalk();
+    return;
+  }
+  lcWalk.timer = setInterval(() => {
+    const next = lcTrans();
+    if (lcCursor >= next.length - 1) {
+      stopLcWalk();
+      flashToast("End · lifecycle", "ok");
+      return;
+    }
+    stepLcWalk(1);
+  }, 720);
+}
+
+function resetLcOverview() {
+  stopLcWalk();
+  lcCursor = -1;
+  paint({ animate: "none" });
+}
+
+function focusLcTrans(hop) {
+  if (!hop) return;
+  const status = document.getElementById("lcStatus");
+  if (status) {
+    status.textContent =
+      lcCursor + 1 + "/" + lcTrans().length + " · " + (hop.label || "") + " " + hop.from + " → " + hop.to;
+  }
+}
+
+function lcStateKind(s) {
+  return s.type || s.kind || "neutral";
+}
+
+function renderLifecycleBody() {
+  const flow = lifecycleFlow();
+  const reading = lifecycleOf(flow);
+  const states = reading.states;
+  const hops = reading.transitions;
+  const ends = reading.endpoints;
+  const lanes = reading.lanes;
+  if (graphFilter.q) {
+    const q = graphFilter.q.toLowerCase();
+    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
+    const keepS = states.filter((s) => hit(s.id) || hit(s.label) || hit(lcStateKind(s)) || hit(s.lane));
+    const keepT = hops.filter((h) => hit(h.from) || hit(h.to) || hit(h.label));
+    const keepE = ends.filter((e) => hit(e.fqn) || hit(e.kind));
+    if (!keepS.length && !keepT.length && !keepE.length) {
+      return '<div class="empty">No lifecycle states match “' + esc(graphFilter.q) + '”.</div>';
+    }
+  }
+  if (!states.length || !hops.length) {
+    return '<div class="empty">No derived review machine on this flow. Lifecycle does not invent AST match/enum states.</div>';
+  }
+  if (lcCursor >= hops.length) lcCursor = hops.length - 1;
+  const hot = lcCursor >= 0 ? hops[lcCursor] : null;
+  const now = hot ? hot.to : lcCurrentId(flow);
+  const review =
+    '<div class="review-strip" id="lcReview">' +
+    '<button type="button" class="review-step" id="lcOverview">Overview</button>' +
+    '<button type="button" class="review-step" id="lcPrev">Prev</button>' +
+    '<button type="button" class="review-step' +
+    (lcWalk.playing ? " on" : "") +
+    '" id="lcPlay" aria-pressed="' +
+    (lcWalk.playing ? "true" : "false") +
+    '">Play</button>' +
+    '<button type="button" class="review-step" id="lcNext">Next</button>' +
+    '<span id="lcStatus">' +
+    (hot
+      ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to
+      : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now) +
+    "</span></div>";
+  const laneCols = lanes
+    .map((lane) => {
+      const col = states
+        .filter((s) => s.lane === lane.id)
+        .slice()
+        .sort((a, b) => (a.col || 0) - (b.col || 0));
+      const cards = col
+        .map((s) => {
+          const kind = lcStateKind(s);
+          const on = now === s.id || (hot && (hot.from === s.id || hot.to === s.id));
+          return (
+            '<button type="button" class="lc-state vnode' +
+            (on ? " on" : "") +
+            '" data-lc-id="' +
+            esc(s.id) +
+            '" data-lc-type="' +
+            esc(kind) +
+            '" data-lc-lane="' +
+            esc(s.lane) +
+            '" data-lc-col="' +
+            esc(String(s.col == null ? 0 : s.col)) +
+            '"><span class="name">' +
+            esc(s.label || s.id) +
+            '</span> <span class="meta">' +
+            esc(kind + (s.sublabel ? " · " + s.sublabel : "")) +
+            "</span></button>"
+          );
+        })
+        .join("");
+      return (
+        '<div class="lc-lane" data-lc-lane="' +
+        esc(lane.id) +
+        '"><div class="k">' +
+        esc(lane.label || lane.id) +
+        "</div>" +
+        cards +
+        "</div>"
+      );
+    })
+    .join("");
+  const list = hops
+    .map((h, i) => {
+      return (
+        '<article class="lc-trans expl-card' +
+        (i === lcCursor ? " on" : "") +
+        '" data-lc-i="' +
+        i +
+        '" data-from="' +
+        esc(h.from) +
+        '" data-to="' +
+        esc(h.to) +
+        '" data-lc-event="' +
+        esc(h.label || "") +
+        '"><div class="k">' +
+        esc(h.label || "event") +
+        '</div><div class="t">' +
+        esc(h.from + " → " + h.to) +
+        "</div></article>"
+      );
+    })
+    .join("");
+  const endCards = ends
+    .map((e) => {
+      return (
+        '<button type="button" class="lc-end vnode kind-' +
+        esc(e.kind || "Type") +
+        '" data-id="' +
+        esc(idVal(e.id)) +
+        '" data-fqn="' +
+        esc(e.fqn) +
+        '" data-kind="' +
+        esc(e.kind || "") +
+        '"><span class="name">' +
+        esc(shortOf(e.fqn)) +
+        '</span> <span class="meta">' +
+        esc(e.kind || "") +
+        "</span></button>"
+      );
+    })
+    .join("");
+  const endsBlock = ends.length
+    ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>"
+    : "";
+  return (
+    '<div class="lc-page">' +
+    review +
+    '<div class="ws-split">' +
+    '<div class="ws-list" id="lcTrans">' +
+    list +
+    "</div>" +
+    '<div class="ws-detail">' +
+    '<div class="k">' +
+    esc((flow && flow.name) || "flow") +
+    " · review machine</div>" +
+    '<div id="lcCanvas" class="lc-canvas">' +
+    '<div class="lc-lanes" id="lcLanes" style="--lc-n:' +
+    lanes.length +
+    '">' +
+    laneCols +
+    "</div>" +
+    endsBlock +
+    "</div></div></div></div>"
+  );
+}
+
+function bindLifecyclePage() {
+  canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const i = parseInt(el.getAttribute("data-lc-i"), 10);
+      if (!Number.isFinite(i)) return;
+      stopLcWalk();
+      lcCursor = i;
+      paint({ animate: "none" });
+      focusLcTrans(lcTrans()[i]);
+    };
+  });
+  canvas.querySelectorAll("#lcCanvas .lc-state").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-lc-id");
+      const hops = lcTrans();
+      const i = hops.findIndex((h) => h.to === id || h.from === id);
+      if (i >= 0) {
+        stopLcWalk();
+        lcCursor = i;
+        paint({ animate: "none" });
+        focusLcTrans(hops[i]);
+      }
+    };
+  });
+  canvas.querySelectorAll("#lcEnds .lc-end").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-id");
+      if (id) {
+        selectedNodeId = id;
+        peekSource(id);
+      }
+    };
+  });
+  const overview = document.getElementById("lcOverview");
+  const prev = document.getElementById("lcPrev");
+  const next = document.getElementById("lcNext");
+  const play = document.getElementById("lcPlay");
+  if (overview) overview.onclick = () => resetLcOverview();
+  if (prev)
+    prev.onclick = () => {
+      stopLcWalk();
+      stepLcWalk(lcCursor < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopLcWalk();
+      stepLcWalk(1);
+    };
+  if (play) play.onclick = () => toggleLcReview();
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -4664,6 +5038,7 @@ function renderExplorerList(ws) {
     delta: "Delta — derived parent vs head",
     sequence: "Sequence — callers, callees, returns on this flow",
     dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
+    lifecycle: "Lifecycle — review states, waits, terminals on this flow",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -4678,6 +5053,7 @@ function renderExplorerList(ws) {
   else if (ws === "delta") html = renderDeltaBody();
   else if (ws === "sequence") html = renderSequenceBody();
   else if (ws === "dataflow") html = renderDataflowBody();
+  else if (ws === "lifecycle") html = renderLifecycleBody();
   else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
@@ -4764,6 +5140,7 @@ function renderExplorerList(ws) {
   if (ws === "delta") bindDeltaPage();
   if (ws === "sequence") bindSequencePage();
   if (ws === "dataflow") bindDataflowPage();
+  if (ws === "lifecycle") bindLifecyclePage();
 }
 
 function applyDecisionOutcomeFilter() {

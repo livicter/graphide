@@ -465,6 +465,72 @@ pub struct FlowDataflow {
     pub hops: Vec<DataflowHop>,
 }
 
+/// Archify Lifecycle `type` on a derived review-machine state.
+/// Not an AST match/enum variant — the rust plugin does not emit those.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LifecycleType {
+    Start,
+    Active,
+    Waiting,
+    Decision,
+    Success,
+    Failure,
+    Neutral,
+    External,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LifecycleLane {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LifecycleState {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub kind: LifecycleType,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sublabel: Option<String>,
+    pub lane: String,
+    pub col: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LifecycleTransition {
+    pub from: String,
+    pub to: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub label: String,
+}
+
+/// Plugin-visible Type / Endpoint on this flow's Steiner. Not invented
+/// match-arm edges — enum_item is a Type, Channel consts are Endpoints.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LifecycleEndpoint {
+    pub id: NodeId,
+    pub fqn: String,
+    pub kind: NodeKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+/// One flow's review machine: proposed → walking → stamped | skipped | broken,
+/// plus plugin-visible Type / Endpoint ends. Empty only when no flow name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct FlowLifecycle {
+    #[serde(default)]
+    pub lanes: Vec<LifecycleLane>,
+    #[serde(default)]
+    pub states: Vec<LifecycleState>,
+    #[serde(default)]
+    pub transitions: Vec<LifecycleTransition>,
+    #[serde(default)]
+    pub endpoints: Vec<LifecycleEndpoint>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "PascalCase")]
 pub enum FindingKind {
@@ -588,6 +654,10 @@ pub struct FlowView {
     /// Default empty for explorer fixtures that only send a tree.
     #[serde(default)]
     pub dataflow: FlowDataflow,
+    /// Review machine + plugin-visible Type / Endpoint ends on this flow.
+    /// Default empty for explorer fixtures that only send a tree.
+    #[serde(default)]
+    pub lifecycle: FlowLifecycle,
 }
 
 /// Source text covered by a 1-based span. Columns are byte offsets in the line.

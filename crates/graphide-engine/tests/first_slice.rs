@@ -133,6 +133,25 @@ fn steiner_of_hits_is_subscribes_edge() {
         flow.dataflow.nodes
     );
     assert!(
+        flow.lifecycle.states.iter().any(|s| s.id == "proposed")
+            && flow.lifecycle.states.iter().any(|s| s.id == "walking")
+            && flow
+                .lifecycle
+                .transitions
+                .iter()
+                .any(|t| t.from == "broken" && t.to == "walking" && t.label == "recover"),
+        "lifecycle={:?}",
+        flow.lifecycle
+    );
+    assert!(
+        flow.lifecycle
+            .endpoints
+            .iter()
+            .any(|e| e.kind == NodeKind::Endpoint && e.fqn.contains("events")),
+        "plugin-visible ends={:?}",
+        flow.lifecycle.endpoints
+    );
+    assert!(
         flow.dataflow.hops.iter().any(|h| {
             h.kind == EdgeKind::Subscribes
                 && h.from_fqn.contains("events")

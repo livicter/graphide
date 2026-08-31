@@ -6,6 +6,7 @@ use crate::hints::parse_flows_toml;
 use crate::link::link;
 use crate::programs::{is_entry, programs_from_graph};
 use crate::dataflow::flow_dataflow;
+use crate::lifecycle::flow_lifecycle;
 use crate::sequence::flow_sequence;
 use crate::steiner::steiner_tree;
 use graphide_ir::{
@@ -207,6 +208,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         let flowchart = build_flowchart(&graph, &bubbles, &tree);
         let sequence = flow_sequence(&graph, &tree);
         let dataflow = flow_dataflow(&graph, &tree);
+        let lifecycle = flow_lifecycle(&graph, &tree);
         flow_views.push(FlowView {
             name: name.clone(),
             hits,
@@ -215,6 +217,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
             flowchart,
             sequence,
             dataflow,
+            lifecycle,
         });
         opts.report(ProgressEvent::new(
             "flows",
