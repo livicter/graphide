@@ -18862,16 +18862,37 @@
     lcState: LcStateNode,
     sliceVnode: SliceVnode
   };
-  function FitOnce({ graphKey }) {
+  function FitWhenReady({ graphKey }) {
     const rf = useReactFlow();
-    const last = (0, import_react3.useRef)("");
+    const fitted = (0, import_react3.useRef)("");
     (0, import_react3.useEffect)(() => {
-      if (!graphKey || graphKey === last.current) return;
-      last.current = graphKey;
-      const id2 = requestAnimationFrame(() => {
-        rf.fitView({ padding: 0.18 });
-      });
-      return () => cancelAnimationFrame(id2);
+      fitted.current = "";
+      let ro = null;
+      const paneOf = () => document.querySelector(
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow"
+      );
+      const fit = () => {
+        const pane2 = paneOf();
+        if (!pane2 || !graphKey) return;
+        const r = pane2.getBoundingClientRect();
+        if (r.width < 24 || r.height < 24) return;
+        const key = graphKey + "@" + Math.round(r.width) + "x" + Math.round(r.height);
+        if (fitted.current === key) return;
+        fitted.current = key;
+        rf.fitView({ padding: 0.16 });
+      };
+      const pane = paneOf();
+      if (pane) {
+        ro = new ResizeObserver(fit);
+        ro.observe(pane);
+      }
+      const id2 = requestAnimationFrame(fit);
+      const t = setTimeout(fit, 80);
+      return () => {
+        cancelAnimationFrame(id2);
+        clearTimeout(t);
+        if (ro) ro.disconnect();
+      };
     }, [graphKey, rf]);
     return null;
   }
@@ -18941,7 +18962,10 @@
         nodeTypes: NODE_TYPES,
         proOptions: { hideAttribution: true },
         fitView: !embed,
-        fitViewOptions: { padding: 0.18 },
+        fitViewOptions: { padding: 0.16 },
+        onInit: (inst) => {
+          if (!embed) inst.fitView({ padding: 0.16 });
+        },
         minZoom: embed ? 1 : 0.2,
         maxZoom: embed ? 1 : 2,
         nodesDraggable: false,
@@ -18965,7 +18989,7 @@
           if (Number.isFinite(i) && onHopClick) onHopClick(i);
           else if (onHopClick && edge.data) onHopClick(edge.data);
         },
-        children: embed ? null : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(FitOnce, { graphKey })
+        children: embed ? null : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(FitWhenReady, { graphKey })
       }
     ) });
   }
@@ -20783,24 +20807,43 @@
       camTo = { x: 0, y: 0, k: 1 };
       applyCam();
     }
+    let stageFitRo = null;
     function fitChart() {
       const stage = canvas.querySelector(".stage");
       const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas");
       if (!stage || !wrap) {
         setCamTarget(0, 0, 1);
-        return;
+        return false;
       }
       const sr2 = stage.getBoundingClientRect();
+      if (sr2.width < 24 || sr2.height < 24) return false;
       const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
       const H2 = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
       const pad = 36;
       let k = Math.min((sr2.width - pad) / W, (sr2.height - pad) / H2, 1.05);
-      if (!Number.isFinite(k) || k <= 0) k = 1;
+      if (!Number.isFinite(k) || k <= 0) return false;
       if (canPopAltitude()) k = Math.max(k, 0.78);
       k = clamp2(k, CAM_MIN, CAM_MAX);
       zoomPopReady = false;
       setCamTarget((sr2.width - W * k) / 2, (sr2.height - H2 * k) / 2, k);
       zoomPopReady = k > 0.8;
+      return true;
+    }
+    function scheduleFit(stage) {
+      if (!stage) return;
+      const run = () => {
+        if (fitChart() && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+      };
+      if (stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      requestAnimationFrame(run);
+      stageFitRo = new ResizeObserver(run);
+      stageFitRo.observe(stage);
     }
     function zoomBy(factor) {
       const stage = canvas.querySelector(".stage");
@@ -20842,7 +20885,7 @@
       viewportEl = stage.querySelector(".viewport");
       if (!opts || opts.reset) {
         resetCam();
-        requestAnimationFrame(() => fitChart());
+        scheduleFit(stage);
       } else applyCam();
       if (stage && !stage.dataset.uiBound) {
         stage.dataset.uiBound = "1";
@@ -24960,7 +25003,7 @@
         dots += '<button type="button" class="comm-node ' + kindClass(n.kind) + (selectedNodeId === id2 ? " selected" : "") + (flags.uncovered ? " uncovered" : "") + '" style="left:' + p.x + "px;top:" + p.y + 'px" data-id="' + id2 + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind) + '" data-file="' + esc(n.span?.file || "") + '" title="' + esc(n.fqn) + '"><span class="name">' + esc(shortOf(n.fqn)) + '</span><span class="meta">' + esc(kindLine(id2, n.kind)) + "</span></button>";
       }
       canvas.className = "play has-stage programs-view";
-      canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">' + (graphFilter.q ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect" : graphFilter.bubble ? "Inside this community — layered on derived hops · " + nodes.length + " review-relevant of " + (findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members || []).length + " (uncovered / on-tree first). Drag to rearrange." : "Nodes — zoom in for kind lines, click to inspect") + '</div><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + svg + dots + "</div></div></div>";
+      canvas.innerHTML = '<div class="stage"><div class="flow-title">' + (graphFilter.q ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect" : graphFilter.bubble ? "Inside this community — layered on derived hops · " + nodes.length + " review-relevant of " + (findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members || []).length + " (uncovered / on-tree first). Drag to rearrange." : "Nodes — zoom in for kind lines, click to inspect") + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + svg + dots + "</div></div></div>";
       bindStage(canvas.querySelector(".stage"), { reset: true });
       setZoomUi(true);
       const wrap = canvas.querySelector(".comm-wrap");
@@ -25047,7 +25090,7 @@
         html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
       }
       canvas.className = "play has-stage programs-view";
-      canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">' + (pathIds.length ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter" : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") + '</div><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
+      canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + (pathIds.length ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter" : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
       bindStage(canvas.querySelector(".stage"), { reset: true });
       setZoomUi(true);
       const wrap = canvas.querySelector(".comm-wrap");

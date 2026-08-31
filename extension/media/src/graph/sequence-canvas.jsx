@@ -128,16 +128,38 @@ const NODE_TYPES = {
   sliceVnode: SliceVnode,
 };
 
-function FitOnce({ graphKey }) {
+function FitWhenReady({ graphKey }) {
   const rf = useReactFlow();
-  const last = useRef("");
+  const fitted = useRef("");
   useEffect(() => {
-    if (!graphKey || graphKey === last.current) return;
-    last.current = graphKey;
-    const id = requestAnimationFrame(() => {
-      rf.fitView({ padding: 0.18 });
-    });
-    return () => cancelAnimationFrame(id);
+    fitted.current = "";
+    let ro = null;
+    const paneOf = () =>
+      document.querySelector(
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow"
+      );
+    const fit = () => {
+      const pane = paneOf();
+      if (!pane || !graphKey) return;
+      const r = pane.getBoundingClientRect();
+      if (r.width < 24 || r.height < 24) return;
+      const key = graphKey + "@" + Math.round(r.width) + "x" + Math.round(r.height);
+      if (fitted.current === key) return;
+      fitted.current = key;
+      rf.fitView({ padding: 0.16 });
+    };
+    const pane = paneOf();
+    if (pane) {
+      ro = new ResizeObserver(fit);
+      ro.observe(pane);
+    }
+    const id = requestAnimationFrame(fit);
+    const t = setTimeout(fit, 80);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(t);
+      if (ro) ro.disconnect();
+    };
   }, [graphKey, rf]);
   return null;
 }
@@ -218,7 +240,10 @@ function ReviewCanvas({
         nodeTypes={NODE_TYPES}
         proOptions={{ hideAttribution: true }}
         fitView={!embed}
-        fitViewOptions={{ padding: 0.18 }}
+        fitViewOptions={{ padding: 0.16 }}
+        onInit={(inst) => {
+          if (!embed) inst.fitView({ padding: 0.16 });
+        }}
         minZoom={embed ? 1 : 0.2}
         maxZoom={embed ? 1 : 2}
         nodesDraggable={false}
@@ -243,7 +268,7 @@ function ReviewCanvas({
           else if (onHopClick && edge.data) onHopClick(edge.data);
         }}
       >
-        {embed ? null : <FitOnce graphKey={graphKey} />}
+        {embed ? null : <FitWhenReady graphKey={graphKey} />}
       </ReactFlow>
     </ReactFlowProvider>
   );

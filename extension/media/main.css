@@ -217,14 +217,21 @@ button:disabled { opacity: 0.45; cursor: default; }
 .hint-live { opacity: 0.65; font-size: 11px; margin-top: 12px; }
 #graphBar {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   align-items: center;
+  align-content: flex-start;
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border);
   background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, transparent);
   backdrop-filter: blur(10px);
+  overflow: visible;
+  min-height: 0;
 }
+#graphBar > * { flex-shrink: 0; }
+#graphBar > .search-wrap { flex: 0 1 180px; }
+#graphBar > #legend { flex-shrink: 1; }
 #graphBar[hidden] { display: none; }
 #llmBtn {
   background: transparent;
@@ -312,10 +319,13 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .workspaces {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: nowrap;
   gap: 4px;
   width: max-content;
   max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
 }
 .workspaces button {
   background: transparent;
@@ -387,16 +397,29 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .ws-split {
   display: grid;
-  grid-template-columns: minmax(200px, 280px) 1fr;
+  grid-template-columns: minmax(168px, 240px) minmax(0, 1fr);
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
 }
-.ws-list { display: flex; flex-direction: column; gap: 8px; }
+.ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
 .ws-detail {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 4px;
   padding: 10px 12px 14px;
-  min-height: 180px;
+  min-height: 0;
+  min-width: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .ws-detail > .k {
   font-size: 9px;
@@ -535,8 +558,12 @@ button:disabled { opacity: 0.45; cursor: default; }
 #legend {
   display: flex;
   flex-wrap: wrap;
+  flex: 1 1 140px;
   gap: 6px;
-  width: 100%;
+  width: auto;
+  max-width: 240px;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 .leg {
   border: 1px solid var(--vscode-panel-border);
@@ -937,11 +964,22 @@ svg.steiner .edge-hit {
   min-height: 220px;
   cursor: grab;
   touch-action: none;
+  display: flex;
+  flex-direction: column;
 }
 .stage.panning { cursor: grabbing; user-select: none; }
+.stage > .flow-title {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin: 8px 12px 4px;
+  pointer-events: none;
+}
 .viewport {
   transform-origin: 0 0;
   will-change: transform;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 #status {
   padding: 6px 12px;
@@ -1264,6 +1302,26 @@ svg.steiner.flowing .vnode.hot .node-box {
 .inode.grey { opacity: 0.48; }
 .finding { color: var(--vscode-errorForeground); }
 .expl-wrap { padding: 4px 4px 18px; }
+#canvas:has(.delta-page),
+#canvas:has(.seq-page),
+#canvas:has(.df-page),
+#canvas:has(.lc-page) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+#canvas:has(.delta-page) .expl-wrap,
+#canvas:has(.seq-page) .expl-wrap,
+#canvas:has(.df-page) .expl-wrap,
+#canvas:has(.lc-page) .expl-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 8px;
+}
 #canvas.has-stage.explorer-list .stage {
   height: min(56vh, 440px);
   min-height: 280px;
@@ -1617,8 +1675,9 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  min-width: 160px;
+  flex: 0 1 180px;
+  min-width: 120px;
+  max-width: 260px;
   padding: 2px 8px 2px 8px;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 999px;
@@ -1908,7 +1967,7 @@ svg.steiner .edge.walk {
 }
 .tl-item.ahead { opacity: 0.48; }
 .tl-item.past .tl-dot { background: #3fb950; }
-.delta-page { display: flex; flex-direction: column; gap: 10px; }
+.delta-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .review-strip {
   display: flex;
   flex-wrap: wrap;
@@ -1998,7 +2057,7 @@ html.bright .route-hop {
 }
 #deltaCanvas path[data-delta-state="removed"] { stroke-dasharray: 6 4; }
 #deltaCanvas path[data-delta-state="added"] { stroke: #3fb950; }
-.seq-page { display: flex; flex-direction: column; gap: 10px; }
+.seq-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 #seqStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
 .seq-parts {
   display: grid;
@@ -2037,8 +2096,10 @@ html.bright .route-hop {
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
   overflow: hidden;
-  min-height: 280px;
-  height: min(52vh, 420px);
+  flex: 1 1 auto;
+  min-height: 220px;
+  height: auto;
+  width: 100%;
 }
 .slice-canvas {
   position: relative;
@@ -2106,7 +2167,12 @@ html.bright .route-hop {
   width: 168px;
   cursor: pointer;
 }
-#deltaCanvas .vnode {
+#deltaCanvas .vnode,
+#seqCanvas .vnode,
+#dfCanvas .vnode,
+#lcCanvas .vnode,
+#sliceCanvas .vnode,
+.react-flow__node .vnode {
   position: relative;
   left: auto;
   top: auto;
@@ -2121,6 +2187,7 @@ html.bright .route-hop {
   border: 1px solid var(--c, var(--g-fn));
   border-radius: 3px;
   background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background));
+  overflow: hidden;
 }
 #deltaCanvas .vnode .kind {
   font-size: 8px;
@@ -2166,7 +2233,7 @@ html.bright .route-hop {
   opacity: 0.78;
 }
 .seq-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
-.df-page { display: flex; flex-direction: column; gap: 10px; }
+.df-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 #dfStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
 .df-stages {
   display: grid;
@@ -2210,7 +2277,7 @@ html.bright .route-hop {
   outline-offset: 2px;
 }
 .df-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
-.lc-page { display: flex; flex-direction: column; gap: 10px; }
+.lc-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 #lcStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
 .lc-lanes {
   display: grid;
@@ -2741,8 +2808,10 @@ html.bright .flow-title { margin: 6px 0; }
 
 /* Iteration 3 — story first, metrics one quiet line, toolbar stays one row. */
 html.bright #graphBar {
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  overflow: visible;
+  align-content: flex-start;
 }
 html.bright .feature-path { margin: 0 0 10px; }
 html.bright .stat-strip {

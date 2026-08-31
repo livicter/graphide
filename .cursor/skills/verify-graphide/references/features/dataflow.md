@@ -33,9 +33,10 @@ workspace is the left-to-right pipeline, not a second ego tab.
 1. Review a folder that has a derived flow (`control-flow` or a sidecar such
    as `data-subscription`). The desk lands on Overview.
 2. Click **Data-flow** (`#workspaces [data-ws="dataflow"]`).
-3. You should see Sources / Transforms / Stores / Sinks left to right, an
-   ordered hop list, and Play / Prev / Next. Selecting a hop highlights that
-   producer → consumer.
+3. You should see the occupied Source / Transform / Store / Sink columns
+   left to right (empty roles are omitted), an ordered hop list, and Play /
+   Prev / Next. Selecting a hop highlights that producer → consumer. The
+   demo slice is Source → Store → Sink.
 4. Play walks the list once. Stamp and Skip are still the human attestation
    for flows — they are not this walk.
 

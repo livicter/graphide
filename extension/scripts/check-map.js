@@ -212,6 +212,12 @@ assert(js.includes("Clear find to see the audit log"), "Registry must not look e
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
 assert(/renderStoryRailHtml\(\)\s*\+\s*[\s\S]{0,40}<div class="stage"/.test(js), "story rail must sit outside the camera viewport");
+assert(
+  /<div class="stage">[\s\S]{0,80}flow-title[\s\S]{0,500}<div class="viewport"/.test(js),
+  "map caption must sit outside the camera viewport"
+);
+assert(/#graphBar[\s\S]{0,220}flex-wrap:\s*wrap/.test(css), "graph bar must wrap instead of overlapping on a narrow desk");
+assert(/#legend[\s\S]{0,160}max-width:\s*240px/.test(css), "program chips must not consume the nowrap tool row");
 assert(harness.includes("loadNamedSnap") && harness.includes("live-snap.json"), "live snap loader missing");
 assert(harness.includes("__graphideLiveError") && harness.includes('params.get("require")'), "required live snap must not silently fall back to synthetic");
 assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"), "delta fixture snap loader missing");

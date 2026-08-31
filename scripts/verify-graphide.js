@@ -217,7 +217,9 @@ function findGraphideBin() {
   if (env && fs.existsSync(env)) return env;
   const candidates = [
     path.join(ROOT, "target", "debug", "graphide"),
+    path.join(ROOT, "target", "debug", "graphide.exe"),
     path.join(ROOT, "target", "release", "graphide"),
+    path.join(ROOT, "target", "release", "graphide.exe"),
   ];
   return candidates.find((p) => fs.existsSync(p)) || "";
 }
@@ -756,6 +758,94 @@ async function main() {
       "xy=" + map.xy + " cards=" + map.cards
     );
     record("M3", "Program chip seed includes bin main", /bin\s+main/i.test(map.legend), map.legend.slice(0, 80));
+
+    const layoutBugs = await page.evaluate(() => {
+      const hit = (a, b) =>
+        !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+        );
+      const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const ws = box(document.getElementById("workspaces"));
+      const ego = box(document.getElementById("egoBtn"));
+      const path = box(document.getElementById("pathBtn"));
+      const kinds = box(document.getElementById("kindFilters"));
+      const bar = box(document.getElementById("graphBar"));
+      const stage = box(document.querySelector("#canvas .stage"));
+      const title = box(document.querySelector("#canvas .stage > .flow-title"));
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stage || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stage.left || c.left >= stage.right || c.bottom <= stage.top || c.top >= stage.bottom);
+      });
+      const titleHitsCard = !!(title && visible.some((c) => hit(title, c)));
+      return {
+        barH: bar ? Math.round(bar.height) : 0,
+        wsEgo: hit(ws, ego),
+        wsPath: hit(ws, path),
+        wsKinds: hit(ws, kinds),
+        egoKinds: hit(ego, kinds),
+        titleInStage: !!(title && stage && title.top >= stage.top - 1 && title.bottom <= stage.bottom + 1),
+        titleHitsCard,
+        cards: cards.length,
+        visible: visible.length,
+        titleInsideViewport: !!document.querySelector(".viewport > .flow-title"),
+      };
+    });
+    record(
+      "G1",
+      "Graph bar controls do not overlap",
+      !layoutBugs.wsEgo && !layoutBugs.wsPath && !layoutBugs.wsKinds && !layoutBugs.egoKinds && layoutBugs.barH > 0 && layoutBugs.barH <= 120,
+      JSON.stringify(layoutBugs)
+    );
+    record(
+      "G2",
+      "Map caption sits outside the camera and not on a community card",
+      layoutBugs.titleInStage && !layoutBugs.titleHitsCard && !layoutBugs.titleInsideViewport,
+      JSON.stringify(layoutBugs)
+    );
+    record(
+      "G3",
+      "Fit leaves more than one community card in the stage",
+      layoutBugs.visible >= 3 && layoutBugs.cards >= 8,
+      "visible=" + layoutBugs.visible + "/" + layoutBugs.cards
+    );
+
+    await page.setViewportSize({ width: 720, height: 900 });
+    await page.waitForTimeout(350);
+    const narrow = await page.evaluate(() => {
+      const hit = (a, b) =>
+        !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+        );
+      const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const ws = box(document.getElementById("workspaces"));
+      const ego = box(document.getElementById("egoBtn"));
+      const kinds = box(document.getElementById("kindFilters"));
+      const bar = box(document.getElementById("graphBar"));
+      return {
+        barH: bar ? Math.round(bar.height) : 0,
+        wsEgo: hit(ws, ego),
+        wsKinds: hit(ws, kinds),
+        egoKinds: hit(ego, kinds),
+      };
+    });
+    record(
+      "G4",
+      "Narrow desk (720) graph bar still does not overlap",
+      !narrow.wsEgo && !narrow.wsKinds && !narrow.egoKinds && narrow.barH > 0 && narrow.barH <= 200,
+      JSON.stringify(narrow)
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(200);
+
     await shot(page, "map.png");
 
     await page.click("#exportBtn");
@@ -1272,7 +1362,7 @@ async function main() {
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 15000 });
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(500);
 
     const liveMap = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".bubble-card")];
@@ -1305,6 +1395,39 @@ async function main() {
       "self-review Map stays community LOD (no XYFlow / 1650 React nodes)",
       liveMap.xy === 0 && liveMap.cards <= 24,
       "xy=" + liveMap.xy + " cards=" + liveMap.cards
+    );
+    const liveLayout = await page.evaluate(() => {
+      const hit = (a, b) =>
+        !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+        );
+      const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const ws = box(document.getElementById("workspaces"));
+      const ego = box(document.getElementById("egoBtn"));
+      const stage = box(document.querySelector("#canvas .stage"));
+      const title = box(document.querySelector("#canvas .stage > .flow-title"));
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stage || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stage.left || c.left >= stage.right || c.bottom <= stage.top || c.top >= stage.bottom);
+      });
+      return {
+        wsEgo: hit(ws, ego),
+        titleHitsCard: !!(title && visible.some((c) => hit(title, c))),
+        titleInsideViewport: !!document.querySelector(".viewport > .flow-title"),
+        visible: visible.length,
+        cards: cards.length,
+      };
+    });
+    record(
+      "R5c",
+      "self-review Map caption and graph-bar do not overlap cards / Ego",
+      !liveLayout.wsEgo && !liveLayout.titleHitsCard && !liveLayout.titleInsideViewport && liveLayout.visible >= 2,
+      JSON.stringify(liveLayout)
     );
     record(
       "R6",

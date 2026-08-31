@@ -1731,6 +1731,8 @@ function resetCam() {
   applyCam();
 }
 
+let stageFitRo = null;
+
 function fitChart() {
   const stage = canvas.querySelector(".stage");
   const wrap =
@@ -1738,19 +1740,38 @@ function fitChart() {
     canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas");
   if (!stage || !wrap) {
     setCamTarget(0, 0, 1);
-    return;
+    return false;
   }
   const sr = stage.getBoundingClientRect();
+  if (sr.width < 24 || sr.height < 24) return false;
   const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
   const H = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
   const pad = 36;
   let k = Math.min((sr.width - pad) / W, (sr.height - pad) / H, 1.05);
-  if (!Number.isFinite(k) || k <= 0) k = 1;
+  if (!Number.isFinite(k) || k <= 0) return false;
   if (canPopAltitude()) k = Math.max(k, 0.78);
   k = clamp(k, CAM_MIN, CAM_MAX);
   zoomPopReady = false;
   setCamTarget((sr.width - W * k) / 2, (sr.height - H * k) / 2, k);
   zoomPopReady = k > 0.8;
+  return true;
+}
+
+function scheduleFit(stage) {
+  if (!stage) return;
+  const run = () => {
+    if (fitChart() && stageFitRo) {
+      stageFitRo.disconnect();
+      stageFitRo = null;
+    }
+  };
+  if (stageFitRo) {
+    stageFitRo.disconnect();
+    stageFitRo = null;
+  }
+  requestAnimationFrame(run);
+  stageFitRo = new ResizeObserver(run);
+  stageFitRo.observe(stage);
 }
 
 function zoomBy(factor) {
@@ -1798,7 +1819,7 @@ function bindStage(stage, opts) {
   viewportEl = stage.querySelector(".viewport");
   if (!opts || opts.reset) {
     resetCam();
-    requestAnimationFrame(() => fitChart());
+    scheduleFit(stage);
   } else applyCam();
   if (stage && !stage.dataset.uiBound) {
     stage.dataset.uiBound = "1";
@@ -7272,7 +7293,7 @@ function renderCommunityGraph() {
   }
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
-    '<div class="stage"><div class="viewport" data-lod="0">' +
+    '<div class="stage">' +
     '<div class="flow-title">' +
     (graphFilter.q
       ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect"
@@ -7284,6 +7305,7 @@ function renderCommunityGraph() {
           " (uncovered / on-tree first). Drag to rearrange."
         : "Nodes — zoom in for kind lines, click to inspect") +
     "</div>" +
+    '<div class="viewport" data-lod="0">' +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +
@@ -7408,12 +7430,13 @@ function renderBubbleMap(clusters) {
   canvas.className = "play has-stage programs-view";
   canvas.innerHTML =
     renderStoryRailHtml() +
-    '<div class="stage"><div class="viewport" data-lod="0">' +
+    '<div class="stage">' +
     '<div class="flow-title">' +
     (pathIds.length
       ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter"
       : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") +
     "</div>" +
+    '<div class="viewport" data-lod="0">' +
     '<div class="comm-wrap" style="width:' +
     W +
     "px;height:" +

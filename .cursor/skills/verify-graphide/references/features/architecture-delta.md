@@ -20,10 +20,12 @@ walks that list once and stops.
 - Play (`#deltaPlay` / `P` on this workspace) walks facts finitely. At the
   last fact it stops. It does not loop. `[` / `]` step.
 - Exact identity highlight: current fact gets `.delta-fact.on` and the
-  matching `.vnode[data-fqn]` / hop path gets `data-delta-review-current`.
-- Engine: `architecture_delta` pairs two `Graph`s by `NodeId = hash(kind, fqn)`.
-  Added hops paint on After; removed hops on Before. Classification is
-  semantic / topology / presentation only — no blast radius, no merge safety.
+  matching `.vnode[data-fqn]` gets `data-delta-review-current`. Hot hops
+  take XYFlow class `on` / `delta-*` (not that attr).
+- Engine: `architecture_delta` pairs two `Graph`s by `NodeId = hash(kind, fqn)`
+  and emits facts. Desk `deltaReading` paints added hops on After and
+  removed hops on Before. Classification is semantic / topology /
+  presentation only — no blast radius, no merge safety.
 - Stamp / skip stay human. Delta never writes `.graphide/stamps/`.
 
 ## How to get to it (user POV)

@@ -13,7 +13,7 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 - Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`).
 - Story rail: `#storyRail` sits **outside** `.viewport` (Start → features → end).
 - Layout: drag a card, `#reorgBtn` / `.reorg-btn` restores auto-layout.
-- Fallback: `fallbackProgramBubbles()` emits one `{ id: "_program", label: programs[0].name }` card when clustering is empty. That is the degeneration this loop rejects.
+- Fallback: `fallbackProgramBubbles()` emits one `{ id: "_program", label: programs[0].name }` card when clustering is empty **and** the graph still has nodes. Empty graph stays empty. That one-card paint is the degeneration this loop rejects.
 
 ## How to get to it (user POV)
 
@@ -52,5 +52,5 @@ Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-ca
 - Overview also embeds a CFG (`.vnode`). Map must be the **community** workspace, not that CFG.
 - `.bubble-card.start` on a **populated** map is correct (walk start). Fail only when START is the *only* card.
 - `check-map.js` asserts `renderBubbleMap` / `storyMapBubbles` strings exist. It cannot see a one-card paint. Drive the harness.
-- Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture.
+- Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops** Enter (`popAltitudeFromZoom`).
 - Do not invent `data-testid` on cards. `[data-bubble]`, `.bubble-card`, `.bubble-card.start` already exist in `extension/media/src/graph/desk.js` (`renderBubbleMap`). React mounts `#canvas`; vanilla paint fills Map. Map must stay `0` `.react-flow__node` (community LOD, cap 24). Slice / Overview CFG use `#sliceCanvas` XYFlow — that is not Map.
