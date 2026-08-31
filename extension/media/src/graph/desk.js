@@ -1825,7 +1825,7 @@ function bindStage(stage, opts) {
   let drag = null;
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
-    if (e.target.closest("button, .run, .inode, a, input")) return;
+    if (e.target.closest("button, .run, .inode, a, input, .vnode, .react-flow__node, .react-flow__edge")) return;
     drag = { x: e.clientX, y: e.clientY, cx: camTo.x, cy: camTo.y };
     stage.classList.add("panning");
     stage.setPointerCapture(e.pointerId);
@@ -1911,6 +1911,28 @@ function bindGraphFx() {
       g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
       g.addEventListener("pointerleave", hideTip);
     });
+    // Desk camera used to steal pointerdown (vanilla bindDraggable stopped it).
+    // Host click keeps Evidence / select on Slice Steiner after the XYFlow port.
+    if (!xyHost.dataset.fxBound) {
+      xyHost.dataset.fxBound = "1";
+      xyHost.addEventListener("click", (e) => {
+        const n = e.target.closest(".vnode");
+        if (n && n.dataset.id) selectNode(n.dataset.id);
+      });
+      xyHost.addEventListener("dblclick", (e) => {
+        const n = e.target.closest(".vnode");
+        if (!n || !n.dataset.id) return;
+        const id = n.dataset.id;
+        const run = [...canvas.querySelectorAll(".run")].find((el) =>
+          (el.getAttribute("data-nodes") || "").split(",").includes(id)
+        );
+        if (run) {
+          enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
+          return;
+        }
+        peekSource(id);
+      });
+    }
   }
   if (!xyHost) {
     bindDraggable(canvas.querySelector(".steiner-wrap"), ".vnode", {
