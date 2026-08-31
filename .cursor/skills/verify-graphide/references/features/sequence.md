@@ -13,7 +13,9 @@ Endpoint, FQNs, spans.
   More than one on a real call chain.
 - Ordered hops `#seqHops .seq-hop` with `data-seq-i`, `data-kind`,
   `data-seq-variant` (`call` / `return` / `default`), `data-from`, `data-to`.
-- Canvas `#seqCanvas .seq-row` repeats that hop list as participants × order.
+- Canvas `#seqCanvas` mounts XYFlow (`#seqCanvas .react-flow`, `.react-flow__node`)
+  for Steiner participants and derived hops. Hop list `#seqHops .seq-hop` is still
+  the walk. Second createRoot on `#seqCanvas` only — chrome stays on `#root`.
 - Play strip `#seqReview`: `#seqOverview` · `#seqPrev` · `#seqPlay` ·
   `#seqNext` · `#seqStatus`.
 - Play (`#seqPlay` / `P` on this workspace) walks hops finitely. At the last
@@ -27,8 +29,9 @@ Endpoint, FQNs, spans.
 1. Review a folder that has a derived flow (`control-flow` or a sidecar such
    as `data-subscription`). The desk lands on Overview.
 2. Click **Sequence** (`#workspaces [data-ws="sequence"]`) or press `9`.
-3. You should see participants across the top, an ordered hop list, and
-   Play / Prev / Next. Selecting a hop highlights that caller → callee.
+3. You should see participants across the top, an ordered hop list, a
+   XYFlow graph in `#seqCanvas`, and Play / Prev / Next. Selecting a hop
+   highlights that caller → callee on the list and on the graph.
 4. Play walks the list once. Stamp and Skip are still the human attestation
    for flows — they are not this walk.
 
@@ -58,6 +61,7 @@ Driver assertions:
 - `#workspaces [data-ws="sequence"]` is on
 - `#seqParts .seq-part` length `> 1`
 - `#seqHops .seq-hop` length `>= 1` and hops are ordered (`data-seq-i`)
+- `#seqCanvas .react-flow__node` length `> 1` (XYFlow participants, not raw IR)
 - some hop or participant text matches `subscribe` / `events` / `Subscribes`
 - `#seqPlay` / `#seqPrev` / `#seqNext` / `#seqOverview` / `#seqCanvas` exist
 - stepping Next past the end stays on the last `data-seq-i` (no loop)
@@ -75,6 +79,9 @@ Driver assertions:
 - `P` on Sequence walks hops. `P` on Map / Overview still walks the story
   rail. `P` on Delta still walks facts.
 - Do not add `data-component` / `data-testid`. `#seqHops`, `#seqParts`,
-  `[data-ws="sequence"]`, `.seq-hop[data-seq-variant]` are the product hooks.
-- Do not vendor Archify's Node renderer. This reading uses Graphide `.vnode`
-  / explorer list chrome.
+  `[data-ws="sequence"]`, `.seq-hop[data-seq-variant]`, `#seqCanvas .react-flow__node`
+  are the product hooks.
+- Do not vendor Archify's Node renderer. XYFlow nodes reuse `.seq-part.vnode`
+  / kind pills from `main.css`.
+- Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not React-mount
+  the raw IR. XYFlow lives only in `#seqCanvas`.

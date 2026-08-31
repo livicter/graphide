@@ -126,6 +126,16 @@ assert(js.includes('id="deltaPlay"') && js.includes('id="deltaFacts"'), "Delta R
 assert(js.includes("function renderSequenceBody"), "Sequence workspace missing");
 assert(js.includes('id="seqPlay"') && js.includes('id="seqHops"') && js.includes('id="seqParts"'), "Sequence Play walk and hop list missing");
 assert(js.includes("function flow_sequence") || js.includes("function sequenceOf"), "Sequence must read Steiner hops");
+assert(js.includes("function renderSequenceCanvas") || chrome.includes("renderSequenceCanvas"), "Sequence XYFlow mount missing");
+assert(js.includes("hideAttribution") && chrome.includes("hideAttribution"), "XYFlow attribution must stay hidden");
+assert(js.includes("function layoutSequence") && js.includes("SEQ_NODE_CAP"), "Sequence must cap and layout the Steiner slice");
+assert(!chrome.includes("MiniMap") && !chrome.includes("<Controls"), "Sequence must not add MiniMap / Controls chrome");
+assert(fs.existsSync(path.join(__dirname, "../media/xyflow.css")), "XYFlow CSS must ship as extension/media/xyflow.css");
+assert(css.includes('@import url("xyflow.css")'), "main.css must import the shipped XYFlow stylesheet");
+assert(css.includes("#seqCanvas .react-flow"), "Sequence XYFlow must be contained in #seqCanvas");
+assert(/style-src \$\{webview.cspSource\}/.test(ext) && !/style-src[^;]*unsafe-inline/.test(ext), "CSP must not add style-src unsafe-inline");
+assert(!/script-src[^;]*unsafe-eval/.test(ext) && !/script-src[^;]*unsafe-inline/.test(ext), "CSP must not add script-src unsafe-eval / unsafe-inline");
+assert(js.includes(".slice(0, 24)"), "Map community LOD must stay cap 24");
 assert(js.includes("function renderDataflowBody"), "Data-flow workspace missing");
 assert(js.includes('id="dfPlay"') && js.includes('id="dfHops"') && js.includes('id="dfStages"'), "Data-flow Play walk and pipeline missing");
 assert(js.includes("function flow_dataflow") || js.includes("function dataflowOf"), "Data-flow must read Steiner data hops");

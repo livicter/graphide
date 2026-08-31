@@ -1,5 +1,6 @@
 /** Vanilla graph paint + host wiring. React mounts chrome; bootDesk binds the same ids. */
 import { acquireHost } from "../host/adapter.js";
+import { renderSequenceCanvas, unmountSequenceCanvas } from "./sequence-canvas.jsx";
 
 export function bootDesk() {
   const vscode = acquireHost();
@@ -128,6 +129,7 @@ let deltaCursor = -1;
 let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
+let seqBodyKey = "";
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
 let lcCursor = -1;
@@ -615,6 +617,7 @@ window.addEventListener("message", (event) => {
     finishWork();
     backBtn.disabled = true;
     canvas.className = "";
+    unmountSequenceCanvas();
     canvas.innerHTML =
       '<div class="empty desk-empty"><b>Review any repo.</b><div>Open a workspace, optionally type <code>name=hit,hit</code>, then Review.</div><div class="desk-keys"><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>P</kbd> play · <kbd>/</kbd> find</div></div>';
     setDeskMode(false);
@@ -638,6 +641,7 @@ window.addEventListener("message", (event) => {
     setZoomUi(false);
     hideTip();
     canvas.className = "";
+    unmountSequenceCanvas();
     canvas.innerHTML =
       '<div class="empty"><b>Install Graphide once.</b><div>' +
       esc(msg.text || "Builds the local CLI and is only needed the first time.") +
@@ -683,6 +687,7 @@ window.addEventListener("message", (event) => {
     clearTimeout(previewTimer);
     finishWork();
     canvas.className = "";
+    unmountSequenceCanvas();
     canvas.innerHTML = '<div class="empty error">' + esc(msg.text) + "</div>";
     status.textContent = "failed";
     setZoomUi(false);
@@ -1947,6 +1952,10 @@ function paint(opts) {
   const animate = (opts && opts.animate) || "all";
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
+  if (explorerWs !== "sequence") {
+    unmountSequenceCanvas();
+    seqBodyKey = "";
+  }
   const top = stack[stack.length - 1];
   syncBackBtn();
   syncWorkspaces();
@@ -2089,6 +2098,7 @@ function showProgress(msg) {
   else if (!canvas.childElementCount || canvas.querySelector(".empty")) {
     canvas.classList.remove("stale");
     if (!canvas.querySelector(".skeleton")) {
+      unmountSequenceCanvas();
       canvas.innerHTML =
         '<div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div><div class="empty pulse">' +
         esc(msg.label || "Working…") +
@@ -5173,41 +5183,6 @@ function renderSequenceBody() {
       );
     })
     .join("");
-  const colOf = new Map(parts.map((p, i) => [idVal(p.id), i]));
-  const rows = hops
-    .map((h, i) => {
-      const a = colOf.has(idVal(h.from)) ? colOf.get(idVal(h.from)) : 0;
-      const b = colOf.has(idVal(h.to)) ? colOf.get(idVal(h.to)) : 0;
-      const lo = Math.min(a, b) + 1;
-      const hi = Math.max(a, b) + 1;
-      const self = a === b;
-      const back = h.variant === "return" || a > b;
-      return (
-        '<div class="seq-row' +
-        (i === seqCursor ? " on" : "") +
-        (back ? " ret" : "") +
-        '" data-seq-i="' +
-        i +
-        '" data-kind="' +
-        esc(h.kind || "") +
-        '" data-seq-variant="' +
-        esc(h.variant || "default") +
-        '" data-from="' +
-        esc(idVal(h.from)) +
-        '" data-to="' +
-        esc(idVal(h.to)) +
-        '"><span class="seq-msg" style="grid-column:' +
-        (self ? lo + " / " + (lo + 1) : lo + " / " + (hi + 1)) +
-        '">' +
-        esc((h.kind || "") + (h.variant === "return" ? " return" : "")) +
-        " " +
-        esc(shortOf(h.from_fqn)) +
-        (back ? " ← " : " → ") +
-        esc(shortOf(h.to_fqn)) +
-        "</span></div>"
-      );
-    })
-    .join("");
   const list = hops
     .map((h, i) => {
       return (
@@ -5253,17 +5228,100 @@ function renderSequenceBody() {
     " · Steiner</div>" +
     '<div id="seqCanvas" class="seq-canvas" style="--seq-n:' +
     parts.length +
-    '">' +
-    '<div class="seq-rows" style="grid-template-columns:repeat(' +
-    parts.length +
-    ',minmax(72px,1fr))">' +
-    rows +
-    "</div></div></div></div></div>"
+    '"></div></div></div></div>'
   );
 }
 
+function sequenceBodyKey() {
+  const flow = sequenceFlow();
+  const reading = sequenceOf(flow);
+  return [flow && flow.name, reading.participants.length, reading.hops.length, graphFilter.q || ""].join("\0");
+}
+
+function sequenceCanvasProps() {
+  const reading = sequenceOf(sequenceFlow());
+  return {
+    participants: reading.participants.map((p) => ({
+      id: idVal(p.id),
+      fqn: p.fqn,
+      kind: p.kind || "Function",
+      label: shortOf(p.fqn),
+    })),
+    hops: reading.hops.map((h, i) => ({
+      i,
+      from: idVal(h.from),
+      to: idVal(h.to),
+      kind: h.kind || "",
+      variant: h.variant || "default",
+      fromLabel: shortOf(h.from_fqn),
+      toLabel: shortOf(h.to_fqn),
+    })),
+    cursor: seqCursor,
+    onNodeClick: (id) => {
+      if (!id) return;
+      selectedNodeId = id;
+      peekSource(id);
+    },
+    onHopClick: (i) => {
+      if (!Number.isFinite(i)) return;
+      stopSeqWalk();
+      seqCursor = i;
+      paint({ animate: "none" });
+      focusSeqHop(seqHops()[i]);
+    },
+  };
+}
+
+function patchSequenceChrome() {
+  const hops = seqHops();
+  const hot = seqCursor >= 0 ? hops[seqCursor] : null;
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    const i = parseInt(el.getAttribute("data-seq-i"), 10);
+    el.classList.toggle("on", i === seqCursor);
+  });
+  canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
+    el.classList.toggle("on", on);
+  });
+  const status = document.getElementById("seqStatus");
+  const flow = sequenceFlow();
+  if (status) {
+    status.textContent = hot
+      ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
+      : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
+  }
+  const play = document.getElementById("seqPlay");
+  if (play) {
+    play.classList.toggle("on", !!seqWalk.playing);
+    play.setAttribute("aria-pressed", seqWalk.playing ? "true" : "false");
+  }
+}
+
+function paintSequenceWorkspace(title) {
+  canvas.className = "play explorer-list";
+  const html = renderSequenceBody();
+  const key = sequenceBodyKey();
+  const keep = !!(
+    canvas.querySelector(".seq-page") &&
+    document.getElementById("seqCanvas") &&
+    key === seqBodyKey &&
+    html.indexOf('id="seqCanvas"') >= 0
+  );
+  if (keep) {
+    patchSequenceChrome();
+  } else {
+    unmountSequenceCanvas();
+    canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+    seqBodyKey = html.indexOf('id="seqCanvas"') >= 0 ? key : "";
+  }
+  const host = document.getElementById("seqCanvas");
+  if (host) renderSequenceCanvas(host, sequenceCanvasProps());
+  else unmountSequenceCanvas();
+}
+
 function bindSequencePage() {
-  canvas.querySelectorAll("#seqHops .seq-hop, #seqCanvas .seq-row").forEach((el) => {
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const i = parseInt(el.getAttribute("data-seq-i"), 10);
@@ -5274,7 +5332,7 @@ function bindSequencePage() {
       focusSeqHop(seqHops()[i]);
     };
   });
-  canvas.querySelectorAll("#seqParts .seq-part, #seqCanvas .seq-part").forEach((el) => {
+  canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const id = el.getAttribute("data-id");
@@ -6094,12 +6152,20 @@ function renderExplorerList(ws) {
     "</b> · " +
     esc(titles[ws] || ws)
   );
+  if (ws === "sequence") {
+    paintSequenceWorkspace(titles.sequence);
+    bindWorkbenchPages();
+    bindSequencePage();
+    applyProbePaint();
+    return;
+  }
+  unmountSequenceCanvas();
+  seqBodyKey = "";
   let html = "";
   if (ws === "overview") html = renderOverviewBody();
   else if (ws === "decisions") html = renderDecisionBody();
   else if (ws === "registry") html = renderRegistryBody();
   else if (ws === "delta") html = renderDeltaBody();
-  else if (ws === "sequence") html = renderSequenceBody();
   else if (ws === "dataflow") html = renderDataflowBody();
   else if (ws === "lifecycle") html = renderLifecycleBody();
   else html = renderTimelineBody();
@@ -6186,7 +6252,6 @@ function renderExplorerList(ws) {
   bindPathWalk();
   bindWorkbenchPages();
   if (ws === "delta") bindDeltaPage();
-  if (ws === "sequence") bindSequencePage();
   if (ws === "dataflow") bindDataflowPage();
   if (ws === "lifecycle") bindLifecyclePage();
   applyProbePaint();

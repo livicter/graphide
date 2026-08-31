@@ -736,6 +736,7 @@ async function main() {
         cards: cards.length,
         start: start.length,
         comm: document.querySelectorAll(".comm-node").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
         names,
         legend,
         loneStart: cards.length === 1 && (start.length === 1 || /^(main|program|start)$/i.test(names[0] || "")),
@@ -747,6 +748,12 @@ async function main() {
       "Map shows a community map, not a lone START card",
       map.cards >= 8 && map.comm === 0 && !map.loneStart,
       "cards=" + map.cards + " start=" + map.start + " comm=" + map.comm + " names=" + map.names.slice(0, 6).join(",")
+    );
+    record(
+      "M2b",
+      "Map stays community LOD (no XYFlow / raw-IR React nodes)",
+      map.xy === 0 && map.cards <= 24,
+      "xy=" + map.xy + " cards=" + map.cards
     );
     record("M3", "Program chip seed includes bin main", /bin\s+main/i.test(map.legend), map.legend.slice(0, 80));
     await shot(page, "map.png");
@@ -1268,6 +1275,7 @@ async function main() {
         cards: cards.length,
         start: start.length,
         comm: document.querySelectorAll(".comm-node").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
         names,
         legend,
         loneStart: cards.length === 1 && (start.length === 1 || /^(main|program|start)$/i.test(names[0] || "")),
@@ -1279,6 +1287,12 @@ async function main() {
       "self-review Map shows communities on this repo, not a lone START",
       liveMap.cards >= 2 && liveMap.comm === 0 && !liveMap.loneStart && liveMap.cards >= Math.min(2, graph.altitude),
       "cards=" + liveMap.cards + " start=" + liveMap.start + " comm=" + liveMap.comm + " names=" + liveMap.names.slice(0, 8).join(",")
+    );
+    record(
+      "R5b",
+      "self-review Map stays community LOD (no XYFlow / 1650 React nodes)",
+      liveMap.xy === 0 && liveMap.cards <= 24,
+      "xy=" + liveMap.xy + " cards=" + liveMap.cards
     );
     record(
       "R6",
@@ -1473,6 +1487,7 @@ async function main() {
     }
     await page.waitForSelector("#seqParts .seq-part", { timeout: 10000 });
     await page.waitForSelector("#seqHops .seq-hop", { timeout: 10000 });
+    await page.waitForSelector("#seqCanvas .react-flow__node", { timeout: 10000 });
 
     const sequenceDesk = await page.evaluate(() => {
       const parts = [...document.querySelectorAll("#seqParts .seq-part")];
@@ -1495,6 +1510,8 @@ async function main() {
         next: !!document.getElementById("seqNext"),
         overview: !!document.getElementById("seqOverview"),
         canvas: !!document.getElementById("seqCanvas"),
+        xy: document.querySelectorAll("#seqCanvas .react-flow__node").length,
+        xyFlow: !!document.querySelector("#seqCanvas .react-flow"),
       };
     });
     record("Q2", "Sequence workspace is active", sequenceDesk.ws === "sequence", sequenceDesk.ws);
@@ -1521,6 +1538,12 @@ async function main() {
       "Sequence has Play / Prev / Next plus canvas",
       sequenceDesk.play && sequenceDesk.prev && sequenceDesk.next && sequenceDesk.overview && sequenceDesk.canvas,
       JSON.stringify({ play: sequenceDesk.play, canvas: sequenceDesk.canvas })
+    );
+    record(
+      "Q6b",
+      "Sequence canvas mounts XYFlow participant nodes (not the raw IR)",
+      sequenceDesk.xyFlow && sequenceDesk.xy > 1 && sequenceDesk.xy <= 48,
+      "xy=" + sequenceDesk.xy + " parts=" + sequenceDesk.parts
     );
 
     if (sequenceDesk.overview) await page.click("#seqOverview");

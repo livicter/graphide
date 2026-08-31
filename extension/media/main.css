@@ -1,3 +1,4 @@
+@import url("xyflow.css");
 html, body {
   margin: 0; padding: 0; height: 100%;
   background: var(--vscode-sideBar-background);
@@ -2034,7 +2035,43 @@ html.bright .route-hop {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
 }
-.seq-canvas { overflow: auto; min-height: 180px; }
+.seq-canvas {
+  position: relative;
+  overflow: hidden;
+  min-height: 280px;
+  height: min(52vh, 420px);
+}
+#seqCanvas .react-flow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  --xy-background-color-default: transparent;
+  --xy-edge-stroke-default: var(--g-line);
+  --xy-edge-stroke-selected-default: var(--vscode-focusBorder);
+  --xy-node-background-color-default: transparent;
+  --xy-node-border-default: none;
+}
+#seqCanvas .react-flow__node-seqPart {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  width: 168px;
+}
+#seqCanvas .react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+#seqCanvas .react-flow__edge.on .react-flow__edge-path {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+#seqCanvas .react-flow__edge.ret .react-flow__edge-path {
+  stroke-dasharray: 5 4;
+  opacity: 0.78;
+}
 .seq-rows {
   display: grid;
   gap: 8px 0;
