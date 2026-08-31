@@ -776,9 +776,16 @@ async function main() {
 
     page.once("dialog", (d) => d.dismiss().catch(() => {}));
     await page.click("#exportPng");
-    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.png, null, {
-      timeout: 20000,
-    });
+    const pngWait = await page
+      .waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.png, null, {
+        timeout: 20000,
+      })
+      .then(() => "ok")
+      .catch(async () => {
+        const err = await page.evaluate(() => window.__graphideExportError || "");
+        return "timeout:" + err;
+      });
+    if (pngWait !== "ok") failFast("export PNG did not finish — " + pngWait);
     await page.click("#exportBtn");
     await page.waitForFunction(
       () => {
