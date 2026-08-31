@@ -252,8 +252,8 @@ npm run verify
 ```
 
 `scripts/verify-graphide.js` asserts the snapshot, serves `extension/` over HTTP,
-launches Chromium, and asserts on the **running** Review HTML (same chrome as
-`extension.ts`). `--assert-snap` is the CI fast-fail before Playwright. The
+launches Chromium, and asserts on the **running** Review HTML (same React desk
+as `extension/media/src/`). `--assert-snap` is the CI fast-fail before Playwright. The
 driver also derives `delta-snap.json` from fixtures/demo vs demo-parent when
 that file is missing.
 

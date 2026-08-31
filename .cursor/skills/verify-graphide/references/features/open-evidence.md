@@ -42,7 +42,7 @@ Driver assertions:
 
 ## Gotchas
 
-- Overview is not a `LIST_WORKSPACES` key. `setGraphChrome` hides `#ledgerPane` when `explorerWs` is in `LIST_WORKSPACES` (`decisions`, `registry`, `timeline`, `delta`, `sequence`, `dataflow`, `lifecycle` — `extension/media/main.js` `LIST_WORKSPACES`). Overview keeps the rail. Confirm on Slice if you need both rail and Evidence in one frame.
+- Overview is not a `LIST_WORKSPACES` key. `setGraphChrome` hides `#ledgerPane` when `explorerWs` is in `LIST_WORKSPACES` (`decisions`, `registry`, `timeline`, `delta`, `sequence`, `dataflow`, `lifecycle` — `extension/media/src/graph/desk.js` `LIST_WORKSPACES`). Overview keeps the rail. Confirm on Slice if you need both rail and Evidence in one frame. React owns `#sourcePane` / `#ledgerPane` markup (`chrome/Workspace.jsx`); `#workspace` flex layout still owns canvas vs rail vs Evidence.
 - `showSource({ missing: true })` still unhides the pane (“No span for this node”). Do not treat “pane visible” alone as a good inspect.
 - `#srcBody` scrolls (`overflow: auto`); the **pane** clips (`#sourcePane { overflow: hidden }`). Assert the pane, not the body.
 - Do not add `data-testid="source-pane"`. `#sourcePane` and `.src-k` are the product hooks.

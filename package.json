@@ -3,12 +3,16 @@
   "private": true,
   "description": "Graphide Review desk — workspace tests plus the webview verify harness",
   "scripts": {
-    "verify": "node scripts/verify-graphide.js"
+    "verify": "node scripts/verify-graphide.js",
+    "build:webview": "node extension/scripts/build-webview.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "playwright": "^1.55.0"
+    "esbuild": "^0.25.0",
+    "playwright": "^1.55.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

@@ -88,6 +88,9 @@ jobs:
       - name: Install verify toolchain
         run: npm ci
 
+      - name: Build Review webview
+        run: npm run build:webview -- --check
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
