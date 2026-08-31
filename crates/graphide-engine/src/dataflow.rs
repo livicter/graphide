@@ -338,9 +338,12 @@ mod tests {
             },
         );
         assert_eq!(d.hops.len(), 2);
-        assert_eq!(d.hops[0].kind, EdgeKind::Reads);
-        assert_eq!(d.hops[0].from_fqn, "crate::src");
-        assert_eq!(d.hops[0].to_fqn, "crate::xform");
+        assert!(d.hops.iter().any(|h| {
+            h.kind == EdgeKind::Reads && h.from_fqn == "crate::src" && h.to_fqn == "crate::xform"
+        }));
+        assert!(d.hops.iter().any(|h| {
+            h.kind == EdgeKind::Writes && h.from_fqn == "crate::xform" && h.to_fqn == "crate::dst"
+        }));
         let role = |fqn: &str| d.nodes.iter().find(|n| n.fqn == fqn).map(|n| n.role);
         assert_eq!(role("crate::src"), Some(DataflowRole::Source));
         assert_eq!(role("crate::xform"), Some(DataflowRole::Transform));
