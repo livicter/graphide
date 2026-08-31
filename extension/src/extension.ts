@@ -687,7 +687,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   <aside id="keysPane" hidden>
     <div class="keys-head"><b>Keys</b><button type="button" id="keysClose" title="Close shortcuts">Close</button></div>
     <ul>
-      <li><kbd>1</kbd>–<kbd>8</kbd> workspaces</li>
+      <li><kbd>1</kbd>–<kbd>9</kbd> workspaces</li>
       <li><kbd>/</kbd> find · <kbd>?</kbd> this sheet</li>
       <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
       <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
@@ -724,6 +724,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <button type="button" data-ws="overview">Overview</button>
       <button type="button" data-ws="timeline">Timeline</button>
       <button type="button" data-ws="delta">Delta</button>
+      <button type="button" data-ws="sequence">Sequence</button>
     </nav>
     <nav id="tabs"></nav>
     <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">Ego</button>

@@ -40,6 +40,7 @@ after any Review UI, engine, or extension change.
   driver `scripts/verify-graphide.js`.
 - Self-review snap: `graphide review --root <checkout> --json --progress --no-parent`.
 - Architecture Delta snap (parent diff): `graphide review --root fixtures/demo --parent fixtures/demo-parent --json`. Prefer the in-tree fixture so shallow Actions clones do not flake.
+- Sequence snap (call chain): `graphide review --root fixtures/demo --json --no-parent`. Same control-flow / data-subscription slice as `first_slice.rs`.
 - Stamp / skip is human-only. The harness may click `#stampBtn` / `#skipBtn`
   only to prove `window.__vscodePosts`. It must not write `.graphide/stamps/`.
 

@@ -1,8 +1,8 @@
 //! Runtime paths return values / findings instead of panicking on bad input.
 
 use graphide_engine::{
-    apply_saved_stamps, build_flowchart, cluster, derive_repo, enter_bubble, parse_flows_toml,
-    recheck_stamp, resolve_fqn, steiner_tree, ReviewInput, ReviewOptions,
+    apply_saved_stamps, build_flowchart, cluster, derive_repo, enter_bubble, flow_sequence,
+    parse_flows_toml, recheck_stamp, resolve_fqn, steiner_tree, ReviewInput, ReviewOptions,
 };
 use graphide_ir::*;
 use std::collections::HashMap;
@@ -99,6 +99,14 @@ fn cluster_and_steiner_tolerate_empty_and_unknown_ids() {
         edges: vec![],
     }))
     .is_ok());
+    assert!(catch_unwind(|| flow_sequence(
+        &empty,
+        &Steiner {
+            nodes: vec![],
+            edges: vec![],
+        }
+    ))
+    .is_ok());
 
     let a = node("crate::a", NodeKind::Function);
     let b = node("crate::b", NodeKind::Function);
@@ -126,6 +134,11 @@ fn cluster_and_steiner_tolerate_empty_and_unknown_ids() {
     let tree = steiner_tree(&g, &[a.id, c.id]);
     let bubbles = cluster(&g);
     assert!(catch_unwind(|| build_flowchart(&g, &bubbles, &tree)).is_ok());
+    let seq = flow_sequence(&g, &tree);
+    assert!(
+        seq.participants.len() >= 2 && !seq.hops.is_empty(),
+        "{seq:?}"
+    );
 }
 
 #[test]

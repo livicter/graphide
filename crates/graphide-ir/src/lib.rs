@@ -375,6 +375,47 @@ pub struct ArchitectureDelta {
     pub parent: Option<Graph>,
 }
 
+/// Archify Sequence `variant` on a derived hop. `return` is the same
+/// `Calls` edge read backward — not a new pair of nodes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SequenceVariant {
+    Call,
+    Return,
+    Default,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SequenceParticipant {
+    pub id: NodeId,
+    pub fqn: String,
+    pub kind: NodeKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SequenceHop {
+    pub from: NodeId,
+    pub to: NodeId,
+    pub from_fqn: String,
+    pub to_fqn: String,
+    pub kind: EdgeKind,
+    pub variant: SequenceVariant,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+/// One flow's Steiner interaction as participants × ordered hops.
+/// Empty when the tree has no Calls / Publishes / Subscribes / Reads / Writes.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct FlowSequence {
+    #[serde(default)]
+    pub participants: Vec<SequenceParticipant>,
+    #[serde(default)]
+    pub hops: Vec<SequenceHop>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "PascalCase")]
 pub enum FindingKind {
@@ -490,6 +531,10 @@ pub struct FlowView {
     pub resolved_hits: Vec<NodeId>,
     pub tree: Steiner,
     pub flowchart: Flowchart,
+    /// Callers / callees / returns on this flow's Steiner. Default empty
+    /// for explorer fixtures that only send a tree.
+    #[serde(default)]
+    pub sequence: FlowSequence,
 }
 
 /// Source text covered by a 1-based span. Columns are byte offsets in the line.

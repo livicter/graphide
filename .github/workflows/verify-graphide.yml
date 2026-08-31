@@ -60,6 +60,14 @@ jobs:
             > extension/scripts/delta-snap.json
           test -s extension/scripts/delta-snap.json
 
+      # Same control-flow / data-subscription slice as first_slice.rs.
+      - name: Sequence fixture
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root fixtures/demo --json --progress --no-parent \
+            > extension/scripts/sequence-snap.json
+          test -s extension/scripts/sequence-snap.json
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 
