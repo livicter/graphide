@@ -416,6 +416,55 @@ pub struct FlowSequence {
     pub hops: Vec<SequenceHop>,
 }
 
+/// Pipeline stage on a derived data-flow reading. Not a new IR kind —
+/// Functions / Types / Endpoints land in one of these columns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DataflowRole {
+    Source,
+    Transform,
+    Store,
+    Sink,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DataflowNode {
+    pub id: NodeId,
+    pub fqn: String,
+    pub kind: NodeKind,
+    pub role: DataflowRole,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_role: Option<EndRole>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<EndChannel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+/// One data hop after Reads / Subscribes are reversed so `from` produces
+/// and `to` consumes. Kind stays the derived edge kind.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DataflowHop {
+    pub from: NodeId,
+    pub to: NodeId,
+    pub from_fqn: String,
+    pub to_fqn: String,
+    pub kind: EdgeKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+}
+
+/// One flow's Steiner data pipeline: sources → transforms / stores → sinks.
+/// Empty when the tree has no Reads / Writes / Publishes / Subscribes
+/// (and no bus hops on a Steiner Endpoint).
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct FlowDataflow {
+    #[serde(default)]
+    pub nodes: Vec<DataflowNode>,
+    #[serde(default)]
+    pub hops: Vec<DataflowHop>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "PascalCase")]
 pub enum FindingKind {
@@ -535,6 +584,10 @@ pub struct FlowView {
     /// for explorer fixtures that only send a tree.
     #[serde(default)]
     pub sequence: FlowSequence,
+    /// Sources / transforms / stores / sinks on this flow's Steiner.
+    /// Default empty for explorer fixtures that only send a tree.
+    #[serde(default)]
+    pub dataflow: FlowDataflow,
 }
 
 /// Source text covered by a 1-based span. Columns are byte offsets in the line.

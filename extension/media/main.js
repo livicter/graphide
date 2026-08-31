@@ -72,8 +72,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -121,6 +121,8 @@ let deltaCursor = -1;
 let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
+let dfCursor = -1;
+let dfWalk = { playing: false, timer: 0 };
 let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -306,6 +308,7 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (explorerWs === "delta") toggleDeltaReview();
     else if (explorerWs === "sequence") toggleSeqReview();
+    else if (explorerWs === "dataflow") toggleDfReview();
     else togglePathWalk();
     return;
   }
@@ -317,6 +320,9 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "sequence") {
       stopSeqWalk();
       stepSeqWalk(seqCursor < 0 ? 1 : -1);
+    } else if (explorerWs === "dataflow") {
+      stopDfWalk();
+      stepDfWalk(dfCursor < 0 ? 1 : -1);
     } else {
       stopPathWalk();
       stepPathWalk(pathWalk.i < 0 ? 1 : -1);
@@ -331,6 +337,9 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "sequence") {
       stopSeqWalk();
       stepSeqWalk(1);
+    } else if (explorerWs === "dataflow") {
+      stopDfWalk();
+      stepDfWalk(1);
     } else {
       stopPathWalk();
       stepPathWalk(1);
@@ -4236,6 +4245,391 @@ function bindSequencePage() {
   if (play) play.onclick = () => toggleSeqReview();
 }
 
+function isDataKind(kind) {
+  return kind === "Reads" || kind === "Writes" || kind === "Publishes" || kind === "Subscribes";
+}
+
+function dataReverses(kind) {
+  return kind === "Reads" || kind === "Subscribes";
+}
+
+/** Current flow's Steiner as sources → stores → sinks. Engine `dataflow` when present. */
+function dataflowFlow() {
+  const cur = currentFlow();
+  if (cur && dataflowOf(cur).hops.length) return cur;
+  const named = ((snapshot && snapshot.flows) || []).find((f) => f && f.name === "data-subscription");
+  if (named && dataflowOf(named).hops.length) return named;
+  const story = storyFlow();
+  if (story && dataflowOf(story).hops.length) return story;
+  for (const f of (snapshot && snapshot.flows) || []) {
+    if (dataflowOf(f).hops.length) return f;
+  }
+  return cur || story || named || null;
+}
+
+function dataflowOf(flow) {
+  const ready = flow && flow.dataflow;
+  if (ready && (ready.nodes || []).length && (ready.hops || []).length) {
+    return {
+      nodes: ready.nodes.slice(),
+      hops: ready.hops.slice(),
+    };
+  }
+  return deriveDataflow(flow);
+}
+
+function deriveDataflow(flow) {
+  const tree = (flow && flow.tree) || { nodes: [], edges: [] };
+  const treeIds = new Set((tree.nodes || []).map(idVal));
+  const graphEdges = ((snapshot && snapshot.graph && snapshot.graph.edges) || []).concat(tree.edges || []);
+  const endpoints = new Set();
+  treeIds.forEach((id) => {
+    const n = nodeById.get(id);
+    if (n && n.kind === "Endpoint") endpoints.add(id);
+  });
+  const seen = new Set();
+  const edges = [];
+  const consider = (e) => {
+    if (!e || !isDataKind(e.kind)) return;
+    const key = idVal(e.from) + "\0" + idVal(e.to) + "\0" + e.kind;
+    if (seen.has(key)) return;
+    const onTree = (tree.edges || []).some(
+      (t) => idVal(t.from) === idVal(e.from) && idVal(t.to) === idVal(e.to) && t.kind === e.kind
+    );
+    const bus = endpoints.has(idVal(e.from)) || endpoints.has(idVal(e.to));
+    if (!onTree && !bus) return;
+    seen.add(key);
+    edges.push(e);
+  };
+  (tree.edges || []).forEach(consider);
+  graphEdges.forEach(consider);
+  if (!edges.length) return { nodes: [], hops: [] };
+  const walk = flowWalk(flow);
+  const rank = new Map(walk.map((id, i) => [idVal(id), i]));
+  const ordered = edges.slice().sort((a, b) => {
+    const aEnds = dataReverses(a.kind) ? [idVal(a.to), idVal(a.from)] : [idVal(a.from), idVal(a.to)];
+    const bEnds = dataReverses(b.kind) ? [idVal(b.to), idVal(b.from)] : [idVal(b.from), idVal(b.to)];
+    const af = rank.has(aEnds[0]) ? rank.get(aEnds[0]) : 1e9;
+    const bf = rank.has(bEnds[0]) ? rank.get(bEnds[0]) : 1e9;
+    if (af !== bf) return af - bf;
+    const at = rank.has(aEnds[1]) ? rank.get(aEnds[1]) : 1e9;
+    const bt = rank.has(bEnds[1]) ? rank.get(bEnds[1]) : 1e9;
+    return at - bt;
+  });
+  const hops = [];
+  for (const e of ordered) {
+    const rev = dataReverses(e.kind);
+    const from = idVal(rev ? e.to : e.from);
+    const to = idVal(rev ? e.from : e.to);
+    const fromN = nodeById.get(from);
+    const toN = nodeById.get(to);
+    hops.push({
+      from,
+      to,
+      from_fqn: (fromN && fromN.fqn) || from,
+      to_fqn: (toN && toN.fqn) || to,
+      kind: e.kind,
+      file: (e.span && e.span.file) || (fromN && fromN.span && fromN.span.file) || "",
+    });
+  }
+  const incoming = new Map();
+  const outgoing = new Map();
+  const order = [];
+  const seenN = new Set();
+  for (const h of hops) {
+    outgoing.set(h.from, (outgoing.get(h.from) || 0) + 1);
+    incoming.set(h.to, (incoming.get(h.to) || 0) + 1);
+    for (const id of [h.from, h.to]) {
+      if (seenN.has(id)) continue;
+      seenN.add(id);
+      order.push(id);
+    }
+  }
+  const nodes = order.map((id) => {
+    const n = nodeById.get(id);
+    const ep = n && n.endpoint ? n.endpoint : null;
+    const inn = incoming.get(id) || 0;
+    const out = outgoing.get(id) || 0;
+    return {
+      id,
+      fqn: (n && n.fqn) || id,
+      kind: (n && n.kind) || "Function",
+      role: classifyDfRole((n && n.kind) || "Function", ep, inn, out),
+      end_role: ep && ep.role ? ep.role : "",
+      channel: ep && ep.channel ? ep.channel : "",
+      file: n && n.span ? n.span.file : "",
+    };
+  });
+  return { nodes, hops };
+}
+
+function classifyDfRole(kind, ep, incoming, outgoing) {
+  const channel = ep && ep.channel ? ep.channel : "";
+  const endRole = ep && ep.role ? ep.role : "";
+  if (incoming > 0 && outgoing > 0) {
+    if (kind === "Endpoint" || channel === "Queue" || channel === "Table" || channel === "Channel") {
+      return "store";
+    }
+    return "transform";
+  }
+  if (outgoing > 0 && incoming === 0) return "source";
+  if (incoming > 0 && outgoing === 0) return "sink";
+  if (endRole === "Source") return "source";
+  if (endRole === "Sink") return "sink";
+  return kind === "Endpoint" ? "store" : "transform";
+}
+
+function dfHops() {
+  return dataflowOf(dataflowFlow()).hops;
+}
+
+function dfNodes() {
+  return dataflowOf(dataflowFlow()).nodes;
+}
+
+function stopDfWalk() {
+  dfWalk.playing = false;
+  if (dfWalk.timer) {
+    clearInterval(dfWalk.timer);
+    dfWalk.timer = 0;
+  }
+  const play = document.getElementById("dfPlay");
+  if (play) {
+    play.classList.remove("on");
+    play.setAttribute("aria-pressed", "false");
+    play.textContent = "Play";
+  }
+}
+
+function stepDfWalk(dir) {
+  const hops = dfHops();
+  if (!hops.length) return;
+  let i = dfCursor + dir;
+  if (i < 0) i = 0;
+  if (i >= hops.length) {
+    i = hops.length - 1;
+    stopDfWalk();
+  }
+  dfCursor = i;
+  paint({ animate: "none" });
+  focusDfHop(hops[i]);
+}
+
+function toggleDfReview() {
+  if (dfWalk.playing) {
+    stopDfWalk();
+    const hops = dfHops();
+    flashToast("Paused · " + Math.max(dfCursor, 0) + "/" + hops.length, "ok");
+    return;
+  }
+  const hops = dfHops();
+  if (!hops.length) {
+    flashToast("No derived data hops on this flow", "skip");
+    return;
+  }
+  if (dfCursor >= hops.length - 1) dfCursor = -1;
+  dfWalk.playing = true;
+  flashToast("Walking sources → sinks", "ok");
+  stepDfWalk(1);
+  if (reduceMotion()) {
+    stopDfWalk();
+    return;
+  }
+  dfWalk.timer = setInterval(() => {
+    const next = dfHops();
+    if (dfCursor >= next.length - 1) {
+      stopDfWalk();
+      flashToast("End · data-flow", "ok");
+      return;
+    }
+    stepDfWalk(1);
+  }, 720);
+}
+
+function resetDfOverview() {
+  stopDfWalk();
+  dfCursor = -1;
+  paint({ animate: "none" });
+}
+
+function focusDfHop(hop) {
+  if (!hop) return;
+  if (hop.from) {
+    selectedNodeId = idVal(hop.from);
+    peekSource(hop.from);
+  }
+  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+}
+
+function dfRoleLabel(role) {
+  if (role === "source") return "Sources";
+  if (role === "transform") return "Transforms";
+  if (role === "store") return "Stores";
+  return "Sinks";
+}
+
+function renderDataflowBody() {
+  const flow = dataflowFlow();
+  const reading = dataflowOf(flow);
+  const nodes = reading.nodes;
+  const hops = reading.hops;
+  if (graphFilter.q) {
+    const q = graphFilter.q.toLowerCase();
+    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
+    const keepN = nodes.filter((n) => hit(n.fqn) || hit(n.kind) || hit(n.role) || hit(n.end_role));
+    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind));
+    if (!keepN.length && !keepH.length) {
+      return '<div class="empty">No data-flow hops match “' + esc(graphFilter.q) + '”.</div>';
+    }
+  }
+  if (!nodes.length || !hops.length) {
+    return '<div class="empty">No Steiner Reads / Writes / Publishes / Subscribes on this flow. Data-flow reads derived movement only.</div>';
+  }
+  if (dfCursor >= hops.length) dfCursor = hops.length - 1;
+  const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+  const review =
+    '<div class="review-strip" id="dfReview">' +
+    '<button type="button" class="review-step" id="dfOverview">Overview</button>' +
+    '<button type="button" class="review-step" id="dfPrev">Prev</button>' +
+    '<button type="button" class="review-step' +
+    (dfWalk.playing ? " on" : "") +
+    '" id="dfPlay" aria-pressed="' +
+    (dfWalk.playing ? "true" : "false") +
+    '">Play</button>' +
+    '<button type="button" class="review-step" id="dfNext">Next</button>' +
+    '<span id="dfStatus">' +
+    (hot
+      ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
+      : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
+    "</span></div>";
+  const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
+  const stageCols = stages
+    .map((role) => {
+      const col = nodes.filter((n) => n.role === role);
+      const cards = col
+        .map((n) => {
+          const on = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
+          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          return (
+            '<button type="button" class="df-node vnode kind-' +
+            esc(n.kind || "Function") +
+            (on ? " on" : "") +
+            '" data-id="' +
+            esc(idVal(n.id)) +
+            '" data-fqn="' +
+            esc(n.fqn) +
+            '" data-kind="' +
+            esc(n.kind || "") +
+            '" data-df-role="' +
+            esc(n.role) +
+            '"' +
+            (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") +
+            (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") +
+            '><span class="name">' +
+            esc(shortOf(n.fqn)) +
+            '</span> <span class="meta">' +
+            esc(n.kind || "") +
+            (ep ? " · " + esc(ep) : "") +
+            "</span></button>"
+          );
+        })
+        .join("");
+      return (
+        '<div class="df-stage" data-df-role="' +
+        role +
+        '"><div class="k">' +
+        esc(dfRoleLabel(role)) +
+        "</div>" +
+        cards +
+        "</div>"
+      );
+    })
+    .join("");
+  const list = hops
+    .map((h, i) => {
+      return (
+        '<article class="df-hop expl-card' +
+        (i === dfCursor ? " on" : "") +
+        '" data-df-i="' +
+        i +
+        '" data-kind="' +
+        esc(h.kind || "") +
+        '" data-from="' +
+        esc(idVal(h.from)) +
+        '" data-to="' +
+        esc(idVal(h.to)) +
+        '" data-fqn="' +
+        esc(h.from_fqn) +
+        '"><div class="k">' +
+        esc(h.kind || "") +
+        '</div><div class="t">' +
+        esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
+        '</div><div class="b">' +
+        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
+        "</div></article>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="df-page">' +
+    review +
+    '<div class="ws-split">' +
+    '<div class="ws-list" id="dfHops">' +
+    list +
+    "</div>" +
+    '<div class="ws-detail">' +
+    '<div class="k">' +
+    esc((flow && flow.name) || "flow") +
+    " · pipeline</div>" +
+    '<div id="dfCanvas" class="df-canvas">' +
+    '<div class="df-stages" id="dfStages" style="--df-n:' +
+    stages.length +
+    '">' +
+    stageCols +
+    "</div></div></div></div></div>"
+  );
+}
+
+function bindDataflowPage() {
+  canvas.querySelectorAll("#dfHops .df-hop").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const i = parseInt(el.getAttribute("data-df-i"), 10);
+      if (!Number.isFinite(i)) return;
+      stopDfWalk();
+      dfCursor = i;
+      paint({ animate: "none" });
+      focusDfHop(dfHops()[i]);
+    };
+  });
+  canvas.querySelectorAll("#dfStages .df-node, #dfCanvas .df-node").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-id");
+      if (id) {
+        selectedNodeId = id;
+        peekSource(id);
+      }
+    };
+  });
+  const overview = document.getElementById("dfOverview");
+  const prev = document.getElementById("dfPrev");
+  const next = document.getElementById("dfNext");
+  const play = document.getElementById("dfPlay");
+  if (overview) overview.onclick = () => resetDfOverview();
+  if (prev)
+    prev.onclick = () => {
+      stopDfWalk();
+      stepDfWalk(dfCursor < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopDfWalk();
+      stepDfWalk(1);
+    };
+  if (play) play.onclick = () => toggleDfReview();
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -4269,6 +4663,7 @@ function renderExplorerList(ws) {
     timeline: "Timeline — parent cut, coverage, stamp scars",
     delta: "Delta — derived parent vs head",
     sequence: "Sequence — callers, callees, returns on this flow",
+    dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -4282,6 +4677,7 @@ function renderExplorerList(ws) {
   else if (ws === "registry") html = renderRegistryBody();
   else if (ws === "delta") html = renderDeltaBody();
   else if (ws === "sequence") html = renderSequenceBody();
+  else if (ws === "dataflow") html = renderDataflowBody();
   else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
@@ -4367,6 +4763,7 @@ function renderExplorerList(ws) {
   bindWorkbenchPages();
   if (ws === "delta") bindDeltaPage();
   if (ws === "sequence") bindSequencePage();
+  if (ws === "dataflow") bindDataflowPage();
 }
 
 function applyDecisionOutcomeFilter() {

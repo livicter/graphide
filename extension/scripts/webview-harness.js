@@ -357,7 +357,9 @@
       });
   }
 
-  if (params.get("sequence") === "1") {
+  if (params.get("dataflow") === "1") {
+    loadNamedSnap("dataflow-snap.json", "__graphideDataflow", "__graphideDataflowError", afterPaint, params.get("require") === "1");
+  } else if (params.get("sequence") === "1") {
     loadNamedSnap("sequence-snap.json", "__graphideSequence", "__graphideSequenceError", afterPaint, params.get("require") === "1");
   } else if (params.get("delta") === "1") {
     loadNamedSnap("delta-snap.json", "__graphideDelta", "__graphideDeltaError", afterPaint, params.get("require") === "1");

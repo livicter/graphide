@@ -20,12 +20,14 @@ const OUT = path.join(ROOT, "verification");
 const SNAP = path.join(EXT, "scripts", "live-snap.json");
 const DELTA_SNAP = path.join(EXT, "scripts", "delta-snap.json");
 const SEQUENCE_SNAP = path.join(EXT, "scripts", "sequence-snap.json");
+const DATAFLOW_SNAP = path.join(EXT, "scripts", "dataflow-snap.json");
 const DEMO = path.join(ROOT, "fixtures", "demo");
 const DEMO_PARENT = path.join(ROOT, "fixtures", "demo-parent");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
 const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
 const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
 const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence";
+const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
 const SYNTHETIC_NODES = 2050;
 const SYNTHETIC_EDGES = 4568;
 
@@ -179,7 +181,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -347,6 +349,90 @@ function loadSequenceSnap() {
   }
   if (!snap || typeof snap !== "object") failFast("sequence snapshot is empty");
   return snap;
+}
+
+function deriveDataflowSnap() {
+  const bin = findGraphideBin();
+  if (!bin) {
+    failFast(
+      "no dataflow snapshot: compile `cargo build -p graphide-cli` then run " +
+        "`graphide review --root fixtures/demo --json --no-parent` into " +
+        "extension/scripts/dataflow-snap.json"
+    );
+  }
+  console.log("derive " + bin + " review --root " + DEMO + " --json --progress --no-parent");
+  const r = spawnSync(
+    bin,
+    ["review", "--root", DEMO, "--json", "--progress", "--no-parent"],
+    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
+  );
+  if (r.stderr) process.stderr.write(r.stderr);
+  if (r.status !== 0) {
+    failFast("graphide review (dataflow fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
+  }
+  const text = String(r.stdout || "").trim();
+  if (!text) failFast("graphide review (dataflow fixture) wrote an empty snapshot");
+  fs.mkdirSync(path.dirname(DATAFLOW_SNAP), { recursive: true });
+  fs.writeFileSync(DATAFLOW_SNAP, text.endsWith("\n") ? text : text + "\n");
+  return text;
+}
+
+function loadDataflowSnap() {
+  let text = "";
+  if (fs.existsSync(DATAFLOW_SNAP)) {
+    text = fs.readFileSync(DATAFLOW_SNAP, "utf8");
+  } else {
+    text = deriveDataflowSnap();
+  }
+  let snap;
+  try {
+    snap = JSON.parse(text);
+  } catch (e) {
+    failFast("dataflow snapshot is not JSON: " + (e && e.message ? e.message : e));
+  }
+  if (!snap || typeof snap !== "object") failFast("dataflow snapshot is empty");
+  return snap;
+}
+
+function assertDataflowSnap(snap) {
+  const flows = snap.flows || [];
+  const readings = flows.map((f) => {
+    const df = (f && f.dataflow) || { nodes: [], hops: [] };
+    const roles = (df.nodes || []).map((n) => n && n.role).filter(Boolean);
+    return {
+      name: f && f.name,
+      nodes: (df.nodes || []).length,
+      hops: (df.hops || []).length,
+      roles,
+      kinds: (df.hops || []).map((h) => h && h.kind).filter(Boolean),
+    };
+  });
+  const best = readings.reduce((a, b) => (b.hops > (a ? a.hops : 0) ? b : a), readings[0] || null);
+  const text = JSON.stringify(snap);
+  const subscribe = /subscribe/i.test(text) && /events/i.test(text);
+  const hasSource = !!(best && best.roles.indexOf("source") >= 0);
+  const hasSink = !!(best && best.roles.indexOf("sink") >= 0);
+  record(
+    "F0",
+    "dataflow fixture snap has a flow with Source and Sink hops",
+    !!(best && best.nodes >= 2 && best.hops >= 1 && hasSource && hasSink),
+    readings.map((r) => r.name + ":" + r.nodes + "n/" + r.hops + "h/" + r.roles.join("+")).join(" ")
+  );
+  record(
+    "F0b",
+    "dataflow fixture includes subscribe / events (data-subscription)",
+    subscribe,
+    best ? best.name + " kinds=" + (best.kinds || []).join(",") : "no flow"
+  );
+  const failed = checks.filter((c) => !c.pass && /^F0/.test(c.id));
+  if (failed.length) {
+    writeReport("Data-flow snapshot failed structural checks (desk not driven).");
+    failFast(
+      "empty Data-flow on fixtures/demo — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { hops: best ? best.hops : 0, nodes: best ? best.nodes : 0, source: hasSource, sink: hasSink };
 }
 
 function assertSequenceSnap(snap) {
@@ -1048,6 +1134,142 @@ async function main() {
       !wroteStampSeq,
       wroteStampSeq ? fs.readdirSync(stampDirSeq).join(",") : "absent"
     );
+
+    const dataflowSnap = loadDataflowSnap();
+    const dataflowGraph = assertDataflowSnap(dataflowSnap);
+    const dataflowUrl = origin + DATAFLOW_HARNESS;
+    console.log("dataflow " + dataflowUrl);
+    await page.goto(dataflowUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const dataflowBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideDataflowError) return "error";
+          if (window.__graphideDataflow === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /dataflow-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+
+    const dataflowHost = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        live: window.__graphideDataflow === true,
+        error: window.__graphideDataflowError || "",
+        desk: document.body.classList.contains("desk"),
+        ws: on ? on.getAttribute("data-ws") : "",
+        empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      };
+    });
+    if (dataflowBoot !== "ok" || !dataflowHost.live) {
+      const why =
+        dataflowHost.error ||
+        dataflowHost.empty ||
+        (dataflowBoot && dataflowBoot !== "ok" ? dataflowBoot : "") ||
+        "harness did not set window.__graphideDataflow";
+      record("F1", "dataflow desk loaded the fixtures/demo snap", false, why);
+      failFast("desk could not be driven from the dataflow fixture — " + why);
+    }
+    record("F1", "dataflow desk loaded the fixtures/demo snap", true, dataflowHost.ws);
+
+    if (dataflowHost.ws !== "dataflow") {
+      await page.click('#workspaces [data-ws="dataflow"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#dfCanvas .df-node", { timeout: 10000 });
+    await page.waitForSelector("#dfHops .df-hop", { timeout: 10000 });
+
+    const dataflowDesk = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#dfCanvas .df-node")];
+      const hops = [...document.querySelectorAll("#dfHops .df-hop")];
+      const idxs = hops.map((el) => el.getAttribute("data-df-i"));
+      const ordered = idxs.every((v, i) => String(v) === String(i));
+      const text = [...nodes, ...hops].map((el) => (el.textContent || "").replace(/\s+/g, " ").trim());
+      const sources = nodes.filter((el) => el.getAttribute("data-df-role") === "source");
+      const sinks = nodes.filter((el) => el.getAttribute("data-df-role") === "sink");
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        nodes: nodes.length,
+        hops: hops.length,
+        ordered,
+        sources: sources.length,
+        sinks: sinks.length,
+        roles: nodes.map((el) => el.getAttribute("data-df-role")),
+        kinds: hops.map((el) => el.getAttribute("data-kind")),
+        text,
+        subscribe: text.some((t) => /subscribe|publish|events|Subscribes|Publishes/i.test(t)),
+        play: !!document.getElementById("dfPlay"),
+        prev: !!document.getElementById("dfPrev"),
+        next: !!document.getElementById("dfNext"),
+        overview: !!document.getElementById("dfOverview"),
+        canvas: !!document.getElementById("dfCanvas"),
+      };
+    });
+    record("F2", "Data-flow workspace is active", dataflowDesk.ws === "dataflow", dataflowDesk.ws);
+    record(
+      "F3",
+      "Data-flow path has a Source and a Sink",
+      dataflowDesk.sources >= 1 && dataflowDesk.sinks >= 1 && dataflowDesk.nodes >= Math.min(2, dataflowGraph.nodes),
+      "roles=" + dataflowDesk.roles.join(",") + " " + dataflowDesk.text.slice(0, 3).join(" | ")
+    );
+    record(
+      "F4",
+      "Data-flow has an ordered hop list",
+      dataflowDesk.hops >= 1 && dataflowDesk.ordered,
+      "hops=" + dataflowDesk.hops + " kinds=" + dataflowDesk.kinds.join(",")
+    );
+    record(
+      "F5",
+      "Data-flow lists subscribe / publish / events on the demo slice",
+      dataflowDesk.subscribe,
+      dataflowDesk.text.slice(0, 4).join(" | ")
+    );
+    record(
+      "F6",
+      "Data-flow has Play / Prev / Next plus canvas",
+      dataflowDesk.play && dataflowDesk.prev && dataflowDesk.next && dataflowDesk.overview && dataflowDesk.canvas,
+      JSON.stringify({ play: dataflowDesk.play, canvas: dataflowDesk.canvas })
+    );
+
+    if (dataflowDesk.overview) await page.click("#dfOverview");
+    await page.waitForTimeout(120);
+    for (let i = 0; i < dataflowDesk.hops + 2; i++) {
+      await page.click("#dfNext");
+      await page.waitForTimeout(40);
+    }
+    const dfWalked = await page.evaluate(() => {
+      const on = document.querySelector("#dfHops .df-hop.on");
+      const play = document.getElementById("dfPlay");
+      const n = document.querySelectorAll("#dfHops .df-hop").length;
+      return {
+        i: on ? on.getAttribute("data-df-i") : "",
+        n,
+        playing: !!(play && play.getAttribute("aria-pressed") === "true"),
+      };
+    });
+    record(
+      "F7",
+      "Data-flow Play walk is finite (stays on last hop, does not loop)",
+      String(dfWalked.i) === String(Math.max(0, dfWalked.n - 1)) && !dfWalked.playing,
+      JSON.stringify(dfWalked)
+    );
+
+    await shot(page, "dataflow.png");
+
+    const stampDirDf = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampDf = fs.existsSync(stampDirDf) && fs.readdirSync(stampDirDf).length > 0;
+    record(
+      "F8",
+      "Data-flow step did not write .graphide/stamps/",
+      !wroteStampDf,
+      wroteStampDf ? fs.readdirSync(stampDirDf).join(",") : "absent"
+    );
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -1062,12 +1284,14 @@ async function main() {
       DELTA_HARNESS +
       "` (Architecture Delta on fixtures/demo vs demo-parent) then `" +
       SEQUENCE_HARNESS +
-      "` (Sequence on fixtures/demo) served from `extension/`.",
+      "` (Sequence on fixtures/demo) then `" +
+      DATAFLOW_HARNESS +
+      "` (Data-flow on fixtures/demo) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow"
   );
 }
 
