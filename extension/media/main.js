@@ -4101,7 +4101,7 @@ function renderSequenceBody() {
         esc(p.kind || "") +
         '"><span class="name">' +
         esc(shortOf(p.fqn)) +
-        '</span><span class="meta">' +
+        '</span> <span class="meta">' +
         esc(p.kind || "") +
         "</span></button>"
       );
