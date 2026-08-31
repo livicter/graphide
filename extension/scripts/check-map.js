@@ -212,6 +212,23 @@ assert(/isPresenting\(\)[\s\S]{0,80}cyclePreset[\s\S]{0,80}requestStamp/.test(js
 assert(js.includes('data-preset="') && js.includes("art.preset"), "canonical export must carry the current preset");
 assert(harness.includes("V58") && harness.includes("V61"), "live suite must prove present and preset");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md")), "presentation feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md")), "route feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md")), "lens feature map missing");
+assert(ext.includes('id="pathBtn"') && harnessHtml.includes('id="pathBtn"'), "PATH button missing from chrome");
+assert(ext.includes('id="lensBtn"') && harnessHtml.includes('id="lensBtn"'), "LENS button missing from chrome");
+assert(ext.includes('id="probeDock"') && harnessHtml.includes('id="routeReceipt"') && harnessHtml.includes('id="lensReceipt"'), "route / lens receipt dock missing");
+assert(js.includes("function directedRoute") && js.includes("function resolveRoute"), "directed route BFS missing");
+assert(js.includes("function applyProbePaint") && js.includes("function toggleLensRole"), "route / lens paint missing");
+assert(js.includes("Calls") && js.includes("Publishes") && js.includes("Subscribes") && js.includes("ROUTE_KINDS"), "route must BFS Calls/Reads/Writes/Publishes/Subscribes");
+assert(!/function directedRoute[\s\S]{0,900}TypeUses/.test(js), "route must not walk TypeUses");
+assert(/e.key === "r"[\s\S]{0,80}toggleRoute/.test(js) || /e.key === "R"[\s\S]{0,80}toggleRoute/.test(js), "R must open PATH");
+assert(/e.key === "l"[\s\S]{0,80}toggleLens/.test(js) || /e.key === "L"[\s\S]{0,80}toggleLens/.test(js), "L must open LENS");
+assert(!/e.key === "r"[\s\S]{0,80}autoReorganize/.test(js), "R must not reorganize");
+assert(!/e.key === "l"[\s\S]{0,80}toggleLlmPane/.test(js), "L must not open Ask");
+assert(js.includes("Function") && js.includes("Endpoint") && js.includes("LENS_END_ROLES"), "lens must use Function/Type/Endpoint or Source|Sink");
+assert(css.includes(".on-route") && css.includes(".lens-on") && css.includes("#probeDock"), "route / lens styles missing");
+assert(ext.includes('id="exportRouteShare"') && js.includes("route-share"), "Route Share Card hook missing");
+assert(harness.includes('params.get("route")') && harness.includes('params.get("lens")'), "harness route/lens snap pin missing");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
@@ -228,6 +245,7 @@ assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") &&
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
+assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");

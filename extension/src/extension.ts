@@ -704,7 +704,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <span id="zoomPct">100%</span>
       <button id="zoomIn" title="Zoom in (+)">+</button>
       <button id="zoomFit" title="Fit (0)">Fit</button>
-      <button type="button" class="reorg-btn" id="reorgBtn" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
+      <button type="button" class="reorg-btn" id="reorgBtn" title="Auto-reorganize this chart. Drag any box to pin a new place.">Reorganize</button>
     </div>
   </header>
   <div id="tip" hidden></div>
@@ -714,9 +714,9 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <ul>
       <li><kbd>1</kbd>–<kbd>9</kbd> workspaces</li>
       <li><kbd>/</kbd> find · <kbd>?</kbd> this sheet</li>
-      <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
+      <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip</li>
       <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
-      <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
+      <li><kbd>R</kbd> PATH · <kbd>L</kbd> LENS · <kbd>E</kbd> ego</li>
       <li><kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint</li>
       <li><kbd>D</kbd> day / night</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
@@ -730,6 +730,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <li><button type="button" id="exportSvg">SVG</button></li>
       <li><button type="button" id="exportCopyShare">Copy Share Card</button></li>
       <li><button type="button" id="exportShare">Share Card</button></li>
+      <li><button type="button" id="exportRouteShare">Route Share Card</button></li>
     </ul>
   </aside>
   <div id="progress">
@@ -772,7 +773,9 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         <option value="2">2-hop</option>
       </select>
     </label>
-    <button type="button" class="reorg-btn" title="Auto-reorganize this chart (R). Drag any box to pin a new place.">Reorganize</button>
+    <button id="pathBtn" type="button" title="Route probe: shortest derived directed path (R)">PATH</button>
+    <button id="lensBtn" type="button" title="Lens: compare Function / Type / Endpoint or Source|Sink (L)">LENS</button>
+    <button type="button" class="reorg-btn" title="Auto-reorganize this chart. Drag any box to pin a new place.">Reorganize</button>
     <label class="search-wrap">
       <span class="search-ico" aria-hidden="true">⌕</span>
       <input id="graphSearch" type="search" spellcheck="false" placeholder="Find FQN, file, flow, or hop…" />
@@ -785,6 +788,10 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div id="legend"></div>
   </div>
+  <aside id="probeDock" hidden>
+    <div id="routeReceipt" hidden></div>
+    <div id="lensReceipt" hidden></div>
+  </aside>
   <section id="meta"></section>
   <section id="workspace">
     <section id="canvas"></section>

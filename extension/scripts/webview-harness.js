@@ -359,6 +359,8 @@
 
   if (params.get("lifecycle") === "1") {
     loadNamedSnap("lifecycle-snap.json", "__graphideLifecycle", "__graphideLifecycleError", afterPaint, params.get("require") === "1");
+  } else if (params.get("route") === "1" || params.get("lens") === "1") {
+    loadNamedSnap("sequence-snap.json", "__graphideSequence", "__graphideSequenceError", afterPaint, params.get("require") === "1");
   } else if (params.get("dataflow") === "1") {
     loadNamedSnap("dataflow-snap.json", "__graphideDataflow", "__graphideDataflowError", afterPaint, params.get("require") === "1");
   } else if (params.get("sequence") === "1") {

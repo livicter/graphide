@@ -188,7 +188,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1838,6 +1838,159 @@ async function main() {
       !wroteStampLc,
       wroteStampLc ? fs.readdirSync(stampDirLc).join(",") : "absent"
     );
+
+    const routeUrl = origin + SEQUENCE_HARNESS;
+    console.log("route " + routeUrl);
+    await page.goto(routeUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const routeBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideSequenceError) return "error";
+          if (window.__graphideSequence === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /sequence-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+    if (routeBoot !== "ok") failFast("route desk could not load the sequence fixture — " + routeBoot);
+    await page.waitForSelector("#seqParts .seq-part", { timeout: 10000 });
+    await page.waitForSelector("#pathBtn", { timeout: 5000 });
+    await page.evaluate(() => {
+      const hop = [...document.querySelectorAll("#seqHops .seq-hop")].find((el) =>
+        /subscribe|events|Subscribes/i.test(el.textContent || "")
+      );
+      if (hop) hop.click();
+    });
+    await page.waitForTimeout(120);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const routeDesk = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const hops = rec.hops || [];
+      const nodes = rec.nodes || [];
+      const lit = [...document.querySelectorAll(".on-route[data-id]")].map((el) => el.getAttribute("data-id"));
+      const extraLit = lit.filter((id) => nodes.indexOf(id) < 0);
+      const text = [
+        (document.getElementById("routeStatus") || {}).textContent || "",
+        ...[...document.querySelectorAll("#routeHops .route-hop")].map((el) => (el.textContent || "").trim()),
+      ];
+      return {
+        open: !!rec.open,
+        ok: !!rec.ok,
+        hops: hops.length,
+        nodes: nodes.length,
+        extra: rec.extra,
+        extraLit: extraLit.length,
+        kinds: hops.map((h) => h.kind),
+        subscribe: hops.some((h) => /Subscribes/i.test(h.kind || "")) || text.some((t) => /subscribe|events|Subscribes/i.test(t)),
+        btn: !!(document.getElementById("pathBtn") && document.getElementById("pathBtn").classList.contains("on")),
+        receipt: !!(document.getElementById("routeReceipt") && !document.getElementById("routeReceipt").hidden),
+        play: !!document.getElementById("routePlay"),
+        next: !!document.getElementById("routeNext"),
+        text,
+      };
+    });
+    record("RT1", "Route probe opened from R", routeDesk.open && routeDesk.btn && routeDesk.receipt, JSON.stringify({ open: routeDesk.open, btn: routeDesk.btn }));
+    record(
+      "RT2",
+      "Route is a derived directed path with at least one hop",
+      routeDesk.ok && routeDesk.hops >= 1 && routeDesk.nodes >= 2,
+      "hops=" + routeDesk.hops + " nodes=" + routeDesk.nodes + " kinds=" + routeDesk.kinds.join(",")
+    );
+    record(
+      "RT3",
+      "Route includes subscribe / events (Subscribes)",
+      routeDesk.subscribe,
+      routeDesk.text.slice(0, 3).join(" | ")
+    );
+    record(
+      "RT4",
+      "Route lights only path nodes (no extra hops)",
+      routeDesk.extra === 0 && routeDesk.extraLit === 0,
+      "extra=" + routeDesk.extra + " extraLit=" + routeDesk.extraLit
+    );
+    record("RT5", "Route has Play / Next", routeDesk.play && routeDesk.next, "");
+    if (routeDesk.next) {
+      for (let i = 0; i < routeDesk.hops + 2; i++) {
+        await page.click("#routeNext");
+        await page.waitForTimeout(40);
+      }
+    }
+    const routeWalked = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const play = document.getElementById("routePlay");
+      return {
+        i: rec.cursor,
+        n: (rec.hops || []).length,
+        playing: !!(play && play.getAttribute("aria-pressed") === "true"),
+      };
+    });
+    record(
+      "RT6",
+      "Route journey is finite (stays on last hop, does not loop)",
+      routeWalked.n >= 1 && String(routeWalked.i) === String(Math.max(0, routeWalked.n - 1)) && !routeWalked.playing,
+      JSON.stringify(routeWalked)
+    );
+    await shot(page, "route.png");
+    const stampDirRt = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampRt = fs.existsSync(stampDirRt) && fs.readdirSync(stampDirRt).length > 0;
+    record("RT7", "Route step did not write .graphide/stamps/", !wroteStampRt, wroteStampRt ? fs.readdirSync(stampDirRt).join(",") : "absent");
+
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const lensDesk = await page.evaluate(() => {
+      const rec = window.__graphideLens || {};
+      const roles = rec.roles || [];
+      const lit = [...document.querySelectorAll(".lens-on")];
+      const kinds = lit.map((el) => el.getAttribute("data-kind") || "").filter(Boolean);
+      const compare = ((document.getElementById("lensCompare") || {}).textContent || "").trim();
+      const third = kinds.filter((k) => k && k !== "Function" && k !== "Type" && k !== "Endpoint");
+      return {
+        open: !!rec.open,
+        roles: roles,
+        hits: rec.hits || lit.length,
+        lit: lit.length,
+        compare: compare,
+        btn: !!(document.getElementById("lensBtn") && document.getElementById("lensBtn").classList.contains("on")),
+        receipt: !!(document.getElementById("lensReceipt") && !document.getElementById("lensReceipt").hidden),
+        fn: roles.indexOf("Function") >= 0 || /Function/i.test(compare),
+        ep: roles.indexOf("Endpoint") >= 0 || /Endpoint/i.test(compare),
+        third: third.length,
+        kinds: kinds,
+      };
+    });
+    record("LN1", "Lens opened from L", lensDesk.open && lensDesk.btn && lensDesk.receipt, JSON.stringify({ open: lensDesk.open, btn: lensDesk.btn }));
+    record(
+      "LN2",
+      "Lens compares Function and Endpoint",
+      lensDesk.fn && lensDesk.ep && lensDesk.roles.length >= 1 && lensDesk.roles.length <= 2,
+      "roles=" + lensDesk.roles.join(",") + " compare=" + lensDesk.compare
+    );
+    record(
+      "LN3",
+      "Lens highlights matching nodes",
+      lensDesk.hits >= 1 && lensDesk.lit >= 1,
+      "hits=" + lensDesk.hits + " lit=" + lensDesk.lit
+    );
+    record(
+      "LN4",
+      "Lens does not invent a third kind",
+      lensDesk.third === 0,
+      lensDesk.kinds.join(",")
+    );
+    await shot(page, "lens.png");
+    const stampDirLn = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampLn = fs.existsSync(stampDirLn) && fs.readdirSync(stampDirLn).length > 0;
+    record("LN5", "Lens step did not write .graphide/stamps/", !wroteStampLn, wroteStampLn ? fs.readdirSync(stampDirLn).join(",") : "absent");
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -1856,12 +2009,14 @@ async function main() {
       DATAFLOW_HARNESS +
       "` (Data-flow on fixtures/demo) then `" +
       LIFECYCLE_HARNESS +
-      "` (Lifecycle on fixtures/demo) served from `extension/`.",
+      "` (Lifecycle on fixtures/demo) then `" +
+      SEQUENCE_HARNESS +
+      "` (Route / Lens on fixtures/demo) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export · present · preset"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export · present · preset · route · lens"
   );
 }
 
