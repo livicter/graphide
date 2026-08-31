@@ -21,6 +21,7 @@ const SNAP = path.join(EXT, "scripts", "live-snap.json");
 const DELTA_SNAP = path.join(EXT, "scripts", "delta-snap.json");
 const SEQUENCE_SNAP = path.join(EXT, "scripts", "sequence-snap.json");
 const DATAFLOW_SNAP = path.join(EXT, "scripts", "dataflow-snap.json");
+const LIFECYCLE_SNAP = path.join(EXT, "scripts", "lifecycle-snap.json");
 const DEMO = path.join(ROOT, "fixtures", "demo");
 const DEMO_PARENT = path.join(ROOT, "fixtures", "demo-parent");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
@@ -28,6 +29,7 @@ const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
 const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
 const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence";
 const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
+const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
 const SYNTHETIC_NODES = 2050;
 const SYNTHETIC_EDGES = 4568;
 
@@ -181,7 +183,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -433,6 +435,91 @@ function assertDataflowSnap(snap) {
     );
   }
   return { hops: best ? best.hops : 0, nodes: best ? best.nodes : 0, source: hasSource, sink: hasSink };
+}
+
+function deriveLifecycleSnap() {
+  const bin = findGraphideBin();
+  if (!bin) {
+    failFast(
+      "no lifecycle snapshot: compile `cargo build -p graphide-cli` then run " +
+        "`graphide review --root fixtures/demo --json --no-parent` into " +
+        "extension/scripts/lifecycle-snap.json"
+    );
+  }
+  console.log("derive " + bin + " review --root " + DEMO + " --json --progress --no-parent");
+  const r = spawnSync(
+    bin,
+    ["review", "--root", DEMO, "--json", "--progress", "--no-parent"],
+    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
+  );
+  if (r.stderr) process.stderr.write(r.stderr);
+  if (r.status !== 0) {
+    failFast("graphide review (lifecycle fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
+  }
+  const text = String(r.stdout || "").trim();
+  if (!text) failFast("graphide review (lifecycle fixture) wrote an empty snapshot");
+  fs.mkdirSync(path.dirname(LIFECYCLE_SNAP), { recursive: true });
+  fs.writeFileSync(LIFECYCLE_SNAP, text.endsWith("\n") ? text : text + "\n");
+  return text;
+}
+
+function loadLifecycleSnap() {
+  let text = "";
+  if (fs.existsSync(LIFECYCLE_SNAP)) {
+    text = fs.readFileSync(LIFECYCLE_SNAP, "utf8");
+  } else {
+    text = deriveLifecycleSnap();
+  }
+  let snap;
+  try {
+    snap = JSON.parse(text);
+  } catch (e) {
+    failFast("lifecycle snapshot is not JSON: " + (e && e.message ? e.message : e));
+  }
+  if (!snap || typeof snap !== "object") failFast("lifecycle snapshot is empty");
+  return snap;
+}
+
+function assertLifecycleSnap(snap) {
+  const flows = snap.flows || [];
+  const readings = flows.map((f) => {
+    const lc = (f && f.lifecycle) || { states: [], transitions: [], endpoints: [] };
+    const types = (lc.states || []).map((s) => s && (s.type || s.kind)).filter(Boolean);
+    const recover = (lc.transitions || []).some((t) => t && t.from === "broken" && t.to === "walking");
+    return {
+      name: f && f.name,
+      states: (lc.states || []).length,
+      trans: (lc.transitions || []).length,
+      ends: (lc.endpoints || []).length,
+      types,
+      recover,
+      ids: (lc.states || []).map((s) => s && s.id).filter(Boolean),
+    };
+  });
+  const best = readings.reduce((a, b) => (b.trans > (a ? a.trans : 0) ? b : a), readings[0] || null);
+  const text = JSON.stringify(snap);
+  const events = /events/i.test(text);
+  record(
+    "L0",
+    "lifecycle fixture snap has a review machine with recover",
+    !!(best && best.states >= 6 && best.trans >= 1 && best.recover),
+    readings.map((r) => r.name + ":" + r.states + "s/" + r.trans + "t").join(" ")
+  );
+  record(
+    "L0b",
+    "lifecycle fixture includes plugin-visible events Endpoint",
+    events && !!(best && best.ends >= 1),
+    best ? best.name + " ends=" + best.ends + " ids=" + (best.ids || []).join(",") : "no flow"
+  );
+  const failed = checks.filter((c) => !c.pass && /^L0/.test(c.id));
+  if (failed.length) {
+    writeReport("Lifecycle snapshot failed structural checks (desk not driven).");
+    failFast(
+      "empty Lifecycle on fixtures/demo — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { states: best ? best.states : 0, trans: best ? best.trans : 0, ends: best ? best.ends : 0 };
 }
 
 function assertSequenceSnap(snap) {
@@ -1270,6 +1357,152 @@ async function main() {
       !wroteStampDf,
       wroteStampDf ? fs.readdirSync(stampDirDf).join(",") : "absent"
     );
+
+    const lifecycleSnap = loadLifecycleSnap();
+    const lifecycleGraph = assertLifecycleSnap(lifecycleSnap);
+    const lifecycleUrl = origin + LIFECYCLE_HARNESS;
+    console.log("lifecycle " + lifecycleUrl);
+    await page.goto(lifecycleUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const lifecycleBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideLifecycleError) return "error";
+          if (window.__graphideLifecycle === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /lifecycle-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+
+    const lifecycleHost = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        live: window.__graphideLifecycle === true,
+        error: window.__graphideLifecycleError || "",
+        desk: document.body.classList.contains("desk"),
+        ws: on ? on.getAttribute("data-ws") : "",
+        empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      };
+    });
+    if (lifecycleBoot !== "ok" || !lifecycleHost.live) {
+      const why =
+        lifecycleHost.error ||
+        lifecycleHost.empty ||
+        (lifecycleBoot && lifecycleBoot !== "ok" ? lifecycleBoot : "") ||
+        "harness did not set window.__graphideLifecycle";
+      record("L1", "lifecycle desk loaded the fixtures/demo snap", false, why);
+      failFast("desk could not be driven from the lifecycle fixture — " + why);
+    }
+    record("L1", "lifecycle desk loaded the fixtures/demo snap", true, lifecycleHost.ws);
+
+    if (lifecycleHost.ws !== "lifecycle") {
+      await page.click('#workspaces [data-ws="lifecycle"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#lcCanvas .lc-state", { timeout: 10000 });
+    await page.waitForSelector("#lcTrans .lc-trans", { timeout: 10000 });
+
+    const lifecycleDesk = await page.evaluate(() => {
+      const states = [...document.querySelectorAll("#lcCanvas .lc-state")];
+      const hops = [...document.querySelectorAll("#lcTrans .lc-trans")];
+      const idxs = hops.map((el) => el.getAttribute("data-lc-i"));
+      const ordered = idxs.every((v, i) => String(v) === String(i));
+      const text = [
+        ...states,
+        ...hops,
+        ...document.querySelectorAll("#lcEnds .lc-end"),
+      ].map((el) => (el.textContent || "").replace(/\s+/g, " ").trim());
+      const types = states.map((el) => el.getAttribute("data-lc-type"));
+      const recover = hops.some(
+        (el) => el.getAttribute("data-from") === "broken" && el.getAttribute("data-to") === "walking"
+      );
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        states: states.length,
+        hops: hops.length,
+        ordered,
+        types,
+        recover,
+        proposed: states.some((el) => el.getAttribute("data-lc-id") === "proposed"),
+        walking: states.some((el) => el.getAttribute("data-lc-id") === "walking"),
+        broken: states.some((el) => el.getAttribute("data-lc-id") === "broken"),
+        events: text.some((t) => /events|Endpoint|Proposed|Walking|Broken|recover/i.test(t)),
+        play: !!document.getElementById("lcPlay"),
+        prev: !!document.getElementById("lcPrev"),
+        next: !!document.getElementById("lcNext"),
+        overview: !!document.getElementById("lcOverview"),
+        canvas: !!document.getElementById("lcCanvas"),
+        text,
+      };
+    });
+    record("L2", "Lifecycle workspace is active", lifecycleDesk.ws === "lifecycle", lifecycleDesk.ws);
+    record(
+      "L3",
+      "Lifecycle has proposed / walking / broken states",
+      lifecycleDesk.states >= Math.min(6, lifecycleGraph.states) &&
+        lifecycleDesk.proposed &&
+        lifecycleDesk.walking &&
+        lifecycleDesk.broken,
+      "types=" + lifecycleDesk.types.join(",") + " " + lifecycleDesk.text.slice(0, 3).join(" | ")
+    );
+    record(
+      "L4",
+      "Lifecycle has an ordered event list",
+      lifecycleDesk.hops >= 1 && lifecycleDesk.ordered,
+      "events=" + lifecycleDesk.hops
+    );
+    record(
+      "L5",
+      "Lifecycle recover is broken → walking (and lists events)",
+      lifecycleDesk.recover && lifecycleDesk.events,
+      lifecycleDesk.text.slice(0, 4).join(" | ")
+    );
+    record(
+      "L6",
+      "Lifecycle has Play / Prev / Next plus canvas",
+      lifecycleDesk.play && lifecycleDesk.prev && lifecycleDesk.next && lifecycleDesk.overview && lifecycleDesk.canvas,
+      JSON.stringify({ play: lifecycleDesk.play, canvas: lifecycleDesk.canvas })
+    );
+
+    if (lifecycleDesk.overview) await page.click("#lcOverview");
+    await page.waitForTimeout(120);
+    for (let i = 0; i < lifecycleDesk.hops + 2; i++) {
+      await page.click("#lcNext");
+      await page.waitForTimeout(40);
+    }
+    const lcWalked = await page.evaluate(() => {
+      const on = document.querySelector("#lcTrans .lc-trans.on");
+      const play = document.getElementById("lcPlay");
+      const n = document.querySelectorAll("#lcTrans .lc-trans").length;
+      return {
+        i: on ? on.getAttribute("data-lc-i") : "",
+        n,
+        playing: !!(play && play.getAttribute("aria-pressed") === "true"),
+      };
+    });
+    record(
+      "L7",
+      "Lifecycle Play walk is finite (stays on last event, does not loop)",
+      String(lcWalked.i) === String(Math.max(0, lcWalked.n - 1)) && !lcWalked.playing,
+      JSON.stringify(lcWalked)
+    );
+
+    await shot(page, "lifecycle.png");
+
+    const stampDirLc = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampLc = fs.existsSync(stampDirLc) && fs.readdirSync(stampDirLc).length > 0;
+    record(
+      "L8",
+      "Lifecycle step did not write .graphide/stamps/",
+      !wroteStampLc,
+      wroteStampLc ? fs.readdirSync(stampDirLc).join(",") : "absent"
+    );
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -1286,12 +1519,14 @@ async function main() {
       SEQUENCE_HARNESS +
       "` (Sequence on fixtures/demo) then `" +
       DATAFLOW_HARNESS +
-      "` (Data-flow on fixtures/demo) served from `extension/`.",
+      "` (Data-flow on fixtures/demo) then `" +
+      LIFECYCLE_HARNESS +
+      "` (Lifecycle on fixtures/demo) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle"
   );
 }
 

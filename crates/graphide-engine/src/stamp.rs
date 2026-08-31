@@ -2,6 +2,7 @@ use crate::cluster::cluster;
 use crate::flowchart::build_flowchart;
 use crate::review::resolve_fqn;
 use crate::dataflow::flow_dataflow;
+use crate::lifecycle::flow_lifecycle;
 use crate::sequence::flow_sequence;
 use crate::steiner::steiner_tree;
 use graphide_ir::{Bubble, Finding, FindingKind, FlowView, Graph, Stamp, StampEdge, StampPosition};
@@ -68,6 +69,7 @@ pub fn stamp_from_graph(
     let flowchart = build_flowchart(graph, bubbles, &tree);
     let sequence = flow_sequence(graph, &tree);
     let dataflow = flow_dataflow(graph, &tree);
+    let lifecycle = flow_lifecycle(graph, &tree);
     let view = FlowView {
         name: name.into(),
         hits: hits.to_vec(),
@@ -76,6 +78,7 @@ pub fn stamp_from_graph(
         flowchart,
         sequence,
         dataflow,
+        lifecycle,
     };
     let stamp = make_stamp(graph, &view, deriver);
     (view, stamp)

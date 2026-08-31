@@ -18,6 +18,7 @@ mod delta;
 mod enter;
 mod flowchart;
 mod hints;
+mod lifecycle;
 mod link;
 mod programs;
 mod review;
@@ -38,6 +39,7 @@ pub use review::{
     PreviewGraph, PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
 pub use dataflow::{flow_dataflow, is_data};
+pub use lifecycle::flow_lifecycle;
 pub use sequence::{flow_sequence, is_interaction};
 pub use stamp::{
     apply_saved_stamps, make_stamp, recheck_stamp, recheck_stamp_on, stamp_filename,

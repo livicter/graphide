@@ -5,6 +5,7 @@ extension/scripts/live-snap.json
 extension/scripts/delta-snap.json
 extension/scripts/sequence-snap.json
 extension/scripts/dataflow-snap.json
+extension/scripts/lifecycle-snap.json
 extension/*.vsix
 extension/bin/graphide
 extension/bin/graphide.exe
