@@ -11,7 +11,9 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Header control `#exportBtn`. Opens `#exportMenu` (same popover chrome as
   `#keysPane`). `E` stays Ego (`#egoBtn`).
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
-  `#exportCopyShare` · `#exportShare`. No WebM. No JPEG / WebP.
+  `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
+  JPEG / WebP. Route Share Card fails closed when no directed route is
+  resolved.
 - Canonical clone of `#seqCanvas` / `#dfCanvas` / `#lcCanvas` /
   `#deltaCanvas` / `#canvas .stage` / `#canvas`. `stripExportViewerState`
   removes focus, play head, search dim (`.on` `.dim` `.focus` `.selected`
@@ -63,8 +65,9 @@ Driver assertions:
 ## Gotchas
 
 - `E` is Ego. Do not steal it for Export. `#exportBtn` is the product hook.
-- Route / Reach share cards wait. Sequence / Data-flow selection is not a
-  second export format in this slice.
+- Route Share Card (`#exportRouteShare`) reuses the Share Card seam after
+  a real PATH. Reach share cards wait. Sequence / Data-flow selection is
+  not a second export format.
 - Do not add `data-component` / `data-testid`. `#exportBtn`, `#exportMenu`,
   `#exportPng`, `#exportSvg`, `#exportShare` are the hooks.
 - Do not vendor Archify's Node renderer. The clone is Graphide DOM.

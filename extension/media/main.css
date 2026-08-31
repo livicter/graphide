@@ -337,6 +337,20 @@ button:disabled { opacity: 0.45; cursor: default; }
   background: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
 }
 #egoBtn[hidden] { display: none; }
+#pathBtn, #lensBtn {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#pathBtn.on, #lensBtn.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
+}
 #reorgBtn, .reorg-btn {
   background: transparent;
   color: inherit;
@@ -1463,7 +1477,7 @@ header > button {
   border-color: var(--vscode-focusBorder);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vscode-focusBorder) 28%, transparent);
 }
-.tab, .workspaces button, #egoBtn, #reorgBtn, .reorg-btn, .leg, .feat-chip {
+.tab, .workspaces button, #egoBtn, #pathBtn, #lensBtn, #reorgBtn, .reorg-btn, .leg, .feat-chip {
   border-radius: 999px;
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
@@ -1474,11 +1488,11 @@ header > button {
 .workspaces button {
   padding: 4px 11px;
 }
-.workspaces button.on, .tab.on, #egoBtn.on, .leg.on {
+.workspaces button.on, .tab.on, #egoBtn.on, #pathBtn.on, #lensBtn.on, .leg.on {
   background: color-mix(in srgb, var(--vscode-focusBorder) 18%, transparent);
   box-shadow: var(--g-inset), 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
 }
-.tab:hover:not(:disabled), .workspaces button:hover, #egoBtn:hover, .reorg-btn:hover, .leg:hover {
+.tab:hover:not(:disabled), .workspaces button:hover, #egoBtn:hover, #pathBtn:hover, #lensBtn:hover, .reorg-btn:hover, .leg:hover {
   transform: translateY(-1px);
 }
 .stage {
@@ -1907,6 +1921,63 @@ svg.steiner .edge.walk {
   border-color: var(--vscode-focusBorder);
   color: var(--vscode-textLink-foreground);
 }
+#probeDock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+#probeDock[hidden] { display: none; }
+#routeReceipt[hidden], #lensReceipt[hidden] { display: none; }
+.probe-k {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.62;
+}
+#routeStatus, #lensCompare { font-size: 11px; opacity: 0.72; min-width: 0; }
+.route-hops, .lens-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.route-hop {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--g-radius, 6px);
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.route-hop.on, .vnode.on-route, .comm-node.on-route, .seq-part.on-route, .df-node.on-route, .seq-hop.on-route, .seq-row.on-route {
+  outline: 1px solid var(--vscode-textLink-foreground);
+  outline-offset: 1px;
+}
+.vnode.on-route-hot, .comm-node.on-route-hot, .seq-part.on-route-hot, .df-node.on-route-hot {
+  outline-width: 2px;
+}
+.vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim {
+  opacity: 0.22;
+}
+.vnode.lens-on, .comm-node.lens-on, .seq-part.lens-on, .df-node.lens-on {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 70%, transparent);
+}
+.vnode.lens-dim, .comm-node.lens-dim, .seq-part.lens-dim, .df-node.lens-dim, .bubble-card.lens-dim {
+  opacity: 0.28;
+}
+#kindFilters label.lens {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+html.bright #probeDock {
+  background: transparent;
+}
+html.bright .route-hop {
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
 #deltaStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
 .delta-canvas { overflow: auto; min-height: 220px; }
 .delta-canvas .steiner-wrap { position: relative; }
@@ -2244,12 +2315,12 @@ html.bright .workspaces button {
   font-size: 11px;
   font-weight: 500;
 }
-html.bright .workspaces button.on, html.bright .tab.on, html.bright #egoBtn.on, html.bright .leg.on {
+html.bright .workspaces button.on, html.bright .tab.on, html.bright #egoBtn.on, html.bright #pathBtn.on, html.bright #lensBtn.on, html.bright .leg.on {
   background: #fff;
   color: #1d1d1f;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), var(--g-inset);
 }
-html.bright .tab, html.bright #egoBtn, html.bright #reorgBtn, html.bright .reorg-btn, html.bright .leg, html.bright .path-walk button, html.bright .outcome-filter, html.bright .feat-chip, html.bright .kind-pill, html.bright .review-step {
+html.bright .tab, html.bright #egoBtn, html.bright #pathBtn, html.bright #lensBtn, html.bright #reorgBtn, html.bright .reorg-btn, html.bright .leg, html.bright .path-walk button, html.bright .outcome-filter, html.bright .feat-chip, html.bright .kind-pill, html.bright .review-step {
   background: #fff;
   border: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -2799,6 +2870,8 @@ html.bright.night .workspaces { background: rgba(120, 120, 128, 0.28); }
 html.bright.night .workspaces button.on,
 html.bright.night .tab.on,
 html.bright.night #egoBtn.on,
+html.bright.night #pathBtn.on,
+html.bright.night #lensBtn.on,
 html.bright.night .leg.on,
 html.bright.night .theme-seg button.on {
   background: #3a3a3c;
@@ -2874,6 +2947,7 @@ body.present #skipBtn,
 body.present #llmBtn,
 body.present #nowPill,
 body.present #graphBar,
+body.present #probeDock,
 body.present #meta,
 body.present #coverage,
 body.present #status,

@@ -101,7 +101,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
 10. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
 11. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
-   drives six desks plus Export, Presentation, and Style:
+   drives six desks plus Export, Presentation, Style, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
@@ -111,12 +111,15 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Export on the explorer Map: `#exportBtn` writes PNG / SVG / Share Card
    - Presentation / Style on the explorer Map: `#presetBtn` cycles, `F` /
      Escape enter and exit the stage
+   - Route / Lens on the Sequence demo snap: `R` lights a derived path,
+     `L` highlights Function / Endpoint
 12. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     self-review**, **delta**, **sequence**, **dataflow**, **lifecycle**,
-    **export**, **present**, and **preset**. `verification/` holds screenshots
-    plus `report.md`, including `self-review.png`, `delta.png`, `sequence.png`,
-    `dataflow.png`, `lifecycle.png`, `export-share.png` (1200×630), a desk PNG
-    or SVG, `present.png`, and `preset-blueprint.png`. PNGs are not a black
+    **export**, **present**, **preset**, **route**, and **lens**. `verification/`
+    holds screenshots plus `report.md`, including `self-review.png`,
+    `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
+    `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
+    `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
 13. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story.
@@ -179,10 +182,20 @@ Presentation / Style gate (explorer Map):
   `verification/preset-blueprint.png`
 - Present / preset do not write `.graphide/stamps/`
 
+Route / Lens gate (fixtures/demo Sequence snap):
+
+- `R` / `#pathBtn` resolves a directed Calls/Reads/Writes/Publishes/Subscribes
+  path; subscribe → events is a real Subscribes hop
+- highlighted nodes ⊆ path nodes; unreachable stays empty
+- journey Play / Next is finite
+- `L` / `#lensBtn` highlights Function / Endpoint (or Source|Sink)
+- Playwright screenshots `verification/route.png` and `verification/lens.png`
+- Route / Lens do not write `.graphide/stamps/`
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, Export, Presentation, and Style steps do not stamp.
+approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, Export, Presentation, Style, Route, and Lens steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -225,6 +238,8 @@ Useful query pins already wired in `webview-harness.js` / `main.js`:
 | `require=1` | with `live=1`, `delta=1`, `sequence=1`, `dataflow=1`, or `lifecycle=1`, do **not** fall back to the synthetic payload |
 | `present=1` | open Presentation Stage after first paint |
 | `preset=classic` / `signal-flow` / `blueprint` | pin visual Style |
+| `route=1` | open Route probe after first paint (same Sequence snap) |
+| `lens=1` | open Lens after first paint (same Sequence snap) |
 | `suite=live` | SolarSim in-page checklist — **not** the CI self-review gate |
 
 ## Driving it with the harness
@@ -261,6 +276,8 @@ same PR because the harness truly cannot hook existing ones.
 | Stamp / skip | `#stampBtn`, `#skipBtn`, `#toast` |
 | Export | `#exportBtn`, `#exportMenu`, `#exportPng`, `#exportSvg`, `#exportShare`, `window.__graphideLastExport` |
 | Presentation / Style | `#presentBtn`, `#presetBtn`, `body.present`, `html[data-preset]`, `?present=1`, `?preset=` |
+| Route | `#pathBtn`, `#routeReceipt`, `#routeHops .route-hop`, `.on-route`, `window.__graphideRoute` |
+| Lens | `#lensBtn`, `#lensReceipt`, `#lensCompare`, `[data-lens-role]`, `.lens-on`, `window.__graphideLens` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
@@ -286,8 +303,9 @@ Feature maps (four headings each): [references/features/](references/features/).
   `?dataflow=1` / `?lifecycle=1` without `require=1` still falls back to the
   synthetic payload — that is not a proof. The driver uses `require=1`.
 - Architecture Delta CI uses `fixtures/demo` vs `fixtures/demo-parent`, not
-  git `HEAD^`. Sequence, Data-flow, and Lifecycle CI use `fixtures/demo` with
-  `--no-parent`. Self-review stays `--no-parent`.
+  git `HEAD^`. Sequence, Data-flow, Lifecycle, Route, and Lens CI use
+  `fixtures/demo` with `--no-parent`. Route / Lens reuse `sequence-snap.json`.
+  Self-review stays `--no-parent`.
 - This repo's program chips are Graphide crates (`bin graphide-cli`, libs), not
   the explorer fixture's `bin main`.
 - Panic-free tests live under `crates/graphide-engine/tests/panic_free.rs` and

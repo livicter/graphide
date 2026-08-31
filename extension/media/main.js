@@ -141,8 +141,22 @@ const themeDayBtn = document.getElementById("themeDay");
 const themeNightBtn = document.getElementById("themeNight");
 const presetBtn = document.getElementById("presetBtn");
 const presentBtn = document.getElementById("presentBtn");
+const pathBtn = document.getElementById("pathBtn");
+const lensBtn = document.getElementById("lensBtn");
+const probeDock = document.getElementById("probeDock");
+const routeReceipt = document.getElementById("routeReceipt");
+const lensReceipt = document.getElementById("lensReceipt");
 const PRESETS = ["classic", "signal-flow", "blueprint"];
 const PRESET_LABEL = { classic: "Classic", "signal-flow": "Signal", blueprint: "Blueprint" };
+const ROUTE_KINDS = { Calls: 1, Reads: 1, Writes: 1, Publishes: 1, Subscribes: 1 };
+const LENS_KIND_ROLES = { Function: 1, Type: 1, Endpoint: 1 };
+const LENS_END_ROLES = { Source: 1, Sink: 1 };
+let routeOpen = false;
+let lensOpen = false;
+let routeCursor = -1;
+let routeWalk = { playing: false, timer: 0 };
+let lensRoles = ["Function", "Endpoint"];
+let lastRoute = { nodes: [], hops: [], ok: false, reason: "" };
 
 function hostThemeGuess() {
   try {
@@ -313,6 +327,16 @@ document.addEventListener("keydown", (e) => {
     setExportMenu(false);
     return;
   }
+  if (e.key === "Escape" && routeOpen) {
+    e.preventDefault();
+    setRouteOpen(false);
+    return;
+  }
+  if (e.key === "Escape" && lensOpen) {
+    e.preventDefault();
+    setLensOpen(false);
+    return;
+  }
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
@@ -383,12 +407,12 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "r" || e.key === "R") {
     e.preventDefault();
-    autoReorganize();
+    toggleRoute();
     return;
   }
   if (e.key === "l" || e.key === "L") {
     e.preventDefault();
-    toggleLlmPane();
+    toggleLens();
     return;
   }
   if (e.key === "d" || e.key === "D") {
@@ -500,6 +524,10 @@ if (exportPng) exportPng.onclick = () => runExport("png");
 if (exportSvg) exportSvg.onclick = () => runExport("svg");
 if (exportCopyShare) exportCopyShare.onclick = () => runExport("copy-share");
 if (exportShare) exportShare.onclick = () => runExport("share");
+const exportRouteShare = document.getElementById("exportRouteShare");
+if (exportRouteShare) exportRouteShare.onclick = () => runExport("route-share");
+if (pathBtn) pathBtn.onclick = () => toggleRoute();
+if (lensBtn) lensBtn.onclick = () => toggleLens();
 if (workspacesEl) {
   workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
     el.onclick = () => {
@@ -1259,6 +1287,34 @@ async function runExport(kind) {
       flashToast(name, "ok");
       return;
     }
+    if (kind === "route-share") {
+      const route = resolveRoute();
+      if (!route.ok || route.hops.length < 1) {
+        flashToast("No route", "skip");
+        return;
+      }
+      const rimg = await loadBlobImage(png);
+      const rcard = paintShareCard(rimg, art.w, art.h);
+      const rshare = await canvasPngBlob(rcard);
+      const rname = base + "-route.png";
+      const rurl = await blobToDataUrl(rshare);
+      rememberExport("route", {
+        name: rname,
+        mime: "image/png",
+        dataUrl: rurl,
+        w: 1200,
+        h: 630,
+        canonical: false,
+        variant: "route",
+        hops: route.hops.length,
+        theme: art.night ? "night" : "day",
+        preset: art.preset || currentPreset(),
+      });
+      downloadBlob(rshare, rname);
+      postExportFile(rname, "image/png", await blobToBase64(rshare));
+      flashToast(rname, "ok");
+      return;
+    }
     const img = await loadBlobImage(png);
     const card = paintShareCard(img, art.w, art.h);
     const share = await canvasPngBlob(card);
@@ -1492,6 +1548,14 @@ function consumeHarnessActions() {
     if (q.get("present") === "1" && !consumeHarnessActions._present) {
       consumeHarnessActions._present = true;
       applyPresent(true);
+    }
+    if (q.get("route") === "1" && !consumeHarnessActions._route) {
+      consumeHarnessActions._route = true;
+      setRouteOpen(true);
+    }
+    if (q.get("lens") === "1" && !consumeHarnessActions._lens) {
+      consumeHarnessActions._lens = true;
+      setLensOpen(true);
     }
   } catch (_) {}
 }
@@ -3597,6 +3661,414 @@ function applyEgoPaint() {
     el.classList.toggle("on-path", onPath);
     el.classList.toggle("ego-dim", !!(egoMode && sid && !incident && !onPath));
   });
+  applyProbePaint();
+}
+
+function isRouteKind(kind) {
+  return !!ROUTE_KINDS[String(kind || "")];
+}
+
+function routeEdges() {
+  const out = [];
+  const seen = new Set();
+  const push = (e) => {
+    if (!e || !isRouteKind(e.kind)) return;
+    const a = idVal(e.from);
+    const b = idVal(e.to);
+    if (!a || !b || a === b) return;
+    const k = a + "\t" + b + "\t" + e.kind;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ from: a, to: b, kind: e.kind });
+  };
+  const flow = typeof currentFlow === "function" ? currentFlow() : null;
+  if (flow && flow.tree && flow.tree.edges) flow.tree.edges.forEach(push);
+  if (snapshot && snapshot.graph && snapshot.graph.edges) snapshot.graph.edges.forEach(push);
+  return out;
+}
+
+function directedRoute(from, to) {
+  const a = idVal(from);
+  const b = idVal(to);
+  if (!a || !b) return { nodes: [], hops: [], ok: false, reason: "need two nodes", from: a, to: b };
+  if (a === b) return { nodes: [a], hops: [], ok: false, reason: "same node", from: a, to: b };
+  const adj = new Map();
+  const edgeOf = new Map();
+  routeEdges().forEach((e) => {
+    if (!adj.has(e.from)) adj.set(e.from, []);
+    adj.get(e.from).push(e.to);
+    const k = e.from + "\t" + e.to;
+    if (!edgeOf.has(k)) edgeOf.set(k, e);
+  });
+  const prev = new Map();
+  const q = [a];
+  prev.set(a, null);
+  for (let i = 0; i < q.length; i++) {
+    const cur = q[i];
+    if (cur === b) break;
+    for (const n of adj.get(cur) || []) {
+      if (prev.has(n)) continue;
+      prev.set(n, cur);
+      q.push(n);
+    }
+  }
+  if (!prev.has(b)) return { nodes: [], hops: [], ok: false, reason: "unreachable", from: a, to: b };
+  const nodes = [b];
+  while (nodes[0] !== a) {
+    const p = prev.get(nodes[0]);
+    if (p == null) return { nodes: [], hops: [], ok: false, reason: "unreachable", from: a, to: b };
+    nodes.unshift(p);
+  }
+  const hops = [];
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const e = edgeOf.get(nodes[i] + "\t" + nodes[i + 1]);
+    if (!e) return { nodes: [], hops: [], ok: false, reason: "unreachable", from: a, to: b };
+    hops.push(e);
+  }
+  return { nodes: nodes, hops: hops, ok: hops.length >= 1, reason: "", from: a, to: b };
+}
+
+function routeEndpoints() {
+  if (pathEnds.length === 2) return [idVal(pathEnds[0]), idVal(pathEnds[1])];
+  if (explorerWs === "sequence" && typeof seqHops === "function") {
+    const hops = seqHops();
+    const h = seqCursor >= 0 ? hops[seqCursor] : hops[0];
+    if (h) return [idVal(h.from), idVal(h.to)];
+  }
+  if (explorerWs === "dataflow" && typeof dfHops === "function") {
+    const hops = dfHops();
+    const h = dfCursor >= 0 ? hops[dfCursor] : hops[0];
+    if (h) return [idVal(h.from), idVal(h.to)];
+  }
+  const flow = typeof currentFlow === "function" ? currentFlow() : null;
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
+  const e = edges.find((x) => isRouteKind(x.kind));
+  if (e) return [idVal(e.from), idVal(e.to)];
+  return [];
+}
+
+function resolveRoute() {
+  const ends = routeEndpoints();
+  if (ends.length < 2) {
+    lastRoute = { nodes: [], hops: [], ok: false, reason: "need two nodes", from: "", to: "" };
+    return lastRoute;
+  }
+  lastRoute = directedRoute(ends[0], ends[1]);
+  return lastRoute;
+}
+
+function stopRouteWalk() {
+  routeWalk.playing = false;
+  if (routeWalk.timer) {
+    clearInterval(routeWalk.timer);
+    routeWalk.timer = 0;
+  }
+  const play = document.getElementById("routePlay");
+  if (play) {
+    play.classList.remove("on");
+    play.setAttribute("aria-pressed", "false");
+  }
+}
+
+function stepRouteWalk(dir) {
+  const route = resolveRoute();
+  if (!route.ok || !route.hops.length) {
+    stopRouteWalk();
+    return;
+  }
+  let i = routeCursor + dir;
+  if (i < 0) i = 0;
+  if (i >= route.hops.length) {
+    i = route.hops.length - 1;
+    stopRouteWalk();
+  }
+  routeCursor = i;
+  fillRouteReceipt();
+  applyProbePaint();
+}
+
+function toggleRouteWalk() {
+  if (routeWalk.playing) {
+    stopRouteWalk();
+    flashToast("Paused · " + Math.max(routeCursor, 0) + "/" + (lastRoute.hops || []).length, "ok");
+    return;
+  }
+  const route = resolveRoute();
+  if (!route.ok || !route.hops.length) {
+    flashToast("Unreachable", "skip");
+    return;
+  }
+  if (routeCursor >= route.hops.length - 1) routeCursor = -1;
+  routeWalk.playing = true;
+  stepRouteWalk(1);
+  if (reduceMotion()) {
+    stopRouteWalk();
+    return;
+  }
+  routeWalk.timer = setInterval(() => {
+    const next = resolveRoute();
+    if (routeCursor >= next.hops.length - 1) {
+      stopRouteWalk();
+      flashToast("End · " + next.hops.length, "ok");
+      fillRouteReceipt();
+      return;
+    }
+    stepRouteWalk(1);
+  }, 720);
+}
+
+function syncProbeDock() {
+  if (!probeDock) return;
+  const on = !!(routeOpen || lensOpen);
+  probeDock.hidden = !on;
+  if (routeReceipt) routeReceipt.hidden = !routeOpen;
+  if (lensReceipt) lensReceipt.hidden = !lensOpen;
+  if (pathBtn) {
+    pathBtn.classList.toggle("on", !!routeOpen);
+    pathBtn.setAttribute("aria-pressed", routeOpen ? "true" : "false");
+  }
+  if (lensBtn) {
+    lensBtn.classList.toggle("on", !!lensOpen);
+    lensBtn.setAttribute("aria-pressed", lensOpen ? "true" : "false");
+  }
+}
+
+function fillRouteReceipt() {
+  if (!routeReceipt) return;
+  const route = lastRoute && lastRoute.nodes ? lastRoute : resolveRoute();
+  lastRoute = route;
+  const fromN = route.from ? nodeById.get(route.from) : null;
+  const toN = route.to ? nodeById.get(route.to) : null;
+  const fromL = shortOf((fromN && fromN.fqn) || route.from || "?");
+  const toL = shortOf((toN && toN.fqn) || route.to || "?");
+  const hops = route.hops || [];
+  if (routeCursor >= hops.length) routeCursor = hops.length - 1;
+  const hot = routeCursor >= 0 ? hops[routeCursor] : null;
+  const status = !route.ok
+    ? route.reason === "unreachable"
+      ? "Unreachable"
+      : "Pick two nodes"
+    : hot
+      ? routeCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(fqnOf(snapshot.graph, hot.from)) + " → " + shortOf(fqnOf(snapshot.graph, hot.to))
+      : hops.length + " hops · " + fromL + " → " + toL;
+  const list = hops
+    .map((h, i) => {
+      return (
+        '<button type="button" class="route-hop' +
+        (i === routeCursor ? " on" : "") +
+        '" data-route-i="' +
+        i +
+        '" data-from="' +
+        esc(h.from) +
+        '" data-to="' +
+        esc(h.to) +
+        '" data-kind="' +
+        esc(h.kind || "") +
+        '">' +
+        esc((h.kind || "") + " " + shortOf(fqnOf(snapshot.graph, h.from)) + " → " + shortOf(fqnOf(snapshot.graph, h.to))) +
+        "</button>"
+      );
+    })
+    .join("");
+  routeReceipt.innerHTML =
+    '<div class="review-strip" id="routeReview">' +
+    '<span class="probe-k">PATH</span>' +
+    '<button type="button" class="review-step" id="routeOverview">Overview</button>' +
+    '<button type="button" class="review-step" id="routePrev">Prev</button>' +
+    '<button type="button" class="review-step' +
+    (routeWalk.playing ? " on" : "") +
+    '" id="routePlay" aria-pressed="' +
+    (routeWalk.playing ? "true" : "false") +
+    '">Play</button>' +
+    '<button type="button" class="review-step" id="routeNext">Next</button>' +
+    '<span id="routeStatus">' +
+    esc(status) +
+    "</span></div>" +
+    '<div id="routeHops" class="route-hops">' +
+    (list || '<span class="empty">No derived directed hops.</span>') +
+    "</div>";
+  const overview = document.getElementById("routeOverview");
+  const prev = document.getElementById("routePrev");
+  const next = document.getElementById("routeNext");
+  const play = document.getElementById("routePlay");
+  if (overview)
+    overview.onclick = () => {
+      stopRouteWalk();
+      routeCursor = -1;
+      fillRouteReceipt();
+      applyProbePaint();
+    };
+  if (prev)
+    prev.onclick = () => {
+      stopRouteWalk();
+      stepRouteWalk(routeCursor < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopRouteWalk();
+      stepRouteWalk(1);
+    };
+  if (play) play.onclick = () => toggleRouteWalk();
+  routeReceipt.querySelectorAll("[data-route-i]").forEach((el) => {
+    el.onclick = () => {
+      const i = parseInt(el.getAttribute("data-route-i"), 10);
+      if (!Number.isFinite(i)) return;
+      stopRouteWalk();
+      routeCursor = i;
+      fillRouteReceipt();
+      applyProbePaint();
+    };
+  });
+}
+
+function fillLensReceipt() {
+  if (!lensReceipt) return;
+  const roles = lensRoles.slice(0, 2);
+  const chips = ["Function", "Type", "Endpoint", "Source", "Sink"]
+    .map((r) => {
+      const on = roles.indexOf(r) >= 0;
+      const cls = LENS_KIND_ROLES[r] ? "kind-" + r : "kind-Endpoint";
+      return (
+        '<button type="button" class="kind-pill ' +
+        cls +
+        (on ? "" : " off") +
+        '" data-lens-role="' +
+        r +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '">' +
+        r +
+        "</button>"
+      );
+    })
+    .join("");
+  const compare = roles.length === 2 ? roles[0] + " · " + roles[1] : roles[0] || "pick a role";
+  lensReceipt.innerHTML =
+    '<div class="review-strip" id="lensReview">' +
+    '<span class="probe-k">LENS</span>' +
+    '<span id="lensCompare" class="lens-compare">' +
+    esc(compare) +
+    "</span></div>" +
+    '<div id="lensRoles" class="lens-roles">' +
+    chips +
+    "</div>";
+  lensReceipt.querySelectorAll("[data-lens-role]").forEach((el) => {
+    el.onclick = () => toggleLensRole(el.getAttribute("data-lens-role"));
+  });
+}
+
+function setRouteOpen(on) {
+  routeOpen = !!on;
+  if (!routeOpen) {
+    stopRouteWalk();
+    routeCursor = -1;
+  } else {
+    resolveRoute();
+    if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
+  }
+  syncProbeDock();
+  if (routeOpen) fillRouteReceipt();
+  applyProbePaint();
+}
+
+function setLensOpen(on) {
+  lensOpen = !!on;
+  if (lensOpen && (!lensRoles.length || lensRoles.length > 2)) lensRoles = ["Function", "Endpoint"];
+  syncProbeDock();
+  if (lensOpen) fillLensReceipt();
+  applyProbePaint();
+}
+
+function toggleRoute() {
+  setRouteOpen(!routeOpen);
+}
+
+function toggleLens() {
+  setLensOpen(!lensOpen);
+}
+
+function toggleLensRole(role) {
+  const r = String(role || "");
+  if (!LENS_KIND_ROLES[r] && !LENS_END_ROLES[r]) return;
+  const isEnd = !!LENS_END_ROLES[r];
+  let next = lensRoles.filter((x) => (isEnd ? LENS_END_ROLES[x] : LENS_KIND_ROLES[x]));
+  const i = next.indexOf(r);
+  if (i >= 0) next.splice(i, 1);
+  else {
+    if (next.length >= 2) next = next.slice(1);
+    next.push(r);
+  }
+  lensRoles = next.slice(0, 2);
+  fillLensReceipt();
+  applyProbePaint();
+}
+
+function nodeLensHit(id) {
+  if (!id || !lensRoles.length) return false;
+  const n = nodeById.get(idVal(id));
+  if (!n) return false;
+  const kind = n.kind || "Function";
+  const ep = n.endpoint && n.endpoint.role;
+  for (let i = 0; i < lensRoles.length; i++) {
+    const r = lensRoles[i];
+    if (LENS_KIND_ROLES[r] && kind === r) return true;
+    if (LENS_END_ROLES[r] && ep === r) return true;
+  }
+  return false;
+}
+
+function applyProbePaint() {
+  const route = routeOpen ? resolveRoute() : { nodes: [], hops: [], ok: false };
+  if (routeOpen) lastRoute = route;
+  const pathSet = new Set(route.ok ? route.nodes : []);
+  const hopSet = new Set((route.ok ? route.hops : []).map((h) => h.from + "\t" + h.to));
+  const hot = routeOpen && routeCursor >= 0 && route.hops[routeCursor] ? route.hops[routeCursor] : null;
+  let extra = 0;
+  let hits = 0;
+  canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const onRoute = !!(id && pathSet.has(id));
+    el.classList.toggle("on-route", onRoute);
+    if (el.classList.contains("on-route") && id && !pathSet.has(id)) extra++;
+    el.classList.toggle("on-route-hot", !!(hot && id && (id === hot.from || id === hot.to)));
+    el.classList.toggle("route-dim", !!(routeOpen && route.ok && id && !pathSet.has(id)));
+    const lensHit = !!(lensOpen && id && nodeLensHit(id));
+    if (lensHit) hits++;
+    el.classList.toggle("lens-on", lensHit);
+    el.classList.toggle("lens-dim", !!(lensOpen && id && !lensHit));
+  });
+  canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
+    const a = el.getAttribute("data-from");
+    const b = el.getAttribute("data-to");
+    const onRoute = !!(a && b && hopSet.has(a + "\t" + b));
+    el.classList.toggle("on-route", onRoute);
+    if (el.classList.contains("on-route") && a && b && !hopSet.has(a + "\t" + b)) extra++;
+    el.classList.toggle("on-route-hot", !!(hot && a === hot.from && b === hot.to));
+    el.classList.toggle("route-dim", !!(routeOpen && route.ok && !onRoute));
+  });
+  if (kindFilters && lensOpen) {
+    kindFilters.querySelectorAll("label").forEach((lab) => {
+      const box = lab.querySelector("input");
+      const k = box && box.getAttribute("data-kind");
+      lab.classList.toggle("lens", !!(k && lensRoles.indexOf(k) >= 0));
+    });
+  } else if (kindFilters) {
+    kindFilters.querySelectorAll("label").forEach((lab) => lab.classList.remove("lens"));
+  }
+  window.__graphideRoute = {
+    open: !!routeOpen,
+    ok: !!route.ok,
+    reason: route.reason || "",
+    nodes: route.nodes || [],
+    hops: (route.hops || []).map((h) => ({ from: h.from, to: h.to, kind: h.kind })),
+    extra: extra,
+    cursor: routeCursor,
+  };
+  window.__graphideLens = {
+    open: !!lensOpen,
+    roles: lensRoles.slice(),
+    hits: hits,
+  };
 }
 
 function defaultFocusId() {
@@ -5713,6 +6185,7 @@ function renderExplorerList(ws) {
   if (ws === "sequence") bindSequencePage();
   if (ws === "dataflow") bindDataflowPage();
   if (ws === "lifecycle") bindLifecyclePage();
+  applyProbePaint();
 }
 
 function applyDecisionOutcomeFilter() {
