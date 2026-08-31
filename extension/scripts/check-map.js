@@ -194,6 +194,7 @@ assert(ext.includes('id="exportMenu"') && harnessHtml.includes('id="exportMenu"'
 assert(ext.includes('id="exportPng"') && ext.includes('id="exportSvg"') && ext.includes('id="exportShare"'), "Export PNG / SVG / Share Card items missing");
 assert(js.includes("function setExportMenu") && js.includes("function stripExportViewerState"), "export menu / canonical strip missing");
 assert(js.includes("function buildCanonicalSvg") && js.includes("function paintShareCard"), "canonical SVG / Share Card missing");
+assert(js.includes("function paintCloneToCanvas") && js.includes("function rasterizeCanonical"), "export rasterize fallback missing");
 assert(js.includes("1200") && js.includes("630") && js.includes("Graphide · "), "Share Card must be 1200×630 with Graphide · title");
 assert(!/validat|verified|checked/.test((js.match(/function exportFileBase[\s\S]{0,400}/) || [""])[0]), "export filenames must not claim validation");
 assert(js.includes('type: "exportFile"') && ext.includes("saveExportFile"), "host exportFile save path missing");

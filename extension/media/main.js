@@ -846,7 +846,15 @@ function buildCanonicalSvg() {
   clone.style.position = "relative";
   clone.style.overflow = "visible";
   const night = document.documentElement.classList.contains("night");
-  const css = collectExportCss().replace(/<\//g, "<\\/");
+  const css = collectExportCss()
+    .replace(/<\//g, "<\\/")
+    .replace(/]]>/g, "]]\\>");
+  let markup = "";
+  try {
+    markup = new XMLSerializer().serializeToString(clone);
+  } catch (_) {
+    markup = clone.outerHTML;
+  }
   const inner =
     '<div xmlns="http://www.w3.org/1999/xhtml" class="export-root bright' +
     (night ? " night" : "") +
@@ -857,7 +865,7 @@ function buildCanonicalSvg() {
     'px"><style>' +
     css +
     "</style>" +
-    clone.outerHTML +
+    markup +
     "</div>";
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" width="' +
@@ -899,9 +907,28 @@ function canvasPngBlob(c) {
   });
 }
 
+function loadDataImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const t = setTimeout(() => {
+      img.onload = img.onerror = null;
+      reject(new Error("image timeout"));
+    }, 2200);
+    img.onload = () => {
+      clearTimeout(t);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(t);
+      reject(new Error("image load failed"));
+    };
+    img.src = url;
+  });
+}
+
 async function rasterizeSvg(svg, w, h) {
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const img = await loadBlobImage(blob);
+  const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  const img = await loadDataImage(url);
   const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
@@ -910,6 +937,112 @@ async function rasterizeSvg(svg, w, h) {
   ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, 0, 0, w, h);
   return canvasPngBlob(c);
+}
+
+function exportRoundRect(ctx, x, y, w, h, r) {
+  const rad = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  if (!rad) {
+    ctx.rect(x, y, w, h);
+    return;
+  }
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+}
+
+function directExportText(el) {
+  let t = "";
+  const kids = el.childNodes || [];
+  for (let i = 0; i < kids.length; i++) {
+    if (kids[i].nodeType === 3) t += kids[i].textContent || "";
+  }
+  return t.replace(/\s+/g, " ").trim();
+}
+
+function paintCloneToCanvas(src, w, h) {
+  const bg = getComputedStyle(document.body).backgroundColor || "#f2f2f7";
+  const host = document.createElement("div");
+  host.setAttribute("data-export-stage", "1");
+  host.style.cssText =
+    "position:fixed;left:-12000px;top:0;width:" +
+    w +
+    "px;height:" +
+    h +
+    "px;overflow:visible;background:" +
+    bg +
+    ";pointer-events:none;z-index:-1;";
+  const clone = src.cloneNode(true);
+  stripExportViewerState(clone);
+  clone.style.width = w + "px";
+  clone.style.height = h + "px";
+  clone.style.transform = "none";
+  clone.style.position = "relative";
+  host.appendChild(clone);
+  document.body.appendChild(host);
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  const origin = clone.getBoundingClientRect();
+  const els = [clone];
+  if (clone.querySelectorAll) els.push.apply(els, clone.querySelectorAll("*"));
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i];
+    if (el.tagName === "svg" || el.tagName === "path" || el.tagName === "line") continue;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) continue;
+    const r = el.getBoundingClientRect();
+    const x = r.left - origin.left;
+    const y = r.top - origin.top;
+    if (r.width < 1 || r.height < 1) continue;
+    if (x + r.width < 0 || y + r.height < 0 || x > w || y > h) continue;
+    const bgc = cs.backgroundColor;
+    if (bgc && bgc !== "rgba(0, 0, 0, 0)" && bgc !== "transparent") {
+      ctx.fillStyle = bgc;
+      exportRoundRect(ctx, x, y, r.width, r.height, parseFloat(cs.borderRadius) || 0);
+      ctx.fill();
+    }
+    const bw = parseFloat(cs.borderTopWidth) || 0;
+    if (bw > 0) {
+      const bc = cs.borderTopColor;
+      if (bc && bc !== "rgba(0, 0, 0, 0)") {
+        ctx.strokeStyle = bc;
+        ctx.lineWidth = bw;
+        exportRoundRect(ctx, x, y, r.width, r.height, parseFloat(cs.borderRadius) || 0);
+        ctx.stroke();
+      }
+    }
+    const text = directExportText(el);
+    if (text) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, r.width, r.height);
+      ctx.clip();
+      ctx.fillStyle = cs.color || "#1d1d1f";
+      ctx.font = cs.font || "13px system-ui";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + 6, y + r.height / 2, Math.max(8, r.width - 10));
+      ctx.restore();
+    }
+  }
+  host.remove();
+  return c;
+}
+
+async function rasterizeCanonical(art) {
+  try {
+    return await rasterizeSvg(art.svg, art.w, art.h);
+  } catch (_) {
+    const src = exportDiagramRoot();
+    if (!src) throw new Error("nothing to export");
+    return canvasPngBlob(paintCloneToCanvas(src, art.w, art.h));
+  }
 }
 
 function paintShareCard(img, diagW, diagH) {
@@ -1005,7 +1138,7 @@ async function runExport(kind) {
       flashToast(name, "ok");
       return;
     }
-    const png = await rasterizeSvg(art.svg, art.w, art.h);
+    const png = await rasterizeCanonical(art);
     if (kind === "png" || kind === "copy-png") {
       const name = base + ".png";
       const dataUrl = await blobToDataUrl(png);
@@ -1051,6 +1184,7 @@ async function runExport(kind) {
     postExportFile(name, "image/png", await blobToBase64(share));
     flashToast(name, "ok");
   } catch (e) {
+    window.__graphideExportError = String(e && e.message ? e.message : e);
     flashToast("Export failed", "");
   }
 }
