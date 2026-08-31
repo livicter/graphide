@@ -101,19 +101,20 @@ Run from the repo root. Every line must succeed before you claim the desk works.
 10. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
 11. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
-   drives six desks:
+   drives six desks plus Export:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
    - Data-flow on `?dataflow=1&probe=0&require=1&ws=dataflow` using fixtures/demo
    - Lifecycle on `?lifecycle=1&probe=0&require=1&ws=lifecycle` using fixtures/demo
+   - Export on the explorer Map: `#exportBtn` writes PNG / SVG / Share Card
 12. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
-    self-review**, **delta**, **sequence**, **dataflow**, and **lifecycle**.
-    `verification/` holds screenshots plus `report.md`, including
-    `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, and
-    `lifecycle.png`. PNGs are not a black frame (mean luma well above 0.15
-    on the bright desk).
+    self-review**, **delta**, **sequence**, **dataflow**, **lifecycle**, and
+    **export**. `verification/` holds screenshots plus `report.md`, including
+    `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
+    `lifecycle.png`, `export-share.png` (1200×630), and a desk PNG or SVG.
+    PNGs are not a black frame (mean luma well above 0.15 on the bright desk).
 13. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story.
 
@@ -170,7 +171,7 @@ Lifecycle gate (fixtures/demo, same slice as `first_slice.rs`):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review, Delta, Sequence, Data-flow, and Lifecycle steps do not stamp.
+approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, and Export steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -245,6 +246,7 @@ same PR because the harness truly cannot hook existing ones.
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
 | Evidence | `#sourcePane`, `.src-k`, `#srcTitle`, `#srcBody`, `#srcClose`, `#srcEditor` |
 | Stamp / skip | `#stampBtn`, `#skipBtn`, `#toast` |
+| Export | `#exportBtn`, `#exportMenu`, `#exportPng`, `#exportSvg`, `#exportShare`, `window.__graphideLastExport` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

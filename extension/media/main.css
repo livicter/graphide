@@ -1699,6 +1699,60 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
 }
 #keysPane[hidden] { display: none; }
 #keysPane.open { transform: none; opacity: 1; }
+#exportBtn.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+#exportMenu {
+  position: fixed;
+  right: 12px;
+  bottom: 36px;
+  z-index: 29;
+  min-width: 196px;
+  padding: 10px 12px 12px;
+  border-radius: var(--g-radius);
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  box-shadow: var(--g-lift);
+  backdrop-filter: blur(12px);
+  transform: translateY(8px);
+  opacity: 0.92;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+#exportMenu[hidden] { display: none; }
+#exportMenu.open { transform: none; opacity: 1; }
+.export-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.export-head button {
+  margin-left: auto;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+}
+#exportMenu ul { margin: 0; padding: 0; list-style: none; }
+#exportMenu li { margin: 3px 0; }
+#exportMenu li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+#exportMenu li button:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 14%, transparent);
+}
 .keys-head {
   display: flex;
   align-items: center;
@@ -2148,7 +2202,7 @@ html.bright #reviewBtn {
   box-shadow: none;
 }
 html.bright #reviewBtn:hover:not(:disabled) { background: #0066d6; }
-html.bright #cancelBtn, html.bright #zoomBar button, html.bright #stampBtn, html.bright #skipBtn, html.bright #llmBtn, html.bright #keysBtn {
+html.bright #cancelBtn, html.bright #zoomBar button, html.bright #stampBtn, html.bright #skipBtn, html.bright #llmBtn, html.bright #keysBtn, html.bright #exportBtn {
   background: var(--g-fill);
   color: #1d1d1f;
   border: none;
@@ -2239,6 +2293,7 @@ html.bright .prov-col,
 html.bright .empty.desk-empty,
 html.bright #llmPane,
 html.bright #keysPane,
+html.bright #exportMenu,
 html.bright #toast,
 html.bright #tip,
 html.bright #sourcePane,
@@ -2708,7 +2763,8 @@ html.bright.night #zoomBar button,
 html.bright.night #stampBtn,
 html.bright.night #skipBtn,
 html.bright.night #llmBtn,
-html.bright.night #keysBtn {
+html.bright.night #keysBtn,
+html.bright.night #exportBtn {
   background: var(--g-fill);
   color: #f5f5f7;
 }
@@ -2765,6 +2821,7 @@ html.bright.night .prov-col,
 html.bright.night .empty.desk-empty,
 html.bright.night #llmPane,
 html.bright.night #keysPane,
+html.bright.night #exportMenu,
 html.bright.night #toast,
 html.bright.night #tip,
 html.bright.night #sourcePane,

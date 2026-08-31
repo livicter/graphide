@@ -63,6 +63,9 @@ const toastEl = document.getElementById("toast");
 const keysPane = document.getElementById("keysPane");
 const keysBtn = document.getElementById("keysBtn");
 const keysClose = document.getElementById("keysClose");
+const exportBtn = document.getElementById("exportBtn");
+const exportMenu = document.getElementById("exportMenu");
+const exportClose = document.getElementById("exportClose");
 const LLM_PRESETS = {
   ollama: { url: "http://127.0.0.1:11434/v1", model: "llama3.2" },
   lmstudio: { url: "http://127.0.0.1:1234/v1", model: "local-model" },
@@ -221,6 +224,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && keysPane && !keysPane.hidden) {
     e.preventDefault();
     setKeysPane(false);
+    return;
+  }
+  if (e.key === "Escape" && exportMenu && !exportMenu.hidden) {
+    e.preventDefault();
+    setExportMenu(false);
     return;
   }
   if (stack[stack.length - 1]?.kind === "programs") {
@@ -387,6 +395,18 @@ if (kindFilters)
 syncKindPills();
 if (keysBtn) keysBtn.onclick = () => setKeysPane(!(keysPane && !keysPane.hidden));
 if (keysClose) keysClose.onclick = () => setKeysPane(false);
+if (exportBtn) exportBtn.onclick = () => setExportMenu(!(exportMenu && !exportMenu.hidden));
+if (exportClose) exportClose.onclick = () => setExportMenu(false);
+const exportCopyPng = document.getElementById("exportCopyPng");
+const exportPng = document.getElementById("exportPng");
+const exportSvg = document.getElementById("exportSvg");
+const exportCopyShare = document.getElementById("exportCopyShare");
+const exportShare = document.getElementById("exportShare");
+if (exportCopyPng) exportCopyPng.onclick = () => runExport("copy-png");
+if (exportPng) exportPng.onclick = () => runExport("png");
+if (exportSvg) exportSvg.onclick = () => runExport("svg");
+if (exportCopyShare) exportCopyShare.onclick = () => runExport("copy-share");
+if (exportShare) exportShare.onclick = () => runExport("share");
 if (workspacesEl) {
   workspacesEl.querySelectorAll("[data-ws]").forEach((el) => {
     el.onclick = () => {
@@ -719,9 +739,320 @@ function flashCanvas() {
 
 function setKeysPane(on) {
   if (!keysPane) return;
+  if (on) setExportMenu(false);
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
   if (keysBtn) keysBtn.classList.toggle("on", !!on);
+}
+
+function setExportMenu(on) {
+  if (!exportMenu) return;
+  if (on) {
+    setKeysPane(false);
+    if (llmPane && !llmPane.hidden) setLlmPane(false);
+  }
+  exportMenu.hidden = !on;
+  exportMenu.classList.toggle("open", !!on);
+  if (exportBtn) exportBtn.classList.toggle("on", !!on);
+}
+
+const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip"];
+
+function exportDiagramRoot() {
+  return (
+    document.getElementById("seqCanvas") ||
+    document.getElementById("dfCanvas") ||
+    document.getElementById("lcCanvas") ||
+    document.getElementById("deltaCanvas") ||
+    document.querySelector("#canvas .stage") ||
+    document.getElementById("canvas")
+  );
+}
+
+function stripExportViewerState(root) {
+  if (!root) return root;
+  const nodes = [root];
+  if (root.querySelectorAll) nodes.push.apply(nodes, root.querySelectorAll("*"));
+  nodes.forEach((el) => {
+    EXPORT_STRIP.forEach((c) => el.classList.remove(c));
+    el.removeAttribute("data-delta-review-current");
+    if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
+  });
+  const vp = root.querySelector && root.querySelector(".viewport");
+  if (vp) vp.style.transform = "none";
+  return root;
+}
+
+function exportSlug(s) {
+  return String(s || "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "diagram";
+}
+
+function exportFileBase() {
+  const flow = currentFlow();
+  return "graphide-" + exportSlug((flow && flow.name) || explorerWs || "diagram");
+}
+
+function exportTitle() {
+  const flow = currentFlow();
+  return "Graphide · " + ((flow && flow.name) || explorerWs || "Review");
+}
+
+function collectExportCss() {
+  let css = "";
+  for (let i = 0; i < document.styleSheets.length; i++) {
+    const sheet = document.styleSheets[i];
+    try {
+      const rules = sheet.cssRules;
+      for (let r = 0; r < rules.length; r++) css += rules[r].cssText + "\n";
+    } catch (_) {}
+  }
+  const cs = getComputedStyle(document.documentElement);
+  const vars = [];
+  for (let i = 0; i < cs.length; i++) {
+    const k = cs[i];
+    if (k.indexOf("--") === 0) vars.push(k + ":" + cs.getPropertyValue(k));
+  }
+  const bg = getComputedStyle(document.body).backgroundColor || "#f2f2f7";
+  const fg = getComputedStyle(document.body).color || "#1d1d1f";
+  return (
+    ":root,html,.bright{" +
+    vars.join(";") +
+    "}" +
+    ".export-root{background:" +
+    bg +
+    ";color:" +
+    fg +
+    ";font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;}" +
+    css
+  );
+}
+
+function measureExportBox(el) {
+  const vp = el.querySelector && el.querySelector(".viewport");
+  const w = Math.max(el.scrollWidth || 0, el.clientWidth || 0, vp ? vp.scrollWidth : 0, vp ? vp.offsetWidth : 0, 320);
+  const h = Math.max(el.scrollHeight || 0, el.clientHeight || 0, vp ? vp.scrollHeight : 0, vp ? vp.offsetHeight : 0, 200);
+  return { w: Math.ceil(w), h: Math.ceil(h) };
+}
+
+function buildCanonicalSvg() {
+  const src = exportDiagramRoot();
+  if (!src) throw new Error("nothing to export");
+  const box = measureExportBox(src);
+  const clone = src.cloneNode(true);
+  stripExportViewerState(clone);
+  clone.style.width = box.w + "px";
+  clone.style.height = box.h + "px";
+  clone.style.transform = "none";
+  clone.style.position = "relative";
+  clone.style.overflow = "visible";
+  const night = document.documentElement.classList.contains("night");
+  const css = collectExportCss().replace(/<\//g, "<\\/");
+  const inner =
+    '<div xmlns="http://www.w3.org/1999/xhtml" class="export-root bright' +
+    (night ? " night" : "") +
+    '" style="width:' +
+    box.w +
+    "px;height:" +
+    box.h +
+    'px"><style>' +
+    css +
+    "</style>" +
+    clone.outerHTML +
+    "</div>";
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' +
+    box.w +
+    '" height="' +
+    box.h +
+    '" viewBox="0 0 ' +
+    box.w +
+    " " +
+    box.h +
+    '"><foreignObject width="100%" height="100%">' +
+    inner +
+    "</foreignObject></svg>";
+  return { svg: svg, w: box.w, h: box.h, night: night, title: exportTitle(), name: exportFileBase() };
+}
+
+function loadBlobImage(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image load failed"));
+    };
+    img.src = url;
+  });
+}
+
+function canvasPngBlob(c) {
+  return new Promise((resolve, reject) => {
+    c.toBlob((b) => {
+      if (!b) reject(new Error("png blob failed"));
+      else resolve(b);
+    }, "image/png");
+  });
+}
+
+async function rasterizeSvg(svg, w, h) {
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const img = await loadBlobImage(blob);
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor || "#f2f2f7";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvasPngBlob(c);
+}
+
+function paintShareCard(img, diagW, diagH) {
+  const W = 1200;
+  const H = 630;
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d");
+  const body = getComputedStyle(document.body);
+  ctx.fillStyle = body.backgroundColor || "#f2f2f7";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = body.color || "#1d1d1f";
+  ctx.font = "600 22px -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif";
+  ctx.textBaseline = "top";
+  ctx.fillText(exportTitle(), 40, 28);
+  const top = 72;
+  const pad = 40;
+  const availW = W - pad * 2;
+  const availH = H - top - pad;
+  const scale = Math.min(availW / Math.max(1, diagW), availH / Math.max(1, diagH));
+  const dw = diagW * scale;
+  const dh = diagH * scale;
+  const x = pad + (availW - dw) / 2;
+  const y = top + (availH - dh) / 2;
+  ctx.drawImage(img, 0, 0, diagW, diagH, x, y, dw, dh);
+  return c;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function blobToBase64(blob) {
+  const url = await blobToDataUrl(blob);
+  const i = url.indexOf(",");
+  return i >= 0 ? url.slice(i + 1) : "";
+}
+
+function rememberExport(kind, rec) {
+  window.__graphideLastExport = window.__graphideLastExport || {};
+  window.__graphideLastExport[kind] = rec;
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2500);
+}
+
+function postExportFile(name, mime, data) {
+  vscode.postMessage({ type: "exportFile", name: name, mime: mime, data: data });
+}
+
+async function copyPngBlob(blob) {
+  if (navigator.clipboard && window.ClipboardItem) {
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    return true;
+  }
+  return false;
+}
+
+async function runExport(kind) {
+  setExportMenu(false);
+  try {
+    const art = buildCanonicalSvg();
+    const base = art.name;
+    if (kind === "svg") {
+      const blob = new Blob([art.svg], { type: "image/svg+xml;charset=utf-8" });
+      const name = base + ".svg";
+      const dataUrl = await blobToDataUrl(blob);
+      rememberExport("svg", {
+        name: name,
+        mime: "image/svg+xml",
+        dataUrl: dataUrl,
+        w: art.w,
+        h: art.h,
+        canonical: true,
+        theme: art.night ? "night" : "day",
+      });
+      downloadBlob(blob, name);
+      postExportFile(name, "image/svg+xml", await blobToBase64(blob));
+      flashToast(name, "ok");
+      return;
+    }
+    const png = await rasterizeSvg(art.svg, art.w, art.h);
+    if (kind === "png" || kind === "copy-png") {
+      const name = base + ".png";
+      const dataUrl = await blobToDataUrl(png);
+      rememberExport("png", {
+        name: name,
+        mime: "image/png",
+        dataUrl: dataUrl,
+        w: art.w,
+        h: art.h,
+        canonical: true,
+        theme: art.night ? "night" : "day",
+      });
+      if (kind === "copy-png") {
+        const ok = await copyPngBlob(png).catch(() => false);
+        flashToast(ok ? "Copied PNG" : "Clipboard unavailable", ok ? "ok" : "");
+        return;
+      }
+      downloadBlob(png, name);
+      postExportFile(name, "image/png", await blobToBase64(png));
+      flashToast(name, "ok");
+      return;
+    }
+    const img = await loadBlobImage(png);
+    const card = paintShareCard(img, art.w, art.h);
+    const share = await canvasPngBlob(card);
+    const name = base + "-share.png";
+    const dataUrl = await blobToDataUrl(share);
+    rememberExport("share", {
+      name: name,
+      mime: "image/png",
+      dataUrl: dataUrl,
+      w: 1200,
+      h: 630,
+      canonical: true,
+      theme: art.night ? "night" : "day",
+    });
+    if (kind === "copy-share") {
+      const ok = await copyPngBlob(share).catch(() => false);
+      flashToast(ok ? "Copied Share Card" : "Clipboard unavailable", ok ? "ok" : "");
+      return;
+    }
+    downloadBlob(share, name);
+    postExportFile(name, "image/png", await blobToBase64(share));
+    flashToast(name, "ok");
+  } catch (e) {
+    flashToast("Export failed", "");
+  }
 }
 
 function syncKindPills() {
@@ -6754,6 +7085,7 @@ function enterBubble(snap, flowName, bubbleId) {
 
 function setLlmPane(on) {
   if (!llmPane) return;
+  if (on) setExportMenu(false);
   llmPane.hidden = !on;
   llmPane.classList.toggle("open", !!on);
   document.body.classList.toggle("llm-open", !!on);

@@ -298,6 +298,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       } else if (msg.type === "setAppearance") {
         const next = msg.appearance === "night" ? "night" : "day";
         await vscode.workspace.getConfiguration("graphide").update("appearance", next, vscode.ConfigurationTarget.Global);
+      } else if (msg.type === "exportFile") {
+        await this.saveExportFile(msg);
       }
     });
     if (this.snapshot) this.pushState();
@@ -525,6 +527,26 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     this.pushState();
   }
 
+  private async saveExportFile(msg: any) {
+    const raw = String(msg && msg.name ? msg.name : "graphide.png");
+    const name = path.basename(raw).replace(/[^\w.\-]+/g, "-") || "graphide.png";
+    const stamps = path.join(packageRoot(), ".graphide", "stamps");
+    const filters: { [label: string]: string[] } = /\.svg$/i.test(name)
+      ? { SVG: ["svg"] }
+      : { PNG: ["png"] };
+    const dest = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(os.homedir(), name)),
+      filters,
+    });
+    if (!dest) return;
+    if (dest.fsPath === stamps || dest.fsPath.startsWith(stamps + path.sep)) {
+      vscode.window.showErrorMessage("Export cannot write .graphide/stamps/.");
+      return;
+    }
+    const buf = Buffer.from(String(msg && msg.data ? msg.data : ""), "base64");
+    await vscode.workspace.fs.writeFile(dest, buf);
+  }
+
   private async enterNode(msg: any) {
     if (!msg.isLeaf) {
       this.stack.push({ kind: "bubble", flow: msg.flow, bubble: msg.id });
@@ -654,7 +676,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
 <html lang="en" class="${themeClass}">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob:;" />
   <link href="${styleUri}" rel="stylesheet" />
 </head>
 <body class="${themeClass}">
@@ -670,6 +692,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     <button id="skipBtn" title="Skip this flow without a stamp (X)">Skip</button>
     <button id="llmBtn" type="button" title="Connect an LLM or ask about this review path">LLM</button>
     <button id="keysBtn" type="button" title="Keyboard shortcuts (?)">?</button>
+    <button id="exportBtn" type="button" title="Export PNG, SVG, or Share Card">Export</button>
     <div id="themeSeg" class="theme-seg" role="group" aria-label="Appearance">
       <button type="button" id="themeDay" data-theme="day" title="Day appearance (D)">Day</button>
       <button type="button" id="themeNight" data-theme="night" title="Night appearance (D)">Night</button>
@@ -694,6 +717,16 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
       <li><kbd>D</kbd> day / night</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
+    </ul>
+  </aside>
+  <aside id="exportMenu" hidden>
+    <div class="export-head"><b>Export</b><button type="button" id="exportClose" title="Close export">Close</button></div>
+    <ul>
+      <li><button type="button" id="exportCopyPng">Copy PNG</button></li>
+      <li><button type="button" id="exportPng">PNG</button></li>
+      <li><button type="button" id="exportSvg">SVG</button></li>
+      <li><button type="button" id="exportCopyShare">Copy Share Card</button></li>
+      <li><button type="button" id="exportShare">Share Card</button></li>
     </ul>
   </aside>
   <div id="progress">

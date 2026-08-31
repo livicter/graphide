@@ -106,14 +106,19 @@ function pngMeanLuma(buf) {
     dst += stride;
   }
   let sum = 0;
+  let sum2 = 0;
   let n = 0;
   const step = Math.max(1, Math.floor((w * h) / 8000));
   for (let i = 0, pix = 0; i < out.length; i += bpp, pix++) {
     if (pix % step) continue;
-    sum += 0.2126 * out[i] + 0.7152 * out[i + 1] + 0.0722 * out[i + 2];
+    const y = (0.2126 * out[i] + 0.7152 * out[i + 1] + 0.0722 * out[i + 2]) / 255;
+    sum += y;
+    sum2 += y * y;
     n++;
   }
-  return { w, h, luma: n ? sum / n / 255 : 0 };
+  const luma = n ? sum / n : 0;
+  const std = n ? Math.sqrt(Math.max(0, sum2 / n - luma * luma)) : 0;
+  return { w, h, luma, std };
 }
 
 const MIME = {
@@ -183,7 +188,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -682,6 +687,7 @@ async function main() {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
+    acceptDownloads: true,
   });
 
   try {
@@ -744,6 +750,160 @@ async function main() {
     );
     record("M3", "Program chip seed includes bin main", /bin\s+main/i.test(map.legend), map.legend.slice(0, 80));
     await shot(page, "map.png");
+
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const exportUi = await page.evaluate(() => ({
+      btn: !!document.getElementById("exportBtn"),
+      menu: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      png: !!document.getElementById("exportPng"),
+      svg: !!document.getElementById("exportSvg"),
+      share: !!document.getElementById("exportShare"),
+    }));
+    record(
+      "X1",
+      "Export menu opens from #exportBtn",
+      exportUi.btn && exportUi.menu && exportUi.png && exportUi.svg && exportUi.share,
+      JSON.stringify(exportUi)
+    );
+
+    page.once("dialog", (d) => d.dismiss().catch(() => {}));
+    await page.click("#exportPng");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.png, null, {
+      timeout: 20000,
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportShare");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.share, null, {
+      timeout: 20000,
+    });
+
+    const harvested = await page.evaluate(() => window.__graphideLastExport || {});
+    function writeDataUrl(name, dataUrl) {
+      if (!dataUrl || typeof dataUrl !== "string") return "";
+      const i = dataUrl.indexOf(",");
+      const dest = path.join(OUT, name);
+      fs.writeFileSync(dest, Buffer.from(dataUrl.slice(i + 1), "base64"));
+      return dest;
+    }
+    writeDataUrl("export-desk.png", harvested.png && harvested.png.dataUrl);
+    writeDataUrl("export-desk.svg", harvested.svg && harvested.svg.dataUrl);
+    writeDataUrl("export-share.png", harvested.share && harvested.share.dataUrl);
+
+    const deskPng = path.join(OUT, "export-desk.png");
+    const deskSvg = path.join(OUT, "export-desk.svg");
+    const sharePng = path.join(OUT, "export-share.png");
+    const deskBuf = fs.existsSync(deskPng) ? fs.readFileSync(deskPng) : Buffer.alloc(0);
+    const svgText = fs.existsSync(deskSvg) ? fs.readFileSync(deskSvg, "utf8") : "";
+    let deskMeta = { w: 0, h: 0, luma: 0 };
+    try {
+      deskMeta = pngMeanLuma(deskBuf);
+    } catch (e) {
+      deskMeta = { w: 0, h: 0, luma: 0 };
+    }
+    let shareMeta = { w: 0, h: 0, luma: 0 };
+    try {
+      shareMeta = pngMeanLuma(fs.readFileSync(sharePng));
+    } catch (e) {
+      shareMeta = { w: 0, h: 0, luma: 0 };
+    }
+    const names = [harvested.png && harvested.png.name, harvested.svg && harvested.svg.name, harvested.share && harvested.share.name]
+      .filter(Boolean)
+      .join(" ");
+    record(
+      "X2",
+      "Export PNG was saved and is not a black frame",
+      fs.existsSync(deskPng) &&
+        deskBuf.length > 8000 &&
+        deskMeta.luma >= 0.15 &&
+        (deskMeta.std || 0) >= 0.03 &&
+        deskMeta.w >= 200 &&
+        deskMeta.h >= 160,
+      "luma=" +
+        deskMeta.luma.toFixed(3) +
+        " std=" +
+        (deskMeta.std || 0).toFixed(3) +
+        " " +
+        deskMeta.w +
+        "x" +
+        deskMeta.h +
+        " bytes=" +
+        deskBuf.length
+    );
+    record(
+      "X3",
+      "Export SVG was saved",
+      /<svg[\s>]/i.test(svgText) && /foreignObject/i.test(svgText) && svgText.length > 400,
+      "bytes=" + svgText.length
+    );
+    record(
+      "X4",
+      "Share Card is 1200×630",
+      shareMeta.w === 1200 && shareMeta.h === 630 && fs.existsSync(sharePng),
+      shareMeta.w + "x" + shareMeta.h
+    );
+    record(
+      "X5",
+      "Export filenames do not claim validation",
+      names.length > 0 && !/validat|verified|checked/i.test(names),
+      names
+    );
+    const stripProbe = await page.evaluate(() => {
+      const box = document.createElement("div");
+      box.innerHTML = '<i class="dim on focus selected ego-dim" data-delta-review-current="1"></i>';
+      if (typeof stripExportViewerState === "function") stripExportViewerState(box);
+      const i = box.querySelector("i");
+      return {
+        cls: ((i && i.className) || "").trim(),
+        review: i ? i.getAttribute("data-delta-review-current") : "missing",
+      };
+    });
+    record(
+      "X6",
+      "Canonical export strips focus / play / search classes",
+      stripProbe.cls === "" && !stripProbe.review,
+      JSON.stringify(stripProbe)
+    );
+    const exportPosts = await page.evaluate(() =>
+      (window.__vscodePosts || []).filter((m) => m && m.type === "exportFile").map((m) => m.name)
+    );
+    record("X7", "Export posts exportFile to the host stub (not stamp)", exportPosts.length >= 1, exportPosts.join(","));
+    const stampDirExport = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampExport = fs.existsSync(stampDirExport) && fs.readdirSync(stampDirExport).length > 0;
+    record(
+      "X8",
+      "Export step did not write .graphide/stamps/",
+      !wroteStampExport,
+      wroteStampExport ? fs.readdirSync(stampDirExport).join(",") : "absent"
+    );
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector(".vnode", { timeout: 10000 });
@@ -1526,7 +1686,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export"
   );
 }
 
