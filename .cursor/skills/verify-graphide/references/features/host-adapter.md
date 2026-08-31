@@ -6,7 +6,7 @@ How the Review webview talks to VS Code / Cursor — and how the headless harnes
 
 - Product script starts with `const vscode = acquireVsCodeApi();` (`extension/media/main.js`).
 - Real host injects the VS Code webview API. HTML chrome is built in `ReviewViewProvider.html()` (`extension/src/extension.ts`) — same ids as the harness document.
-- Host ← webview messages (non-exhaustive): `review`, `selectFlow`, `selectProgram`, `enterRun`, `enterNode`, `peekSource`, `back`, `cancel`, `stamp`, `skip`, `llmAsk`, `llmSave`, `llmTest`, `llmStatus`, `setAppearance`.
+- Host ← webview messages (non-exhaustive): `review`, `selectFlow`, `selectProgram`, `enterRun`, `enterNode`, `peekSource`, `back`, `cancel`, `stamp`, `skip`, `llmAsk`, `llmSave`, `llmTest`, `llmStatus`, `setAppearance`, `exportFile`.
 - Host → webview messages: `programs`, `flowchart`, `inner`, `source`, `llmStatus`, `llmReply`, `llmError`, progress / preview.
 - `writeStamp` (host only) writes `.graphide/stamps/`. `peekSource` on the host reads a span and posts `{ type: "source", ... }`.
 - Harness stub (in `webview-harness.html`, **before** `main.js`):
@@ -46,7 +46,7 @@ Prove the stub:
 - clicking `#stampBtn` appends `{ type: "stamp", flow }` — and no files appear under `.graphide/stamps/`
 - `html.bright` / `body.bright` match the product chrome (`themeClass` in `extension.ts`, hardcoded on the harness `<html>`)
 
-Chrome parity to keep in the maps (ids must exist in **both** `extension.ts` `html()` and `webview-harness.html`): `#stampBtn`, `#skipBtn`, `#sourcePane`, `#ledgerPane`, `#workspaces [data-ws]`, `#llmPane`, `#themeSeg`, `#keysPane`. `check-map.js` already string-checks several of these.
+Chrome parity to keep in the maps (ids must exist in **both** `extension.ts` `html()` and `webview-harness.html`): `#stampBtn`, `#skipBtn`, `#sourcePane`, `#ledgerPane`, `#workspaces [data-ws]`, `#llmPane`, `#themeSeg`, `#keysPane`, `#exportBtn`, `#presentBtn`, `#presetBtn`, `#pathBtn`, `#lensBtn`. `check-map.js` already string-checks several of these.
 
 ## Gotchas
 

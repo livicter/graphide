@@ -283,8 +283,9 @@ same PR because the harness truly cannot hook existing ones.
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
 | Sequence snap | `window.__graphideSequence`, `window.__graphideSequenceError` |
 | Data-flow snap | `window.__graphideDataflow`, `window.__graphideDataflowError` |
+| Lifecycle snap | `window.__graphideLifecycle`, `window.__graphideLifecycleError` |
 
-Feature maps (four headings each): [references/features/](references/features/).
+Feature maps (four headings each): [references/features/](references/features/README.md).
 
 ## Gotchas
 
