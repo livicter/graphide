@@ -5,7 +5,7 @@ How the Review webview talks to VS Code / Cursor — and how the headless harnes
 ## Sub-features
 
 - Product bundle (`extension/media/main.js`) is esbuild of `extension/media/src/`. React 18 `flushSync` mounts the Apple desk on `#root`, then `bootDesk()` (`graph/desk.js`) binds the same ids and calls `acquireHost()` (`host/adapter.js` → `acquireVsCodeApi()` once).
-- Real host injects the VS Code webview API. `ReviewViewProvider.html()` (`extension/src/extension.ts`) is a thin shell: appearance class on `html`/`body`, CSP nonce, `#root`, `main.css`, `main.js`. Same shell as `webview-harness.html` (plus harness `#probe` / `#suite`).
+- Real host injects the VS Code webview API. `ReviewViewProvider.html()` (`extension/src/extension.ts`) is a thin shell: appearance class on `html`/`body`, CSP nonce, `#root`, `main.css` (which `@import`s `xyflow.css`), `main.js`. Same shell as `webview-harness.html` (plus harness `#probe` / `#suite`). XYFlow CSS is an extension file on `webview.cspSource` — not `style-src 'unsafe-inline'`.
 - Host ← webview messages (non-exhaustive): `review`, `selectFlow`, `selectProgram`, `enterRun`, `enterNode`, `peekSource`, `back`, `cancel`, `stamp`, `skip`, `llmAsk`, `llmSave`, `llmTest`, `llmStatus`, `setAppearance`, `exportFile`.
 - Host → webview messages: `programs`, `flowchart`, `inner`, `source`, `llmStatus`, `llmReply`, `llmError`, progress / preview.
 - `writeStamp` (host only) writes `.graphide/stamps/`. `peekSource` on the host reads a span and posts `{ type: "source", ... }`.
