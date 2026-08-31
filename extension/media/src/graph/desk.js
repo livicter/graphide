@@ -7892,4 +7892,6 @@ function sendLlmAsk() {
   if (typeof cyclePreset === "function") window.cyclePreset = cyclePreset;
   if (typeof applyPresent === "function") window.applyPresent = applyPresent;
   if (typeof togglePresent === "function") window.togglePresent = togglePresent;
+  if (typeof buildCanonicalSvg === "function") window.buildCanonicalSvg = buildCanonicalSvg;
+  if (typeof stripExportViewerState === "function") window.stripExportViewerState = stripExportViewerState;
 }
