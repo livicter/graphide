@@ -20,6 +20,7 @@ mod hints;
 mod link;
 mod programs;
 mod review;
+mod sequence;
 mod stamp;
 mod steiner;
 
@@ -35,6 +36,7 @@ pub use review::{
     default_review_hints, derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow,
     PreviewGraph, PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
 };
+pub use sequence::{flow_sequence, is_interaction};
 pub use stamp::{
     apply_saved_stamps, make_stamp, recheck_stamp, recheck_stamp_on, stamp_filename,
     stamp_from_graph,

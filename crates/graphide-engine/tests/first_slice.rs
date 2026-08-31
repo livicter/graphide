@@ -102,6 +102,20 @@ fn steiner_of_hits_is_subscribes_edge() {
     assert_eq!(flow.tree.edges.len(), 1, "{:?}", flow.tree);
     assert_eq!(flow.tree.edges[0].kind, EdgeKind::Subscribes);
     assert_eq!(flow.tree.nodes.len(), 2);
+    assert!(
+        flow.sequence.participants.len() >= 2,
+        "data-subscription Sequence needs caller and callee, got {:?}",
+        flow.sequence.participants
+    );
+    assert!(
+        flow.sequence.hops.iter().any(|h| {
+            h.kind == EdgeKind::Subscribes
+                && h.from_fqn.contains("subscribe")
+                && h.to_fqn.contains("events")
+        }),
+        "sequence hops={:?}",
+        flow.sequence.hops
+    );
     let bus = snap
         .graph
         .nodes
@@ -299,5 +313,18 @@ fn empty_sidecar_gets_overview_and_control_flow() {
         !cfg.tree.edges.is_empty(),
         "default control-flow should have hops, got {:?}",
         cfg.tree
+    );
+    assert!(
+        cfg.sequence.participants.len() >= 2,
+        "control-flow Sequence needs callers and callees, got {:?}",
+        cfg.sequence.participants
+    );
+    assert!(
+        cfg.sequence
+            .hops
+            .iter()
+            .any(|h| h.kind == EdgeKind::Calls || h.kind == EdgeKind::Publishes || h.kind == EdgeKind::Subscribes),
+        "control-flow Sequence hops={:?}",
+        cfg.sequence.hops
     );
 }

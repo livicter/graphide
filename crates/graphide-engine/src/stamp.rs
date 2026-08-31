@@ -1,6 +1,7 @@
 use crate::cluster::cluster;
 use crate::flowchart::build_flowchart;
 use crate::review::resolve_fqn;
+use crate::sequence::flow_sequence;
 use crate::steiner::steiner_tree;
 use graphide_ir::{Bubble, Finding, FindingKind, FlowView, Graph, Stamp, StampEdge, StampPosition};
 use std::collections::HashSet;
@@ -64,12 +65,14 @@ pub fn stamp_from_graph(
         .collect();
     let tree = steiner_tree(graph, &resolved);
     let flowchart = build_flowchart(graph, bubbles, &tree);
+    let sequence = flow_sequence(graph, &tree);
     let view = FlowView {
         name: name.into(),
         hits: hits.to_vec(),
         resolved_hits: resolved,
         tree,
         flowchart,
+        sequence,
     };
     let stamp = make_stamp(graph, &view, deriver);
     (view, stamp)

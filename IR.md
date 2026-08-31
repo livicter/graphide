@@ -260,6 +260,38 @@ ArchitectureDelta {
 Truth before spectacle: the list is exact facts. It does not infer blast
 radius, merge safety, or risk.
 
+### Sequence
+
+One flow's Steiner, read as callers / callees / returns / order. Same
+closed vocabulary as the rest of the IR — Function / Type / Endpoint,
+FQNs, spans. Not an agent-drawn sequence JSON.
+
+```
+SequenceVariant  Call | Return | Default
+
+SequenceParticipant {
+  id, fqn, kind, file?
+}
+
+SequenceHop {
+  from, to, from_fqn, to_fqn, kind, variant, file?
+}
+
+FlowSequence {
+  participants: SequenceParticipant[]
+  hops: SequenceHop[]
+}
+```
+
+- Participants are the endpoints of Steiner interaction edges
+  (`Calls`, `Publishes`, `Subscribes`, `Reads`, `Writes`) in walk order.
+- A hop is a Steiner edge. `Imports` / `TypeUses` / `Contains` stay off
+  this reading (they are not an interaction).
+- `return` is the same `Calls` edge read backward (callee → caller). It
+  is not a new pair of nodes and not a plugin kind.
+- Order is the BFS walk of the Steiner tree from its sources — the same
+  walk Slice / Play already use.
+
 ---
 
 ## 4. Findings (not graph)

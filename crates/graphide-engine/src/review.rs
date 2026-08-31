@@ -5,6 +5,7 @@ use crate::flowchart::build_flowchart;
 use crate::hints::parse_flows_toml;
 use crate::link::link;
 use crate::programs::{is_entry, programs_from_graph};
+use crate::sequence::flow_sequence;
 use crate::steiner::steiner_tree;
 use graphide_ir::{
     EdgeKind, EndRole, Extract, Finding, FindingKind, Flow, FlowHint, FlowView, Graph, HintFile,
@@ -203,12 +204,14 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     let mut flow_views = Vec::new();
     for (i, (name, hits, resolved, tree)) in partials.into_iter().enumerate() {
         let flowchart = build_flowchart(&graph, &bubbles, &tree);
+        let sequence = flow_sequence(&graph, &tree);
         flow_views.push(FlowView {
             name: name.clone(),
             hits,
             resolved_hits: resolved,
             tree,
             flowchart,
+            sequence,
         });
         opts.report(ProgressEvent::new(
             "flows",

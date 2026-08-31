@@ -68,18 +68,30 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    The snap's `delta.facts` must be non-empty and include added
    `crate::bus::sneaky_helper`. Prefer this fixture so shallow Actions clones
    do not flake.
-7. **Static map gate** — `node extension/scripts/check-map.js`. This is a
+7. **Sequence fixture** — derive the same control-flow / data-subscription
+   slice `first_slice.rs` uses (no parent required):
+
+   ```
+   ./target/debug/graphide review --root fixtures/demo --json --progress --no-parent \
+     > extension/scripts/sequence-snap.json
+   ```
+
+   A flow's `sequence.participants` must be `> 1` and `sequence.hops` must be
+   non-empty (data-subscription: `subscribe` Subscribes `events`).
+8. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
-8. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
-   drives three desks:
+9. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
+   drives four desks:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
-9. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
-   self-review** and **delta**. `verification/` holds screenshots plus
-   `report.md`, including `self-review.png` and `delta.png`. PNGs are not a
-   black frame (mean luma well above 0.15 on the bright desk).
-10. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
+   - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
+10. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
+    self-review**, **delta**, and **sequence**. `verification/` holds
+    screenshots plus `report.md`, including `self-review.png`, `delta.png`,
+    and `sequence.png`. PNGs are not a black frame (mean luma well above 0.15
+    on the bright desk).
+11. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story.
 
 If the harness cannot boot the derived snap, say exactly what blocked (missing
@@ -111,10 +123,17 @@ Architecture Delta gate (fixtures/demo vs fixtures/demo-parent):
 - Playwright paints `?delta=1&ws=delta` and screenshots `verification/delta.png`
 - Review walk is finite. Delta does not write `.graphide/stamps/`.
 
+Sequence gate (fixtures/demo, same slice as `first_slice.rs`):
+
+- `graphide review --root fixtures/demo --no-parent`
+- a flow `sequence` has `> 1` participant and an ordered hop list
+- Playwright paints `?sequence=1&ws=sequence` and screenshots `verification/sequence.png`
+- Play walk is finite. Sequence does not write `.graphide/stamps/`.
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review and Delta steps do not stamp.
+approved a flow. The self-review, Delta, and Sequence steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -131,6 +150,7 @@ In the harness (what CI drives):
 extension/scripts/webview-harness.html?mode=explorer&probe=0
 extension/scripts/webview-harness.html?live=1&probe=0&require=1
 extension/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta
+extension/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence
 ```
 
 `mode=explorer` posts the synthetic flowchart payload (bubbles + control-flow +
@@ -148,7 +168,8 @@ Useful query pins already wired in `webview-harness.js` / `main.js`:
 | `suite=1` | in-page synthetic checklist (optional; the Playwright driver does not need it) |
 | `live=1` | fetch `live-snap.json` as `{ type: "programs" }` |
 | `delta=1` | fetch `delta-snap.json` (demo vs demo-parent Architecture Delta) |
-| `require=1` | with `live=1` or `delta=1`, do **not** fall back to the synthetic payload |
+| `sequence=1` | fetch `sequence-snap.json` (fixtures/demo Sequence) |
+| `require=1` | with `live=1`, `delta=1`, or `sequence=1`, do **not** fall back to the synthetic payload |
 | `suite=live` | SolarSim in-page checklist — **not** the CI self-review gate |
 
 ## Driving it with the harness
@@ -173,8 +194,9 @@ same PR because the harness truly cannot hook existing ones.
 
 | Surface | Hook |
 | --- | --- |
-| Workspaces | `#workspaces [data-ws="map"]` (also slice, lineage, decisions, registry, overview, timeline, delta) |
+| Workspaces | `#workspaces [data-ws="map"]` (also slice, lineage, decisions, registry, overview, timeline, delta, sequence) |
 | Architecture Delta | `#workspaces [data-ws="delta"]`, `#deltaView [data-delta-view]`, `#deltaFacts .delta-fact`, `#deltaPlay`, `#deltaCanvas` |
+| Sequence | `#workspaces [data-ws="sequence"]`, `#seqParts .seq-part`, `#seqHops .seq-hop`, `#seqPlay`, `#seqCanvas` |
 | Map cards | `.bubble-card`, `.bubble-card.start`, `.bubble-card .name`, `[data-bubble]` |
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
@@ -183,6 +205,7 @@ same PR because the harness truly cannot hook existing ones.
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
+| Sequence snap | `window.__graphideSequence`, `window.__graphideSequenceError` |
 
 Feature maps (four headings each): [references/features/](references/features/).
 
@@ -197,11 +220,13 @@ Feature maps (four headings each): [references/features/](references/features/).
 - Real `extension.ts` `writeStamp()` mkdir-writes `packageRoot()/.graphide/stamps/`.
   The harness stub only pushes to `__vscodePosts`. Do not treat a stub click as
   a human stamp. Self-review must not write that directory.
-- `live-snap.json` and `delta-snap.json` are gitignored. CI / `npm run verify`
-  generate them. `?live=1` / `?delta=1` without `require=1` still falls back
-  to the synthetic payload — that is not a proof. The driver uses `require=1`.
+- `live-snap.json`, `delta-snap.json`, and `sequence-snap.json` are gitignored.
+  CI / `npm run verify` generate them. `?live=1` / `?delta=1` / `?sequence=1`
+  without `require=1` still falls back to the synthetic payload — that is not
+  a proof. The driver uses `require=1`.
 - Architecture Delta CI uses `fixtures/demo` vs `fixtures/demo-parent`, not
-  git `HEAD^`. Self-review stays `--no-parent`.
+  git `HEAD^`. Sequence CI uses `fixtures/demo` with `--no-parent`. Self-review
+  stays `--no-parent`.
 - This repo's program chips are Graphide crates (`bin graphide-cli`, libs), not
   the explorer fixture's `bin main`.
 - Panic-free tests live under `crates/graphide-engine/tests/panic_free.rs` and

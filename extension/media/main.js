@@ -72,8 +72,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1 };
 
 const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
 const PHASE_ALIAS = {
@@ -119,6 +119,8 @@ let timelineCursor = 0;
 let deltaView = "delta";
 let deltaCursor = -1;
 let deltaWalk = { playing: false, timer: 0 };
+let seqCursor = -1;
+let seqWalk = { playing: false, timer: 0 };
 let decisionOutcomeFilter = "";
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -303,6 +305,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "p" || e.key === "P") {
     e.preventDefault();
     if (explorerWs === "delta") toggleDeltaReview();
+    else if (explorerWs === "sequence") toggleSeqReview();
     else togglePathWalk();
     return;
   }
@@ -311,6 +314,9 @@ document.addEventListener("keydown", (e) => {
     if (explorerWs === "delta") {
       stopDeltaWalk();
       stepDeltaWalk(deltaCursor < 0 ? 1 : -1);
+    } else if (explorerWs === "sequence") {
+      stopSeqWalk();
+      stepSeqWalk(seqCursor < 0 ? 1 : -1);
     } else {
       stopPathWalk();
       stepPathWalk(pathWalk.i < 0 ? 1 : -1);
@@ -322,13 +328,16 @@ document.addEventListener("keydown", (e) => {
     if (explorerWs === "delta") {
       stopDeltaWalk();
       stepDeltaWalk(1);
+    } else if (explorerWs === "sequence") {
+      stopSeqWalk();
+      stepSeqWalk(1);
     } else {
       stopPathWalk();
       stepPathWalk(1);
     }
     return;
   }
-  const wsIdx = "12345678".indexOf(e.key);
+  const wsIdx = "123456789".indexOf(e.key);
   if (wsIdx >= 0 && WORKSPACES[wsIdx]) {
     e.preventDefault();
     setWorkspace(WORKSPACES[wsIdx], true);
@@ -3857,6 +3866,376 @@ function bindDeltaPage() {
   if (play) play.onclick = () => toggleDeltaReview();
 }
 
+function isInteractionKind(kind) {
+  return (
+    kind === "Calls" ||
+    kind === "Publishes" ||
+    kind === "Subscribes" ||
+    kind === "Reads" ||
+    kind === "Writes"
+  );
+}
+
+/** Current flow's Steiner as participants × ordered hops. Engine `sequence` when present; else derive from the tree (explorer fixture). */
+function sequenceFlow() {
+  const cur = currentFlow();
+  if (cur && sequenceOf(cur).hops.length) return cur;
+  const story = storyFlow();
+  if (story && sequenceOf(story).hops.length) return story;
+  for (const f of (snapshot && snapshot.flows) || []) {
+    if (sequenceOf(f).hops.length) return f;
+  }
+  return cur || story || null;
+}
+
+function sequenceOf(flow) {
+  const ready = flow && flow.sequence;
+  if (ready && (ready.participants || []).length && (ready.hops || []).length) {
+    return {
+      participants: ready.participants.slice(),
+      hops: ready.hops.slice(),
+    };
+  }
+  return deriveSequence(flow);
+}
+
+function deriveSequence(flow) {
+  const tree = (flow && flow.tree) || { nodes: [], edges: [] };
+  const edges = (tree.edges || []).filter((e) => isInteractionKind(e.kind));
+  if (!edges.length) return { participants: [], hops: [] };
+  const walk = flowWalk(flow);
+  const rank = new Map(walk.map((id, i) => [idVal(id), i]));
+  const ordered = edges.slice().sort((a, b) => {
+    const af = rank.has(idVal(a.from)) ? rank.get(idVal(a.from)) : 1e9;
+    const bf = rank.has(idVal(b.from)) ? rank.get(idVal(b.from)) : 1e9;
+    if (af !== bf) return af - bf;
+    const at = rank.has(idVal(a.to)) ? rank.get(idVal(a.to)) : 1e9;
+    const bt = rank.has(idVal(b.to)) ? rank.get(idVal(b.to)) : 1e9;
+    return at - bt;
+  });
+  const hops = [];
+  const seen = new Set();
+  for (const e of ordered) {
+    const key = idVal(e.from) + "\0" + idVal(e.to) + "\0" + (e.kind || "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const fromN = nodeById.get(idVal(e.from));
+    const toN = nodeById.get(idVal(e.to));
+    const fromFqn = (fromN && fromN.fqn) || idVal(e.from);
+    const toFqn = (toN && toN.fqn) || idVal(e.to);
+    const variant = e.kind === "Calls" ? "call" : "default";
+    hops.push({
+      from: idVal(e.from),
+      to: idVal(e.to),
+      from_fqn: fromFqn,
+      to_fqn: toFqn,
+      kind: e.kind,
+      variant,
+      file: (e.span && e.span.file) || (fromN && fromN.span && fromN.span.file) || "",
+    });
+    if (e.kind === "Calls") {
+      hops.push({
+        from: idVal(e.to),
+        to: idVal(e.from),
+        from_fqn: toFqn,
+        to_fqn: fromFqn,
+        kind: e.kind,
+        variant: "return",
+        file: (e.span && e.span.file) || (toN && toN.span && toN.span.file) || "",
+      });
+    }
+  }
+  const participants = [];
+  const seenP = new Set();
+  for (const h of hops) {
+    for (const id of [idVal(h.from), idVal(h.to)]) {
+      if (seenP.has(id)) continue;
+      seenP.add(id);
+      const n = nodeById.get(id);
+      participants.push({
+        id,
+        fqn: (n && n.fqn) || id,
+        kind: (n && n.kind) || "Function",
+        file: n && n.span ? n.span.file : "",
+      });
+    }
+  }
+  return { participants, hops };
+}
+
+function seqHops() {
+  return sequenceOf(sequenceFlow()).hops;
+}
+
+function seqParts() {
+  return sequenceOf(sequenceFlow()).participants;
+}
+
+function stopSeqWalk() {
+  seqWalk.playing = false;
+  if (seqWalk.timer) {
+    clearInterval(seqWalk.timer);
+    seqWalk.timer = 0;
+  }
+  const play = document.getElementById("seqPlay");
+  if (play) {
+    play.classList.remove("on");
+    play.setAttribute("aria-pressed", "false");
+    play.textContent = "Play";
+  }
+}
+
+function stepSeqWalk(dir) {
+  const hops = seqHops();
+  if (!hops.length) return;
+  let i = seqCursor + dir;
+  if (i < 0) i = 0;
+  if (i >= hops.length) {
+    i = hops.length - 1;
+    stopSeqWalk();
+  }
+  seqCursor = i;
+  paint({ animate: "none" });
+  focusSeqHop(hops[i]);
+}
+
+function toggleSeqReview() {
+  if (seqWalk.playing) {
+    stopSeqWalk();
+    const hops = seqHops();
+    flashToast("Paused · " + Math.max(seqCursor, 0) + "/" + hops.length, "ok");
+    return;
+  }
+  const hops = seqHops();
+  if (!hops.length) {
+    flashToast("No derived call hops on this flow", "skip");
+    return;
+  }
+  if (seqCursor >= hops.length - 1) seqCursor = -1;
+  seqWalk.playing = true;
+  flashToast("Walking callers → callees", "ok");
+  stepSeqWalk(1);
+  if (reduceMotion()) {
+    stopSeqWalk();
+    return;
+  }
+  seqWalk.timer = setInterval(() => {
+    const next = seqHops();
+    if (seqCursor >= next.length - 1) {
+      stopSeqWalk();
+      flashToast("End · sequence", "ok");
+      return;
+    }
+    stepSeqWalk(1);
+  }, 720);
+}
+
+function resetSeqOverview() {
+  stopSeqWalk();
+  seqCursor = -1;
+  paint({ animate: "none" });
+}
+
+function focusSeqHop(hop) {
+  if (!hop) return;
+  const id = hop.variant === "return" ? hop.to : hop.from;
+  if (id) {
+    selectedNodeId = idVal(id);
+    peekSource(id);
+  }
+  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+}
+
+function seqVariantMark(v) {
+  if (v === "return") return "←";
+  if (v === "call") return "→";
+  return "·";
+}
+
+function renderSequenceBody() {
+  const flow = sequenceFlow();
+  const reading = sequenceOf(flow);
+  const parts = reading.participants;
+  const hops = reading.hops;
+  if (graphFilter.q) {
+    const q = graphFilter.q.toLowerCase();
+    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
+    const keepP = parts.filter((p) => hit(p.fqn) || hit(p.kind) || hit(p.file));
+    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind) || hit(h.variant));
+    if (!keepP.length && !keepH.length) {
+      return '<div class="empty">No sequence hops match “' + esc(graphFilter.q) + '”.</div>';
+    }
+  }
+  if (!parts.length || !hops.length) {
+    return '<div class="empty">No Steiner Calls (or Publishes / Subscribes) on this flow. Sequence reads derived interaction only.</div>';
+  }
+  if (seqCursor >= hops.length) seqCursor = hops.length - 1;
+  const hot = seqCursor >= 0 ? hops[seqCursor] : null;
+  const review =
+    '<div class="review-strip" id="seqReview">' +
+    '<button type="button" class="review-step" id="seqOverview">Overview</button>' +
+    '<button type="button" class="review-step" id="seqPrev">Prev</button>' +
+    '<button type="button" class="review-step' +
+    (seqWalk.playing ? " on" : "") +
+    '" id="seqPlay" aria-pressed="' +
+    (seqWalk.playing ? "true" : "false") +
+    '">Play</button>' +
+    '<button type="button" class="review-step" id="seqNext">Next</button>' +
+    '<span id="seqStatus">' +
+    (hot
+      ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
+      : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
+    "</span></div>";
+  const heads = parts
+    .map((p) => {
+      const on = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
+      return (
+        '<button type="button" class="seq-part vnode kind-' +
+        esc(p.kind || "Function") +
+        (on ? " on" : "") +
+        '" data-id="' +
+        esc(idVal(p.id)) +
+        '" data-fqn="' +
+        esc(p.fqn) +
+        '" data-kind="' +
+        esc(p.kind || "") +
+        '"><span class="name">' +
+        esc(shortOf(p.fqn)) +
+        '</span> <span class="meta">' +
+        esc(p.kind || "") +
+        "</span></button>"
+      );
+    })
+    .join("");
+  const colOf = new Map(parts.map((p, i) => [idVal(p.id), i]));
+  const rows = hops
+    .map((h, i) => {
+      const a = colOf.has(idVal(h.from)) ? colOf.get(idVal(h.from)) : 0;
+      const b = colOf.has(idVal(h.to)) ? colOf.get(idVal(h.to)) : 0;
+      const lo = Math.min(a, b) + 1;
+      const hi = Math.max(a, b) + 1;
+      const self = a === b;
+      const back = h.variant === "return" || a > b;
+      return (
+        '<div class="seq-row' +
+        (i === seqCursor ? " on" : "") +
+        (back ? " ret" : "") +
+        '" data-seq-i="' +
+        i +
+        '" data-kind="' +
+        esc(h.kind || "") +
+        '" data-seq-variant="' +
+        esc(h.variant || "default") +
+        '" data-from="' +
+        esc(idVal(h.from)) +
+        '" data-to="' +
+        esc(idVal(h.to)) +
+        '"><span class="seq-msg" style="grid-column:' +
+        (self ? lo + " / " + (lo + 1) : lo + " / " + (hi + 1)) +
+        '">' +
+        esc((h.kind || "") + (h.variant === "return" ? " return" : "")) +
+        " " +
+        esc(shortOf(h.from_fqn)) +
+        (back ? " ← " : " → ") +
+        esc(shortOf(h.to_fqn)) +
+        "</span></div>"
+      );
+    })
+    .join("");
+  const list = hops
+    .map((h, i) => {
+      return (
+        '<article class="seq-hop expl-card' +
+        (i === seqCursor ? " on" : "") +
+        '" data-seq-i="' +
+        i +
+        '" data-kind="' +
+        esc(h.kind || "") +
+        '" data-seq-variant="' +
+        esc(h.variant || "default") +
+        '" data-from="' +
+        esc(idVal(h.from)) +
+        '" data-to="' +
+        esc(idVal(h.to)) +
+        '" data-fqn="' +
+        esc(h.from_fqn) +
+        '"><div class="k">' +
+        esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) +
+        '</div><div class="t">' +
+        esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
+        '</div><div class="b">' +
+        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
+        "</div></article>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="seq-page">' +
+    review +
+    '<div class="seq-parts" id="seqParts" style="--seq-n:' +
+    parts.length +
+    '">' +
+    heads +
+    "</div>" +
+    '<div class="ws-split">' +
+    '<div class="ws-list" id="seqHops">' +
+    list +
+    "</div>" +
+    '<div class="ws-detail">' +
+    '<div class="k">' +
+    esc((flow && flow.name) || "flow") +
+    " · Steiner</div>" +
+    '<div id="seqCanvas" class="seq-canvas" style="--seq-n:' +
+    parts.length +
+    '">' +
+    '<div class="seq-rows" style="grid-template-columns:repeat(' +
+    parts.length +
+    ',minmax(72px,1fr))">' +
+    rows +
+    "</div></div></div></div></div>"
+  );
+}
+
+function bindSequencePage() {
+  canvas.querySelectorAll("#seqHops .seq-hop, #seqCanvas .seq-row").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const i = parseInt(el.getAttribute("data-seq-i"), 10);
+      if (!Number.isFinite(i)) return;
+      stopSeqWalk();
+      seqCursor = i;
+      paint({ animate: "none" });
+      focusSeqHop(seqHops()[i]);
+    };
+  });
+  canvas.querySelectorAll("#seqParts .seq-part, #seqCanvas .seq-part").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-id");
+      if (id) {
+        selectedNodeId = id;
+        peekSource(id);
+      }
+    };
+  });
+  const overview = document.getElementById("seqOverview");
+  const prev = document.getElementById("seqPrev");
+  const next = document.getElementById("seqNext");
+  const play = document.getElementById("seqPlay");
+  if (overview) overview.onclick = () => resetSeqOverview();
+  if (prev)
+    prev.onclick = () => {
+      stopSeqWalk();
+      stepSeqWalk(seqCursor < 0 ? 1 : -1);
+    };
+  if (next)
+    next.onclick = () => {
+      stopSeqWalk();
+      stepSeqWalk(1);
+    };
+  if (play) play.onclick = () => toggleSeqReview();
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -3889,6 +4268,7 @@ function renderExplorerList(ws) {
     overview: "Overview — default run and control-flow graph",
     timeline: "Timeline — parent cut, coverage, stamp scars",
     delta: "Delta — derived parent vs head",
+    sequence: "Sequence — callers, callees, returns on this flow",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -3901,6 +4281,7 @@ function renderExplorerList(ws) {
   else if (ws === "decisions") html = renderDecisionBody();
   else if (ws === "registry") html = renderRegistryBody();
   else if (ws === "delta") html = renderDeltaBody();
+  else if (ws === "sequence") html = renderSequenceBody();
   else html = renderTimelineBody();
   canvas.className = ws === "overview" ? "play has-stage explorer-list" : "play explorer-list";
   canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(titles[ws] || ws) + "</div>" + html + "</div>";
@@ -3985,6 +4366,7 @@ function renderExplorerList(ws) {
   bindPathWalk();
   bindWorkbenchPages();
   if (ws === "delta") bindDeltaPage();
+  if (ws === "sequence") bindSequencePage();
 }
 
 function applyDecisionOutcomeFilter() {

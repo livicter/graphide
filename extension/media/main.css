@@ -1866,6 +1866,79 @@ svg.steiner .edge.walk {
 }
 #deltaCanvas path[data-delta-state="removed"] { stroke-dasharray: 6 4; }
 #deltaCanvas path[data-delta-state="added"] { stroke: #3fb950; }
+.seq-page { display: flex; flex-direction: column; gap: 10px; }
+#seqStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
+.seq-parts {
+  display: grid;
+  grid-template-columns: repeat(var(--seq-n, 2), minmax(72px, 1fr));
+  gap: 8px;
+}
+.seq-part {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  min-height: 52px;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--g-radius, 6px);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+}
+.seq-part .name { display: block; font-weight: 600; color: inherit; }
+.seq-part .meta {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.seq-part.on {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+.seq-canvas { overflow: auto; min-height: 180px; }
+.seq-rows {
+  display: grid;
+  gap: 8px 0;
+  padding: 8px 0 4px;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent calc(100% / var(--seq-n, 2) - 1px),
+    color-mix(in srgb, var(--vscode-foreground) 16%, transparent) calc(100% / var(--seq-n, 2) - 1px),
+    color-mix(in srgb, var(--vscode-foreground) 16%, transparent) calc(100% / var(--seq-n, 2))
+  );
+  background-size: 100% 100%;
+}
+.seq-row {
+  display: grid;
+  grid-template-columns: repeat(var(--seq-n, 2), minmax(72px, 1fr));
+  grid-column: 1 / -1;
+  min-height: 28px;
+  align-items: center;
+}
+.seq-row.on .seq-msg {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
+.seq-msg {
+  justify-self: stretch;
+  text-align: center;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vscode-foreground);
+}
+.seq-row.ret .seq-msg {
+  border-bottom-style: dashed;
+  opacity: 0.78;
+}
+.seq-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
 .mut {
   display: inline-block;
   border: 1px solid var(--vscode-panel-border);
