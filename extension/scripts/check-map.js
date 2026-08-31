@@ -189,6 +189,17 @@ assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
+assert(ext.includes('id="exportBtn"') && harnessHtml.includes('id="exportBtn"'), "Export button missing from chrome");
+assert(ext.includes('id="exportMenu"') && harnessHtml.includes('id="exportMenu"'), "Export menu missing from chrome");
+assert(ext.includes('id="exportPng"') && ext.includes('id="exportSvg"') && ext.includes('id="exportShare"'), "Export PNG / SVG / Share Card items missing");
+assert(js.includes("function setExportMenu") && js.includes("function stripExportViewerState"), "export menu / canonical strip missing");
+assert(js.includes("function buildCanonicalSvg") && js.includes("function paintShareCard"), "canonical SVG / Share Card missing");
+assert(js.includes("function paintCloneToCanvas") && js.includes("function rasterizeCanonical"), "export rasterize fallback missing");
+assert(js.includes("1200") && js.includes("630") && js.includes("Graphide · "), "Share Card must be 1200×630 with Graphide · title");
+assert(!/validat|verified|checked/.test((js.match(/function exportFileBase[\s\S]{0,400}/) || [""])[0]), "export filenames must not claim validation");
+assert(js.includes('type: "exportFile"') && ext.includes("saveExportFile"), "host exportFile save path missing");
+assert(ext.includes(".graphide") && ext.includes("stamps") && ext.includes("Export cannot write"), "export must refuse .graphide/stamps/");
+assert(!js.includes("writeStamp") || !/function runExport[\s\S]{0,1200}writeStamp/.test(js), "export must not stamp");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
@@ -203,6 +214,7 @@ assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && drive
 assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") && driver.includes("subscribe"), "verify driver must drive Sequence on the demo fixture");
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
+assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");
