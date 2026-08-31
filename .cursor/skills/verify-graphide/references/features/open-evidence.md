@@ -26,7 +26,7 @@ Inspect a node or hop without covering the object rail.
 extension/scripts/webview-harness.html?mode=explorer&probe=0
 ```
 
-1. Click `#workspaces [data-ws="slice"]` so `#ledgerPane` is shown (`LIST_WORKSPACES` hides the rail on decisions / registry / timeline only; Map and Slice keep it).
+1. Click `#workspaces [data-ws="slice"]` so `#ledgerPane` is shown (`LIST_WORKSPACES` hides the rail on decisions / registry / timeline / delta / sequence / dataflow / lifecycle; Map and Slice keep it).
 2. Click `.vnode[data-id]` or `#ledgerGrid .cell`.
 3. Wait for `#sourcePane` to be visible (`hidden` attribute gone, `.src-k` still says Evidence).
 
@@ -42,7 +42,7 @@ Driver assertions:
 
 ## Gotchas
 
-- Overview is not a `LIST_WORKSPACES` key, but `renderExplorerList("overview")` still runs and **hides** the ledger via `setGraphChrome` only for `decisions|registry|timeline`. Overview keeps `#ledgerPane` unless `isListWorkspace`. Confirm on Slice if you need both rail and Evidence in one frame.
+- Overview is not a `LIST_WORKSPACES` key. `setGraphChrome` hides `#ledgerPane` when `explorerWs` is in `LIST_WORKSPACES` (`decisions`, `registry`, `timeline`, `delta`, `sequence`, `dataflow`, `lifecycle` — `extension/media/main.js` `LIST_WORKSPACES`). Overview keeps the rail. Confirm on Slice if you need both rail and Evidence in one frame.
 - `showSource({ missing: true })` still unhides the pane (“No span for this node”). Do not treat “pane visible” alone as a good inspect.
 - `#srcBody` scrolls (`overflow: auto`); the **pane** clips (`#sourcePane { overflow: hidden }`). Assert the pane, not the body.
 - Do not add `data-testid="source-pane"`. `#sourcePane` and `.src-k` are the product hooks.
