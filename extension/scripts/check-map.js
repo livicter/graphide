@@ -8,6 +8,17 @@ const ext = fs.readFileSync(path.join(__dirname, "../src/extension.ts"), "utf8")
 const harness = fs.readFileSync(path.join(__dirname, "webview-harness.js"), "utf8");
 const harnessHtml = fs.readFileSync(path.join(__dirname, "webview-harness.html"), "utf8");
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../package.json"), "utf8"));
+const chromeDir = path.join(__dirname, "../media/src");
+function readTree(dir) {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .flatMap((ent) => {
+      const p = path.join(dir, ent.name);
+      return ent.isDirectory() ? readTree(p) : [fs.readFileSync(p, "utf8")];
+    })
+    .join("\n");
+}
+const chrome = readTree(chromeDir);
 
 function assert(cond, msg) {
   if (!cond) {
@@ -59,7 +70,7 @@ assert(js.includes("function setKeysPane"), "shortcut sheet missing");
 assert(css.includes("#toast"), "toast styles missing");
 assert(css.includes(".search-wrap"), "find field must be a command wrap");
 assert(css.includes(".kind-pill"), "kind filters must be pills");
-assert(ext.includes('id="keysPane"'), "shortcut sheet missing from the webview chrome");
+assert(chrome.includes('id="keysPane"'), "shortcut sheet missing from the webview chrome");
 assert(js.includes("function togglePathWalk"), "feature path must be playable");
 assert(js.includes("function bindWorkbenchPages"), "Semantica-shaped workbench pages missing");
 assert(js.includes('id="tlScrub"'), "timeline scrubber missing");
@@ -84,15 +95,15 @@ assert(js.includes("function applyEgoPaint"), "ego highlight missing");
 assert(js.includes("function decisionRecords"), "decisions ledger missing");
 assert(js.includes("function registryEvents"), "registry audit missing");
 assert(js.includes("function timelineEvents"), "timeline events missing");
-assert(js.includes('data-ws="overview"') || ext.includes('data-ws="overview"'), "overview workspace tab missing");
-assert(ext.includes('data-ws="decisions"'), "decisions workspace tab missing");
-assert(ext.includes('data-ws="lineage"'), "lineage workspace tab missing");
-assert(ext.includes('data-ws="registry"'), "registry workspace tab missing");
-assert(ext.includes('data-ws="timeline"'), "timeline workspace tab missing");
-assert(ext.includes('data-ws="delta"') && harnessHtml.includes('data-ws="delta"'), "delta workspace tab missing");
-assert(ext.includes('data-ws="sequence"') && harnessHtml.includes('data-ws="sequence"'), "sequence workspace tab missing");
-assert(ext.includes('data-ws="dataflow"') && harnessHtml.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
-assert(ext.includes('data-ws="lifecycle"') && harnessHtml.includes('data-ws="lifecycle"'), "lifecycle workspace tab missing");
+assert(js.includes('data-ws="overview"') || chrome.includes('data-ws="overview"'), "overview workspace tab missing");
+assert(chrome.includes('data-ws="decisions"'), "decisions workspace tab missing");
+assert(chrome.includes('data-ws="lineage"'), "lineage workspace tab missing");
+assert(chrome.includes('data-ws="registry"'), "registry workspace tab missing");
+assert(chrome.includes('data-ws="timeline"'), "timeline workspace tab missing");
+assert(chrome.includes('data-ws="delta"'), "delta workspace tab missing");
+assert(chrome.includes('data-ws="sequence"'), "sequence workspace tab missing");
+assert(chrome.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
+assert(chrome.includes('data-ws="lifecycle"'), "lifecycle workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -134,8 +145,8 @@ assert(js.includes("function communityEdgeList"), "map must draw community hops"
 assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
 assert(js.includes("maxRows > 4 || buckets.length > maxCols"), "tall ranks must pack into a compact wrap");
-assert(ext.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
-assert(ext.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
+assert(chrome.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
+assert(chrome.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
 assert(js.includes("function sendLlmAsk"), "LLM Ask must be wired in the webview");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 assert(js.includes('id="scorecard"'), "review scorecard missing");
@@ -145,8 +156,8 @@ assert(js.includes("function setDeskMode"), "review desk mode missing");
 assert(css.includes("body.desk"), "desk layout tokens missing");
 assert(css.includes(".score-chip"), "scorecard chip styles missing");
 assert(css.includes(".now-pill"), "now-pill styles missing");
-assert(ext.includes("Evidence"), "inspect pane must label Evidence");
-assert(ext.includes("src-k"), "evidence kicker missing from the webview chrome");
+assert(chrome.includes("Evidence"), "inspect pane must label Evidence");
+assert(chrome.includes("src-k"), "evidence kicker missing from the webview chrome");
 assert(js.includes("function renderStoryRailHtml"), "map/slice story rail missing");
 assert(js.includes("function reviewAltitude"), "now-pill altitude missing");
 assert(js.includes("function storyMapBubbles"), "map must pin the story path into communities");
@@ -169,7 +180,7 @@ assert(harness.includes("V51") && harness.includes("V53"), "live suite must prov
 assert(harness.includes("V54") && harness.includes("V57"), "live suite must prove Day and Night appearance");
 assert(js.includes("function applyTheme") && js.includes("function toggleTheme"), "appearance switch missing");
 assert(css.includes("html.bright.night") && /#0a84ff|#0A84FF/.test(css), "Apple night tokens missing");
-assert(ext.includes("themeSeg") && harnessHtml.includes("themeSeg"), "Day / Night control missing from chrome");
+assert(chrome.includes("themeSeg") && chrome.includes('data-theme="day"'), "Day / Night control missing from chrome");
 assert(pkg.contributes && pkg.contributes.configuration && JSON.stringify(pkg.contributes.configuration).includes("graphide.appearance"), "graphide.appearance setting missing");
 assert(js.includes("shortOf(n.fqn"), "ledger cells must name objects, not only hex tokens");
 assert((() => {
@@ -177,8 +188,8 @@ assert((() => {
   return body.indexOf("renderFeaturePathHtml()") < body.indexOf('class="stat-strip"');
 })(), "overview story must sit above the metrics strip");
 assert(js.includes("ws === alt"), "now-pill must not repeat workspace · altitude");
-assert(/<header>[\s\S]*id="prompt"/.test(ext) && /<header>[\s\S]*id="prompt"/.test(harnessHtml), "prompt must sit in the header");
-assert(/id="graphBar"[\s\S]*id="tabs"/.test(ext) && /id="graphBar"[\s\S]*id="tabs"/.test(harnessHtml), "flow tabs must live in the toolbar");
+assert(/<header>[\s\S]*id="prompt"/.test(chrome), "prompt must sit in the header");
+assert(/id="graphBar"[\s\S]*id="tabs"/.test(chrome), "flow tabs must live in the toolbar");
 assert(js.includes("Clear find to see the audit log"), "Registry must not look empty when Find filters the snapshot");
 assert(js.includes('id="storyRail"'), "story rail id missing");
 assert(css.includes(".story-rail"), "story rail styles missing");
@@ -189,9 +200,9 @@ assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
-assert(ext.includes('id="exportBtn"') && harnessHtml.includes('id="exportBtn"'), "Export button missing from chrome");
-assert(ext.includes('id="exportMenu"') && harnessHtml.includes('id="exportMenu"'), "Export menu missing from chrome");
-assert(ext.includes('id="exportPng"') && ext.includes('id="exportSvg"') && ext.includes('id="exportShare"'), "Export PNG / SVG / Share Card items missing");
+assert(chrome.includes('id="exportBtn"'), "Export button missing from chrome");
+assert(chrome.includes('id="exportMenu"'), "Export menu missing from chrome");
+assert(chrome.includes('id="exportPng"') && chrome.includes('id="exportSvg"') && chrome.includes('id="exportShare"'), "Export PNG / SVG / Share Card items missing");
 assert(js.includes("function setExportMenu") && js.includes("function stripExportViewerState"), "export menu / canonical strip missing");
 assert(js.includes("function buildCanonicalSvg") && js.includes("function paintShareCard"), "canonical SVG / Share Card missing");
 assert(js.includes("function paintCloneToCanvas") && js.includes("function rasterizeCanonical"), "export rasterize fallback missing");
@@ -200,8 +211,8 @@ assert(!/validat|verified|checked/.test((js.match(/function exportFileBase[\s\S]
 assert(js.includes('type: "exportFile"') && ext.includes("saveExportFile"), "host exportFile save path missing");
 assert(ext.includes(".graphide") && ext.includes("stamps") && ext.includes("Export cannot write"), "export must refuse .graphide/stamps/");
 assert(!js.includes("writeStamp") || !/function runExport[\s\S]{0,1200}writeStamp/.test(js), "export must not stamp");
-assert(ext.includes('id="presentBtn"') && harnessHtml.includes('id="presentBtn"'), "Present button missing from chrome");
-assert(ext.includes('id="presetBtn"') && harnessHtml.includes('id="presetBtn"'), "Style button missing from chrome");
+assert(chrome.includes('id="presentBtn"'), "Present button missing from chrome");
+assert(chrome.includes('id="presetBtn"'), "Style button missing from chrome");
 assert(js.includes("function applyPresent") && js.includes("function togglePresent"), "presentation stage missing");
 assert(js.includes("function applyPreset") && js.includes("function cyclePreset") && js.includes("function currentPreset"), "visual preset cycle missing");
 assert(js.includes('data-preset="classic"') || ext.includes('data-preset="classic"'), "classic must be the default preset");
@@ -214,9 +225,9 @@ assert(harness.includes("V58") && harness.includes("V61"), "live suite must prov
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md")), "presentation feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md")), "route feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md")), "lens feature map missing");
-assert(ext.includes('id="pathBtn"') && harnessHtml.includes('id="pathBtn"'), "PATH button missing from chrome");
-assert(ext.includes('id="lensBtn"') && harnessHtml.includes('id="lensBtn"'), "LENS button missing from chrome");
-assert(ext.includes('id="probeDock"') && harnessHtml.includes('id="routeReceipt"') && harnessHtml.includes('id="lensReceipt"'), "route / lens receipt dock missing");
+assert(chrome.includes('id="pathBtn"'), "PATH button missing from chrome");
+assert(chrome.includes('id="lensBtn"'), "LENS button missing from chrome");
+assert(chrome.includes('id="probeDock"') && chrome.includes('id="routeReceipt"') && chrome.includes('id="lensReceipt"'), "route / lens receipt dock missing");
 assert(js.includes("function directedRoute") && js.includes("function resolveRoute"), "directed route BFS missing");
 assert(js.includes("function applyProbePaint") && js.includes("function toggleLensRole"), "route / lens paint missing");
 assert(js.includes("Calls") && js.includes("Publishes") && js.includes("Subscribes") && js.includes("ROUTE_KINDS"), "route must BFS Calls/Reads/Writes/Publishes/Subscribes");
@@ -227,11 +238,12 @@ assert(!/e.key === "r"[\s\S]{0,80}autoReorganize/.test(js), "R must not reorgani
 assert(!/e.key === "l"[\s\S]{0,80}toggleLlmPane/.test(js), "L must not open Ask");
 assert(js.includes("Function") && js.includes("Endpoint") && js.includes("LENS_END_ROLES"), "lens must use Function/Type/Endpoint or Source|Sink");
 assert(css.includes(".on-route") && css.includes(".lens-on") && css.includes("#probeDock"), "route / lens styles missing");
-assert(ext.includes('id="exportRouteShare"') && js.includes("route-share"), "Route Share Card hook missing");
+assert(chrome.includes('id="exportRouteShare"') && js.includes("route-share"), "Route Share Card hook missing");
 assert(harness.includes('params.get("route")') && harness.includes('params.get("lens")'), "harness route/lens snap pin missing");
 
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
 const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
+assert(workflow.includes("build:webview"), "CI must compile the React desk before Playwright");
 assert(workflow.includes("cargo build -p graphide-cli"), "CI must compile graphide-cli");
 assert(/graphide review/.test(workflow) && workflow.includes("--no-parent"), "CI must run graphide review of this checkout");
 assert(workflow.includes("fixtures/demo-parent") && workflow.includes("delta-snap.json"), "CI must derive demo vs demo-parent for Delta");
@@ -253,6 +265,10 @@ assert(/#007aff|#007AFF/.test(css), "Apple system blue missing from the bright t
 assert(css.includes("#f2f2f7") || css.includes("--g-grouped"), "grouped gray canvas missing");
 assert(/class="\$\{themeClass\}"|class="bright/.test(ext), "webview must opt into the bright look");
 assert(harnessHtml.includes('class="bright"'), "harness must preview the bright look");
+assert(ext.includes('id="root"') && harnessHtml.includes('id="root"'), "host and harness must mount the React desk on #root");
+assert(chrome.includes("createRoot") && chrome.includes("flushSync") && chrome.includes("bootDesk"), "React must flush-sync mount then boot the vanilla desk");
+assert(chrome.includes("acquireHost") && chrome.includes("acquireVsCodeApi"), "host adapter must call acquireVsCodeApi once");
+assert(css.includes("#root"), "React #root mount styles missing");
 assert(js.includes("documentElement.classList.add(\"bright\")") || js.includes("classList.add(\"bright\")"), "webview script must keep the bright class");
 assert(harness.includes("/1222/") && harness.includes("/349/"), "live V1 must expect SolarSim 349 nodes / 1222 edges after Imports");
 assert(!js.includes("if (!pack) separateBoxes"), "packed Map cards must still separate so they do not sit on each other");

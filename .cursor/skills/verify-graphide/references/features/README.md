@@ -3,9 +3,10 @@
 One file per Review-desk feature. Four headings each: Sub-features, How to
 get to it (user POV), Driving it with the harness, Gotchas.
 
-Do not add a map without a concrete source path (`extension/media/main.js`,
-`extension.ts`, or an engine crate). Do not paper a product bug by weakening
-a map. P-Stack `/maintain-verification-skill` owns this folder.
+Do not add a map without a concrete source path (`extension/media/src/`,
+`extension/media/main.js`, `extension.ts`, or an engine crate). Do not paper
+a product bug by weakening a map. P-Stack `/maintain-verification-skill`
+owns this folder.
 
 | File | Surface | Live proof |
 | --- | --- | --- |

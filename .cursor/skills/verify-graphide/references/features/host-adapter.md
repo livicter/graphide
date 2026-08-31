@@ -4,8 +4,8 @@ How the Review webview talks to VS Code / Cursor — and how the headless harnes
 
 ## Sub-features
 
-- Product script starts with `const vscode = acquireVsCodeApi();` (`extension/media/main.js`).
-- Real host injects the VS Code webview API. HTML chrome is built in `ReviewViewProvider.html()` (`extension/src/extension.ts`) — same ids as the harness document.
+- Product bundle (`extension/media/main.js`) is esbuild of `extension/media/src/`. React 18 `flushSync` mounts the Apple desk on `#root`, then `bootDesk()` (`graph/desk.js`) binds the same ids and calls `acquireHost()` (`host/adapter.js` → `acquireVsCodeApi()` once).
+- Real host injects the VS Code webview API. `ReviewViewProvider.html()` (`extension/src/extension.ts`) is a thin shell: appearance class on `html`/`body`, CSP nonce, `#root`, `main.css`, `main.js`. Same shell as `webview-harness.html` (plus harness `#probe` / `#suite`).
 - Host ← webview messages (non-exhaustive): `review`, `selectFlow`, `selectProgram`, `enterRun`, `enterNode`, `peekSource`, `back`, `cancel`, `stamp`, `skip`, `llmAsk`, `llmSave`, `llmTest`, `llmStatus`, `setAppearance`, `exportFile`.
 - Host → webview messages: `programs`, `flowchart`, `inner`, `source`, `llmStatus`, `llmReply`, `llmError`, progress / preview.
 - `writeStamp` (host only) writes `.graphide/stamps/`. `peekSource` on the host reads a span and posts `{ type: "source", ... }`.
@@ -46,12 +46,12 @@ Prove the stub:
 - clicking `#stampBtn` appends `{ type: "stamp", flow }` — and no files appear under `.graphide/stamps/`
 - `html.bright` / `body.bright` match the product chrome (`themeClass` in `extension.ts`, hardcoded on the harness `<html>`)
 
-Chrome parity to keep in the maps (ids must exist in **both** `extension.ts` `html()` and `webview-harness.html`): `#stampBtn`, `#skipBtn`, `#sourcePane`, `#ledgerPane`, `#workspaces [data-ws]`, `#llmPane`, `#themeSeg`, `#keysPane`, `#exportBtn`, `#presentBtn`, `#presetBtn`, `#pathBtn`, `#lensBtn`. `check-map.js` already string-checks several of these.
+Chrome parity to keep in the maps (ids must exist in `extension/media/src/chrome/` and in the running `#root`): `#stampBtn`, `#skipBtn`, `#sourcePane`, `#ledgerPane`, `#workspaces [data-ws]`, `#llmPane`, `#themeSeg`, `#keysPane`, `#exportBtn`, `#presentBtn`, `#presetBtn`, `#pathBtn`, `#lensBtn`. `check-map.js` string-checks the React chrome source.
 
 ## Gotchas
 
-- The harness HTML is a **copy** of the extension chrome, not generated from `extension.ts`. If you add an id to one side, add it to the other or `check-map.js` / this loop will lie.
-- CSP: the real webview sets `script-src 'nonce-…'`. The harness has no CSP. Do not treat harness-only `eval` as product-safe.
+- Host and harness are `#root` shells. Desk markup lives in React (`extension/media/src/chrome/`). Add an id there, not in two HTML copies.
+- CSP: the real webview sets `script-src 'nonce-…'` (no `unsafe-eval` / `unsafe-inline`). The harness has no CSP. Do not treat harness-only `eval` as product-safe. `bootDesk` must finish in the same tick as `main.js` (`flushSync`) so `webview-harness.js` can `postMessage` immediately after.
 - `?live=1` without `require=1` still falls back to the synthetic payload (`loadLiveSnap` catch). That is not a live host and not a self-review.
 - CI writes `extension/scripts/live-snap.json` via `graphide review` and opens `?live=1&probe=0&require=1`. `require=1` posts `{ type: "error" }` instead of the explorer fixture when the snap is missing or invalid. `window.__graphideLive` / `__graphideLiveError` are the hooks.
 - Never point the driver at `file://` if a later suite needs `fetch("./live-snap.json")`. HTTP from `extension/` keeps relative URLs identical to a webview.
