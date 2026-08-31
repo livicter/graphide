@@ -188,7 +188,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -910,6 +910,174 @@ async function main() {
       "Export step did not write .graphide/stamps/",
       !wroteStampExport,
       wroteStampExport ? fs.readdirSync(stampDirExport).join(",") : "absent"
+    );
+
+    const topoBefore = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      return {
+        n: cards.length,
+        ids: cards
+          .map((el) => el.getAttribute("data-bubble") || ((el.querySelector(".name") || {}).textContent || "").trim())
+          .join("|"),
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    await page.click("#presetBtn");
+    await page.waitForTimeout(80);
+    const afterSignal = await page.evaluate(() => ({
+      preset: document.documentElement.getAttribute("data-preset") || "",
+      n: document.querySelectorAll(".bubble-card").length,
+      ids: [...document.querySelectorAll(".bubble-card")]
+        .map((el) => el.getAttribute("data-bubble") || ((el.querySelector(".name") || {}).textContent || "").trim())
+        .join("|"),
+    }));
+    record(
+      "P1",
+      "Style cycle changes data-preset; topology is unchanged",
+      afterSignal.preset &&
+        afterSignal.preset !== topoBefore.preset &&
+        afterSignal.n === topoBefore.n &&
+        afterSignal.ids === topoBefore.ids &&
+        afterSignal.n >= 8,
+      topoBefore.preset + " → " + afterSignal.preset + " cards=" + afterSignal.n
+    );
+    await page.click("#presetBtn");
+    await page.waitForTimeout(80);
+    const afterBlue = await page.evaluate(() => {
+      const fn = (getComputedStyle(document.documentElement).getPropertyValue("--g-fn") || "").trim();
+      return {
+        preset: document.documentElement.getAttribute("data-preset") || "",
+        n: document.querySelectorAll(".bubble-card").length,
+        ids: [...document.querySelectorAll(".bubble-card")]
+          .map((el) => el.getAttribute("data-bubble") || ((el.querySelector(".name") || {}).textContent || "").trim())
+          .join("|"),
+        fn,
+      };
+    });
+    record(
+      "P2",
+      "Blueprint preset is on the same Map topology",
+      afterBlue.preset === "blueprint" && afterBlue.n === topoBefore.n && afterBlue.ids === topoBefore.ids,
+      afterBlue.preset + " cards=" + afterBlue.n + " fn=" + afterBlue.fn
+    );
+    const themeIndep = await page.evaluate(() => {
+      const before = document.documentElement.getAttribute("data-preset");
+      if (typeof applyTheme === "function") applyTheme("night", false);
+      const night = document.documentElement.getAttribute("data-preset");
+      if (typeof applyTheme === "function") applyTheme("day", false);
+      return { before, night, after: document.documentElement.getAttribute("data-preset") };
+    });
+    record(
+      "P3",
+      "Day / Night does not change the visual preset",
+      themeIndep.before === "blueprint" && themeIndep.night === "blueprint" && themeIndep.after === "blueprint",
+      JSON.stringify(themeIndep)
+    );
+    const exportHonor = await page.evaluate(() => {
+      if (typeof buildCanonicalSvg !== "function") return { ok: false, why: "no buildCanonicalSvg" };
+      const art = buildCanonicalSvg();
+      return {
+        ok: !!(art && art.svg && /data-preset="blueprint"/.test(art.svg) && art.preset === "blueprint"),
+        preset: art && art.preset,
+        hasAttr: !!(art && art.svg && /data-preset="blueprint"/.test(art.svg)),
+      };
+    });
+    record(
+      "P4",
+      "Canonical export carries the current preset",
+      exportHonor.ok,
+      JSON.stringify(exportHonor)
+    );
+    await shot(page, "preset-blueprint.png");
+
+    await page.keyboard.press("F");
+    await page.waitForFunction(() => document.body.classList.contains("present"), null, { timeout: 5000 });
+    const stage = await page.evaluate(() => {
+      const canvas = document.getElementById("canvas");
+      const bar = document.getElementById("graphBar");
+      const r = canvas ? canvas.getBoundingClientRect() : { width: 0, height: 0, bottom: 0, top: 0 };
+      const header = document.querySelector("header");
+      const hb = header ? header.getBoundingClientRect().bottom : 0;
+      return {
+        present: document.body.classList.contains("present"),
+        aria: (document.getElementById("presentBtn") || {}).getAttribute
+          ? document.getElementById("presentBtn").getAttribute("aria-pressed")
+          : "",
+        barHidden: !bar || getComputedStyle(bar).display === "none",
+        w: r.width,
+        h: r.height,
+        top: r.top,
+        bottom: r.bottom,
+        vw: window.innerWidth,
+        vh: window.innerHeight,
+        headerBottom: hb,
+        fill:
+          r.width >= window.innerWidth * 0.92 &&
+          r.height >= window.innerHeight * 0.7 &&
+          r.bottom >= window.innerHeight - 20 &&
+          r.top <= hb + 12,
+      };
+    });
+    record(
+      "P5",
+      "Presentation Stage fills the viewport and hides graph-bar chrome",
+      stage.present && stage.barHidden && stage.fill && stage.aria === "true",
+      JSON.stringify(stage)
+    );
+    await shot(page, "present.png");
+
+    await page.keyboard.press("S");
+    await page.waitForTimeout(80);
+    const stageStyle = await page.evaluate(() => ({
+      preset: document.documentElement.getAttribute("data-preset") || "",
+      n: document.querySelectorAll(".bubble-card").length,
+      ids: [...document.querySelectorAll(".bubble-card")]
+        .map((el) => el.getAttribute("data-bubble") || ((el.querySelector(".name") || {}).textContent || "").trim())
+        .join("|"),
+      present: document.body.classList.contains("present"),
+    }));
+    record(
+      "P6",
+      "S on the stage cycles Style without moving nodes",
+      stageStyle.present &&
+        stageStyle.preset &&
+        stageStyle.preset !== "blueprint" &&
+        stageStyle.n === topoBefore.n &&
+        stageStyle.ids === topoBefore.ids,
+      stageStyle.preset + " cards=" + stageStyle.n
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });
+    const restored = await page.evaluate(() => {
+      const bar = document.getElementById("graphBar");
+      return {
+        present: document.body.classList.contains("present"),
+        barShown: !!(bar && getComputedStyle(bar).display !== "none"),
+        aria: (document.getElementById("presentBtn") || {}).getAttribute
+          ? document.getElementById("presentBtn").getAttribute("aria-pressed")
+          : "",
+      };
+    });
+    record(
+      "P7",
+      "Escape exits Presentation Stage and restores the desk",
+      !restored.present && restored.barShown && restored.aria === "false",
+      JSON.stringify(restored)
+    );
+    await page.evaluate(() => {
+      if (typeof applyPreset === "function") applyPreset("classic", false);
+    });
+    const stampDirPresent = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampPresent = fs.existsSync(stampDirPresent) && fs.readdirSync(stampDirPresent).length > 0;
+    record(
+      "P8",
+      "Present / preset step did not write .graphide/stamps/",
+      !wroteStampPresent,
+      wroteStampPresent ? fs.readdirSync(stampDirPresent).join(",") : "absent"
     );
 
     await page.click('#workspaces [data-ws="slice"]');
@@ -1693,7 +1861,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export · present · preset"
   );
 }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="bright">
+<html lang="en" class="bright" data-preset="classic">
 <head>
   <meta charset="UTF-8" />
   <title>Graphide webview harness</title>
@@ -77,7 +77,7 @@
     };
   </script>
 </head>
-<body class="bright">
+<body class="bright" data-preset="classic">
   <header>
     <div class="brand">Graph<span>ide</span></div>
     <span class="now-pill" id="nowPill" hidden></span>
@@ -95,6 +95,8 @@
       <button type="button" id="themeDay" data-theme="day" title="Day appearance (D)">Day</button>
       <button type="button" id="themeNight" data-theme="night" title="Night appearance (D)">Night</button>
     </div>
+    <button id="presetBtn" type="button" data-preset="classic" title="Style: Classic. Cycles Classic / Signal / Blueprint">Classic</button>
+    <button id="presentBtn" type="button" title="Presentation Stage (F)" aria-pressed="false">Present</button>
     <div id="zoomBar" hidden>
       <button id="zoomOut" title="Zoom out (−)">−</button>
       <span id="zoomPct">100%</span>
@@ -113,6 +115,7 @@
       <li><kbd>S</kbd> stamp · <kbd>X</kbd> skip · <kbd>L</kbd> ask</li>
       <li><kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step</li>
       <li><kbd>R</kbd> reorganize · <kbd>E</kbd> ego</li>
+      <li><kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint</li>
       <li><kbd>D</kbd> day / night</li>
       <li><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> fit · Backspace back</li>
     </ul>

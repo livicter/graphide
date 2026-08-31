@@ -139,6 +139,10 @@ const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
 const themeDayBtn = document.getElementById("themeDay");
 const themeNightBtn = document.getElementById("themeNight");
+const presetBtn = document.getElementById("presetBtn");
+const presentBtn = document.getElementById("presentBtn");
+const PRESETS = ["classic", "signal-flow", "blueprint"];
+const PRESET_LABEL = { classic: "Classic", "signal-flow": "Signal", blueprint: "Blueprint" };
 
 function hostThemeGuess() {
   try {
@@ -187,9 +191,87 @@ function toggleTheme() {
   applyTheme(document.documentElement.classList.contains("night") ? "day" : "night", true);
 }
 
+function currentPreset() {
+  const raw = (document.documentElement && document.documentElement.getAttribute("data-preset")) || "classic";
+  return PRESETS.indexOf(raw) >= 0 ? raw : "classic";
+}
+
+function hostPresetGuess() {
+  try {
+    const q = new URLSearchParams(location.search).get("preset");
+    if (q && PRESETS.indexOf(q) >= 0) return q;
+  } catch (_) {}
+  try {
+    const st = vscode.getState && vscode.getState();
+    if (st && PRESETS.indexOf(st.preset) >= 0) return st.preset;
+  } catch (_) {}
+  try {
+    const saved = localStorage.getItem("graphide-preset");
+    if (saved && PRESETS.indexOf(saved) >= 0) return saved;
+  } catch (_) {}
+  return "classic";
+}
+
+function applyPreset(name, persist) {
+  const preset = PRESETS.indexOf(name) >= 0 ? name : "classic";
+  if (document.documentElement) document.documentElement.setAttribute("data-preset", preset);
+  if (document.body) document.body.setAttribute("data-preset", preset);
+  if (presetBtn) {
+    presetBtn.setAttribute("data-preset", preset);
+    presetBtn.textContent = PRESET_LABEL[preset] || "Classic";
+    presetBtn.title = "Style: " + (PRESET_LABEL[preset] || "Classic") + ". Cycles Classic / Signal / Blueprint";
+  }
+  if (!persist) return;
+  try {
+    const prev = (vscode.getState && vscode.getState()) || {};
+    vscode.setState(Object.assign({}, prev, { preset: preset }));
+  } catch (_) {}
+  try {
+    localStorage.setItem("graphide-preset", preset);
+  } catch (_) {}
+}
+
+function cyclePreset() {
+  const i = PRESETS.indexOf(currentPreset());
+  applyPreset(PRESETS[(i + 1) % PRESETS.length], true);
+}
+
+function isPresenting() {
+  return !!(document.body && document.body.classList.contains("present"));
+}
+
+function applyPresent(on) {
+  const next = !!on;
+  if (document.body) document.body.classList.toggle("present", next);
+  if (document.documentElement) document.documentElement.classList.toggle("present", next);
+  if (presentBtn) {
+    presentBtn.classList.toggle("on", next);
+    presentBtn.setAttribute("aria-pressed", next ? "true" : "false");
+    presentBtn.textContent = next ? "Exit" : "Present";
+    presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
+  }
+  if (!next) return;
+  if (typeof setKeysPane === "function") setKeysPane(false);
+  if (typeof setExportMenu === "function") setExportMenu(false);
+  if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+  if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+  if (toastEl) {
+    toastEl.classList.remove("on");
+    toastEl.hidden = true;
+  }
+  if (tip) tip.hidden = true;
+}
+
+function togglePresent() {
+  applyPresent(!isPresenting());
+}
+
 applyTheme(hostThemeGuess(), false);
+applyPreset(hostPresetGuess(), false);
 if (themeDayBtn) themeDayBtn.onclick = () => applyTheme("day", true);
 if (themeNightBtn) themeNightBtn.onclick = () => applyTheme("night", true);
+if (presetBtn) presetBtn.onclick = () => cyclePreset();
+if (presentBtn) presentBtn.onclick = () => togglePresent();
 
 reviewBtn.onclick = () => startReview();
 cancelBtn.onclick = () => {
@@ -229,6 +311,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && exportMenu && !exportMenu.hidden) {
     e.preventDefault();
     setExportMenu(false);
+    return;
+  }
+  if (e.key === "Escape" && isPresenting()) {
+    e.preventDefault();
+    applyPresent(false);
     return;
   }
   if (stack[stack.length - 1]?.kind === "programs") {
@@ -275,7 +362,13 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "s" || e.key === "S") {
     e.preventDefault();
-    requestStamp();
+    if (isPresenting()) cyclePreset();
+    else requestStamp();
+    return;
+  }
+  if (e.key === "f" || e.key === "F") {
+    e.preventDefault();
+    togglePresent();
     return;
   }
   if (e.key === "x" || e.key === "X") {
@@ -756,7 +849,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip"];
+const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
 
 function exportDiagramRoot() {
   return (
@@ -846,6 +939,7 @@ function buildCanonicalSvg() {
   clone.style.position = "relative";
   clone.style.overflow = "visible";
   const night = document.documentElement.classList.contains("night");
+  const preset = currentPreset();
   const css = collectExportCss()
     .replace(/<\//g, "<\\/")
     .replace(/]]>/g, "]]\\>");
@@ -858,6 +952,8 @@ function buildCanonicalSvg() {
   const inner =
     '<div xmlns="http://www.w3.org/1999/xhtml" class="export-root bright' +
     (night ? " night" : "") +
+    '" data-preset="' +
+    preset +
     '" style="width:' +
     box.w +
     "px;height:" +
@@ -879,7 +975,7 @@ function buildCanonicalSvg() {
     '"><foreignObject width="100%" height="100%">' +
     inner +
     "</foreignObject></svg>";
-  return { svg: svg, w: box.w, h: box.h, night: night, title: exportTitle(), name: exportFileBase() };
+  return { svg: svg, w: box.w, h: box.h, night: night, preset: preset, title: exportTitle(), name: exportFileBase() };
 }
 
 function loadBlobImage(blob) {
@@ -1132,6 +1228,7 @@ async function runExport(kind) {
         h: art.h,
         canonical: true,
         theme: art.night ? "night" : "day",
+        preset: art.preset || currentPreset(),
       });
       downloadBlob(blob, name);
       postExportFile(name, "image/svg+xml", await blobToBase64(blob));
@@ -1150,6 +1247,7 @@ async function runExport(kind) {
         h: art.h,
         canonical: true,
         theme: art.night ? "night" : "day",
+        preset: art.preset || currentPreset(),
       });
       if (kind === "copy-png") {
         const ok = await copyPngBlob(png).catch(() => false);
@@ -1174,6 +1272,7 @@ async function runExport(kind) {
       h: 630,
       canonical: true,
       theme: art.night ? "night" : "day",
+      preset: art.preset || currentPreset(),
     });
     if (kind === "copy-share") {
       const ok = await copyPngBlob(share).catch(() => false);
@@ -1387,6 +1486,14 @@ function consumeHarnessActions() {
     camTo.k = zoomK;
     applyCam();
   }
+  try {
+    const pr = q.get("preset");
+    if (pr && PRESETS.indexOf(pr) >= 0) applyPreset(pr, false);
+    if (q.get("present") === "1" && !consumeHarnessActions._present) {
+      consumeHarnessActions._present = true;
+      applyPresent(true);
+    }
+  } catch (_) {}
 }
 
 function setWorkspace(name, pin) {

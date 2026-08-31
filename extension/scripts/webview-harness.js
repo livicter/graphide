@@ -1118,6 +1118,28 @@
     const dayRgb = dayBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     const dayLum = dayRgb ? (0.2126 * dayRgb[1] + 0.7152 * dayRgb[2] + 0.0722 * dayRgb[3]) / 255 : 0;
     check("V57", "Day restores the bright grouped surface", !!(!document.documentElement.classList.contains("night") && dayLum > 0.7), dayBg + " lum=" + dayLum.toFixed(2));
+    const cardsBefore = document.querySelectorAll(".bubble-card, .vnode[data-id]").length;
+    const preset0 = document.documentElement.getAttribute("data-preset") || "classic";
+    if (typeof cyclePreset === "function") cyclePreset();
+    const preset1 = document.documentElement.getAttribute("data-preset") || "";
+    const cardsAfter = document.querySelectorAll(".bubble-card, .vnode[data-id]").length;
+    check("V58", "Style cycle changes data-preset without moving nodes", preset1 && preset1 !== preset0 && cardsAfter === cardsBefore, preset0 + " → " + preset1 + " cards=" + cardsAfter);
+    if (typeof applyTheme === "function") applyTheme("night", false);
+    const presetNight = document.documentElement.getAttribute("data-preset") || "";
+    if (typeof applyTheme === "function") applyTheme("day", false);
+    check("V59", "Day / Night does not change the visual preset", presetNight === preset1, presetNight);
+    if (typeof applyPresent === "function") applyPresent(true);
+    const canvasBox = (document.getElementById("canvas") || {}).getBoundingClientRect
+      ? document.getElementById("canvas").getBoundingClientRect()
+      : { width: 0, height: 0, bottom: 0 };
+    const bar = document.getElementById("graphBar");
+    const barHidden = !bar || getComputedStyle(bar).display === "none";
+    const fills = canvasBox.height >= window.innerHeight * 0.7 && canvasBox.width >= window.innerWidth * 0.9;
+    check("V60", "Presentation Stage fills the canvas and hides graph-bar chrome", !!(document.body.classList.contains("present") && barHidden && fills), "h=" + Math.round(canvasBox.height) + " vh=" + window.innerHeight);
+    if (typeof applyPresent === "function") applyPresent(false);
+    if (typeof applyPreset === "function") applyPreset("classic", false);
+    const barBack = document.getElementById("graphBar");
+    check("V61", "Escape / Exit restores the desk", !!(!document.body.classList.contains("present") && barBack && getComputedStyle(barBack).display !== "none"), "");
 
     const failed = rows.filter((r) => !r.pass);
     const html =
