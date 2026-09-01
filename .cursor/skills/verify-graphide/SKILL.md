@@ -101,13 +101,14 @@ Run from the repo root. Every line must succeed before you claim the desk works.
 10. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
 11. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
-   drives six desks plus Export, Presentation, Style, Route, and Lens:
+   drives seven desks plus Export, Presentation, Style, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
    - Data-flow on `?dataflow=1&probe=0&require=1&ws=dataflow` using fixtures/demo
    - Lifecycle on `?lifecycle=1&probe=0&require=1&ws=lifecycle` using fixtures/demo
+   - Lineage on `?lineage=1&probe=0&require=1&ws=lineage` using fixtures/demo
    - Export on the explorer Map: `#exportBtn` writes PNG / SVG / Share Card
    - Presentation / Style on the explorer Map: `#presetBtn` cycles, `F` /
      Escape enter and exit the stage
@@ -115,9 +116,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `L` highlights Function / Endpoint
 12. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     self-review**, **delta**, **sequence**, **dataflow**, **lifecycle**,
-    **export**, **present**, **preset**, **route**, and **lens**. `verification/`
+    **lineage**, **export**, **present**, **preset**, **route**, and **lens**. `verification/`
     holds screenshots plus `report.md`, including `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
+    `lineage.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
@@ -174,6 +176,14 @@ Lifecycle gate (fixtures/demo, same slice as `first_slice.rs`):
 - Playwright paints `?lifecycle=1&ws=lifecycle` and screenshots `verification/lifecycle.png`
 - Play walk is finite. Lifecycle does not write `.graphide/stamps/`.
 
+Lineage gate (fixtures/demo, same slice as `first_slice.rs`):
+
+- `graphide review --root fixtures/demo --no-parent` (reuses Sequence snap)
+- directed ego: callers left / callees right on Calls; Type/Endpoint data hops
+- Playwright paints `?lineage=1&ws=lineage` and screenshots `verification/lineage.png`
+- `coverage.changed` on the Delta snap marks `.changed`. Map stays `xy=0`.
+- Lineage does not write `.graphide/stamps/`.
+
 Presentation / Style gate (explorer Map):
 
 - `#presetBtn` cycles `data-preset`; card count and identity selectors stay
@@ -195,7 +205,7 @@ Route / Lens gate (fixtures/demo Sequence snap):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, Export, Presentation, Style, Route, and Lens steps do not stamp.
+approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, and Lens steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -215,6 +225,7 @@ extension/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta
 extension/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence
 extension/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow
 extension/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle
+extension/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage
 ```
 
 `mode=explorer` posts the synthetic flowchart payload (bubbles + control-flow +
@@ -235,7 +246,8 @@ Useful query pins already wired in `webview-harness.js` / `main.js`:
 | `sequence=1` | fetch `sequence-snap.json` (fixtures/demo Sequence) |
 | `dataflow=1` | fetch `dataflow-snap.json` (fixtures/demo Data-flow) |
 | `lifecycle=1` | fetch `lifecycle-snap.json` (fixtures/demo Lifecycle) |
-| `require=1` | with `live=1`, `delta=1`, `sequence=1`, `dataflow=1`, or `lifecycle=1`, do **not** fall back to the synthetic payload |
+| `lineage=1` | fetch `sequence-snap.json` (fixtures/demo Lineage) |
+| `require=1` | with `live=1`, `delta=1`, `sequence=1`, `dataflow=1`, `lifecycle=1`, or `lineage=1`, do **not** fall back to the synthetic payload |
 | `present=1` | open Presentation Stage after first paint |
 | `preset=classic` / `signal-flow` / `blueprint` | pin visual Style |
 | `route=1` | open Route probe after first paint (same Sequence snap) |
@@ -269,6 +281,7 @@ same PR because the harness truly cannot hook existing ones.
 | Sequence | `#workspaces [data-ws="sequence"]`, `#seqParts .seq-part`, `#seqHops .seq-hop`, `#seqPlay`, `#seqCanvas`, `#seqCanvas .react-flow__node` |
 | Data-flow | `#workspaces [data-ws="dataflow"]`, `#dfStages .df-stage`, `#dfCanvas .df-node[data-df-role]`, `#dfHops .df-hop`, `#dfPlay` |
 | Lifecycle | `#workspaces [data-ws="lifecycle"]`, `#lcLanes .lc-lane`, `#lcCanvas .lc-state[data-lc-type]`, `#lcTrans .lc-trans`, `#lcPlay` |
+| Lineage | `#workspaces [data-ws="lineage"]`, `#lineageCanvas .react-flow__node`, `.ego-node[data-side]`, `#lineageHops .expl-card.hop` |
 | Map cards | `.bubble-card`, `.bubble-card.start`, `.bubble-card .name`, `[data-bubble]` |
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
@@ -284,6 +297,7 @@ same PR because the harness truly cannot hook existing ones.
 | Sequence snap | `window.__graphideSequence`, `window.__graphideSequenceError` |
 | Data-flow snap | `window.__graphideDataflow`, `window.__graphideDataflowError` |
 | Lifecycle snap | `window.__graphideLifecycle`, `window.__graphideLifecycleError` |
+| Lineage | `#lineageCanvas`, `window.__graphideLineage` |
 
 Feature maps (four headings each): [references/features/](references/features/README.md).
 

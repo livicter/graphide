@@ -30,6 +30,8 @@ const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&w
 const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence";
 const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
 const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
+const LINEAGE_HARNESS = "/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage";
+const LINEAGE_DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=lineage";
 const SYNTHETIC_NODES = 2050;
 const SYNTHETIC_EDGES = 4568;
 
@@ -188,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -2024,6 +2026,227 @@ async function main() {
       wroteStampLc ? fs.readdirSync(stampDirLc).join(",") : "absent"
     );
 
+    const lineageUrl = origin + LINEAGE_HARNESS;
+    console.log("lineage " + lineageUrl);
+    await page.goto(lineageUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const lineageBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideLineageError) return "error";
+          if (window.__graphideLineage && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /sequence-snap|lineage/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+    const lineageHost = await page.evaluate(() => ({
+      live: !!window.__graphideLineage,
+      error: window.__graphideLineageError || "",
+      ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+        document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+        "",
+      empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+    }));
+    if (lineageBoot !== "ok" || !lineageHost.live) {
+      const why =
+        lineageHost.error ||
+        lineageHost.empty ||
+        (lineageBoot && lineageBoot !== "ok" ? lineageBoot : "") ||
+        "harness did not load the lineage fixture";
+      record("Y1", "lineage desk loaded the fixtures/demo snap", false, why);
+      failFast("desk could not be driven from the lineage fixture — " + why);
+    }
+    record("Y1", "lineage desk loaded the fixtures/demo snap", true, lineageHost.ws);
+    if (lineageHost.ws !== "lineage") {
+      await page.click('#workspaces [data-ws="lineage"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#lineageCanvas .react-flow__node, .ego-node", { timeout: 10000 });
+    await page.waitForTimeout(200);
+
+    const pickBothSides = await page.evaluate(() => {
+      const rec = window.__graphideLineage || {};
+      if (rec.up >= 1 && rec.down >= 1) return { ok: true, via: "seed" };
+      const down = document.querySelector('#lineageCanvas .ego-node[data-side="down"]');
+      if (down) {
+        down.click();
+        return { ok: true, via: "down" };
+      }
+      const hop = [...document.querySelectorAll("#lineageHops .expl-card.hop, .expl-card.hop")].find((el) =>
+        /encode|decode/i.test(el.textContent || "")
+      );
+      if (hop) {
+        hop.click();
+        return { ok: true, via: "hop" };
+      }
+      return { ok: false, via: "" };
+    });
+    if (pickBothSides.via === "down" || pickBothSides.via === "hop") {
+      await page.waitForTimeout(250);
+    }
+
+    const lineageDesk = await page.evaluate(() => {
+      const rec = window.__graphideLineage || {};
+      const xy = document.querySelectorAll("#lineageCanvas .react-flow__node").length;
+      const focus = document.querySelectorAll('#lineageCanvas .ego-node[data-side="focus"], .ego-node.ego').length;
+      const up = document.querySelectorAll('#lineageCanvas .ego-node[data-side="up"]').length;
+      const down = document.querySelectorAll('#lineageCanvas .ego-node[data-side="down"]').length;
+      const hops = document.querySelectorAll("#lineageHops .expl-card.hop, .expl-list.hops .expl-card.hop").length;
+      const kinds = rec.kinds || [];
+      const pane = document.getElementById("sourcePane");
+      return {
+        ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        xy,
+        xyFlow: !!document.querySelector("#lineageCanvas .react-flow"),
+        focus: focus >= 1 || !!rec.focus,
+        up: Math.max(up, rec.up || 0),
+        down: Math.max(down, rec.down || 0),
+        hops,
+        kinds,
+        fqn: rec.fqn || "",
+        evidence: !!(pane && !pane.hidden),
+      };
+    });
+    record("Y2", "Lineage workspace is active", lineageDesk.ws === "lineage", lineageDesk.ws);
+    record("Y3", "Lineage focus node is present", lineageDesk.focus, lineageDesk.fqn);
+    record(
+      "Y4",
+      "Lineage XYFlow nodes > 1 on a Calls fixture (capped, not the raw IR)",
+      lineageDesk.xyFlow && lineageDesk.xy > 1 && lineageDesk.xy <= 48,
+      "xy=" + lineageDesk.xy + " hops=" + lineageDesk.hops
+    );
+    record(
+      "Y5",
+      "Lineage has upstream and downstream when the fixture has both",
+      lineageDesk.up >= 1 && lineageDesk.down >= 1,
+      "up=" + lineageDesk.up + " down=" + lineageDesk.down + " via=" + pickBothSides.via + " fqn=" + lineageDesk.fqn
+    );
+
+    await page.click('#workspaces [data-ws="dataflow"]');
+    await page.waitForSelector("#dfCanvas .df-node, #dfHops .df-hop", { timeout: 10000 });
+    await page.evaluate(() => {
+      const ev = [...document.querySelectorAll("#dfCanvas .df-node, .df-node")].find((el) =>
+        /events/i.test((el.getAttribute("data-fqn") || "") + (el.textContent || ""))
+      );
+      if (ev) ev.click();
+    });
+    await page.waitForTimeout(150);
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForSelector("#lineageCanvas .react-flow__node, .ego-node", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const lineageData = await page.evaluate(() => {
+      const rec = window.__graphideLineage || {};
+      const kinds = rec.kinds || [];
+      const text = [
+        rec.fqn || "",
+        rec.kind || "",
+        ...kinds,
+        ...[...document.querySelectorAll("#lineageHops .expl-card.hop, .prov-col .expl-card.hop")].map((el) =>
+          (el.textContent || "").trim()
+        ),
+      ].join(" ");
+      return {
+        fqn: rec.fqn || "",
+        kind: rec.kind || "",
+        kinds,
+        data:
+          kinds.some((k) => /Reads|Writes|Publishes|Subscribes/.test(k)) ||
+          /Reads|Writes|Publishes|Subscribes/.test(text),
+        contains: kinds.some((k) => k === "Contains") || /(^|\s)Contains(\s|$)/.test(text),
+        events: /events/i.test(rec.fqn || "") || /Endpoint/i.test(rec.kind || ""),
+      };
+    });
+    record(
+      "Y6",
+      "Type/Endpoint lineage shows Reads/Writes/Publishes/Subscribes, not Contains",
+      lineageData.data && !lineageData.contains && lineageData.events,
+      "fqn=" + lineageData.fqn + " kind=" + lineageData.kind + " kinds=" + lineageData.kinds.join(",")
+    );
+
+    const evClick = await page.evaluate(() => {
+      const node = document.querySelector("#lineageCanvas .ego-node[data-id]");
+      if (node) node.click();
+      const pane = document.getElementById("sourcePane");
+      return {
+        clicked: !!node,
+        open: !!(pane && !pane.hidden),
+        kicker: ((document.querySelector(".src-k") || {}).textContent || "").trim(),
+        title: ((document.getElementById("srcTitle") || {}).textContent || "").trim(),
+      };
+    });
+    record(
+      "Y7",
+      "Evidence still opens from a Lineage node click",
+      evClick.open && /Evidence/i.test(evClick.kicker),
+      evClick.kicker + " " + evClick.title
+    );
+
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(200);
+    const lineageMap = await page.evaluate(() => ({
+      xy: document.querySelectorAll(".react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+    }));
+    record(
+      "Y8",
+      "Map stays community LOD after Lineage (xy=0, cap 24)",
+      lineageMap.xy === 0 && lineageMap.cards <= 24,
+      "xy=" + lineageMap.xy + " cards=" + lineageMap.cards
+    );
+
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForTimeout(200);
+    await shot(page, "lineage.png");
+    const stampDirLnEgo = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampLnEgo = fs.existsSync(stampDirLnEgo) && fs.readdirSync(stampDirLnEgo).length > 0;
+    record(
+      "Y9",
+      "Lineage step did not write .graphide/stamps/",
+      !wroteStampLnEgo,
+      wroteStampLnEgo ? fs.readdirSync(stampDirLnEgo).join(",") : "absent"
+    );
+
+    const lineageDeltaUrl = origin + LINEAGE_DELTA_HARNESS;
+    console.log("lineage-delta " + lineageDeltaUrl);
+    await page.goto(lineageDeltaUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const lineageDeltaBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideDeltaError) return "error";
+          if (window.__graphideDelta === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /delta-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+    if (lineageDeltaBoot !== "ok") failFast("lineage change-seed could not load the delta fixture — " + lineageDeltaBoot);
+    if ((await page.evaluate(() => ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute && document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) || "")) !== "lineage") {
+      await page.click('#workspaces [data-ws="lineage"]');
+    }
+    await page.waitForSelector("#lineageCanvas .react-flow__node, .ego-node, .empty", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const lineageChanged = await page.evaluate(() => {
+      const marked = document.querySelectorAll("#lineageCanvas .changed, .ego-node.changed, .vnode.changed").length;
+      const rec = window.__graphideLineage || {};
+      return { marked, focus: rec.focus || "", fqn: rec.fqn || "" };
+    });
+    record(
+      "Y10",
+      "When coverage.changed is present, a changed node is marked",
+      lineageChanged.marked >= 1,
+      "marked=" + lineageChanged.marked + " fqn=" + lineageChanged.fqn
+    );
+
     const routeUrl = origin + SEQUENCE_HARNESS;
     console.log("route " + routeUrl);
     await page.goto(routeUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -2195,13 +2418,15 @@ async function main() {
       "` (Data-flow on fixtures/demo) then `" +
       LIFECYCLE_HARNESS +
       "` (Lifecycle on fixtures/demo) then `" +
+      LINEAGE_HARNESS +
+      "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
       "` (Route / Lens on fixtures/demo) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · export · present · preset · route · lens"
+      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

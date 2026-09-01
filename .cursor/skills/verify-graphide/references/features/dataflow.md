@@ -78,8 +78,9 @@ Driver assertions:
 
 - Nodes and hops are Steiner / bus-adjacent derived edges, not Archify
   authored ids. Do not invent hops that are not on the graph.
-- Lineage (`data-ws="lineage"`) is still the ego of Used / Informed /
-  Generated. Do not merge the two readings.
+- Lineage (`data-ws="lineage"`) is the directed ego of one symbol (Calls
+  for Function; Reads / Writes / Publishes / Subscribes for Type /
+  Endpoint). Data-flow is the Steiner pipeline. Do not merge the two readings.
 - Self-review stays `--no-parent` on this checkout. Data-flow CI uses
   `fixtures/demo` so shallow Actions clones do not flake.
 - `P` on Data-flow walks hops. `P` on Sequence still walks callers. `P` on
