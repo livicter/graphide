@@ -101,7 +101,8 @@ function LineageVnode({ data }) {
         (data.kindClass || "kind-Function") +
         (data.focus ? " ego" : "") +
         (data.selected ? " selected" : "") +
-        (data.uncovered ? " uncovered" : data.changed ? " changed" : "") +
+        (data.uncovered ? " uncovered" : "") +
+        (data.changed ? " changed" : "") +
         (data.on ? " on" : "")
       }
       data-id={data.id}
@@ -542,7 +543,7 @@ export function renderLineageCanvas(host, props) {
     nodesep: 36,
     ranksep: 96,
   });
-  const hotIds = new Set((props.hotIds || []).map(String));
+  const hotIds = new Set([...(props.hotIds || [])].map(String));
   const items = nodes.map((n) => ({
     id: String(n.id),
     fqn: n.fqn || "",

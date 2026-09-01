@@ -18669,6 +18669,8 @@
   var SEQ_HOP_CAP = 80;
   var GRAPH_NODE_CAP = 48;
   var GRAPH_HOP_CAP = 80;
+  var LINEAGE_NODE_CAP = 48;
+  var LINEAGE_HOP_CAP = 80;
   var DEFAULT_W = 168;
   var DEFAULT_H = 58;
   function capGraph(nodes, hops, nodeCap, hopCap) {
@@ -18748,6 +18750,65 @@
       nodeH: DEFAULT_H
     });
     return laid;
+  }
+  function layoutLineage(nodes, hops, opts) {
+    opts = opts || {};
+    const nodeW = opts.nodeW || 176;
+    const nodeH = opts.nodeH || 64;
+    const nodesep = opts.nodesep == null ? 36 : opts.nodesep;
+    const ranksep = opts.ranksep == null ? 96 : opts.ranksep;
+    const ordered = rankLineageNodes(nodes);
+    const laid = layoutGraph(ordered, hops, {
+      nodeCap: LINEAGE_NODE_CAP,
+      hopCap: LINEAGE_HOP_CAP,
+      nodeW,
+      nodeH,
+      rankdir: "LR",
+      nodesep,
+      ranksep
+    });
+    const byId = new Map((nodes || []).map((n) => [String(n.id), n]));
+    const ranks = /* @__PURE__ */ new Map();
+    for (const n of laid.nodes) {
+      ranks.set(n.id, lineageRank(byId.get(n.id)));
+    }
+    const unique = [.../* @__PURE__ */ new Set([...ranks.values()])].sort((a, b) => a - b);
+    const grouped = /* @__PURE__ */ new Map();
+    for (const n of laid.nodes) {
+      const r = ranks.get(n.id) || 0;
+      if (!grouped.has(r)) grouped.set(r, []);
+      grouped.get(r).push(n);
+    }
+    const out = [];
+    for (const r of unique) {
+      const col = grouped.get(r) || [];
+      col.sort((a, b) => (a.y || 0) - (b.y || 0));
+      const x = unique.indexOf(r) * (nodeW + ranksep) + 24;
+      col.forEach((n, i) => {
+        out.push({ id: n.id, x, y: 24 + i * (nodeH + nodesep) });
+      });
+    }
+    return { nodes: out, hops: laid.hops, width: nodeW, height: nodeH };
+  }
+  function lineageRank(n) {
+    if (!n) return 0;
+    const hop = n.hop == null ? 0 : n.hop;
+    if (n.side === "up") return -hop;
+    if (n.side === "down") return hop;
+    return 0;
+  }
+  function rankLineageNodes(nodes) {
+    const list = (nodes || []).slice();
+    const band = (n) => {
+      if (n.side === "focus") return 0;
+      if (n.side === "up" && n.hop === 1) return 1;
+      if (n.side === "down" && n.hop === 1) return 2;
+      if (n.side === "up") return 3;
+      if (n.side === "down") return 4;
+      return 5;
+    };
+    list.sort((a, b) => band(a) - band(b));
+    return list;
   }
 
   // extension/media/src/graph/sequence-canvas.jsx
@@ -18833,6 +18894,24 @@
       }
     );
   }
+  function LineageVnode({ data }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+      "div",
+      {
+        className: "comm-node ego-node vnode " + (data.kindClass || "kind-Function") + (data.focus ? " ego" : "") + (data.selected ? " selected" : "") + (data.uncovered ? " uncovered" : "") + (data.changed ? " changed" : "") + (data.on ? " on" : ""),
+        "data-id": data.id,
+        "data-fqn": data.fqn,
+        "data-kind": data.kind || "",
+        "data-side": data.side || "",
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "meta", children: data.kindLine }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+        ]
+      }
+    );
+  }
   function SliceVnode({ data }) {
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "div",
@@ -18860,7 +18939,8 @@
     deltaVnode: DeltaVnode,
     dfNode: DfNode,
     lcState: LcStateNode,
-    sliceVnode: SliceVnode
+    sliceVnode: SliceVnode,
+    lineageVnode: LineageVnode
   };
   function FitWhenReady({ graphKey }) {
     const rf = useReactFlow();
@@ -18869,7 +18949,7 @@
       fitted.current = "";
       let ro = null;
       const paneOf = () => document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow"
       );
       const fit = () => {
         const pane2 = paneOf();
@@ -19230,6 +19310,54 @@
       )
     );
   }
+  function renderLineageCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutLineage(nodes, hops, {
+      nodeCap: 48,
+      hopCap: 80,
+      nodeW: 176,
+      nodeH: 64,
+      nodesep: 36,
+      ranksep: 96
+    });
+    const hotIds = new Set([...props.hotIds || []].map(String));
+    const items = nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      label: n.label || n.fqn || String(n.id),
+      kindLine: n.kindLine || n.kind || "Function",
+      side: n.side || "",
+      hop: n.hop,
+      focus: !!n.focus,
+      uncovered: !!n.uncovered,
+      changed: !!n.changed,
+      selected: !!n.selected
+    }));
+    const box = layoutBounds(laid);
+    host.style.width = box.W + "px";
+    host.style.height = box.H + "px";
+    host.classList.add("lineage-wrap");
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "lineageVnode",
+          laid,
+          items,
+          hops,
+          cursor: props.cursor,
+          hotIds,
+          embed: true,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
 
   // extension/media/src/graph/desk.js
   function bootDesk() {
@@ -19311,7 +19439,7 @@
     let llmTok = 0;
     const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
     const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
-    const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1 };
+    const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
     }
@@ -19323,6 +19451,9 @@
       dfBodyKey = "";
       lcBodyKey = "";
       sliceBodyKey = "";
+      lineageBodyKey = "";
+      lineageHopCursor = -1;
+      lineageEgoId = "";
     }
     const PHASE_ORDER = ["walk", "extract", "link", "cluster", "flows"];
     const PHASE_ALIAS = {
@@ -19378,6 +19509,9 @@
     let lcWalk = { playing: false, timer: 0 };
     let lcBodyKey = "";
     let sliceBodyKey = "";
+    let lineageBodyKey = "";
+    let lineageHopCursor = -1;
+    let lineageEgoId = "";
     let decisionOutcomeFilter = "";
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
@@ -20108,7 +20242,7 @@
     }
     const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
     function exportDiagramRoot() {
-      return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
+      return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
     function stripExportViewerState(root3) {
       if (!root3) return root3;
@@ -20688,6 +20822,15 @@
     }
     function setWorkspace(name, pin) {
       if (WORKSPACES.indexOf(name) < 0) return;
+      if (explorerWs === "lineage" && name !== "lineage") {
+        lineageEgoId = "";
+        lineageHopCursor = -1;
+        lineageBodyKey = "";
+      }
+      if (name === "lineage") {
+        const selected2 = selectedNodeId ? idVal(selectedNodeId) : "";
+        if (selected2 && hasLineageHops(selected2)) lineageEgoId = selected2;
+      }
       explorerWs = name;
       if (pin) explorerPinned = true;
       if (name === "lineage" && !egoMode) egoMode = true;
@@ -20810,7 +20953,7 @@
     let stageFitRo = null;
     function fitChart() {
       const stage = canvas.querySelector(".stage");
-      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas");
+      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas");
       if (!stage || !wrap) {
         setCamTarget(0, 0, 1);
         return false;
@@ -21805,11 +21948,29 @@
       if (typeof raw === "string") return raw;
       return raw.preview || raw.text || "";
     }
+    function changedIdSet() {
+      const out = /* @__PURE__ */ new Set();
+      const cov = snapshot && snapshot.coverage || {};
+      for (const id2 of cov.changed || []) out.add(idVal(id2));
+      const facts = snapshot && snapshot.delta && snapshot.delta.facts || [];
+      if (facts.length) {
+        const byFqn = /* @__PURE__ */ new Map();
+        for (const n of snapshot.graph && snapshot.graph.nodes || []) {
+          if (n && n.fqn) byFqn.set(n.fqn, idVal(n.id));
+        }
+        for (const f of facts) {
+          if (f.status !== "added" && f.status !== "changed") continue;
+          if (f.id) out.add(idVal(f.id));
+          if (f.fqn && byFqn.has(f.fqn)) out.add(byFqn.get(f.fqn));
+        }
+      }
+      return out;
+    }
     function nodeFlags(id2) {
       const sid = idVal(id2);
       const cov = snapshot && snapshot.coverage || {};
       const uncovered = (cov.uncovered || []).some((x) => idVal(x) === sid);
-      const changed = (cov.changed || []).some((x) => idVal(x) === sid);
+      const changed = changedIdSet().has(sid);
       return { uncovered, changed };
     }
     function nodeAway(id2) {
@@ -21871,7 +22032,7 @@
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
     }
-    function showHop(from, to, kind) {
+    function showHop(from, to, kind, opts) {
       const a = idVal(from), b = idVal(to);
       const edge = graphEdge(a, b, kind);
       const k = edge && edge.kind || kind || "Calls";
@@ -21889,7 +22050,7 @@
           el2.onclick = () => selectNode(el2.getAttribute("data-id"));
         });
       }
-      selectNode(b, { peek: true });
+      if (!opts || opts.select !== false) selectNode(b, { peek: true });
     }
     function fillInspect(msg) {
       const id2 = msg.id;
@@ -22876,6 +23037,115 @@
       if (unc[0]) return idVal(unc[0]);
       const n = snapshot && snapshot.graph && snapshot.graph.nodes && snapshot.graph.nodes[0];
       return n ? idVal(n.id) : "";
+    }
+    const LINEAGE_CALL = { Calls: 1 };
+    const LINEAGE_DATA = { Reads: 1, Writes: 1, Publishes: 1, Subscribes: 1 };
+    function lineageKindsFor(id2) {
+      const kind = kindOf(snapshot && snapshot.graph, id2);
+      if (kind === "Type" || kind === "Endpoint") return LINEAGE_DATA;
+      return LINEAGE_CALL;
+    }
+    function lineageReverses(kind) {
+      return kind === "Reads" || kind === "Subscribes";
+    }
+    function lineageStep(e, cur, direction) {
+      const kind = e.kind || "";
+      const from = idVal(e.from);
+      const to = idVal(e.to);
+      if (!from || !to || from === to) return null;
+      if (kind === "Calls") {
+        if (direction === "up" && to === cur) return { other: from, from, to: cur, kind };
+        if (direction === "down" && from === cur) return { other: to, from: cur, to, kind };
+        return null;
+      }
+      if (kind === "Writes" || kind === "Publishes") {
+        if (direction === "up" && to === cur) return { other: from, from, to: cur, kind };
+        if (direction === "down" && from === cur) return { other: to, from: cur, to, kind };
+        return null;
+      }
+      if (lineageReverses(kind)) {
+        if (direction === "up" && from === cur) return { other: to, from: to, to: cur, kind };
+        if (direction === "down" && to === cur) return { other: from, from: cur, to: from, kind };
+        return null;
+      }
+      return null;
+    }
+    function hasLineageHops(id2) {
+      const sid = idVal(id2);
+      if (!sid) return false;
+      const kinds = lineageKindsFor(sid);
+      for (const e of incidentEdges(sid)) {
+        if (kinds[e.kind]) return true;
+      }
+      return false;
+    }
+    function lineageFocusId() {
+      const selected2 = selectedNodeId ? idVal(selectedNodeId) : "";
+      if (selected2 && hasLineageHops(selected2)) return selected2;
+      const changed = [...changedIdSet()];
+      const def = defaultFocusId();
+      if (changed.length) {
+        if (def && changed.indexOf(def) >= 0 && hasLineageHops(def)) return def;
+        for (const id2 of changed) {
+          if (hasLineageHops(id2)) return id2;
+        }
+        if (changed[0]) return changed[0];
+      }
+      return def || selected2 || "";
+    }
+    function walkDirectedLineage(focus, depth) {
+      const sid = idVal(focus);
+      const kinds = lineageKindsFor(sid);
+      const items = /* @__PURE__ */ new Map();
+      if (sid) items.set(sid, { id: sid, side: "focus", hop: 0 });
+      const hops = [];
+      const seenHop = /* @__PURE__ */ new Set();
+      const walk = (direction) => {
+        let frontier = sid ? [sid] : [];
+        const max = depth === 2 ? 2 : 1;
+        for (let d = 0; d < max; d++) {
+          const next = [];
+          for (const cur of frontier) {
+            for (const e of incidentEdges(cur)) {
+              if (!kinds[e.kind]) continue;
+              const raw = { kind: e.kind, from: e.from, to: e.to };
+              const step = lineageStep(raw, cur, direction);
+              if (!step || step.other === sid) continue;
+              const key = step.from + ">" + step.to + ">" + step.kind + ">" + direction;
+              if (!seenHop.has(key)) {
+                seenHop.add(key);
+                hops.push({
+                  from: step.from,
+                  to: step.to,
+                  kind: step.kind,
+                  side: direction,
+                  dir: direction === "up" ? "in" : "out"
+                });
+              }
+              if (!items.has(step.other)) {
+                items.set(step.other, { id: step.other, side: direction, hop: d + 1 });
+                next.push(step.other);
+              }
+            }
+          }
+          frontier = next;
+        }
+      };
+      walk("up");
+      walk("down");
+      const ranked = [];
+      const band = (n) => {
+        if (n.side === "focus") return 0;
+        if (n.side === "up" && n.hop === 1) return 1;
+        if (n.side === "down" && n.hop === 1) return 2;
+        if (n.side === "up") return 3;
+        return 4;
+      };
+      [...items.values()].sort((a, b) => band(a) - band(b)).forEach((n) => ranked.push(n));
+      const kept = ranked.slice(0, 48);
+      const ids = new Set(kept.map((n) => n.id));
+      const keptHops = hops.filter((h) => ids.has(h.from) && ids.has(h.to)).slice(0, 80);
+      return { nodes: kept, hops: keptHops, kinds };
     }
     function matchesExplorerQuery(text) {
       const q2 = (graphFilter.q || "").toLowerCase();
@@ -24582,7 +24852,7 @@
         };
       });
       canvas.querySelectorAll("[data-id]").forEach((el2) => {
-        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas")) return;
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas")) return;
         el2.onclick = () => {
           explorerWs = "lineage";
           explorerPinned = true;
@@ -24725,6 +24995,78 @@
       const runHtml = renderRuns(flow, snapshot, false);
       return '<div class="flow-title">Default run · ' + esc(flow.name) + ' — control-flow graph</div><div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '">' + treeHtml + (runHtml ? '<div class="flow-title">Subsystem runs — click to enter</div>' + runHtml : "") + "</div></div>";
     }
+    function lineageWorkspaceKey(id2, reading) {
+      return [
+        id2 || "",
+        egoHops,
+        reading && reading.nodes && reading.nodes.length || 0,
+        reading && reading.hops && reading.hops.length || 0,
+        graphFilter.q || ""
+      ].join("\0");
+    }
+    function lineageCanvasProps(reading, focusId) {
+      const hops = reading && reading.hops || [];
+      const hot = lineageHopCursor >= 0 ? hops[lineageHopCursor] : null;
+      const hotIds = /* @__PURE__ */ new Set();
+      if (hot) {
+        hotIds.add(String(hot.from));
+        hotIds.add(String(hot.to));
+      }
+      const items = (reading && reading.nodes || []).map((n) => {
+        const nid = n.id;
+        const kind = kindOf(snapshot.graph, nid) || "Function";
+        const fqn = fqnOf(snapshot.graph, nid);
+        const flags = nodeFlags(nid);
+        return {
+          id: nid,
+          fqn,
+          kind,
+          kindClass: kindClass(kind),
+          label: shortOf(fqn),
+          kindLine: kindLine(nid, kind),
+          side: n.side || "",
+          hop: n.hop,
+          focus: n.side === "focus",
+          uncovered: !!flags.uncovered,
+          changed: !!flags.changed,
+          selected: selectedNodeId === nid || nid === focusId
+        };
+      });
+      return {
+        nodes: items,
+        hops: hops.map((h, i) => ({
+          i,
+          from: h.from,
+          to: h.to,
+          kind: h.kind || ""
+        })),
+        cursor: lineageHopCursor,
+        hotIds,
+        onNodeClick: (nid) => {
+          if (!nid) return;
+          lineageHopCursor = -1;
+          lineageEgoId = nid;
+          selectNode(nid, { peek: true });
+          paint({ animate: "none" });
+        },
+        onHopClick: (iOrHop) => {
+          const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+          if (!hop) return;
+          lineageHopCursor = typeof iOrHop === "number" ? iOrHop : hops.findIndex((h) => h.from === hop.from && h.to === hop.to && h.kind === hop.kind);
+          showHop(hop.from, hop.to, hop.kind, { select: false });
+          paint({ animate: "none" });
+        }
+      };
+    }
+    function mountLineageCanvas(reading, focusId) {
+      const host = document.getElementById("lineageCanvas");
+      if (!host) {
+        unmountReviewCanvas();
+        return;
+      }
+      renderLineageCanvas(host, lineageCanvasProps(reading, focusId));
+      stampXyFlowAttrs();
+    }
     function renderLineage() {
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
       renderStats(snapshot);
@@ -24733,76 +25075,31 @@
       hideTip();
       if (stampBtn) stampBtn.disabled = !currentFlow();
       if (skipBtn) skipBtn.disabled = !currentFlow();
-      const id2 = defaultFocusId();
+      if (!lineageEgoId || !nodeById.get(lineageEgoId)) lineageEgoId = lineageFocusId();
+      const id2 = lineageEgoId;
       if (id2 && id2 !== selectedNodeId) selectedNodeId = id2;
       if (!id2) {
+        unmountReviewCanvas();
+        lineageBodyKey = "";
         setMeta('<span class="crumb">Review</span> / <b>lineage</b>');
         canvas.className = "play";
         canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
         setZoomUi(false);
+        window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [] };
         return;
       }
       const node = nodeById.get(id2);
-      const hops = incidentEdges(id2);
+      const reading = walkDirectedLineage(id2, egoHops);
+      const hops = reading.hops;
       const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [id2];
-      const pathSet = new Set(path);
       setMeta(
         '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-ws="map">map</button> / <b>lineage</b> · ' + esc(shortOf(node && node.fqn || id2)) + " · " + hops.length + " incident hops" + (path.length > 1 ? " · path " + path.length : "")
       );
       const up = meta.querySelector("[data-ws]");
       if (up) up.onclick = () => setWorkspace("map", true);
-      const neighbors = [];
-      const seen = /* @__PURE__ */ new Set([id2]);
-      hops.forEach((e) => {
-        const other = e.dir === "out" ? e.to : e.from;
-        if (seen.has(other)) return;
-        seen.add(other);
-        const n = nodeById.get(other);
-        neighbors.push({
-          id: other,
-          fqn: n && n.fqn || other,
-          kind: n && n.kind || kindOf(snapshot.graph, other),
-          dir: e.dir,
-          hop: e.kind
-        });
-      });
-      const shown = neighbors.filter(
-        (n) => graphFilter.kinds[n.kind] !== false && matchesExplorerQuery(n.fqn + " " + n.hop)
-      );
-      const laidIds = [id2].concat(shown.map((n) => n.id));
-      const laidEdges = hops.map((e) => ({ from: e.from, to: e.to, kind: e.kind }));
-      const laid = layeredPositions(laidIds, laidEdges, {
-        nodeW: 176,
-        nodeH: 64,
-        gapX: 100,
-        gapY: 40,
-        pad: 48,
-        minW: 720,
-        minH: Math.max(300, 80 + shown.length * 36),
-        pins: pinsForCurrent()
-      });
-      const W = laid.W, H2 = laid.H, pos = laid.pos;
-      let svg = '<svg class="comm-edges lineage-edges" viewBox="0 0 ' + W + " " + H2 + '" width="' + W + '" height="' + H2 + '">';
-      hops.forEach((e) => {
-        const pa = pos.get(e.from), pb = pos.get(e.to);
-        if (!pa || !pb) return;
-        const d = orthoPath(pa, pb);
-        svg += '<path class="edge-hit" data-from="' + e.from + '" data-to="' + e.to + '" data-kind="' + esc(e.kind) + '" d="' + d + '" /><path data-from="' + e.from + '" data-to="' + e.to + '" data-kind="' + esc(e.kind) + '" d="' + d + '" />';
-      });
-      svg += "</svg>";
-      const box = (nid, extra) => {
-        const n = nodeById.get(nid) || { id: nid, fqn: fqnOf(snapshot.graph, nid), kind: kindOf(snapshot.graph, nid) };
-        const p = pos.get(nid);
-        if (!p) return "";
-        const flags = nodeFlags(nid);
-        return '<button type="button" class="comm-node ego-node ' + kindClass(n.kind) + (nid === id2 ? " selected" : "") + (pathSet.has(nid) ? " on-path" : "") + (flags.uncovered ? " uncovered" : "") + (extra || "") + '" style="left:' + p.x + "px;top:" + p.y + 'px" data-id="' + nid + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind) + '"><span class="name">' + esc(shortOf(n.fqn)) + '</span><span class="meta">' + esc(kindLine(nid, n.kind)) + "</span></button>";
-      };
-      let dots = box(id2, " ego");
-      shown.forEach((n) => {
-        dots += box(n.id, "");
-      });
-      const hopCards = hops.slice(0, 24).map((e) => {
-        return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
+      if (lineageHopCursor >= hops.length) lineageHopCursor = hops.length ? hops.length - 1 : -1;
+      const hopCards = hops.slice(0, 24).map((e, i) => {
+        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
       });
       const pathRow = path.length > 1 ? '<div class="path-row">' + path.map((pid) => {
         return '<button type="button" class="path-chip ' + kindClass(kindOf(snapshot.graph, pid)) + '" data-id="' + esc(pid) + '">' + esc(shortOf(fqnOf(snapshot.graph, pid))) + "</button>";
@@ -24817,39 +25114,64 @@
           return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, other))) + '</div><div class="b">' + esc(e.kind) + "</div></button>";
         }).join("") : '<div class="empty">—</div>') + "</div>";
       };
+      const key = lineageWorkspaceKey(id2, reading);
+      const keep = !!(canvas.classList.contains("explorer-lineage") && document.getElementById("lineageCanvas") && key === lineageBodyKey);
       canvas.className = "play has-stage explorer-lineage";
-      canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + svg + dots + '</div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
-      bindStage(canvas.querySelector(".stage"), { reset: true });
-      setZoomUi(true);
-      bindDraggable(canvas.querySelector(".comm-wrap"), ".ego-node", {
-        onClick: (nid) => {
-          selectNode(nid, { peek: true });
-          paint({ animate: "none" });
+      if (!keep) {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
+        lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
+        bindStage(canvas.querySelector(".stage"), { reset: true });
+      } else {
+        const title = canvas.querySelector(".flow-title");
+        if (title) {
+          title.textContent = "Lineage · ego of " + shortOf(node && node.fqn || id2) + " · " + egoHops + "-hop";
         }
-      });
-      canvas.querySelectorAll(".ego-node, .path-chip").forEach((el2) => {
+        const hopsEl = document.getElementById("lineageHops");
+        if (hopsEl) hopsEl.innerHTML = hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>';
+        const pathEl = canvas.querySelector(".path-row");
+        if (pathEl) pathEl.outerHTML = pathRow;
+        bindStage(canvas.querySelector(".stage"), { reset: false });
+      }
+      setZoomUi(true);
+      mountLineageCanvas(reading, id2);
+      canvas.querySelectorAll(".path-chip").forEach((el2) => {
         const nid = el2.getAttribute("data-id");
         if (!nid) return;
-        el2.addEventListener("click", (ev) => {
+        el2.onclick = (ev) => {
           ev.stopPropagation();
+          lineageHopCursor = -1;
+          lineageEgoId = nid;
           selectNode(nid, { peek: true });
-          if (el2.classList.contains("ego-node") || el2.classList.contains("path-chip")) paint({ animate: "none" });
-        });
+          paint({ animate: "none" });
+        };
       });
-      bindHopClicks(canvas);
       canvas.querySelectorAll(".expl-card.hop").forEach((el2) => {
         el2.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          showHop(el2.getAttribute("data-from"), el2.getAttribute("data-to"), el2.getAttribute("data-kind"));
+          const i = parseInt(el2.getAttribute("data-lineage-i"), 10);
+          if (Number.isFinite(i)) lineageHopCursor = i;
+          showHop(el2.getAttribute("data-from"), el2.getAttribute("data-to"), el2.getAttribute("data-kind"), { select: false });
+          paint({ animate: "none" });
         });
       });
-      const focusNodes = [nodeById.get(id2) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) }].concat(
-        shown.map((n) => nodeById.get(n.id) || n)
-      );
+      const focusNodes = reading.nodes.map((n) => nodeById.get(n.id) || { id: n.id, kind: kindOf(snapshot.graph, n.id), fqn: fqnOf(snapshot.graph, n.id) });
       renderLedger(focusNodes, { selected: id2 });
       setLedgerHead("EGO");
       applyEgoPaint();
       if (id2) peekSource(id2);
+      const upN = reading.nodes.filter((n) => n.side === "up").length;
+      const downN = reading.nodes.filter((n) => n.side === "down").length;
+      window.__graphideLineage = {
+        focus: id2,
+        fqn: node && node.fqn || "",
+        kind: node && node.kind || kindOf(snapshot.graph, id2),
+        nodes: reading.nodes.length,
+        hops: hops.length,
+        up: upN,
+        down: downN,
+        kinds: hops.map((h) => h.kind)
+      };
     }
     function renderProgramOverview() {
       const programs = snapshot.programs || [];
