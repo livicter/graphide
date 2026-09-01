@@ -1,7 +1,7 @@
 /**
  * Review graphs inside a canvas child host (#seqCanvas / #deltaCanvas /
- * #dfCanvas / #lcCanvas / #sliceCanvas). Second createRoot — App still owns
- * chrome on #root; Map community LOD stays vanilla.
+ * #dfCanvas / #lcCanvas / #sliceCanvas / #lineageCanvas). Second createRoot —
+ * App still owns chrome on #root; Map community LOD stays vanilla.
  */
 import { useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
@@ -14,7 +14,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { layoutGraph, layoutSequence } from "./sequence-layout.js";
+import { layoutGraph, layoutLineage, layoutSequence } from "./sequence-layout.js";
 
 function SeqParticipantNode({ data }) {
   return (
@@ -93,6 +93,31 @@ function LcStateNode({ data }) {
   );
 }
 
+function LineageVnode({ data }) {
+  return (
+    <div
+      className={
+        "comm-node ego-node vnode " +
+        (data.kindClass || "kind-Function") +
+        (data.focus ? " ego" : "") +
+        (data.selected ? " selected" : "") +
+        (data.uncovered ? " uncovered" : "") +
+        (data.changed ? " changed" : "") +
+        (data.on ? " on" : "")
+      }
+      data-id={data.id}
+      data-fqn={data.fqn}
+      data-kind={data.kind || ""}
+      data-side={data.side || ""}
+    >
+      <Handle type="target" position={Position.Left} />
+      <span className="name">{data.label}</span>
+      <span className="meta">{data.kindLine}</span>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+}
+
 function SliceVnode({ data }) {
   return (
     <div
@@ -126,6 +151,7 @@ const NODE_TYPES = {
   dfNode: DfNode,
   lcState: LcStateNode,
   sliceVnode: SliceVnode,
+  lineageVnode: LineageVnode,
 };
 
 function FitWhenReady({ graphKey }) {
@@ -136,7 +162,7 @@ function FitWhenReady({ graphKey }) {
     let ro = null;
     const paneOf = () =>
       document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow"
       );
     const fit = () => {
       const pane = paneOf();
@@ -494,6 +520,52 @@ export function renderSliceCanvas(host, props) {
     host,
     <ReviewCanvas
       nodeType="sliceVnode"
+      laid={laid}
+      items={items}
+      hops={hops}
+      cursor={props.cursor}
+      hotIds={hotIds}
+      embed
+      onNodeClick={props.onNodeClick}
+      onHopClick={props.onHopClick}
+    />
+  );
+}
+
+export function renderLineageCanvas(host, props) {
+  const nodes = props.nodes || [];
+  const hops = props.hops || [];
+  const laid = layoutLineage(nodes, hops, {
+    nodeCap: 48,
+    hopCap: 80,
+    nodeW: 176,
+    nodeH: 64,
+    nodesep: 36,
+    ranksep: 96,
+  });
+  const hotIds = new Set([...(props.hotIds || [])].map(String));
+  const items = nodes.map((n) => ({
+    id: String(n.id),
+    fqn: n.fqn || "",
+    kind: n.kind || "Function",
+    kindClass: n.kindClass || "kind-Function",
+    label: n.label || n.fqn || String(n.id),
+    kindLine: n.kindLine || n.kind || "Function",
+    side: n.side || "",
+    hop: n.hop,
+    focus: !!n.focus,
+    uncovered: !!n.uncovered,
+    changed: !!n.changed,
+    selected: !!n.selected,
+  }));
+  const box = layoutBounds(laid);
+  host.style.width = box.W + "px";
+  host.style.height = box.H + "px";
+  host.classList.add("lineage-wrap");
+  mountReviewCanvas(
+    host,
+    <ReviewCanvas
+      nodeType="lineageVnode"
       laid={laid}
       items={items}
       hops={hops}

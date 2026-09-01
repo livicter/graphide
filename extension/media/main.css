@@ -1061,7 +1061,7 @@ svg.steiner .edge-hit {
   border-color: var(--vscode-errorForeground);
 }
 .prog-chip.zoom-in { animation: bubbleIn 200ms ease-in forwards; }
-.steiner-wrap {
+.steiner-wrap, .lineage-wrap {
   position: relative;
   margin: 0 auto;
 }
@@ -1157,7 +1157,9 @@ svg.steiner .edge-hit {
 }
 .viewport[data-lod="3"] .vnode .snip { max-height: 110px; }
 .steiner-wrap .vnode.away { opacity: 0.38; }
-.steiner-wrap .vnode.changed { box-shadow: inset 3px 0 0 #d29922; }
+.steiner-wrap .vnode.changed,
+#lineageCanvas .vnode.changed,
+#lineageCanvas .comm-node.changed { box-shadow: inset 3px 0 0 #d29922; }
 .steiner-wrap .vnode.uncovered { border-style: dashed; box-shadow: none; }
 .steiner-wrap .vnode.selected {
   outline: 1px solid var(--vscode-focusBorder);
@@ -2101,7 +2103,7 @@ html.bright .route-hop {
   height: auto;
   width: 100%;
 }
-.slice-canvas {
+.slice-canvas, .lineage-canvas {
   position: relative;
   overflow: hidden;
   min-height: 300px;
@@ -2111,7 +2113,8 @@ html.bright .route-hop {
 #deltaCanvas .react-flow,
 #dfCanvas .react-flow,
 #lcCanvas .react-flow,
-#sliceCanvas .react-flow {
+#sliceCanvas .react-flow,
+#lineageCanvas .react-flow {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2127,7 +2130,8 @@ html.bright .route-hop {
 #deltaCanvas .react-flow__node-deltaVnode,
 #dfCanvas .react-flow__node-dfNode,
 #lcCanvas .react-flow__node-lcState,
-#sliceCanvas .react-flow__node-sliceVnode {
+#sliceCanvas .react-flow__node-sliceVnode,
+#lineageCanvas .react-flow__node-lineageVnode {
   padding: 0;
   border: none;
   background: transparent;
@@ -2138,11 +2142,13 @@ html.bright .route-hop {
 #dfCanvas .react-flow__node-dfNode { width: 168px; }
 #lcCanvas .react-flow__node-lcState { width: 168px; }
 #sliceCanvas .react-flow__node-sliceVnode { width: 176px; }
+#lineageCanvas .react-flow__node-lineageVnode { width: 176px; }
 #seqCanvas .react-flow__handle,
 #deltaCanvas .react-flow__handle,
 #dfCanvas .react-flow__handle,
 #lcCanvas .react-flow__handle,
-#sliceCanvas .react-flow__handle {
+#sliceCanvas .react-flow__handle,
+#lineageCanvas .react-flow__handle {
   opacity: 0;
   pointer-events: none;
 }
@@ -2150,7 +2156,8 @@ html.bright .route-hop {
 #deltaCanvas .react-flow__edge.on .react-flow__edge-path,
 #dfCanvas .react-flow__edge.on .react-flow__edge-path,
 #lcCanvas .react-flow__edge.on .react-flow__edge-path,
-#sliceCanvas .react-flow__edge.on .react-flow__edge-path {
+#sliceCanvas .react-flow__edge.on .react-flow__edge-path,
+#lineageCanvas .react-flow__edge.on .react-flow__edge-path {
   stroke: var(--vscode-focusBorder);
   stroke-width: 2;
 }
@@ -2172,7 +2179,10 @@ html.bright .route-hop {
 #dfCanvas .vnode,
 #lcCanvas .vnode,
 #sliceCanvas .vnode,
-.react-flow__node .vnode {
+#lineageCanvas .vnode,
+#lineageCanvas .comm-node,
+.react-flow__node .vnode,
+.react-flow__node .comm-node {
   position: relative;
   left: auto;
   top: auto;
