@@ -7942,6 +7942,7 @@ function sliceCanvasProps(flow, graph, scars) {
       kindClass: kindClass(kind),
       label: shortOf(fqn),
       kindLine: hopRole + kindLine(nid, kind),
+      steiner: at === 0 ? "start" : at === walk.length - 1 && walk.length > 1 ? "end" : "",
       where: file ? shortFile(file) + (line ? ":" + line : "") : "",
       file: file || "",
       snip: snippetPreview(snippets[nid]),

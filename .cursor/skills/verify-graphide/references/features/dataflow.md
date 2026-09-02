@@ -17,8 +17,10 @@ workspace is the left-to-right pipeline, not a second ego tab.
 - Ordered hops `#dfHops .df-hop` with `data-df-i`, `data-kind`, `data-from`,
   `data-to`. Reads / Subscribes are reversed so each hop is producer → consumer.
 - Canvas `#dfCanvas` mounts XYFlow (`#dfCanvas .react-flow`, `.react-flow__node`)
-  for the pipeline (cap 48). Stage strip `#dfStages` and hop list `#dfHops`
-  stay HTML. Movement is the hop list.
+  for the pipeline (cap 48). Each `.vnode` carries `data-shape` (`start`
+  source oval, `store` cylinder when `role==="store"`, `end` sink stadium,
+  `fn` / `endpoint` / `type` on transforms). Stage strip `#dfStages` and hop
+  list `#dfHops` stay HTML. Movement is the hop list.
 - Play strip `#dfReview`: `#dfOverview` · `#dfPrev` · `#dfPlay` · `#dfNext` ·
   `#dfStatus`.
 - Play (`#dfPlay` / `P` on this workspace) walks hops finitely. At the last
@@ -89,4 +91,5 @@ Driver assertions:
   `[data-ws="dataflow"]`, `.df-node[data-df-role]`, `#dfCanvas .react-flow__node`
   are the product hooks.
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.df-node.vnode`
-  / kind pills from `main.css`.
+  / kind pills from `main.css`. Shape is `data-shape` on `.vnode` from
+  `derived-node.jsx`. Do not invent SQL columns.

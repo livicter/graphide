@@ -2199,7 +2199,8 @@ html.bright .route-hop {
   background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background));
   overflow: hidden;
 }
-#deltaCanvas .vnode .kind {
+#deltaCanvas .vnode .kind,
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-tag {
   font-size: 8px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2207,6 +2208,75 @@ html.bright .route-hop {
 }
 #deltaCanvas .vnode .name { font-weight: 600; }
 #deltaCanvas .vnode .fqn { display: none; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Function { --c: var(--g-fn); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Type { --c: var(--g-ty); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 10px;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-ico {
+  display: block;
+  flex: 0 0 auto;
+  color: var(--c, var(--g-fn));
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape] {
+  box-shadow: none;
+  overflow: visible;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="fn"] {
+  border-radius: 6px;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="type"] {
+  border-radius: 3px;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="endpoint"],
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="end"] {
+  border-radius: 999px;
+  align-items: center;
+  text-align: center;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="start"] {
+  border-radius: 50%;
+  align-items: center;
+  text-align: center;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="store"] {
+  border-radius: 50% / 16px;
+  padding-top: 14px;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] {
+  background: transparent;
+  border-color: transparent;
+  align-items: center;
+  text-align: center;
+  min-height: 72px;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"]::before {
+  content: "";
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  left: 50%;
+  top: 50%;
+  margin: -28px 0 0 -28px;
+  background: color-mix(in srgb, var(--c, var(--g-ty)) 8%, var(--vscode-editor-background));
+  border: 1px solid var(--c, var(--g-ty));
+  transform: rotate(45deg);
+  z-index: 0;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] > * {
+  position: relative;
+  z-index: 1;
+}
+#lcCanvas .vnode[data-lc-type="failure"] { --c: var(--vscode-errorForeground); }
+#lcCanvas .vnode[data-lc-type="success"] { --c: #3fb950; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="decision"]),
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="store"]) {
+  overflow: visible;
+}
 .seq-rows {
   display: grid;
   gap: 8px 0;

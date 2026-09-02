@@ -23,8 +23,10 @@ them.
   `data-lc-type` (`start` / `active` / `waiting` / `success` / `neutral` /
   `failure`) / `data-lc-lane` / `data-lc-col`.
 - Canvas `#lcCanvas` mounts XYFlow (`#lcCanvas .react-flow`, `.react-flow__node`)
-  for the review machine. Lane strip `#lcLanes` and event list `#lcTrans`
-  stay HTML. Plugin ends `#lcEnds` stay a list.
+  for the review machine. Each `.vnode` carries `data-shape` (`start` proposed
+  oval, `decision` waiting diamond, `end` stamped/skipped/broken, `fn`
+  walking). Lane strip `#lcLanes` and event list `#lcTrans` stay HTML. Plugin
+  ends `#lcEnds` stay a list.
 - Ordered events `#lcTrans .lc-trans` with `data-lc-i`, `data-from`,
   `data-to`, `data-lc-event` (`play` / `wait` / `stamp` / `skip` / `break`
   / `recover`). Recover is `broken → walking`, not a card that says retry.
@@ -94,4 +96,4 @@ Driver assertions:
   `[data-ws="lifecycle"]`, `.lc-state[data-lc-type]`, `#lcCanvas .react-flow__node`
   are the product hooks.
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.lc-state.vnode`
-  from `main.css`.
+  from `main.css`. Shape is `data-shape` on `.vnode` from `derived-node.jsx`.

@@ -14,7 +14,9 @@ Endpoint, FQNs, spans.
 - Ordered hops `#seqHops .seq-hop` with `data-seq-i`, `data-kind`,
   `data-seq-variant` (`call` / `return` / `default`), `data-from`, `data-to`.
 - Canvas `#seqCanvas` mounts XYFlow (`#seqCanvas .react-flow`, `.react-flow__node`)
-  for Steiner participants and derived hops. Hop list `#seqHops .seq-hop` is still
+  for Steiner participants and derived hops. Each `.vnode` carries `data-shape`
+  (`fn` Function rect, `endpoint` stadium, `store` cylinder when a Type has
+  Reads/Writes, `type` otherwise). Hop list `#seqHops .seq-hop` is still
   the walk. Second createRoot on `#seqCanvas` only — chrome stays on `#root`.
 - Play strip `#seqReview`: `#seqOverview` · `#seqPrev` · `#seqPlay` ·
   `#seqNext` · `#seqStatus`.
@@ -82,7 +84,8 @@ Driver assertions:
   `[data-ws="sequence"]`, `.seq-hop[data-seq-variant]`, `#seqCanvas .react-flow__node`
   are the product hooks.
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.seq-part.vnode`
-  / kind pills from `main.css`.
+  / kind pills from `main.css`. Shape is `data-shape` on `.vnode` from
+  `derived-node.jsx` — not a second drawing tool.
 - Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not React-mount
   the raw IR. Sequence XYFlow lives in `#seqCanvas`. Delta / Data-flow /
   Lifecycle / Slice have their own canvas hosts.
