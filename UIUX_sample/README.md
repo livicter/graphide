@@ -7,7 +7,7 @@ Live Review panel against [SolarSim](https://github.com/jan-tennert/SolarSim) in
 | [live-suite.png](live-suite.png) | V1–V57 live checklist **PASS 57/57** (includes Day ↔ Night) |
 | [overview-desk.png](overview-desk.png) | Overview **Day**: Play **Start → features → end**, TypeUses 530 / Imports 457 / Calls 145 |
 | [overview-desk-night.png](overview-desk-night.png) | Overview **Night** on the same snapshot |
-| [map-communities.png](map-communities.png) | Map: community cards, story rail outside the camera |
+| [map-communities.png](map-communities.png) | Map: this checkout after Review — community grid, chips on their own row |
 | [map-enter.png](map-enter.png) | Enter a bubble (one clustering level down) |
 | [slice-control-flow.png](slice-control-flow.png) | Slice: Steiner control-flow tree, six hops |
 | [lineage-hops.png](lineage-hops.png) | Lineage: ego of the start hop, TypeUses + Imports + Calls in Evidence |

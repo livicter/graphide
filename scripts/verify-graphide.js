@@ -762,22 +762,35 @@ async function main() {
     record("M3", "Program chip seed includes bin main", /bin\s+main/i.test(map.legend), map.legend.slice(0, 80));
 
     const layoutBugs = await page.evaluate(() => {
-      const hit = (a, b) =>
-        !!(
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
           a &&
           b &&
           a.width > 2 &&
           b.width > 2 &&
-          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
         );
+      };
       const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
       const ws = box(document.getElementById("workspaces"));
       const ego = box(document.getElementById("egoBtn"));
       const path = box(document.getElementById("pathBtn"));
       const kinds = box(document.getElementById("kindFilters"));
       const bar = box(document.getElementById("graphBar"));
+      const legend = box(document.getElementById("legend"));
       const stage = box(document.querySelector("#canvas .stage"));
       const title = box(document.querySelector("#canvas .stage > .flow-title"));
+      const chips = [...document.querySelectorAll("#legend .leg")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 2 && r.height > 2);
       const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
       const visible = cards.filter((c) => {
         if (!stage || c.width < 4 || c.height < 4) return false;
@@ -790,6 +803,11 @@ async function main() {
         wsPath: hit(ws, path),
         wsKinds: hit(ws, kinds),
         egoKinds: hit(ego, kinds),
+        wsLegend: hit(ws, legend),
+        kindsLegend: hit(kinds, legend),
+        chipHits: pairs(chips, 1),
+        cardHits: pairs(visible, 4),
+        chips: chips.length,
         titleInStage: !!(title && stage && title.top >= stage.top - 1 && title.bottom <= stage.bottom + 1),
         titleHitsCard,
         cards: cards.length,
@@ -800,7 +818,14 @@ async function main() {
     record(
       "G1",
       "Graph bar controls do not overlap",
-      !layoutBugs.wsEgo && !layoutBugs.wsPath && !layoutBugs.wsKinds && !layoutBugs.egoKinds && layoutBugs.barH > 0 && layoutBugs.barH <= 120,
+      !layoutBugs.wsEgo &&
+        !layoutBugs.wsPath &&
+        !layoutBugs.wsKinds &&
+        !layoutBugs.egoKinds &&
+        !layoutBugs.wsLegend &&
+        layoutBugs.chipHits === 0 &&
+        layoutBugs.barH > 0 &&
+        layoutBugs.barH <= 168,
       JSON.stringify(layoutBugs)
     );
     record(
@@ -815,37 +840,135 @@ async function main() {
       layoutBugs.visible >= 3 && layoutBugs.cards >= 8,
       "visible=" + layoutBugs.visible + "/" + layoutBugs.cards
     );
+    record(
+      "G5",
+      "Map community cards do not overlap",
+      layoutBugs.cardHits === 0 && layoutBugs.visible >= 3,
+      JSON.stringify({ cardHits: layoutBugs.cardHits, visible: layoutBugs.visible, cards: layoutBugs.cards })
+    );
+    record(
+      "G6",
+      "Program chips do not overlap each other or the workspace row",
+      layoutBugs.chipHits === 0 && !layoutBugs.wsLegend && !layoutBugs.kindsLegend,
+      JSON.stringify({ chipHits: layoutBugs.chipHits, chips: layoutBugs.chips, wsLegend: layoutBugs.wsLegend, kindsLegend: layoutBugs.kindsLegend })
+    );
 
     await page.setViewportSize({ width: 720, height: 900 });
     await page.waitForTimeout(350);
     const narrow = await page.evaluate(() => {
-      const hit = (a, b) =>
-        !!(
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
           a &&
           b &&
           a.width > 2 &&
           b.width > 2 &&
-          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
         );
+      };
       const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
       const ws = box(document.getElementById("workspaces"));
       const ego = box(document.getElementById("egoBtn"));
       const kinds = box(document.getElementById("kindFilters"));
+      const legend = box(document.getElementById("legend"));
       const bar = box(document.getElementById("graphBar"));
+      const chips = [...document.querySelectorAll("#legend .leg")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 2 && r.height > 2);
+      const stage = box(document.querySelector("#canvas .stage"));
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stage || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stage.left || c.left >= stage.right || c.bottom <= stage.top || c.top >= stage.bottom);
+      });
+      const xs = visible.map((c) => c.left);
+      const spanX = xs.length ? Math.max.apply(null, xs) - Math.min.apply(null, xs) : 0;
       return {
         barH: bar ? Math.round(bar.height) : 0,
         wsEgo: hit(ws, ego),
         wsKinds: hit(ws, kinds),
         egoKinds: hit(ego, kinds),
+        wsLegend: hit(ws, legend),
+        chipHits: pairs(chips, 1),
+        cardHits: pairs(visible, 4),
+        visible: visible.length,
+        cards: cards.length,
+        spanX: Math.round(spanX),
       };
     });
     record(
       "G4",
       "Narrow desk (720) graph bar still does not overlap",
-      !narrow.wsEgo && !narrow.wsKinds && !narrow.egoKinds && narrow.barH > 0 && narrow.barH <= 200,
+      !narrow.wsEgo && !narrow.wsKinds && !narrow.egoKinds && !narrow.wsLegend && narrow.chipHits === 0 && narrow.barH > 0 && narrow.barH <= 220,
       JSON.stringify(narrow)
     );
+    record(
+      "G4b",
+      "Narrow desk (720) Map is a grid, not one overlapping column",
+      narrow.visible >= 8 && narrow.cardHits === 0 && narrow.spanX >= 160,
+      JSON.stringify({ visible: narrow.visible, cards: narrow.cards, cardHits: narrow.cardHits, spanX: narrow.spanX })
+    );
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(200);
+
+    const evidenceFit = await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+      return !!cell;
+    });
+    await page.waitForTimeout(450);
+    const afterEvidence = await page.evaluate(() => {
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
+        );
+      };
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
+      const stage = (document.querySelector("#canvas .stage") || {}).getBoundingClientRect
+        ? document.querySelector("#canvas .stage").getBoundingClientRect()
+        : null;
+      const pane = document.getElementById("sourcePane");
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stage || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stage.left || c.left >= stage.right || c.bottom <= stage.top || c.top >= stage.bottom);
+      });
+      const chips = [...document.querySelectorAll("#legend .leg")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 2 && r.height > 2);
+      return {
+        open: !!(pane && !pane.hidden),
+        visible: visible.length,
+        cards: cards.length,
+        cardHits: pairs(visible, 4),
+        chipHits: pairs(chips, 1),
+      };
+    });
+    record(
+      "G7",
+      "Opening Evidence still fits more than one community card with no overlap",
+      evidenceFit && afterEvidence.open && afterEvidence.visible >= 3 && afterEvidence.cardHits === 0 && afterEvidence.chipHits === 0,
+      JSON.stringify({ clicked: evidenceFit, ...afterEvidence })
+    );
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
 
     await shot(page, "map.png");
@@ -1409,19 +1532,32 @@ async function main() {
       "xy=" + liveMap.xy + " cards=" + liveMap.cards
     );
     const liveLayout = await page.evaluate(() => {
-      const hit = (a, b) =>
-        !!(
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
           a &&
           b &&
           a.width > 2 &&
           b.width > 2 &&
-          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
         );
+      };
       const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
       const ws = box(document.getElementById("workspaces"));
       const ego = box(document.getElementById("egoBtn"));
+      const legend = box(document.getElementById("legend"));
       const stage = box(document.querySelector("#canvas .stage"));
       const title = box(document.querySelector("#canvas .stage > .flow-title"));
+      const chips = [...document.querySelectorAll("#legend .leg")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 2 && r.height > 2);
       const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
       const visible = cards.filter((c) => {
         if (!stage || c.width < 4 || c.height < 4) return false;
@@ -1429,16 +1565,26 @@ async function main() {
       });
       return {
         wsEgo: hit(ws, ego),
+        wsLegend: hit(ws, legend),
+        chipHits: pairs(chips, 1),
+        cardHits: pairs(visible, 4),
         titleHitsCard: !!(title && visible.some((c) => hit(title, c))),
         titleInsideViewport: !!document.querySelector(".viewport > .flow-title"),
         visible: visible.length,
         cards: cards.length,
+        chips: chips.length,
       };
     });
     record(
       "R5c",
       "self-review Map caption and graph-bar do not overlap cards / Ego",
-      !liveLayout.wsEgo && !liveLayout.titleHitsCard && !liveLayout.titleInsideViewport && liveLayout.visible >= 2,
+      !liveLayout.wsEgo &&
+        !liveLayout.wsLegend &&
+        !liveLayout.titleHitsCard &&
+        !liveLayout.titleInsideViewport &&
+        liveLayout.visible >= 2 &&
+        liveLayout.chipHits === 0 &&
+        liveLayout.cardHits === 0,
       JSON.stringify(liveLayout)
     );
     record(

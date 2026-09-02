@@ -226,12 +226,15 @@ button:disabled { opacity: 0.45; cursor: default; }
   border-bottom: 1px solid var(--vscode-panel-border);
   background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, transparent);
   backdrop-filter: blur(10px);
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   min-height: 0;
 }
 #graphBar > * { flex-shrink: 0; }
 #graphBar > .search-wrap { flex: 0 1 180px; }
-#graphBar > #legend { flex-shrink: 1; }
+#graphBar > #workspaces { flex: 1 1 100%; min-width: 0; }
+#graphBar > #tabs { padding: 0; border: none; min-width: 0; }
+#graphBar > #legend { flex: 1 1 100%; }
 #graphBar[hidden] { display: none; }
 #llmBtn {
   background: transparent;
@@ -319,13 +322,13 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .workspaces {
   display: flex;
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
   gap: 4px;
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
+  overflow: hidden;
 }
 .workspaces button {
   background: transparent;
@@ -558,14 +561,16 @@ button:disabled { opacity: 0.45; cursor: default; }
 #legend {
   display: flex;
   flex-wrap: wrap;
-  flex: 1 1 140px;
+  flex: 1 1 100%;
   gap: 6px;
-  width: auto;
-  max-width: 240px;
-  margin-left: auto;
-  justify-content: flex-end;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 .leg {
+  flex: 0 0 auto;
   border: 1px solid var(--vscode-panel-border);
   background: transparent;
   color: inherit;
@@ -970,16 +975,23 @@ svg.steiner .edge-hit {
 .stage.panning { cursor: grabbing; user-select: none; }
 .stage > .flow-title {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   flex: 0 0 auto;
   margin: 8px 12px 4px;
   pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 24px);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
 }
 .viewport {
   transform-origin: 0 0;
   will-change: transform;
   flex: 1 1 auto;
   min-height: 0;
+  overflow: visible;
+  z-index: 1;
 }
 #status {
   padding: 6px 12px;
@@ -2586,7 +2598,9 @@ html.bright .search-wrap:focus-within {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
 }
 html.bright .workspaces {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow: hidden;
   background: rgba(120, 120, 128, 0.16);
   border-radius: 9px;
   padding: 2px;
@@ -2929,8 +2943,15 @@ html.bright .flow-title { margin: 6px 0; }
 html.bright #graphBar {
   flex: 0 0 auto;
   flex-wrap: wrap;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   align-content: flex-start;
+}
+html.bright .stage > .flow-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #fff;
 }
 html.bright .feature-path { margin: 0 0 10px; }
 html.bright .stat-strip {

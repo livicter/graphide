@@ -38,7 +38,7 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 
 ![Overview desk](UIUX_sample/overview-desk.png)
 
-**Map** — communities on the walk; click a bubble to Enter. **Slice** — Steiner control-flow:
+**Map** — communities on the walk (this checkout after Review); click a bubble to Enter. **Slice** — Steiner control-flow:
 
 ![Map communities](UIUX_sample/map-communities.png)
 

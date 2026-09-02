@@ -1699,7 +1699,15 @@ function applyCam() {
     viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
     viewportEl.style.setProperty("--cam-k", String(cam.k));
     const lod = String(lodOf(cam.k));
-    if (viewportEl.getAttribute("data-lod") !== lod) viewportEl.setAttribute("data-lod", lod);
+    if (viewportEl.getAttribute("data-lod") !== lod) {
+      viewportEl.setAttribute("data-lod", lod);
+      const wrap = viewportEl.querySelector(".comm-wrap");
+      if (wrap && wrap.querySelector(".bubble-card, .comm-node")) {
+        requestAnimationFrame(() => {
+          separatePaintedCards(wrap, wrap.querySelector(".bubble-card") ? ".bubble-card" : ".comm-node");
+        });
+      }
+    }
   }
   updateZoomPct();
   const popK = camTo && camTo.k != null ? camTo.k : cam.k;
@@ -1776,12 +1784,7 @@ function fitChart() {
 
 function scheduleFit(stage) {
   if (!stage) return;
-  const run = () => {
-    if (fitChart() && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
-  };
+  const run = () => fitChart();
   if (stageFitRo) {
     stageFitRo.disconnect();
     stageFitRo = null;
@@ -1789,6 +1792,12 @@ function scheduleFit(stage) {
   requestAnimationFrame(run);
   stageFitRo = new ResizeObserver(run);
   stageFitRo.observe(stage);
+  const ws = document.getElementById("workspace");
+  if (ws) stageFitRo.observe(ws);
+}
+
+function refitChartSoon() {
+  requestAnimationFrame(() => fitChart());
 }
 
 function zoomBy(factor) {
@@ -2411,6 +2420,58 @@ function separateBoxes(pos, nodeW, nodeH, gap) {
   }
 }
 
+function separatePaintedCards(wrap, selector) {
+  if (!wrap) return;
+  const els = [...wrap.querySelectorAll(selector)];
+  if (els.length < 2) return;
+  const boxes = els.map((el) => ({
+    el,
+    x: parseFloat(el.style.left) || 0,
+    y: parseFloat(el.style.top) || 0,
+    w: Math.max(el.offsetWidth || 0, 48),
+    h: Math.max(el.offsetHeight || 0, 32),
+  }));
+  for (let t = 0; t < 24; t++) {
+    let moved = false;
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i],
+          b = boxes[j];
+        const dx = a.x - b.x,
+          dy = a.y - b.y;
+        const ox = (a.w + b.w) / 2 + 16 - Math.abs(dx);
+        const oy = (a.h + b.h) / 2 + 12 - Math.abs(dy);
+        if (ox <= 0 || oy <= 0) continue;
+        moved = true;
+        if (ox < oy) {
+          const s = (dx < 0 ? -1 : 1) * (ox / 2 + 0.5);
+          a.x += s;
+          b.x -= s;
+        } else {
+          const s = (dy === 0 ? (i % 2 ? 1 : -1) : dy < 0 ? -1 : 1) * (oy / 2 + 0.5);
+          a.y += s;
+          b.y -= s;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  let maxX = 0,
+    maxY = 0;
+  for (const box of boxes) {
+    box.el.style.left = box.x + "px";
+    box.el.style.top = box.y + "px";
+    maxX = Math.max(maxX, box.x + box.w / 2);
+    maxY = Math.max(maxY, box.y + box.h / 2);
+  }
+  const pad = 48;
+  const W = Math.max(parseFloat(wrap.style.width) || 0, maxX + pad);
+  const H = Math.max(parseFloat(wrap.style.height) || 0, maxY + pad);
+  wrap.style.width = Math.round(W) + "px";
+  wrap.style.height = Math.round(H) + "px";
+  syncGraphEdges(wrap);
+}
+
 /** Sugiyama-lite: ranks by hop depth, barycenter order, boxes that never sit on each other. */
 function layeredPositions(ids, rawEdges, opts) {
   opts = opts || {};
@@ -2938,17 +2999,23 @@ function peekSource(id) {
   vscode.postMessage({ type: "peekSource", id: sid });
 }
 
+function revealSourcePane() {
+  if (!sourcePane) return;
+  sourcePane.hidden = false;
+  if (workspace) workspace.classList.add("has-source");
+  refitChartSoon();
+}
+
 function showSource(msg) {
   if (!sourcePane) return;
   if (msg.missing) {
-    sourcePane.hidden = false;
+    revealSourcePane();
     if (srcTitle) srcTitle.textContent = "No span for this node";
     if (srcBody) srcBody.textContent = "";
     return;
   }
   sourceId = msg.id || sourceId;
-  sourcePane.hidden = false;
-  if (workspace) workspace.classList.add("has-source");
+  revealSourcePane();
   const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
   if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
   fillInspect(msg);
@@ -2966,10 +3033,7 @@ function showHop(from, to, kind, opts) {
   const where = span.file
     ? shortFile(span.file) + (span.start && span.start.line ? ":" + span.start.line : span.line ? ":" + span.line : "")
     : "";
-  if (sourcePane) {
-    sourcePane.hidden = false;
-    if (workspace) workspace.classList.add("has-source");
-  }
+  revealSourcePane();
   if (srcTitle) srcTitle.textContent = k + " · " + shortToken(a) + " → " + shortToken(b);
   if (hopCard) {
     hopCard.hidden = false;
@@ -3557,6 +3621,7 @@ function closeSourcePane() {
   if (!sourcePane || sourcePane.hidden) return false;
   sourcePane.hidden = true;
   if (workspace) workspace.classList.remove("has-source");
+  refitChartSoon();
   if (srcBody) srcBody.innerHTML = "";
   if (inspMeta) inspMeta.innerHTML = "";
   if (inspEdges) inspEdges.innerHTML = "";
@@ -7485,6 +7550,7 @@ function renderCommunityGraph() {
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
   const wrap = canvas.querySelector(".comm-wrap");
+  separatePaintedCards(wrap, ".comm-node");
   canvas.querySelectorAll(".comm-node").forEach((el) => {
     const id = el.getAttribute("data-id");
     el.addEventListener("pointerenter", (ev) => {
@@ -7514,8 +7580,15 @@ function renderCommunityGraph() {
 function renderBubbleMap(clusters) {
   const path = storyMapBubbles();
   const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
+  const seenBubble = new Set();
   clusters = pinStoryClusters(clusters || [])
     .slice()
+    .filter((b) => {
+      const id = idVal(b.id);
+      if (!id || seenBubble.has(id)) return false;
+      seenBubble.add(id);
+      return true;
+    })
     .sort((a, b) => {
       const pa = pathRank.has(idVal(a.id)) ? pathRank.get(idVal(a.id)) : 1000;
       const pb = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : 1000;
@@ -7547,11 +7620,11 @@ function renderBubbleMap(clusters) {
   const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
   const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
     nodeW: 220,
-    nodeH: 128,
-    gapX: 96,
-    gapY: 56,
+    nodeH: 160,
+    gapX: 88,
+    gapY: 72,
     pad: 64,
-    minW: 760,
+    minW: 640,
     minH: 340,
     maxCols: 6,
     pins: pinsForCurrent(),
@@ -7616,6 +7689,7 @@ function renderBubbleMap(clusters) {
   bindStage(canvas.querySelector(".stage"), { reset: true });
   setZoomUi(true);
   const wrap = canvas.querySelector(".comm-wrap");
+  separatePaintedCards(wrap, ".bubble-card");
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
     const id = el.getAttribute("data-bubble");
     el.addEventListener("pointerenter", () => {

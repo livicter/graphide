@@ -222,7 +222,13 @@ assert(
   "map caption must sit outside the camera viewport"
 );
 assert(/#graphBar[\s\S]{0,220}flex-wrap:\s*wrap/.test(css), "graph bar must wrap instead of overlapping on a narrow desk");
-assert(/#legend[\s\S]{0,160}max-width:\s*240px/.test(css), "program chips must not consume the nowrap tool row");
+assert(/#graphBar > #legend[\s\S]{0,80}flex:\s*1 1 100%/.test(css), "program chips must occupy their own wrapping row");
+assert(!/#graphBar > #legend[\s\S]{0,80}flex-shrink:\s*1/.test(css), "legend must not shrink below chip size");
+assert(/\.viewport\s*\{[^}]*overflow:\s*visible/.test(css), "camera viewport must not clip the world (stage clips the camera)");
+assert(/\.stage\s*\{[^}]*overflow:\s*hidden/.test(css), "stage must clip the camera so cards cannot paint chrome");
+assert(/#graphBar > #workspaces[\s\S]{0,80}flex:\s*1 1 100%/.test(css), "workspace tabs must take their own wrapping row");
+assert(js.includes("function separatePaintedCards"), "painted community cards must be pushed apart after layout");
+assert(!/if \(fitChart\(\) && stageFitRo\)/.test(js), "fit observer must keep watching Evidence open/close");
 assert(harness.includes("loadNamedSnap") && harness.includes("live-snap.json"), "live snap loader missing");
 assert(harness.includes("__graphideLiveError") && harness.includes('params.get("require")'), "required live snap must not silently fall back to synthetic");
 assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"), "delta fixture snap loader missing");
