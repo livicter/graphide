@@ -2200,7 +2200,7 @@ html.bright .route-hop {
   overflow: hidden;
 }
 #deltaCanvas .vnode .kind,
-.react-flow__node .vnode .shape-tag {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-tag {
   font-size: 8px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2208,73 +2208,73 @@ html.bright .route-hop {
 }
 #deltaCanvas .vnode .name { font-weight: 600; }
 #deltaCanvas .vnode .fqn { display: none; }
-.react-flow__node .vnode.kind-Function { --c: var(--g-fn); }
-.react-flow__node .vnode.kind-Type { --c: var(--g-ty); }
-.react-flow__node .vnode.kind-Endpoint { --c: var(--g-ep); }
-.react-flow__node .vnode .shape-mark {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Function { --c: var(--g-fn); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Type { --c: var(--g-ty); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-mark {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 10px;
 }
-.react-flow__node .vnode .shape-ico {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-ico {
   display: block;
   flex: 0 0 auto;
   color: var(--c, var(--g-fn));
 }
-.react-flow__node .vnode[data-shape="fn"] {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape] {
+  box-shadow: none;
+  overflow: visible;
+}
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="fn"] {
   border-radius: 6px;
-  box-shadow: none;
 }
-.react-flow__node .vnode[data-shape="type"] {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="type"] {
   border-radius: 3px;
-  box-shadow: none;
 }
-.react-flow__node .vnode[data-shape="endpoint"],
-.react-flow__node .vnode[data-shape="end"] {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="endpoint"],
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="end"] {
   border-radius: 999px;
   align-items: center;
   text-align: center;
-  box-shadow: none;
 }
-.react-flow__node .vnode[data-shape="start"] {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="start"] {
   border-radius: 50%;
   align-items: center;
   text-align: center;
-  box-shadow: none;
 }
-.react-flow__node .vnode[data-shape="store"] {
-  border-radius: 50% / 14px;
-  padding-top: 12px;
-  overflow: visible;
-  box-shadow: none;
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="store"] {
+  border-radius: 50% / 16px;
+  padding-top: 14px;
 }
-.react-flow__node .vnode[data-shape="decision"] {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] {
   background: transparent;
   border-color: transparent;
   align-items: center;
   text-align: center;
-  min-height: 64px;
-  overflow: visible;
-  box-shadow: none;
+  min-height: 72px;
 }
-.react-flow__node .vnode[data-shape="decision"]::before {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"]::before {
   content: "";
   position: absolute;
-  inset: 8px;
+  width: 56px;
+  height: 56px;
+  left: 50%;
+  top: 50%;
+  margin: -28px 0 0 -28px;
   background: color-mix(in srgb, var(--c, var(--g-ty)) 8%, var(--vscode-editor-background));
   border: 1px solid var(--c, var(--g-ty));
   transform: rotate(45deg);
   z-index: 0;
 }
-.react-flow__node .vnode[data-shape="decision"] > * {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] > * {
   position: relative;
   z-index: 1;
 }
 #lcCanvas .vnode[data-lc-type="failure"] { --c: var(--vscode-errorForeground); }
 #lcCanvas .vnode[data-lc-type="success"] { --c: #3fb950; }
-.react-flow__node:has([data-shape="decision"]),
-.react-flow__node:has([data-shape="store"]) {
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="decision"]),
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="store"]) {
   overflow: visible;
 }
 .seq-rows {
