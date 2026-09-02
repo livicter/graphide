@@ -16,8 +16,10 @@ force-directed dump of the raw IR and not an agent-drawn graph.
   only. Reads / Subscribes are reversed so the hop is producer → consumer
   (same as Data-flow). Do not invent store nodes.
 - Canvas `#lineageCanvas` mounts XYFlow (`.react-flow`, `.react-flow__node`,
-  `.ego-node[data-side]`). Cap 48 nodes / 80 hops, fail closed. Second
-  createRoot on `#lineageCanvas` only — chrome stays on `#root`.
+  `.ego-node[data-side]`). Each `.vnode` carries `data-shape` (`fn` /
+  `endpoint` / `store` when a Type has incident Reads/Writes / `type`).
+  Cap 48 nodes / 80 hops, fail closed. Second createRoot on `#lineageCanvas`
+  only — chrome stays on `#root`.
 - Incident hop list `#lineageHops .expl-card.hop` (capped) and provenance
   buckets `.prov-col[data-prov]` stay HTML. They list the shown directed
   edges only.
@@ -98,4 +100,5 @@ Driver assertions:
   `#lineageHops .expl-card.hop` are the product hooks.
 - Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not
   React-mount the raw IR. Lineage XYFlow lives in `#lineageCanvas`.
+  Shape is `data-shape` on `.vnode` from `derived-node.jsx`.
 - No MiniMap / Controls / Background. No elkjs (CSP Worker). CSP unchanged.

@@ -7,151 +7,21 @@ import { useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import {
-  Handle,
   MarkerType,
-  Position,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
+import { decorateDerived, DerivedNode } from "./derived-node.jsx";
 import { layoutGraph, layoutLineage, layoutSequence } from "./sequence-layout.js";
 
-function SeqParticipantNode({ data }) {
-  return (
-    <div
-      className={"seq-part vnode kind-" + (data.kind || "Function") + (data.on ? " on" : "")}
-      data-id={data.id}
-      data-fqn={data.fqn}
-      data-kind={data.kind || ""}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="name">{data.label}</span>
-      <span className="meta">{data.kind}</span>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function DeltaVnode({ data }) {
-  return (
-    <div
-      className={"vnode " + (data.kindClass || "kind-Function") + (data.hot ? " walk" : "")}
-      data-id={data.id}
-      data-fqn={data.fqn}
-      data-kind={data.kind || ""}
-      data-delta-state={data.state || "same"}
-      {...(data.hot ? { "data-delta-review-current": "1" } : {})}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="kind">{data.kind || "node"}</span>
-      <span className="name">{data.label}</span>
-      <span className="fqn">{data.fqn}</span>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function DfNode({ data }) {
-  return (
-    <div
-      className={"df-node vnode kind-" + (data.kind || "Function") + (data.on ? " on" : "")}
-      data-id={data.id}
-      data-fqn={data.fqn}
-      data-kind={data.kind || ""}
-      data-df-role={data.role || ""}
-      {...(data.endRole ? { "data-end-role": data.endRole } : {})}
-      {...(data.channel ? { "data-channel": data.channel } : {})}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="name">{data.label}</span>
-      <span className="meta">
-        {data.kind}
-        {data.ep ? " · " + data.ep : ""}
-      </span>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function LcStateNode({ data }) {
-  return (
-    <div
-      className={"lc-state vnode" + (data.on ? " on" : "")}
-      data-lc-id={data.id}
-      data-lc-type={data.lcType || "neutral"}
-      data-lc-lane={data.lane || ""}
-      data-lc-col={data.col == null ? "0" : String(data.col)}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="name">{data.label}</span>
-      <span className="meta">
-        {data.lcType}
-        {data.sublabel ? " · " + data.sublabel : ""}
-      </span>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function LineageVnode({ data }) {
-  return (
-    <div
-      className={
-        "comm-node ego-node vnode " +
-        (data.kindClass || "kind-Function") +
-        (data.focus ? " ego" : "") +
-        (data.selected ? " selected" : "") +
-        (data.uncovered ? " uncovered" : "") +
-        (data.changed ? " changed" : "") +
-        (data.on ? " on" : "")
-      }
-      data-id={data.id}
-      data-fqn={data.fqn}
-      data-kind={data.kind || ""}
-      data-side={data.side || ""}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="name">{data.label}</span>
-      <span className="meta">{data.kindLine}</span>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
-function SliceVnode({ data }) {
-  return (
-    <div
-      className={
-        "vnode " +
-        (data.kindClass || "kind-Function") +
-        (data.away ? " away" : "") +
-        (data.uncovered ? " uncovered" : data.changed ? " changed" : "") +
-        (data.selected ? " selected" : "")
-      }
-      data-id={data.id}
-      data-fqn={data.fqn}
-      data-kind={data.kind || ""}
-      data-file={data.file || ""}
-      style={data.depth != null ? { "--d": data.depth } : undefined}
-    >
-      <Handle type="target" position={Position.Left} />
-      <span className="kind">{data.kindLine}</span>
-      <span className="name">{data.label}</span>
-      {data.where ? <span className="where">{data.where}</span> : null}
-      <span className="fqn">{data.fqn}</span>
-      {data.snip ? <pre className="snip">{data.snip}</pre> : null}
-      <Handle type="source" position={Position.Right} />
-    </div>
-  );
-}
-
 const NODE_TYPES = {
-  seqPart: SeqParticipantNode,
-  deltaVnode: DeltaVnode,
-  dfNode: DfNode,
-  lcState: LcStateNode,
-  sliceVnode: SliceVnode,
-  lineageVnode: LineageVnode,
+  seqPart: DerivedNode,
+  deltaVnode: DerivedNode,
+  dfNode: DerivedNode,
+  lcState: DerivedNode,
+  sliceVnode: DerivedNode,
+  lineageVnode: DerivedNode,
 };
 
 function FitWhenReady({ graphKey }) {
@@ -236,7 +106,7 @@ function ReviewCanvas({
           id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
           source: String(h.from),
           target: String(h.to),
-          type: "smoothstep",
+          type: "step",
           label: (h.kind || h.label || "") + (ret ? " return" : ""),
           className:
             (on ? "on" : "") +
@@ -350,12 +220,16 @@ export function renderSequenceCanvas(host, props) {
     hotIds.add(String(hot.from));
     hotIds.add(String(hot.to));
   }
-  const items = participants.map((p) => ({
-    id: String(p.id),
-    fqn: p.fqn || "",
-    kind: p.kind || "Function",
-    label: p.label || String(p.id),
-  }));
+  const items = decorateDerived(
+    participants.map((p) => ({
+      id: String(p.id),
+      fqn: p.fqn || "",
+      kind: p.kind || "Function",
+      label: p.label || String(p.id),
+      surface: "seq-part",
+    })),
+    hops
+  );
   mountReviewCanvas(
     host,
     <ReviewCanvas
@@ -381,15 +255,19 @@ export function renderDeltaCanvas(host, props) {
     nodeH: 64,
   });
   const hotIds = new Set((props.hotIds || []).map(String));
-  const items = nodes.map((n) => ({
-    id: String(n.id),
-    fqn: n.fqn || "",
-    kind: n.kind || "Function",
-    kindClass: n.kindClass || "kind-Function",
-    state: n.state || "same",
-    label: n.label || n.fqn || String(n.id),
-    hot: hotIds.has(String(n.id)),
-  }));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      state: n.state || "same",
+      label: n.label || n.fqn || String(n.id),
+      hot: hotIds.has(String(n.id)),
+      showFqn: true,
+    })),
+    hops
+  );
   mountReviewCanvas(
     host,
     <ReviewCanvas
@@ -421,16 +299,20 @@ export function renderDataflowCanvas(host, props) {
     hotIds.add(String(hot.from));
     hotIds.add(String(hot.to));
   }
-  const items = nodes.map((n) => ({
-    id: String(n.id),
-    fqn: n.fqn || "",
-    kind: n.kind || "Function",
-    label: n.label || n.fqn || String(n.id),
-    role: n.role || "",
-    endRole: n.endRole || n.end_role || "",
-    channel: n.channel || "",
-    ep: n.ep || "",
-  }));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      label: n.label || n.fqn || String(n.id),
+      role: n.role || "",
+      endRole: n.endRole || n.end_role || "",
+      channel: n.channel || "",
+      meta: n.ep || "",
+      surface: "df-node",
+    })),
+    hops
+  );
   mountReviewCanvas(
     host,
     <ReviewCanvas
@@ -453,7 +335,7 @@ export function renderLifecycleCanvas(host, props) {
     nodeCap: 24,
     hopCap: 40,
     nodeW: 168,
-    nodeH: 58,
+    nodeH: 72,
   });
   const cursor = props.cursor;
   const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
@@ -463,14 +345,18 @@ export function renderLifecycleCanvas(host, props) {
     hotIds.add(String(hot.to));
   }
   if (props.nowId) hotIds.add(String(props.nowId));
-  const items = nodes.map((n) => ({
-    id: String(n.id),
-    label: n.label || n.id,
-    lcType: n.type || n.kind || "neutral",
-    lane: n.lane || "",
-    col: n.col,
-    sublabel: n.sublabel || "",
-  }));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label || n.id,
+      lcType: n.type || n.kind || "neutral",
+      lane: n.lane || "",
+      col: n.col,
+      meta: n.sublabel || "",
+      surface: "lc-state",
+    })),
+    hops
+  );
   mountReviewCanvas(
     host,
     <ReviewCanvas
@@ -496,22 +382,27 @@ export function renderSliceCanvas(host, props) {
     nodeH: 72,
   });
   const hotIds = new Set((props.hotIds || []).map(String));
-  const items = nodes.map((n) => ({
-    id: String(n.id),
-    fqn: n.fqn || "",
-    kind: n.kind || "Function",
-    kindClass: n.kindClass || "kind-Function",
-    label: n.label || n.fqn || String(n.id),
-    kindLine: n.kindLine || n.kind || "Function",
-    where: n.where || "",
-    file: n.file || "",
-    snip: n.snip || "",
-    away: !!n.away,
-    uncovered: !!n.uncovered,
-    changed: !!n.changed,
-    selected: !!n.selected,
-    depth: n.depth,
-  }));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      label: n.label || n.fqn || String(n.id),
+      kindLine: n.kindLine || n.kind || "Function",
+      where: n.where || "",
+      file: n.file || "",
+      snip: n.snip || "",
+      away: !!n.away,
+      uncovered: !!n.uncovered,
+      changed: !!n.changed,
+      selected: !!n.selected,
+      depth: n.depth,
+      steiner: n.steiner || "",
+      showFqn: true,
+    })),
+    hops
+  );
   const box = layoutBounds(laid);
   host.style.width = box.W + "px";
   host.style.height = box.H + "px";
@@ -544,20 +435,24 @@ export function renderLineageCanvas(host, props) {
     ranksep: 96,
   });
   const hotIds = new Set([...(props.hotIds || [])].map(String));
-  const items = nodes.map((n) => ({
-    id: String(n.id),
-    fqn: n.fqn || "",
-    kind: n.kind || "Function",
-    kindClass: n.kindClass || "kind-Function",
-    label: n.label || n.fqn || String(n.id),
-    kindLine: n.kindLine || n.kind || "Function",
-    side: n.side || "",
-    hop: n.hop,
-    focus: !!n.focus,
-    uncovered: !!n.uncovered,
-    changed: !!n.changed,
-    selected: !!n.selected,
-  }));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      label: n.label || n.fqn || String(n.id),
+      kindLine: n.kindLine || n.kind || "Function",
+      side: n.side || "",
+      hop: n.hop,
+      focus: !!n.focus,
+      uncovered: !!n.uncovered,
+      changed: !!n.changed,
+      selected: !!n.selected,
+      surface: "comm-node ego-node",
+    })),
+    hops
+  );
   const box = layoutBounds(laid);
   host.style.width = box.W + "px";
   host.style.height = box.H + "px";

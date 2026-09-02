@@ -7771,7 +7771,7 @@
   }
 
   // extension/media/src/graph/sequence-canvas.jsx
-  var import_react3 = __toESM(require_react());
+  var import_react4 = __toESM(require_react());
   var import_client = __toESM(require_client());
   var import_react_dom2 = __toESM(require_react_dom());
 
@@ -16787,6 +16787,131 @@
   }
   var NodeResizeControl = (0, import_react2.memo)(ResizeControl);
 
+  // extension/media/src/graph/derived-node.jsx
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime());
+  var STORE_HOPS = { Reads: true, Writes: true };
+  function storeIdsFromHops(items, hops) {
+    const byId = /* @__PURE__ */ new Map();
+    for (const n of items || []) byId.set(String(n.id), n);
+    const ids = /* @__PURE__ */ new Set();
+    for (const h of hops || []) {
+      if (!STORE_HOPS[h.kind]) continue;
+      for (const raw of [h.from, h.to]) {
+        const n = byId.get(String(raw));
+        if (n && (n.kind === "Type" || n.kindClass === "kind-Type")) ids.add(String(n.id));
+      }
+    }
+    return ids;
+  }
+  function shapeOf(item, opts) {
+    const n = item || {};
+    const lc = String(n.lcType || n.type || "").toLowerCase();
+    if (lc === "start") return "start";
+    if (lc === "waiting" || lc === "decision") return "decision";
+    if (lc === "success" || lc === "failure") return "end";
+    if (lc === "neutral" && (n.lane === "terminal" || n.id === "skipped")) return "end";
+    if (lc === "active" || lc === "neutral" || lc === "external") return "fn";
+    const role = String(n.role || "").toLowerCase();
+    if (role === "source" || n.steiner === "start") return "start";
+    if (role === "sink" || n.steiner === "end") return "end";
+    if (role === "store") return "store";
+    const kind = n.kind || "";
+    if (kind === "Endpoint") return "endpoint";
+    if (kind === "Type") {
+      const stores = opts && opts.stores;
+      if (stores && stores.has(String(n.id))) return "store";
+      return "type";
+    }
+    return "fn";
+  }
+  function decorateDerived(items, hops, extra) {
+    const stores = storeIdsFromHops(items, hops);
+    return (items || []).map((it2) => Object.assign({}, it2, extra || {}, { shape: it2.shape || shapeOf(it2, { stores }) }));
+  }
+  function tagOf(shape) {
+    if (shape === "fn") return "FN";
+    if (shape === "type") return "TYPE";
+    if (shape === "endpoint") return "EP";
+    if (shape === "store") return "DB";
+    return "";
+  }
+  function StoreIcon() {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("svg", { className: "shape-ico", viewBox: "0 0 16 16", width: "12", height: "12", "aria-hidden": "true", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("ellipse", { cx: "8", cy: "3.6", rx: "5.5", ry: "2", fill: "none", stroke: "currentColor", strokeWidth: "1.2" }),
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M2.5 3.6v8.2c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V3.6", fill: "none", stroke: "currentColor", strokeWidth: "1.2" }),
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M2.5 7.6c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2", fill: "none", stroke: "currentColor", strokeWidth: "1.2" })
+    ] });
+  }
+  function PlugIcon() {
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("svg", { className: "shape-ico", viewBox: "0 0 16 16", width: "12", height: "12", "aria-hidden": "true", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("rect", { x: "2.5", y: "5.5", width: "8", height: "6.5", rx: "3.2", fill: "none", stroke: "currentColor", strokeWidth: "1.2" }),
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M6 5.5V3M9 5.5V3M10.5 8.2h3M10.5 10.2h3", fill: "none", stroke: "currentColor", strokeWidth: "1.2" })
+    ] });
+  }
+  function classOf(data) {
+    const kind = data.kind || "";
+    const kindClass = data.kindClass || (kind ? "kind-" + kind : "");
+    const surface = data.surface || "";
+    return [
+      surface,
+      "vnode",
+      kindClass,
+      data.on ? "on" : "",
+      data.hot && data.state ? "walk" : "",
+      data.focus ? "ego" : "",
+      data.selected ? "selected" : "",
+      data.uncovered ? "uncovered" : "",
+      data.changed ? "changed" : "",
+      data.away ? "away" : ""
+    ].filter(Boolean).join(" ");
+  }
+  function DerivedNode({ data }) {
+    const d = data || {};
+    const shape = d.shape || "fn";
+    const tag = tagOf(shape);
+    const meta = d.meta || "";
+    const attrs = {
+      className: classOf(d),
+      "data-shape": shape,
+      "data-id": d.id,
+      "data-fqn": d.fqn || "",
+      "data-kind": d.kind || ""
+    };
+    if (d.state) attrs["data-delta-state"] = d.state;
+    if (d.hot && d.state) attrs["data-delta-review-current"] = "1";
+    if (d.role != null && d.role !== "") attrs["data-df-role"] = d.role;
+    if (d.endRole) attrs["data-end-role"] = d.endRole;
+    if (d.channel) attrs["data-channel"] = d.channel;
+    if (d.lcType) {
+      attrs["data-lc-id"] = d.id;
+      attrs["data-lc-type"] = d.lcType;
+      attrs["data-lc-lane"] = d.lane || "";
+      attrs["data-lc-col"] = d.col == null ? "0" : String(d.col);
+      delete attrs["data-id"];
+      delete attrs["data-fqn"];
+      delete attrs["data-kind"];
+    }
+    if (d.side) attrs["data-side"] = d.side;
+    if (d.file) attrs["data-file"] = d.file;
+    const style2 = d.depth != null ? { "--d": d.depth } : void 0;
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { ...attrs, style: style2, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "shape-mark", children: [
+        shape === "store" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(StoreIcon, {}) : null,
+        shape === "endpoint" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(PlugIcon, {}) : null,
+        tag ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "shape-tag", children: tag }) : null,
+        !tag && d.kindLine ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: d.kindLine }) : null
+      ] }),
+      tag && d.kindLine && d.kindLine !== d.kind ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: d.kindLine }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: d.label }),
+      meta ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "meta", children: meta }) : null,
+      d.where ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "where", children: d.where }) : null,
+      d.showFqn && d.fqn ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "fqn", children: d.fqn }) : null,
+      d.snip ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("pre", { className: "snip", children: d.snip }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
+    ] });
+  }
+
   // node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var Te = Object.defineProperty;
   var In = (e, n, t) => n in e ? Te(e, n, { enumerable: true, configurable: true, writable: true, value: t }) : e[n] = t;
@@ -18812,140 +18937,19 @@
   }
 
   // extension/media/src/graph/sequence-canvas.jsx
-  var import_jsx_runtime11 = __toESM(require_jsx_runtime());
-  function SeqParticipantNode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "seq-part vnode kind-" + (data.kind || "Function") + (data.on ? " on" : ""),
-        "data-id": data.id,
-        "data-fqn": data.fqn,
-        "data-kind": data.kind || "",
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "meta", children: data.kind }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
-  function DeltaVnode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "vnode " + (data.kindClass || "kind-Function") + (data.hot ? " walk" : ""),
-        "data-id": data.id,
-        "data-fqn": data.fqn,
-        "data-kind": data.kind || "",
-        "data-delta-state": data.state || "same",
-        ...data.hot ? { "data-delta-review-current": "1" } : {},
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: data.kind || "node" }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "fqn", children: data.fqn }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
-  function DfNode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "df-node vnode kind-" + (data.kind || "Function") + (data.on ? " on" : ""),
-        "data-id": data.id,
-        "data-fqn": data.fqn,
-        "data-kind": data.kind || "",
-        "data-df-role": data.role || "",
-        ...data.endRole ? { "data-end-role": data.endRole } : {},
-        ...data.channel ? { "data-channel": data.channel } : {},
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "meta", children: [
-            data.kind,
-            data.ep ? " · " + data.ep : ""
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
-  function LcStateNode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "lc-state vnode" + (data.on ? " on" : ""),
-        "data-lc-id": data.id,
-        "data-lc-type": data.lcType || "neutral",
-        "data-lc-lane": data.lane || "",
-        "data-lc-col": data.col == null ? "0" : String(data.col),
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "meta", children: [
-            data.lcType,
-            data.sublabel ? " · " + data.sublabel : ""
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
-  function LineageVnode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "comm-node ego-node vnode " + (data.kindClass || "kind-Function") + (data.focus ? " ego" : "") + (data.selected ? " selected" : "") + (data.uncovered ? " uncovered" : "") + (data.changed ? " changed" : "") + (data.on ? " on" : ""),
-        "data-id": data.id,
-        "data-fqn": data.fqn,
-        "data-kind": data.kind || "",
-        "data-side": data.side || "",
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "meta", children: data.kindLine }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
-  function SliceVnode({ data }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "div",
-      {
-        className: "vnode " + (data.kindClass || "kind-Function") + (data.away ? " away" : "") + (data.uncovered ? " uncovered" : data.changed ? " changed" : "") + (data.selected ? " selected" : ""),
-        "data-id": data.id,
-        "data-fqn": data.fqn,
-        "data-kind": data.kind || "",
-        "data-file": data.file || "",
-        style: data.depth != null ? { "--d": data.depth } : void 0,
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "kind", children: data.kindLine }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "name", children: data.label }),
-          data.where ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "where", children: data.where }) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "fqn", children: data.fqn }),
-          data.snip ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("pre", { className: "snip", children: data.snip }) : null,
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
-        ]
-      }
-    );
-  }
+  var import_jsx_runtime12 = __toESM(require_jsx_runtime());
   var NODE_TYPES = {
-    seqPart: SeqParticipantNode,
-    deltaVnode: DeltaVnode,
-    dfNode: DfNode,
-    lcState: LcStateNode,
-    sliceVnode: SliceVnode,
-    lineageVnode: LineageVnode
+    seqPart: DerivedNode,
+    deltaVnode: DerivedNode,
+    dfNode: DerivedNode,
+    lcState: DerivedNode,
+    sliceVnode: DerivedNode,
+    lineageVnode: DerivedNode
   };
   function FitWhenReady({ graphKey }) {
     const rf = useReactFlow();
-    const fitted = (0, import_react3.useRef)("");
-    (0, import_react3.useEffect)(() => {
+    const fitted = (0, import_react4.useRef)("");
+    (0, import_react4.useEffect)(() => {
       fitted.current = "";
       let ro = null;
       const paneOf = () => document.querySelector(
@@ -18987,11 +18991,11 @@
     onHopClick,
     embed
   }) {
-    const graphKey = (0, import_react3.useMemo)(
+    const graphKey = (0, import_react4.useMemo)(
       () => laid.nodes.map((n) => n.id).join("|") + ":" + laid.hops.map((h) => h.i + ":" + h.from + ":" + h.to + ":" + (h.kind || "")).join(","),
       [laid]
     );
-    const nodes = (0, import_react3.useMemo)(
+    const nodes = (0, import_react4.useMemo)(
       () => laid.nodes.map((n) => {
         const item = (items || []).find((x) => String(x.id) === n.id) || { id: n.id };
         const on2 = !!(hotIds && (hotIds.has(n.id) || hotIds.has(String(n.id))));
@@ -19008,7 +19012,7 @@
       }),
       [laid, items, hotIds, nodeType]
     );
-    const edges = (0, import_react3.useMemo)(
+    const edges = (0, import_react4.useMemo)(
       () => laid.hops.map((h) => {
         const on2 = h.i === cursor || !!h.hot;
         const ret = h.variant === "return";
@@ -19017,7 +19021,7 @@
           id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
           source: String(h.from),
           target: String(h.to),
-          type: "smoothstep",
+          type: "step",
           label: (h.kind || h.label || "") + (ret ? " return" : ""),
           className: (on2 ? "on" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
           data: {
@@ -19034,7 +19038,7 @@
       }),
       [laid, cursor]
     );
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ReactFlowProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ReactFlowProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       index,
       {
         nodes,
@@ -19069,7 +19073,7 @@
           if (Number.isFinite(i) && onHopClick) onHopClick(i);
           else if (onHopClick && edge.data) onHopClick(edge.data);
         },
-        children: embed ? null : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(FitWhenReady, { graphKey })
+        children: embed ? null : /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(FitWhenReady, { graphKey })
       }
     ) });
   }
@@ -19118,15 +19122,19 @@
       hotIds.add(String(hot.from));
       hotIds.add(String(hot.to));
     }
-    const items = participants.map((p) => ({
-      id: String(p.id),
-      fqn: p.fqn || "",
-      kind: p.kind || "Function",
-      label: p.label || String(p.id)
-    }));
+    const items = decorateDerived(
+      participants.map((p) => ({
+        id: String(p.id),
+        fqn: p.fqn || "",
+        kind: p.kind || "Function",
+        label: p.label || String(p.id),
+        surface: "seq-part"
+      })),
+      hops
+    );
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "seqPart",
@@ -19151,18 +19159,22 @@
       nodeH: 64
     });
     const hotIds = new Set((props.hotIds || []).map(String));
-    const items = nodes.map((n) => ({
-      id: String(n.id),
-      fqn: n.fqn || "",
-      kind: n.kind || "Function",
-      kindClass: n.kindClass || "kind-Function",
-      state: n.state || "same",
-      label: n.label || n.fqn || String(n.id),
-      hot: hotIds.has(String(n.id))
-    }));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || "",
+        kind: n.kind || "Function",
+        kindClass: n.kindClass || "kind-Function",
+        state: n.state || "same",
+        label: n.label || n.fqn || String(n.id),
+        hot: hotIds.has(String(n.id)),
+        showFqn: true
+      })),
+      hops
+    );
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "deltaVnode",
@@ -19193,19 +19205,23 @@
       hotIds.add(String(hot.from));
       hotIds.add(String(hot.to));
     }
-    const items = nodes.map((n) => ({
-      id: String(n.id),
-      fqn: n.fqn || "",
-      kind: n.kind || "Function",
-      label: n.label || n.fqn || String(n.id),
-      role: n.role || "",
-      endRole: n.endRole || n.end_role || "",
-      channel: n.channel || "",
-      ep: n.ep || ""
-    }));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || "",
+        kind: n.kind || "Function",
+        label: n.label || n.fqn || String(n.id),
+        role: n.role || "",
+        endRole: n.endRole || n.end_role || "",
+        channel: n.channel || "",
+        meta: n.ep || "",
+        surface: "df-node"
+      })),
+      hops
+    );
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "dfNode",
@@ -19227,7 +19243,7 @@
       nodeCap: 24,
       hopCap: 40,
       nodeW: 168,
-      nodeH: 58
+      nodeH: 72
     });
     const cursor = props.cursor;
     const hot = cursor >= 0 ? laid.hops.find((h) => h.i === cursor) : null;
@@ -19237,17 +19253,21 @@
       hotIds.add(String(hot.to));
     }
     if (props.nowId) hotIds.add(String(props.nowId));
-    const items = nodes.map((n) => ({
-      id: String(n.id),
-      label: n.label || n.id,
-      lcType: n.type || n.kind || "neutral",
-      lane: n.lane || "",
-      col: n.col,
-      sublabel: n.sublabel || ""
-    }));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        label: n.label || n.id,
+        lcType: n.type || n.kind || "neutral",
+        lane: n.lane || "",
+        col: n.col,
+        meta: n.sublabel || "",
+        surface: "lc-state"
+      })),
+      hops
+    );
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "lcState",
@@ -19272,29 +19292,34 @@
       nodeH: 72
     });
     const hotIds = new Set((props.hotIds || []).map(String));
-    const items = nodes.map((n) => ({
-      id: String(n.id),
-      fqn: n.fqn || "",
-      kind: n.kind || "Function",
-      kindClass: n.kindClass || "kind-Function",
-      label: n.label || n.fqn || String(n.id),
-      kindLine: n.kindLine || n.kind || "Function",
-      where: n.where || "",
-      file: n.file || "",
-      snip: n.snip || "",
-      away: !!n.away,
-      uncovered: !!n.uncovered,
-      changed: !!n.changed,
-      selected: !!n.selected,
-      depth: n.depth
-    }));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || "",
+        kind: n.kind || "Function",
+        kindClass: n.kindClass || "kind-Function",
+        label: n.label || n.fqn || String(n.id),
+        kindLine: n.kindLine || n.kind || "Function",
+        where: n.where || "",
+        file: n.file || "",
+        snip: n.snip || "",
+        away: !!n.away,
+        uncovered: !!n.uncovered,
+        changed: !!n.changed,
+        selected: !!n.selected,
+        depth: n.depth,
+        steiner: n.steiner || "",
+        showFqn: true
+      })),
+      hops
+    );
     const box = layoutBounds(laid);
     host.style.width = box.W + "px";
     host.style.height = box.H + "px";
     host.classList.add("steiner-wrap");
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "sliceVnode",
@@ -19322,27 +19347,31 @@
       ranksep: 96
     });
     const hotIds = new Set([...props.hotIds || []].map(String));
-    const items = nodes.map((n) => ({
-      id: String(n.id),
-      fqn: n.fqn || "",
-      kind: n.kind || "Function",
-      kindClass: n.kindClass || "kind-Function",
-      label: n.label || n.fqn || String(n.id),
-      kindLine: n.kindLine || n.kind || "Function",
-      side: n.side || "",
-      hop: n.hop,
-      focus: !!n.focus,
-      uncovered: !!n.uncovered,
-      changed: !!n.changed,
-      selected: !!n.selected
-    }));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || "",
+        kind: n.kind || "Function",
+        kindClass: n.kindClass || "kind-Function",
+        label: n.label || n.fqn || String(n.id),
+        kindLine: n.kindLine || n.kind || "Function",
+        side: n.side || "",
+        hop: n.hop,
+        focus: !!n.focus,
+        uncovered: !!n.uncovered,
+        changed: !!n.changed,
+        selected: !!n.selected,
+        surface: "comm-node ego-node"
+      })),
+      hops
+    );
     const box = layoutBounds(laid);
     host.style.width = box.W + "px";
     host.style.height = box.H + "px";
     host.classList.add("lineage-wrap");
     mountReviewCanvas(
       host,
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         ReviewCanvas,
         {
           nodeType: "lineageVnode",
@@ -25654,6 +25683,7 @@
           kindClass: kindClass(kind),
           label: shortOf(fqn),
           kindLine: hopRole + kindLine(nid, kind),
+          steiner: at2 === 0 ? "start" : at2 === walk.length - 1 && walk.length > 1 ? "end" : "",
           where: file ? shortFile(file) + (line ? ":" + line : "") : "",
           file: file || "",
           snip: snippetPreview(snippets[nid]),
@@ -25972,14 +26002,14 @@
   }
 
   // extension/media/src/index.jsx
-  var import_jsx_runtime12 = __toESM(require_jsx_runtime());
+  var import_jsx_runtime13 = __toESM(require_jsx_runtime());
   var el = document.getElementById("root");
   if (!el) {
     throw new Error("Graphide desk: #root missing");
   }
   var root2 = (0, import_client2.createRoot)(el);
   (0, import_react_dom3.flushSync)(() => {
-    root2.render(/* @__PURE__ */ (0, import_jsx_runtime12.jsx)(App, {}));
+    root2.render(/* @__PURE__ */ (0, import_jsx_runtime13.jsx)(App, {}));
   });
   bootDesk();
 })();

@@ -285,6 +285,11 @@ assert(workflow.includes("lifecycle-snap.json") && workflow.includes("fixtures/d
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
 assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
 assert(driver.includes("D6b") && driver.includes("#deltaCanvas .react-flow__node"), "verify driver must prove Delta XYFlow");
+assert(driver.includes("D6c") && driver.includes("Q6c") && driver.includes("F6c") && driver.includes("L6c") && driver.includes("M2d") && driver.includes("Y4b"), "verify driver must prove derived data-shape presence");
+assert(chrome.includes("function shapeOf") && chrome.includes("data-shape") && chrome.includes("DerivedNode"), "derived-node registry missing");
+assert(chrome.includes('type: "step"'), "derived graphs must use orthogonal step edges");
+assert(css.includes('[data-shape="store"]') && css.includes('[data-shape="decision"]') && css.includes('[data-shape="endpoint"]'), "shape CSS missing");
+assert(!/Instrument Serif|atomic-tangerine|#eb6c36/.test(css + chrome), "must not vendor diagram-design fonts or coral tokens");
 assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") && driver.includes("subscribe"), "verify driver must drive Sequence on the demo fixture");
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");

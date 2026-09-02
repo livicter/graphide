@@ -1194,6 +1194,16 @@ async function main() {
       sliceXy.xyFlow && sliceXy.xy > 1 && sliceXy.xy <= 48,
       "xy=" + sliceXy.xy
     );
+    const sliceShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-shape]")];
+      return { n: nodes.length, shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))] };
+    });
+    record(
+      "M2d",
+      "Slice XYFlow nodes expose data-shape",
+      sliceShapes.n > 1 && sliceShapes.n === sliceXy.xy,
+      "n=" + sliceShapes.n + " shapes=" + sliceShapes.shapes.join(",")
+    );
     await page.locator(".vnode").first().click();
     await page.waitForFunction(
       () => {
@@ -1551,6 +1561,16 @@ async function main() {
       deltaDesk.xyFlow && deltaDesk.xy > 1 && deltaDesk.xy <= 24,
       "xy=" + deltaDesk.xy
     );
+    const deltaShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#deltaCanvas .vnode[data-shape]")];
+      return { n: nodes.length, shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))] };
+    });
+    record(
+      "D6c",
+      "Delta XYFlow nodes expose data-shape",
+      deltaShapes.n > 1 && deltaShapes.n === deltaDesk.xy,
+      "n=" + deltaShapes.n + " shapes=" + deltaShapes.shapes.join(",")
+    );
 
     if (deltaDesk.overview) await page.click("#deltaOverview");
     await page.waitForTimeout(120);
@@ -1690,6 +1710,22 @@ async function main() {
       "Sequence canvas mounts XYFlow participant nodes (not the raw IR)",
       sequenceDesk.xyFlow && sequenceDesk.xy > 1 && sequenceDesk.xy <= 48,
       "xy=" + sequenceDesk.xy + " parts=" + sequenceDesk.parts
+    );
+    const seqShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#seqCanvas .vnode[data-shape]")];
+      const shapes = [...new Set(nodes.map((el) => el.getAttribute("data-shape")))];
+      return {
+        n: nodes.length,
+        shapes,
+        fn: nodes.some((el) => el.getAttribute("data-shape") === "fn"),
+        endpoint: nodes.some((el) => el.getAttribute("data-shape") === "endpoint"),
+      };
+    });
+    record(
+      "Q6c",
+      "Sequence XYFlow nodes expose data-shape with fn + endpoint",
+      seqShapes.n > 1 && seqShapes.fn && seqShapes.endpoint,
+      "n=" + seqShapes.n + " shapes=" + seqShapes.shapes.join(",")
     );
 
     if (sequenceDesk.overview) await page.click("#seqOverview");
@@ -1835,6 +1871,21 @@ async function main() {
       "Data-flow canvas mounts XYFlow nodes (capped, not the raw IR)",
       dataflowDesk.xyFlow && dataflowDesk.xy > 1 && dataflowDesk.xy <= 48,
       "xy=" + dataflowDesk.xy + " nodes=" + dataflowDesk.nodes
+    );
+    const dfShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#dfCanvas .vnode[data-shape]")];
+      const shapes = [...new Set(nodes.map((el) => el.getAttribute("data-shape")))];
+      return {
+        n: nodes.length,
+        shapes,
+        store: nodes.some((el) => el.getAttribute("data-shape") === "store"),
+      };
+    });
+    record(
+      "F6c",
+      "Data-flow XYFlow nodes expose data-shape and a store cylinder",
+      dfShapes.n > 1 && dfShapes.store,
+      "n=" + dfShapes.n + " shapes=" + dfShapes.shapes.join(",")
     );
 
     if (dataflowDesk.overview) await page.click("#dfOverview");
@@ -1991,6 +2042,22 @@ async function main() {
       lifecycleDesk.xyFlow && lifecycleDesk.xy > 1 && lifecycleDesk.xy <= 24,
       "xy=" + lifecycleDesk.xy + " states=" + lifecycleDesk.states
     );
+    const lcShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lcCanvas .vnode[data-shape]")];
+      const shapes = [...new Set(nodes.map((el) => el.getAttribute("data-shape")))];
+      return {
+        n: nodes.length,
+        shapes,
+        start: nodes.some((el) => el.getAttribute("data-shape") === "start"),
+        decision: nodes.some((el) => el.getAttribute("data-shape") === "decision"),
+      };
+    });
+    record(
+      "L6c",
+      "Lifecycle XYFlow nodes expose data-shape with start + decision",
+      lcShapes.n > 1 && lcShapes.start && lcShapes.decision,
+      "n=" + lcShapes.n + " shapes=" + lcShapes.shapes.join(",")
+    );
 
     if (lifecycleDesk.overview) await page.click("#lcOverview");
     await page.waitForTimeout(120);
@@ -2120,6 +2187,16 @@ async function main() {
       "Lineage XYFlow nodes > 1 on a Calls fixture (capped, not the raw IR)",
       lineageDesk.xyFlow && lineageDesk.xy > 1 && lineageDesk.xy <= 48,
       "xy=" + lineageDesk.xy + " hops=" + lineageDesk.hops
+    );
+    const lineageShapes = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-shape]")];
+      return { n: nodes.length, shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))] };
+    });
+    record(
+      "Y4b",
+      "Lineage XYFlow nodes expose data-shape",
+      lineageShapes.n > 1 && lineageShapes.n === lineageDesk.xy,
+      "n=" + lineageShapes.n + " shapes=" + lineageShapes.shapes.join(",")
     );
     record(
       "Y5",
