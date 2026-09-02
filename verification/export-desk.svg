@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1928" height="563" viewBox="0 0 1928 563"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="export-root bright" data-preset="classic" style="width:1928px;height:563px"><style>:root,html,.bright{--vscode-errorForeground:#ff3b30;--vscode-editor-background:#ffffff;--g-grouped:#f2f2f7;--g-line:rgba(60, 60, 67, 0.22);--vscode-editorHoverWidget-background:#ffffff;--vscode-button-hoverBackground:#0066d6;--vscode-input-foreground:#1d1d1f;--g-ep:#34c759;--vscode-foreground:#1d1d1f;--g-fn:#007aff;--vscode-button-background:#007aff;--g-fill:rgba(120, 120, 128, 0.12);--g-lift:0 8px 24px rgba(0, 0, 0, 0.08), 0 1.5px 3px rgba(0, 0, 0, 0.04);--vscode-descriptionForeground:rgba(60, 60, 67, 0.6);--vscode-editorHoverWidget-foreground:#1d1d1f;--vscode-font-size:13px;--vscode-font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;--vscode-input-border:transparent;--vscode-textLink-foreground:#007aff;--vscode-panel-border:rgba(60, 60, 67, 0.12);--g-ty:#ff9f0a;--vscode-editorHoverWidget-border:rgba(60, 60, 67, 0.12);--vscode-button-foreground:#ffffff;--g-radius:12px;--vscode-sideBar-background:#f5f5f7;--vscode-input-background:rgba(120, 120, 128, 0.12);--vscode-focusBorder:#007aff;--g-inset:inset 0 0.5px 0 rgba(255, 255, 255, 0.9);--vscode-editor-selectionBackground:rgba(0, 122, 255, 0.18);--vscode-list-hoverBackground:rgba(0, 122, 255, 0.08);--vscode-progressBar-background:#007aff;--g-hold:#34c759;--g-label2:rgba(60, 60, 67, 0.6);--g-radius-sm:10px}.export-root{background:rgb(242, 242, 247);color:rgb(29, 29, 31);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;}@import url("xyflow.css");
+<svg xmlns="http://www.w3.org/2000/svg" width="1928" height="563" viewBox="0 0 1928 563"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="export-root bright" data-preset="classic" style="width:1928px;height:563px"><style>:root,html,.bright{--vscode-errorForeground:#ff3b30;--vscode-editor-background:#ffffff;--g-grouped:#f2f2f7;--vscode-editorHoverWidget-background:#ffffff;--g-line:rgba(60, 60, 67, 0.22);--vscode-button-hoverBackground:#0066d6;--vscode-input-foreground:#1d1d1f;--g-ep:#34c759;--vscode-foreground:#1d1d1f;--g-fn:#007aff;--vscode-button-background:#007aff;--g-fill:rgba(120, 120, 128, 0.12);--g-lift:0 8px 24px rgba(0, 0, 0, 0.08), 0 1.5px 3px rgba(0, 0, 0, 0.04);--vscode-descriptionForeground:rgba(60, 60, 67, 0.6);--vscode-editorHoverWidget-foreground:#1d1d1f;--vscode-font-size:13px;--vscode-font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;--vscode-input-border:transparent;--vscode-textLink-foreground:#007aff;--g-ty:#ff9f0a;--vscode-panel-border:rgba(60, 60, 67, 0.12);--vscode-editorHoverWidget-border:rgba(60, 60, 67, 0.12);--vscode-button-foreground:#ffffff;--g-radius:12px;--vscode-sideBar-background:#f5f5f7;--vscode-input-background:rgba(120, 120, 128, 0.12);--vscode-focusBorder:#007aff;--g-inset:inset 0 0.5px 0 rgba(255, 255, 255, 0.9);--vscode-editor-selectionBackground:rgba(0, 122, 255, 0.18);--vscode-list-hoverBackground:rgba(0, 122, 255, 0.08);--vscode-progressBar-background:#007aff;--g-hold:#34c759;--g-label2:rgba(60, 60, 67, 0.6);--g-radius-sm:10px}.export-root{background:rgb(242, 242, 247);color:rgb(29, 29, 31);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;}@import url("xyflow.css");
 html, body { margin: 0px; padding: 0px; height: 100%; background: var(--vscode-sideBar-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); display: flex; flex-direction: column; --g-fn: #6ea8fe; --g-ty: #d4784a; --g-ep: #3ecf7a; --g-line: color-mix(in srgb, var(--vscode-foreground) 28%, transparent); --g-radius: 10px; --g-radius-sm: 7px; --g-lift: 0 10px 28px color-mix(in srgb, #000 38%, transparent); --g-inset: inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent); letter-spacing: 0.01em; }
 #root { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0px; height: 100%; }
 header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--vscode-panel-border); }
@@ -243,7 +243,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .prog-chip .badge { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 5px; border-radius: 8px; border: 1px solid var(--vscode-panel-border); }
 .prog-chip .badge.warn { color: var(--vscode-errorForeground); border-color: var(--vscode-errorForeground); }
 .prog-chip.zoom-in { animation: 200ms ease-in 0s 1 normal forwards running bubbleIn; }
-.steiner-wrap { position: relative; margin: 0px auto; }
+.steiner-wrap, .lineage-wrap { position: relative; margin: 0px auto; }
 .steiner-wrap svg.steiner { position: absolute; inset: 0px; width: 100%; height: 100%; display: block; }
 .steiner-wrap .vnode { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 118px; max-width: 168px; padding: 6px 8px 5px; background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background)); color: inherit; border: 1px solid var(--c, var(--g-fn)); border-radius: 3px; cursor: grab; text-align: left; font: inherit; overflow: hidden; touch-action: none; }
 .steiner-wrap .vnode.kind-Function { --c: var(--g-fn); }
@@ -264,7 +264,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .viewport[data-lod="2"] .vnode .snip, .viewport[data-lod="3"] .vnode .snip { transform: scale(calc(1 / var(--cam-k, 1))); transform-origin: left top; max-height: none; font-size: 10px; width: calc(100% * var(--cam-k, 1)); }
 .viewport[data-lod="3"] .vnode .snip { max-height: 110px; }
 .steiner-wrap .vnode.away { opacity: 0.38; }
-.steiner-wrap .vnode.changed { box-shadow: rgb(210, 153, 34) 3px 0px 0px inset; }
+.steiner-wrap .vnode.changed, #lineageCanvas .vnode.changed, #lineageCanvas .comm-node.changed { box-shadow: rgb(210, 153, 34) 3px 0px 0px inset; }
 .steiner-wrap .vnode.uncovered { border-style: dashed; box-shadow: none; }
 .steiner-wrap .vnode.selected { outline: 1px solid var(--vscode-focusBorder); z-index: 3; }
 .steiner-wrap .vnode.dim { opacity: 0.18; }
@@ -547,28 +547,42 @@ html.bright .route-hop { background: rgb(255, 255, 255); border-width: medium; b
 #deltaCanvas path[data-delta-state="added"] { stroke: rgb(63, 185, 80); }
 .seq-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0px; overflow: hidden; }
 #seqStatus { font-size: 11px; opacity: 0.72; min-width: 0px; }
-.seq-parts { display: grid; grid-template-columns: repeat(var(--seq-n, 2), minmax(72px, 1fr)); gap: 8px; }
-.seq-part { position: relative; left: auto; top: auto; width: auto; min-height: 52px; justify-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: var(--g-radius, 6px); background: var(--vscode-editor-background); color: var(--vscode-foreground); }
+.seq-parts { display: grid; grid-template-columns: repeat(var(--seq-n, 2), minmax(72px, 1fr)); gap: 8px; flex: 0 0 auto; }
+.seq-part { position: relative; left: auto; top: auto; width: auto; min-height: 52px; justify-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: var(--g-radius, 6px); background: var(--vscode-editor-background); color: var(--vscode-foreground); box-sizing: border-box; }
 .seq-part .name { display: block; font-weight: 600; color: inherit; }
 .seq-part .meta { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
 .seq-part.on { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas { position: relative; overflow: hidden; flex: 1 1 auto; min-height: 220px; height: auto; width: 100%; }
-.slice-canvas { position: relative; overflow: hidden; min-height: 300px; margin: 0px auto; }
-#seqCanvas .react-flow, #deltaCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow { position: absolute; inset: 0px; width: 100%; height: 100%; background: transparent; --xy-background-color-default: transparent; --xy-edge-stroke-default: var(--g-line); --xy-edge-stroke-selected-default: var(--vscode-focusBorder); --xy-node-background-color-default: transparent; --xy-node-border-default: none; }
-#seqCanvas .react-flow__node-seqPart, #deltaCanvas .react-flow__node-deltaVnode, #dfCanvas .react-flow__node-dfNode, #lcCanvas .react-flow__node-lcState, #sliceCanvas .react-flow__node-sliceVnode { padding: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; box-shadow: none; }
-#seqCanvas .react-flow__node-seqPart { width: 168px; }
-#deltaCanvas .react-flow__node-deltaVnode { width: 176px; }
-#dfCanvas .react-flow__node-dfNode { width: 168px; }
-#lcCanvas .react-flow__node-lcState { width: 168px; }
-#sliceCanvas .react-flow__node-sliceVnode { width: 176px; }
-#seqCanvas .react-flow__handle, #deltaCanvas .react-flow__handle, #dfCanvas .react-flow__handle, #lcCanvas .react-flow__handle, #sliceCanvas .react-flow__handle { opacity: 0; pointer-events: none; }
-#seqCanvas .react-flow__edge.on .react-flow__edge-path, #deltaCanvas .react-flow__edge.on .react-flow__edge-path, #dfCanvas .react-flow__edge.on .react-flow__edge-path, #lcCanvas .react-flow__edge.on .react-flow__edge-path, #sliceCanvas .react-flow__edge.on .react-flow__edge-path { stroke: var(--vscode-focusBorder); stroke-width: 2; }
+.slice-canvas, .lineage-canvas { position: relative; overflow: hidden; flex: 1 1 auto; min-height: 220px; width: 100%; height: auto; margin: 0px; }
+#seqCanvas .react-flow, #deltaCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow { position: absolute; inset: 0px; width: 100%; height: 100%; background: transparent; --xy-background-color-default: transparent; --xy-edge-stroke-default: var(--g-line); --xy-edge-stroke-selected-default: var(--vscode-focusBorder); --xy-node-background-color-default: transparent; --xy-node-border-default: none; }
+#seqCanvas .react-flow__node-seqPart, #deltaCanvas .react-flow__node-deltaVnode, #dfCanvas .react-flow__node-dfNode, #lcCanvas .react-flow__node-lcState, #sliceCanvas .react-flow__node-sliceVnode, #lineageCanvas .react-flow__node-lineageVnode { padding: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; box-shadow: none; }
+#seqCanvas .react-flow__node-seqPart, #dfCanvas .react-flow__node-dfNode, #lcCanvas .react-flow__node-lcState { width: 168px; height: 58px; }
+#deltaCanvas .react-flow__node-deltaVnode, #sliceCanvas .react-flow__node-sliceVnode, #lineageCanvas .react-flow__node-lineageVnode { width: 176px; height: 64px; }
+#seqCanvas .react-flow__handle, #deltaCanvas .react-flow__handle, #dfCanvas .react-flow__handle, #lcCanvas .react-flow__handle, #sliceCanvas .react-flow__handle, #lineageCanvas .react-flow__handle { opacity: 0; pointer-events: none; }
+#seqCanvas .react-flow__edge.on .react-flow__edge-path, #deltaCanvas .react-flow__edge.on .react-flow__edge-path, #dfCanvas .react-flow__edge.on .react-flow__edge-path, #lcCanvas .react-flow__edge.on .react-flow__edge-path, #sliceCanvas .react-flow__edge.on .react-flow__edge-path, #lineageCanvas .react-flow__edge.on .react-flow__edge-path { stroke: var(--vscode-focusBorder); stroke-width: 2; }
 #seqCanvas .react-flow__edge.ret .react-flow__edge-path, #deltaCanvas .react-flow__edge.delta-removed .react-flow__edge-path { stroke-dasharray: 5, 4; opacity: 0.78; }
 #sliceCanvas .vnode { position: relative; left: auto; top: auto; transform: none; width: 168px; cursor: pointer; }
-#deltaCanvas .vnode, #seqCanvas .vnode, #dfCanvas .vnode, #lcCanvas .vnode, #sliceCanvas .vnode, .react-flow__node .vnode { position: relative; left: auto; top: auto; transform: none; width: 168px; min-width: 118px; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 8px 5px; border: 1px solid var(--c, var(--g-fn)); border-radius: 3px; background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background)); overflow: hidden; }
-#deltaCanvas .vnode .kind { font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
-#deltaCanvas .vnode .name { font-weight: 600; }
-#deltaCanvas .vnode .fqn { display: none; }
+#deltaCanvas .vnode, #seqCanvas .vnode, #dfCanvas .vnode, #lcCanvas .vnode, #sliceCanvas .vnode, #lineageCanvas .vnode, #lineageCanvas .comm-node, .react-flow__node .vnode, .react-flow__node .comm-node, #seqCanvas .seq-part, #dfCanvas .df-node, #lcCanvas .lc-state { position: relative; left: auto; top: auto; transform: none; width: 100%; height: 100%; min-width: 0px; min-height: 0px; margin: 0px; justify-self: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 6px 8px 5px; border: 1px solid var(--c, var(--g-fn)); border-radius: 8px; background: color-mix(in srgb, var(--c, var(--g-fn)) 8%, var(--vscode-editor-background)); overflow: hidden; box-sizing: border-box; }
+#deltaCanvas .vnode .kind, #seqCanvas .seq-part .meta, #dfCanvas .df-node .meta, #lcCanvas .lc-state .meta, #sliceCanvas .vnode .kind, :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-tag { font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+#deltaCanvas .vnode .name, #seqCanvas .seq-part .name, #dfCanvas .df-node .name, #lcCanvas .lc-state .name, #sliceCanvas .vnode .name, .react-flow__node .name { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#deltaCanvas .vnode .fqn, #sliceCanvas .vnode .fqn, #lineageCanvas .vnode .fqn { display: none; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Function { --c: var(--g-fn); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Type { --c: var(--g-ty); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-mark { display: inline-flex; align-items: center; gap: 4px; min-height: 10px; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode .shape-ico { display: block; flex: 0 0 auto; color: var(--c, var(--g-fn)); }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape] { box-shadow: none; overflow: visible; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="fn"] { border-radius: 6px; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="type"] { border-radius: 3px; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="endpoint"], :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="end"] { border-radius: 999px; align-items: center; text-align: center; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="start"] { border-radius: 50%; align-items: center; text-align: center; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="store"] { border-radius: 50% / 16px; padding-top: 14px; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] { background: transparent; border-color: transparent; align-items: center; text-align: center; min-height: 72px; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"]::before { content: ""; position: absolute; width: 56px; height: 56px; left: 50%; top: 50%; margin: -28px 0px 0px -28px; background: color-mix(in srgb, var(--c, var(--g-ty)) 8%, var(--vscode-editor-background)); border: 1px solid var(--c, var(--g-ty)); transform: rotate(45deg); z-index: 0; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .vnode[data-shape="decision"] > * { position: relative; z-index: 1; }
+#lcCanvas .vnode[data-lc-type="failure"] { --c: var(--vscode-errorForeground); }
+#lcCanvas .vnode[data-lc-type="success"] { --c: #3fb950; }
+:is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="decision"]), :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas) .react-flow__node:has([data-shape="store"]) { overflow: visible; }
 .seq-rows { display: grid; gap: 8px 0px; padding: 8px 0px 4px; background-image: repeating-linear-gradient(
     to right,
     transparent,
@@ -583,7 +597,7 @@ html.bright .route-hop { background: rgb(255, 255, 255); border-width: medium; b
 .seq-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
 .df-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0px; overflow: hidden; }
 #dfStatus { font-size: 11px; opacity: 0.72; min-width: 0px; }
-.df-stages { display: grid; grid-template-columns: repeat(var(--df-n, 2), minmax(88px, 1fr)); gap: 10px; }
+.df-stages { display: grid; grid-template-columns: repeat(var(--df-n, 2), minmax(88px, 1fr)); gap: 10px; flex: 0 0 auto; }
 .df-stage .k { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; opacity: 0.7; margin-bottom: 6px; }
 .df-node { position: relative; left: auto; top: auto; width: auto; min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin: 0px 0px 6px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: var(--g-radius, 6px); background: var(--vscode-editor-background); color: var(--vscode-foreground); }
 .df-node .name { display: block; font-weight: 600; color: inherit; }
@@ -592,7 +606,7 @@ html.bright .route-hop { background: rgb(255, 255, 255); border-width: medium; b
 .df-hop .k { letter-spacing: 0.06em; text-transform: uppercase; }
 .lc-page { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0px; overflow: hidden; }
 #lcStatus { font-size: 11px; opacity: 0.72; min-width: 0px; }
-.lc-lanes { display: grid; grid-template-columns: repeat(var(--lc-n, 3), minmax(88px, 1fr)); gap: 10px; }
+.lc-lanes { display: grid; grid-template-columns: repeat(var(--lc-n, 3), minmax(88px, 1fr)); gap: 10px; flex: 0 0 auto; }
 .lc-lane .k { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; opacity: 0.7; margin-bottom: 6px; }
 .lc-state, .lc-end { position: relative; left: auto; top: auto; width: auto; min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin: 0px 0px 6px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: var(--g-radius, 6px); background: var(--vscode-editor-background); color: var(--vscode-foreground); }
 .lc-state .name, .lc-end .name { display: block; font-weight: 600; color: inherit; }

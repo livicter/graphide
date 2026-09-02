@@ -18963,7 +18963,7 @@
         const key = graphKey + "@" + Math.round(r.width) + "x" + Math.round(r.height);
         if (fitted.current === key) return;
         fitted.current = key;
-        rf.fitView({ padding: 0.16 });
+        rf.fitView({ padding: 0.2, maxZoom: 1, minZoom: 0.25 });
       };
       const pane = paneOf();
       if (pane) {
@@ -19005,6 +19005,7 @@
           position: { x: n.x, y: n.y },
           width: laid.width,
           height: laid.height,
+          style: { width: laid.width, height: laid.height },
           data: { ...item, on: on2, hot: on2 },
           draggable: false,
           connectable: false
@@ -19046,12 +19047,12 @@
         nodeTypes: NODE_TYPES,
         proOptions: { hideAttribution: true },
         fitView: !embed,
-        fitViewOptions: { padding: 0.16 },
+        fitViewOptions: { padding: 0.2, maxZoom: 1, minZoom: 0.25 },
         onInit: (inst) => {
-          if (!embed) inst.fitView({ padding: 0.16 });
+          if (!embed) inst.fitView({ padding: 0.2, maxZoom: 1, minZoom: 0.25 });
         },
-        minZoom: embed ? 1 : 0.2,
-        maxZoom: embed ? 1 : 2,
+        minZoom: embed ? 1 : 0.25,
+        maxZoom: embed ? 1 : 1.25,
         nodesDraggable: false,
         nodesConnectable: false,
         edgesReconnectable: false,
