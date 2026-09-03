@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-/**
- * Inspect a packaged graphide-*.vsix. Does not replace npm run verify.
- *
- *   node scripts/check-package.js [path.vsix]
- */
 "use strict";
 
 const fs = require("fs");

@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Static activation gate: contributed commands/views have handlers, CSP stays strict.
- * Does not launch an Extension Host.
- *
- *   node scripts/check-activation.js
- */
 "use strict";
 
 const fs = require("fs");
