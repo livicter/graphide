@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Produce a Review-ready VSIX: webview (if toolchain present), bundled CLI, compiled host, vsce.
- *
- *   npm run package
- *   node scripts/package-graphide.js
- */
 "use strict";
 
 const { spawnSync } = require("child_process");
