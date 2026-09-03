@@ -97,10 +97,18 @@ jobs:
       - name: Drive Review harness
         run: npm run verify
 
+      - name: Install extension toolchain
+        run: npm ci --prefix extension
+
+      - name: Package VSIX
+        run: npm run package
+
       - name: Upload verification artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verification
-          path: verification/
+          path: |
+            verification/
+            extension/graphide-*.vsix
           if-no-files-found: error

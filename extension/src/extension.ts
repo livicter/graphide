@@ -23,6 +23,12 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("graphide.review", () => provider.runReview())
   );
   context.subscriptions.push(
+    vscode.commands.registerCommand("graphide.openSource", (args) => {
+      if (!args || !args.file) return;
+      return openSource(args);
+    })
+  );
+  context.subscriptions.push(
     vscode.commands.registerCommand("graphide.install", () => installGraphide(context, provider))
   );
   context.subscriptions.push(

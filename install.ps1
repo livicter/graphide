@@ -51,19 +51,11 @@ Write-Host "Checking language plugins..."
 & (Join-Path $homeBin "graphide.exe") plugins --check
 if ($LASTEXITCODE -ne 0) { throw "language plugin check failed" }
 
-Set-Location (Join-Path $PSScriptRoot "extension")
-if (-not (Test-Path "node_modules")) {
-  Write-Host "Installing extension dependencies..."
-  & npm install
-  if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
-}
 Write-Host "Packaging VSIX..."
-& npm run compile
-if ($LASTEXITCODE -ne 0) { throw "extension compile failed" }
-& npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
-if ($LASTEXITCODE -ne 0) { throw "vsce package failed" }
+& node (Join-Path $PSScriptRoot "scripts\package-graphide.js")
+if ($LASTEXITCODE -ne 0) { throw "package failed" }
 
-$vsix = Get-ChildItem -Path . -Filter "graphide-*.vsix" | Sort-Object LastWriteTime | Select-Object -Last 1
+$vsix = Get-ChildItem -Path (Join-Path $PSScriptRoot "extension") -Filter "graphide-*.vsix" | Sort-Object LastWriteTime | Select-Object -Last 1
 if (-not $vsix) { throw "VSIX not written" }
 
 function Find-Editor([string]$name) {

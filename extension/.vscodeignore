@@ -1,4 +1,5 @@
 src/**
+media/src/**
 scripts/**
 tsconfig.json
 **/*.map

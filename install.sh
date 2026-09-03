@@ -66,16 +66,10 @@ say "CLI copied to $HOME/.graphide/$bin_name"
 say "Checking language plugins..."
 "$HOME/.graphide/$bin_name" plugins --check
 
-cd "$ROOT/extension"
-if [[ ! -d node_modules ]]; then
-  say "Installing extension dependencies..."
-  npm install
-fi
 say "Packaging VSIX..."
-npm run compile
-npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
+node "$ROOT/scripts/package-graphide.js"
 
-vsix="$(ls -1t "$PWD"/graphide-*.vsix 2>/dev/null | head -n 1 || true)"
+vsix="$(ls -1t "$ROOT/extension"/graphide-*.vsix 2>/dev/null | head -n 1 || true)"
 [[ -n "$vsix" && -f "$vsix" ]] || die "VSIX not written"
 
 editors=()
