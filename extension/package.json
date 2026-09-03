@@ -145,7 +145,7 @@
     "build:webview": "node ./scripts/build-webview.mjs",
     "watch": "tsc -watch -p ./",
     "test:llm": "npm run compile && node ./scripts/check-llm.js && node ./scripts/test-llm-bridge.js",
-    "package": "node ./scripts/bundle-cli.js && npm run compile && vsce package --no-dependencies --allow-missing-repository"
+    "package": "node ../scripts/package-graphide.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

@@ -4,7 +4,10 @@
   "description": "Graphide Review desk — workspace tests plus the webview verify harness",
   "scripts": {
     "verify": "node scripts/verify-graphide.js",
-    "build:webview": "node extension/scripts/build-webview.mjs"
+    "build:webview": "node extension/scripts/build-webview.mjs",
+    "package": "node scripts/package-graphide.js",
+    "check:package": "node scripts/check-package.js",
+    "check:activation": "node scripts/check-activation.js"
   },
   "engines": {
     "node": ">=20"

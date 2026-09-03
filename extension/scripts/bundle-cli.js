@@ -15,5 +15,8 @@ for (const name of names) {
   console.log("bundled", from);
 }
 if (!copied) {
-  console.log("no local graphide binary to bundle (ok if you only have the UI)");
+  console.error(
+    "FAIL bundle-cli: no target/release or target/debug graphide binary. Build it with: cargo build -p graphide-cli --release"
+  );
+  process.exit(1);
 }
