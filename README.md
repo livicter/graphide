@@ -80,6 +80,27 @@ bash install.sh
 
 Then reload **Cursor** or VS Code. If neither `cursor` nor `code` is on PATH, use **Extensions → … → Install from VSIX…** and pick the newest `extension/graphide-*.vsix`.
 
+`install.sh` builds the CLI for this machine and bundles that binary. A Linux VSIX does not contain Windows or macOS CLIs. `install.cmd` / `install.ps1` are Windows-only. `install.command` is a Finder wrapper around `install.sh`.
+
+## Package a VSIX
+
+From this repo (the tree with `crates/graphide-cli`), not the folder you Review:
+
+```bash
+npm ci
+npm ci --prefix extension
+cargo build -p graphide-cli --release
+npm run package
+```
+
+Root `npm ci` installs the Review webview and verify toolchain (`package-lock.json`). `npm ci --prefix extension` installs `tsc` and `vsce` (`extension/package-lock.json`). Those lockfiles must match their `package.json` versions.
+
+`npm run package` writes `extension/graphide-<version>.vsix`. The archive holds compiled `out/extension.js`, `media/main.js`, `media/main.css`, `media/xyflow.css`, `media/icon.svg`, and `bin/graphide` (or `graphide.exe`) for this host. It does not hold TypeScript or `media/src/`. There is no Marketplace listing. Sideload the VSIX.
+
+`install.sh` and `install.ps1` run the same package path after `cargo build --release`. They copy the CLI to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`) and, when `cursor` or `code` is on PATH, install the VSIX. When neither editor CLI is present, they stop at the VSIX and print its path.
+
+Review does not need an LLM key or a bridge token. Connect LLM is optional.
+
 ## Already have the extension?
 
 Command Palette → **Graphide: Install (one click)**. Same build + copy on Windows, macOS, and Linux. If it asks for a folder, pick the **Graphide source repo** (this tree — has `crates/graphide-cli`), not the project you are reviewing.

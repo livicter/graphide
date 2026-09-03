@@ -12,9 +12,20 @@ From the **Graphide source repo** (the folder that contains `crates/graphide-cli
 | macOS | Double-click `install.command` or `bash install.sh` |
 | Ubuntu / Linux | `bash install.sh` (needs `build-essential`) |
 
-Or in **Cursor** or VS Code: **Graphide: Install (one click)** and pick that Graphide source folder if asked. Same VSIX (`engines.vscode` ^1.85.0). Installers try `cursor` first, then `code`.
+Or in **Cursor** or VS Code: **Graphide: Install (one click)** and pick that Graphide source folder if asked. Same VSIX (`engines.vscode` ^1.85.0). Installers try `cursor` first, then `code`. If neither CLI is on PATH, use **Extensions → … → Install from VSIX…** and pick `extension/graphide-*.vsix`.
 
-The CLI goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Language plugins ship inside that binary — `graphide plugins --check` after install. Review targets (`SolarSim`, etc.) only need **Review** — never `cargo build -p graphide-cli` inside them. No `graphide.cliPath` needed.
+From a clean checkout you can also package without an editor:
+
+```bash
+npm ci
+npm ci --prefix extension
+cargo build -p graphide-cli --release
+npm run package
+```
+
+The VSIX bundles the CLI built on this machine only. A Linux package does not include `graphide.exe`. There is no Marketplace listing.
+
+The CLI also goes to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`). Language plugins ship inside that binary — `graphide plugins --check` after install. Review targets (`SolarSim`, etc.) only need **Review** — never `cargo build -p graphide-cli` inside them. No `graphide.cliPath` needed. Review does not need an LLM key.
 
 ## After install
 
