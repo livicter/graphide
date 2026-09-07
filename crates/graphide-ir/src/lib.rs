@@ -327,13 +327,41 @@ pub enum DeltaStatus {
 }
 
 /// Archify-style classification. Graphide maps span/identity → semantic,
-/// hops → topology, file move → presentation. No blast-radius class.
+/// hops → topology, file move → presentation. Community facts sit beside
+/// those classes — they are sticky `BubbleId` identity, not a fourth
+/// Archify blast-radius class.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeltaClass {
     Semantic,
     Topology,
     Presentation,
+}
+
+/// Coarse-community outcome after [`sticky_match`] copies previous
+/// `BubbleId`s onto the head cut. Stable / split / merge / relabel are
+/// identity facts, not node `(kind, fqn)` pairing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClusterDeltaKind {
+    Stable,
+    Split,
+    Merge,
+    Relabel,
+    Added,
+    Removed,
+}
+
+/// One sticky-community fact. `bubble` is the matched `BubbleId` (head
+/// id after sticky match, or the unused parent id when removed).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClusterFact {
+    pub kind: ClusterDeltaKind,
+    pub bubble: BubbleId,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_label: Option<String>,
+    pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -360,6 +388,9 @@ pub struct DeltaFact {
 pub struct ArchitectureDelta {
     #[serde(default)]
     pub facts: Vec<DeltaFact>,
+    /// Coarse communities after sticky match. Empty when no parent cut.
+    #[serde(default)]
+    pub cluster_facts: Vec<ClusterFact>,
     #[serde(default)]
     pub added: u32,
     #[serde(default)]

@@ -243,8 +243,17 @@ DeltaFact {
   subject, fqn, from_fqn?, to_fqn?, edge_kind?, file?, detail
 }
 
+ClusterDeltaKind  Stable | Split | Merge | Relabel | Added | Removed
+
+ClusterFact {
+  kind: ClusterDeltaKind
+  bubble: BubbleId           // sticky id after member-overlap match
+  label, previous_label?, detail
+}
+
 ArchitectureDelta {
   facts: DeltaFact[]
+  cluster_facts: ClusterFact[]  // coarse communities; empty without a parent
   added, removed, changed, moved, rerouted: u32
   parent: Graph?             // Before reading; absent when no parent
 }
@@ -256,6 +265,8 @@ ArchitectureDelta {
 - **Moved** — same identity, `span.file` differs (`presentation`).
 - **Rerouted** — a hop kept `from`+kind (or `to`+kind) and changed the other
   end (`topology`).
+- **cluster_facts** — coarse `BubbleId` continuity after `sticky_match`
+  (stable / split / merge / relabel). Not authored component ids.
 
 Truth before spectacle: the list is exact facts. It does not infer blast
 radius, merge safety, or risk.

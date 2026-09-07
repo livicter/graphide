@@ -253,15 +253,19 @@ fn print_review(snap: &ReviewSnapshot) {
             println!("  uncovered {}", n.fqn);
         }
     }
-    if !snap.delta.facts.is_empty() {
+    if !snap.delta.facts.is_empty() || !snap.delta.cluster_facts.is_empty() {
         println!(
-            "delta {} added / {} removed / {} changed / {} moved / {} rerouted",
+            "delta {} added / {} removed / {} changed / {} moved / {} rerouted · {} communities",
             snap.delta.added,
             snap.delta.removed,
             snap.delta.changed,
             snap.delta.moved,
-            snap.delta.rerouted
+            snap.delta.rerouted,
+            snap.delta.cluster_facts.len()
         );
+        for f in &snap.delta.cluster_facts {
+            println!("  {:?} bubble {} {}", f.kind, f.bubble.0, f.label);
+        }
         for f in &snap.delta.facts {
             println!("  {:?} {} {}", f.status, f.subject, f.fqn);
         }

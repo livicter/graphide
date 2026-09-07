@@ -15,6 +15,9 @@ walks that list once and stops.
   (cap 24). Fact list `#deltaFacts .delta-fact` is still the walk.
 - Fact list `#deltaFacts .delta-fact` with `data-delta-kind` (`added` /
   `removed` / `changed` / `moved` / `rerouted`) and `data-fqn`.
+  Community rows from `delta.cluster_facts` sit first
+  (`data-delta-class="community"`, `data-bubble`) — see
+  [sticky-clusters.md](sticky-clusters.md).
 - Review strip `#deltaReview`: `#deltaOverview` · `#deltaPrev` · `#deltaPlay`
   (label Review) · `#deltaNext` · `#deltaStatus`.
 - Play (`#deltaPlay` / `P` on this workspace) walks facts finitely. At the

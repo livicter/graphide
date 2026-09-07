@@ -209,6 +209,7 @@ pub fn architecture_delta(
 
     let mut out = ArchitectureDelta {
         facts: facts.clone(),
+        cluster_facts: Vec::new(),
         added: 0,
         removed: 0,
         changed: 0,

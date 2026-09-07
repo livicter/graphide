@@ -108,6 +108,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Enter-bubble XYFlow from Map (`.bubble-card` → `#enterCanvas`)
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
+   - Sticky clusters on that same Delta snap: `#deltaFacts
+     .delta-fact[data-delta-kind="stable"][data-bubble]` (or
+     `relabel`); screenshot `verification/sticky-clusters.png`
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
    - Data-flow on `?dataflow=1&probe=0&require=1&ws=dataflow` using fixtures/demo
    - Lifecycle on `?lifecycle=1&probe=0&require=1&ws=lifecycle` using fixtures/demo
@@ -186,7 +189,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, **draft-hint**, and **cancel-review**.
+    **open-slice**, **draft-hint**, **sticky-clusters**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -199,6 +202,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `uncovered-node.png`,
     `open-slice.png`,
     `draft-hint.png`,
+    `sticky-clusters.png`,
     `cancel-review.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
@@ -252,6 +256,14 @@ Architecture Delta gate (fixtures/demo vs fixtures/demo-parent):
 - `delta.facts` is not empty; includes added `crate::bus::sneaky_helper`
 - Playwright paints `?delta=1&ws=delta` and screenshots `verification/delta.png`
 - Review walk is finite. Delta does not write `.graphide/stamps/`.
+
+Sticky clusters gate (same demo vs demo-parent Delta snap):
+
+- `delta.cluster_facts` is not empty; a coarse `BubbleId` is `stable`
+  or `relabel` after `sticky_match`
+- Playwright asserts `#deltaFacts .delta-fact[data-delta-kind][data-bubble]`
+  and screenshots `verification/sticky-clusters.png`
+- Map, if visited, stays `xy=0`. No stamp / skip.
 
 Sequence gate (fixtures/demo, same slice as `first_slice.rs`):
 
@@ -560,7 +572,7 @@ Draft hint gate (explorer Timeline Uncovered):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -637,6 +649,7 @@ same PR because the harness truly cannot hook existing ones.
 | Registry | `#workspaces [data-ws="registry"]`, `table.audit tbody tr` |
 | Timeline | `#workspaces [data-ws="timeline"]`, `.tl-item[data-t]`, `#tlScrub` |
 | Architecture Delta | `#workspaces [data-ws="delta"]`, `#deltaView [data-delta-view]`, `#deltaFacts .delta-fact`, `#deltaPlay`, `#deltaCanvas` |
+| Sticky clusters | `#deltaFacts .delta-fact[data-delta-class="community"]`, `[data-delta-kind="stable"]`, `[data-bubble]`, `.bubble-card[data-cluster]` |
 | Sequence | `#workspaces [data-ws="sequence"]`, `#seqParts .seq-part`, `#seqHops .seq-hop`, `#seqPlay`, `#seqCanvas`, `#seqCanvas .react-flow__node` |
 | Data-flow | `#workspaces [data-ws="dataflow"]`, `#dfStages .df-stage`, `#dfCanvas .df-node[data-df-role]`, `#dfHops .df-hop`, `#dfPlay` |
 | Lifecycle | `#workspaces [data-ws="lifecycle"]`, `#lcLanes .lc-lane`, `#lcCanvas .lc-state[data-lc-type]`, `#lcTrans .lc-trans`, `#lcPlay` |

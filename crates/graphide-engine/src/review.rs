@@ -1,4 +1,4 @@
-use crate::cluster::{cluster, cluster_with, sticky_match};
+use crate::cluster::{cluster, cluster_delta, cluster_with, sticky_match};
 use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::delta::architecture_delta;
 use crate::flowchart::build_flowchart;
@@ -189,11 +189,13 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         }),
     );
     let parent_linked = input.parent_extracts.as_ref().map(|e| link(e).0);
-    if let Some(prev) = &input.previous_bubbles {
+    let previous_bubbles = if let Some(prev) = input.previous_bubbles {
+        Some(prev)
+    } else {
+        parent_linked.as_ref().map(cluster)
+    };
+    if let Some(prev) = &previous_bubbles {
         sticky_match(prev, &mut bubbles);
-    } else if let Some(parent_graph) = &parent_linked {
-        let prev = cluster(parent_graph);
-        sticky_match(&prev, &mut bubbles);
     }
     opts.report(ProgressEvent::new(
         "cluster",
@@ -246,7 +248,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     };
 
     let cov = coverage(&changed, &flows);
-    let delta = if input.parent_extracts.is_some() {
+    let mut delta = if input.parent_extracts.is_some() {
         architecture_delta(
             &parent_graph,
             &graph,
@@ -256,6 +258,9 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     } else {
         graphide_ir::ArchitectureDelta::default()
     };
+    if let Some(prev) = &previous_bubbles {
+        delta.cluster_facts = cluster_delta(prev, &bubbles);
+    }
     for id in &cov.uncovered {
         if let Some(n) = graph.nodes.iter().find(|n| n.id == *id) {
             findings.push(Finding {

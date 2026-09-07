@@ -2093,6 +2093,9 @@ html.bright .route-hop {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 #deltaStatus { font-size: 11px; opacity: 0.72; min-width: 0; }
+.delta-fact[data-delta-class="community"] {
+  border-left: 2px solid var(--vscode-focusBorder);
+}
 .delta-canvas .steiner-wrap { position: relative; }
 .delta-fact .k { letter-spacing: 0.06em; text-transform: uppercase; }
 #deltaCanvas [data-delta-state="same"] { opacity: 0.38; }

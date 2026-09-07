@@ -23647,11 +23647,26 @@
         return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
       }).join("") + "</div></div>";
     }
+    function clusterFacts() {
+      return (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).map((c) => ({
+        status: c.kind,
+        class: "community",
+        subject: "community",
+        fqn: c.label || "",
+        bubble: c.bubble != null ? String(c.bubble) : "",
+        detail: c.detail || "",
+        previous_label: c.previous_label,
+        from_fqn: null,
+        to_fqn: null
+      }));
+    }
     function deltaFacts() {
-      const facts = (snapshot && snapshot.delta && snapshot.delta.facts || []).slice();
+      const facts = clusterFacts().concat((snapshot && snapshot.delta && snapshot.delta.facts || []).slice());
       if (!graphFilter.q) return facts;
       return facts.filter(
-        (f) => matchesExplorerQuery([f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn].join(" "))
+        (f) => matchesExplorerQuery(
+          [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+        )
       );
     }
     function deltaMarker(status2) {
@@ -23660,10 +23675,18 @@
       if (status2 === "changed") return "~";
       if (status2 === "moved") return "↔";
       if (status2 === "rerouted") return "↝";
+      if (status2 === "stable") return "=";
+      if (status2 === "split") return "∕";
+      if (status2 === "merge") return "∪";
+      if (status2 === "relabel") return "~";
       return "·";
     }
     function applyDeltaFactView(fact) {
       if (!fact) return;
+      if (fact.class === "community") {
+        deltaView = "delta";
+        return;
+      }
       if (fact.status === "added") deltaView = "after";
       else if (fact.status === "removed") deltaView = "before";
       else deltaView = "delta";
@@ -23776,6 +23799,7 @@
       }
       const want = /* @__PURE__ */ new Set();
       deltaFacts().forEach((f) => {
+        if (f.class === "community") return;
         if (f.from_fqn) want.add(f.from_fqn);
         if (f.to_fqn) want.add(f.to_fqn);
         if (f.fqn && !f.from_fqn) want.add(f.fqn);
@@ -23930,7 +23954,9 @@
       }).join("") + '<span class="outcome-k">' + (raw.added || 0) + " + · " + (raw.removed || 0) + " − · " + (raw.changed || 0) + " ~ · " + (raw.moved || 0) + " ↔ · " + (raw.rerouted || 0) + " ↝</span></div>";
       const review = '<div class="review-strip" id="deltaReview"><button type="button" class="review-step" id="deltaOverview">Overview</button><button type="button" class="review-step" id="deltaPrev">Previous</button><button type="button" class="review-step' + (deltaWalk.playing ? " on" : "") + '" id="deltaPlay" aria-pressed="' + (deltaWalk.playing ? "true" : "false") + '">Review</button><button type="button" class="review-step" id="deltaNext">Next</button><span id="deltaStatus">' + (hot ? deltaCursor + 1 + "/" + facts.length + " · " + deltaMarker(hot.status) + " " + (hot.fqn || "") : facts.length ? facts.length + " facts" : "identical pair") + "</span></div>";
       const list = facts.map((f, i) => {
-        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '" data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc((f.subject || "") + " · " + (f.fqn || "")) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
+        const community = f.class === "community";
+        const title = community ? "community · bubble " + (f.bubble || "?") + (f.fqn ? " · " + f.fqn : "") : (f.subject || "") + " · " + (f.fqn || "");
+        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (community ? " community" : "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '"' + (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") + ' data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc(title) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
       }).join("");
       return '<div class="delta-page">' + switcher + review + '<div class="ws-split"><div class="ws-list" id="deltaFacts">' + (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') + '</div><div class="ws-detail"><div class="k">' + esc(deltaView) + " · derived</div>" + renderDeltaCanvas2(deltaView, hot) + "</div></div></div>";
     }
@@ -25655,7 +25681,10 @@
         const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
         const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
         const here = graphFilter.bubble && idVal(id2) === idVal(graphFilter.bubble) ? " here" : "";
-        html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
+        const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
+          (c) => String(c.bubble) === String(id2)
+        );
+        html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
       }
       canvas.className = "play has-stage programs-view";
       canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + (pathIds.length ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter" : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
