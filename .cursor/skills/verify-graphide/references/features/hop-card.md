@@ -78,6 +78,7 @@ Do not post a fake hop message.
 
 - Slice CFG is XYFlow. Do not fail closed when `.edge-hit` is absent
   on `#sliceCanvas` — `#inspEdges .row` is the same `showHop` path.
+  Ignore leftover Map `.edge-hit` nodes that have a 0×0 box.
 - `showHop` then `selectNode(to)` rewrites `#srcTitle` to the **to**
   node. Click the **from** `#hopCard [data-id]` so the title changes.
 - `#hopCard` lives inside `#sourcePane` (`chrome/Workspace.jsx`).

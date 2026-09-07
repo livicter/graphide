@@ -4012,14 +4012,22 @@ async function main() {
       JSON.stringify(hopHits)
     );
     const hopOpen = await page.evaluate(() => {
-      const title0 = ((document.getElementById("srcTitle") || {}).textContent || "").trim();
-      const body0 = ((document.getElementById("srcBody") || {}).textContent || "").replace(/\s+/g, " ").trim();
-      const svg = document.querySelector(".edge-hit, text.ekind");
+      const visibleSvg = [...document.querySelectorAll(".edge-hit, text.ekind")].find((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
       const row = document.querySelector("#inspEdges .row[data-from][data-to]");
-      const hit = svg || row;
+      const hit = row || visibleSvg;
       let via = "";
-      if (svg) via = svg.classList && svg.classList.contains("ekind") ? "ekind" : svg.tagName === "text" ? "ekind" : "edge-hit";
-      else if (row) via = "inspEdges";
+      if (row) via = "inspEdges";
+      else if (visibleSvg) {
+        via =
+          visibleSvg.classList && visibleSvg.classList.contains("ekind")
+            ? "ekind"
+            : visibleSvg.tagName === "text"
+              ? "ekind"
+              : "edge-hit";
+      }
       if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       const hop = document.getElementById("hopCard");
       const ends = [...(hop ? hop.querySelectorAll("[data-id]") : [])].map((el) => ({
@@ -4027,13 +4035,15 @@ async function main() {
         text: (el.textContent || "").replace(/\s+/g, " ").trim(),
       }));
       const text = hop ? (hop.textContent || "").replace(/\s+/g, " ").trim() : "";
+      const titleAfter = ((document.getElementById("srcTitle") || {}).textContent || "").trim();
+      const bodyAfter = ((document.getElementById("srcBody") || {}).textContent || "").replace(/\s+/g, " ").trim();
       return {
         via,
         hopHidden: !hop || hop.hidden,
         hopText: text.slice(0, 180),
         ends,
-        title0,
-        body0: body0.slice(0, 120),
+        titleAfter,
+        bodyAfter: bodyAfter.slice(0, 120),
       };
     });
     record(
@@ -4051,11 +4061,24 @@ async function main() {
     const hopInspect = await page.evaluate((prev) => {
       const hop = document.getElementById("hopCard");
       const btns = [...(hop ? hop.querySelectorAll("[data-id]") : [])];
+      const currentId =
+        (document.querySelector("#ledgerGrid .cell.on") &&
+          document.querySelector("#ledgerGrid .cell.on").getAttribute("data-id")) ||
+        (document.querySelector(".vnode.selected, .vnode.on") &&
+          document.querySelector(".vnode.selected, .vnode.on").getAttribute("data-id")) ||
+        "";
       const pick =
         btns.find((el) => {
           const id = el.getAttribute("data-id") || "";
-          return id && prev.title0 && !prev.title0.includes(id);
+          const label = (el.textContent || "").replace(/\s+/g, " ").trim().split(" · ")[0];
+          return (
+            id &&
+            id !== currentId &&
+            (!prev.title0 || !label || !prev.title0.includes(label))
+          );
         }) ||
+        btns.find((el) => (el.getAttribute("data-id") || "") !== currentId) ||
+        btns[1] ||
         btns[0] ||
         null;
       if (pick) pick.click();
@@ -4064,6 +4087,7 @@ async function main() {
       const stillHop = document.getElementById("hopCard");
       return {
         clicked: pick ? pick.getAttribute("data-id") || "" : "",
+        currentId,
         title0: prev.title0,
         title1,
         body0: prev.body0,
@@ -4071,7 +4095,7 @@ async function main() {
         changed: title1 !== prev.title0 || body1 !== prev.body0,
         hopStill: !!(stillHop && !stillHop.hidden),
       };
-    }, { title0: hopOpen.title0, body0: hopOpen.body0 });
+    }, { title0: hopOpen.titleAfter, body0: hopOpen.bodyAfter });
     record(
       "HC2",
       "Hop-card end inspects that node (#srcTitle / #srcBody change)",
