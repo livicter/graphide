@@ -19,6 +19,8 @@ owns this folder.
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |
 | [route.md](route.md) | PATH probe | Sequence snap · `R` · `route.png` |
 | [lens.md](lens.md) | Role compare | Sequence snap · `L` · `lens.png` |
+| [ego.md](ego.md) | k-hop neighborhood | explorer enter / Slice · `ego.png` |
+| [search.md](search.md) | Find FQN / file / flow / hop | `#graphSearch` · `search.png` |
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |

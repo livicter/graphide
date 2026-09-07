@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1281,6 +1281,129 @@ async function main() {
     await page.evaluate(() => {
       const leaf =
         document.querySelector("#enterCanvas .vnode[data-leaf='1']") ||
+        document.querySelector("#enterCanvas .vnode[data-id]");
+      if (leaf) leaf.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "1";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      const btn = document.getElementById("egoBtn");
+      if (btn && !btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(280);
+    const egoEnter = await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      const hops = document.getElementById("egoHops");
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      return {
+        on: !!(btn && btn.classList.contains("on")),
+        hops: hops ? hops.value : "",
+        nodes: nodes.length,
+        ego: nodes.filter((el) => el.classList.contains("ego")).length,
+        dim: nodes.filter((el) => el.classList.contains("ego-dim")).length,
+        selected: nodes.filter((el) => el.classList.contains("selected")).length,
+        files: nodes.filter((el) => el.getAttribute("data-file")).length,
+      };
+    });
+    record(
+      "EG1",
+      "Ego toggle is on and hop depth is 1",
+      egoEnter.on && egoEnter.hops === "1",
+      JSON.stringify({ on: egoEnter.on, hops: egoEnter.hops })
+    );
+    record(
+      "EG2",
+      "Enter-bubble Ego lights neighbors (and dims non-neighbors when the cut has them)",
+      egoEnter.selected >= 1 && egoEnter.ego >= 1,
+      JSON.stringify(egoEnter)
+    );
+
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "2";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(280);
+    const egoEnter2 = await page.evaluate(() => ({
+      dim: document.querySelectorAll("#enterCanvas .vnode.ego-dim").length,
+      ego: document.querySelectorAll("#enterCanvas .vnode.ego").length,
+      hops: ((document.getElementById("egoHops") || {}).value || ""),
+    }));
+    record(
+      "EG3",
+      "2-hop Ego keeps a wider neighborhood than 1-hop on enter-bubble",
+      egoEnter2.hops === "2" && egoEnter2.dim <= egoEnter.dim,
+      "1-hop dim=" + egoEnter.dim + " 2-hop dim=" + egoEnter2.dim
+    );
+    await shot(page, "ego.png");
+
+    await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      if (btn && btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(200);
+    const egoOff = await page.evaluate(() => ({
+      on: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+      dim: document.querySelectorAll("#enterCanvas .vnode.ego-dim, #sliceCanvas .vnode.ego-dim").length,
+    }));
+    record("EG4", "Ego off removes neighborhood dim", !egoOff.on && egoOff.dim === 0, JSON.stringify(egoOff));
+
+    const searchQ = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const fqns = nodes.map((el) => el.getAttribute("data-fqn") || "");
+      for (const f of fqns) {
+        const tok = (f.split("::").pop() || f).replace(/[^A-Za-z0-9_]/g, "");
+        if (tok.length < 3) continue;
+        const hits = fqns.filter((x) => x.toLowerCase().includes(tok.toLowerCase())).length;
+        if (hits >= 1 && hits < fqns.length) return tok;
+      }
+      for (const el of nodes) {
+        const file = el.getAttribute("data-file") || "";
+        const tok = (file.split("/").pop() || "").replace(/\.[^.]+$/, "");
+        if (tok.length < 3) continue;
+        const hits = nodes.filter((n) => {
+          const hay = ((n.getAttribute("data-fqn") || "") + " " + (n.getAttribute("data-file") || "")).toLowerCase();
+          return hay.includes(tok.toLowerCase());
+        }).length;
+        if (hits >= 1 && hits < nodes.length) return tok;
+      }
+      return "zzzz-no-such-symbol";
+    });
+    await page.fill("#graphSearch", searchQ);
+    await page.waitForTimeout(280);
+    const searchEnter = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        nodes: nodes.length,
+        dim: nodes.filter((el) => el.classList.contains("dim")).length,
+        hit: nodes.filter((el) => el.classList.contains("hit")).length,
+        files: nodes.filter((el) => el.getAttribute("data-file")).length,
+      };
+    });
+    record(
+      "SG2",
+      "Find filters enter-bubble XYFlow nodes (FQN / file)",
+      searchEnter.q === searchQ && searchEnter.dim >= 1 && (searchEnter.hit >= 1 || searchQ === "zzzz-no-such-symbol"),
+      JSON.stringify({ q: searchQ, ...searchEnter })
+    );
+    await shot(page, "search.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
+    await page.evaluate(() => {
+      const leaf =
+        document.querySelector("#enterCanvas .vnode[data-leaf='1']") ||
         document.querySelector("#enterCanvas .react-flow__node");
       if (leaf) leaf.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -1327,6 +1450,86 @@ async function main() {
       "Back from enter-bubble returns to Map community LOD (xy=0)",
       afterEnter.cards >= 8 && afterEnter.xy === 0 && afterEnter.enter === 0,
       "cards=" + afterEnter.cards + " xy=" + afterEnter.xy
+    );
+
+    await page.fill("#graphSearch", "render");
+    await page.waitForTimeout(200);
+    const searchMap = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+      cards: document.querySelectorAll(".bubble-card").length,
+      dim: document.querySelectorAll(".bubble-card.dim").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "SG1",
+      "Find dims non-matching Map community cards (xy stays 0)",
+      searchMap.q === "render" && searchMap.dim >= 1 && searchMap.cards >= 8 && searchMap.xy === 0,
+      JSON.stringify(searchMap)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const node = document.querySelector("#sliceCanvas .vnode[data-id]");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForTimeout(180);
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "1";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      const btn = document.getElementById("egoBtn");
+      if (btn && !btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(280);
+    const egoSlice1 = await page.evaluate(() => ({
+      dim: document.querySelectorAll("#sliceCanvas .vnode.ego-dim").length,
+      ego: document.querySelectorAll("#sliceCanvas .vnode.ego").length,
+      selected: document.querySelectorAll("#sliceCanvas .vnode.selected").length,
+    }));
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "2";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(280);
+    const egoSlice2 = await page.evaluate(() => ({
+      dim: document.querySelectorAll("#sliceCanvas .vnode.ego-dim").length,
+      ego: document.querySelectorAll("#sliceCanvas .vnode.ego").length,
+    }));
+    record(
+      "EG3b",
+      "Slice Ego dims non-neighbors; 2-hop is at least as wide as 1-hop",
+      egoSlice1.selected >= 1 && egoSlice1.ego >= 1 && egoSlice1.dim >= 1 && egoSlice2.dim <= egoSlice1.dim,
+      "1-hop=" + JSON.stringify(egoSlice1) + " 2-hop=" + JSON.stringify(egoSlice2)
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      if (btn && btn.classList.contains("on")) btn.click();
+    });
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterEgo = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "EG7",
+      "Map altitude is still community LOD after Ego / Find (xy=0)",
+      afterEgo.cards >= 8 && afterEgo.xy === 0,
+      "cards=" + afterEgo.cards + " xy=" + afterEgo.xy
     );
     const stampDirEnter = path.join(ROOT, ".graphide", "stamps");
     const wroteStampEnter = fs.existsSync(stampDirEnter) && fs.readdirSync(stampDirEnter).length > 0;
@@ -2726,6 +2929,91 @@ async function main() {
       "up=" + lineageDesk.up + " down=" + lineageDesk.down + " via=" + pickBothSides.via + " fqn=" + lineageDesk.fqn
     );
 
+    const lineageEgo1 = await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      const hops = document.getElementById("egoHops");
+      if (hops && hops.value !== "1") {
+        hops.value = "1";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      if (btn && !btn.classList.contains("on")) btn.click();
+      return {
+        on: !!(btn && (btn.classList.contains("on") || true)),
+        hops: hops ? hops.value : "",
+      };
+    });
+    await page.waitForTimeout(280);
+    const lineageHop1 = await page.evaluate(() => ({
+      on: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+      hops: ((document.getElementById("egoHops") || {}).value || ""),
+      xy: document.querySelectorAll("#lineageCanvas .react-flow__node").length,
+      ego: document.querySelectorAll("#lineageCanvas .vnode.ego, #lineageCanvas .ego-node.ego").length,
+      focus: document.querySelectorAll('#lineageCanvas .ego-node[data-side="focus"]').length,
+    }));
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "2";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(280);
+    const lineageHop2 = await page.evaluate(() => ({
+      hops: ((document.getElementById("egoHops") || {}).value || ""),
+      xy: document.querySelectorAll("#lineageCanvas .react-flow__node").length,
+      ego: document.querySelectorAll("#lineageCanvas .vnode.ego, #lineageCanvas .ego-node.ego").length,
+    }));
+    record(
+      "EG5",
+      "Lineage Ego stays on; 2-hop walk is at least as wide as 1-hop",
+      lineageHop1.on && lineageHop1.focus >= 1 && lineageHop1.ego >= 1 && lineageHop2.hops === "2" && lineageHop2.xy >= lineageHop1.xy,
+      "1-hop=" + JSON.stringify(lineageHop1) + " 2-hop=" + JSON.stringify(lineageHop2) + " seed=" + JSON.stringify(lineageEgo1)
+    );
+    await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "1";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(200);
+
+    const lineageSearchQ = await page.evaluate(() => {
+      const rec = window.__graphideLineage || {};
+      const fqn = rec.fqn || "";
+      const tok = (fqn.split("::").pop() || fqn).replace(/[^A-Za-z0-9_]/g, "");
+      if (tok.length >= 3) return tok;
+      const hop = document.querySelector("#lineageHops .expl-card.hop .t");
+      const ht = ((hop && hop.textContent) || "").trim();
+      return ht || "encode";
+    });
+    const lineageHopsBefore = await page.evaluate(() => document.querySelectorAll("#lineageHops .expl-card.hop").length);
+    await page.fill("#graphSearch", lineageSearchQ);
+    await page.waitForTimeout(280);
+    const lineageSearch = await page.evaluate(() => {
+      const hops = document.querySelectorAll("#lineageHops .expl-card.hop").length;
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-id]")];
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hops,
+        dim: nodes.filter((el) => el.classList.contains("dim")).length,
+        hit: nodes.filter((el) => el.classList.contains("hit")).length,
+        nodes: nodes.length,
+      };
+    });
+    record(
+      "SG3",
+      "Find filters Lineage hops / nodes",
+      lineageSearch.q === lineageSearchQ && (lineageSearch.hops < lineageHopsBefore || lineageSearch.dim >= 1 || lineageSearch.hit >= 1),
+      JSON.stringify({ q: lineageSearchQ, before: lineageHopsBefore, ...lineageSearch })
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     await page.click('#workspaces [data-ws="dataflow"]');
     await page.waitForSelector("#dfCanvas .df-node, #dfHops .df-hop", { timeout: 10000 });
     await page.evaluate(() => {
@@ -3024,7 +3312,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
