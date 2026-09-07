@@ -104,6 +104,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
 12. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
    drives seven desks plus Export, Presentation, Style, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
+   - Overview / Decisions / Registry / Timeline lists on that explorer desk
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
@@ -116,9 +117,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Route / Lens on the Sequence demo snap: `R` lights a derived path,
      `L` highlights Function / Endpoint
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
-    self-review**, **delta**, **sequence**, **dataflow**, **lifecycle**,
+    overview**, **decisions**, **registry**, **timeline**, **self-review**,
+    **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, and **lens**. `verification/`
-    holds screenshots plus `report.md`, including `self-review.png`,
+    holds screenshots plus `report.md`, including `overview.png`,
+    `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
     `lineage.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
@@ -140,6 +143,18 @@ PR #45 regressions that must fail CI (explorer chrome, 17/17):
   community cards (`.bubble-card`), not a lone START / fallback program card.
 - **Evidence stays off the object rail.** `#sourcePane` clips (`overflow: hidden`,
   `max-width ≤ 380px`) and must not overlap `#ledgerPane`.
+
+Explorer list workspaces (same `?mode=explorer` desk; not XYFlow canvases):
+
+- **Overview** lands first. Default-run `#sliceCanvas` still has shaped
+  XYFlow nodes. Open map / program chips when the product shows them.
+  Screenshot `verification/overview.png`. No stamps written.
+- **Decisions** lists fixture stamps / skips / broken attestations (or the
+  honest empty). Stamp / Skip stay host-only. Screenshot `decisions.png`.
+- **Registry** `table.audit` rows match the snap (nodes / edges / files /
+  plugin). Screenshot `registry.png`.
+- **Timeline** rail shows parent cut / uncovered / stamp scars from the
+  snap. Screenshot `timeline.png`.
 
 Self-review gate (this checkout, not the fixture):
 
@@ -206,7 +221,7 @@ Route / Lens gate (fixtures/demo Sequence snap):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, and Lens steps do not stamp.
+approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, and Lens steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -278,6 +293,10 @@ same PR because the harness truly cannot hook existing ones.
 | Surface | Hook |
 | --- | --- |
 | Workspaces | `#workspaces [data-ws="map"]` (also slice, lineage, decisions, registry, overview, timeline, delta, sequence, dataflow, lifecycle) |
+| Overview | `#workspaces [data-ws="overview"]`, `#sliceCanvas .react-flow__node`, `.stat-strip [data-ws="map"]`, `#legend [data-prog]` |
+| Decisions | `#workspaces [data-ws="decisions"]`, `.expl-card[data-decision]`, `.outcome-strip`, `#stampBtn` / `#skipBtn` |
+| Registry | `#workspaces [data-ws="registry"]`, `table.audit tbody tr` |
+| Timeline | `#workspaces [data-ws="timeline"]`, `.tl-item[data-t]`, `#tlScrub` |
 | Architecture Delta | `#workspaces [data-ws="delta"]`, `#deltaView [data-delta-view]`, `#deltaFacts .delta-fact`, `#deltaPlay`, `#deltaCanvas` |
 | Sequence | `#workspaces [data-ws="sequence"]`, `#seqParts .seq-part`, `#seqHops .seq-hop`, `#seqPlay`, `#seqCanvas`, `#seqCanvas .react-flow__node` |
 | Data-flow | `#workspaces [data-ws="dataflow"]`, `#dfStages .df-stage`, `#dfCanvas .df-node[data-df-role]`, `#dfHops .df-hop`, `#dfPlay` |

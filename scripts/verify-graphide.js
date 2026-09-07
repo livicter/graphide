@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -721,7 +721,248 @@ async function main() {
     record("H2", "desk mode is on after synthetic programs", host.desk && host.bright, JSON.stringify(host));
 
     await page.waitForTimeout(400);
+    await page.waitForSelector('#workspaces [data-ws="overview"].on, #workspaces [data-ws="overview"]', {
+      timeout: 8000,
+    });
+    const landingWs = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return on ? on.getAttribute("data-ws") : "";
+    });
+    if (landingWs !== "overview") {
+      await page.click('#workspaces [data-ws="overview"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#sliceCanvas, .stage, .empty", { timeout: 10000 });
+    await page
+      .waitForSelector("#sliceCanvas .react-flow__node, #sliceCanvas .vnode", { timeout: 10000 })
+      .catch(() => {});
+
+    const overviewDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const title = ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim();
+      const openMap = document.querySelector('.crumb-btn[data-ws="map"], .stat-strip [data-ws="map"]');
+      const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) =>
+        (el.textContent || "").replace(/\s+/g, " ").trim()
+      );
+      const nodes = [...document.querySelectorAll("#sliceCanvas .react-flow__node, #sliceCanvas .vnode[data-id]")];
+      const shapes = [...document.querySelectorAll("#sliceCanvas .vnode[data-shape]")].map((el) =>
+        el.getAttribute("data-shape")
+      );
+      const empty = ((document.querySelector("#canvas .empty") || {}).textContent || "").trim();
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        title,
+        stage: !!document.querySelector("#canvas .stage"),
+        slice: !!document.getElementById("sliceCanvas"),
+        xy: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        xyFlow: !!document.querySelector("#sliceCanvas .react-flow"),
+        vnodes: nodes.length,
+        shapes: [...new Set(shapes)],
+        shaped: shapes.length,
+        openMap: !!(openMap && /open map/i.test(openMap.textContent || "")),
+        chips,
+        empty,
+        featurePath: !!document.querySelector(".feature-path"),
+      };
+    });
+    record("OV1", "Overview workspace is active on first paint", overviewDesk.ws === "overview", overviewDesk.ws);
+    record(
+      "OV2",
+      "Overview shows the default-run / control-flow stage",
+      overviewDesk.stage &&
+        overviewDesk.slice &&
+        /default run|control-flow/i.test(overviewDesk.title) &&
+        !/no control-flow yet/i.test(overviewDesk.empty),
+      overviewDesk.title || overviewDesk.empty
+    );
+    record(
+      "OV3",
+      "Overview CFG still mounts shaped XYFlow nodes (not a raw-IR dump)",
+      overviewDesk.xyFlow && overviewDesk.xy > 1 && overviewDesk.xy <= 48 && overviewDesk.shaped > 1,
+      "xy=" + overviewDesk.xy + " shaped=" + overviewDesk.shaped + " shapes=" + overviewDesk.shapes.join(",")
+    );
+    record(
+      "OV4",
+      "Overview shows Open map and program chips when the product has them",
+      overviewDesk.openMap && overviewDesk.chips.some((t) => /bin\s+main/i.test(t)),
+      "openMap=" + overviewDesk.openMap + " chips=" + overviewDesk.chips.slice(0, 4).join(",")
+    );
     await shot(page, "overview.png");
+    const stampDirOv = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampOv = fs.existsSync(stampDirOv) && fs.readdirSync(stampDirOv).length > 0;
+    record(
+      "OV5",
+      "Overview step did not write .graphide/stamps/",
+      !wroteStampOv,
+      wroteStampOv ? fs.readdirSync(stampDirOv).join(",") : "absent"
+    );
+
+    await page.click('#workspaces [data-ws="decisions"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "decisions";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#canvas .expl-card[data-decision], #canvas .empty", { timeout: 8000 });
+    const decisionsDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision]")];
+      const empty = ((document.querySelector("#canvas .empty") || {}).textContent || "").trim();
+      const text = cards.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()).join(" | ");
+      const stamp = document.getElementById("stampBtn");
+      const skip = document.getElementById("skipBtn");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        cards: cards.length,
+        text,
+        empty,
+        honestEmpty: /no stamps, skips, or stamp scars yet/i.test(empty),
+        boot: /boot/i.test(text),
+        broken: /broken|no longer matches/i.test(text),
+        skipped: /legacy|skipped/i.test(text),
+        stampEnabled: !!(stamp && !stamp.disabled),
+        skipEnabled: !!(skip && !skip.disabled),
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        strip: !!document.querySelector(".outcome-strip"),
+      };
+    });
+    record("DC1", "Decisions workspace is active", decisionsDesk.ws === "decisions", decisionsDesk.ws);
+    record(
+      "DC2",
+      "Decisions lists stamps / skips / broken attestations (or honest empty)",
+      (decisionsDesk.cards >= 1 && decisionsDesk.boot && decisionsDesk.broken && decisionsDesk.skipped) ||
+        decisionsDesk.honestEmpty,
+      decisionsDesk.cards
+        ? "cards=" + decisionsDesk.cards + " " + decisionsDesk.text.slice(0, 160)
+        : decisionsDesk.empty
+    );
+    record(
+      "DC3",
+      "Decisions keeps Stamp/Skip host-only (enabled, no XYFlow list)",
+      decisionsDesk.stampEnabled && decisionsDesk.skipEnabled && decisionsDesk.xy === 0 && decisionsDesk.strip,
+      JSON.stringify({
+        stamp: decisionsDesk.stampEnabled,
+        skip: decisionsDesk.skipEnabled,
+        xy: decisionsDesk.xy,
+        strip: decisionsDesk.strip,
+      })
+    );
+    await shot(page, "decisions.png");
+    const stampDirDc = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampDc = fs.existsSync(stampDirDc) && fs.readdirSync(stampDirDc).length > 0;
+    record(
+      "DC4",
+      "Decisions step did not write .graphide/stamps/",
+      !wroteStampDc,
+      wroteStampDc ? fs.readdirSync(stampDirDc).join(",") : "absent"
+    );
+
+    await page.click('#workspaces [data-ws="registry"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "registry";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("table.audit tbody tr, #canvas .empty", { timeout: 8000 });
+    const registryDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const rows = [...document.querySelectorAll("table.audit tbody tr")];
+      const first = ((rows[0] && rows[0].textContent) || "").replace(/\s+/g, " ").trim();
+      const m = first.match(/(\d+)\s+nodes\s+·\s+(\d+)\s+edges\s+·\s+(\d+)\s+files/i);
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        rows: rows.length,
+        first,
+        nodes: m ? Number(m[1]) : 0,
+        edges: m ? Number(m[2]) : 0,
+        files: m ? Number(m[3]) : 0,
+        plugin: /rust@/i.test(first),
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
+      };
+    });
+    record("RG1", "Registry workspace is active", registryDesk.ws === "registry", registryDesk.ws);
+    record(
+      "RG2",
+      "Registry audit rows come from the snapshot (nodes / edges / files / plugin)",
+      registryDesk.rows >= 1 &&
+        registryDesk.nodes === SYNTHETIC_NODES &&
+        registryDesk.edges > 0 &&
+        registryDesk.files === 136 &&
+        registryDesk.plugin &&
+        registryDesk.xy === 0,
+      "rows=" +
+        registryDesk.rows +
+        " " +
+        registryDesk.first.slice(0, 160) +
+        " xy=" +
+        registryDesk.xy
+    );
+    await shot(page, "registry.png");
+    const stampDirRg = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampRg = fs.existsSync(stampDirRg) && fs.readdirSync(stampDirRg).length > 0;
+    record(
+      "RG3",
+      "Registry step did not write .graphide/stamps/",
+      !wroteStampRg,
+      wroteStampRg ? fs.readdirSync(stampDirRg).join(",") : "absent"
+    );
+
+    await page.click('#workspaces [data-ws="timeline"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "timeline";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#canvas .tl-item, #canvas .empty", { timeout: 8000 });
+    const timelineDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const items = [...document.querySelectorAll("#canvas .tl-item")];
+      const text = items.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()).join(" | ");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        items: items.length,
+        text,
+        parent: items.some((el) => /parent cut/i.test(el.textContent || "")),
+        coverage: items.some((el) => /uncovered/i.test(el.textContent || "")),
+        scars: /boot|legacy|broken|skipped/i.test(text),
+        scrub: !!document.getElementById("tlScrub"),
+        now: document.querySelectorAll("#canvas .tl-item.now").length,
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
+      };
+    });
+    record("TL1", "Timeline workspace is active", timelineDesk.ws === "timeline", timelineDesk.ws);
+    record(
+      "TL2",
+      "Timeline shows parent cut / coverage / stamp scars from the snapshot",
+      timelineDesk.items >= 2 &&
+        timelineDesk.parent &&
+        timelineDesk.coverage &&
+        timelineDesk.scars &&
+        timelineDesk.scrub &&
+        timelineDesk.now === 1 &&
+        timelineDesk.xy === 0,
+      "items=" + timelineDesk.items + " " + timelineDesk.text.slice(0, 180)
+    );
+    await shot(page, "timeline.png");
+    const stampDirTl = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampTl = fs.existsSync(stampDirTl) && fs.readdirSync(stampDirTl).length > 0;
+    record(
+      "TL3",
+      "Timeline step did not write .graphide/stamps/",
+      !wroteStampTl,
+      wroteStampTl ? fs.readdirSync(stampDirTl).join(",") : "absent"
+    );
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
@@ -1493,6 +1734,17 @@ async function main() {
       "self-review chrome shows this checkout's graph counts",
       statusHits || /node/i.test(liveHost.status),
       liveHost.status.slice(0, 160)
+    );
+
+    const liveLanding = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return on ? on.getAttribute("data-ws") : "";
+    });
+    record(
+      "R3b",
+      "self-review lands on Overview when a default run exists",
+      liveLanding === "overview",
+      liveLanding
     );
 
     await page.click('#workspaces [data-ws="map"]');
@@ -2630,7 +2882,7 @@ async function main() {
   finish(
     "Harness `" +
       HARNESS +
-      "` (chrome 17) then `" +
+      "` (chrome 17 + Overview / Decisions / Registry / Timeline) then `" +
       LIVE_HARNESS +
       "` (self-review of this checkout) then `" +
       DELTA_HARNESS +
@@ -2649,7 +2901,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
