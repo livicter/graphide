@@ -136,18 +136,23 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#inspMeta` mark is `uncovered` or `changed` (not only `—`)
    - Fit / Reorganize: explorer Map `#zoomFit` (`0`) and `#reorgBtn`;
      Map stays `xy=0` with more than one card visible; no stamp posts
+   - Progress: explorer desk posts synthetic `{ type: "progress" }`;
+     `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
+     label update; `verification/progress.png` while the strip is on
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
-    **path-walk**, **appearance**, **coverage-mark**, and **fit-reorg**.
+    **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
+    and **progress**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
     `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
     `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
-    `coverage-mark.png`, `fit-reorg.png`, `export-share.png` (1200×630),
+    `coverage-mark.png`, `fit-reorg.png`, `progress.png`,
+    `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
     on the bright desk; Night is dark vs day `map.png`, not a flat black
@@ -323,10 +328,25 @@ Fit / Reorganize gate (explorer Map):
 - Fit / Reorganize do not write `.graphide/stamps/` and do not invent
   nodes. `R` stays PATH
 
+Progress strip gate (explorer desk, synthetic host message):
+
+- After the desk is up, `window.postMessage({ type: "progress", ... })`
+  matching `showProgress` (`phase`, `label`, `done`, `total`, `pct`,
+  `elapsed_ms`)
+- `#progress` has `.on`. A `#phases li[data-phase]` is `.on`; earlier
+  phases are `.done`
+- `#progressFill` width, `#progressPct`, and `#progressLabel` update
+- Playwright screenshots `verification/progress.png` while the strip is
+  visible (not a black frame)
+- `{ type: "cancelled" }` or a programs / flowchart post hides the strip
+  and restores the desk
+- Progress does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive is on Map
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, and Fit / Reorganize steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, and Progress steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -425,6 +445,7 @@ same PR because the harness truly cannot hook existing ones.
 | Path walk | `#pathWalkBtn`, `#pathWalkPrev`, `#pathWalkNext`, `.feat-chip`, `.walk` / `.here`, `P` / `[` / `]` |
 | Appearance | `#themeSeg`, `#themeDay`, `#themeNight`, `html.night` / `body.night`, `.on`, `D` |
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
+| Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
