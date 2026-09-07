@@ -119,14 +119,17 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `L` highlights Function / Endpoint
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); Map altitude stays `xy=0`
+   - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
+     `#graphSearch` dims cards and XYFlow nodes
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
-    **lineage**, **export**, **present**, **preset**, **route**, **lens**, and **enter-bubble**. `verification/`
+    **lineage**, **export**, **present**, **preset**, **route**, **lens**,
+    **enter-bubble**, **ego**, and **search**. `verification/`
     holds screenshots plus `report.md`, including `overview.png`,
     `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
-    `lineage.png`, `enter-bubble.png`,
+    `lineage.png`, `enter-bubble.png`, `ego.png`, `search.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
@@ -223,10 +226,18 @@ Route / Lens gate (fixtures/demo Sequence snap):
 - Playwright screenshots `verification/route.png` and `verification/lens.png`
 - Route / Lens do not write `.graphide/stamps/`
 
+Ego / Find gate (explorer enter / Slice + demo Lineage):
+
+- `#egoBtn` toggles; `#egoHops` 1 vs 2 on a selected node
+- neighbors get `.ego`; non-neighbors get `.ego-dim` on enter or Slice
+- `#graphSearch` dims Map `.bubble-card` and enter / Lineage `.vnode`
+- Playwright screenshots `verification/ego.png` and `verification/search.png`
+- Map altitude stays `xy=0`. Ego / Find do not write `.graphide/stamps/`
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, and Enter-bubble steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, and Find steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -317,6 +328,8 @@ same PR because the harness truly cannot hook existing ones.
 | Presentation / Style | `#presentBtn`, `#presetBtn`, `body.present`, `html[data-preset]`, `?present=1`, `?preset=` |
 | Route | `#pathBtn`, `#routeReceipt`, `#routeHops .route-hop`, `.on-route`, `window.__graphideRoute` |
 | Lens | `#lensBtn`, `#lensReceipt`, `#lensCompare`, `[data-lens-role]`, `.lens-on`, `window.__graphideLens` |
+| Ego | `#egoBtn`, `#egoHops`, `.ego`, `.ego-dim`, `data-dist` |
+| Find | `#graphSearch`, `graphFilter.q`, `.dim`, `.hit`, `matchesExplorerQuery` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

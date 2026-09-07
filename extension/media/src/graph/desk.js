@@ -591,8 +591,11 @@ if (egoHopsEl)
   egoHopsEl.addEventListener("change", () => {
     const n = parseInt(egoHopsEl.value, 10);
     egoHops = n === 2 ? 2 : 1;
+    if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
+      paint({ animate: "none" });
+      return;
+    }
     applyEgoPaint();
-    if (explorerWs === "lineage") paint({ animate: "none" });
   });
 if (stampBtn) stampBtn.onclick = () => requestStamp();
 if (skipBtn) skipBtn.onclick = () => requestSkip();
@@ -1636,12 +1639,16 @@ function setEgoMode(on) {
     const wrap = egoHopsEl.closest(".ego-hops");
     if (wrap) wrap.hidden = !egoMode;
   }
+  if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
+    paint({ animate: "none" });
+    return;
+  }
   applyEgoPaint();
 }
 
 function refreshExplorer() {
   if (!snapshot) return;
-  if (isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview") {
+  if (isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
     paint({ animate: "none" });
     return;
   }
@@ -3896,6 +3903,42 @@ function applyEgoPaint() {
     el.classList.toggle("ego-dim", !!(egoMode && sid && !incident && !onPath));
   });
   applyProbePaint();
+}
+
+function hopKindsOf(id) {
+  return incidentEdges(id)
+    .map((e) => e.kind)
+    .filter(Boolean)
+    .join(" ");
+}
+
+function graphNodePaint(id, extra) {
+  extra = extra || {};
+  const nid = String(idVal(id));
+  const sid = selectedNodeId ? String(selectedNodeId) : "";
+  const neighbors = sid ? neighborhood(sid, egoHops) : new Set();
+  const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
+  const onEgo = neighbors.has(nid);
+  const onPath = path.indexOf(nid) >= 0;
+  const node = nodeById.get(nid);
+  const file = extra.file != null ? extra.file : (node && node.span && node.span.file) || "";
+  const fqn = extra.fqn != null ? extra.fqn : (node && node.fqn) || "";
+  const kind = extra.kind != null ? extra.kind : (node && node.kind) || "";
+  const flow = extra.flow || "";
+  const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
+  const match =
+    graphFilter.kinds[kind] !== false &&
+    matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+  return {
+    file,
+    hops,
+    dim: !match,
+    hit: !!(graphFilter.q && match),
+    selected: nid === sid,
+    ego: onEgo,
+    egoDim: !!(egoMode && sid && !onEgo && !onPath),
+    dist: sid ? hopDistance(sid, nid) : undefined,
+  };
 }
 
 function isRouteKind(kind) {
@@ -7095,7 +7138,7 @@ function lineageCanvasProps(reading, focusId) {
       focus: n.side === "focus",
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
-      selected: selectedNodeId === nid || nid === focusId,
+      ...graphNodePaint(nid, { fqn, kind }),
     };
   });
   return {
@@ -7173,7 +7216,15 @@ function renderLineage() {
 
   if (lineageHopCursor >= hops.length) lineageHopCursor = hops.length ? hops.length - 1 : -1;
 
-  const hopCards = hops.slice(0, 24).map((e, i) => {
+  const hopCards = hops
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) =>
+      matchesExplorerQuery(
+        [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
+      )
+    )
+    .slice(0, 24)
+    .map(({ e, i }) => {
     return (
       '<button type="button" class="expl-card hop' +
       (i === lineageHopCursor ? " on" : "") +
@@ -7323,6 +7374,7 @@ function renderLineage() {
   renderLedger(focusNodes, { selected: id });
   setLedgerHead("EGO");
   applyEgoPaint();
+  applyGraphFilter();
   if (id) peekSource(id);
   const upN = reading.nodes.filter((n) => n.side === "up").length;
   const downN = reading.nodes.filter((n) => n.side === "down").length;
@@ -7733,20 +7785,27 @@ function highlightCommunity(id) {
 }
 
 function applyGraphFilter() {
-  const q = (graphFilter.q || "").toLowerCase();
-  canvas.querySelectorAll(".comm-node, .vnode").forEach((el) => {
-    const fqn = (el.getAttribute("data-fqn") || "").toLowerCase();
-    const file = (el.getAttribute("data-file") || "").toLowerCase();
+  canvas.querySelectorAll(".comm-node, .vnode, .ego-node").forEach((el) => {
     const kind = el.getAttribute("data-kind") || "";
-    const match = (!q || fqn.includes(q) || file.includes(q)) && graphFilter.kinds[kind] !== false;
+    const match =
+      graphFilter.kinds[kind] !== false &&
+      matchesExplorerQuery(
+        [
+          el.getAttribute("data-fqn") || "",
+          el.getAttribute("data-file") || "",
+          el.getAttribute("data-flow") || "",
+          el.getAttribute("data-kind") || "",
+          el.getAttribute("data-hops") || "",
+        ].join(" ")
+      );
     el.classList.toggle("dim", !match);
-    el.classList.toggle("hit", !!(q && match));
+    el.classList.toggle("hit", !!(graphFilter.q && match));
   });
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
-    const name = ((el.querySelector(".name") && el.querySelector(".name").textContent) || "").toLowerCase();
-    const match = !q || name.includes(q);
+    const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
+    const match = matchesExplorerQuery(name);
     el.classList.toggle("dim", !match);
-    el.classList.toggle("hit", !!(q && match));
+    el.classList.toggle("hit", !!(graphFilter.q && match));
   });
 }
 
@@ -7965,8 +8024,9 @@ function sliceCanvasProps(flow, graph, scars) {
       away: nodeAway(nid),
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
-      selected: selectedNodeId === nid,
       depth: at < 0 ? 0 : at,
+      flow: flow && flow.name ? flow.name : "",
+      ...graphNodePaint(nid, { fqn, kind, file, flow: flow && flow.name ? flow.name : "" }),
     };
   });
   const idSet = new Set(items.map((n) => n.id));
@@ -8169,21 +8229,25 @@ function enterCanvasProps(inner) {
   const items = nodes.map((n) => {
     const nid = String(idVal(n.id));
     const flags = nodeFlags(nid);
+    const kind = n.kind || "Function";
+    const fqn = n.fqn || "";
+    const node = nodeById.get(nid);
+    const file = node && node.span ? node.span.file : "";
     return {
       id: nid,
-      fqn: n.fqn || "",
-      kind: n.kind || "Function",
-      kindClass: kindClass(n.kind || "Function"),
+      fqn,
+      kind,
+      kindClass: kindClass(kind),
       label: shortOf(n.fqn),
-      kindLine: n.is_leaf ? n.kind || "Function" : "bubble",
+      kindLine: n.is_leaf ? kind : "bubble",
       lit: !!n.lit,
       grey: !n.lit,
       isLeaf: !!n.is_leaf,
       flow: inner.flow,
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
-      selected: selectedNodeId === nid,
       surface: "enter-node",
+      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
     };
   });
   const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));

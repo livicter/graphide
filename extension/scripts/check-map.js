@@ -163,6 +163,10 @@ assert(js.includes('from: "broken"') && js.includes('to: "walking"'), "Lifecycle
 assert(js.includes("data-delta-view") && js.includes('["before", "Before"]') && js.includes('["after", "After"]'), "Delta Before/After switch missing");
 assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
 assert(js.includes("function neighborhood"), "ego must support k-hop on derived edges");
+assert(js.includes("function graphNodePaint"), "ego/search paint flags must survive XYFlow remount");
+assert(js.includes("data-hops") || chrome.includes("data-hops"), "graph search must match hop text on derived nodes");
+assert(css.includes("#enterCanvas .vnode.dim"), "enter-bubble Find must dim off-query XYFlow nodes");
+assert(js.includes("matchesExplorerQuery") && /function applyGraphFilter[\s\S]{0,500}matchesExplorerQuery/.test(js), "graph filter must use matchesExplorerQuery");
 assert(js.includes("function provBucket"), "lineage must map hops to Used/Informed/Generated");
 assert(js.includes("function layeredPositions"), "map/slice must use a layered flowchart, not a pile");
 assert(js.includes("function fitChart"), "Fit must frame the whole chart, not only reset to 100%");
@@ -266,6 +270,8 @@ assert(harness.includes("V58") && harness.includes("V61"), "live suite must prov
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md")), "presentation feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md")), "route feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md")), "lens feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ego.md")), "ego feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/search.md")), "search feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -316,6 +322,7 @@ assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver mus
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
+assert(driver.includes("ego.png") && driver.includes("search.png") && driver.includes("EG1") && driver.includes("SG1") && driver.includes("EG5") && driver.includes("SG3"), "verify driver must drive Ego and Find on enter / Slice / Lineage");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
 assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
 assert(driver.includes("DC1") && driver.includes("data-decision") && driver.includes("RG1") && driver.includes("table.audit") && driver.includes("TL1") && driver.includes("tl-item"), "verify driver must drive Decisions / Registry / Timeline lists");

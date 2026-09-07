@@ -87,7 +87,10 @@ function classOf(data) {
     kindClass,
     data.on ? "on" : "",
     data.hot && data.state ? "walk" : "",
-    data.focus ? "ego" : "",
+    data.ego || data.focus ? "ego" : "",
+    data.egoDim ? "ego-dim" : "",
+    data.dim ? "dim" : "",
+    data.hit ? "hit" : "",
     data.selected ? "selected" : "",
     data.uncovered ? "uncovered" : "",
     data.changed ? "changed" : "",
@@ -127,9 +130,11 @@ export function DerivedNode({ data }) {
   }
   if (d.side) attrs["data-side"] = d.side;
   if (d.file) attrs["data-file"] = d.file;
+  if (d.flow) attrs["data-flow"] = d.flow;
+  if (d.hops) attrs["data-hops"] = d.hops;
+  if (d.dist != null) attrs["data-dist"] = String(d.dist);
   if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
   if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
-  if (d.flow) attrs["data-flow"] = d.flow;
   const style = d.depth != null ? { "--d": d.depth } : undefined;
 
   return (

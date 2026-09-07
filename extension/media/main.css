@@ -1177,7 +1177,9 @@ svg.steiner .edge-hit {
   outline: 1px solid var(--vscode-focusBorder);
   z-index: 3;
 }
-.steiner-wrap .vnode.dim { opacity: 0.18; }
+.steiner-wrap .vnode.dim,
+#enterCanvas .vnode.dim,
+#lineageCanvas .vnode.dim { opacity: 0.18; }
 .steiner-wrap.play .vnode {
   animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
