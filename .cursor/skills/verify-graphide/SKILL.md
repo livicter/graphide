@@ -150,6 +150,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
      `xy=0`; `verification/program-chips.png`; no stamp posts
+   - All programs: explorer skips `#legend [data-prog="-1"]` when
+     absent; self-review starts on a crate chip then clicks All
+     programs; `#meta` token `all` / key `-1`; Map stays `xy=0`;
+     `verification/all-programs.png`; no stamp posts
    - Progress: explorer desk posts synthetic `{ type: "progress" }`;
      `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
      label update; `verification/progress.png` while the strip is on
@@ -177,14 +181,14 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **program-chips**, **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
     `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
     `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
-    `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`,
+    `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`,
     `flow-hints.png`,
     `unmatched-hint.png`,
     `uncovered-node.png`,
@@ -422,6 +426,24 @@ Program chips gate (explorer honest path + self-review switch):
 - Program chips do not write `.graphide/stamps/` and do not post
   `{ type: "stamp" }` / `{ type: "skip" }`
 
+All programs gate (explorer honest skip + self-review union):
+
+- Explorer `#legend [data-prog="-1"]` is absent on a single
+  `bin main` chip. Skip union unless All programs exists
+- Self-review (`?live=1&require=1`) paints All programs when
+  `programs.length > 1`. Start on a concrete `data-prog >= 0`
+  chip (`bin graphide-cli` or first crate). Click
+  `[data-prog="-1"]`. `.on` and the program key become `-1`;
+  `#meta` includes the `all` token (not the substring in
+  `communities`)
+- Optional: click the same single program again; the narrow
+  caption and key return
+- Map stays community LOD (`xy=0`) with `.bubble-card` cards
+- Playwright screenshots `verification/all-programs.png` after
+  the union (not a black frame)
+- All programs does not write `.graphide/stamps/` and does not
+  post `{ type: "stamp" }` / `{ type: "skip" }`
+
 Progress strip gate (explorer desk, synthetic host message):
 
 - After the desk is up, `window.postMessage({ type: "progress", ... })`
@@ -516,7 +538,7 @@ Draft hint gate (explorer Timeline Uncovered):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -619,6 +641,7 @@ same PR because the harness truly cannot hook existing ones.
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Zoom | `#zoomIn`, `#zoomOut`, `#zoomPct`, `+` / `−`, `zoomBy` |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
+| All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
 | Cancel review | `#cancelBtn`, `#reviewBtn`, `#progress`, `{ type: "cancel" }` / `{ type: "cancelled" }` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |

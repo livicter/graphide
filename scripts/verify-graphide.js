@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1947,6 +1947,18 @@ async function main() {
       explorerMulti
         ? "multi chips=" + explorerChips.programs.map((p) => p.text).join(",")
         : "single-chip skip multi chips=" + explorerChips.programs.map((p) => p.text).join(",")
+    );
+    const explorerAll = explorerChips.chips.find((c) => c.i === -1) || null;
+    record(
+      "AP0",
+      "explorer All programs: absent on single-chip; skip union unless All programs exists",
+      explorerChips.programs.length >= 1 &&
+        (explorerAll
+          ? explorerChips.programs.length >= 2 && /all programs/i.test(explorerAll.text)
+          : !explorerAll),
+      explorerAll
+        ? "All programs present programs=" + explorerChips.programs.map((p) => p.text).join(",")
+        : "honest skip All programs absent chips=" + explorerChips.programs.map((p) => p.text).join(",")
     );
 
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -4557,6 +4569,160 @@ async function main() {
       wroteStampChips ? fs.readdirSync(stampDirChips).join(",") : "absent"
     );
 
+    const metaTokens = (meta) =>
+      String(meta || "")
+        .split("·")
+        .map((s) => s.replace(/\s+/g, " ").trim().toLowerCase());
+    const beforeAllPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const liveAllChip = await page.evaluate(() => {
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      return {
+        hasAll: !!(all && /all programs/i.test(all.textContent || "")),
+        programs: programs.length,
+        texts: programs.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()),
+      };
+    });
+    record(
+      "AP1",
+      "self-review has All programs chip when more than one program exists",
+      liveAllChip.hasAll && liveAllChip.programs >= 2,
+      "programs=" + liveAllChip.texts.slice(0, 8).join(",") + " all=" + liveAllChip.hasAll
+    );
+    const allSwitch = await page.evaluate(() => {
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      if (!all || programs.length < 1) return { ok: false, prefer: "", preferI: null };
+      const prefer =
+        programs.find((el) => /bin\s+graphide-cli/i.test(el.textContent || "")) ||
+        programs.find((el) => /bin\s+main/i.test(el.textContent || "")) ||
+        programs[0];
+      prefer.click();
+      return {
+        ok: true,
+        prefer: (prefer.textContent || "").replace(/\s+/g, " ").trim(),
+        preferI: Number(prefer.getAttribute("data-prog")),
+      };
+    });
+    await page.waitForTimeout(280);
+    const afterNarrow = await readProgDesk();
+    await page.evaluate(() => {
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      if (all) all.click();
+    });
+    await page.waitForTimeout(280);
+    const afterAll = await page.evaluate((before) => {
+      const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
+        i: Number(el.getAttribute("data-prog")),
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+        on: el.classList.contains("on"),
+      }));
+      const on = chips.find((c) => c.on) || null;
+      const meta = ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const chipName = (text) => {
+        const t = String(text || "").replace(/\s+/g, " ").trim();
+        const sp = t.indexOf(" ");
+        return sp >= 0 ? t.slice(sp + 1) : t;
+      };
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        onText: on ? on.text : "",
+        onKey: on ? on.i : null,
+        onName: on ? chipName(on.text) : "",
+        meta,
+        cards: cards.length,
+        names,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, beforeAllPosts);
+    const narrowName = afterNarrow.onName || "";
+    record(
+      "AP2",
+      "All programs chip switches the Map / Review cut to the union view",
+      allSwitch.ok &&
+        afterNarrow.onKey === allSwitch.preferI &&
+        afterAll.onKey === -1 &&
+        afterAll.onKey !== afterNarrow.onKey &&
+        /all programs/i.test(afterAll.onText) &&
+        !!narrowName &&
+        metaTokens(afterNarrow.meta).includes(narrowName.toLowerCase()) &&
+        metaTokens(afterAll.meta).includes("all"),
+      "narrow=" +
+        afterNarrow.onText +
+        " all=" +
+        afterAll.onText +
+        " cards=" +
+        afterNarrow.cards +
+        "→" +
+        afterAll.cards +
+        " meta=" +
+        afterAll.meta.slice(0, 120)
+    );
+    await page.evaluate((i) => {
+      const el = document.querySelector('#legend [data-prog="' + i + '"]');
+      if (el) el.click();
+    }, allSwitch.preferI);
+    await page.waitForTimeout(280);
+    const afterBack = await readProgDesk();
+    record(
+      "AP3",
+      "single program chip restores the narrow cut after All programs",
+      allSwitch.ok &&
+        afterBack.onKey === allSwitch.preferI &&
+        afterBack.onKey !== -1 &&
+        !!afterBack.onName &&
+        metaTokens(afterBack.meta).includes(afterBack.onName.toLowerCase()) &&
+        !metaTokens(afterBack.meta).includes("all"),
+      "back=" + afterBack.onText + " meta=" + afterBack.meta.slice(0, 120)
+    );
+    await page.evaluate(() => {
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      if (all) all.click();
+    });
+    await page.waitForTimeout(280);
+    const afterAllShot = await readProgDesk();
+    record(
+      "AP4",
+      "All programs keeps Map community LOD",
+      afterAllShot.ws === "map" &&
+        afterAllShot.xy === 0 &&
+        afterAllShot.comm === 0 &&
+        afterAllShot.cards > 1,
+      JSON.stringify({
+        ws: afterAllShot.ws,
+        xy: afterAllShot.xy,
+        comm: afterAllShot.comm,
+        cards: afterAllShot.cards,
+      })
+    );
+    await shot(page, "all-programs.png");
+    record(
+      "AP5",
+      "All programs does not post stamp / skip",
+      afterAll.stampPosts === 0 && afterAll.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterAll.stampPosts, skipPosts: afterAll.skipPosts })
+    );
+    const stampDirAll = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampAll = fs.existsSync(stampDirAll) && fs.readdirSync(stampDirAll).length > 0;
+    record(
+      "AP6",
+      "All programs did not write .graphide/stamps/",
+      !wroteStampAll,
+      wroteStampAll ? fs.readdirSync(stampDirAll).join(",") : "absent"
+    );
+
     const deltaSnap = loadDeltaSnap();
     const deltaGraph = assertDeltaSnap(deltaSnap);
     const deltaUrl = origin + DELTA_HARNESS;
@@ -5778,7 +5944,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
