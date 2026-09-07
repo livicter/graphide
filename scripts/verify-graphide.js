@@ -163,13 +163,35 @@ function startServer(root) {
   });
 }
 
-async function shot(page, name) {
+async function shot(page, name, opts) {
   const dest = path.join(OUT, name);
   const buf = await page.screenshot({ type: "png", fullPage: false });
   fs.writeFileSync(dest, buf);
   const meta = pngMeanLuma(buf);
-  const ok = meta.luma >= 0.15 && meta.w >= 400 && meta.h >= 300 && buf.length > 8000;
-  record("shot:" + name, "screenshot " + name + " is not a black frame", ok, "luma=" + meta.luma.toFixed(3) + " " + meta.w + "x" + meta.h + " bytes=" + buf.length);
+  const minLuma = opts && opts.minLuma != null ? opts.minLuma : 0.15;
+  const maxLuma = opts && opts.maxLuma != null ? opts.maxLuma : 1;
+  const minStd = opts && opts.minStd != null ? opts.minStd : 0;
+  const ok =
+    meta.luma >= minLuma &&
+    meta.luma <= maxLuma &&
+    meta.std >= minStd &&
+    meta.w >= 400 &&
+    meta.h >= 300 &&
+    buf.length > 8000;
+  record(
+    "shot:" + name,
+    "screenshot " + name + " is not a black frame",
+    ok,
+    "luma=" +
+      meta.luma.toFixed(3) +
+      (opts ? " std=" + meta.std.toFixed(3) : "") +
+      " " +
+      meta.w +
+      "x" +
+      meta.h +
+      " bytes=" +
+      buf.length
+  );
   return dest;
 }
 
@@ -190,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1217,6 +1239,148 @@ async function main() {
     });
 
     await shot(page, "map.png");
+
+    const beforeNightPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const dayBeforeNight = await page.evaluate(() => ({
+      htmlNight: document.documentElement.classList.contains("night"),
+      bodyNight: document.body.classList.contains("night"),
+      bright: document.documentElement.classList.contains("bright"),
+      dayOn: !!(document.getElementById("themeDay") && document.getElementById("themeDay").classList.contains("on")),
+      nightOn: !!(document.getElementById("themeNight") && document.getElementById("themeNight").classList.contains("on")),
+    }));
+    if (dayBeforeNight.htmlNight) {
+      await page.click("#themeDay");
+      await page.waitForFunction(
+        () => !document.documentElement.classList.contains("night"),
+        null,
+        { timeout: 5000 }
+      );
+    }
+    await page.click("#themeNight");
+    await page.waitForFunction(
+      () =>
+        document.documentElement.classList.contains("night") &&
+        document.body.classList.contains("night") &&
+        !!(document.getElementById("themeNight") && document.getElementById("themeNight").classList.contains("on")),
+      null,
+      { timeout: 5000 }
+    );
+    const nightDesk = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const visible = cards.filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 4 && r.height > 4;
+      });
+      const nightBtn = document.getElementById("themeNight");
+      const dayBtn = document.getElementById("themeDay");
+      return {
+        htmlNight: document.documentElement.classList.contains("night"),
+        bodyNight: document.body.classList.contains("night"),
+        htmlBright: document.documentElement.classList.contains("bright"),
+        bodyBright: document.body.classList.contains("bright"),
+        nightOn: !!(nightBtn && nightBtn.classList.contains("on")),
+        dayOn: !!(dayBtn && dayBtn.classList.contains("on")),
+        seg: !!document.getElementById("themeSeg"),
+        cards: cards.length,
+        visible: visible.length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+      };
+    });
+    record(
+      "N1",
+      "Night adds .night on html/body and presses #themeNight",
+      nightDesk.seg &&
+        nightDesk.htmlNight &&
+        nightDesk.bodyNight &&
+        nightDesk.nightOn &&
+        !nightDesk.dayOn,
+      JSON.stringify(nightDesk)
+    );
+    record(
+      "N1b",
+      "Night keeps .bright (html.bright.night)",
+      nightDesk.htmlBright && nightDesk.bodyBright,
+      JSON.stringify({ htmlBright: nightDesk.htmlBright, bodyBright: nightDesk.bodyBright })
+    );
+    record(
+      "N2",
+      "Map stays community LOD on Night (xy=0, cards visible)",
+      nightDesk.cards >= 8 && nightDesk.visible >= 3 && nightDesk.xy === 0,
+      "cards=" + nightDesk.cards + " visible=" + nightDesk.visible + " xy=" + nightDesk.xy
+    );
+    await shot(page, "night.png", { minLuma: 0.04, maxLuma: 0.55, minStd: 0.03 });
+    const mapLuma = pngMeanLuma(fs.readFileSync(path.join(OUT, "map.png")));
+    const nightLuma = pngMeanLuma(fs.readFileSync(path.join(OUT, "night.png")));
+    record(
+      "N3",
+      "Night Map is dark vs day map.png",
+      nightLuma.luma + 0.05 < mapLuma.luma && nightLuma.std >= 0.03,
+      "night=" +
+        nightLuma.luma.toFixed(3) +
+        " day=" +
+        mapLuma.luma.toFixed(3) +
+        " std=" +
+        nightLuma.std.toFixed(3)
+    );
+    const nightPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        appearance: posts.filter((m) => m && m.type === "setAppearance").length,
+      };
+    }, beforeNightPosts);
+    record(
+      "N4",
+      "Night does not post a stamp",
+      nightPosts.stampPosts === 0 && nightPosts.skipPosts === 0,
+      JSON.stringify(nightPosts)
+    );
+
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("D");
+    await page.waitForFunction(
+      () =>
+        !document.documentElement.classList.contains("night") &&
+        !!(document.getElementById("themeDay") && document.getElementById("themeDay").classList.contains("on")),
+      null,
+      { timeout: 5000 }
+    );
+    const dayRestored = await page.evaluate(() => ({
+      htmlNight: document.documentElement.classList.contains("night"),
+      bodyNight: document.body.classList.contains("night"),
+      bright: document.documentElement.classList.contains("bright"),
+      dayOn: !!(document.getElementById("themeDay") && document.getElementById("themeDay").classList.contains("on")),
+      nightOn: !!(document.getElementById("themeNight") && document.getElementById("themeNight").classList.contains("on")),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "N5",
+      "D restores Day markers so later suites stay day-safe",
+      !dayRestored.htmlNight &&
+        !dayRestored.bodyNight &&
+        dayRestored.bright &&
+        dayRestored.dayOn &&
+        !dayRestored.nightOn &&
+        dayRestored.cards >= 8 &&
+        dayRestored.xy === 0,
+      JSON.stringify(dayRestored)
+    );
+    const stampDirNight = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampNight = fs.existsSync(stampDirNight) && fs.readdirSync(stampDirNight).length > 0;
+    record(
+      "N6",
+      "Appearance step did not write .graphide/stamps/",
+      !wroteStampNight,
+      wroteStampNight ? fs.readdirSync(stampDirNight).join(",") : "absent"
+    );
 
     const enteredClick = await page.evaluate(() => {
       const card = document.querySelector(".bubble-card");
@@ -3895,7 +4059,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
