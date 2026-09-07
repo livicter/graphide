@@ -7896,7 +7896,13 @@ function renderLedger(nodes, opts) {
   if (!ledgerGrid) return;
   const selected = opts && opts.selected ? String(opts.selected) : "";
   const onTree = (opts && opts.onTree) || null;
-  const list = (nodes || []).slice(0, 64);
+  const list = (nodes || [])
+    .filter((n) => {
+      const id = idVal(n.id || n);
+      const kind = n.kind || kindOf(snapshot && snapshot.graph, id);
+      return graphFilter.kinds[kind] !== false;
+    })
+    .slice(0, 64);
   ledgerGrid.innerHTML = list
     .map((n) => {
       const id = idVal(n.id || n);

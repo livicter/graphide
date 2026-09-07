@@ -21,6 +21,7 @@ owns this folder.
 | [lens.md](lens.md) | Role compare | Sequence snap · `L` · `lens.png` |
 | [ego.md](ego.md) | k-hop neighborhood | explorer enter / Slice · `ego.png` |
 | [search.md](search.md) | Find FQN / file / flow / hop | `#graphSearch` · `search.png` |
+| [kind-filters.md](kind-filters.md) | Find kind pills | `#kindFilters` · `kind-filters.png` |
 | [ask.md](ask.md) | Graph-only Ask pane | explorer · `#llmBtn` · `ask.png` |
 | [keys.md](keys.md) | Shortcut sheet | explorer · `?` / `#keysBtn` · `keys.png` |
 | [path-walk.md](path-walk.md) | Map start → features → end Play | explorer Map · `P` · `path-walk.png` |

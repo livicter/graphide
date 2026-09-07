@@ -13,7 +13,7 @@ the desk.
 - Derived XYFlow: `#enterCanvas` / `#sliceCanvas` / `#lineageCanvas`
   `.vnode` dim the same way (`data-fqn`, `data-file`, `data-flow`,
   `data-kind`, `data-hops`). Kind pills still hide Function / Type /
-  Endpoint.
+  Endpoint ([kind-filters.md](kind-filters.md)).
 - List workspaces already filter cards / hops / facts with
   `matchesExplorerQuery` (Decisions, Registry, Timeline, Sequence,
   Data-flow, Lifecycle, Delta). Lineage incident hop cards do the same.
