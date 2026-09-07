@@ -11,6 +11,7 @@ owns this folder.
 | File | Surface | Live proof |
 | --- | --- | --- |
 | [architecture-delta.md](architecture-delta.md) | Delta workspace | `?delta=1` · `verification/delta.png` |
+| [sticky-clusters.md](sticky-clusters.md) | Sticky community ids | `?delta=1` · `verification/sticky-clusters.png` |
 | [sequence.md](sequence.md) | Sequence workspace | `?sequence=1` · `verification/sequence.png` |
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |

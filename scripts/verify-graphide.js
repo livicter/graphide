@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -339,6 +339,29 @@ function assertDeltaSnap(snap) {
     );
   }
   return { facts: facts.length, sneaky };
+}
+
+function assertClusterSnap(snap) {
+  const facts = (snap.delta && snap.delta.cluster_facts) || [];
+  const coarse = (snap.bubbles || []).filter((b) => b && b.parent == null);
+  const sticky = facts.filter((f) => f && (f.kind === "stable" || f.kind === "relabel"));
+  const hit = sticky.find((f) => coarse.some((b) => String(b.id) === String(f.bubble)));
+  record(
+    "SC0",
+    "delta snap has a sticky coarse BubbleId after sticky_match",
+    !!hit,
+    hit
+      ? "kind=" + hit.kind + " bubble=" + hit.bubble + " label=" + (hit.label || "")
+      : "cluster_facts=" + facts.length + " coarse=" + coarse.length
+  );
+  if (!hit) {
+    writeReport("Sticky cluster snapshot failed structural checks (desk not driven).");
+    failFast(
+      "demo vs demo-parent must sticky-match a coarse BubbleId — cluster_facts=" +
+        JSON.stringify(facts.slice(0, 8))
+    );
+  }
+  return { bubble: String(hit.bubble), kind: hit.kind, label: hit.label || "", n: facts.length };
 }
 
 function deriveSequenceSnap() {
@@ -5119,6 +5142,94 @@ async function main() {
       wroteStampDelta ? fs.readdirSync(stampDirDelta).join(",") : "absent"
     );
 
+    const clusterSnap = assertClusterSnap(deltaSnap);
+    const clusterDesk = await page.evaluate((want) => {
+      const community = [...document.querySelectorAll('#deltaFacts .delta-fact[data-delta-class="community"]')];
+      const sticky = [
+        ...document.querySelectorAll(
+          '#deltaFacts .delta-fact[data-delta-kind="stable"][data-bubble], #deltaFacts .delta-fact[data-delta-kind="relabel"][data-bubble]'
+        ),
+      ];
+      const match = sticky.find((el) => el.getAttribute("data-bubble") === want);
+      return {
+        community: community.length,
+        sticky: sticky.length,
+        kinds: community.map((el) => el.getAttribute("data-delta-kind")),
+        bubbles: sticky.map((el) => el.getAttribute("data-bubble")),
+        text: match ? (match.textContent || "").replace(/\s+/g, " ").trim() : "",
+        id: match ? match.getAttribute("data-bubble") : "",
+      };
+    }, clusterSnap.bubble);
+    record(
+      "SC1",
+      "Delta paints a community fact with the sticky BubbleId",
+      clusterDesk.community > 0 && clusterDesk.id === clusterSnap.bubble,
+      JSON.stringify(clusterDesk)
+    );
+    record(
+      "SC2",
+      "Sticky cluster fact names the kept bubble id",
+      clusterDesk.text.includes("bubble") && clusterDesk.text.includes(clusterSnap.bubble),
+      clusterDesk.text
+    );
+
+    const stickySel =
+      '#deltaFacts .delta-fact[data-delta-kind="' +
+      clusterSnap.kind +
+      '"][data-bubble="' +
+      clusterSnap.bubble +
+      '"]';
+    if (await page.$(stickySel)) {
+      await page.click(stickySel);
+      await page.waitForTimeout(160);
+    }
+    await shot(page, "sticky-clusters.png");
+
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    if (await page.$("#zoomFit")) {
+      await page.click("#zoomFit");
+      await page.waitForTimeout(160);
+    }
+    const mapSticky = await page.evaluate((want) => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const card = document.querySelector('.bubble-card[data-bubble="' + want + '"]');
+      const xy = document.querySelectorAll(".react-flow__node").length;
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        card: !!(card && card.offsetParent !== null),
+        cluster: card ? card.getAttribute("data-cluster") || "" : "",
+        xy,
+      };
+    }, clusterSnap.bubble);
+    record(
+      "SC3",
+      "Map card keeps the sticky BubbleId at community LOD",
+      mapSticky.ws === "map" && mapSticky.card && mapSticky.xy === 0,
+      JSON.stringify(mapSticky)
+    );
+    const stampPostsCluster = await page.evaluate(() => {
+      const posts = window.__vscodePosts || [];
+      return {
+        stamp: posts.filter((p) => p && p.type === "stamp").length,
+        skip: posts.filter((p) => p && p.type === "skip").length,
+      };
+    });
+    record(
+      "SC4",
+      "Sticky clusters do not post stamp / skip",
+      stampPostsCluster.stamp === 0 && stampPostsCluster.skip === 0,
+      JSON.stringify(stampPostsCluster)
+    );
+    const stampDirCluster = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampCluster = fs.existsSync(stampDirCluster) && fs.readdirSync(stampDirCluster).length > 0;
+    record(
+      "SC5",
+      "Sticky clusters did not write .graphide/stamps/",
+      !wroteStampCluster,
+      wroteStampCluster ? fs.readdirSync(stampDirCluster).join(",") : "absent"
+    );
+
     const sequenceSnap = loadSequenceSnap();
     const sequenceGraph = assertSequenceSnap(sequenceSnap);
     const sequenceUrl = origin + SEQUENCE_HARNESS;
@@ -6187,7 +6298,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sticky-clusters · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

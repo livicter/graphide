@@ -1,4 +1,4 @@
-use graphide_ir::{Bubble, BubbleId, Graph, NodeId};
+use graphide_ir::{Bubble, BubbleId, ClusterDeltaKind, ClusterFact, Graph, NodeId};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -482,6 +482,7 @@ fn label_for(members: &[NodeId], fqn: &HashMap<NodeId, String>, graph: &Graph) -
 /// Match new bubbles to previous by member overlap. Outer stickier (already ordered).
 pub fn sticky_match(previous: &[Bubble], current: &mut [Bubble]) {
     let mut used_prev = HashSet::new();
+    let mut matched = vec![false; current.len()];
     // Prefer matching coarse (parent None) first, then by size descending.
     let mut order: Vec<usize> = (0..current.len()).collect();
     order.sort_by_key(|&i| {
@@ -512,7 +513,145 @@ pub fn sticky_match(previous: &[Bubble], current: &mut [Bubble]) {
         if let Some((j, _)) = best {
             current[i].id = previous[j].id;
             used_prev.insert(j);
+            matched[i] = true;
         }
+    }
+    // Clustering assigns sequential ids that often equal a previous BubbleId.
+    // An unmatched current that still holds a claimed sticky id must get a
+    // fresh one, or two communities share an identity.
+    let claimed: HashSet<u64> = current
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| matched[*i])
+        .map(|(_, b)| b.id.0)
+        .collect();
+    let mut next_id = current
+        .iter()
+        .map(|b| b.id.0)
+        .chain(previous.iter().map(|b| b.id.0))
+        .max()
+        .unwrap_or(0)
+        + 1;
+    let mut remaps = Vec::new();
+    for (i, b) in current.iter_mut().enumerate() {
+        if matched[i] || !claimed.contains(&b.id.0) {
+            continue;
+        }
+        let old = b.id;
+        b.id = BubbleId(next_id);
+        next_id += 1;
+        remaps.push((old, b.id));
+    }
+    for (old, new) in remaps {
+        for b in current.iter_mut() {
+            if b.parent == Some(old) {
+                b.parent = Some(new);
+            }
+        }
+    }
+}
+
+/// Coarse-community facts after [`sticky_match`]. Nested bubbles are
+/// ignored — Map LOD is parent-null. Kind is stable / split / merge /
+/// relabel when a previous `BubbleId` stuck; added / removed otherwise.
+pub fn cluster_delta(previous: &[Bubble], current: &[Bubble]) -> Vec<ClusterFact> {
+    let prev = coarse_bubbles(previous);
+    let curr = coarse_bubbles(current);
+    let prev_by_id: HashMap<u64, &Bubble> = prev.iter().map(|b| (b.id.0, *b)).collect();
+    let curr_ids: HashSet<u64> = curr.iter().map(|b| b.id.0).collect();
+
+    let member_set = |b: &Bubble| -> HashSet<NodeId> { b.members.iter().copied().collect() };
+
+    let dests_of = |p: &Bubble| -> usize {
+        let set = member_set(p);
+        curr.iter()
+            .filter(|c| c.members.iter().any(|m| set.contains(m)))
+            .count()
+    };
+    let srcs_of = |c: &Bubble| -> usize {
+        let set = member_set(c);
+        prev.iter()
+            .filter(|p| p.members.iter().any(|m| set.contains(m)))
+            .count()
+    };
+
+    let mut facts = Vec::new();
+    let mut used_prev = HashSet::new();
+    for c in &curr {
+        if let Some(p) = prev_by_id.get(&c.id.0) {
+            used_prev.insert(c.id.0);
+            let dests = dests_of(p);
+            let srcs = srcs_of(c);
+            let kind = if dests > 1 {
+                ClusterDeltaKind::Split
+            } else if srcs > 1 {
+                ClusterDeltaKind::Merge
+            } else if c.label != p.label {
+                ClusterDeltaKind::Relabel
+            } else {
+                ClusterDeltaKind::Stable
+            };
+            let detail = match kind {
+                ClusterDeltaKind::Stable => format!("kept bubble {}", c.id.0),
+                ClusterDeltaKind::Relabel => {
+                    format!("bubble {} · {} → {}", c.id.0, p.label, c.label)
+                }
+                ClusterDeltaKind::Split => {
+                    format!("bubble {} split · {dests} communities share members", c.id.0)
+                }
+                ClusterDeltaKind::Merge => {
+                    format!("bubble {} merged · {srcs} parent communities", c.id.0)
+                }
+                ClusterDeltaKind::Added | ClusterDeltaKind::Removed => {
+                    format!("bubble {}", c.id.0)
+                }
+            };
+            facts.push(ClusterFact {
+                kind,
+                bubble: c.id,
+                label: c.label.clone(),
+                previous_label: Some(p.label.clone()),
+                detail,
+            });
+        } else {
+            facts.push(ClusterFact {
+                kind: ClusterDeltaKind::Added,
+                bubble: c.id,
+                label: c.label.clone(),
+                previous_label: None,
+                detail: format!("new community · bubble {}", c.id.0),
+            });
+        }
+    }
+    for p in &prev {
+        if used_prev.contains(&p.id.0) || curr_ids.contains(&p.id.0) {
+            continue;
+        }
+        facts.push(ClusterFact {
+            kind: ClusterDeltaKind::Removed,
+            bubble: p.id,
+            label: p.label.clone(),
+            previous_label: None,
+            detail: format!("gone community · bubble {}", p.id.0),
+        });
+    }
+    facts.sort_by(|a, b| {
+        cluster_kind_ord(a.kind)
+            .cmp(&cluster_kind_ord(b.kind))
+            .then(a.bubble.0.cmp(&b.bubble.0))
+            .then(a.label.cmp(&b.label))
+    });
+    facts
+}
+
+fn cluster_kind_ord(k: ClusterDeltaKind) -> u8 {
+    match k {
+        ClusterDeltaKind::Stable => 0,
+        ClusterDeltaKind::Relabel => 1,
+        ClusterDeltaKind::Split => 2,
+        ClusterDeltaKind::Merge => 3,
+        ClusterDeltaKind::Added => 4,
+        ClusterDeltaKind::Removed => 5,
     }
 }
 
@@ -527,4 +666,168 @@ pub fn node_coarse_bubble(bubbles: &[Bubble], node: NodeId) -> Option<BubbleId> 
         .filter(|b| b.parent.is_none() && b.members.contains(&node))
         .map(|b| b.id)
         .next()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bubble(id: u64, parent: Option<u64>, members: &[u64], label: &str) -> Bubble {
+        Bubble {
+            id: BubbleId(id),
+            parent: parent.map(BubbleId),
+            members: members.iter().copied().map(NodeId).collect(),
+            label: label.into(),
+        }
+    }
+
+    #[test]
+    fn sticky_match_keeps_id_when_membership_overlaps() {
+        let prev = vec![bubble(7, None, &[1, 2, 3, 4], "keep")];
+        let mut curr = vec![bubble(99, None, &[1, 2, 3, 5], "keep")];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[0].id.0, 7);
+    }
+
+    #[test]
+    fn sticky_match_leaves_fresh_id_on_unrelated_community() {
+        let prev = vec![bubble(7, None, &[1, 2, 3], "a")];
+        let mut curr = vec![
+            bubble(99, None, &[1, 2, 3], "a"),
+            bubble(100, None, &[10, 11], "new"),
+        ];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[0].id.0, 7);
+        assert_eq!(curr[1].id.0, 100);
+    }
+
+    #[test]
+    fn sticky_match_does_not_pair_coarse_with_nested() {
+        let prev = vec![bubble(7, None, &[1, 2, 3, 4], "coarse")];
+        let mut curr = vec![
+            bubble(99, None, &[10, 11], "other"),
+            bubble(100, Some(99), &[1, 2, 3, 4], "nested"),
+        ];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[0].id.0, 99);
+        assert_eq!(curr[1].id.0, 100);
+        assert_eq!(curr[1].parent, Some(BubbleId(99)));
+    }
+
+    #[test]
+    fn sticky_match_pairs_coarse_to_coarse_and_nested_to_nested() {
+        let prev = vec![
+            bubble(7, None, &[1, 2, 3, 4], "coarse"),
+            bubble(8, Some(7), &[1, 2], "inner"),
+        ];
+        let mut curr = vec![
+            bubble(99, None, &[1, 2, 3, 4], "coarse"),
+            bubble(100, Some(99), &[1, 2], "inner"),
+        ];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[0].id.0, 7);
+        assert_eq!(curr[1].id.0, 8);
+    }
+
+    #[test]
+    fn sticky_match_uniquifies_unmatched_id_collision() {
+        let prev = vec![bubble(4, None, &[10, 11], "prev")];
+        let mut curr = vec![
+            bubble(4, None, &[1, 2], "unrelated"),
+            bubble(40, Some(4), &[1], "child"),
+            bubble(5, None, &[10, 11], "match"),
+        ];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[2].id.0, 4);
+        assert_ne!(curr[0].id.0, 4);
+        assert_ne!(curr[0].id.0, curr[2].id.0);
+        assert_eq!(curr[1].parent, Some(curr[0].id));
+    }
+
+    #[test]
+    fn cluster_delta_stable_when_id_sticks() {
+        let prev = vec![bubble(7, None, &[1, 2, 3], "bus")];
+        let mut curr = vec![bubble(99, None, &[1, 2, 3], "bus")];
+        sticky_match(&prev, &mut curr);
+        let facts = cluster_delta(&prev, &curr);
+        assert_eq!(facts.len(), 1);
+        assert_eq!(facts[0].kind, ClusterDeltaKind::Stable);
+        assert_eq!(facts[0].bubble.0, 7);
+        assert!(facts[0].detail.contains("kept bubble 7"));
+    }
+
+    #[test]
+    fn cluster_delta_relabel_when_pagerank_name_moves() {
+        let prev = vec![bubble(7, None, &[1, 2, 3], "old")];
+        let mut curr = vec![bubble(99, None, &[1, 2, 3], "new")];
+        sticky_match(&prev, &mut curr);
+        let facts = cluster_delta(&prev, &curr);
+        assert_eq!(facts[0].kind, ClusterDeltaKind::Relabel);
+        assert_eq!(facts[0].bubble.0, 7);
+        assert_eq!(facts[0].previous_label.as_deref(), Some("old"));
+    }
+
+    #[test]
+    fn cluster_delta_added_fresh_community() {
+        let prev = vec![bubble(7, None, &[1, 2], "a")];
+        let mut curr = vec![
+            bubble(99, None, &[1, 2], "a"),
+            bubble(100, None, &[9, 10], "fresh"),
+        ];
+        sticky_match(&prev, &mut curr);
+        let facts = cluster_delta(&prev, &curr);
+        assert!(
+            facts
+                .iter()
+                .any(|f| f.kind == ClusterDeltaKind::Stable && f.bubble.0 == 7),
+            "{facts:?}"
+        );
+        assert!(
+            facts
+                .iter()
+                .any(|f| f.kind == ClusterDeltaKind::Added && f.bubble.0 == 100),
+            "{facts:?}"
+        );
+    }
+
+    #[test]
+    fn cluster_delta_split_when_members_fan_out() {
+        let prev = vec![bubble(7, None, &[1, 2, 3, 4], "all")];
+        let mut curr = vec![
+            bubble(99, None, &[1, 2, 3], "keep"),
+            bubble(100, None, &[4, 5], "shard"),
+        ];
+        sticky_match(&prev, &mut curr);
+        assert_eq!(curr[0].id.0, 7);
+        let facts = cluster_delta(&prev, &curr);
+        assert!(
+            facts
+                .iter()
+                .any(|f| f.kind == ClusterDeltaKind::Split && f.bubble.0 == 7),
+            "{facts:?}"
+        );
+        assert!(
+            facts
+                .iter()
+                .any(|f| f.kind == ClusterDeltaKind::Added && f.bubble.0 == 100),
+            "{facts:?}"
+        );
+    }
+
+    #[test]
+    fn cluster_delta_ignores_nested_parent_some() {
+        let prev = vec![
+            bubble(7, None, &[1, 2, 3], "coarse"),
+            bubble(8, Some(7), &[1], "inner"),
+        ];
+        let mut curr = vec![
+            bubble(99, None, &[1, 2, 3], "coarse"),
+            bubble(100, Some(99), &[1], "inner"),
+        ];
+        sticky_match(&prev, &mut curr);
+        let facts = cluster_delta(&prev, &curr);
+        assert_eq!(facts.len(), 1);
+        assert_eq!(facts[0].kind, ClusterDeltaKind::Stable);
+        assert_eq!(facts[0].bubble.0, 7);
+    }
 }

@@ -4940,11 +4940,27 @@ function renderTimelineBody() {
   );
 }
 
+function clusterFacts() {
+  return ((snapshot && snapshot.delta && snapshot.delta.cluster_facts) || []).map((c) => ({
+    status: c.kind,
+    class: "community",
+    subject: "community",
+    fqn: c.label || "",
+    bubble: c.bubble != null ? String(c.bubble) : "",
+    detail: c.detail || "",
+    previous_label: c.previous_label,
+    from_fqn: null,
+    to_fqn: null,
+  }));
+}
+
 function deltaFacts() {
-  const facts = ((snapshot && snapshot.delta && snapshot.delta.facts) || []).slice();
+  const facts = clusterFacts().concat(((snapshot && snapshot.delta && snapshot.delta.facts) || []).slice());
   if (!graphFilter.q) return facts;
   return facts.filter((f) =>
-    matchesExplorerQuery([f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn].join(" "))
+    matchesExplorerQuery(
+      [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+    )
   );
 }
 
@@ -4954,11 +4970,19 @@ function deltaMarker(status) {
   if (status === "changed") return "~";
   if (status === "moved") return "↔";
   if (status === "rerouted") return "↝";
+  if (status === "stable") return "=";
+  if (status === "split") return "∕";
+  if (status === "merge") return "∪";
+  if (status === "relabel") return "~";
   return "·";
 }
 
 function applyDeltaFactView(fact) {
   if (!fact) return;
+  if (fact.class === "community") {
+    deltaView = "delta";
+    return;
+  }
   if (fact.status === "added") deltaView = "after";
   else if (fact.status === "removed") deltaView = "before";
   else deltaView = "delta";
@@ -5080,6 +5104,7 @@ function deltaReading(view, hot) {
   }
   const want = new Set();
   deltaFacts().forEach((f) => {
+    if (f.class === "community") return;
     if (f.from_fqn) want.add(f.from_fqn);
     if (f.to_fqn) want.add(f.to_fqn);
     if (f.fqn && !f.from_fqn) want.add(f.fqn);
@@ -5315,9 +5340,14 @@ function renderDeltaBody() {
     "</span></div>";
   const list = facts
     .map((f, i) => {
+      const community = f.class === "community";
+      const title = community
+        ? "community · bubble " + (f.bubble || "?") + (f.fqn ? " · " + f.fqn : "")
+        : (f.subject || "") + " · " + (f.fqn || "");
       return (
         '<article class="delta-fact expl-card ' +
         esc(f.status || "") +
+        (community ? " community" : "") +
         (i === deltaCursor ? " on" : "") +
         '" data-delta-kind="' +
         esc(f.status || "") +
@@ -5325,12 +5355,14 @@ function renderDeltaBody() {
         esc(f.class || "") +
         '" data-fqn="' +
         esc(f.fqn || "") +
-        '" data-delta-i="' +
+        '"' +
+        (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") +
+        ' data-delta-i="' +
         i +
         '"><div class="k">' +
         esc(deltaMarker(f.status) + " " + (f.status || "")) +
         '</div><div class="t">' +
-        esc((f.subject || "") + " · " + (f.fqn || "")) +
+        esc(title) +
         '</div><div class="b">' +
         esc(f.detail || f.class || "") +
         "</div></article>"
@@ -7687,6 +7719,9 @@ function renderBubbleMap(clusters) {
     const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
     const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
     const here = graphFilter.bubble && idVal(id) === idVal(graphFilter.bubble) ? " here" : "";
+    const clusterKind = ((snapshot && snapshot.delta && snapshot.delta.cluster_facts) || []).find(
+      (c) => String(c.bubble) === String(id)
+    );
     html +=
       '<button type="button" class="bubble-card' +
       roleClass +
@@ -7699,7 +7734,9 @@ function renderBubbleMap(clusters) {
       colorOfBubble(b) +
       '" data-bubble="' +
       id +
-      '">' +
+      '"' +
+      (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") +
+      '>' +
       (role ? '<span class="role">' + esc(role) + "</span>" : "") +
       '<span class="name">' +
       esc(shortOf(b.label) || "bubble") +

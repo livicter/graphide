@@ -332,6 +332,23 @@ fn parent_bubbles_are_sticky_matched() {
         snap.bubbles.iter().any(|b| prev_ids.contains(&b.id.0)),
         "head bubbles should reuse parent ids when members overlap"
     );
+    assert!(
+        !snap.delta.cluster_facts.is_empty(),
+        "parent review must emit sticky cluster facts"
+    );
+    assert!(
+        snap.delta.cluster_facts.iter().any(|f| {
+            matches!(
+                f.kind,
+                ClusterDeltaKind::Stable | ClusterDeltaKind::Relabel
+            ) && snap
+                .bubbles
+                .iter()
+                .any(|b| b.id == f.bubble && b.parent.is_none())
+        }),
+        "a coarse BubbleId must stick, cluster_facts={:?}",
+        snap.delta.cluster_facts
+    );
 }
 
 #[test]
