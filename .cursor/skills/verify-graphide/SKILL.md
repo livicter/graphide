@@ -123,15 +123,19 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#graphSearch` dims cards and XYFlow nodes
    - Ask: `#llmBtn` opens `#llmPane`; graph-only `localAsk` answers a
      flow / hop / coverage without an LLM key; `#llmClose` / Escape close
+   - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
+     sheet, `S`/`X` stamp/skip, `E` ego, `F` present, `D` day/night;
+     `#keysClose` / Escape close
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
-    **enter-bubble**, **ego**, **search**, and **ask**. `verification/`
+    **enter-bubble**, **ego**, **search**, **ask**, and **keys**. `verification/`
     holds screenshots plus `report.md`, including `overview.png`,
     `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
     `lineage.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`,
+    `keys.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
@@ -245,10 +249,19 @@ Ask gate (explorer Map, graph-only):
 - Ask does not write `.graphide/stamps/` and does not post `{ type: "stamp" }`
 - Do not require an OpenAI key in CI
 
+Keys gate (explorer Map, shortcut sheet):
+
+- `?` / `#keysBtn` opens `#keysPane`; `#keysClose` / Escape hide it
+- Sheet text lists `/` find, `?` this sheet, `S`/`X` stamp/skip, `E` ego,
+  `F` present, `D` day/night — the bindings in `desk.js`
+- Playwright screenshots `verification/keys.png`
+- Keys does not write `.graphide/stamps/` and does not post `{ type: "stamp" }`
+- Map altitude stays `xy=0`. Close the sheet before Evidence / ledger / Ask
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, and Ask steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, and Keys steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -342,6 +355,7 @@ same PR because the harness truly cannot hook existing ones.
 | Ego | `#egoBtn`, `#egoHops`, `.ego`, `.ego-dim`, `data-dist` |
 | Find | `#graphSearch`, `graphFilter.q`, `.dim`, `.hit`, `matchesExplorerQuery` |
 | Ask | `#llmBtn`, `#llmPane`, `#llmClose`, `#llmAsk`, `#llmSend`, `#llmLog` |
+| Keys | `#keysBtn`, `#keysPane`, `#keysClose`, `?` / F1 |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1690,6 +1690,149 @@ async function main() {
       "Ask step did not write .graphide/stamps/",
       !wroteStampAsk,
       wroteStampAsk ? fs.readdirSync(stampDirAsk).join(",") : "absent"
+    );
+
+    const beforeKeysPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden && pane.classList.contains("open"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysOpen = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const hit = (a, b) =>
+        !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+        );
+      const paneBox = box(pane);
+      const source = box(document.getElementById("sourcePane"));
+      const ask = box(document.getElementById("llmPane"));
+      const exportMenu = box(document.getElementById("exportMenu"));
+      const text = ((pane && pane.textContent) || "").replace(/\s+/g, " ").trim();
+      return {
+        btn: !!document.getElementById("keysBtn"),
+        pane: !!(pane && !pane.hidden),
+        open: !!(pane && pane.classList.contains("open")),
+        close: !!document.getElementById("keysClose"),
+        text,
+        find: /\/\s*find/i.test(text),
+        sheet: /\?\s*this sheet/i.test(text),
+        stamp: /S\s*stamp/i.test(text) && /X\s*skip/i.test(text),
+        ego: /E\s*ego/i.test(text),
+        present: /F\s*present/i.test(text),
+        theme: /D\s*day/i.test(text),
+        overlap: hit(paneBox, source) || hit(paneBox, ask) || hit(paneBox, exportMenu),
+        z: pane ? getComputedStyle(pane).zIndex : "",
+      };
+    });
+    record(
+      "K1",
+      "? opens #keysPane (Keys)",
+      keysOpen.btn && keysOpen.pane && keysOpen.open && keysOpen.close,
+      JSON.stringify({ btn: keysOpen.btn, pane: keysOpen.pane, open: keysOpen.open, close: keysOpen.close, z: keysOpen.z })
+    );
+    record(
+      "K1b",
+      "Keys pane is not covered by Evidence / Ask / export",
+      !keysOpen.overlap,
+      JSON.stringify({ overlap: keysOpen.overlap, z: keysOpen.z })
+    );
+    record(
+      "K2",
+      "Keys sheet lists / find, ? sheet, S/X stamp/skip, E ego, F present, D day",
+      keysOpen.find && keysOpen.sheet && keysOpen.stamp && keysOpen.ego && keysOpen.present && keysOpen.theme,
+      keysOpen.text.slice(0, 220)
+    );
+
+    const keysPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeKeysPosts);
+    record(
+      "K3",
+      "Keys does not post a stamp",
+      keysPosts.stampPosts === 0 && keysPosts.skipPosts === 0,
+      JSON.stringify(keysPosts)
+    );
+
+    await shot(page, "keys.png");
+
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const closedBtn = await page.evaluate(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
+    );
+    record("K4", "#keysClose hides #keysPane", closedBtn, "");
+
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const closedEsc = await page.evaluate(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
+    );
+    record("K5", "Escape closes #keysPane", closedEsc, "");
+
+    const afterKeys = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+      keysHidden: !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K6",
+      "Map altitude is still community LOD after Keys (xy=0)",
+      afterKeys.cards >= 8 && afterKeys.xy === 0,
+      "cards=" + afterKeys.cards + " xy=" + afterKeys.xy
+    );
+    record(
+      "K6b",
+      "Keys is closed so it does not cover Evidence / ledger / Ask",
+      afterKeys.keysHidden,
+      "hidden=" + afterKeys.keysHidden
+    );
+    const stampDirKeys = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampKeys = fs.existsSync(stampDirKeys) && fs.readdirSync(stampDirKeys).length > 0;
+    record(
+      "K7",
+      "Keys step did not write .graphide/stamps/",
+      !wroteStampKeys,
+      wroteStampKeys ? fs.readdirSync(stampDirKeys).join(",") : "absent"
     );
 
     await page.click("#exportBtn");
@@ -3464,7 +3607,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

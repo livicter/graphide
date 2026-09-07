@@ -71,6 +71,8 @@ assert(css.includes("#toast"), "toast styles missing");
 assert(css.includes(".search-wrap"), "find field must be a command wrap");
 assert(css.includes(".kind-pill"), "kind filters must be pills");
 assert(chrome.includes('id="keysPane"'), "shortcut sheet missing from the webview chrome");
+assert(chrome.includes('id="keysBtn"') && chrome.includes('id="keysClose"'), "Keys chrome ids missing");
+assert(/#keysPane\s*\{[^}]*z-index/.test(css), "Keys pane must stack above the desk");
 assert(js.includes("function togglePathWalk"), "feature path must be playable");
 assert(js.includes("function bindWorkbenchPages"), "Semantica-shaped workbench pages missing");
 assert(js.includes('id="tlScrub"'), "timeline scrubber missing");
@@ -277,6 +279,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ego.md")), "ego feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/search.md")), "search feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ask.md")), "ask feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md")), "keys feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -329,6 +332,7 @@ assert(driver.includes("present.png") && driver.includes("preset-blueprint.png")
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
 assert(driver.includes("ego.png") && driver.includes("search.png") && driver.includes("EG1") && driver.includes("SG1") && driver.includes("EG5") && driver.includes("SG3"), "verify driver must drive Ego and Find on enter / Slice / Lineage");
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
+assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
 assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
 assert(driver.includes("DC1") && driver.includes("data-decision") && driver.includes("RG1") && driver.includes("table.audit") && driver.includes("TL1") && driver.includes("tl-item"), "verify driver must drive Decisions / Registry / Timeline lists");
