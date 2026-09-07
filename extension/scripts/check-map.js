@@ -308,6 +308,7 @@ assert(
   "sticky-clusters feature map must use the four headings"
 );
 assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png"), "feature README must list flow-tabs.md");
+assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -347,6 +348,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/uncovered-node.md")), "uncovered-node feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-slice.md")), "open-slice feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/draft-hint.md")), "draft-hint feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/proposed-uncovered.md")), "proposed-uncovered feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
@@ -423,6 +425,16 @@ assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
 assert(js.includes("data-open-slice") && js.includes("Open slice") && js.includes("selectFlow(name)"), "decision record must Open slice via selectFlow");
 assert(driver.includes("draft-hint.png") && driver.includes("DH1") && driver.includes("draftHintBtn") && driver.includes("[[flow]]"), "verify driver must prove Timeline Copy draft hits");
+assert(driver.includes("proposed-uncovered.png") && driver.includes("PU0") && driver.includes("PU1") && driver.includes("data-proposed"), "verify driver must prove proposed-uncovered on the Review desk");
+assert(chrome.includes("function isProposedFlow") && chrome.includes('data-proposed="1"') && css.includes("data-proposed"), "desk must mark proposed flow chips on #tabs");
+const proposedMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/proposed-uncovered.md"), "utf8");
+assert(
+  proposedMap.includes("## Sub-features") &&
+    proposedMap.includes("## How to get to it (user POV)") &&
+    proposedMap.includes("## Driving it with the harness") &&
+    proposedMap.includes("## Gotchas"),
+  "proposed-uncovered feature map must use the four headings"
+);
 assert(js.includes("id=\"draftHintBtn\"") && js.includes("id=\"draftHint\"") && js.includes("[[flow]]") && js.includes("Copy draft"), "timeline Uncovered must expose a draft flows.toml fragment");
 assert(chrome.includes("function copyDraftHint") && chrome.includes("function draftHintToml") && !/copyDraftHint[\s\S]{0,500}type:\s*["']stamp["']/.test(chrome), "draft hint must copy a hit list and not stamp");
 assert(harness.includes("solarsim::MissingHit") && harness.includes("UnmatchedHint"), "explorer snap must keep the unmatched hit");

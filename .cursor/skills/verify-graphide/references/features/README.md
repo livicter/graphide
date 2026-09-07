@@ -46,6 +46,7 @@ owns this folder.
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
 | [uncovered-node.md](uncovered-node.md) | UncoveredNode finding | explorer · `#coverage` · Timeline · `uncovered-node.png` |
 | [draft-hint.md](draft-hint.md) | Copy draft `[[flow]]` hits | explorer Timeline Uncovered · `draft-hint.png` |
+| [proposed-uncovered.md](proposed-uncovered.md) | Proposed flow from uncovered | `?delta=1` · `proposed-uncovered.png` |
 | [open-slice.md](open-slice.md) | Decisions → Slice jump | explorer · `data-open-slice` · `open-slice.png` |
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
 | [self-review.md](self-review.md) | This checkout | `?live=1&require=1` |

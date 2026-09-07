@@ -220,6 +220,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
             sequence,
             dataflow,
             lifecycle,
+            proposed: false,
         });
         opts.report(ProgressEvent::new(
             "flows",
@@ -247,7 +248,59 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
         vec![]
     };
 
-    let cov = coverage(&changed, &flows);
+    let mut cov = coverage(&changed, &flows);
+    // Second pass: uncovered / changed nodes off every sidecar/default tree
+    // become proposed FlowHints. Steiner those; do not write flows.toml.
+    // Recompute coverage so the hole shrinks when the proposal covers nodes.
+    let proposed_hints = propose_uncovered_hints(&graph, &cov.uncovered);
+    if !proposed_hints.is_empty() {
+        let extra = proposed_hints.len();
+        for hint in &proposed_hints {
+            if flows.iter().any(|f| f.name == hint.name) {
+                continue;
+            }
+            let mut resolved = Vec::new();
+            for fqn in &hint.hits {
+                if let Some(id) = resolve_fqn(&graph, fqn) {
+                    resolved.push(id);
+                }
+            }
+            if resolved.is_empty() {
+                continue;
+            }
+            let tree = steiner_tree(&graph, &resolved);
+            flows.push(Flow {
+                name: hint.name.clone(),
+                hits: resolved.clone(),
+                tree: tree.clone(),
+            });
+            let flowchart = build_flowchart(&graph, &bubbles, &tree);
+            let sequence = flow_sequence(&graph, &tree);
+            let dataflow = flow_dataflow(&graph, &tree);
+            let lifecycle = flow_lifecycle(&graph, &tree);
+            flow_views.push(FlowView {
+                name: hint.name.clone(),
+                hits: hint.hits.clone(),
+                resolved_hits: resolved,
+                tree,
+                flowchart,
+                sequence,
+                dataflow,
+                lifecycle,
+                proposed: true,
+            });
+        }
+        if flow_views.iter().any(|f| f.proposed) {
+            cov = coverage(&changed, &flows);
+            opts.report(ProgressEvent::new(
+                "flows",
+                format!("{} proposed from uncovered", extra),
+                flow_views.len(),
+                flow_views.len().max(1),
+                99,
+            ));
+        }
+    }
     let mut delta = if input.parent_extracts.is_some() {
         architecture_delta(
             &parent_graph,
@@ -334,6 +387,38 @@ pub fn default_review_hints(graph: &Graph) -> Vec<FlowHint> {
         });
     }
     out
+}
+
+/// Stable name for the coverage second-pass flow. Not written to `flows.toml`.
+pub const PROPOSED_UNCOVERED_NAME: &str = "proposed-uncovered";
+const PROPOSED_UNCOVERED_HIT_CAP: usize = 8;
+
+/// Build proposed `FlowHint`s from uncovered FQNs (cap 8). Hits are derived
+/// names only. A single hit lets Steiner walk entry/sink when the graph
+/// connects; the deriver still builds the tree. Does not persist the sidecar.
+pub fn propose_uncovered_hints(graph: &Graph, uncovered: &[NodeId]) -> Vec<FlowHint> {
+    if uncovered.is_empty() {
+        return Vec::new();
+    }
+    let mut hits = Vec::new();
+    for id in uncovered.iter().take(PROPOSED_UNCOVERED_HIT_CAP) {
+        let Some(n) = graph.nodes.iter().find(|n| n.id == *id) else {
+            continue;
+        };
+        if n.fqn.is_empty() {
+            continue;
+        }
+        if !hits.iter().any(|h| h == &n.fqn) {
+            hits.push(n.fqn.clone());
+        }
+    }
+    if hits.is_empty() {
+        return Vec::new();
+    }
+    vec![FlowHint {
+        name: PROPOSED_UNCOVERED_NAME.into(),
+        hits,
+    }]
 }
 
 /// Isolated Types/consts as seeds never grow a Steiner path. Fall back
@@ -640,5 +725,64 @@ mod tests {
             !tree.edges.is_empty(),
             "control-flow Steiner should walk main → callees, got {tree:?}"
         );
+    }
+
+    #[test]
+    fn propose_uncovered_empty_is_none() {
+        let graph = Graph {
+            nodes: vec![],
+            edges: vec![],
+        };
+        assert!(propose_uncovered_hints(&graph, &[]).is_empty());
+    }
+
+    #[test]
+    fn propose_uncovered_uses_derived_fqns_and_caps() {
+        let mut nodes = Vec::new();
+        let mut ids = Vec::new();
+        for i in 0..12 {
+            let fqn = format!("crate::n{i}");
+            let node = n(NodeKind::Function, &fqn, "src/lib.rs");
+            ids.push(node.id);
+            nodes.push(node);
+        }
+        let ghost = NodeId::from_identity(NodeKind::Function, "crate::missing");
+        let graph = Graph {
+            nodes,
+            edges: vec![],
+        };
+        let mut uncovered = ids.clone();
+        uncovered.push(ghost);
+        let hints = propose_uncovered_hints(&graph, &uncovered);
+        assert_eq!(hints.len(), 1);
+        assert_eq!(hints[0].name, PROPOSED_UNCOVERED_NAME);
+        assert_eq!(hints[0].hits.len(), 8, "{:?}", hints[0].hits);
+        assert_eq!(hints[0].hits[0], "crate::n0");
+        assert_eq!(hints[0].hits[7], "crate::n7");
+        assert!(!hints[0].hits.iter().any(|h| h.contains("missing")));
+    }
+
+    #[test]
+    fn propose_uncovered_single_hit_keeps_pipeline_seeds() {
+        let a = n(NodeKind::Function, "crate::entry", "a.rs");
+        let b = n(NodeKind::Function, "crate::mid", "a.rs");
+        let c = n(NodeKind::Function, "crate::sink", "a.rs");
+        let graph = Graph {
+            nodes: vec![a.clone(), b.clone(), c.clone()],
+            edges: vec![calls(&a, &b), calls(&b, &c)],
+        };
+        let hints = propose_uncovered_hints(&graph, &[b.id]);
+        assert_eq!(hints[0].hits, vec!["crate::mid".to_string()]);
+        let ids: Vec<_> = hints[0]
+            .hits
+            .iter()
+            .filter_map(|h| resolve_fqn(&graph, h))
+            .collect();
+        let tree = crate::steiner::steiner_tree(&graph, &ids);
+        assert!(
+            tree.nodes.len() >= 2,
+            "single uncovered hit should still Steiner a walk, got {tree:?}"
+        );
+        assert!(tree.nodes.contains(&b.id));
     }
 }

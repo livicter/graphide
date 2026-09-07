@@ -30,9 +30,10 @@ stamp. The human pastes into `flows.toml`; the deriver builds the tree.
 4. Stamp and Skip stay human. Copying a draft is not an approval and
    does not apply the hint.
 
-This PR proves the under-hint path: uncovered FQNs can leave the desk
-as a hit list. The deriver still builds the Steiner tree on the next
-Review.
+This PR proves the under-hint copy path: uncovered FQNs can leave the
+desk as a hit list. The deriver still builds the Steiner tree after
+the human pastes. A first-Review flow on `#tabs` (no paste) is
+[proposed-uncovered.md](proposed-uncovered.md).
 
 ## Driving it with the harness
 
