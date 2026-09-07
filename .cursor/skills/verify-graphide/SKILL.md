@@ -149,17 +149,17 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#hopCard` names both ends; end inspects the node;
      `verification/hop-card.png`
    - Fit / Reorganize: explorer Map `#zoomFit` (`0`) and `#reorgBtn`;
-     Map stays `xy=0` with more than one card visible; no stamp posts
+     Map stays `xy=0` with more than one card visible
    - Zoom: explorer Map `#zoomIn` / `#zoomOut`; `#zoomPct` / scale
-     change; Map stays `xy=0` with cards visible; no stamp posts
+     change; Map stays `xy=0` with cards visible
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
-     `xy=0`; `verification/program-chips.png`; no stamp posts
+     `xy=0`; `verification/program-chips.png`
    - All programs: explorer skips `#legend [data-prog="-1"]` when
      absent; self-review starts on a crate chip then clicks All
      programs; `#meta` token `all` / key `-1`; Map stays `xy=0`;
-     `verification/all-programs.png`; no stamp posts
+     `verification/all-programs.png`
    - Progress: explorer desk posts synthetic `{ type: "progress" }`;
      `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
      label update; `verification/progress.png` while the strip is on
@@ -191,7 +191,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       a `[[flow]]` hit list of uncovered FQNs; `verification/draft-hint.png`
     - Proposed uncovered: `?delta=1` demo vs demo-parent; `#tabs`
       `.tab[data-proposed="1"]` `proposed-uncovered`; Steiner paints;
-      selecting it changes the cut; no stamp; no `flows.toml` write;
+      selecting it changes the cut; no `flows.toml` write;
       `verification/proposed-uncovered.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
@@ -202,28 +202,12 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
-    `verification/` holds screenshots plus `report.md`, including
-    `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
-    `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
-    `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
-    `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
-    `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`,
-    `flow-hints.png`,
-    `flow-tabs.png`,
-    `slice-grey.png`,
-    `unmatched-hint.png`,
-    `uncovered-node.png`,
-    `open-slice.png`,
-    `draft-hint.png`,
-    `proposed-uncovered.png`,
-    `sticky-clusters.png`,
-    `delta-sticky-views.png`,
-    `cancel-review.png`,
-    `export-share.png` (1200×630),
-    a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
-    and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
-    on the bright desk; Night is dark vs day `map.png`, not a flat black
-    frame).
+    `verification/` holds the screenshots named in
+    [references/features/](references/features/README.md) plus
+    `report.md`. Share Card is 1200×630. PNGs are not a black frame
+    (mean luma well above 0.15 on the bright desk; Night is dark vs
+    day `map.png`, not a flat black frame). The driver lists the
+    files it actually wrote — do not maintain a second dump here.
 14. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story. Mac mini self-hosted is blocked until a runner with
     labels `[self-hosted, macOS, ARM64]` is registered on `livicter/graphide`
@@ -236,401 +220,28 @@ synthetic explorer fixture alone.
 
 ## What the job proves
 
-PR #45 regressions that must fail CI (explorer chrome, 17/17):
-
-- **Map is a community map.** Seed `bin main`. After Review, Map shows real
-  community cards (`.bubble-card`), not a lone START / fallback program card.
-  Map altitude stays `xy=0`. Enter a card → `#enterCanvas` shaped XYFlow
-  (≤24 nodes), not a vanilla `.inode` list. Screenshot `enter-bubble.png`.
-- **Evidence stays off the object rail.** `#sourcePane` clips (`overflow: hidden`,
-  `max-width ≤ 380px`) and must not overlap `#ledgerPane`.
-
-Explorer list workspaces (same `?mode=explorer` desk; not XYFlow canvases):
-
-- **Overview** lands first. Default-run `#sliceCanvas` still has shaped
-  XYFlow nodes. Open map / program chips when the product shows them.
-  Screenshot `verification/overview.png`. No stamps written.
-- **Decisions** lists fixture stamps / skips / broken attestations (or the
-  honest empty). Stamp / Skip stay host-only. Screenshot `decisions.png`.
-- **Registry** `table.audit` rows match the snap (nodes / edges / files /
-  plugin). Screenshot `registry.png`.
-- **Timeline** rail shows parent cut / uncovered / stamp scars from the
-  snap. Screenshot `timeline.png`.
-
-Self-review gate (this checkout, not the fixture):
-
-- `cargo build -p graphide-cli` then `graphide review --root <checkout>`
-- snapshot: nodes + edges + files `> 0`, rust plugin in play, Map is not a
-  lone START
-- Playwright paints that snap on the Review desk and screenshots
-  `verification/self-review.png`
-
-Architecture Delta gate (fixtures/demo vs fixtures/demo-parent):
-
-- `graphide review --root fixtures/demo --parent fixtures/demo-parent`
-- `delta.facts` is not empty; includes added `crate::bus::sneaky_helper`
-- Playwright paints `?delta=1&ws=delta` and screenshots `verification/delta.png`
-- Review walk is finite. Delta does not write `.graphide/stamps/`.
-
-Sticky clusters gate (same demo vs demo-parent Delta snap):
-
-- `delta.cluster_facts` is not empty; a coarse `BubbleId` is `stable`
-  or `relabel` after `sticky_match`
-- Playwright asserts `#deltaFacts .delta-fact[data-delta-kind][data-bubble]`
-  and screenshots `verification/sticky-clusters.png`
-- Map, if visited, stays `xy=0`. No stamp / skip.
-
-Delta sticky views gate (same demo vs demo-parent Delta snap):
-
-- `delta.parent_bubbles` is the coarse parent cut; a sticky id has
-  members on both parent_bubbles and head `bubbles`
-- Selecting `#deltaFacts .delta-fact[data-delta-class="community"][data-bubble]`
-  focuses that id: Before paints parent members, After paints head
-  members, Delta the union (cap 24). Matching `.vnode` carry
-  `data-bubble` / `data-delta-review-current`
-- Playwright screenshots `verification/delta-sticky-views.png`
-- Map, if visited, stays `xy=0`. No stamp / skip.
-
-Sequence gate (fixtures/demo, same slice as `first_slice.rs`):
-
-- `graphide review --root fixtures/demo --no-parent`
-- a flow `sequence` has `> 1` participant and an ordered hop list
-- Playwright paints `?sequence=1&ws=sequence` and screenshots `verification/sequence.png`
-- Play walk is finite. Sequence does not write `.graphide/stamps/`.
-
-Data-flow gate (fixtures/demo, same slice as `first_slice.rs`):
-
-- `graphide review --root fixtures/demo --no-parent`
-- a flow `dataflow` has a Source and a Sink on the path
-- Playwright paints `?dataflow=1&ws=dataflow` and screenshots `verification/dataflow.png`
-- Play walk is finite. Data-flow does not write `.graphide/stamps/`.
-
-Lifecycle gate (fixtures/demo, same slice as `first_slice.rs`):
-
-- `graphide review --root fixtures/demo --no-parent`
-- a flow `lifecycle` has proposed / walking / broken and recover `broken → walking`
-- Playwright paints `?lifecycle=1&ws=lifecycle` and screenshots `verification/lifecycle.png`
-- Play walk is finite. Lifecycle does not write `.graphide/stamps/`.
-
-Lineage gate (fixtures/demo, same slice as `first_slice.rs`):
-
-- `graphide review --root fixtures/demo --no-parent` (reuses Sequence snap)
-- directed ego: callers left / callees right on Calls; Type/Endpoint data hops
-- Playwright paints `?lineage=1&ws=lineage` and screenshots `verification/lineage.png`
-- `coverage.changed` on the Delta snap marks `.changed`. Map stays `xy=0`.
-- Lineage does not write `.graphide/stamps/`.
-
-Presentation / Style gate (explorer Map):
-
-- `#presetBtn` cycles `data-preset`; card count and identity selectors stay
-- `#presentBtn` / `F` fills the canvas; Escape restores graph-bar chrome
-- Playwright screenshots `verification/present.png` and
-  `verification/preset-blueprint.png`
-- Present / preset do not write `.graphide/stamps/`
-
-Route / Lens gate (fixtures/demo Sequence snap):
-
-- `R` / `#pathBtn` resolves a directed Calls/Reads/Writes/Publishes/Subscribes
-  path; subscribe → events is a real Subscribes hop
-- highlighted nodes ⊆ path nodes; unreachable stays empty
-- journey Play / Next is finite
-- `L` / `#lensBtn` highlights Function / Endpoint (or Source|Sink)
-- Playwright screenshots `verification/route.png` and `verification/lens.png`
-- Route / Lens do not write `.graphide/stamps/`
-
-Ego / Find gate (explorer enter / Slice + demo Lineage):
-
-- `#egoBtn` toggles; `#egoHops` 1 vs 2 on a selected node
-- neighbors get `.ego`; non-neighbors get `.ego-dim` on enter or Slice
-- `#graphSearch` dims Map `.bubble-card` and enter / Lineage `.vnode`
-- Playwright screenshots `verification/ego.png` and `verification/search.png`
-- Map altitude stays `xy=0`. Ego / Find do not write `.graphide/stamps/`
-
-Kind filters gate (explorer Slice / object rail):
-
-- `#kindFilters input[data-kind]` Function / Type / Endpoint start
-  checked. `.kind-pill` takes `.off` when unchecked
-- All three on: `#sliceCanvas .vnode:not(.dim)` and
-  `#ledgerGrid .cell` mix Function / Type / Endpoint (or an honest
-  Function-only baseline)
-- Uncheck Type and Endpoint: remaining visible kinds are Function
-- Uncheck Function, leave Type: remaining visible kinds are Type
-- Restore all three. Map after the drive stays `xy=0`
-- Playwright screenshots `verification/kind-filters.png` on the
-  Function-only cut (not a black frame)
-- Kind filters do not write `.graphide/stamps/` and do not post
-  `{ type: "stamp" }` / `{ type: "skip" }`
-
-Ask gate (explorer Map, graph-only):
-
-- `#llmBtn` opens `#llmPane`; `#llmClose` / Escape hide it
-- Without a configured LLM host, `localAsk` still answers a flow, hop, or
-  coverage (`Start → features → end`, never stamp)
-- Playwright screenshots `verification/ask.png`
-- Ask does not write `.graphide/stamps/` and does not post `{ type: "stamp" }`
-- Do not require an OpenAI key in CI
-
-Keys gate (explorer Map, shortcut sheet):
-
-- `?` / `#keysBtn` opens `#keysPane`; `#keysClose` / Escape hide it
-  (Escape closes Keys even while Evidence is open)
-- Sheet text lists `/` find, `?` this sheet, `S`/`X` stamp/skip, `E` ego,
-  `F` present, `D` day/night — the bindings in `desk.js`
-- Playwright screenshots `verification/keys.png`
-- Keys does not write `.graphide/stamps/` and does not post `{ type: "stamp" }`
-- Map altitude stays `xy=0`. Close the sheet before Evidence / ledger / Ask
-
-Path walk gate (explorer Map, community Play):
-
-- Explorer `control-flow` already crosses several Map communities
-- `P` or `#pathWalkBtn` starts the walk; `.feat-chip` / `.bubble-card`
-  get `.walk` / `.here`
-- `[` `]` move the walk index; no stamp / skip posts
-- Pause / stop leaves Map `xy=0`
-- Playwright screenshots `verification/path-walk.png` on a mid-path
-  community (not a black frame)
-- Not Route `#pathBtn` / `#routePlay`. Path walk does not write
-  `.graphide/stamps/`
-
-Appearance gate (explorer Map, Day / Night):
-
-- From Day, `#themeNight` or `D` adds `.night` on `html` / `body`
-- `#themeNight` has `.on`; `#themeDay` does not
-- `.bright` stays (`html.bright.night`). Do not assert it is removed
-- Map cards stay visible; altitude stays `xy=0`
-- Playwright screenshots `verification/night.png` (dark vs day
-  `map.png`, not a black frame)
-- Day restore (`#themeDay` or `D`) drops `.night` so later suites stay
-  day-safe
-- P3 stays: Day / Night does not change `data-preset`
-- Appearance does not write `.graphide/stamps/`
-
-Coverage mark gate (explorer Evidence, synthetic coverage):
-
-- Explorer `flowPayload()` already seeds `coverage.uncovered` /
-  `coverage.changed`. `#coverage` counts are `> 0`
-- Open Evidence on a Slice vnode (or `#ledgerGrid .cell.uncovered`)
-- `#inspMeta` row `mark` is `uncovered` or `changed`, not only `—`
-- Playwright screenshots `verification/coverage-mark.png` with Evidence
-  open showing the mark (not a black frame)
-- Coverage mark does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
-
-Hop card gate (explorer Evidence, incident hops):
-
-- Explorer `flowPayload()` already seeds graph edges. Open Evidence
-  on a Slice vnode so `#inspEdges` has `.row[data-from][data-to]`
-- Click `.edge-hit` / `text.ekind` when the graph paints them, else
-  `#inspEdges .row` (Slice XYFlow may omit SVG hits)
-- `#hopCard` unhides and lists both ends (`[data-id]`). Click an end
-  so `#srcTitle` / `#srcBody` change
-- Close with `#srcClose` or Escape. No stamp / skip posts
-- Playwright screenshots `verification/hop-card.png` with the hop
-  card visible (not a black frame)
-- Hop card does not write `.graphide/stamps/`. Map stays `xy=0` if
-  the drive touches Map
-
-Fit / Reorganize gate (explorer Map):
-
-- `#zoomFit` or `0` calls `fitChart`. Map stays community LOD (`xy=0`)
-  with more than one `.bubble-card` visible. No card-overlap regression
-  vs G5
-- `#reorgBtn` (GraphBar `.reorg-btn` is the same handler) runs
-  `autoReorganize` without stamp / skip posts. Card count stays or is
-  still `> 1`. Map stays `xy=0`
-- Playwright screenshots `verification/fit-reorg.png` after Fit or
-  Reorganize (not a black frame)
-- Fit / Reorganize do not write `.graphide/stamps/` and do not invent
-  nodes. `R` stays PATH
-
-Zoom gate (explorer Map, `+` / `−` only):
-
-- `#zoomIn` raises `#zoomPct` (parsed `N%`) and viewport `--cam-k`.
-  `#zoomOut` lowers both vs the zoomed-in camera. Fit stays
-  [fit-reorg.md](references/features/fit-reorg.md)
-- Map stays community LOD (`xy=0`) with `.bubble-card` cards visible.
-  Zoom does not Enter and does not mount XYFlow
-- Playwright screenshots `verification/zoom.png` after zoom-in (not a
-  black frame)
-- Zoom does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }` / `{ type: "skip" }`
-
-Program chips gate (explorer honest path + self-review switch):
-
-- Explorer `#legend [data-prog]` seeds **bin main**. One
-  `data-prog >= 0` chip is the honest path; skip multi unless a
-  second program chip exists
-- Self-review (`?live=1&require=1`) has ≥ 2 Graphide crate chips.
-  Click a second `#legend [data-prog]` (`data-prog >= 0`). `.on`
-  and the program key move; `#meta` names the new program
-- Map stays community LOD (`xy=0`) with `.bubble-card` cards
-- Playwright screenshots `verification/program-chips.png` after the
-  switch (not a black frame)
-- Program chips do not write `.graphide/stamps/` and do not post
-  `{ type: "stamp" }` / `{ type: "skip" }`
-
-All programs gate (explorer honest skip + self-review union):
-
-- Explorer `#legend [data-prog="-1"]` is absent on a single
-  `bin main` chip. Skip union unless All programs exists
-- Self-review (`?live=1&require=1`) paints All programs when
-  `programs.length > 1`. Start on a concrete `data-prog >= 0`
-  chip (`bin graphide-cli` or first crate). Click
-  `[data-prog="-1"]`. `.on` and the program key become `-1`;
-  `#meta` includes the `all` token (not the substring in
-  `communities`)
-- Optional: click the same single program again; the narrow
-  caption and key return
-- Map stays community LOD (`xy=0`) with `.bubble-card` cards
-- Playwright screenshots `verification/all-programs.png` after
-  the union (not a black frame)
-- All programs does not write `.graphide/stamps/` and does not
-  post `{ type: "stamp" }` / `{ type: "skip" }`
-
-Progress strip gate (explorer desk, synthetic host message):
-
-- After the desk is up, `window.postMessage({ type: "progress", ... })`
-  matching `showProgress` (`phase`, `label`, `done`, `total`, `pct`,
-  `elapsed_ms`)
-- `#progress` has `.on`. A `#phases li[data-phase]` is `.on`; earlier
-  phases are `.done`
-- `#progressFill` width, `#progressPct`, and `#progressLabel` update
-- Playwright screenshots `verification/progress.png` while the strip is
-  visible (not a black frame)
-- `{ type: "cancelled" }` or a programs / flowchart post hides the strip
-  and restores the desk
-- Progress does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive is on Map
-
-Cancel review gate (explorer desk, `#cancelBtn` click path):
-
-- After the desk is up, post synthetic `{ type: "progress" }` so the
-  strip is on. `#cancelBtn` is visible; `#reviewBtn` is hidden
-- Click `#cancelBtn`. The desk posts `{ type: "cancel" }` and
-  `#progressLabel` is Cancelling…
-- `{ type: "cancelled" }` (host reply; the stub only records posts)
-  hides the strip and restores Review
-- Playwright screenshots `verification/cancel-review.png` of the
-  restored desk (not a black frame)
-- Cancel does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive is on Map
-
-Flow hints gate (fixtures/demo `flows.toml`, Data-flow snap):
-
-- `graphide review --root fixtures/demo --no-parent` loads the
-  sidecar; a flow is named `data-subscription` (not only defaults)
-- Hits stay FQNs (`crate::sub::subscribe`, `crate::bus::events`).
-  The deriver builds the Steiner tree (`tree.nodes` / `tree.edges`)
-- Playwright paints `?dataflow=1&ws=dataflow`; `#tabs` shows
-  `[data-flow="data-subscription"]`
-- Playwright screenshots `verification/flow-hints.png` (not a
-  black frame)
-- Flow hints do not write `.graphide/stamps/` and do not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
-
-Flow tabs gate (explorer `#tabs` Steiner switch):
-
-- Explorer `flowPayload()` already seeds `overview`,
-  `control-flow`, and `boot`. `#tabs .tab[data-flow]` count is ≥ 2
-- Note the active chip (or click `control-flow`). Click a different
-  `#tabs .tab[data-flow]` (`boot`). `.on` moves. `selectFlow`
-  posts `{ type: "selectFlow", flow }`
-- Visible cut changes: Slice `#meta` names the new flow (title),
-  or story-rail hops / start·end / Slice lit when those differ
-- Playwright screenshots `verification/flow-tabs.png` after the
-  switch (not a black frame)
-- Return to Map: community LOD (`xy=0`) with more than one card
-- Flow tabs do not write `.graphide/stamps/` and do not post
-  `{ type: "stamp" }` / `{ type: "skip" }`
-- Honest skip only if a second flow tab cannot exist on explorer
-  **and** self-review
-
-Slice grey gate (explorer Overview / Slice lighting mask):
-
-- Explorer `flowPayload()` already seeds `control-flow` / `boot`
-  Steiner plus graph edges off that tree
-- Click a `#tabs .tab[data-flow]` (`control-flow` or `boot`). Slice
-  pins. `#sliceCanvas` paints on-tree lit and 1-hop neighbors grey
-- Playwright screenshots `verification/slice-grey.png` (not a
-  black frame)
-- Map after Back / Map chip is still `xy=0`
-- Slice grey does not write `.graphide/stamps/`, does not post
-  `{ type: "stamp" }` / `{ type: "skip" }`, and does not write
-  `flows.toml`
-
-Unmatched hint gate (explorer synthetic snap):
-
-- Explorer `flowPayload()` already seeds
-  `{ kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" }`
-- `#coverage li.finding` text is `unmatched solarsim::MissingHit in boot`
-- Decisions `.expl-card[data-decision]` lists `UnmatchedHint` (not only
-  `StampBroken`)
-- Playwright paints `?mode=explorer` and screenshots
-  `verification/unmatched-hint.png`
-- Unmatched hint does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
-
-Uncovered node gate (explorer synthetic snap):
-
-- Explorer `flowPayload()` already seeds `coverage.uncovered` /
-  `coverage.changed` (`n0`…`n1122`). Engine `UncoveredNode` findings
-  are the same set. The desk does **not** list per-node Decisions cards.
-- `#coverage` text is `Coverage N changed · N uncovered` with both N > 0
-  (no `UncoveredNode` finding dump)
-- Timeline `.tl-item` title is `Uncovered`; body is
-  `N changed nodes sit off every proposed tree`
-- Playwright paints `?mode=explorer` Timeline and screenshots
-  `verification/uncovered-node.png`
-- Uncovered node does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
-
-Open slice gate (explorer Decisions → Slice):
-
-- Explorer `flowPayload()` already seeds UnmatchedHint · boot ·
-  MissingHit. The decision record paints
-  `button[data-open-slice="{flow}"]`
-- Click calls `selectFlow` and pins Slice. `#workspaces
-  [data-ws="slice"]` is `.on`. `#tabs .tab.on[data-flow]` matches the
-  button value
-- Playwright paints `?mode=explorer` Decisions then screenshots
-  `verification/open-slice.png` on Slice
-- Open slice does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` if the drive returns to Map
-
-Draft hint gate (explorer Timeline Uncovered):
-
-- Explorer `flowPayload()` already seeds `coverage.uncovered`
-  (`n0`…`solarsim::ScreenshotFormat`). Timeline Uncovered `.now`
-  paints `#draftHintBtn` and `#draftHint`
-- Click copies a `[[flow]]` / `hits = ["fqn", …]` fragment. Visible
-  draft or clipboard includes at least one uncovered FQN
-- Playwright screenshots `verification/draft-hint.png`
-- Draft hint does not write `.graphide/stamps/` and does not post
-  `{ type: "stamp" }`. Map stays `xy=0` — this gate stays on Timeline
-
-Proposed uncovered gate (fixtures/demo vs demo-parent Delta snap):
-
-- `graphide review --root fixtures/demo --parent fixtures/demo-parent`
-  second-pass `propose_uncovered_hints` after first coverage. A flow
-  is named `proposed-uncovered` with `proposed: true`. Hits are
-  uncovered FQNs (`crate::bus::sneaky_helper`). The deriver builds
-  the Steiner tree. Coverage is recomputed so that hit can leave
-  `coverage.uncovered`.
-- Playwright paints `?delta=1&ws=delta`; `#tabs` shows
-  `[data-proposed="1"]` / `data-flow="proposed-uncovered"`
-- Selecting the chip pins Slice and changes the cut vs
-  `data-subscription`
-- Playwright screenshots `verification/proposed-uncovered.png`
-- Proposed uncovered does not write `.graphide/stamps/`, does not
-  post `{ type: "stamp" }`, and does not write `flows.toml`
-
-Stamp / skip is **human-only**. Agents never stamp. A harness may click
-`#stampBtn` / `#skipBtn` only to prove the host message is posted
-(`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Delta sticky views, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Slice grey, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
-
-**Coverage rule** (document here; do not try to enforce agent-stamping): every
-changed derived node on a proposed Steiner flow. Stamp / skip stays human.
+Doctor items 1–14 plus the feature maps. Do not restate every desk
+here. Unique regressions that must still fail CI:
+
+- **Map is a community map.** Seed `bin main`. After Review, Map shows
+  real community cards (`.bubble-card`), not a lone START / fallback
+  program card. Map altitude stays `xy=0`. Enter a card → `#enterCanvas`
+  shaped XYFlow (≤24 nodes), not a vanilla `.inode` list.
+- **Evidence stays off the object rail.** `#sourcePane` clips
+  (`overflow: hidden`, `max-width ≤ 380px`) and must not overlap
+  `#ledgerPane`.
+- **Stamp / skip is human-only.** Agents never stamp. The harness may
+  click `#stampBtn` / `#skipBtn` only to prove `window.__vscodePosts`.
+  No step writes `.graphide/stamps/`. The driver `assertNoStampDir`
+  per step is the gate — do not duplicate that sentence on every
+  feature map row.
+
+**Coverage rule** (document here; do not try to enforce
+agent-stamping): every changed derived node on a proposed Steiner
+flow. Stamp / skip stays human.
+
+Per-surface selectors and harness drive live in
+[references/features/](references/features/README.md).
 
 ## How to get to the desk
 
