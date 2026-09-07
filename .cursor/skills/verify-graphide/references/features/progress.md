@@ -18,7 +18,8 @@ Not a second bar, not a Map altitude, and not an agent stamp.
   `extension/media/src/graph/desk.js`. Host `runReview` posts the same
   schema (`phase`, `label`, `done`, `total`, `pct`, `elapsed_ms`).
 - Completing the snap (`programs` / `flowchart`) or `{ type: "cancelled" }`
-  calls `finishWork` and hides the strip.
+  calls `finishWork` and hides the strip. Header **Cancel** (`#cancelBtn`)
+  is the click path — [cancel-review.md](cancel-review.md).
 - Stamp / skip stay human. Progress never posts `{ type: "stamp" }` and
   never writes `.graphide/stamps/`.
 

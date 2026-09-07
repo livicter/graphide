@@ -139,6 +139,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Progress: explorer desk posts synthetic `{ type: "progress" }`;
      `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
      label update; `verification/progress.png` while the strip is on
+   - Cancel review: explorer desk posts synthetic `{ type: "progress" }`;
+     click `#cancelBtn` posts `{ type: "cancel" }`; host `{ type:
+     "cancelled" }` hides the strip and restores `#reviewBtn`;
+     `verification/cancel-review.png` of the restored desk
     - Flow hints: `?dataflow=1` demo snap; `#tabs` chip
       `data-subscription`; Steiner nodes/edges on that named flow;
       `verification/flow-hints.png`
@@ -160,7 +164,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
     **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, and **draft-hint**.
+    **open-slice**, **draft-hint**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -172,6 +176,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `uncovered-node.png`,
     `open-slice.png`,
     `draft-hint.png`,
+    `cancel-review.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
@@ -363,6 +368,19 @@ Progress strip gate (explorer desk, synthetic host message):
 - Progress does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive is on Map
 
+Cancel review gate (explorer desk, `#cancelBtn` click path):
+
+- After the desk is up, post synthetic `{ type: "progress" }` so the
+  strip is on. `#cancelBtn` is visible; `#reviewBtn` is hidden
+- Click `#cancelBtn`. The desk posts `{ type: "cancel" }` and
+  `#progressLabel` is Cancelling…
+- `{ type: "cancelled" }` (host reply; the stub only records posts)
+  hides the strip and restores Review
+- Playwright screenshots `verification/cancel-review.png` of the
+  restored desk (not a black frame)
+- Cancel does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive is on Map
+
 Flow hints gate (fixtures/demo `flows.toml`, Data-flow snap):
 
 - `graphide review --root fixtures/demo --no-parent` loads the
@@ -429,7 +447,7 @@ Draft hint gate (explorer Timeline Uncovered):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -529,6 +547,7 @@ same PR because the harness truly cannot hook existing ones.
 | Appearance | `#themeSeg`, `#themeDay`, `#themeNight`, `html.night` / `body.night`, `.on`, `D` |
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
+| Cancel review | `#cancelBtn`, `#reviewBtn`, `#progress`, `{ type: "cancel" }` / `{ type: "cancelled" }` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |
 | Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
 | Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
