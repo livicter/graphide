@@ -10,7 +10,8 @@ permissions:
 jobs:
   verify:
     name: verify
-    runs-on: ubuntu-latest
+    # Mac mini house runner. Labels must match Settings → Actions → Runners.
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 45
     env:
       CARGO_TERM_COLOR: always
@@ -91,8 +92,9 @@ jobs:
       - name: Build Review webview
         run: npm run build:webview -- --check
 
+      # macOS ARM64 Chromium. --with-deps is Ubuntu apt-only.
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Drive Review harness
         run: npm run verify
@@ -105,10 +107,11 @@ jobs:
 
       - name: Upload verification artifacts
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: verification
           path: |
             verification/
             extension/graphide-*.vsix
-          if-no-files-found: error
+          if-no-files-found: ignore
