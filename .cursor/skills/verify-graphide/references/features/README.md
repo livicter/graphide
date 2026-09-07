@@ -34,6 +34,7 @@ owns this folder.
 | [coverage-mark.md](coverage-mark.md) | Evidence `#inspMeta` mark | explorer Slice · `coverage-mark.png` |
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |
+| [flow-hints.md](flow-hints.md) | Named `flows.toml` chip | `?dataflow=1` · `flow-hints.png` |
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
 | [self-review.md](self-review.md) | This checkout | `?live=1&require=1` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
