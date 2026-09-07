@@ -290,6 +290,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-hints.md")), "flow-hints feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -348,6 +349,10 @@ assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
+assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
+const demoFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/demo/flows.toml"), "utf8");
+assert(/name\s*=\s*"data-subscription"/.test(demoFlows) && /crate::sub::subscribe/.test(demoFlows), "demo flows.toml must keep the data-subscription hit list");
+assert(js.includes("function renderTabs") && js.includes('data-flow="'), "desk must render named flow chips on #tabs");
 assert(chrome.includes('id="progress"') && chrome.includes('id="phases"') && chrome.includes('data-phase="cluster"'), "progress strip missing from chrome");
 assert(/"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(js) || /"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(chrome), "fillInspect must write the coverage mark row");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");

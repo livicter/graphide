@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -466,6 +466,34 @@ function assertDataflowSnap(snap) {
     );
   }
   return { hops: best ? best.hops : 0, nodes: best ? best.nodes : 0, source: hasSource, sink: hasSink };
+}
+
+function assertFlowHintsSnap(snap) {
+  const flows = snap.flows || [];
+  const named = flows.find((f) => f && f.name === "data-subscription");
+  const hits = ((named && named.hits) || []).map((h) => String(h || ""));
+  const tree = (named && named.tree) || { nodes: [], edges: [] };
+  const nodes = (tree.nodes || []).length;
+  const edges = (tree.edges || []).length;
+  const hasSubscribe = hits.some((h) => h === "crate::sub::subscribe");
+  const hasEvents = hits.some((h) => h === "crate::bus::events");
+  record(
+    "FH0",
+    "dataflow fixture snap has named flow data-subscription with a Steiner tree",
+    !!(named && hasSubscribe && hasEvents && nodes >= 2 && edges >= 1),
+    named
+      ? "hits=" + hits.join(",") + " tree=" + nodes + "n/" + edges + "e"
+      : "flows=" + flows.map((f) => f && f.name).join(",")
+  );
+  const failed = checks.filter((c) => !c.pass && c.id === "FH0");
+  if (failed.length) {
+    writeReport("Flow-hints snapshot failed structural checks (desk not driven).");
+    failFast(
+      "fixtures/demo snap missing named flows.toml flow — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { name: named.name, nodes, edges, hits };
 }
 
 function deriveLifecycleSnap() {
@@ -3653,6 +3681,7 @@ async function main() {
 
     const dataflowSnap = loadDataflowSnap();
     const dataflowGraph = assertDataflowSnap(dataflowSnap);
+    const flowHintsGraph = assertFlowHintsSnap(dataflowSnap);
     const dataflowUrl = origin + DATAFLOW_HARNESS;
     console.log("dataflow " + dataflowUrl);
     await page.goto(dataflowUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -3775,6 +3804,91 @@ async function main() {
       "Data-flow XYFlow nodes expose data-shape and a store cylinder",
       dfShapes.n > 1 && dfShapes.store,
       "n=" + dfShapes.n + " shapes=" + dfShapes.shapes.join(",")
+    );
+
+    const beforeHintsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const flowHintsDesk = await page.evaluate(() => {
+      const tab = document.querySelector('#tabs .tab[data-flow="data-subscription"]');
+      const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")].map((el) => ({
+        name: el.getAttribute("data-flow") || "",
+        on: el.classList.contains("on"),
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+      }));
+      const nodes = document.querySelectorAll("#dfCanvas .df-node").length;
+      const hops = document.querySelectorAll("#dfHops .df-hop").length;
+      const xy = document.querySelectorAll("#dfCanvas .react-flow__node").length;
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "";
+      return {
+        ws,
+        tab: !!(tab && /data-subscription/.test((tab.textContent || "") + (tab.getAttribute("data-flow") || ""))),
+        on: !!(tab && tab.classList.contains("on")),
+        text: tab ? (tab.textContent || "").replace(/\s+/g, " ").trim() : "",
+        tabs,
+        nodes,
+        hops,
+        xy,
+        mapXy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "FH1",
+      "Data-flow desk shows flow chip data-subscription",
+      flowHintsDesk.tab && flowHintsDesk.ws === "dataflow" && /data-subscription/.test(flowHintsDesk.text),
+      JSON.stringify({ ws: flowHintsDesk.ws, text: flowHintsDesk.text, tabs: flowHintsDesk.tabs })
+    );
+    record(
+      "FH2",
+      "Named flow chip is the current selection",
+      flowHintsDesk.on,
+      flowHintsDesk.text || JSON.stringify(flowHintsDesk.tabs)
+    );
+    record(
+      "FH3",
+      "Named flow is backed by a derived Steiner pipeline (not an empty chip)",
+      flowHintsDesk.nodes >= 2 &&
+        flowHintsDesk.hops >= 1 &&
+        flowHintsDesk.xy > 1 &&
+        flowHintsGraph.nodes >= 2 &&
+        flowHintsGraph.edges >= 1,
+      "desk=" +
+        flowHintsDesk.nodes +
+        "n/" +
+        flowHintsDesk.hops +
+        "h xy=" +
+        flowHintsDesk.xy +
+        " tree=" +
+        flowHintsGraph.nodes +
+        "n/" +
+        flowHintsGraph.edges +
+        "e"
+    );
+    await shot(page, "flow-hints.png");
+    const afterHints = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, beforeHintsPosts);
+    record(
+      "FH4",
+      "Flow-hints step did not post stamp / skip",
+      afterHints.stampPosts === 0 && afterHints.skipPosts === 0,
+      JSON.stringify(afterHints)
+    );
+    const stampDirFh = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampFh = fs.existsSync(stampDirFh) && fs.readdirSync(stampDirFh).length > 0;
+    record(
+      "FH5",
+      "Flow-hints step did not write .graphide/stamps/",
+      !wroteStampFh,
+      wroteStampFh ? fs.readdirSync(stampDirFh).join(",") : "absent"
     );
 
     if (dataflowDesk.overview) await page.click("#dfOverview");
@@ -4477,7 +4591,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
