@@ -1781,10 +1781,10 @@ async function main() {
       null,
       { timeout: 5000 }
     );
-    const closedBtn = await page.evaluate(
+    const keysClosedBtn = await page.evaluate(
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
-    record("K4", "#keysClose hides #keysPane", closedBtn, "");
+    record("K4", "#keysClose hides #keysPane", keysClosedBtn, "");
 
     await page.click("#keysBtn");
     await page.waitForFunction(
@@ -1804,10 +1804,10 @@ async function main() {
       null,
       { timeout: 5000 }
     );
-    const closedEsc = await page.evaluate(
+    const keysClosedEsc = await page.evaluate(
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
-    record("K5", "Escape closes #keysPane", closedEsc, "");
+    record("K5", "Escape closes #keysPane", keysClosedEsc, "");
 
     const afterKeys = await page.evaluate(() => ({
       cards: document.querySelectorAll(".bubble-card").length,
