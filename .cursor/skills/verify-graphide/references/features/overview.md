@@ -16,7 +16,8 @@ product. Stamp / skip stay human.
   “No control-flow yet. Review a repo — default run uses derived entries.”
 - Stat strip `.stat-strip`: nodes, hops, communities, programs, uncovered /
   changed, flows. **Open map** is `.crumb-btn[data-ws="map"]` (also
-  `.stat-strip [data-ws="map"]`).
+  `.stat-strip [data-ws="map"]`). `#legend [data-prog]` is painted on this
+  landing (`renderLegend()`), same chips as Map.
 - Community cards `.expl-card[data-ws="map"]` and highest-degree
   `.expl-card[data-id]` sit **below** the CFG (`renderDefaultCfg()` before
   the Communities heading).

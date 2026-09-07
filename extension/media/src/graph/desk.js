@@ -6662,6 +6662,7 @@ function statChips(map) {
 function renderExplorerList(ws) {
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
   renderStats(snapshot);
+  if (ws === "overview") renderLegend();
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
   setGraphChrome(true);
   setZoomUi(false);
