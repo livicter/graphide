@@ -352,15 +352,15 @@ document.addEventListener("keydown", (e) => {
     vscode.postMessage({ type: "cancel" });
     return;
   }
+  if (e.key === "Escape" && llmPane && !llmPane.hidden) {
+    e.preventDefault();
+    setLlmPane(false);
+    return;
+  }
   if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
   if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
     e.preventDefault();
     closeSourcePane();
-    return;
-  }
-  if (e.key === "Escape" && llmPane && !llmPane.hidden) {
-    e.preventDefault();
-    setLlmPane(false);
     return;
   }
   if (e.key === "Escape" && keysPane && !keysPane.hidden) {
@@ -756,7 +756,8 @@ window.addEventListener("message", (event) => {
   }
   if (msg.type === "llmReply") {
     llmTok++;
-    appendLlmLog(msg.text || "", msg.via === "graph" ? "graph" : "llm");
+    const text = String(msg.text || "").trim() || localAsk(msg.prompt || "");
+    if (text) appendLlmLog(text, msg.via === "graph" || !String(msg.text || "").trim() ? "graph" : "llm");
     return;
   }
   if (msg.type === "llmError") {
@@ -8472,13 +8473,18 @@ function enterBubble(snap, flowName, bubbleId) {
 
 function setLlmPane(on) {
   if (!llmPane) return;
-  if (on) setExportMenu(false);
+  if (on) {
+    setExportMenu(false);
+    if (typeof setKeysPane === "function") setKeysPane(false);
+  }
   llmPane.hidden = !on;
   llmPane.classList.toggle("open", !!on);
   document.body.classList.toggle("llm-open", !!on);
   if (on) {
     vscode.postMessage({ type: "llmStatus" });
     if (llmAsk) llmAsk.focus();
+  } else if (llmAsk && document.activeElement === llmAsk) {
+    llmAsk.blur();
   }
 }
 
@@ -8519,7 +8525,7 @@ function localAsk(q) {
   const names = nodes.slice(0, 12).map((id) => {
     const n = nodeById.get(idVal(id));
     return shortOf((n && n.fqn) || id);
-  });
+  }).filter(Boolean);
   const path = [];
   const seen = new Set();
   for (const id of nodes) {
@@ -8529,15 +8535,26 @@ function localAsk(q) {
     seen.add(String(label));
     path.push(String(b.label || b.id));
   }
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
+  const hopKinds = edges.slice(0, 8).map((e) => {
+    const from = shortOf((nodeById.get(idVal(e.from)) || {}).fqn || e.from);
+    const to = shortOf((nodeById.get(idVal(e.to)) || {}).fqn || e.to);
+    return (e.kind || "Calls") + " " + from + " → " + to;
+  });
   const lines = [
     "Start → features → end: " + (path.join(" → ") || "(review a repo first)"),
     names.length ? "Control-flow hops: " + names.join(" → ") : "",
     "This answer is from the derived review graph. An LLM is optional. Agents never stamp.",
   ];
-  if (/uncover|coverage/i.test(q || "") && snapshot && snapshot.coverage) {
-    lines.splice(2, 0, "Coverage: " + ((snapshot.coverage.changed || []).length) + " changed · " + ((snapshot.coverage.uncovered || []).length) + " uncovered");
+  if (/uncover|coverage/i.test(q || "")) {
+    const cov = (snapshot && snapshot.coverage) || {};
+    lines.splice(2, 0, "Coverage: " + ((cov.changed || []).length) + " changed · " + ((cov.uncovered || []).length) + " uncovered");
   }
-  return lines.filter(Boolean).join("\n");
+  if (/hop|edge|calls|reads|writes|publish|subscribe/i.test(q || "") && hopKinds.length) {
+    lines.splice(2, 0, "Derived hops: " + hopKinds.join("; "));
+  }
+  return lines.filter(Boolean).join("\n").trim() ||
+    "This answer is from the derived review graph. An LLM is optional. Agents never stamp.";
 }
 
 function sendLlmAsk() {

@@ -21,6 +21,7 @@ owns this folder.
 | [lens.md](lens.md) | Role compare | Sequence snap · `L` · `lens.png` |
 | [ego.md](ego.md) | k-hop neighborhood | explorer enter / Slice · `ego.png` |
 | [search.md](search.md) | Find FQN / file / flow / hop | `#graphSearch` · `search.png` |
+| [ask.md](ask.md) | Graph-only Ask pane | explorer · `#llmBtn` · `ask.png` |
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |

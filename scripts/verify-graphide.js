@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1538,6 +1538,158 @@ async function main() {
       "Enter-bubble step did not write .graphide/stamps/",
       !wroteStampEnter,
       wroteStampEnter ? fs.readdirSync(stampDirEnter).join(",") : "absent"
+    );
+
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden && pane.classList.contains("open"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const askOpen = await page.evaluate(() => {
+      const pane = document.getElementById("llmPane");
+      const box = (el) => (el && !el.hidden ? el.getBoundingClientRect() : null);
+      const hit = (a, b) =>
+        !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+        );
+      const paneBox = box(pane);
+      const source = box(document.getElementById("sourcePane"));
+      const ledger = box(document.getElementById("ledgerPane"));
+      const keys = box(document.getElementById("keysPane"));
+      const exportMenu = box(document.getElementById("exportMenu"));
+      return {
+        btn: !!document.getElementById("llmBtn"),
+        pane: !!(pane && !pane.hidden),
+        open: !!(pane && pane.classList.contains("open")),
+        close: !!document.getElementById("llmClose"),
+        ask: !!document.getElementById("llmAsk"),
+        send: !!document.getElementById("llmSend"),
+        log: !!document.getElementById("llmLog"),
+        overlap: hit(paneBox, source) || hit(paneBox, ledger) || hit(paneBox, keys) || hit(paneBox, exportMenu),
+        z: pane ? getComputedStyle(pane).zIndex : "",
+      };
+    });
+    record(
+      "A1",
+      "#llmBtn opens #llmPane (Ask)",
+      askOpen.btn && askOpen.pane && askOpen.open && askOpen.close && askOpen.ask && askOpen.send && askOpen.log,
+      JSON.stringify(askOpen)
+    );
+    record(
+      "A1b",
+      "Ask pane is not covered by Evidence / ledger / keys / export",
+      !askOpen.overlap,
+      JSON.stringify(askOpen)
+    );
+
+    const beforeAskPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.fill("#llmAsk", "Tell the start to end control-flow path");
+    await page.click("#llmSend");
+    await page.waitForFunction(
+      () => /Start → features → end/i.test((document.getElementById("llmLog") || {}).textContent || ""),
+      null,
+      { timeout: 5000 }
+    );
+    await page.fill("#llmAsk", "What hops are on this path?");
+    await page.click("#llmSend");
+    await page.waitForFunction(
+      () => /Control-flow hops:|Derived hops:/i.test((document.getElementById("llmLog") || {}).textContent || ""),
+      null,
+      { timeout: 5000 }
+    );
+    await page.fill("#llmAsk", "What is the coverage?");
+    await page.click("#llmSend");
+    await page.waitForFunction(
+      () => /Coverage:/i.test((document.getElementById("llmLog") || {}).textContent || ""),
+      null,
+      { timeout: 5000 }
+    );
+    const askAns = await page.evaluate((before) => {
+      const log = ((document.getElementById("llmLog") || {}).textContent || "").trim();
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        log,
+        hasPath: /Start → features → end/i.test(log),
+        hasHop: /hop/i.test(log),
+        hasCov: /Coverage:/i.test(log),
+        neverStamp: /never stamp/i.test(log),
+        empty: !log,
+        askPosts: posts.filter((m) => m && m.type === "llmAsk").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+      };
+    }, beforeAskPosts);
+    record(
+      "A2",
+      "Graph-only Ask answers a flow, hop, or coverage without an LLM host",
+      askAns.hasPath && askAns.hasHop && askAns.hasCov && askAns.neverStamp && !askAns.empty && askAns.askPosts >= 1,
+      askAns.log.slice(0, 220)
+    );
+    record("A3", "Ask does not post a stamp", askAns.stampPosts === 0, "stampPosts=" + askAns.stampPosts);
+
+    await shot(page, "ask.png");
+
+    await page.click("#llmClose");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const closedBtn = await page.evaluate(
+      () => !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden)
+    );
+    record("A4", "#llmClose hides #llmPane", closedBtn, "");
+
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const closedEsc = await page.evaluate(
+      () => !!(document.getElementById("llmPane") && document.getElementById("llmPane").hidden)
+    );
+    record("A5", "Escape closes #llmPane", closedEsc, "");
+
+    const afterAsk = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "A6",
+      "Map altitude is still community LOD after Ask (xy=0)",
+      afterAsk.cards >= 8 && afterAsk.xy === 0,
+      "cards=" + afterAsk.cards + " xy=" + afterAsk.xy
+    );
+    const stampDirAsk = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampAsk = fs.existsSync(stampDirAsk) && fs.readdirSync(stampDirAsk).length > 0;
+    record(
+      "A7",
+      "Ask step did not write .graphide/stamps/",
+      !wroteStampAsk,
+      wroteStampAsk ? fs.readdirSync(stampDirAsk).join(",") : "absent"
     );
 
     await page.click("#exportBtn");
@@ -3312,7 +3464,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
