@@ -145,13 +145,16 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
+    - Uncovered node: explorer desk; `#coverage` `Coverage N changed · N
+      uncovered`; Timeline `.tl-item` Uncovered / off every proposed
+      tree; `verification/uncovered-node.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
-    **progress**, **flow-hints**, and **unmatched-hint**.
+    **progress**, **flow-hints**, **unmatched-hint**, and **uncovered-node**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -160,6 +163,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `coverage-mark.png`, `fit-reorg.png`, `progress.png`,
     `flow-hints.png`,
     `unmatched-hint.png`,
+    `uncovered-node.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
@@ -376,10 +380,24 @@ Unmatched hint gate (explorer synthetic snap):
 - Unmatched hint does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
 
+Uncovered node gate (explorer synthetic snap):
+
+- Explorer `flowPayload()` already seeds `coverage.uncovered` /
+  `coverage.changed` (`n0`…`n1122`). Engine `UncoveredNode` findings
+  are the same set. The desk does **not** list per-node Decisions cards.
+- `#coverage` text is `Coverage N changed · N uncovered` with both N > 0
+  (no `UncoveredNode` finding dump)
+- Timeline `.tl-item` title is `Uncovered`; body is
+  `N changed nodes sit off every proposed tree`
+- Playwright paints `?mode=explorer` Timeline and screenshots
+  `verification/uncovered-node.png`
+- Uncovered node does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, and Unmatched hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, and Uncovered node steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -481,6 +499,7 @@ same PR because the harness truly cannot hook existing ones.
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |
 | Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
+| Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
