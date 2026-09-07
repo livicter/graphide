@@ -70,5 +70,7 @@ Driver assertions:
 - Hints are hit lists. Do not invent a second findings pane or
   `data-testid`. `#coverage li.finding` and
   `.expl-card[data-decision]` are the product hooks.
+- Open slice from the selected card is a separate gate
+  ([open-slice.md](open-slice.md)). This map stays finding-visible.
 - Agents never stamp. Do not click `#stampBtn` to “cover” the miss.
   Do not flip verify `runs-on` off `ubuntu-latest`.
