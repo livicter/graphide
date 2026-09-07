@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -2733,6 +2733,180 @@ async function main() {
       "Enter-bubble step did not write .graphide/stamps/",
       !wroteStampEnter,
       wroteStampEnter ? fs.readdirSync(stampDirEnter).join(",") : "absent"
+    );
+
+    const beforeKindPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const readKindDesk = () =>
+      page.evaluate(() => {
+        const pills = [...document.querySelectorAll("#kindFilters input[data-kind]")].map((el) => {
+          const lab = el.closest("label");
+          return {
+            kind: el.getAttribute("data-kind") || "",
+            checked: !!el.checked,
+            off: !!(lab && lab.classList.contains("off")),
+          };
+        });
+        const wrap = document.getElementById("kindFilters");
+        const wsEl = document.querySelector("#workspaces [data-ws].on");
+        const enter = [...document.querySelectorAll("#enterCanvas .vnode[data-kind]")].filter(
+          (el) => !el.classList.contains("dim")
+        );
+        const slice = [...document.querySelectorAll("#sliceCanvas .vnode[data-kind]")].filter(
+          (el) => !el.classList.contains("dim")
+        );
+        const nodes = enter.length ? enter : slice;
+        const cells = [...document.querySelectorAll("#ledgerGrid .cell")];
+        const kindOfNode = (el) => el.getAttribute("data-kind") || "";
+        const kindOfCell = (el) =>
+          el.classList.contains("kind-Type")
+            ? "Type"
+            : el.classList.contains("kind-Endpoint")
+              ? "Endpoint"
+              : el.classList.contains("kind-Function")
+                ? "Function"
+                : "";
+        const uniq = (list) => [...new Set(list.filter(Boolean))];
+        return {
+          pills,
+          hidden: !!(wrap && wrap.hidden),
+          ws: wsEl ? wsEl.getAttribute("data-ws") : "",
+          xy: document.querySelectorAll(".react-flow__node").length,
+          cards: document.querySelectorAll(".bubble-card").length,
+          nodeKinds: uniq(nodes.map(kindOfNode)),
+          ledgerKinds: uniq(cells.map(kindOfCell)),
+          nodes: nodes.length,
+          cells: cells.length,
+        };
+      });
+    const setKindPill = async (kind, checked) => {
+      await page.evaluate(
+        ({ kind, checked }) => {
+          const box = document.querySelector('#kindFilters input[data-kind="' + kind + '"]');
+          if (!box) return;
+          if (box.checked === checked) {
+            box.dispatchEvent(new Event("change", { bubbles: true }));
+            return;
+          }
+          box.checked = checked;
+          box.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+        { kind, checked }
+      );
+      await page.waitForTimeout(280);
+    };
+    const kindBaseline = await readKindDesk();
+    record(
+      "KF0",
+      "Find rail has Function / Type / Endpoint kind pills, all checked",
+      !kindBaseline.hidden &&
+        ["Function", "Type", "Endpoint"].every((k) =>
+          kindBaseline.pills.some((p) => p.kind === k && p.checked && !p.off)
+        ),
+      JSON.stringify(kindBaseline.pills)
+    );
+    const mixedKinds = new Set([...kindBaseline.nodeKinds, ...kindBaseline.ledgerKinds]);
+    const honestFnOnly =
+      mixedKinds.size === 1 && mixedKinds.has("Function") && (kindBaseline.nodes >= 1 || kindBaseline.cells >= 1);
+    record(
+      "KF1",
+      "All three checked: rail shows Function / Type / Endpoint mixed (or honest Function-only baseline)",
+      (mixedKinds.has("Function") && (mixedKinds.has("Type") || mixedKinds.has("Endpoint"))) || honestFnOnly,
+      JSON.stringify({
+        nodeKinds: kindBaseline.nodeKinds,
+        ledgerKinds: kindBaseline.ledgerKinds,
+        honestFnOnly,
+      })
+    );
+    await setKindPill("Type", false);
+    await setKindPill("Endpoint", false);
+    const kindFnOnly = await readKindDesk();
+    const fnVisible = new Set([...kindFnOnly.nodeKinds, ...kindFnOnly.ledgerKinds]);
+    record(
+      "KF2",
+      "Uncheck Type + Endpoint: only Function kinds remain visible",
+      fnVisible.size === 1 &&
+        fnVisible.has("Function") &&
+        (kindFnOnly.nodes >= 1 || kindFnOnly.cells >= 1) &&
+        kindFnOnly.pills.some((p) => p.kind === "Type" && !p.checked && p.off) &&
+        kindFnOnly.pills.some((p) => p.kind === "Endpoint" && !p.checked && p.off),
+      JSON.stringify({
+        nodeKinds: kindFnOnly.nodeKinds,
+        ledgerKinds: kindFnOnly.ledgerKinds,
+        pills: kindFnOnly.pills,
+      })
+    );
+    await shot(page, "kind-filters.png");
+    await setKindPill("Function", false);
+    await setKindPill("Type", true);
+    await setKindPill("Endpoint", false);
+    const kindTyOnly = await readKindDesk();
+    const tyVisible = new Set([...kindTyOnly.nodeKinds, ...kindTyOnly.ledgerKinds]);
+    const typeCutReady = mixedKinds.has("Type") || kindBaseline.ledgerKinds.includes("Type") || kindBaseline.nodeKinds.includes("Type");
+    record(
+      "KF3",
+      "Uncheck Function, leave Type: only Type kinds remain visible",
+      typeCutReady
+        ? tyVisible.size === 1 &&
+            tyVisible.has("Type") &&
+            (kindTyOnly.nodes >= 1 || kindTyOnly.cells >= 1) &&
+            kindTyOnly.pills.some((p) => p.kind === "Function" && !p.checked && p.off)
+        : honestFnOnly,
+      JSON.stringify({
+        nodeKinds: kindTyOnly.nodeKinds,
+        ledgerKinds: kindTyOnly.ledgerKinds,
+        typeCutReady,
+        honestFnOnly,
+      })
+    );
+    await setKindPill("Function", true);
+    await setKindPill("Type", true);
+    await setKindPill("Endpoint", true);
+    const kindRestored = await readKindDesk();
+    record(
+      "KF4",
+      "Restore all three kind pills",
+      ["Function", "Type", "Endpoint"].every((k) =>
+        kindRestored.pills.some((p) => p.kind === k && p.checked && !p.off)
+      ),
+      JSON.stringify(kindRestored.pills)
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterKind = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+      };
+    }, beforeKindPosts);
+    record(
+      "KF5",
+      "Map altitude is still community LOD after kind filters (xy=0)",
+      afterKind.ws === "map" && afterKind.cards >= 8 && afterKind.xy === 0,
+      JSON.stringify(afterKind)
+    );
+    record(
+      "KF6",
+      "Kind filters do not post stamp / skip",
+      afterKind.stampPosts === 0 && afterKind.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterKind.stampPosts, skipPosts: afterKind.skipPosts })
+    );
+    const stampDirKind = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampKind = fs.existsSync(stampDirKind) && fs.readdirSync(stampDirKind).length > 0;
+    record(
+      "KF7",
+      "Kind filters did not write .graphide/stamps/",
+      !wroteStampKind,
+      wroteStampKind ? fs.readdirSync(stampDirKind).join(",") : "absent"
     );
 
     await page.click("#llmBtn");
@@ -5400,7 +5574,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

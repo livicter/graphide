@@ -121,6 +121,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#enterCanvas .react-flow__node` (> 1, ≤24); Map altitude stays `xy=0`
    - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
      `#graphSearch` dims cards and XYFlow nodes
+   - Kind filters: explorer Slice `#kindFilters input[data-kind]`
+     Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
+     Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
+     Type-only; restore; Map `xy=0`; `verification/kind-filters.png`
    - Ask: `#llmBtn` opens `#llmPane`; graph-only `localAsk` answers a
      flow / hop / coverage without an LLM key; `#llmClose` / Escape close
    - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
@@ -167,7 +171,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
-    **enter-bubble**, **ego**, **search**, **ask**, **keys**,
+    **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
     **zoom**, **program-chips**, **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, and **cancel-review**.
@@ -175,7 +179,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
     `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
-    `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
+    `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
     `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`,
     `flow-hints.png`,
     `unmatched-hint.png`,
@@ -290,6 +294,21 @@ Ego / Find gate (explorer enter / Slice + demo Lineage):
 - `#graphSearch` dims Map `.bubble-card` and enter / Lineage `.vnode`
 - Playwright screenshots `verification/ego.png` and `verification/search.png`
 - Map altitude stays `xy=0`. Ego / Find do not write `.graphide/stamps/`
+
+Kind filters gate (explorer Slice / object rail):
+
+- `#kindFilters input[data-kind]` Function / Type / Endpoint start
+  checked. `.kind-pill` takes `.off` when unchecked
+- All three on: `#sliceCanvas .vnode:not(.dim)` and
+  `#ledgerGrid .cell` mix Function / Type / Endpoint (or an honest
+  Function-only baseline)
+- Uncheck Type and Endpoint: remaining visible kinds are Function
+- Uncheck Function, leave Type: remaining visible kinds are Type
+- Restore all three. Map after the drive stays `xy=0`
+- Playwright screenshots `verification/kind-filters.png` on the
+  Function-only cut (not a black frame)
+- Kind filters do not write `.graphide/stamps/` and do not post
+  `{ type: "stamp" }` / `{ type: "skip" }`
 
 Ask gate (explorer Map, graph-only):
 
@@ -479,7 +498,7 @@ Draft hint gate (explorer Timeline Uncovered):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Zoom, Program chips, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Zoom, Program chips, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -573,6 +592,7 @@ same PR because the harness truly cannot hook existing ones.
 | Lens | `#lensBtn`, `#lensReceipt`, `#lensCompare`, `[data-lens-role]`, `.lens-on`, `window.__graphideLens` |
 | Ego | `#egoBtn`, `#egoHops`, `.ego`, `.ego-dim`, `data-dist` |
 | Find | `#graphSearch`, `graphFilter.q`, `.dim`, `.hit`, `matchesExplorerQuery` |
+| Kind filters | `#kindFilters input[data-kind]`, `.kind-pill`, `graphFilter.kinds`, `#ledgerGrid .cell.kind-*` |
 | Ask | `#llmBtn`, `#llmPane`, `#llmClose`, `#llmAsk`, `#llmSend`, `#llmLog` |
 | Keys | `#keysBtn`, `#keysPane`, `#keysClose`, `?` / F1 |
 | Path walk | `#pathWalkBtn`, `#pathWalkPrev`, `#pathWalkNext`, `.feat-chip`, `.walk` / `.here`, `P` / `[` / `]` |
