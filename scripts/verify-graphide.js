@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1098,6 +1098,106 @@ async function main() {
       "Timeline step did not write .graphide/stamps/",
       !wroteStampTl,
       wroteStampTl ? fs.readdirSync(stampDirTl).join(",") : "absent"
+    );
+
+    const beforeUnPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const uncoveredDesk = await page.evaluate(() => {
+      const cov = document.getElementById("coverage");
+      const covText = ((cov || {}).textContent || "").replace(/\s+/g, " ");
+      const covChip = ((document.querySelector("#coverage .cov-chip") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const m = covChip.match(/Coverage\s+(\d+)\s+changed\s+·\s+(\d+)\s+uncovered/i);
+      const items = [...document.querySelectorAll("#canvas .tl-item")];
+      const uncItem = items.find((el) => {
+        const title = ((el.querySelector(".t") || {}).textContent || "").trim();
+        return /^Uncovered$/i.test(title);
+      });
+      if (uncItem) uncItem.click();
+      const body = uncItem ? ((uncItem.querySelector(".b") || {}).textContent || "").replace(/\s+/g, " ").trim() : "";
+      const title = uncItem ? ((uncItem.querySelector(".t") || {}).textContent || "").trim() : "";
+      const kind = uncItem ? ((uncItem.querySelector(".k") || {}).textContent || "").trim() : "";
+      const scrubMeta = ((document.getElementById("tlScrubMeta") || {}).textContent || "").trim();
+      const findings = [...document.querySelectorAll("#coverage li.finding")].map((el) =>
+        (el.textContent || "").replace(/\s+/g, " ").trim()
+      );
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        covText: covText.slice(0, 240),
+        covChip,
+        changed: m ? Number(m[1]) : 0,
+        uncovered: m ? Number(m[2]) : 0,
+        title,
+        body,
+        kind,
+        now: uncItem ? uncItem.classList.contains("now") : false,
+        scrubMeta,
+        dumpedUncoveredNode: /UncoveredNode/i.test(covText),
+        findingDump: findings.some((t) => /UncoveredNode/i.test(t)),
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "UN1",
+      "#coverage surfaces Coverage N changed · N uncovered (no UncoveredNode dump)",
+      uncoveredDesk.ws === "timeline" &&
+        uncoveredDesk.changed > 0 &&
+        uncoveredDesk.uncovered > 0 &&
+        /Coverage\s+\d+\s+changed\s+·\s+\d+\s+uncovered/i.test(uncoveredDesk.covChip) &&
+        !uncoveredDesk.dumpedUncoveredNode &&
+        !uncoveredDesk.findingDump,
+      JSON.stringify({
+        ws: uncoveredDesk.ws,
+        chip: uncoveredDesk.covChip,
+        changed: uncoveredDesk.changed,
+        uncovered: uncoveredDesk.uncovered,
+      })
+    );
+    record(
+      "UN2",
+      "Timeline lists Uncovered (changed nodes off every proposed tree)",
+      /Uncovered/i.test(uncoveredDesk.title) &&
+        /\d+\s+changed nodes sit off every proposed tree/i.test(uncoveredDesk.body) &&
+        /coverage/i.test(uncoveredDesk.kind) &&
+        uncoveredDesk.now &&
+        /Uncovered/i.test(uncoveredDesk.scrubMeta),
+      JSON.stringify({
+        title: uncoveredDesk.title,
+        body: uncoveredDesk.body,
+        kind: uncoveredDesk.kind,
+        now: uncoveredDesk.now,
+        scrub: uncoveredDesk.scrubMeta,
+      })
+    );
+    record(
+      "UN3",
+      "Uncovered-node step keeps Map community LOD (xy=0)",
+      uncoveredDesk.xy === 0,
+      "xy=" + uncoveredDesk.xy + " cards=" + uncoveredDesk.cards
+    );
+    await page.waitForTimeout(200);
+    await shot(page, "uncovered-node.png");
+    const afterUn = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeUnPosts);
+    record(
+      "UN4",
+      "Uncovered-node step did not post stamp / skip",
+      afterUn.stampPosts === 0 && afterUn.skipPosts === 0,
+      JSON.stringify(afterUn)
+    );
+    const stampDirUn = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampUn = fs.existsSync(stampDirUn) && fs.readdirSync(stampDirUn).length > 0;
+    record(
+      "UN5",
+      "Uncovered-node step did not write .graphide/stamps/",
+      !wroteStampUn,
+      wroteStampUn ? fs.readdirSync(stampDirUn).join(",") : "absent"
     );
 
     await page.click('#workspaces [data-ws="map"]');
@@ -4677,7 +4777,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · uncovered-node · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

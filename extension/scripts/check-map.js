@@ -292,6 +292,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-hints.md")), "flow-hints feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/unmatched-hint.md")), "unmatched-hint feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/uncovered-node.md")), "uncovered-node feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -352,8 +353,11 @@ assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver
 assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
 assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver.includes("MissingHit") && driver.includes("#coverage"), "verify driver must prove UnmatchedHint on the Review desk");
+assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(harness.includes("solarsim::MissingHit") && harness.includes("UnmatchedHint"), "explorer snap must keep the unmatched hit");
 assert(js.includes('k === "UnmatchedHint"') && js.includes("unmatched ") && js.includes("li class=\"finding\""), "desk must render UnmatchedHint on #coverage");
+assert(harness.includes("uncovered.push(id)") && harness.includes("changed.push(id)"), "explorer snap must keep uncovered / changed coverage");
+assert(js.includes('title: "Uncovered"') && js.includes("off every proposed tree"), "timeline must emit Uncovered from coverage.uncovered");
 const demoFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/demo/flows.toml"), "utf8");
 assert(/name\s*=\s*"data-subscription"/.test(demoFlows) && /crate::sub::subscribe/.test(demoFlows), "demo flows.toml must keep the data-subscription hit list");
 assert(js.includes("function renderTabs") && js.includes('data-flow="'), "desk must render named flow chips on #tabs");

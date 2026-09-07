@@ -36,6 +36,7 @@ owns this folder.
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |
 | [flow-hints.md](flow-hints.md) | Named `flows.toml` chip | `?dataflow=1` · `flow-hints.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
+| [uncovered-node.md](uncovered-node.md) | UncoveredNode finding | explorer · `#coverage` · Timeline · `uncovered-node.png` |
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
 | [self-review.md](self-review.md) | This checkout | `?live=1&require=1` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
