@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1959,6 +1959,249 @@ async function main() {
       explorerAll
         ? "All programs present programs=" + explorerChips.programs.map((p) => p.text).join(",")
         : "honest skip All programs absent chips=" + explorerChips.programs.map((p) => p.text).join(",")
+    );
+
+    const readFlowTabDesk = () =>
+      page.evaluate(() => {
+        const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")].map((el) => ({
+          name: el.getAttribute("data-flow") || "",
+          on: el.classList.contains("on"),
+          text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+        }));
+        const on = tabs.find((t) => t.on) || null;
+        const meta = ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim();
+        const hops = [...document.querySelectorAll("#storyRail .feat-chip, .feature-path .feat-chip")].map((el) =>
+          el.getAttribute("data-hop") || el.getAttribute("data-feature") || (el.textContent || "").replace(/\s+/g, " ").trim()
+        );
+        const startEl = document.querySelector(".bubble-card.start");
+        const endEl = document.querySelector(".bubble-card.end");
+        const lit = [...document.querySelectorAll("#sliceCanvas [data-lit='1'], #sliceCanvas .vnode.lit, #sliceCanvas .vnode[data-id]")]
+          .map((el) => el.getAttribute("data-id") || el.getAttribute("data-lit") || "")
+          .filter(Boolean);
+        const treeMatch = meta.match(/(\d+)\s+on tree/i);
+        return {
+          tabs,
+          flow: on ? on.name : "",
+          tabText: on ? on.text : "",
+          meta,
+          hops,
+          start: startEl ? startEl.getAttribute("data-bubble") || "" : "",
+          end: endEl ? endEl.getAttribute("data-bubble") || "" : "",
+          lit,
+          treeN: treeMatch ? Number(treeMatch[1]) : 0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+            ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+            : "",
+          xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+          cards: document.querySelectorAll(".bubble-card").length,
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node").length,
+        };
+      });
+    const beforeFtPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const explorerFlowTabs = await readFlowTabDesk();
+    const explorerFlowMulti = explorerFlowTabs.tabs.length >= 2;
+    record(
+      "FT0",
+      "explorer has two or more #tabs .tab[data-flow] chips",
+      explorerFlowMulti,
+      explorerFlowMulti
+        ? explorerFlowTabs.tabs.map((t) => t.name + (t.on ? "*" : "")).join(",")
+        : "honest skip unless self-review also lacks a second flow tab"
+    );
+    let firstFlowCut = explorerFlowTabs;
+    let secondFlowCut = explorerFlowTabs;
+    let flowSwitch = { ok: false, first: "", second: "" };
+    if (explorerFlowMulti) {
+      flowSwitch = await page.evaluate(() => {
+        const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")];
+        const rich = tabs.filter((el) => {
+          const n = el.getAttribute("data-flow") || "";
+          return n && n !== "overview";
+        });
+        const pick = rich.length >= 2 ? rich : tabs;
+        if (pick.length < 2) return { ok: false, first: "", second: "" };
+        const on = pick.find((el) => el.classList.contains("on"));
+        const first = on && pick.some((el) => el !== on) ? on : pick[0];
+        const second = pick.find((el) => el !== first) || pick[1];
+        first.click();
+        return {
+          ok: true,
+          first: first.getAttribute("data-flow") || "",
+          second: second.getAttribute("data-flow") || "",
+        };
+      });
+      await page.waitForFunction(
+        (name) => {
+          if (!name) return false;
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          return !!(on && on.getAttribute("data-flow") === name);
+        },
+        flowSwitch.first,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(200);
+      firstFlowCut = await readFlowTabDesk();
+      await page.evaluate((name) => {
+        const el = document.querySelector('#tabs .tab[data-flow="' + name + '"]');
+        if (el) el.click();
+      }, flowSwitch.second);
+      await page.waitForFunction(
+        (name) => {
+          if (!name) return false;
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          return !!(on && on.getAttribute("data-flow") === name);
+        },
+        flowSwitch.second,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(200);
+      secondFlowCut = await page.evaluate((before) => {
+        const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")].map((el) => ({
+          name: el.getAttribute("data-flow") || "",
+          on: el.classList.contains("on"),
+          text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+        }));
+        const on = tabs.find((t) => t.on) || null;
+        const meta = ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim();
+        const hops = [...document.querySelectorAll("#storyRail .feat-chip, .feature-path .feat-chip")].map((el) =>
+          el.getAttribute("data-hop") || el.getAttribute("data-feature") || (el.textContent || "").replace(/\s+/g, " ").trim()
+        );
+        const startEl = document.querySelector(".bubble-card.start");
+        const endEl = document.querySelector(".bubble-card.end");
+        const lit = [...document.querySelectorAll("#sliceCanvas [data-lit='1'], #sliceCanvas .vnode.lit, #sliceCanvas .vnode[data-id]")]
+          .map((el) => el.getAttribute("data-id") || "")
+          .filter(Boolean);
+        const treeMatch = meta.match(/(\d+)\s+on tree/i);
+        const posts = (window.__vscodePosts || []).slice(before);
+        return {
+          tabs,
+          flow: on ? on.name : "",
+          tabText: on ? on.text : "",
+          meta,
+          hops,
+          start: startEl ? startEl.getAttribute("data-bubble") || "" : "",
+          end: endEl ? endEl.getAttribute("data-bubble") || "" : "",
+          lit,
+          treeN: treeMatch ? Number(treeMatch[1]) : 0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+            ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+            : "",
+          xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+          cards: document.querySelectorAll(".bubble-card").length,
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node").length,
+          selectPosts: posts.filter((m) => m && m.type === "selectFlow").map((m) => m.flow || ""),
+          stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+          skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        };
+      }, beforeFtPosts);
+    }
+    const titleChanged =
+      !!firstFlowCut.flow &&
+      !!secondFlowCut.flow &&
+      firstFlowCut.flow !== secondFlowCut.flow &&
+      firstFlowCut.meta.toLowerCase().includes(firstFlowCut.flow.toLowerCase()) &&
+      secondFlowCut.meta.toLowerCase().includes(secondFlowCut.flow.toLowerCase());
+    const hopsChanged = (firstFlowCut.hops || []).join("\0") !== (secondFlowCut.hops || []).join("\0");
+    const endsChanged =
+      (firstFlowCut.start || "") !== (secondFlowCut.start || "") ||
+      (firstFlowCut.end || "") !== (secondFlowCut.end || "");
+    const litChanged = (firstFlowCut.lit || []).join("\0") !== (secondFlowCut.lit || []).join("\0");
+    const treeChanged = firstFlowCut.treeN !== secondFlowCut.treeN;
+    record(
+      "FT1",
+      "first flow tab is the current Steiner cut",
+      explorerFlowMulti
+        ? flowSwitch.ok &&
+            firstFlowCut.flow === flowSwitch.first &&
+            firstFlowCut.ws === "slice" &&
+            firstFlowCut.sliceNodes >= 1 &&
+            firstFlowCut.meta.toLowerCase().includes(flowSwitch.first.toLowerCase())
+        : true,
+      explorerFlowMulti
+        ? JSON.stringify({
+            flow: firstFlowCut.flow,
+            ws: firstFlowCut.ws,
+            meta: firstFlowCut.meta.slice(0, 120),
+            slice: firstFlowCut.sliceNodes,
+          })
+        : "honest skip: explorer has one flow tab"
+    );
+    record(
+      "FT2",
+      "second #tabs .tab moves .on and selectFlow posts",
+      explorerFlowMulti
+        ? flowSwitch.ok &&
+            secondFlowCut.flow === flowSwitch.second &&
+            secondFlowCut.flow !== firstFlowCut.flow &&
+            secondFlowCut.selectPosts.indexOf(flowSwitch.second) >= 0
+        : true,
+      explorerFlowMulti
+        ? JSON.stringify({
+            first: firstFlowCut.flow,
+            second: secondFlowCut.flow,
+            posts: secondFlowCut.selectPosts,
+          })
+        : "honest skip: explorer has one flow tab"
+    );
+    record(
+      "FT3",
+      "visible Steiner cut changed (title, hops, start/end, or Slice lit)",
+      explorerFlowMulti ? titleChanged || hopsChanged || endsChanged || litChanged || treeChanged : true,
+      explorerFlowMulti
+        ? JSON.stringify({
+            title: titleChanged,
+            hops: hopsChanged,
+            ends: endsChanged,
+            lit: litChanged,
+            tree: treeChanged,
+            firstMeta: firstFlowCut.meta.slice(0, 80),
+            secondMeta: secondFlowCut.meta.slice(0, 80),
+          })
+        : "honest skip: explorer has one flow tab"
+    );
+    await shot(page, "flow-tabs.png");
+    record(
+      "FT4",
+      "flow-tab switch does not post stamp / skip",
+      explorerFlowMulti ? secondFlowCut.stampPosts === 0 && secondFlowCut.skipPosts === 0 : true,
+      explorerFlowMulti
+        ? JSON.stringify({ stampPosts: secondFlowCut.stampPosts, skipPosts: secondFlowCut.skipPosts })
+        : "honest skip: explorer has one flow tab"
+    );
+    const stampDirFt = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampFt = fs.existsSync(stampDirFt) && fs.readdirSync(stampDirFt).length > 0;
+    record(
+      "FT5",
+      "flow-tab switch did not write .graphide/stamps/",
+      !wroteStampFt,
+      wroteStampFt ? fs.readdirSync(stampDirFt).join(",") : "absent"
+    );
+    if (explorerFlowMulti) {
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForFunction(
+        () => {
+          const on = document.querySelector("#workspaces [data-ws].on");
+          return on && on.getAttribute("data-ws") === "map";
+        },
+        null,
+        { timeout: 8000 }
+      );
+      await page.waitForSelector(".bubble-card", { timeout: 8000 });
+      await page.waitForTimeout(150);
+    }
+    const afterFtMap = await page.evaluate(() => ({
+      ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "",
+      xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      comm: document.querySelectorAll(".comm-node").length,
+    }));
+    record(
+      "FT6",
+      "flow-tab step returns Map to community LOD (xy=0)",
+      afterFtMap.ws === "map" && afterFtMap.xy === 0 && afterFtMap.comm === 0 && afterFtMap.cards > 1,
+      JSON.stringify(afterFtMap)
     );
 
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -5944,7 +6187,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

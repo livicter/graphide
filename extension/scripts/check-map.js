@@ -293,10 +293,12 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md")), "program-chips feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/all-programs.md")), "all-programs feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
+assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png"), "feature README must list flow-tabs.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -320,6 +322,14 @@ assert(
     allProgramsMap.includes("## Driving it with the harness") &&
     allProgramsMap.includes("## Gotchas"),
   "all-programs feature map must use the four headings"
+);
+const flowTabsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md"), "utf8");
+assert(
+  flowTabsMap.includes("## Sub-features") &&
+    flowTabsMap.includes("## How to get to it (user POV)") &&
+    flowTabsMap.includes("## Driving it with the harness") &&
+    flowTabsMap.includes("## Gotchas"),
+  "flow-tabs feature map must use the four headings"
 );
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/cancel-review.md")), "cancel-review feature map missing");
@@ -396,6 +406,7 @@ assert(driver.includes("cancel-review.png") && driver.includes("CR1") && driver.
 assert(chrome.includes('id="cancelBtn"') && chrome.includes("Cancel review (Esc)"), "Cancel control missing from Header");
 assert(/type:\s*"cancel"/.test(chrome) && /type === "cancelled"/.test(chrome), "desk must post cancel and handle cancelled");
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
+assert(driver.includes("flow-tabs.png") && driver.includes("FT0") && driver.includes("FT1") && driver.includes("#tabs .tab[data-flow]") && driver.includes("selectFlow"), "verify driver must prove Map flow-tab Steiner switch");
 assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver.includes("MissingHit") && driver.includes("#coverage"), "verify driver must prove UnmatchedHint on the Review desk");
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
