@@ -285,6 +285,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ask.md")), "ask feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md")), "keys feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/path-walk.md")), "path-walk feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -339,6 +340,7 @@ assert(driver.includes("ego.png") && driver.includes("search.png") && driver.inc
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
 assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && driver.includes("PW1") && driver.includes(".feat-chip.walk"), "verify driver must drive Map path walk on the Review desk");
+assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
 assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
 assert(driver.includes("DC1") && driver.includes("data-decision") && driver.includes("RG1") && driver.includes("table.audit") && driver.includes("TL1") && driver.includes("tl-item"), "verify driver must drive Decisions / Registry / Timeline lists");
