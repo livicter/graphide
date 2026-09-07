@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1976,6 +1976,143 @@ async function main() {
       "Progress step did not write .graphide/stamps/",
       !wroteStampPg,
       wroteStampPg ? fs.readdirSync(stampDirPg).join(",") : "absent"
+    );
+
+    const beforeCancelPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        const cancel = document.getElementById("cancelBtn");
+        const review = document.getElementById("reviewBtn");
+        return !!(
+          el &&
+          el.classList.contains("on") &&
+          cancel &&
+          !cancel.hidden &&
+          review &&
+          review.hidden
+        );
+      },
+      null,
+      { timeout: 4000 }
+    );
+    const cancelReady = await page.evaluate(() => {
+      const cancel = document.getElementById("cancelBtn");
+      const review = document.getElementById("reviewBtn");
+      const el = document.getElementById("progress");
+      return {
+        on: !!(el && el.classList.contains("on")),
+        cancelShown: !!(cancel && !cancel.hidden),
+        reviewHidden: !!(review && review.hidden),
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "CR1",
+      "#cancelBtn is visible while the progress strip is on",
+      cancelReady.on && cancelReady.cancelShown && cancelReady.reviewHidden && cancelReady.ws === "map",
+      JSON.stringify(cancelReady)
+    );
+    await page.click("#cancelBtn");
+    await page.waitForFunction(
+      () => {
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "").trim();
+        const posts = window.__vscodePosts || [];
+        return /Cancell/i.test(label) && posts.some((m) => m && m.type === "cancel");
+      },
+      null,
+      { timeout: 4000 }
+    );
+    const afterCancelClick = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cancelPosts: posts.filter((m) => m && m.type === "cancel").length,
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        on: !!(document.getElementById("progress") && document.getElementById("progress").classList.contains("on")),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeCancelPosts);
+    record(
+      "CR2",
+      'Click #cancelBtn posts { type: "cancel" } and labels Cancelling…',
+      afterCancelClick.cancelPosts >= 1 && /Cancell/i.test(afterCancelClick.label) && afterCancelClick.on,
+      JSON.stringify(afterCancelClick)
+    );
+    await page.evaluate(() => {
+      window.postMessage({ type: "cancelled" }, "*");
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        const review = document.getElementById("reviewBtn");
+        const cancel = document.getElementById("cancelBtn");
+        return !!(el && !el.classList.contains("on") && review && !review.hidden && (!cancel || cancel.hidden));
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const afterCancel = await page.evaluate((before) => {
+      const el = document.getElementById("progress");
+      const review = document.getElementById("reviewBtn");
+      const cancel = document.getElementById("cancelBtn");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        on: !!(el && el.classList.contains("on")),
+        reviewShown: !!(review && !review.hidden),
+        cancelHidden: !cancel || cancel.hidden,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeCancelPosts);
+    record(
+      "CR3",
+      "Cancelled reply hides the strip and restores Review",
+      !afterCancel.on && afterCancel.reviewShown && afterCancel.cancelHidden && afterCancel.ws === "map",
+      JSON.stringify(afterCancel)
+    );
+    record(
+      "CR4",
+      "Cancel review keeps Map community LOD (xy=0)",
+      afterCancel.xy === 0 && afterCancel.cards > 1,
+      "xy=" + afterCancel.xy + " cards=" + afterCancel.cards
+    );
+    await shot(page, "cancel-review.png");
+    record(
+      "CR5",
+      "Cancel-review step did not post stamp / skip",
+      afterCancel.stampPosts === 0 && afterCancel.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterCancel.stampPosts, skipPosts: afterCancel.skipPosts })
+    );
+    const stampDirCr = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampCr = fs.existsSync(stampDirCr) && fs.readdirSync(stampDirCr).length > 0;
+    record(
+      "CR6",
+      "Cancel-review step did not write .graphide/stamps/",
+      !wroteStampCr,
+      wroteStampCr ? fs.readdirSync(stampDirCr).join(",") : "absent"
     );
 
     const beforeNightPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -4951,7 +5088,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

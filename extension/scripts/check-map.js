@@ -290,6 +290,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/cancel-review.md")), "cancel-review feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-hints.md")), "flow-hints feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/unmatched-hint.md")), "unmatched-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/uncovered-node.md")), "uncovered-node feature map missing");
@@ -353,6 +354,9 @@ assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
+assert(driver.includes("cancel-review.png") && driver.includes("CR1") && driver.includes("#cancelBtn") && driver.includes('type: "cancel"'), "verify driver must prove Cancel restores the desk");
+assert(chrome.includes('id="cancelBtn"') && chrome.includes("Cancel review (Esc)"), "Cancel control missing from Header");
+assert(/type:\s*"cancel"/.test(chrome) && /type === "cancelled"/.test(chrome), "desk must post cancel and handle cancelled");
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
 assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver.includes("MissingHit") && driver.includes("#coverage"), "verify driver must prove UnmatchedHint on the Review desk");
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
