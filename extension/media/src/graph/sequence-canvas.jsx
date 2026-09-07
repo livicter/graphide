@@ -485,7 +485,7 @@ export function renderEnterCanvas(host, props) {
     nodeW: 176,
     nodeH: 64,
   });
-  const hotIds = new Set((props.hotIds || []).map(String));
+  const hotIds = new Set([...(props.hotIds || [])].map(String));
   const items = decorateDerived(
     nodes.map((n) => ({
       id: String(n.id),

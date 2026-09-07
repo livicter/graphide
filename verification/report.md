@@ -2,35 +2,35 @@
 
 Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overview / Decisions / Registry / Timeline) then `/scripts/webview-harness.html?live=1&probe=0&require=1` (self-review of this checkout) then `/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta` (Architecture Delta on fixtures/demo vs demo-parent) then `/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence` (Sequence on fixtures/demo) then `/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow` (Data-flow on fixtures/demo) then `/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle` (Lifecycle on fixtures/demo) then `/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage` (Lineage on fixtures/demo) then `/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence` (Route / Lens on fixtures/demo) served from `extension/`.
 
-**PASS** 159/159
+**PASS** 165/165
 
 | id | result | title | detail |
 | --- | --- | --- | --- |
 | G1 | PASS | self-review rust plugin is in play | javascript@0.1.0,python@0.1.0,rust@0.1.0,typescript@0.1.0 |
-| G2 | PASS | self-review graph has nodes, edges, and files | nodes=2531 edges=14206 files=62 |
+| G2 | PASS | self-review graph has nodes, edges, and files | nodes=2540 edges=14712 files=62 |
 | G3 | PASS | self-review graph includes Rust files | rs=374 |
-| G4 | PASS | self-review Map altitude is a real community cut, not a lone START | bubbles=3629 altitude=309 names=crate::fixtures::demo-parent::src::sub::decode,crate::fixtures::demo-parent::src::bus::Bus,crate::fixtures::demo-parent::src::bus::flush,crate::fixtures::demo-parent::src::bus::events,crate::fixtures::demo-parent::src::bus::BroadcastChannel,crate::fixtures::demo::src::sub::decode,crate::fixtures::demo::src::bus::Bus,crate::fixtures::demo::src::bus::encode |
-| G5 | PASS | self-review snapshot is this checkout, not the synthetic explorer fixture | nodes=2531 edges=14206 |
+| G4 | PASS | self-review Map altitude is a real community cut, not a lone START | bubbles=3862 altitude=308 names=crate::fixtures::demo-parent::src::sub::decode,crate::fixtures::demo-parent::src::bus::Bus,crate::fixtures::demo-parent::src::bus::encode,crate::fixtures::demo-parent::src::bus::events,crate::fixtures::demo-parent::src::bus::BroadcastChannel,crate::fixtures::demo::src::sub::decode,crate::fixtures::demo::src::bus::Bus,crate::fixtures::demo::src::bus::encode |
+| G5 | PASS | self-review snapshot is this checkout, not the synthetic explorer fixture | nodes=2540 edges=14712 |
 | H1 | PASS | harness stub acquireVsCodeApi is present |  |
 | H2 | PASS | desk mode is on after synthetic programs | {"stub":true,"posts":0,"bright":true,"desk":true,"ws":"overview"} |
 | OV1 | PASS | Overview workspace is active on first paint | overview |
 | OV2 | PASS | Overview shows the default-run / control-flow stage | Overview — default run and control-flow graph |
 | OV3 | PASS | Overview CFG still mounts shaped XYFlow nodes (not a raw-IR dump) | xy=8 shaped=8 shapes=start,fn,endpoint,end |
 | OV4 | PASS | Overview shows Open map and program chips when the product has them | openMap=true chips=bin main |
-| shot:overview.png | PASS | screenshot overview.png is not a black frame | luma=0.958 1440x900 bytes=120811 |
+| shot:overview.png | PASS | screenshot overview.png is not a black frame | luma=0.958 1440x900 bytes=121203 |
 | OV5 | PASS | Overview step did not write .graphide/stamps/ | absent |
 | DC1 | PASS | Decisions workspace is active | decisions |
 | DC2 | PASS | Decisions lists stamps / skips / broken attestations (or honest empty) | cards=4 rejectedbootStamp no longer matches the derived tree. \| deferredlegacySkipped this session — no stamp written. \| rejectedStampBroken · boot1 added · 0 removed h |
 | DC3 | PASS | Decisions keeps Stamp/Skip host-only (enabled, no XYFlow list) | {"stamp":true,"skip":true,"xy":0,"strip":true} |
-| shot:decisions.png | PASS | screenshot decisions.png is not a black frame | luma=0.951 1440x900 bytes=118915 |
+| shot:decisions.png | PASS | screenshot decisions.png is not a black frame | luma=0.951 1440x900 bytes=118902 |
 | DC4 | PASS | Decisions step did not write .graphide/stamps/ | absent |
 | RG1 | PASS | Registry workspace is active | registry |
 | RG2 | PASS | Registry audit rows come from the snapshot (nodes / edges / files / plugin) | rows=5 reviewReview snapshot2050 nodes · 5055 edges · 136 files · rust@0.1.0 · 21041ms xy=0 |
-| shot:registry.png | PASS | screenshot registry.png is not a black frame | luma=0.943 1440x900 bytes=91368 |
+| shot:registry.png | PASS | screenshot registry.png is not a black frame | luma=0.943 1440x900 bytes=91399 |
 | RG3 | PASS | Registry step did not write .graphide/stamps/ | absent |
 | TL1 | PASS | Timeline workspace is active | timeline |
 | TL2 | PASS | Timeline shows parent cut / coverage / stamp scars from the snapshot | items=6 t0parentParent cut1123 nodes changed vs parent (HEAD^ unless overridden) \| t1coverageUncovered1123 changed nodes sit off every proposed tree \| t2brokenbootStamp no longer matches t |
-| shot:timeline.png | PASS | screenshot timeline.png is not a black frame | luma=0.950 1440x900 bytes=104877 |
+| shot:timeline.png | PASS | screenshot timeline.png is not a black frame | luma=0.949 1440x900 bytes=104800 |
 | TL3 | PASS | Timeline step did not write .graphide/stamps/ | absent |
 | M1 | PASS | Map workspace is active | map |
 | M2 | PASS | Map shows a community map, not a lone START card | cards=12 start=1 comm=0 names=render,integration,origin,lod,bodies,camera |
@@ -41,13 +41,19 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | G3 | PASS | Fit leaves more than one community card in the stage | visible=12/12 |
 | G5 | PASS | Map community cards do not overlap | {"cardHits":0,"visible":12,"cards":12} |
 | G6 | PASS | Program chips do not overlap each other or the workspace row | {"chipHits":0,"chips":1,"wsLegend":false,"kindsLegend":false} |
-| G4 | PASS | Narrow desk (720) graph bar still does not overlap | {"barH":134,"wsEgo":false,"wsKinds":false,"egoKinds":false,"wsLegend":false,"chipHits":0,"cardHits":0,"visible":12,"cards":12,"spanX":544} |
-| G4b | PASS | Narrow desk (720) Map is a grid, not one overlapping column | {"visible":12,"cards":12,"cardHits":0,"spanX":544} |
+| G4 | PASS | Narrow desk (720) graph bar still does not overlap | {"barH":134,"wsEgo":false,"wsKinds":false,"egoKinds":false,"wsLegend":false,"chipHits":0,"cardHits":0,"visible":12,"cards":12,"spanX":545} |
+| G4b | PASS | Narrow desk (720) Map is a grid, not one overlapping column | {"visible":12,"cards":12,"cardHits":0,"spanX":545} |
 | G7 | PASS | Opening Evidence still fits more than one community card with no overlap | {"clicked":true,"open":true,"visible":12,"cards":12,"cardHits":0,"chipHits":0} |
-| shot:map.png | PASS | screenshot map.png is not a black frame | luma=0.957 1440x900 bytes=175018 |
+| shot:map.png | PASS | screenshot map.png is not a black frame | luma=0.957 1440x900 bytes=175024 |
+| E1 | PASS | Enter-bubble mounts shaped XYFlow nodes (capped, not the raw IR) | xy=24 lit=1 grey=23 shapes=store,fn,type,endpoint |
+| E1b | PASS | Enter-bubble XYFlow nodes each carry data-shape | xy=24 shapes=store,fn,type,endpoint |
+| shot:enter-bubble.png | PASS | screenshot enter-bubble.png is not a black frame | luma=0.963 1440x900 bytes=146774 |
+| E2 | PASS | Leaf click on enter-bubble opens Evidence | ScreenshotFormat · src/main.rs:2 |
+| E3 | PASS | Back from enter-bubble returns to Map community LOD (xy=0) | cards=12 xy=0 |
+| E4 | PASS | Enter-bubble step did not write .graphide/stamps/ | absent |
 | X1 | PASS | Export menu opens from #exportBtn | {"btn":true,"menu":true,"png":true,"svg":true,"share":true} |
 | X2 | PASS | Export PNG was saved and is not a black frame | luma=0.947 std=0.043 1888x533 bytes=77664 |
-| X3 | PASS | Export SVG was saved | bytes=116976 |
+| X3 | PASS | Export SVG was saved | bytes=117695 |
 | X4 | PASS | Share Card is 1200×630 | 1200x630 |
 | X5 | PASS | Export filenames do not claim validation | graphide-boot.png graphide-boot.svg graphide-boot-share.png |
 | X6 | PASS | Canonical export strips focus / play / search classes | {"cls":"","review":null} |
@@ -57,7 +63,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | P2 | PASS | Blueprint preset is on the same Map topology | blueprint cards=12 fn=#1e4d8c |
 | P3 | PASS | Day / Night does not change the visual preset | {"before":"blueprint","night":"blueprint","after":"blueprint"} |
 | P4 | PASS | Canonical export carries the current preset | {"ok":true,"preset":"blueprint","hasAttr":true} |
-| shot:preset-blueprint.png | PASS | screenshot preset-blueprint.png is not a black frame | luma=0.923 1440x900 bytes=158903 |
+| shot:preset-blueprint.png | PASS | screenshot preset-blueprint.png is not a black frame | luma=0.923 1440x900 bytes=159790 |
 | P5 | PASS | Presentation Stage fills the viewport and hides graph-bar chrome | {"present":true,"aria":"true","barHidden":true,"w":1440,"h":853,"top":47,"bottom":900,"vw":1440,"vh":900,"headerBottom":47,"fill":true} |
 | shot:present.png | PASS | screenshot present.png is not a black frame | luma=0.926 1440x900 bytes=73659 |
 | P6 | PASS | S on the stage cycles Style without moving nodes | classic cards=12 |
@@ -69,22 +75,22 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | E2 | PASS | Evidence clips (overflow hidden, max-width ≤ 380px) | overflow=hidden hidden hidden max-width=380 width=221 |
 | E3 | PASS | Evidence does not overlap the object rail | {"overlap":false,"src":{"left":1219,"right":1440,"width":221},"rail":{"left":1019,"right":1219,"width":200,"hidden":false}} |
 | E4 | PASS | Evidence has inspect content | 1// solarsim::ScreenshotFormat2fn hop_0() { /* evidence */ } |
-| shot:evidence.png | PASS | screenshot evidence.png is not a black frame | luma=0.962 1440x900 bytes=145175 |
+| shot:evidence.png | PASS | screenshot evidence.png is not a black frame | luma=0.962 1440x900 bytes=145242 |
 | S1 | PASS | Stamp/Skip are enabled on a flow |  |
 | S2 | PASS | Stamp/Skip post host messages only (no disk stamp) | [{"type":"stamp","flow":"boot"},{"type":"skip","flow":"boot"}] |
 | S3 | PASS | Harness did not write .graphide/stamps/ | absent |
 | H3 | PASS | Editor button posts enterNode to the host stub | [{"type":"enterNode","flow":"boot","id":"n0","isLeaf":true}] |
-| shot:stamp-host.png | PASS | screenshot stamp-host.png is not a black frame | luma=0.963 1440x900 bytes=149834 |
-| R1 | PASS | self-review desk loaded the derived snapshot (not synthetic fallback) | 2531 nodes · 14206 edges · 62 files · 79792ms · javascript@0.1.0,python@0.1.0,rust@0.1.0,typescript@0.1.0 |
-| R2 | PASS | self-review desk mode is on after live snap | {"desk":true,"bright":true,"status":"2531 nodes · 14206 edges · 62 files · 79792ms · javascript@0.1.0,python@0.1.0,ru"} |
-| R3 | PASS | self-review chrome shows this checkout's graph counts | 2531 nodes · 14206 edges · 62 files · 79792ms · javascript@0.1.0,python@0.1.0,rust@0.1.0,typescript@0.1.0 |
+| shot:stamp-host.png | PASS | screenshot stamp-host.png is not a black frame | luma=0.963 1440x900 bytes=149398 |
+| R1 | PASS | self-review desk loaded the derived snapshot (not synthetic fallback) | 2540 nodes · 14712 edges · 62 files · 85273ms · javascript@0.1.0,python@0.1.0,rust@0.1.0,typescript@0.1.0 |
+| R2 | PASS | self-review desk mode is on after live snap | {"desk":true,"bright":true,"status":"2540 nodes · 14712 edges · 62 files · 85273ms · javascript@0.1.0,python@0.1.0,ru"} |
+| R3 | PASS | self-review chrome shows this checkout's graph counts | 2540 nodes · 14712 edges · 62 files · 85273ms · javascript@0.1.0,python@0.1.0,rust@0.1.0,typescript@0.1.0 |
 | R3b | PASS | self-review lands on Overview when a default run exists | overview |
 | R4 | PASS | self-review Map workspace is active | map |
 | R5 | PASS | self-review Map shows communities on this repo, not a lone START | cards=24 start=1 comm=0 names=new,c,idVal,resolveWebviewView,main,extract,extract_file,derive_repo |
 | R5b | PASS | self-review Map stays community LOD (no XYFlow / 1650 React nodes) | xy=0 cards=24 |
 | R5c | PASS | self-review Map caption and graph-bar do not overlap cards / Ego | {"wsEgo":false,"wsLegend":false,"chipHits":0,"cardHits":0,"titleHitsCard":false,"titleInsideViewport":false,"visible":24,"cards":24,"chips":12} |
 | R6 | PASS | self-review program chips name a Graphide crate | bin graphide-clilib demolib demo-parentlib extensionlib graphide-enginelib graphide-irlib graphide-pluginlib graphide-pl |
-| shot:self-review.png | PASS | screenshot self-review.png is not a black frame | luma=0.964 1440x900 bytes=175729 |
+| shot:self-review.png | PASS | screenshot self-review.png is not a black frame | luma=0.963 1440x900 bytes=175546 |
 | R7 | PASS | Self-review step did not write .graphide/stamps/ | absent |
 | D0 | PASS | delta fixture snap has Architecture Delta facts | facts=1 |
 | D0b | PASS | delta fixture includes added crate::bus::sneaky_helper | crate::bus::sneaky_helper |
@@ -98,7 +104,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | D6b | PASS | Delta canvas mounts XYFlow nodes (capped, not the raw IR) | xy=10 |
 | D6c | PASS | Delta XYFlow nodes expose data-shape | n=10 shapes=fn,type,endpoint |
 | D7 | PASS | Delta Review walk is finite (stays on last fact, does not loop) | {"i":"0","n":1,"playing":false} |
-| shot:delta.png | PASS | screenshot delta.png is not a black frame | luma=0.965 1440x900 bytes=85302 |
+| shot:delta.png | PASS | screenshot delta.png is not a black frame | luma=0.965 1440x900 bytes=85254 |
 | D8 | PASS | Delta step did not write .graphide/stamps/ | absent |
 | Q0 | PASS | sequence fixture snap has a flow with >1 participant and hops | data-subscription:2p/1h |
 | Q0b | PASS | sequence fixture includes subscribe / events (data-subscription) | data-subscription kinds=Subscribes |
@@ -124,7 +130,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | F6b | PASS | Data-flow canvas mounts XYFlow nodes (capped, not the raw IR) | xy=3 nodes=3 |
 | F6c | PASS | Data-flow XYFlow nodes expose data-shape and a store cylinder | n=3 shapes=store,end,start |
 | F7 | PASS | Data-flow Play walk is finite (stays on last hop, does not loop) | {"i":"1","n":2,"playing":false} |
-| shot:dataflow.png | PASS | screenshot dataflow.png is not a black frame | luma=0.961 1440x900 bytes=123720 |
+| shot:dataflow.png | PASS | screenshot dataflow.png is not a black frame | luma=0.961 1440x900 bytes=123685 |
 | F8 | PASS | Data-flow step did not write .graphide/stamps/ | absent |
 | L0 | PASS | lifecycle fixture snap has a review machine with recover | data-subscription:6s/6t |
 | L0b | PASS | lifecycle fixture includes plugin-visible events Endpoint | data-subscription ends=1 ids=proposed,walking,waiting,stamped,skipped,broken |
@@ -137,7 +143,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | L6b | PASS | Lifecycle canvas mounts XYFlow review-machine nodes | xy=6 states=6 |
 | L6c | PASS | Lifecycle XYFlow nodes expose data-shape with start + decision | n=6 shapes=start,fn,decision,end |
 | L7 | PASS | Lifecycle Play walk is finite (stays on last event, does not loop) | {"i":"5","n":6,"playing":false} |
-| shot:lifecycle.png | PASS | screenshot lifecycle.png is not a black frame | luma=0.959 1440x900 bytes=120058 |
+| shot:lifecycle.png | PASS | screenshot lifecycle.png is not a black frame | luma=0.959 1440x900 bytes=120092 |
 | L8 | PASS | Lifecycle step did not write .graphide/stamps/ | absent |
 | Y1 | PASS | lineage desk loaded the fixtures/demo snap | lineage |
 | Y2 | PASS | Lineage workspace is active | lineage |
@@ -148,7 +154,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | Y6 | PASS | Type/Endpoint lineage shows Reads/Writes/Publishes/Subscribes, not Contains | fqn=crate::bus::events kind=Endpoint kinds=Publishes,Subscribes |
 | Y7 | PASS | Evidence still opens from a Lineage node click | Evidence publish · src/bus.rs:4 |
 | Y8 | PASS | Map stays community LOD after Lineage (xy=0, cap 24) | xy=0 cards=5 |
-| shot:lineage.png | PASS | screenshot lineage.png is not a black frame | luma=0.967 1440x900 bytes=130840 |
+| shot:lineage.png | PASS | screenshot lineage.png is not a black frame | luma=0.967 1440x900 bytes=130856 |
 | Y9 | PASS | Lineage step did not write .graphide/stamps/ | absent |
 | Y10 | PASS | When coverage.changed is present, a changed node is marked | marked=1 fqn=crate::bus::sneaky_helper |
 | RT1 | PASS | Route probe opened from R | {"open":true,"btn":true} |
@@ -166,7 +172,7 @@ Harness `/scripts/webview-harness.html?mode=explorer&probe=0` (chrome 17 + Overv
 | shot:lens.png | PASS | screenshot lens.png is not a black frame | luma=0.956 1440x900 bytes=115748 |
 | LN5 | PASS | Lens step did not write .graphide/stamps/ | absent |
 
-Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.
+Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.
 
 Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.
 Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.

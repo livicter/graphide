@@ -1231,14 +1231,21 @@ async function main() {
         { timeout: 10000 }
       )
       .catch(async () => {
-        const dump = await page.evaluate(() => ({
-          cards: document.querySelectorAll(".bubble-card").length,
-          enter: !!document.getElementById("enterCanvas"),
-          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
-          empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
-          meta: ((document.getElementById("meta") || {}).textContent || "").trim().slice(0, 160),
-          title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 160),
-        }));
+        const dump = await page.evaluate(() => {
+          const host = document.getElementById("enterCanvas");
+          return {
+            cards: document.querySelectorAll(".bubble-card").length,
+            enter: !!host,
+            xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+            rf: !!document.querySelector("#enterCanvas .react-flow"),
+            empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
+            meta: ((document.getElementById("meta") || {}).textContent || "").trim().slice(0, 160),
+            title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 160),
+            info: window.__graphideEnter || null,
+            hostHtml: host ? (host.innerHTML || "").replace(/\s+/g, " ").slice(0, 240) : "",
+            hostBox: host ? { w: Math.round(host.getBoundingClientRect().width), h: Math.round(host.getBoundingClientRect().height) } : null,
+          };
+        });
         failFast("enter-bubble XYFlow did not mount — click=" + JSON.stringify(enteredClick) + " dump=" + JSON.stringify(dump));
       });
     await page.waitForTimeout(250);
@@ -1271,8 +1278,12 @@ async function main() {
 
     await shot(page, "enter-bubble.png");
 
-    const leaf = page.locator("#enterCanvas .vnode[data-leaf='1'], #enterCanvas .react-flow__node").first();
-    await leaf.click();
+    await page.evaluate(() => {
+      const leaf =
+        document.querySelector("#enterCanvas .vnode[data-leaf='1']") ||
+        document.querySelector("#enterCanvas .react-flow__node");
+      if (leaf) leaf.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     await page.waitForFunction(
       () => {
         const pane = document.getElementById("sourcePane");
