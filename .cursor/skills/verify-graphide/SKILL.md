@@ -148,13 +148,17 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     - Uncovered node: explorer desk; `#coverage` `Coverage N changed · N
       uncovered`; Timeline `.tl-item` Uncovered / off every proposed
       tree; `verification/uncovered-node.png`
+    - Open slice: explorer Decisions; UnmatchedHint boot card;
+      `button[data-open-slice]` lands Slice for that flow;
+      `verification/open-slice.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
-    **progress**, **flow-hints**, **unmatched-hint**, and **uncovered-node**.
+    **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
+    and **open-slice**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -164,6 +168,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `flow-hints.png`,
     `unmatched-hint.png`,
     `uncovered-node.png`,
+    `open-slice.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
@@ -394,10 +399,23 @@ Uncovered node gate (explorer synthetic snap):
 - Uncovered node does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
 
+Open slice gate (explorer Decisions → Slice):
+
+- Explorer `flowPayload()` already seeds UnmatchedHint · boot ·
+  MissingHit. The decision record paints
+  `button[data-open-slice="{flow}"]`
+- Click calls `selectFlow` and pins Slice. `#workspaces
+  [data-ws="slice"]` is `.on`. `#tabs .tab.on[data-flow]` matches the
+  button value
+- Playwright paints `?mode=explorer` Decisions then screenshots
+  `verification/open-slice.png` on Slice
+- Open slice does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive returns to Map
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, and Uncovered node steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, Uncovered node, and Open slice steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -500,6 +518,7 @@ same PR because the harness truly cannot hook existing ones.
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |
 | Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
 | Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
+| Open slice | `button[data-open-slice]`, `#workspaces [data-ws="slice"]`, `#tabs .tab[data-flow]` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

@@ -15,7 +15,7 @@ Not a graph canvas. Stamp / skip stay host-only.
   [data-outcome-filter]`.
 - Detail pane `.ws-detail` plus causal chain `.chain .chain-step` from the
   derived Steiner hops (`causalChainFor`). **Open slice** is
-  `[data-open-slice]`.
+  `[data-open-slice]` — proof lives in [open-slice.md](open-slice.md).
 - Honest empty: “No stamps, skips, or stamp scars yet. Stamp (S) or Skip
   (X) a flow.” Find-miss: “No decisions match …”.
 - Header `#stampBtn` / `#skipBtn` still post `{ type: "stamp"|"skip", flow }`

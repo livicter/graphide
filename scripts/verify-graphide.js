@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -994,6 +994,103 @@ async function main() {
       "Unmatched-hint step did not write .graphide/stamps/",
       !wroteStampUh,
       wroteStampUh ? fs.readdirSync(stampDirUh).join(",") : "absent"
+    );
+
+    const beforeOsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      if (!on || on.getAttribute("data-ws") !== "decisions") {
+        const tab = document.querySelector('#workspaces [data-ws="decisions"]');
+        if (tab) tab.click();
+      }
+      const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision]")];
+      const hintCard = cards.find(
+        (el) => /UnmatchedHint/i.test(el.textContent || "") && /MissingHit/i.test(el.textContent || "")
+      );
+      if (hintCard) hintCard.click();
+    });
+    await page.waitForSelector("button[data-open-slice]", { timeout: 8000 });
+    const openSliceTarget = await page.evaluate(() => {
+      const btn = document.querySelector("button[data-open-slice]");
+      return {
+        flow: btn ? btn.getAttribute("data-open-slice") || "" : "",
+        label: btn ? (btn.textContent || "").replace(/\s+/g, " ").trim() : "",
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "OS1",
+      "Decision record exposes Open slice for the selected flow",
+      openSliceTarget.ws === "decisions" &&
+        !!openSliceTarget.flow &&
+        /Open slice/i.test(openSliceTarget.label),
+      JSON.stringify(openSliceTarget)
+    );
+    await page.click("button[data-open-slice]");
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "slice";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 8000 });
+    await page.waitForTimeout(200);
+    const openSliceDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const sliceOn = document.querySelector('#workspaces [data-ws="slice"].on');
+      const tabOn = document.querySelector("#tabs .tab.on[data-flow]");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        sliceOn: !!(sliceOn && sliceOn.classList.contains("on")),
+        flow: tabOn ? tabOn.getAttribute("data-flow") || "" : "",
+        tabText: tabOn ? (tabOn.textContent || "").replace(/\s+/g, " ").trim() : "",
+        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node").length,
+      };
+    });
+    record(
+      "OS2",
+      "Open slice lands on Slice workspace",
+      openSliceDesk.ws === "slice" && openSliceDesk.sliceOn,
+      JSON.stringify({ ws: openSliceDesk.ws, sliceOn: openSliceDesk.sliceOn })
+    );
+    record(
+      "OS3",
+      "Slice flow matches data-open-slice",
+      !!openSliceTarget.flow &&
+        openSliceDesk.flow === openSliceTarget.flow &&
+        openSliceDesk.vnodes >= 1,
+      JSON.stringify({
+        target: openSliceTarget.flow,
+        flow: openSliceDesk.flow,
+        tab: openSliceDesk.tabText,
+        vnodes: openSliceDesk.vnodes,
+      })
+    );
+    await shot(page, "open-slice.png");
+    const afterOs = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeOsPosts);
+    record(
+      "OS4",
+      "Open-slice step did not post stamp / skip",
+      afterOs.stampPosts === 0 && afterOs.skipPosts === 0,
+      JSON.stringify(afterOs)
+    );
+    const stampDirOs = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampOs = fs.existsSync(stampDirOs) && fs.readdirSync(stampDirOs).length > 0;
+    record(
+      "OS5",
+      "Open-slice step did not write .graphide/stamps/",
+      !wroteStampOs,
+      wroteStampOs ? fs.readdirSync(stampDirOs).join(",") : "absent"
     );
 
     await page.click('#workspaces [data-ws="registry"]');
@@ -4777,7 +4874,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · uncovered-node · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · uncovered-node · open-slice · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
