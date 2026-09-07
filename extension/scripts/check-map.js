@@ -182,6 +182,7 @@ assert(js.includes("function communityEdgeList"), "map must draw community hops"
 assert(js.includes("function readableEdgesAmong"), "in-bubble layout must use a readable hop subset");
 assert(js.includes("function separateBoxes"), "layout must push overlapping boxes apart");
 assert(js.includes("maxRows > 4 || buckets.length > maxCols"), "tall ranks must pack into a compact wrap");
+assert(chrome.includes('id="zoomIn"') && chrome.includes('id="zoomOut"') && chrome.includes('id="zoomPct"'), "zoom in / out / percent missing from the webview chrome");
 assert(chrome.includes('id="zoomFit"'), "Fit button missing from the webview chrome");
 assert(chrome.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
 assert(chrome.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
@@ -289,6 +290,17 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
+const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
+assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
+const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
+assert(
+  zoomMap.includes("## Sub-features") &&
+    zoomMap.includes("## How to get to it (user POV)") &&
+    zoomMap.includes("## Driving it with the harness") &&
+    zoomMap.includes("## Gotchas"),
+  "zoom feature map must use the four headings"
+);
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/cancel-review.md")), "cancel-review feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-hints.md")), "flow-hints feature map missing");
@@ -353,6 +365,8 @@ assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && dri
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
+assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
+assert(/runs-on:\s*ubuntu-latest/.test(workflow), "verify job must stay on ubuntu-latest");
 assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
 assert(driver.includes("cancel-review.png") && driver.includes("CR1") && driver.includes("#cancelBtn") && driver.includes('type: "cancel"'), "verify driver must prove Cancel restores the desk");
 assert(chrome.includes('id="cancelBtn"') && chrome.includes("Cancel review (Esc)"), "Cancel control missing from Header");

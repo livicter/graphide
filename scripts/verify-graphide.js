@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1791,6 +1791,140 @@ async function main() {
       "Fit / Reorganize did not write .graphide/stamps/",
       !wroteStampFit,
       wroteStampFit ? fs.readdirSync(stampDirFit).join(",") : "absent"
+    );
+
+    const readZoomDesk = () =>
+      page.evaluate(() => {
+        const pctText = ((document.getElementById("zoomPct") || {}).textContent || "").trim();
+        const m = pctText.match(/(\d+)\s*%/);
+        const vp = document.querySelector("#canvas .viewport");
+        const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+        const t = (vp && vp.style.transform) || "";
+        const sm = t.match(/scale\(([-0-9.]+)\)/);
+        const kTf = sm ? Number(sm[1]) : 0;
+        const k = Number.isFinite(kCam) && kCam > 0 ? kCam : kTf;
+        const stage = document.querySelector("#canvas .stage");
+        const stageBox = stage ? stage.getBoundingClientRect() : null;
+        const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+        const visible = cards.filter((c) => {
+          if (!stageBox || c.width < 4 || c.height < 4) return false;
+          return !(c.right <= stageBox.left || c.left >= stageBox.right || c.bottom <= stageBox.top || c.top >= stageBox.bottom);
+        });
+        const zin = document.getElementById("zoomIn");
+        const zout = document.getElementById("zoomOut");
+        return {
+          pct: m ? Number(m[1]) : null,
+          pctText,
+          k,
+          kTf,
+          cards: cards.length,
+          visible: visible.length,
+          xy: document.querySelectorAll(".react-flow__node").length,
+          comm: document.querySelectorAll(".comm-node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+            ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+            : "",
+          zoomIn: !!zin,
+          zoomOut: !!zout,
+        };
+      });
+    const beforeZoomPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const beforeZoom = await readZoomDesk();
+    const zoomInVia = await page.evaluate(() => {
+      const btn = document.getElementById("zoomIn");
+      if (!btn) return "";
+      btn.click();
+      return "zoomIn";
+    });
+    await page.waitForTimeout(400);
+    const afterZoomIn = await readZoomDesk();
+    record(
+      "Z1",
+      "Zoom in (#zoomIn) raises percent / scale; Map stays community LOD",
+      zoomInVia === "zoomIn" &&
+        afterZoomIn.zoomIn &&
+        afterZoomIn.ws === "map" &&
+        afterZoomIn.xy === 0 &&
+        afterZoomIn.comm === 0 &&
+        afterZoomIn.cards > 1 &&
+        afterZoomIn.visible >= 1 &&
+        beforeZoom.pct != null &&
+        afterZoomIn.pct != null &&
+        afterZoomIn.pct > beforeZoom.pct &&
+        afterZoomIn.k > beforeZoom.k + 0.02,
+      "via=" + zoomInVia + " before=" + JSON.stringify(beforeZoom) + " after=" + JSON.stringify(afterZoomIn)
+    );
+    await shot(page, "zoom.png");
+    const zoomOutVia = await page.evaluate(() => {
+      const btn = document.getElementById("zoomOut");
+      if (!btn) return "";
+      btn.click();
+      return "zoomOut";
+    });
+    await page.waitForTimeout(400);
+    const afterZoomOut = await page.evaluate((before) => {
+      const pctText = ((document.getElementById("zoomPct") || {}).textContent || "").trim();
+      const m = pctText.match(/(\d+)\s*%/);
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      const t = (vp && vp.style.transform) || "";
+      const sm = t.match(/scale\(([-0-9.]+)\)/);
+      const kTf = sm ? Number(sm[1]) : 0;
+      const k = Number.isFinite(kCam) && kCam > 0 ? kCam : kTf;
+      const posts = (window.__vscodePosts || []).slice(before);
+      const stage = document.querySelector("#canvas .stage");
+      const stageBox = stage ? stage.getBoundingClientRect() : null;
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stageBox || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stageBox.left || c.left >= stageBox.right || c.bottom <= stageBox.top || c.top >= stageBox.bottom);
+      });
+      return {
+        pct: m ? Number(m[1]) : null,
+        pctText,
+        k,
+        cards: cards.length,
+        visible: visible.length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, beforeZoomPosts);
+    record(
+      "Z2",
+      "Zoom out (#zoomOut) lowers percent / scale; Map stays community LOD",
+      zoomOutVia === "zoomOut" &&
+        afterZoomOut.ws === "map" &&
+        afterZoomOut.xy === 0 &&
+        afterZoomOut.comm === 0 &&
+        afterZoomOut.cards > 1 &&
+        afterZoomOut.visible >= 1 &&
+        afterZoomIn.pct != null &&
+        afterZoomOut.pct != null &&
+        afterZoomOut.pct < afterZoomIn.pct &&
+        afterZoomOut.k < afterZoomIn.k - 0.02,
+      "via=" + zoomOutVia + " in=" + JSON.stringify(afterZoomIn) + " out=" + JSON.stringify(afterZoomOut)
+    );
+    record(
+      "Z3",
+      "Zoom in / out does not post stamp / skip",
+      afterZoomOut.stampPosts === 0 && afterZoomOut.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterZoomOut.stampPosts, skipPosts: afterZoomOut.skipPosts })
+    );
+    const stampDirZoom = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampZoom = fs.existsSync(stampDirZoom) && fs.readdirSync(stampDirZoom).length > 0;
+    record(
+      "Z4",
+      "Zoom did not write .graphide/stamps/",
+      !wroteStampZoom,
+      wroteStampZoom ? fs.readdirSync(stampDirZoom).join(",") : "absent"
     );
 
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -5088,7 +5222,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
