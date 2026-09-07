@@ -8,7 +8,9 @@ Inspect a node or hop without covering the object rail.
 - Title `#srcTitle`, body `#srcBody` (`.src-line` / `.src-line.hot`), inspect meta `#inspMeta`, incident hops `#inspEdges`.
 - Coverage mark row (`mark: uncovered` | `changed` | `—`) is owned by
   [coverage-mark.md](coverage-mark.md). This map stays pane open / clip.
-- Hop card `#hopCard` (also inside the pane). Click `.edge-hit` / `text.ekind` to open a hop.
+- Hop card `#hopCard` / incident `#inspEdges` are owned by
+  [hop-card.md](hop-card.md). This map stays pane open / clip.
+  Click `.edge-hit` / `text.ekind` / `#inspEdges .row` to open a hop.
 - **Editor** `#srcEditor` posts `{ type: "enterNode" }` to the host (open the span in the editor).
 - **Close** `#srcClose` or `Escape` hides the pane (`sourcePane.hidden = true`, `#workspace` drops `has-source`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
@@ -22,7 +24,8 @@ Inspect a node or hop without covering the object rail.
 1. After **Review**, stay on Overview or open **Slice**.
 2. Click a boxed hop (`.vnode`) or a ledger cell. Evidence slides in on the right.
 3. The pane names the FQN / file:line. Close with **Close** or Esc.
-4. On a hop label (Calls / Reads), the hop card lists both ends; those buttons inspect the node.
+4. On a hop label (Calls / Reads), the hop card lists both ends; those
+   buttons inspect the node. Prove that drive in [hop-card.md](hop-card.md).
 
 ## Driving it with the harness
 
