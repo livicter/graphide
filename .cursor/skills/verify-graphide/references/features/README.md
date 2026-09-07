@@ -33,6 +33,7 @@ owns this folder.
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
 | [coverage-mark.md](coverage-mark.md) | Evidence `#inspMeta` mark | explorer Slice · `coverage-mark.png` |
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |
+| [zoom.md](zoom.md) | Map zoom in / out | explorer Map · `#zoomIn` / `#zoomOut` · `zoom.png` |
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |
 | [cancel-review.md](cancel-review.md) | Cancel during strip | explorer · `#cancelBtn` · `cancel-review.png` |
 | [flow-hints.md](flow-hints.md) | Named `flows.toml` chip | `?dataflow=1` · `flow-hints.png` |
