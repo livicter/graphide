@@ -1211,11 +1211,36 @@ async function main() {
     );
     await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const close = document.getElementById("srcClose");
+      if (close && document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden) close.click();
+    });
 
     await shot(page, "map.png");
 
-    await page.locator(".bubble-card").first().click();
-    await page.waitForSelector("#enterCanvas .react-flow__node", { timeout: 10000 });
+    const enteredClick = await page.evaluate(() => {
+      const card = document.querySelector(".bubble-card");
+      if (!card) return { clicked: false };
+      card.click();
+      return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .react-flow__node").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(async () => {
+        const dump = await page.evaluate(() => ({
+          cards: document.querySelectorAll(".bubble-card").length,
+          enter: !!document.getElementById("enterCanvas"),
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
+          meta: ((document.getElementById("meta") || {}).textContent || "").trim().slice(0, 160),
+          title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 160),
+        }));
+        failFast("enter-bubble XYFlow did not mount — click=" + JSON.stringify(enteredClick) + " dump=" + JSON.stringify(dump));
+      });
     await page.waitForTimeout(250);
     const entered = await page.evaluate(() => {
       const xy = document.querySelectorAll("#enterCanvas .react-flow__node").length;
