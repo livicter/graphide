@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1403,6 +1403,191 @@ async function main() {
       "Fit / Reorganize did not write .graphide/stamps/",
       !wroteStampFit,
       wroteStampFit ? fs.readdirSync(stampDirFit).join(",") : "absent"
+    );
+
+    const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "extract",
+          label: "Extracting functions…",
+          done: 8,
+          total: 40,
+          pct: 22,
+          elapsed_ms: 420,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        const on = document.querySelector('#phases li[data-phase="extract"]');
+        return !!(el && el.classList.contains("on") && on && on.classList.contains("on"));
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        const cluster = document.querySelector('#phases li[data-phase="cluster"]');
+        const pct = ((document.getElementById("progressPct") || {}).textContent || "").trim();
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "").trim();
+        return !!(
+          el &&
+          el.classList.contains("on") &&
+          cluster &&
+          cluster.classList.contains("on") &&
+          /62%/.test(pct) &&
+          /Clustering/i.test(label)
+        );
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await page.waitForTimeout(200);
+    const progressDesk = await page.evaluate(() => {
+      const el = document.getElementById("progress");
+      const fill = document.getElementById("progressFill");
+      const fillW = fill ? fill.style.width : "";
+      const phases = [...document.querySelectorAll("#phases li[data-phase]")].map((li) => ({
+        phase: li.getAttribute("data-phase"),
+        on: li.classList.contains("on"),
+        done: li.classList.contains("done"),
+        text: (li.textContent || "").trim(),
+      }));
+      const by = Object.fromEntries(phases.map((p) => [p.phase, p]));
+      return {
+        on: !!(el && el.classList.contains("on")),
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        counts: ((document.getElementById("progressCounts") || {}).textContent || "").trim(),
+        pct: ((document.getElementById("progressPct") || {}).textContent || "").trim(),
+        time: ((document.getElementById("progressTime") || {}).textContent || "").trim(),
+        fillW,
+        fillPct: parseFloat(fillW),
+        phases,
+        walkDone: !!(by.walk && by.walk.done && !by.walk.on),
+        extractDone: !!(by.extract && by.extract.done && !by.extract.on),
+        linkDone: !!(by.link && by.link.done && !by.link.on),
+        clusterOn: !!(by.cluster && by.cluster.on && !by.cluster.done),
+        flowsIdle: !!(by.flows && !by.flows.on && !by.flows.done),
+        xy: document.querySelectorAll(".react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "PG1",
+      "#progress is on after a synthetic progress message",
+      progressDesk.on && progressDesk.ws === "map",
+      JSON.stringify({ on: progressDesk.on, ws: progressDesk.ws, cards: progressDesk.cards })
+    );
+    record(
+      "PG2",
+      "Cluster phase is .on; Scan / Extract / Link are .done",
+      progressDesk.walkDone &&
+        progressDesk.extractDone &&
+        progressDesk.linkDone &&
+        progressDesk.clusterOn &&
+        progressDesk.flowsIdle,
+      JSON.stringify(progressDesk.phases)
+    );
+    record(
+      "PG3",
+      "#progressFill / #progressPct / #progressLabel update",
+      /Clustering/i.test(progressDesk.label) &&
+        progressDesk.counts === "3/5" &&
+        progressDesk.pct === "62%" &&
+        progressDesk.fillPct >= 50 &&
+        /1\.8s/.test(progressDesk.time),
+      JSON.stringify({
+        label: progressDesk.label,
+        counts: progressDesk.counts,
+        pct: progressDesk.pct,
+        fill: progressDesk.fillW,
+        time: progressDesk.time,
+      })
+    );
+    record(
+      "PG4",
+      "Progress strip keeps Map community LOD (xy=0)",
+      progressDesk.xy === 0 && progressDesk.cards > 1,
+      "xy=" + progressDesk.xy + " cards=" + progressDesk.cards
+    );
+    await shot(page, "progress.png");
+    await page.evaluate(() => {
+      window.postMessage({ type: "cancelled" }, "*");
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        return !!(el && !el.classList.contains("on"));
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const afterProgress = await page.evaluate((before) => {
+      const el = document.getElementById("progress");
+      const fill = document.getElementById("progressFill");
+      const phasesOn = [...document.querySelectorAll("#phases li.on, #phases li.done")].length;
+      const posts = (window.__vscodePosts || []).slice(before);
+      const review = document.getElementById("reviewBtn");
+      const cancel = document.getElementById("cancelBtn");
+      return {
+        on: !!(el && el.classList.contains("on")),
+        phasesOn,
+        fillW: fill ? fill.style.width : "",
+        xy: document.querySelectorAll(".react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        reviewShown: !!(review && !review.hidden),
+        cancelHidden: !cancel || cancel.hidden,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeProgressPosts);
+    record(
+      "PG5",
+      "Clearing progress hides the strip and restores the desk",
+      !afterProgress.on &&
+        afterProgress.phasesOn === 0 &&
+        afterProgress.reviewShown &&
+        afterProgress.cancelHidden &&
+        afterProgress.xy === 0 &&
+        afterProgress.cards > 1,
+      JSON.stringify(afterProgress)
+    );
+    record(
+      "PG6",
+      "Progress step did not post stamp / skip",
+      afterProgress.stampPosts === 0 && afterProgress.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterProgress.stampPosts, skipPosts: afterProgress.skipPosts })
+    );
+    const stampDirPg = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampPg = fs.existsSync(stampDirPg) && fs.readdirSync(stampDirPg).length > 0;
+    record(
+      "PG7",
+      "Progress step did not write .graphide/stamps/",
+      !wroteStampPg,
+      wroteStampPg ? fs.readdirSync(stampDirPg).join(",") : "absent"
     );
 
     const beforeNightPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -4292,7 +4477,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

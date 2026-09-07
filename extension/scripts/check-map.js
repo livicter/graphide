@@ -289,6 +289,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -346,6 +347,8 @@ assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && dri
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
+assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
+assert(chrome.includes('id="progress"') && chrome.includes('id="phases"') && chrome.includes('data-phase="cluster"'), "progress strip missing from chrome");
 assert(/"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(js) || /"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(chrome), "fillInspect must write the coverage mark row");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
 assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
