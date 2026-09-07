@@ -151,6 +151,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     - Open slice: explorer Decisions; UnmatchedHint boot card;
       `button[data-open-slice]` lands Slice for that flow;
       `verification/open-slice.png`
+    - Draft hint: explorer Timeline Uncovered; `#draftHintBtn` copies
+      a `[[flow]]` hit list of uncovered FQNs; `verification/draft-hint.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
@@ -158,7 +160,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
     **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
-    and **open-slice**.
+    **open-slice**, and **draft-hint**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -169,6 +171,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `unmatched-hint.png`,
     `uncovered-node.png`,
     `open-slice.png`,
+    `draft-hint.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
@@ -412,10 +415,21 @@ Open slice gate (explorer Decisions → Slice):
 - Open slice does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive returns to Map
 
+Draft hint gate (explorer Timeline Uncovered):
+
+- Explorer `flowPayload()` already seeds `coverage.uncovered`
+  (`n0`…`solarsim::ScreenshotFormat`). Timeline Uncovered `.now`
+  paints `#draftHintBtn` and `#draftHint`
+- Click copies a `[[flow]]` / `hits = ["fqn", …]` fragment. Visible
+  draft or clipboard includes at least one uncovered FQN
+- Playwright screenshots `verification/draft-hint.png`
+- Draft hint does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` — this gate stays on Timeline
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, Uncovered node, and Open slice steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -519,6 +533,7 @@ same PR because the harness truly cannot hook existing ones.
 | Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
 | Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
 | Open slice | `button[data-open-slice]`, `#workspaces [data-ws="slice"]`, `#tabs .tab[data-flow]` |
+| Draft hint | `#draftHintBtn`, `#draftHint`, `.tl-item.now` Uncovered |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

@@ -294,6 +294,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/unmatched-hint.md")), "unmatched-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/uncovered-node.md")), "uncovered-node feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-slice.md")), "open-slice feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/draft-hint.md")), "draft-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -357,6 +358,9 @@ assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
 assert(js.includes("data-open-slice") && js.includes("Open slice") && js.includes("selectFlow(name)"), "decision record must Open slice via selectFlow");
+assert(driver.includes("draft-hint.png") && driver.includes("DH1") && driver.includes("draftHintBtn") && driver.includes("[[flow]]"), "verify driver must prove Timeline Copy draft hits");
+assert(js.includes("id=\"draftHintBtn\"") && js.includes("id=\"draftHint\"") && js.includes("[[flow]]") && js.includes("Copy draft"), "timeline Uncovered must expose a draft flows.toml fragment");
+assert(chrome.includes("function copyDraftHint") && chrome.includes("function draftHintToml") && !/copyDraftHint[\s\S]{0,500}type:\s*["']stamp["']/.test(chrome), "draft hint must copy a hit list and not stamp");
 assert(harness.includes("solarsim::MissingHit") && harness.includes("UnmatchedHint"), "explorer snap must keep the unmatched hit");
 assert(js.includes('k === "UnmatchedHint"') && js.includes("unmatched ") && js.includes("li class=\"finding\""), "desk must render UnmatchedHint on #coverage");
 assert(harness.includes("uncovered.push(id)") && harness.includes("changed.push(id)"), "explorer snap must keep uncovered / changed coverage");
