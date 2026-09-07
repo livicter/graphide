@@ -92,6 +92,8 @@ function classOf(data) {
     data.uncovered ? "uncovered" : "",
     data.changed ? "changed" : "",
     data.away ? "away" : "",
+    data.lit ? "lit" : "",
+    data.grey ? "grey" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -125,6 +127,9 @@ export function DerivedNode({ data }) {
   }
   if (d.side) attrs["data-side"] = d.side;
   if (d.file) attrs["data-file"] = d.file;
+  if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
+  if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
+  if (d.flow) attrs["data-flow"] = d.flow;
   const style = d.depth != null ? { "--d": d.depth } : undefined;
 
   return (

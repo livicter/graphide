@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1213,6 +1213,93 @@ async function main() {
     await page.waitForTimeout(200);
 
     await shot(page, "map.png");
+
+    await page.locator(".bubble-card").first().click();
+    await page.waitForSelector("#enterCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(250);
+    const entered = await page.evaluate(() => {
+      const xy = document.querySelectorAll("#enterCanvas .react-flow__node").length;
+      const lit = document.querySelectorAll("#enterCanvas .vnode.lit, #enterCanvas [data-lit='1']").length;
+      const grey = document.querySelectorAll("#enterCanvas .vnode.grey, #enterCanvas [data-lit='0']").length;
+      const shapes = [...new Set([...document.querySelectorAll("#enterCanvas .vnode[data-shape]")].map((el) => el.getAttribute("data-shape")))];
+      return {
+        xy,
+        lit,
+        grey,
+        cards: document.querySelectorAll(".bubble-card").length,
+        mapXy: document.querySelectorAll(".react-flow__node").length,
+        shapes,
+        inode: document.querySelectorAll(".inode").length,
+      };
+    });
+    record(
+      "E1",
+      "Enter-bubble mounts shaped XYFlow nodes (capped, not the raw IR)",
+      entered.xy > 1 && entered.xy <= 24 && entered.inode === 0 && entered.cards === 0,
+      "xy=" + entered.xy + " lit=" + entered.lit + " grey=" + entered.grey + " shapes=" + entered.shapes.join(",")
+    );
+    const enterShapesOk = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      return nodes.length > 1 && nodes.length === document.querySelectorAll("#enterCanvas .react-flow__node").length;
+    });
+    record("E1b", "Enter-bubble XYFlow nodes each carry data-shape", enterShapesOk, "xy=" + entered.xy + " shapes=" + entered.shapes.join(","));
+
+    await shot(page, "enter-bubble.png");
+
+    const leaf = page.locator("#enterCanvas .vnode[data-leaf='1'], #enterCanvas .react-flow__node").first();
+    await leaf.click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const enterEvidence = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      return {
+        open: !!(pane && !pane.hidden),
+        title: ((document.getElementById("srcTitle") || {}).textContent || "").trim(),
+      };
+    });
+    record(
+      "E2",
+      "Leaf click on enter-bubble opens Evidence",
+      enterEvidence.open && !!enterEvidence.title,
+      enterEvidence.title.slice(0, 80)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(150);
+    const backBtn = page.locator("#backBtn");
+    if (await backBtn.isEnabled()) await backBtn.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const afterEnter = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+      enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+    }));
+    record(
+      "E3",
+      "Back from enter-bubble returns to Map community LOD (xy=0)",
+      afterEnter.cards >= 8 && afterEnter.xy === 0 && afterEnter.enter === 0,
+      "cards=" + afterEnter.cards + " xy=" + afterEnter.xy
+    );
+    const stampDirEnter = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampEnter = fs.existsSync(stampDirEnter) && fs.readdirSync(stampDirEnter).length > 0;
+    record(
+      "E4",
+      "Enter-bubble step did not write .graphide/stamps/",
+      !wroteStampEnter,
+      wroteStampEnter ? fs.readdirSync(stampDirEnter).join(",") : "absent"
+    );
 
     await page.click("#exportBtn");
     await page.waitForFunction(
@@ -2901,7 +2988,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

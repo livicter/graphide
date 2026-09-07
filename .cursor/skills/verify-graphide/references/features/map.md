@@ -7,8 +7,8 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 - Workspace tab `#workspaces [data-ws="map"]` (key `1`).
 - Community boxes `.bubble-card` with `.name`, `.meta`, optional `.role`, member peek `.bubble-card .members`.
 - Story pin: first hop community gets `.bubble-card.start` (CSS outline); last gets `.bubble-card.end`. Off-path cards get `.bubble-card.off`.
-- Enter a bubble: click `.bubble-card` → labeled members `.comm-node` (capped, not a 160-node pile).
-- Back: `#backBtn` pops Enter and returns to community cards.
+- Enter a bubble: click `.bubble-card` → derived XYFlow on `#enterCanvas` (shaped Function / Type / Endpoint, cap 24 nodes / 80 edges). Lit = on the current flow Steiner tree (`[data-lit="1"]` / `.vnode.lit`); grey = siblings (`[data-lit="0"]` / `.vnode.grey`). Not a vanilla `.inode` list and not the raw IR.
+- Back: `#backBtn` / Map crumb pops Enter, unmounts `#enterCanvas`, and returns to community cards.
 - Search: `#graphSearch` dims non-matches (`.bubble-card.dim`).
 - Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`).
 - Story rail: `#storyRail` sits **outside** `.viewport` (Start → features → end).
@@ -20,7 +20,7 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 1. Graphide → **Review**. Desk lands on Overview when a default run exists.
 2. Click **Map** in the explorer workspaces (`#workspaces [data-ws="map"]`), or press `1`, or hit **Open map** (`.crumb-btn[data-ws="map"]` / `.stat-strip [data-ws="map"]`).
 3. You should see a community flow titled along the lines of “Start → features → end — control-flow through communities…”, not a single START / `main` card.
-4. Click a community to Enter. Backspace / **Back** returns to the cards.
+4. Click a community to Enter. Members (or child bubbles) appear as shaped XYFlow nodes. Click a leaf for Evidence; click a non-leaf to enter deeper. Backspace / **Back** returns to the cards.
 
 ## Driving it with the harness
 
@@ -41,9 +41,12 @@ Assertions the driver owns:
 
 - `document.querySelectorAll(".bubble-card").length >= 8`
 - `document.querySelectorAll(".comm-node").length === 0` at map altitude
+- `document.querySelectorAll(".react-flow__node").length === 0` at map altitude (`M2b` / `R5b`)
 - not a lone `.bubble-card.start` (or a single card whose `.name` is `main` / `program`)
 - `#legend` still names **bin main** after seed
 - screenshot of `#workspace` / Map is not a black frame
+- After click `.bubble-card`: `#enterCanvas .react-flow__node` length `> 1` and `<= 24`, `#enterCanvas .vnode[data-shape]` present, leaf click opens `#sourcePane`, screenshot `verification/enter-bubble.png` is not a black frame, no stamps written
+- After Back: Map altitude is cards again and `xy=0`
 
 Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-card`).
 
@@ -53,5 +56,5 @@ Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-ca
 - `.bubble-card.start` on a **populated** map is correct (walk start). Fail only when START is the *only* card.
 - `check-map.js` asserts `renderBubbleMap` / `storyMapBubbles` strings exist. It cannot see a one-card paint. Drive the harness.
 - Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops** Enter (`popAltitudeFromZoom`).
-- Do not invent `data-testid` on cards. `[data-bubble]`, `.bubble-card`, `.bubble-card.start` already exist in `extension/media/src/graph/desk.js` (`renderBubbleMap`). React mounts `#canvas`; vanilla paint fills Map. Map must stay `0` `.react-flow__node` (community LOD, cap 24). Slice / Overview CFG use `#sliceCanvas` XYFlow — that is not Map.
+- Do not invent `data-testid` on cards. `[data-bubble]`, `.bubble-card`, `.bubble-card.start` already exist in `extension/media/src/graph/desk.js` (`renderBubbleMap`). React mounts `#canvas`; vanilla paint fills Map altitude. Map must stay `0` `.react-flow__node` (community LOD, cap 24). Enter-bubble XYFlow lives in `#enterCanvas` only — unmount when leaving enter / going back to Map. Slice / Overview CFG use `#sliceCanvas` XYFlow — that is not Map. Selectors: `#enterCanvas .react-flow__node`, `#enterCanvas .vnode[data-shape]`, `#enterCanvas .vnode.lit` / `[data-lit="1"]`, `#enterCanvas .vnode.grey` / `[data-lit="0"]`, `[data-leaf]`.
 - Overlap is a fail: `#legend .leg` chips must not sit on each other or on `#workspaces`; `.bubble-card` boxes must not share screen rects; `.stage > .flow-title` must not cover a card. `#legend` and `#workspaces` are wrapping rows (`flex: 1 1 100%`). `.viewport` overflow stays `visible` — the camera world is larger than the pane; `.stage` clips. Opening Evidence must refit (ResizeObserver stays live). Narrow pane (720) must still show a grid (`spanX` of visible cards ≥ 160), not one stacked column.

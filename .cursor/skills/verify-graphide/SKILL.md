@@ -105,6 +105,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    drives seven desks plus Export, Presentation, Style, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - Overview / Decisions / Registry / Timeline lists on that explorer desk
+   - Enter-bubble XYFlow from Map (`.bubble-card` → `#enterCanvas`)
    - self-review on `?live=1&probe=0&require=1` using the derived snap
    - Delta on `?delta=1&probe=0&require=1&ws=delta` using the demo fixture
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
@@ -116,14 +117,16 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Escape enter and exit the stage
    - Route / Lens on the Sequence demo snap: `R` lights a derived path,
      `L` highlights Function / Endpoint
+   - Enter-bubble on the explorer Map: click `.bubble-card` →
+     `#enterCanvas .react-flow__node` (> 1, ≤24); Map altitude stays `xy=0`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
-    **lineage**, **export**, **present**, **preset**, **route**, and **lens**. `verification/`
+    **lineage**, **export**, **present**, **preset**, **route**, **lens**, and **enter-bubble**. `verification/`
     holds screenshots plus `report.md`, including `overview.png`,
     `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
-    `lineage.png`,
+    `lineage.png`, `enter-bubble.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
@@ -141,6 +144,8 @@ PR #45 regressions that must fail CI (explorer chrome, 17/17):
 
 - **Map is a community map.** Seed `bin main`. After Review, Map shows real
   community cards (`.bubble-card`), not a lone START / fallback program card.
+  Map altitude stays `xy=0`. Enter a card → `#enterCanvas` shaped XYFlow
+  (≤24 nodes), not a vanilla `.inode` list. Screenshot `enter-bubble.png`.
 - **Evidence stays off the object rail.** `#sourcePane` clips (`overflow: hidden`,
   `max-width ≤ 380px`) and must not overlap `#ledgerPane`.
 
@@ -221,7 +226,7 @@ Route / Lens gate (fixtures/demo Sequence snap):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, and Lens steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, and Enter-bubble steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -303,6 +308,7 @@ same PR because the harness truly cannot hook existing ones.
 | Lifecycle | `#workspaces [data-ws="lifecycle"]`, `#lcLanes .lc-lane`, `#lcCanvas .lc-state[data-lc-type]`, `#lcTrans .lc-trans`, `#lcPlay` |
 | Lineage | `#workspaces [data-ws="lineage"]`, `#lineageCanvas .react-flow__node`, `.ego-node[data-side]`, `#lineageHops .expl-card.hop` |
 | Map cards | `.bubble-card`, `.bubble-card.start`, `.bubble-card .name`, `[data-bubble]` |
+| Enter-bubble | `#enterCanvas .react-flow__node`, `#enterCanvas .vnode[data-shape]`, `[data-lit]`, `[data-leaf]` |
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
 | Evidence | `#sourcePane`, `.src-k`, `#srcTitle`, `#srcBody`, `#srcClose`, `#srcEditor` |

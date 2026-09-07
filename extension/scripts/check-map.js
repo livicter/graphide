@@ -133,7 +133,7 @@ assert(!chrome.includes("MiniMap") && !chrome.includes("<Controls"), "Sequence m
 assert(fs.existsSync(path.join(__dirname, "../media/xyflow.css")), "XYFlow CSS must ship as extension/media/xyflow.css");
 assert(css.includes('@import url("xyflow.css")'), "main.css must import the shipped XYFlow stylesheet");
 assert(css.includes("#seqCanvas .react-flow"), "Sequence XYFlow must be contained in #seqCanvas");
-assert(css.includes("#deltaCanvas .react-flow") && css.includes("#dfCanvas .react-flow") && css.includes("#lcCanvas .react-flow") && css.includes("#sliceCanvas .react-flow") && css.includes("#lineageCanvas .react-flow"), "Delta / Data-flow / Lifecycle / Slice / Lineage XYFlow must be contained in their canvas hosts");
+assert(css.includes("#deltaCanvas .react-flow") && css.includes("#dfCanvas .react-flow") && css.includes("#lcCanvas .react-flow") && css.includes("#sliceCanvas .react-flow") && css.includes("#lineageCanvas .react-flow") && css.includes("#enterCanvas .react-flow"), "Delta / Data-flow / Lifecycle / Slice / Lineage / Enter XYFlow must be contained in their canvas hosts");
 assert(js.includes("function renderDeltaCanvas") || chrome.includes("mountDeltaCanvas") || chrome.includes("renderDeltaCanvas"), "Delta XYFlow mount missing");
 assert(js.includes("DELTA_NODE_CAP") || chrome.includes("DELTA_NODE_CAP") || chrome.includes("nodeCap: 24"), "Delta must cap at 24");
 assert(js.includes("function renderDataflowCanvas") || chrome.includes("renderDataflowCanvas"), "Data-flow XYFlow mount missing");
@@ -145,6 +145,10 @@ assert(js.includes('id="lineageCanvas"') || chrome.includes('id="lineageCanvas"'
 assert(js.includes("LINEAGE_NODE_CAP") || chrome.includes("LINEAGE_NODE_CAP") || chrome.includes("function layoutLineage"), "Lineage must cap and layout the directed ego");
 assert(js.includes("function walkDirectedLineage") || chrome.includes("walkDirectedLineage"), "Lineage must walk directed Calls / data hops");
 assert(css.includes("#lineageCanvas .react-flow"), "Lineage XYFlow must be contained in #lineageCanvas");
+assert(js.includes("function renderEnterCanvas") || chrome.includes("renderEnterCanvas"), "Enter-bubble XYFlow mount missing");
+assert(js.includes('id="enterCanvas"') || chrome.includes('id="enterCanvas"'), "Enter-bubble must host XYFlow on #enterCanvas");
+assert(js.includes("ENTER_NODE_CAP") || chrome.includes("ENTER_NODE_CAP") || chrome.includes("nodeCap: 24"), "Enter-bubble must cap at 24");
+assert(css.includes("#enterCanvas .react-flow"), "Enter-bubble XYFlow must be contained in #enterCanvas");
 assert(js.includes("unmountReviewCanvas") || chrome.includes("unmountReviewCanvas"), "Review canvases must unmount when leaving the workspace");
 assert(/style-src \$\{webview.cspSource\}/.test(ext) && !/style-src[^;]*unsafe-inline/.test(ext), "CSP must not add style-src unsafe-inline");
 assert(!/script-src[^;]*unsafe-eval/.test(ext) && !/script-src[^;]*unsafe-inline/.test(ext), "CSP must not add script-src unsafe-eval / unsafe-inline");
@@ -307,6 +311,7 @@ assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") 
 assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("lineage.png") && driver.includes("LINEAGE_HARNESS") && driver.includes("#lineageCanvas .react-flow__node"), "verify driver must drive Lineage XYFlow on the demo fixture");
+assert(driver.includes("enter-bubble.png") && driver.includes("#enterCanvas .react-flow__node") && driver.includes("E1"), "verify driver must prove enter-bubble XYFlow from Map");
 assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver must prove Lineage upstream / downstream");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
