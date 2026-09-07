@@ -36,6 +36,8 @@ const SYNTHETIC_NODES = 2050;
 const SYNTHETIC_EDGES = 4568;
 
 const checks = [];
+const artifacts = [];
+const STAMP_DIR = path.join(ROOT, ".graphide", "stamps");
 
 function record(id, title, pass, detail) {
   checks.push({ id, title, pass: !!pass, detail: detail == null ? "" : String(detail) });
@@ -46,6 +48,81 @@ function record(id, title, pass, detail) {
 function failFast(msg) {
   console.error("FAIL verify-graphide · " + msg);
   process.exit(1);
+}
+
+function noteArtifact(name) {
+  if (name && artifacts.indexOf(name) < 0) artifacts.push(name);
+}
+
+function stampDirWrote() {
+  return fs.existsSync(STAMP_DIR) && fs.readdirSync(STAMP_DIR).length > 0;
+}
+
+function assertNoStampDir(id, title) {
+  const wrote = stampDirWrote();
+  record(id, title, !wrote, wrote ? fs.readdirSync(STAMP_DIR).join(",") : "absent");
+}
+
+function failSnapChecks(idRe, report, msg) {
+  const failed = checks.filter((c) => !c.pass && idRe.test(c.id));
+  if (!failed.length) return;
+  writeReport(report);
+  failFast(
+    msg +
+      " — " +
+      failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+  );
+}
+
+function deriveReviewSnap(opts) {
+  const dest = opts.dest;
+  const label = opts.label;
+  const args = opts.args;
+  const maxBuffer = opts.maxBuffer || 16 * 1024 * 1024;
+  const timeout = opts.timeout || 5 * 60 * 1000;
+  const bin = findGraphideBin();
+  if (!bin) {
+    failFast(
+      "no " +
+        label +
+        " snapshot: compile `cargo build -p graphide-cli` then run " +
+        "`graphide review " +
+        args.join(" ") +
+        "` into " +
+        path.relative(ROOT, dest) +
+        (opts.hint ? " " + opts.hint : "")
+    );
+  }
+  console.log("derive " + bin + " review " + args.join(" "));
+  const r = spawnSync(bin, ["review"].concat(args), { encoding: "utf8", maxBuffer, timeout });
+  if (r.stderr) process.stderr.write(r.stderr);
+  if (r.status !== 0) {
+    failFast(
+      "graphide review (" +
+        label +
+        ") failed (exit " +
+        r.status +
+        "): " +
+        String(r.stderr || r.stdout || "").slice(-800)
+    );
+  }
+  const text = String(r.stdout || "").trim();
+  if (!text) failFast("graphide review (" + label + ") wrote an empty snapshot");
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, text.endsWith("\n") ? text : text + "\n");
+  return text;
+}
+
+function loadJsonSnap(dest, deriveFn, label) {
+  const text = fs.existsSync(dest) ? fs.readFileSync(dest, "utf8") : deriveFn();
+  let snap;
+  try {
+    snap = JSON.parse(text);
+  } catch (e) {
+    failFast(label + " snapshot is not JSON: " + (e && e.message ? e.message : e));
+  }
+  if (!snap || typeof snap !== "object") failFast(label + " snapshot is empty");
+  return snap;
 }
 
 function pngMeanLuma(buf) {
@@ -164,6 +241,7 @@ function startServer(root) {
 }
 
 async function shot(page, name, opts) {
+  noteArtifact(name);
   const dest = path.join(OUT, name);
   const buf = await page.screenshot({ type: "png", fullPage: false });
   fs.writeFileSync(dest, buf);
@@ -212,7 +290,9 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `slice-grey.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `delta-sticky-views.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: " +
+      (artifacts.length ? artifacts.map((n) => "`" + n + "`").join(", ") + ", `report.md`" : "`report.md`") +
+      ".",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -249,72 +329,26 @@ function findGraphideBin() {
 }
 
 function deriveSelfReviewSnap() {
-  const bin = findGraphideBin();
-  if (!bin) {
-    failFast(
-      "no self-review snapshot: compile `cargo build -p graphide-cli` then run " +
-        "`graphide review --root <this checkout> --json --progress --no-parent` into " +
-        "extension/scripts/live-snap.json (CI writes this file before npm run verify)"
-    );
-  }
-  console.log("derive " + bin + " review --root " + ROOT + " --json --progress --no-parent");
-  const r = spawnSync(
-    bin,
-    ["review", "--root", ROOT, "--json", "--progress", "--no-parent"],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 15 * 60 * 1000 }
-  );
-  if (r.stderr) process.stderr.write(r.stderr);
-  if (r.status !== 0) {
-    failFast("graphide review failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
-  }
-  const text = String(r.stdout || "").trim();
-  if (!text) failFast("graphide review wrote an empty snapshot");
-  fs.mkdirSync(path.dirname(SNAP), { recursive: true });
-  fs.writeFileSync(SNAP, text.endsWith("\n") ? text : text + "\n");
-  return text;
+  return deriveReviewSnap({
+    dest: SNAP,
+    label: "self-review",
+    args: ["--root", ROOT, "--json", "--progress", "--no-parent"],
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 15 * 60 * 1000,
+    hint: "(CI writes this file before npm run verify)",
+  });
 }
 
 function deriveDeltaSnap() {
-  const bin = findGraphideBin();
-  if (!bin) {
-    failFast(
-      "no delta snapshot: compile `cargo build -p graphide-cli` then run " +
-        "`graphide review --root fixtures/demo --parent fixtures/demo-parent --json` into " +
-        "extension/scripts/delta-snap.json"
-    );
-  }
-  console.log("derive " + bin + " review --root " + DEMO + " --parent " + DEMO_PARENT + " --json --progress");
-  const r = spawnSync(
-    bin,
-    ["review", "--root", DEMO, "--parent", DEMO_PARENT, "--json", "--progress"],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
-  );
-  if (r.stderr) process.stderr.write(r.stderr);
-  if (r.status !== 0) {
-    failFast("graphide review (delta fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
-  }
-  const text = String(r.stdout || "").trim();
-  if (!text) failFast("graphide review (delta fixture) wrote an empty snapshot");
-  fs.mkdirSync(path.dirname(DELTA_SNAP), { recursive: true });
-  fs.writeFileSync(DELTA_SNAP, text.endsWith("\n") ? text : text + "\n");
-  return text;
+  return deriveReviewSnap({
+    dest: DELTA_SNAP,
+    label: "delta",
+    args: ["--root", DEMO, "--parent", DEMO_PARENT, "--json", "--progress"],
+  });
 }
 
 function loadDeltaSnap() {
-  let text = "";
-  if (fs.existsSync(DELTA_SNAP)) {
-    text = fs.readFileSync(DELTA_SNAP, "utf8");
-  } else {
-    text = deriveDeltaSnap();
-  }
-  let snap;
-  try {
-    snap = JSON.parse(text);
-  } catch (e) {
-    failFast("delta snapshot is not JSON: " + (e && e.message ? e.message : e));
-  }
-  if (!snap || typeof snap !== "object") failFast("delta snapshot is empty");
-  return snap;
+  return loadJsonSnap(DELTA_SNAP, deriveDeltaSnap, "delta");
 }
 
 function assertDeltaSnap(snap) {
@@ -330,14 +364,11 @@ function assertDeltaSnap(snap) {
     added.map((f) => f.fqn).slice(0, 6).join(",")
   );
   record("D0c", "delta fixture snap carries a parent graph", parentNodes > 0, "parent.nodes=" + parentNodes);
-  const failed = checks.filter((c) => !c.pass && /^D0/.test(c.id));
-  if (failed.length) {
-    writeReport("Delta snapshot failed structural checks (desk not driven).");
-    failFast(
-      "empty Architecture Delta on demo vs demo-parent — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^D0/,
+    "Delta snapshot failed structural checks (desk not driven).",
+    "empty Architecture Delta on demo vs demo-parent"
+  );
   return { facts: facts.length, sneaky };
 }
 
@@ -415,101 +446,36 @@ function assertProposedUncoveredSnap(snap) {
       ? "hits=" + hits.join(",") + " tree=" + nodes + "n leftover=" + leftover
       : "flows=" + flows.map((f) => f && f.name).join(",")
   );
-  const failed = checks.filter((c) => !c.pass && c.id === "PU0");
-  if (failed.length) {
-    writeReport("Proposed-uncovered snapshot failed structural checks (desk not driven).");
-    failFast(
-      "demo vs demo-parent snap missing proposed-uncovered flow — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^PU0$/,
+    "Proposed-uncovered snapshot failed structural checks (desk not driven).",
+    "demo vs demo-parent snap missing proposed-uncovered flow"
+  );
   return { name: named.name, nodes, hits, leftover };
 }
 
 function deriveSequenceSnap() {
-  const bin = findGraphideBin();
-  if (!bin) {
-    failFast(
-      "no sequence snapshot: compile `cargo build -p graphide-cli` then run " +
-        "`graphide review --root fixtures/demo --json --no-parent` into " +
-        "extension/scripts/sequence-snap.json"
-    );
-  }
-  console.log("derive " + bin + " review --root " + DEMO + " --json --progress --no-parent");
-  const r = spawnSync(
-    bin,
-    ["review", "--root", DEMO, "--json", "--progress", "--no-parent"],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
-  );
-  if (r.stderr) process.stderr.write(r.stderr);
-  if (r.status !== 0) {
-    failFast("graphide review (sequence fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
-  }
-  const text = String(r.stdout || "").trim();
-  if (!text) failFast("graphide review (sequence fixture) wrote an empty snapshot");
-  fs.mkdirSync(path.dirname(SEQUENCE_SNAP), { recursive: true });
-  fs.writeFileSync(SEQUENCE_SNAP, text.endsWith("\n") ? text : text + "\n");
-  return text;
+  return deriveReviewSnap({
+    dest: SEQUENCE_SNAP,
+    label: "sequence",
+    args: ["--root", DEMO, "--json", "--progress", "--no-parent"],
+  });
 }
 
 function loadSequenceSnap() {
-  let text = "";
-  if (fs.existsSync(SEQUENCE_SNAP)) {
-    text = fs.readFileSync(SEQUENCE_SNAP, "utf8");
-  } else {
-    text = deriveSequenceSnap();
-  }
-  let snap;
-  try {
-    snap = JSON.parse(text);
-  } catch (e) {
-    failFast("sequence snapshot is not JSON: " + (e && e.message ? e.message : e));
-  }
-  if (!snap || typeof snap !== "object") failFast("sequence snapshot is empty");
-  return snap;
+  return loadJsonSnap(SEQUENCE_SNAP, deriveSequenceSnap, "sequence");
 }
 
 function deriveDataflowSnap() {
-  const bin = findGraphideBin();
-  if (!bin) {
-    failFast(
-      "no dataflow snapshot: compile `cargo build -p graphide-cli` then run " +
-        "`graphide review --root fixtures/demo --json --no-parent` into " +
-        "extension/scripts/dataflow-snap.json"
-    );
-  }
-  console.log("derive " + bin + " review --root " + DEMO + " --json --progress --no-parent");
-  const r = spawnSync(
-    bin,
-    ["review", "--root", DEMO, "--json", "--progress", "--no-parent"],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
-  );
-  if (r.stderr) process.stderr.write(r.stderr);
-  if (r.status !== 0) {
-    failFast("graphide review (dataflow fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
-  }
-  const text = String(r.stdout || "").trim();
-  if (!text) failFast("graphide review (dataflow fixture) wrote an empty snapshot");
-  fs.mkdirSync(path.dirname(DATAFLOW_SNAP), { recursive: true });
-  fs.writeFileSync(DATAFLOW_SNAP, text.endsWith("\n") ? text : text + "\n");
-  return text;
+  return deriveReviewSnap({
+    dest: DATAFLOW_SNAP,
+    label: "dataflow",
+    args: ["--root", DEMO, "--json", "--progress", "--no-parent"],
+  });
 }
 
 function loadDataflowSnap() {
-  let text = "";
-  if (fs.existsSync(DATAFLOW_SNAP)) {
-    text = fs.readFileSync(DATAFLOW_SNAP, "utf8");
-  } else {
-    text = deriveDataflowSnap();
-  }
-  let snap;
-  try {
-    snap = JSON.parse(text);
-  } catch (e) {
-    failFast("dataflow snapshot is not JSON: " + (e && e.message ? e.message : e));
-  }
-  if (!snap || typeof snap !== "object") failFast("dataflow snapshot is empty");
-  return snap;
+  return loadJsonSnap(DATAFLOW_SNAP, deriveDataflowSnap, "dataflow");
 }
 
 function assertDataflowSnap(snap) {
@@ -542,14 +508,11 @@ function assertDataflowSnap(snap) {
     subscribe,
     best ? best.name + " kinds=" + (best.kinds || []).join(",") : "no flow"
   );
-  const failed = checks.filter((c) => !c.pass && /^F0/.test(c.id));
-  if (failed.length) {
-    writeReport("Data-flow snapshot failed structural checks (desk not driven).");
-    failFast(
-      "empty Data-flow on fixtures/demo — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^F0/,
+    "Data-flow snapshot failed structural checks (desk not driven).",
+    "empty Data-flow on fixtures/demo"
+  );
   return { hops: best ? best.hops : 0, nodes: best ? best.nodes : 0, source: hasSource, sink: hasSink };
 }
 
@@ -570,58 +533,24 @@ function assertFlowHintsSnap(snap) {
       ? "hits=" + hits.join(",") + " tree=" + nodes + "n/" + edges + "e"
       : "flows=" + flows.map((f) => f && f.name).join(",")
   );
-  const failed = checks.filter((c) => !c.pass && c.id === "FH0");
-  if (failed.length) {
-    writeReport("Flow-hints snapshot failed structural checks (desk not driven).");
-    failFast(
-      "fixtures/demo snap missing named flows.toml flow — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^FH0$/,
+    "Flow-hints snapshot failed structural checks (desk not driven).",
+    "fixtures/demo snap missing named flows.toml flow"
+  );
   return { name: named.name, nodes, edges, hits };
 }
 
 function deriveLifecycleSnap() {
-  const bin = findGraphideBin();
-  if (!bin) {
-    failFast(
-      "no lifecycle snapshot: compile `cargo build -p graphide-cli` then run " +
-        "`graphide review --root fixtures/demo --json --no-parent` into " +
-        "extension/scripts/lifecycle-snap.json"
-    );
-  }
-  console.log("derive " + bin + " review --root " + DEMO + " --json --progress --no-parent");
-  const r = spawnSync(
-    bin,
-    ["review", "--root", DEMO, "--json", "--progress", "--no-parent"],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, timeout: 5 * 60 * 1000 }
-  );
-  if (r.stderr) process.stderr.write(r.stderr);
-  if (r.status !== 0) {
-    failFast("graphide review (lifecycle fixture) failed (exit " + r.status + "): " + String(r.stderr || r.stdout || "").slice(-800));
-  }
-  const text = String(r.stdout || "").trim();
-  if (!text) failFast("graphide review (lifecycle fixture) wrote an empty snapshot");
-  fs.mkdirSync(path.dirname(LIFECYCLE_SNAP), { recursive: true });
-  fs.writeFileSync(LIFECYCLE_SNAP, text.endsWith("\n") ? text : text + "\n");
-  return text;
+  return deriveReviewSnap({
+    dest: LIFECYCLE_SNAP,
+    label: "lifecycle",
+    args: ["--root", DEMO, "--json", "--progress", "--no-parent"],
+  });
 }
 
 function loadLifecycleSnap() {
-  let text = "";
-  if (fs.existsSync(LIFECYCLE_SNAP)) {
-    text = fs.readFileSync(LIFECYCLE_SNAP, "utf8");
-  } else {
-    text = deriveLifecycleSnap();
-  }
-  let snap;
-  try {
-    snap = JSON.parse(text);
-  } catch (e) {
-    failFast("lifecycle snapshot is not JSON: " + (e && e.message ? e.message : e));
-  }
-  if (!snap || typeof snap !== "object") failFast("lifecycle snapshot is empty");
-  return snap;
+  return loadJsonSnap(LIFECYCLE_SNAP, deriveLifecycleSnap, "lifecycle");
 }
 
 function assertLifecycleSnap(snap) {
@@ -655,14 +584,11 @@ function assertLifecycleSnap(snap) {
     events && !!(best && best.ends >= 1),
     best ? best.name + " ends=" + best.ends + " ids=" + (best.ids || []).join(",") : "no flow"
   );
-  const failed = checks.filter((c) => !c.pass && /^L0/.test(c.id));
-  if (failed.length) {
-    writeReport("Lifecycle snapshot failed structural checks (desk not driven).");
-    failFast(
-      "empty Lifecycle on fixtures/demo — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^L0/,
+    "Lifecycle snapshot failed structural checks (desk not driven).",
+    "empty Lifecycle on fixtures/demo"
+  );
   return { states: best ? best.states : 0, trans: best ? best.trans : 0, ends: best ? best.ends : 0 };
 }
 
@@ -692,32 +618,16 @@ function assertSequenceSnap(snap) {
     subscribe,
     best ? best.name + " kinds=" + (best.kinds || []).join(",") : "no flow"
   );
-  const failed = checks.filter((c) => !c.pass && /^Q0/.test(c.id));
-  if (failed.length) {
-    writeReport("Sequence snapshot failed structural checks (desk not driven).");
-    failFast(
-      "empty Sequence on fixtures/demo — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^Q0/,
+    "Sequence snapshot failed structural checks (desk not driven).",
+    "empty Sequence on fixtures/demo"
+  );
   return { parts: best ? best.parts : 0, hops: best ? best.hops : 0 };
 }
 
 function loadSelfReviewSnap() {
-  let text = "";
-  if (fs.existsSync(SNAP)) {
-    text = fs.readFileSync(SNAP, "utf8");
-  } else {
-    text = deriveSelfReviewSnap();
-  }
-  let snap;
-  try {
-    snap = JSON.parse(text);
-  } catch (e) {
-    failFast("self-review snapshot is not JSON: " + (e && e.message ? e.message : e));
-  }
-  if (!snap || typeof snap !== "object") failFast("self-review snapshot is empty");
-  return snap;
+  return loadJsonSnap(SNAP, deriveSelfReviewSnap, "self-review");
 }
 
 function assertSelfReviewSnap(snap) {
@@ -758,14 +668,11 @@ function assertSelfReviewSnap(snap) {
     "nodes=" + nodes.length + " edges=" + edges.length
   );
 
-  const failed = checks.filter((c) => !c.pass && /^G\d/.test(c.id));
-  if (failed.length) {
-    writeReport("Self-review snapshot failed structural checks (desk not driven).");
-    failFast(
-      "broken deriver or empty graph — " +
-        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
-    );
-  }
+  failSnapChecks(
+    /^G\d/,
+    "Self-review snapshot failed structural checks (desk not driven).",
+    "broken deriver or empty graph"
+  );
   return { nodes: nodes.length, edges: edges.length, files, plugin, altitude: altitude.length, labels };
 }
 
@@ -923,14 +830,7 @@ async function main() {
       "openMap=" + overviewDesk.openMap + " chips=" + overviewDesk.chips.slice(0, 4).join(",")
     );
     await shot(page, "overview.png");
-    const stampDirOv = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampOv = fs.existsSync(stampDirOv) && fs.readdirSync(stampDirOv).length > 0;
-    record(
-      "OV5",
-      "Overview step did not write .graphide/stamps/",
-      !wroteStampOv,
-      wroteStampOv ? fs.readdirSync(stampDirOv).join(",") : "absent"
-    );
+    assertNoStampDir("OV5", "Overview step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="decisions"]');
     await page.waitForFunction(
@@ -986,14 +886,7 @@ async function main() {
       })
     );
     await shot(page, "decisions.png");
-    const stampDirDc = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampDc = fs.existsSync(stampDirDc) && fs.readdirSync(stampDirDc).length > 0;
-    record(
-      "DC4",
-      "Decisions step did not write .graphide/stamps/",
-      !wroteStampDc,
-      wroteStampDc ? fs.readdirSync(stampDirDc).join(",") : "absent"
-    );
+    assertNoStampDir("DC4", "Decisions step did not write .graphide/stamps/");
 
     const beforeUhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const unmatchedDesk = await page.evaluate(() => {
@@ -1072,14 +965,7 @@ async function main() {
       afterUh.stampPosts === 0 && afterUh.skipPosts === 0,
       JSON.stringify(afterUh)
     );
-    const stampDirUh = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampUh = fs.existsSync(stampDirUh) && fs.readdirSync(stampDirUh).length > 0;
-    record(
-      "UH5",
-      "Unmatched-hint step did not write .graphide/stamps/",
-      !wroteStampUh,
-      wroteStampUh ? fs.readdirSync(stampDirUh).join(",") : "absent"
-    );
+    assertNoStampDir("UH5", "Unmatched-hint step did not write .graphide/stamps/");
 
     const beforeOsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
@@ -1169,14 +1055,7 @@ async function main() {
       afterOs.stampPosts === 0 && afterOs.skipPosts === 0,
       JSON.stringify(afterOs)
     );
-    const stampDirOs = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampOs = fs.existsSync(stampDirOs) && fs.readdirSync(stampDirOs).length > 0;
-    record(
-      "OS5",
-      "Open-slice step did not write .graphide/stamps/",
-      !wroteStampOs,
-      wroteStampOs ? fs.readdirSync(stampDirOs).join(",") : "absent"
-    );
+    assertNoStampDir("OS5", "Open-slice step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="registry"]');
     await page.waitForFunction(
@@ -1223,14 +1102,7 @@ async function main() {
         registryDesk.xy
     );
     await shot(page, "registry.png");
-    const stampDirRg = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampRg = fs.existsSync(stampDirRg) && fs.readdirSync(stampDirRg).length > 0;
-    record(
-      "RG3",
-      "Registry step did not write .graphide/stamps/",
-      !wroteStampRg,
-      wroteStampRg ? fs.readdirSync(stampDirRg).join(",") : "absent"
-    );
+    assertNoStampDir("RG3", "Registry step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="timeline"]');
     await page.waitForFunction(
@@ -1273,14 +1145,7 @@ async function main() {
       "items=" + timelineDesk.items + " " + timelineDesk.text.slice(0, 180)
     );
     await shot(page, "timeline.png");
-    const stampDirTl = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampTl = fs.existsSync(stampDirTl) && fs.readdirSync(stampDirTl).length > 0;
-    record(
-      "TL3",
-      "Timeline step did not write .graphide/stamps/",
-      !wroteStampTl,
-      wroteStampTl ? fs.readdirSync(stampDirTl).join(",") : "absent"
-    );
+    assertNoStampDir("TL3", "Timeline step did not write .graphide/stamps/");
 
     const beforeUnPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const uncoveredDesk = await page.evaluate(() => {
@@ -1373,14 +1238,7 @@ async function main() {
       afterUn.stampPosts === 0 && afterUn.skipPosts === 0,
       JSON.stringify(afterUn)
     );
-    const stampDirUn = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampUn = fs.existsSync(stampDirUn) && fs.readdirSync(stampDirUn).length > 0;
-    record(
-      "UN5",
-      "Uncovered-node step did not write .graphide/stamps/",
-      !wroteStampUn,
-      wroteStampUn ? fs.readdirSync(stampDirUn).join(",") : "absent"
-    );
+    assertNoStampDir("UN5", "Uncovered-node step did not write .graphide/stamps/");
 
     const beforeDhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const draftHintDesk = await page.evaluate(async () => {
@@ -1450,14 +1308,7 @@ async function main() {
       afterDh.stampPosts === 0 && afterDh.skipPosts === 0,
       JSON.stringify(afterDh)
     );
-    const stampDirDh = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampDh = fs.existsSync(stampDirDh) && fs.readdirSync(stampDirDh).length > 0;
-    record(
-      "DH5",
-      "Draft-hint step did not write .graphide/stamps/",
-      !wroteStampDh,
-      wroteStampDh ? fs.readdirSync(stampDirDh).join(",") : "absent"
-    );
+    assertNoStampDir("DH5", "Draft-hint step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
@@ -1869,14 +1720,7 @@ async function main() {
       "before=" + cardsBeforeFit + " " + JSON.stringify(afterReorg)
     );
     await shot(page, "fit-reorg.png");
-    const stampDirFit = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampFit = fs.existsSync(stampDirFit) && fs.readdirSync(stampDirFit).length > 0;
-    record(
-      "FR5",
-      "Fit / Reorganize did not write .graphide/stamps/",
-      !wroteStampFit,
-      wroteStampFit ? fs.readdirSync(stampDirFit).join(",") : "absent"
-    );
+    assertNoStampDir("FR5", "Fit / Reorganize did not write .graphide/stamps/");
 
     const readZoomDesk = () =>
       page.evaluate(() => {
@@ -2003,14 +1847,7 @@ async function main() {
       afterZoomOut.stampPosts === 0 && afterZoomOut.skipPosts === 0,
       JSON.stringify({ stampPosts: afterZoomOut.stampPosts, skipPosts: afterZoomOut.skipPosts })
     );
-    const stampDirZoom = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampZoom = fs.existsSync(stampDirZoom) && fs.readdirSync(stampDirZoom).length > 0;
-    record(
-      "Z4",
-      "Zoom did not write .graphide/stamps/",
-      !wroteStampZoom,
-      wroteStampZoom ? fs.readdirSync(stampDirZoom).join(",") : "absent"
-    );
+    assertNoStampDir("Z4", "Zoom did not write .graphide/stamps/");
 
     const explorerChips = await page.evaluate(() => {
       const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
@@ -2253,14 +2090,7 @@ async function main() {
         ? JSON.stringify({ stampPosts: secondFlowCut.stampPosts, skipPosts: secondFlowCut.skipPosts })
         : "honest skip: explorer has one flow tab"
     );
-    const stampDirFt = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampFt = fs.existsSync(stampDirFt) && fs.readdirSync(stampDirFt).length > 0;
-    record(
-      "FT5",
-      "flow-tab switch did not write .graphide/stamps/",
-      !wroteStampFt,
-      wroteStampFt ? fs.readdirSync(stampDirFt).join(",") : "absent"
-    );
+    assertNoStampDir("FT5", "flow-tab switch did not write .graphide/stamps/");
     if (explorerFlowMulti) {
       await page.click('#workspaces [data-ws="map"]');
       await page.waitForFunction(
@@ -2393,14 +2223,7 @@ async function main() {
       afterGy.stampPosts === 0 && afterGy.skipPosts === 0,
       JSON.stringify(afterGy)
     );
-    const stampDirGy = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampGy = fs.existsSync(stampDirGy) && fs.readdirSync(stampDirGy).length > 0;
-    record(
-      "GY4",
-      "Slice grey-out did not write .graphide/stamps/",
-      !wroteStampGy,
-      wroteStampGy ? fs.readdirSync(stampDirGy).join(",") : "absent"
-    );
+    assertNoStampDir("GY4", "Slice grey-out did not write .graphide/stamps/");
     const demoFlowsGy = fs.readFileSync(path.join(DEMO, "flows.toml"), "utf8");
     record(
       "GY5",
@@ -2610,14 +2433,7 @@ async function main() {
       afterProgress.stampPosts === 0 && afterProgress.skipPosts === 0,
       JSON.stringify({ stampPosts: afterProgress.stampPosts, skipPosts: afterProgress.skipPosts })
     );
-    const stampDirPg = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampPg = fs.existsSync(stampDirPg) && fs.readdirSync(stampDirPg).length > 0;
-    record(
-      "PG7",
-      "Progress step did not write .graphide/stamps/",
-      !wroteStampPg,
-      wroteStampPg ? fs.readdirSync(stampDirPg).join(",") : "absent"
-    );
+    assertNoStampDir("PG7", "Progress step did not write .graphide/stamps/");
 
     const beforeCancelPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
@@ -2747,14 +2563,7 @@ async function main() {
       afterCancel.stampPosts === 0 && afterCancel.skipPosts === 0,
       JSON.stringify({ stampPosts: afterCancel.stampPosts, skipPosts: afterCancel.skipPosts })
     );
-    const stampDirCr = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampCr = fs.existsSync(stampDirCr) && fs.readdirSync(stampDirCr).length > 0;
-    record(
-      "CR6",
-      "Cancel-review step did not write .graphide/stamps/",
-      !wroteStampCr,
-      wroteStampCr ? fs.readdirSync(stampDirCr).join(",") : "absent"
-    );
+    assertNoStampDir("CR6", "Cancel-review step did not write .graphide/stamps/");
 
     const beforeNightPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
@@ -2889,14 +2698,7 @@ async function main() {
         dayRestored.xy === 0,
       JSON.stringify(dayRestored)
     );
-    const stampDirNight = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampNight = fs.existsSync(stampDirNight) && fs.readdirSync(stampDirNight).length > 0;
-    record(
-      "N6",
-      "Appearance step did not write .graphide/stamps/",
-      !wroteStampNight,
-      wroteStampNight ? fs.readdirSync(stampDirNight).join(",") : "absent"
-    );
+    assertNoStampDir("N6", "Appearance step did not write .graphide/stamps/");
 
     const enteredClick = await page.evaluate(() => {
       const card = document.querySelector(".bubble-card");
@@ -3211,14 +3013,7 @@ async function main() {
       afterEgo.cards >= 8 && afterEgo.xy === 0,
       "cards=" + afterEgo.cards + " xy=" + afterEgo.xy
     );
-    const stampDirEnter = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampEnter = fs.existsSync(stampDirEnter) && fs.readdirSync(stampDirEnter).length > 0;
-    record(
-      "E4",
-      "Enter-bubble step did not write .graphide/stamps/",
-      !wroteStampEnter,
-      wroteStampEnter ? fs.readdirSync(stampDirEnter).join(",") : "absent"
-    );
+    assertNoStampDir("E4", "Enter-bubble step did not write .graphide/stamps/");
 
     const beforeKindPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.click('#workspaces [data-ws="slice"]');
@@ -3385,14 +3180,7 @@ async function main() {
       afterKind.stampPosts === 0 && afterKind.skipPosts === 0,
       JSON.stringify({ stampPosts: afterKind.stampPosts, skipPosts: afterKind.skipPosts })
     );
-    const stampDirKind = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampKind = fs.existsSync(stampDirKind) && fs.readdirSync(stampDirKind).length > 0;
-    record(
-      "KF7",
-      "Kind filters did not write .graphide/stamps/",
-      !wroteStampKind,
-      wroteStampKind ? fs.readdirSync(stampDirKind).join(",") : "absent"
-    );
+    assertNoStampDir("KF7", "Kind filters did not write .graphide/stamps/");
 
     await page.click("#llmBtn");
     await page.waitForFunction(
@@ -3537,14 +3325,7 @@ async function main() {
       afterAsk.cards >= 8 && afterAsk.xy === 0,
       "cards=" + afterAsk.cards + " xy=" + afterAsk.xy
     );
-    const stampDirAsk = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampAsk = fs.existsSync(stampDirAsk) && fs.readdirSync(stampDirAsk).length > 0;
-    record(
-      "A7",
-      "Ask step did not write .graphide/stamps/",
-      !wroteStampAsk,
-      wroteStampAsk ? fs.readdirSync(stampDirAsk).join(",") : "absent"
-    );
+    assertNoStampDir("A7", "Ask step did not write .graphide/stamps/");
 
     const srcClose = await page.$("#srcClose");
     if (srcClose && (await page.evaluate(() => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)))) {
@@ -3730,14 +3511,7 @@ async function main() {
       afterKeys.keysHidden,
       "hidden=" + afterKeys.keysHidden
     );
-    const stampDirKeys = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampKeys = fs.existsSync(stampDirKeys) && fs.readdirSync(stampDirKeys).length > 0;
-    record(
-      "K7",
-      "Keys step did not write .graphide/stamps/",
-      !wroteStampKeys,
-      wroteStampKeys ? fs.readdirSync(stampDirKeys).join(",") : "absent"
-    );
+    assertNoStampDir("K7", "Keys step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
@@ -3968,14 +3742,7 @@ async function main() {
       walkPosts.stampPosts === 0 && walkPosts.skipPosts === 0,
       JSON.stringify(walkPosts)
     );
-    const stampDirWalk = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampWalk = fs.existsSync(stampDirWalk) && fs.readdirSync(stampDirWalk).length > 0;
-    record(
-      "PW7",
-      "Map path walk did not write .graphide/stamps/",
-      !wroteStampWalk,
-      wroteStampWalk ? fs.readdirSync(stampDirWalk).join(",") : "absent"
-    );
+    assertNoStampDir("PW7", "Map path walk did not write .graphide/stamps/");
 
     await page.click("#exportBtn");
     await page.waitForFunction(
@@ -4045,6 +3812,7 @@ async function main() {
       const i = dataUrl.indexOf(",");
       const dest = path.join(OUT, name);
       fs.writeFileSync(dest, Buffer.from(dataUrl.slice(i + 1), "base64"));
+      noteArtifact(name);
       return dest;
     }
     writeDataUrl("export-desk.png", harvested.png && harvested.png.dataUrl);
@@ -4129,14 +3897,7 @@ async function main() {
       (window.__vscodePosts || []).filter((m) => m && m.type === "exportFile").map((m) => m.name)
     );
     record("X7", "Export posts exportFile to the host stub (not stamp)", exportPosts.length >= 1, exportPosts.join(","));
-    const stampDirExport = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampExport = fs.existsSync(stampDirExport) && fs.readdirSync(stampDirExport).length > 0;
-    record(
-      "X8",
-      "Export step did not write .graphide/stamps/",
-      !wroteStampExport,
-      wroteStampExport ? fs.readdirSync(stampDirExport).join(",") : "absent"
-    );
+    assertNoStampDir("X8", "Export step did not write .graphide/stamps/");
 
     const topoBefore = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".bubble-card")];
@@ -4297,14 +4058,7 @@ async function main() {
     await page.evaluate(() => {
       if (typeof applyPreset === "function") applyPreset("classic", false);
     });
-    const stampDirPresent = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampPresent = fs.existsSync(stampDirPresent) && fs.readdirSync(stampDirPresent).length > 0;
-    record(
-      "P8",
-      "Present / preset step did not write .graphide/stamps/",
-      !wroteStampPresent,
-      wroteStampPresent ? fs.readdirSync(stampDirPresent).join(",") : "absent"
-    );
+    assertNoStampDir("P8", "Present / preset step did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector(".vnode", { timeout: 10000 });
@@ -4635,14 +4389,7 @@ async function main() {
       afterHop.ws === "map" && afterHop.cards >= 8 && afterHop.xy === 0,
       JSON.stringify(afterHop)
     );
-    const stampDirHop = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampHop = fs.existsSync(stampDirHop) && fs.readdirSync(stampDirHop).length > 0;
-    record(
-      "HC6",
-      "Hop-card step did not write .graphide/stamps/",
-      !wroteStampHop,
-      wroteStampHop ? fs.readdirSync(stampDirHop).join(",") : "absent"
-    );
+    assertNoStampDir("HC6", "Hop-card step did not write .graphide/stamps/");
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector(".vnode", { timeout: 10000 });
     await page.locator(".vnode").first().click();
@@ -4679,9 +4426,7 @@ async function main() {
       JSON.stringify(stampSkip.posts.filter((m) => m && (m.type === "stamp" || m.type === "skip")))
     );
 
-    const stampDir = path.join(ROOT, ".graphide", "stamps");
-    const wroteStamp = fs.existsSync(stampDir) && fs.readdirSync(stampDir).length > 0;
-    record("S3", "Harness did not write .graphide/stamps/", !wroteStamp, wroteStamp ? fs.readdirSync(stampDir).join(",") : "absent");
+    assertNoStampDir("S3", "Harness did not write .graphide/stamps/");
 
     const editor = await page.evaluate(() => {
       const btn = document.getElementById("srcEditor");
@@ -4882,9 +4627,7 @@ async function main() {
     );
     await shot(page, "self-review.png");
 
-    const stampDirAfter = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampAfter = fs.existsSync(stampDirAfter) && fs.readdirSync(stampDirAfter).length > 0;
-    record("R7", "Self-review step did not write .graphide/stamps/", !wroteStampAfter, wroteStampAfter ? fs.readdirSync(stampDirAfter).join(",") : "absent");
+    assertNoStampDir("R7", "Self-review step did not write .graphide/stamps/");
 
     const readProgDesk = () =>
       page.evaluate(() => {
@@ -5033,14 +4776,7 @@ async function main() {
       afterSecondChip.stampPosts === 0 && afterSecondChip.skipPosts === 0,
       JSON.stringify({ stampPosts: afterSecondChip.stampPosts, skipPosts: afterSecondChip.skipPosts })
     );
-    const stampDirChips = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampChips = fs.existsSync(stampDirChips) && fs.readdirSync(stampDirChips).length > 0;
-    record(
-      "PC5",
-      "program chip switch did not write .graphide/stamps/",
-      !wroteStampChips,
-      wroteStampChips ? fs.readdirSync(stampDirChips).join(",") : "absent"
-    );
+    assertNoStampDir("PC5", "program chip switch did not write .graphide/stamps/");
 
     const metaTokens = (meta) =>
       String(meta || "")
@@ -5187,14 +4923,7 @@ async function main() {
       afterAll.stampPosts === 0 && afterAll.skipPosts === 0,
       JSON.stringify({ stampPosts: afterAll.stampPosts, skipPosts: afterAll.skipPosts })
     );
-    const stampDirAll = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampAll = fs.existsSync(stampDirAll) && fs.readdirSync(stampDirAll).length > 0;
-    record(
-      "AP6",
-      "All programs did not write .graphide/stamps/",
-      !wroteStampAll,
-      wroteStampAll ? fs.readdirSync(stampDirAll).join(",") : "absent"
-    );
+    assertNoStampDir("AP6", "All programs did not write .graphide/stamps/");
 
     const deltaSnap = loadDeltaSnap();
     const deltaGraph = assertDeltaSnap(deltaSnap);
@@ -5340,14 +5069,7 @@ async function main() {
 
     await shot(page, "delta.png");
 
-    const stampDirDelta = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampDelta = fs.existsSync(stampDirDelta) && fs.readdirSync(stampDirDelta).length > 0;
-    record(
-      "D8",
-      "Delta step did not write .graphide/stamps/",
-      !wroteStampDelta,
-      wroteStampDelta ? fs.readdirSync(stampDirDelta).join(",") : "absent"
-    );
+    assertNoStampDir("D8", "Delta step did not write .graphide/stamps/");
 
     const clusterSnap = assertClusterSnap(deltaSnap);
     const clusterDesk = await page.evaluate((want) => {
@@ -5472,14 +5194,7 @@ async function main() {
       stampPostsViews.stamp === 0 && stampPostsViews.skip === 0,
       JSON.stringify(stampPostsViews)
     );
-    const stampDirViews = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampViews = fs.existsSync(stampDirViews) && fs.readdirSync(stampDirViews).length > 0;
-    record(
-      "SV5",
-      "Delta sticky views did not write .graphide/stamps/",
-      !wroteStampViews,
-      wroteStampViews ? fs.readdirSync(stampDirViews).join(",") : "absent"
-    );
+    assertNoStampDir("SV5", "Delta sticky views did not write .graphide/stamps/");
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
@@ -5517,14 +5232,7 @@ async function main() {
       stampPostsCluster.stamp === 0 && stampPostsCluster.skip === 0,
       JSON.stringify(stampPostsCluster)
     );
-    const stampDirCluster = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampCluster = fs.existsSync(stampDirCluster) && fs.readdirSync(stampDirCluster).length > 0;
-    record(
-      "SC5",
-      "Sticky clusters did not write .graphide/stamps/",
-      !wroteStampCluster,
-      wroteStampCluster ? fs.readdirSync(stampDirCluster).join(",") : "absent"
-    );
+    assertNoStampDir("SC5", "Sticky clusters did not write .graphide/stamps/");
 
     const proposedGraph = assertProposedUncoveredSnap(deltaSnap);
     const flowsTomlPath = path.join(DEMO, "flows.toml");
@@ -5636,14 +5344,7 @@ async function main() {
       afterPu.stampPosts === 0 && afterPu.skipPosts === 0,
       JSON.stringify(afterPu)
     );
-    const stampDirPu = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampPu = fs.existsSync(stampDirPu) && fs.readdirSync(stampDirPu).length > 0;
-    record(
-      "PU6",
-      "Proposed-uncovered step did not write .graphide/stamps/",
-      !wroteStampPu,
-      wroteStampPu ? fs.readdirSync(stampDirPu).join(",") : "absent"
-    );
+    assertNoStampDir("PU6", "Proposed-uncovered step did not write .graphide/stamps/");
     const flowsTomlAfter = fs.existsSync(flowsTomlPath) ? fs.readFileSync(flowsTomlPath, "utf8") : "";
     record(
       "PU7",
@@ -5801,14 +5502,7 @@ async function main() {
 
     await shot(page, "sequence.png");
 
-    const stampDirSeq = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampSeq = fs.existsSync(stampDirSeq) && fs.readdirSync(stampDirSeq).length > 0;
-    record(
-      "Q8",
-      "Sequence step did not write .graphide/stamps/",
-      !wroteStampSeq,
-      wroteStampSeq ? fs.readdirSync(stampDirSeq).join(",") : "absent"
-    );
+    assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
     const dataflowSnap = loadDataflowSnap();
     const dataflowGraph = assertDataflowSnap(dataflowSnap);
@@ -6013,14 +5707,7 @@ async function main() {
       afterHints.stampPosts === 0 && afterHints.skipPosts === 0,
       JSON.stringify(afterHints)
     );
-    const stampDirFh = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampFh = fs.existsSync(stampDirFh) && fs.readdirSync(stampDirFh).length > 0;
-    record(
-      "FH5",
-      "Flow-hints step did not write .graphide/stamps/",
-      !wroteStampFh,
-      wroteStampFh ? fs.readdirSync(stampDirFh).join(",") : "absent"
-    );
+    assertNoStampDir("FH5", "Flow-hints step did not write .graphide/stamps/");
 
     if (dataflowDesk.overview) await page.click("#dfOverview");
     await page.waitForTimeout(120);
@@ -6047,14 +5734,7 @@ async function main() {
 
     await shot(page, "dataflow.png");
 
-    const stampDirDf = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampDf = fs.existsSync(stampDirDf) && fs.readdirSync(stampDirDf).length > 0;
-    record(
-      "F8",
-      "Data-flow step did not write .graphide/stamps/",
-      !wroteStampDf,
-      wroteStampDf ? fs.readdirSync(stampDirDf).join(",") : "absent"
-    );
+    assertNoStampDir("F8", "Data-flow step did not write .graphide/stamps/");
 
     const lifecycleSnap = loadLifecycleSnap();
     const lifecycleGraph = assertLifecycleSnap(lifecycleSnap);
@@ -6218,14 +5898,7 @@ async function main() {
 
     await shot(page, "lifecycle.png");
 
-    const stampDirLc = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampLc = fs.existsSync(stampDirLc) && fs.readdirSync(stampDirLc).length > 0;
-    record(
-      "L8",
-      "Lifecycle step did not write .graphide/stamps/",
-      !wroteStampLc,
-      wroteStampLc ? fs.readdirSync(stampDirLc).join(",") : "absent"
-    );
+    assertNoStampDir("L8", "Lifecycle step did not write .graphide/stamps/");
 
     const lineageUrl = origin + LINEAGE_HARNESS;
     console.log("lineage " + lineageUrl);
@@ -6499,14 +6172,7 @@ async function main() {
     await page.click('#workspaces [data-ws="lineage"]');
     await page.waitForTimeout(200);
     await shot(page, "lineage.png");
-    const stampDirLnEgo = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampLnEgo = fs.existsSync(stampDirLnEgo) && fs.readdirSync(stampDirLnEgo).length > 0;
-    record(
-      "Y9",
-      "Lineage step did not write .graphide/stamps/",
-      !wroteStampLnEgo,
-      wroteStampLnEgo ? fs.readdirSync(stampDirLnEgo).join(",") : "absent"
-    );
+    assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 
     const lineageDeltaUrl = origin + LINEAGE_DELTA_HARNESS;
     console.log("lineage-delta " + lineageDeltaUrl);
@@ -6644,9 +6310,7 @@ async function main() {
       JSON.stringify(routeWalked)
     );
     await shot(page, "route.png");
-    const stampDirRt = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampRt = fs.existsSync(stampDirRt) && fs.readdirSync(stampDirRt).length > 0;
-    record("RT7", "Route step did not write .graphide/stamps/", !wroteStampRt, wroteStampRt ? fs.readdirSync(stampDirRt).join(",") : "absent");
+    assertNoStampDir("RT7", "Route step did not write .graphide/stamps/");
 
     await page.keyboard.press("l");
     await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
@@ -6692,9 +6356,7 @@ async function main() {
       lensDesk.kinds.join(",")
     );
     await shot(page, "lens.png");
-    const stampDirLn = path.join(ROOT, ".graphide", "stamps");
-    const wroteStampLn = fs.existsSync(stampDirLn) && fs.readdirSync(stampDirLn).length > 0;
-    record("LN5", "Lens step did not write .graphide/stamps/", !wroteStampLn, wroteStampLn ? fs.readdirSync(stampDirLn).join(",") : "absent");
+    assertNoStampDir("LN5", "Lens step did not write .graphide/stamps/");
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
