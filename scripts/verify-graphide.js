@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `delta-sticky-views.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `slice-grey.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `delta-sticky-views.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -2287,6 +2287,151 @@ async function main() {
       "flow-tab step returns Map to community LOD (xy=0)",
       afterFtMap.ws === "map" && afterFtMap.xy === 0 && afterFtMap.comm === 0 && afterFtMap.cards > 1,
       JSON.stringify(afterFtMap)
+    );
+
+    const beforeGyPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const gyPick = await page.evaluate(() => {
+      const tab =
+        document.querySelector('#tabs .tab[data-flow="control-flow"]') ||
+        document.querySelector('#tabs .tab[data-flow="boot"]') ||
+        document.querySelector("#tabs .tab[data-flow]");
+      const flow = tab ? tab.getAttribute("data-flow") || "" : "";
+      if (tab) tab.click();
+      return { flow, clicked: !!tab };
+    });
+    record(
+      "GY0",
+      "flow tab is present so Slice grey-out has a Steiner",
+      gyPick.clicked && !!gyPick.flow,
+      JSON.stringify(gyPick)
+    );
+    if (gyPick.clicked && gyPick.flow) {
+      await page.waitForFunction(
+        (name) => {
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          const ws = document.querySelector("#workspaces [data-ws].on");
+          return !!(
+            on &&
+            on.getAttribute("data-flow") === name &&
+            ws &&
+            (ws.getAttribute("data-ws") === "slice" || ws.getAttribute("data-ws") === "overview")
+          );
+        },
+        gyPick.flow,
+        { timeout: 8000 }
+      );
+    }
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 8000 });
+    await page.waitForTimeout(280);
+    const gyDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const tabOn = document.querySelector("#tabs .tab.on[data-flow]");
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+      const row = (el) => ({
+        id: el.getAttribute("data-id") || "",
+        lit: el.getAttribute("data-lit") === "1" || el.classList.contains("lit"),
+        grey:
+          el.getAttribute("data-lit") === "0" ||
+          el.classList.contains("grey") ||
+          el.classList.contains("slice-dim"),
+        sliceDist: el.getAttribute("data-slice-dist"),
+        classes: el.className || "",
+      });
+      const painted = nodes.map(row);
+      const lit = painted.filter((n) => n.lit);
+      const grey = painted.filter((n) => n.grey && !n.lit);
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        flow: tabOn ? tabOn.getAttribute("data-flow") || "" : "",
+        n: painted.length,
+        lit: lit.length,
+        grey: grey.length,
+        litZero: lit.filter((n) => n.sliceDist === "0").length,
+        greyFar: grey.filter((n) => n.sliceDist && Number(n.sliceDist) >= 1).length,
+        overlap: painted.filter((n) => n.lit && n.grey).length,
+        sampleLit: lit.slice(0, 3).map((n) => n.id + ":" + n.sliceDist),
+        sampleGrey: grey.slice(0, 3).map((n) => n.id + ":" + n.sliceDist),
+      };
+    });
+    record(
+      "GY1",
+      "on-tree Slice nodes are lit (data-lit=1 / .vnode.lit)",
+      (gyDesk.ws === "slice" || gyDesk.ws === "overview") &&
+        gyDesk.lit >= 1 &&
+        gyDesk.litZero >= 1 &&
+        gyDesk.overlap === 0,
+      JSON.stringify({
+        ws: gyDesk.ws,
+        flow: gyDesk.flow,
+        lit: gyDesk.lit,
+        litZero: gyDesk.litZero,
+        sample: gyDesk.sampleLit,
+      })
+    );
+    record(
+      "GY2",
+      "off-slice neighbors stay visible but grey (data-lit=0 / .grey / .slice-dim)",
+      gyDesk.grey >= 1 && gyDesk.greyFar >= 1,
+      JSON.stringify({
+        n: gyDesk.n,
+        grey: gyDesk.grey,
+        greyFar: gyDesk.greyFar,
+        sample: gyDesk.sampleGrey,
+      })
+    );
+    await shot(page, "slice-grey.png");
+    const afterGy = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeGyPosts);
+    record(
+      "GY3",
+      "Slice grey-out does not post stamp / skip",
+      afterGy.stampPosts === 0 && afterGy.skipPosts === 0,
+      JSON.stringify(afterGy)
+    );
+    const stampDirGy = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampGy = fs.existsSync(stampDirGy) && fs.readdirSync(stampDirGy).length > 0;
+    record(
+      "GY4",
+      "Slice grey-out did not write .graphide/stamps/",
+      !wroteStampGy,
+      wroteStampGy ? fs.readdirSync(stampDirGy).join(",") : "absent"
+    );
+    const demoFlowsGy = fs.readFileSync(path.join(DEMO, "flows.toml"), "utf8");
+    record(
+      "GY5",
+      "Slice grey-out did not write fixtures/demo/flows.toml",
+      /name\s*=\s*"data-subscription"/.test(demoFlowsGy) && !/proposed-uncovered/.test(demoFlowsGy),
+      demoFlowsGy.slice(0, 160)
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "map";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterGyMap = await page.evaluate(() => ({
+      ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "",
+      xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      comm: document.querySelectorAll(".comm-node").length,
+    }));
+    record(
+      "GY6",
+      "Slice grey-out returns Map to community LOD (xy=0)",
+      afterGyMap.ws === "map" && afterGyMap.xy === 0 && afterGyMap.comm === 0 && afterGyMap.cards > 1,
+      JSON.stringify(afterGyMap)
     );
 
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -6577,7 +6722,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

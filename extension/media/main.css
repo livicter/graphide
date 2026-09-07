@@ -2305,8 +2305,13 @@ html.bright .route-hop {
 #sliceCanvas .vnode .fqn,
 #lineageCanvas .vnode .fqn,
 #enterCanvas .vnode .fqn { display: none; }
-#enterCanvas .vnode.grey { opacity: 0.48; }
-#enterCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
+#enterCanvas .vnode.grey,
+#sliceCanvas .vnode.grey,
+#sliceCanvas .vnode.slice-dim { opacity: 0.48; }
+#enterCanvas .vnode.lit,
+#sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
+#sliceCanvas .vnode[data-slice-dist="1"] { opacity: 0.48; }
+#sliceCanvas .vnode[data-slice-dist="2"] { opacity: 0.36; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
@@ -2782,7 +2787,8 @@ html.bright .src-line.hot { background: rgba(0, 122, 255, 0.12); }
 html.bright #canvas { background: var(--g-grouped); }
 html.bright .audit th, html.bright .audit td { border-bottom-color: var(--vscode-panel-border); }
 html.bright .inode.lit { border-left-color: var(--g-hold); background: rgba(52, 199, 89, 0.08); }
-html.bright #enterCanvas .vnode.lit { box-shadow: inset 3px 0 0 var(--g-hold); }
+html.bright #enterCanvas .vnode.lit,
+html.bright #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 var(--g-hold); }
 html.bright .kind-pill:not(.off) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, #007aff) 40%, transparent);
 }

@@ -16867,7 +16867,8 @@
       data.changed ? "changed" : "",
       data.away ? "away" : "",
       data.lit ? "lit" : "",
-      data.grey ? "grey" : ""
+      data.grey || data.sliceDim ? "grey" : "",
+      data.sliceDim ? "slice-dim" : ""
     ].filter(Boolean).join(" ");
   }
   function DerivedNode({ data }) {
@@ -16902,6 +16903,7 @@
     if (d.flow) attrs["data-flow"] = d.flow;
     if (d.hops) attrs["data-hops"] = d.hops;
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
+    if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
     if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
     const style2 = d.depth != null ? { "--d": d.depth } : void 0;
@@ -19332,6 +19334,10 @@
         ego: !!n.ego,
         egoDim: !!n.egoDim,
         dist: n.dist,
+        lit: !!n.lit,
+        grey: !!n.grey,
+        sliceDim: !!n.sliceDim,
+        sliceDist: n.sliceDist,
         showFqn: true
       })),
       hops
@@ -22842,6 +22848,29 @@
       }
       return seen;
     }
+    function treeDistanceMap(flow, hops) {
+      const depth = hops == null ? 1 : hops;
+      const dist = /* @__PURE__ */ new Map();
+      const q2 = [];
+      for (const raw of flow && flow.tree && flow.tree.nodes || []) {
+        const id2 = String(idVal(raw));
+        if (!id2 || dist.has(id2)) continue;
+        dist.set(id2, 0);
+        q2.push(id2);
+      }
+      for (let i = 0; i < q2.length; i++) {
+        const cur = q2[i];
+        const d = dist.get(cur);
+        if (d >= depth) continue;
+        incidentEdges(cur).forEach((e) => {
+          const other = e.from === cur ? e.to : e.from;
+          if (!other || dist.has(other)) return;
+          dist.set(other, d + 1);
+          q2.push(other);
+        });
+      }
+      return dist;
+    }
     function hopDistance(from, to) {
       const a = String(idVal(from)), b = String(idVal(to));
       if (!a || !b) return 99;
@@ -25960,20 +25989,36 @@
       return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
     }
     function sliceCanvasProps(flow, graph, scars) {
-      const nodes = flow && flow.tree && flow.tree.nodes || [];
-      const edges = flow && flow.tree && flow.tree.edges || [];
+      const treeNodes = flow && flow.tree && flow.tree.nodes || [];
+      const treeEdges = flow && flow.tree && flow.tree.edges || [];
       const snippets = snapshot && snapshot.snippets || {};
       const walk = flowWalk(flow);
-      const items = nodes.slice(0, 48).map((id2) => {
-        const nid = idVal(id2);
-        const kind = kindOf(graph, id2) || "Function";
-        const fqn = fqnOf(graph, id2);
+      const dist = treeDistanceMap(flow, 1);
+      const seen = /* @__PURE__ */ new Set();
+      const ids = [];
+      for (const raw of treeNodes) {
+        const id2 = String(idVal(raw));
+        if (!id2 || seen.has(id2)) continue;
+        seen.add(id2);
+        ids.push(id2);
+      }
+      const neighbors = [...dist.keys()].filter((id2) => !seen.has(id2)).sort((a, b) => dist.get(a) - dist.get(b) || String(a).localeCompare(String(b)));
+      for (const id2 of neighbors) {
+        if (ids.length >= 48) break;
+        seen.add(id2);
+        ids.push(id2);
+      }
+      const items = ids.slice(0, 48).map((nid) => {
+        const kind = kindOf(graph, nid) || "Function";
+        const fqn = fqnOf(graph, nid);
         const node = nodeById.get(nid);
         const file = node && node.span ? node.span.file : "";
         const line = node && node.span && node.span.start ? node.span.start.line : "";
         const flags = nodeFlags(nid);
         const at2 = walk.indexOf(nid);
-        const hopRole = at2 === 0 ? "START · " : at2 === walk.length - 1 && walk.length > 1 ? "END · " : "";
+        const sliceDist = dist.has(nid) ? dist.get(nid) : 99;
+        const onTree = sliceDist === 0;
+        const hopRole = onTree && at2 === 0 ? "START · " : onTree && at2 === walk.length - 1 && walk.length > 1 ? "END · " : "";
         return {
           id: nid,
           fqn,
@@ -25981,33 +26026,48 @@
           kindClass: kindClass(kind),
           label: shortOf(fqn),
           kindLine: hopRole + kindLine(nid, kind),
-          steiner: at2 === 0 ? "start" : at2 === walk.length - 1 && walk.length > 1 ? "end" : "",
+          steiner: onTree && at2 === 0 ? "start" : onTree && at2 === walk.length - 1 && walk.length > 1 ? "end" : "",
           where: file ? shortFile(file) + (line ? ":" + line : "") : "",
           file: file || "",
           snip: snippetPreview(snippets[nid]),
           away: nodeAway(nid),
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
-          depth: at2 < 0 ? 0 : at2,
+          depth: onTree ? at2 < 0 ? 0 : at2 : sliceDist,
           flow: flow && flow.name ? flow.name : "",
-          ...graphNodePaint(nid, { fqn, kind, file, flow: flow && flow.name ? flow.name : "" })
+          ...graphNodePaint(nid, { fqn, kind, file, flow: flow && flow.name ? flow.name : "" }),
+          lit: onTree,
+          grey: !onTree,
+          sliceDim: !onTree,
+          sliceDist
         };
       });
       const idSet = new Set(items.map((n) => n.id));
       const hops = [];
-      (edges || []).slice(0, 80).forEach((e, i) => {
-        const from = idVal(e.from);
-        const to = idVal(e.to);
-        if (!idSet.has(from) || !idSet.has(to)) return;
-        const scar = scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+      const hopSeen = /* @__PURE__ */ new Set();
+      const pushHop = (from, to, kind, scar) => {
+        if (!idSet.has(from) || !idSet.has(to) || from === to) return;
+        const key = from + "	" + to + "	" + (kind || "Calls");
+        if (hopSeen.has(key)) return;
+        hopSeen.add(key);
         hops.push({
-          i,
+          i: hops.length,
           from,
           to,
-          kind: e.kind || "Calls",
+          kind: kind || "Calls",
           scar: !!scar
         });
+      };
+      (treeEdges || []).forEach((e) => {
+        const from = idVal(e.from);
+        const to = idVal(e.to);
+        const scar = scars && (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
+        pushHop(from, to, e.kind || "Calls", scar);
       });
+      for (const e of graph && graph.edges || []) {
+        if (hops.length >= 80) break;
+        pushHop(idVal(e.from), idVal(e.to), e.kind || "Calls", false);
+      }
       return {
         nodes: items,
         hops,
