@@ -138,6 +138,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      before later suites
    - Coverage mark: explorer Evidence on an uncovered/changed node;
      `#inspMeta` mark is `uncovered` or `changed` (not only `—`)
+   - Hop card: explorer Evidence on a Slice vnode; `#inspEdges` hop
+     hits; click `.edge-hit` / `text.ekind` / `#inspEdges .row`;
+     `#hopCard` names both ends; end inspects the node;
+     `verification/hop-card.png`
    - Fit / Reorganize: explorer Map `#zoomFit` (`0`) and `#reorgBtn`;
      Map stays `xy=0` with more than one card visible; no stamp posts
    - Zoom: explorer Map `#zoomIn` / `#zoomOut`; `#zoomPct` / scale
@@ -172,7 +176,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
-    **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
+    **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **program-chips**, **progress**, **flow-hints**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
@@ -180,7 +184,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
     `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
     `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
-    `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`,
+    `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`,
     `flow-hints.png`,
     `unmatched-hint.png`,
     `uncovered-node.png`,
@@ -365,6 +369,20 @@ Coverage mark gate (explorer Evidence, synthetic coverage):
 - Coverage mark does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
 
+Hop card gate (explorer Evidence, incident hops):
+
+- Explorer `flowPayload()` already seeds graph edges. Open Evidence
+  on a Slice vnode so `#inspEdges` has `.row[data-from][data-to]`
+- Click `.edge-hit` / `text.ekind` when the graph paints them, else
+  `#inspEdges .row` (Slice XYFlow may omit SVG hits)
+- `#hopCard` unhides and lists both ends (`[data-id]`). Click an end
+  so `#srcTitle` / `#srcBody` change
+- Close with `#srcClose` or Escape. No stamp / skip posts
+- Playwright screenshots `verification/hop-card.png` with the hop
+  card visible (not a black frame)
+- Hop card does not write `.graphide/stamps/`. Map stays `xy=0` if
+  the drive touches Map
+
 Fit / Reorganize gate (explorer Map):
 
 - `#zoomFit` or `0` calls `fitChart`. Map stays community LOD (`xy=0`)
@@ -498,7 +516,7 @@ Draft hint gate (explorer Timeline Uncovered):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Zoom, Program chips, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, Progress, Cancel review, Flow hints, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -584,6 +602,7 @@ same PR because the harness truly cannot hook existing ones.
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
 | Evidence | `#sourcePane`, `.src-k`, `#srcTitle`, `#srcBody`, `#srcClose`, `#srcEditor` |
+| Hop card | `#hopCard`, `#inspEdges .row[data-from][data-to]`, `.edge-hit`, `text.ekind`, `#hopCard [data-id]` |
 | Coverage mark | `#inspMeta` `.row` `.k` `mark`, `#coverage`, `#ledgerGrid .cell.uncovered` |
 | Stamp / skip | `#stampBtn`, `#skipBtn`, `#toast` |
 | Export | `#exportBtn`, `#exportMenu`, `#exportPng`, `#exportSvg`, `#exportShare`, `window.__graphideLastExport` |

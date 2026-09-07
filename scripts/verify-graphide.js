@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -3966,6 +3966,186 @@ async function main() {
       JSON.stringify(markPosts)
     );
 
+    const hopBefore = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const hopHits = await page.evaluate(() => {
+      const readHits = () => {
+        const pane = document.getElementById("sourcePane");
+        const rows = [...document.querySelectorAll("#inspEdges .row[data-from][data-to]")];
+        return {
+          paneOpen: !!(pane && !pane.hidden),
+          kicker: ((document.querySelector(".src-k") || {}).textContent || "").trim(),
+          hits: rows.length,
+          svgHits: document.querySelectorAll(".edge-hit, text.ekind").length,
+          title: ((document.getElementById("srcTitle") || {}).textContent || "").trim(),
+        };
+      };
+      let desk = readHits();
+      if (!desk.paneOpen || desk.hits === 0) {
+        const nodes = [...document.querySelectorAll(".vnode[data-id]")];
+        for (const n of nodes) {
+          n.click();
+          desk = readHits();
+          if (desk.paneOpen && desk.hits > 0) {
+            desk.via = "vnode";
+            desk.id = n.getAttribute("data-id") || "";
+            return desk;
+          }
+        }
+        const cells = [...document.querySelectorAll("#ledgerGrid .cell[data-id]")];
+        for (const c of cells) {
+          c.click();
+          desk = readHits();
+          if (desk.paneOpen && desk.hits > 0) {
+            desk.via = "cell";
+            desk.id = c.getAttribute("data-id") || "";
+            return desk;
+          }
+        }
+      }
+      desk.via = desk.hits > 0 ? "already" : "";
+      return desk;
+    });
+    record(
+      "HC0",
+      "Evidence #inspEdges lists incident hop hits when the node has edges",
+      hopHits.paneOpen && /Evidence/i.test(hopHits.kicker) && hopHits.hits > 0,
+      JSON.stringify(hopHits)
+    );
+    const hopOpen = await page.evaluate(() => {
+      const title0 = ((document.getElementById("srcTitle") || {}).textContent || "").trim();
+      const body0 = ((document.getElementById("srcBody") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const svg = document.querySelector(".edge-hit, text.ekind");
+      const row = document.querySelector("#inspEdges .row[data-from][data-to]");
+      const hit = svg || row;
+      let via = "";
+      if (svg) via = svg.classList && svg.classList.contains("ekind") ? "ekind" : svg.tagName === "text" ? "ekind" : "edge-hit";
+      else if (row) via = "inspEdges";
+      if (hit) hit.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const hop = document.getElementById("hopCard");
+      const ends = [...(hop ? hop.querySelectorAll("[data-id]") : [])].map((el) => ({
+        id: el.getAttribute("data-id") || "",
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+      }));
+      const text = hop ? (hop.textContent || "").replace(/\s+/g, " ").trim() : "";
+      return {
+        via,
+        hopHidden: !hop || hop.hidden,
+        hopText: text.slice(0, 180),
+        ends,
+        title0,
+        body0: body0.slice(0, 120),
+      };
+    });
+    record(
+      "HC1",
+      "#hopCard unhides and names both ends",
+      !hopOpen.hopHidden &&
+        hopOpen.ends.length >= 2 &&
+        hopOpen.ends[0].id &&
+        hopOpen.ends[1].id &&
+        hopOpen.ends[0].id !== hopOpen.ends[1].id &&
+        /Hop/i.test(hopOpen.hopText) &&
+        hopOpen.ends.every((e) => e.text && hopOpen.hopText.includes(e.text.split(" · ")[0])),
+      JSON.stringify({ via: hopOpen.via, ends: hopOpen.ends, hop: hopOpen.hopText })
+    );
+    const hopInspect = await page.evaluate((prev) => {
+      const hop = document.getElementById("hopCard");
+      const btns = [...(hop ? hop.querySelectorAll("[data-id]") : [])];
+      const pick =
+        btns.find((el) => {
+          const id = el.getAttribute("data-id") || "";
+          return id && prev.title0 && !prev.title0.includes(id);
+        }) ||
+        btns[0] ||
+        null;
+      if (pick) pick.click();
+      const title1 = ((document.getElementById("srcTitle") || {}).textContent || "").trim();
+      const body1 = ((document.getElementById("srcBody") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const stillHop = document.getElementById("hopCard");
+      return {
+        clicked: pick ? pick.getAttribute("data-id") || "" : "",
+        title0: prev.title0,
+        title1,
+        body0: prev.body0,
+        body1: body1.slice(0, 120),
+        changed: title1 !== prev.title0 || body1 !== prev.body0,
+        hopStill: !!(stillHop && !stillHop.hidden),
+      };
+    }, { title0: hopOpen.title0, body0: hopOpen.body0 });
+    record(
+      "HC2",
+      "Hop-card end inspects that node (#srcTitle / #srcBody change)",
+      hopInspect.changed && hopInspect.clicked && hopInspect.hopStill,
+      JSON.stringify(hopInspect)
+    );
+    await shot(page, "hop-card.png");
+    await page.click("#srcClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const hopClosed = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const hop = document.getElementById("hopCard");
+      return {
+        paneHidden: !pane || pane.hidden,
+        hopHidden: !hop || hop.hidden,
+      };
+    });
+    record(
+      "HC3",
+      "#srcClose hides Evidence and #hopCard",
+      hopClosed.paneHidden && hopClosed.hopHidden,
+      JSON.stringify(hopClosed)
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterHop = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+      };
+    }, hopBefore);
+    record(
+      "HC4",
+      "Hop-card step did not post stamp / skip",
+      afterHop.stampPosts === 0 && afterHop.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterHop.stampPosts, skipPosts: afterHop.skipPosts })
+    );
+    record(
+      "HC5",
+      "Map altitude is still community LOD after hop card (xy=0)",
+      afterHop.ws === "map" && afterHop.cards >= 8 && afterHop.xy === 0,
+      JSON.stringify(afterHop)
+    );
+    const stampDirHop = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampHop = fs.existsSync(stampDirHop) && fs.readdirSync(stampDirHop).length > 0;
+    record(
+      "HC6",
+      "Hop-card step did not write .graphide/stamps/",
+      !wroteStampHop,
+      wroteStampHop ? fs.readdirSync(stampDirHop).join(",") : "absent"
+    );
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector(".vnode", { timeout: 10000 });
+    await page.locator(".vnode").first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 8000 }
+    );
+
     const stampSkip = await page.evaluate(async () => {
       const stamp = document.getElementById("stampBtn");
       const skip = document.getElementById("skipBtn");
@@ -5574,7 +5754,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
