@@ -16884,6 +16884,7 @@
     };
     if (d.state) attrs["data-delta-state"] = d.state;
     if (d.hot && d.state) attrs["data-delta-review-current"] = "1";
+    if (d.bubble) attrs["data-bubble"] = String(d.bubble);
     if (d.role != null && d.role !== "") attrs["data-df-role"] = d.role;
     if (d.endRole) attrs["data-end-role"] = d.endRole;
     if (d.channel) attrs["data-channel"] = d.channel;
@@ -19182,6 +19183,7 @@
         state: n.state || "same",
         label: n.label || n.fqn || String(n.id),
         hot: hotIds.has(String(n.id)),
+        bubble: n.bubble || "",
         showFqn: true
       })),
       hops
@@ -23684,7 +23686,9 @@
     function applyDeltaFactView(fact) {
       if (!fact) return;
       if (fact.class === "community") {
-        deltaView = "delta";
+        if (fact.status === "removed") deltaView = "before";
+        else if (fact.status === "added") deltaView = "after";
+        else deltaView = "delta";
         return;
       }
       if (fact.status === "added") deltaView = "after";
@@ -23783,6 +23787,34 @@
       if (inParent && !inHead) return "removed";
       return "same";
     }
+    function parentBubbles() {
+      return (snapshot && snapshot.delta && snapshot.delta.parent_bubbles || []).filter(
+        (b) => b && b.parent == null
+      );
+    }
+    function bubbleMemberIdSet(bubbles, bubbleId) {
+      const want = idVal(bubbleId);
+      const found = (bubbles || []).find((b) => b && idVal(b.id) === want && b.parent == null);
+      return new Set((found && found.members || []).map(idVal));
+    }
+    function communityWantFqns(view, bubbleId) {
+      const { head, parent } = deltaGraphPair();
+      const headIds = bubbleMemberIdSet(allBubbles(), bubbleId);
+      const parentIds = bubbleMemberIdSet(parentBubbles(), bubbleId);
+      const fqns = /* @__PURE__ */ new Set();
+      const take = (graph, ids) => {
+        (graph.nodes || []).forEach((n) => {
+          if (ids.has(idVal(n.id))) fqns.add(n.fqn);
+        });
+      };
+      if (view === "before") take(parent, parentIds);
+      else if (view === "after") take(head, headIds);
+      else {
+        take(parent, parentIds);
+        take(head, headIds);
+      }
+      return fqns;
+    }
     function deltaReading(view, hot) {
       const { head, parent } = deltaGraphPair();
       const src = view === "before" ? parent : view === "after" ? head : null;
@@ -23797,15 +23829,20 @@
         (parent.nodes || []).forEach(pushNode);
         (head.nodes || []).forEach(pushNode);
       }
+      const community = !!(hot && hot.class === "community" && hot.bubble);
       const want = /* @__PURE__ */ new Set();
-      deltaFacts().forEach((f) => {
-        if (f.class === "community") return;
-        if (f.from_fqn) want.add(f.from_fqn);
-        if (f.to_fqn) want.add(f.to_fqn);
-        if (f.fqn && !f.from_fqn) want.add(f.fqn);
-      });
+      if (community) {
+        communityWantFqns(view, hot.bubble).forEach((fqn) => want.add(fqn));
+      } else {
+        deltaFacts().forEach((f) => {
+          if (f.class === "community") return;
+          if (f.from_fqn) want.add(f.from_fqn);
+          if (f.to_fqn) want.add(f.to_fqn);
+          if (f.fqn && !f.from_fqn) want.add(f.fqn);
+        });
+      }
       let nodes = [...nodesById.values()].filter((n) => !want.size || want.has(n.fqn));
-      if (nodes.length < 2) nodes = [...nodesById.values()].slice(0, 16);
+      if (nodes.length < 2 && !community) nodes = [...nodesById.values()].slice(0, 16);
       if (nodes.length > 24) nodes = nodes.slice(0, 24);
       const ids = nodes.map((n) => idVal(n.id));
       const idSet = new Set(ids);
@@ -23833,7 +23870,7 @@
         });
       });
       const items = nodes.map((n) => {
-        const hotNode = !!(hot && !hot.from_fqn && hot.fqn === n.fqn);
+        const hotNode = community ? true : !!(hot && !hot.from_fqn && hot.fqn === n.fqn);
         return {
           id: idVal(n.id),
           fqn: n.fqn || "",
@@ -23841,7 +23878,8 @@
           kindClass: kindClass(n.kind),
           state: deltaNodeState(n.fqn),
           label: shortOf(n.fqn),
-          hot: hotNode
+          hot: hotNode,
+          bubble: community ? String(hot.bubble) : ""
         };
       });
       const hotIds = items.filter((n) => n.hot).map((n) => n.id);

@@ -256,6 +256,7 @@ ArchitectureDelta {
   cluster_facts: ClusterFact[]  // coarse communities; empty without a parent
   added, removed, changed, moved, rerouted: u32
   parent: Graph?             // Before reading; absent when no parent
+  parent_bubbles: Bubble[]   // coarse parent cut used for sticky_match
 }
 ```
 
@@ -267,6 +268,9 @@ ArchitectureDelta {
   end (`topology`).
 - **cluster_facts** — coarse `BubbleId` continuity after `sticky_match`
   (stable / split / merge / relabel). Not authored component ids.
+- **parent_bubbles** — the coarse parent communities fed to
+  `sticky_match`. Before resolves the same `BubbleId` to parent
+  members; After uses head `bubbles`. Empty without a parent.
 
 Truth before spectacle: the list is exact facts. It does not infer blast
 radius, merge safety, or risk.

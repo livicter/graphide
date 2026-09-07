@@ -668,6 +668,16 @@ pub fn node_coarse_bubble(bubbles: &[Bubble], node: NodeId) -> Option<BubbleId> 
         .next()
 }
 
+/// Members of the coarse bubble with this sticky `BubbleId`. Empty when
+/// the id is missing or only a nested (`parent != null`) bubble.
+pub fn bubble_members(bubbles: &[Bubble], id: BubbleId) -> Vec<NodeId> {
+    bubbles
+        .iter()
+        .find(|b| b.id == id && b.parent.is_none())
+        .map(|b| b.members.clone())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -812,6 +822,20 @@ mod tests {
                 .any(|f| f.kind == ClusterDeltaKind::Added && f.bubble.0 == 100),
             "{facts:?}"
         );
+    }
+
+    #[test]
+    fn bubble_members_is_coarse_only() {
+        let bubbles = vec![
+            bubble(7, None, &[1, 2, 3], "keep"),
+            bubble(8, Some(7), &[1], "nested"),
+        ];
+        assert_eq!(
+            bubble_members(&bubbles, BubbleId(7)),
+            vec![NodeId(1), NodeId(2), NodeId(3)]
+        );
+        assert!(bubble_members(&bubbles, BubbleId(8)).is_empty());
+        assert!(bubble_members(&bubbles, BubbleId(99)).is_empty());
     }
 
     #[test]

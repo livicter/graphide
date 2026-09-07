@@ -111,6 +111,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Sticky clusters on that same Delta snap: `#deltaFacts
      .delta-fact[data-delta-kind="stable"][data-bubble]` (or
      `relabel`); screenshot `verification/sticky-clusters.png`
+   - Delta sticky views on that same snap: pick a community fact;
+     Before / After `#deltaCanvas .vnode[data-bubble]` share the
+     id; screenshot `verification/delta-sticky-views.png`
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
    - Data-flow on `?dataflow=1&probe=0&require=1&ws=dataflow` using fixtures/demo
    - Lifecycle on `?lifecycle=1&probe=0&require=1&ws=lifecycle` using fixtures/demo
@@ -193,7 +196,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**, and **cancel-review**.
+    **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
+    **delta-sticky-views**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -208,6 +212,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `draft-hint.png`,
     `proposed-uncovered.png`,
     `sticky-clusters.png`,
+    `delta-sticky-views.png`,
     `cancel-review.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
@@ -268,6 +273,17 @@ Sticky clusters gate (same demo vs demo-parent Delta snap):
   or `relabel` after `sticky_match`
 - Playwright asserts `#deltaFacts .delta-fact[data-delta-kind][data-bubble]`
   and screenshots `verification/sticky-clusters.png`
+- Map, if visited, stays `xy=0`. No stamp / skip.
+
+Delta sticky views gate (same demo vs demo-parent Delta snap):
+
+- `delta.parent_bubbles` is the coarse parent cut; a sticky id has
+  members on both parent_bubbles and head `bubbles`
+- Selecting `#deltaFacts .delta-fact[data-delta-class="community"][data-bubble]`
+  focuses that id: Before paints parent members, After paints head
+  members, Delta the union (cap 24). Matching `.vnode` carry
+  `data-bubble` / `data-delta-review-current`
+- Playwright screenshots `verification/delta-sticky-views.png`
 - Map, if visited, stays `xy=0`. No stamp / skip.
 
 Sequence gate (fixtures/demo, same slice as `first_slice.rs`):
@@ -593,7 +609,7 @@ Proposed uncovered gate (fixtures/demo vs demo-parent Delta snap):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Delta sticky views, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -671,6 +687,7 @@ same PR because the harness truly cannot hook existing ones.
 | Timeline | `#workspaces [data-ws="timeline"]`, `.tl-item[data-t]`, `#tlScrub` |
 | Architecture Delta | `#workspaces [data-ws="delta"]`, `#deltaView [data-delta-view]`, `#deltaFacts .delta-fact`, `#deltaPlay`, `#deltaCanvas` |
 | Sticky clusters | `#deltaFacts .delta-fact[data-delta-class="community"]`, `[data-delta-kind="stable"]`, `[data-bubble]`, `.bubble-card[data-cluster]` |
+| Delta sticky views | `#deltaFacts .delta-fact[data-delta-class="community"][data-bubble]`, `#deltaView [data-delta-view]`, `#deltaCanvas .vnode[data-bubble]`, `[data-delta-review-current]` |
 | Sequence | `#workspaces [data-ws="sequence"]`, `#seqParts .seq-part`, `#seqHops .seq-hop`, `#seqPlay`, `#seqCanvas`, `#seqCanvas .react-flow__node` |
 | Data-flow | `#workspaces [data-ws="dataflow"]`, `#dfStages .df-stage`, `#dfCanvas .df-node[data-df-role]`, `#dfHops .df-hop`, `#dfPlay` |
 | Lifecycle | `#workspaces [data-ws="lifecycle"]`, `#lcLanes .lc-lane`, `#lcCanvas .lc-state[data-lc-type]`, `#lcTrans .lc-trans`, `#lcPlay` |
