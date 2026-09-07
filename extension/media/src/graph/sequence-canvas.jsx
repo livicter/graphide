@@ -1,7 +1,8 @@
 /**
  * Review graphs inside a canvas child host (#seqCanvas / #deltaCanvas /
- * #dfCanvas / #lcCanvas / #sliceCanvas / #lineageCanvas). Second createRoot —
- * App still owns chrome on #root; Map community LOD stays vanilla.
+ * #dfCanvas / #lcCanvas / #sliceCanvas / #lineageCanvas / #enterCanvas).
+ * Second createRoot — App still owns chrome on #root; Map community LOD
+ * stays vanilla.
  */
 import { useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
@@ -13,7 +14,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import { decorateDerived, DerivedNode } from "./derived-node.jsx";
-import { layoutGraph, layoutLineage, layoutSequence } from "./sequence-layout.js";
+import { layoutGraph, layoutLineage, layoutSequence, ENTER_NODE_CAP, ENTER_HOP_CAP } from "./sequence-layout.js";
 
 const NODE_TYPES = {
   seqPart: DerivedNode,
@@ -22,6 +23,7 @@ const NODE_TYPES = {
   lcState: DerivedNode,
   sliceVnode: DerivedNode,
   lineageVnode: DerivedNode,
+  enterVnode: DerivedNode,
 };
 
 function FitWhenReady({ graphKey }) {
@@ -32,7 +34,7 @@ function FitWhenReady({ graphKey }) {
     let ro = null;
     const paneOf = () =>
       document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow"
       );
     const fit = () => {
       const pane = paneOf();
@@ -462,6 +464,56 @@ export function renderLineageCanvas(host, props) {
     host,
     <ReviewCanvas
       nodeType="lineageVnode"
+      laid={laid}
+      items={items}
+      hops={hops}
+      cursor={props.cursor}
+      hotIds={hotIds}
+      embed
+      onNodeClick={props.onNodeClick}
+      onHopClick={props.onHopClick}
+    />
+  );
+}
+
+export function renderEnterCanvas(host, props) {
+  const nodes = props.nodes || [];
+  const hops = props.hops || [];
+  const laid = layoutGraph(nodes, hops, {
+    nodeCap: ENTER_NODE_CAP,
+    hopCap: ENTER_HOP_CAP,
+    nodeW: 176,
+    nodeH: 64,
+  });
+  const hotIds = new Set([...(props.hotIds || [])].map(String));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || "",
+      kind: n.kind || "Function",
+      kindClass: n.kindClass || "kind-Function",
+      label: n.label || n.fqn || String(n.id),
+      kindLine: n.kindLine || n.kind || "Function",
+      lit: !!n.lit,
+      grey: !!n.grey,
+      isLeaf: n.isLeaf !== false,
+      flow: n.flow || "",
+      uncovered: !!n.uncovered,
+      changed: !!n.changed,
+      selected: !!n.selected,
+      surface: n.surface || "enter-node",
+      showFqn: !!n.showFqn,
+    })),
+    hops
+  );
+  const box = layoutBounds(laid);
+  host.style.width = box.W + "px";
+  host.style.height = box.H + "px";
+  host.classList.add("enter-wrap");
+  mountReviewCanvas(
+    host,
+    <ReviewCanvas
+      nodeType="enterVnode"
       laid={laid}
       items={items}
       hops={hops}

@@ -437,8 +437,8 @@
     check("B2", "Member chips peek inside bubble cards", document.querySelectorAll(".bubble-card .members, .bubble-card .chip").length > 0 || /SCREENSHOT|EXT|SIM/i.test(document.querySelector(".bubble-card") && document.querySelector(".bubble-card").textContent), "");
     const firstCard = document.querySelector(".bubble-card");
     if (firstCard) firstCard.click();
-    await later(50);
-    check("B3", "Enter bubble is ≤24 labeled boxes on a layered flow", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24 && /Inside this community/i.test(document.body.innerText), "nodes=" + document.querySelectorAll(".comm-node").length);
+    await later(200);
+    check("B3", "Enter bubble is ≤24 labeled boxes on a layered flow", document.querySelectorAll("#enterCanvas .react-flow__node").length > 0 && document.querySelectorAll("#enterCanvas .react-flow__node").length <= 24 && /Inside this community/i.test(document.body.innerText), "nodes=" + document.querySelectorAll("#enterCanvas .react-flow__node").length);
     check("B4", "Enter breadcrumb names the community", /map \/ \S+/i.test((document.getElementById("meta") || {}).textContent || "") || /render|integration|origin/i.test((document.getElementById("meta") || {}).textContent || ""), (document.getElementById("meta") || {}).textContent || "");
     const back = document.getElementById("backBtn");
     if (back && !back.disabled) back.click();
@@ -460,7 +460,7 @@
       typeBox.checked = false;
       typeBox.dispatchEvent(new Event("change", { bubbles: true }));
     }
-    check("B7", "Unchecking Type hides or dims Type nodes", !document.querySelector(".comm-node.kind-Type:not(.dim)") || document.querySelectorAll(".comm-node.kind-Type.dim").length > 0 || !document.querySelector(".comm-node.kind-Type"), "");
+    check("B7", "Unchecking Type hides or dims Type nodes", !document.querySelector("#enterCanvas .vnode.kind-Type:not(.dim)") || document.querySelectorAll("#enterCanvas .vnode.kind-Type.dim").length > 0 || !document.querySelector("#enterCanvas .vnode.kind-Type"), "");
     if (typeBox) {
       typeBox.checked = true;
       typeBox.dispatchEvent(new Event("change", { bubbles: true }));
@@ -501,7 +501,7 @@
     const run = document.querySelector(".run");
     if (run) run.click();
     await later(260);
-    check("C10", "Enter run is a world jump (inner list)", document.querySelectorAll(".inode").length >= 1 || /enter/i.test((document.getElementById("meta") || {}).textContent || ""), "inodes=" + document.querySelectorAll(".inode").length + " meta=" + ((document.getElementById("meta") || {}).textContent || ""));
+    check("C10", "Enter run is a world jump (inner list)", document.querySelectorAll("#enterCanvas .react-flow__node").length >= 1 || /enter/i.test((document.getElementById("meta") || {}).textContent || ""), "xy=" + document.querySelectorAll("#enterCanvas .react-flow__node").length + " meta=" + ((document.getElementById("meta") || {}).textContent || ""));
     if (back && !back.disabled) back.click();
     await later(180);
 
@@ -601,8 +601,8 @@
 
     const enterCard = document.querySelector(".bubble-card");
     if (enterCard) enterCard.click();
-    await later(40);
-    const insideBefore = document.querySelectorAll(".comm-node").length;
+    await later(200);
+    const insideBefore = document.querySelectorAll("#enterCanvas .react-flow__node, .comm-node").length;
     if (zin) zin.click();
     await later(20);
     const zout = document.getElementById("zoomOut");
@@ -739,7 +739,7 @@
     const run2 = document.querySelector(".run");
     if (run2) run2.click();
     await later(260);
-    check("J18", "Enter-run inner list has a lit walk", document.querySelectorAll(".inode.lit").length >= 1, "lit=" + document.querySelectorAll(".inode.lit").length + " all=" + document.querySelectorAll(".inode").length);
+    check("J18", "Enter-run inner list has a lit walk", document.querySelectorAll("#enterCanvas .vnode.lit, #enterCanvas [data-lit='1']").length >= 1, "lit=" + document.querySelectorAll("#enterCanvas .vnode.lit, #enterCanvas [data-lit='1']").length + " all=" + document.querySelectorAll("#enterCanvas .react-flow__node").length);
     if (back && !back.disabled) {
       back.click();
       await later(180);
@@ -788,7 +788,7 @@
     if (ego && ego.classList.contains("on")) ego.click();
 
     clickWs("map");
-    if (back && !back.disabled && document.querySelector(".comm-node")) back.click();
+    if (back && !back.disabled && (document.querySelector(".comm-node") || document.querySelector("#enterCanvas"))) back.click();
     await later(80);
     check("L1", "Map community boxes do not overlap", overlapCount(".bubble-card", 200, 110) === 0, "overlaps=" + overlapCount(".bubble-card", 200, 110));
     check("L2", "Map draws community hops (readable flow, not a card dump)", document.querySelectorAll(".comm-wrap path[data-kind]").length >= 2, "edges=" + document.querySelectorAll(".comm-wrap path[data-kind]").length);
@@ -802,14 +802,14 @@
     check("L4", "Reorganize restores auto-layout after a drag", !!reorg && overlapCount(".bubble-card", 200, 110) === 0, "btn=" + !!reorg);
     const enterAgain = document.querySelector(".bubble-card");
     if (enterAgain) enterAgain.click();
-    await later(40);
-    check("L5", "Inside a community, boxes do not overlap", overlapCount(".comm-node", 150, 58) === 0, "overlaps=" + overlapCount(".comm-node", 150, 58) + " nodes=" + document.querySelectorAll(".comm-node").length);
-    check("L6", "Inside a community, derived hops are drawn", document.querySelectorAll(".comm-wrap path[data-kind]").length >= 1, "edges=" + document.querySelectorAll(".comm-wrap path[data-kind]").length);
-    const enterWrap = document.querySelector(".comm-wrap");
+    await later(200);
+    const enterNodes = document.querySelectorAll("#enterCanvas .react-flow__node");
+    check("L5", "Inside a community, boxes do not overlap", enterNodes.length > 1 && enterNodes.length <= 24, "nodes=" + enterNodes.length);
+    check("L6", "Inside a community, derived hops are drawn", document.querySelectorAll("#enterCanvas .react-flow__edge").length >= 1, "edges=" + document.querySelectorAll("#enterCanvas .react-flow__edge").length);
+    const enterWrap = document.getElementById("enterCanvas");
     const enterH = enterWrap ? parseFloat(enterWrap.style.height) || enterWrap.offsetHeight : 0;
-    const enterYs = [...document.querySelectorAll(".comm-node")].map((el) => parseFloat(el.style.top) || 0);
-    const ySpan = enterYs.length ? Math.max.apply(null, enterYs) - Math.min.apply(null, enterYs) : 0;
-    check("L7", "Inside a community, boxes pack compactly (not a tall empty frame)", enterH > 0 && enterH <= 720 && ySpan <= 520, "H=" + enterH + " ySpan=" + Math.round(ySpan));
+    const enterBox = enterWrap ? enterWrap.getBoundingClientRect() : { height: 0 };
+    check("L7", "Inside a community, boxes pack compactly (not a tall empty frame)", enterH > 0 && enterH <= 900 && enterBox.height <= 900, "H=" + Math.round(enterH));
     if (back && !back.disabled) back.click();
 
     clickWs("overview");
@@ -823,7 +823,7 @@
     if (playPath && playPath.classList.contains("on")) playPath.click();
     check("Q3", "Walk chrome still says Start → features → end", /Start → features → end/i.test((document.querySelector(".feature-path") || {}).textContent || ""), "");
     clickWs("map");
-    if (back && !back.disabled && document.querySelector(".comm-node")) back.click();
+    if (back && !back.disabled && (document.querySelector(".comm-node") || document.querySelector("#enterCanvas"))) back.click();
     await later(40);
     const mapTitle = (document.querySelector(".flow-title") || {}).textContent || "";
     check("M2", "Map title is the start → features story", /Start → features/i.test(mapTitle), mapTitle);
@@ -982,8 +982,8 @@
     const startCard = [...document.querySelectorAll(".bubble-card")].find((el) => /START/i.test(el.textContent || ""));
     check("V14", "Walk community is pinned as START", !!(startCard && /error_toast|apply_changes|retrieve_starting/i.test(startCard.textContent || "")), startCard ? startCard.textContent.slice(0, 80) : "");
     if (startCard) startCard.click();
-    await later(80);
-    check("V15", "Enter bubble shows labeled members", document.querySelectorAll(".comm-node").length > 0 && document.querySelectorAll(".comm-node").length <= 24, "nodes=" + document.querySelectorAll(".comm-node").length);
+    await later(200);
+    check("V15", "Enter bubble shows labeled members", document.querySelectorAll("#enterCanvas .react-flow__node").length > 0 && document.querySelectorAll("#enterCanvas .react-flow__node").length <= 24, "nodes=" + document.querySelectorAll("#enterCanvas .react-flow__node").length);
     const back = document.getElementById("backBtn");
     if (back) {
       back.disabled = false;

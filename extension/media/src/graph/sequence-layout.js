@@ -9,6 +9,8 @@ export const GRAPH_NODE_CAP = 48;
 export const GRAPH_HOP_CAP = 80;
 export const LINEAGE_NODE_CAP = 48;
 export const LINEAGE_HOP_CAP = 80;
+export const ENTER_NODE_CAP = 24;
+export const ENTER_HOP_CAP = 80;
 
 const DEFAULT_W = 168;
 const DEFAULT_H = 58;

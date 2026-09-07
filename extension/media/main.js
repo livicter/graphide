@@ -16862,7 +16862,9 @@
       data.selected ? "selected" : "",
       data.uncovered ? "uncovered" : "",
       data.changed ? "changed" : "",
-      data.away ? "away" : ""
+      data.away ? "away" : "",
+      data.lit ? "lit" : "",
+      data.grey ? "grey" : ""
     ].filter(Boolean).join(" ");
   }
   function DerivedNode({ data }) {
@@ -16893,6 +16895,9 @@
     }
     if (d.side) attrs["data-side"] = d.side;
     if (d.file) attrs["data-file"] = d.file;
+    if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
+    if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
+    if (d.flow) attrs["data-flow"] = d.flow;
     const style2 = d.depth != null ? { "--d": d.depth } : void 0;
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { ...attrs, style: style2, children: [
       /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "target", position: Position.Left }),
@@ -18796,6 +18801,8 @@
   var GRAPH_HOP_CAP = 80;
   var LINEAGE_NODE_CAP = 48;
   var LINEAGE_HOP_CAP = 80;
+  var ENTER_NODE_CAP = 24;
+  var ENTER_HOP_CAP = 80;
   var DEFAULT_W = 168;
   var DEFAULT_H = 58;
   function capGraph(nodes, hops, nodeCap, hopCap) {
@@ -18944,7 +18951,8 @@
     dfNode: DerivedNode,
     lcState: DerivedNode,
     sliceVnode: DerivedNode,
-    lineageVnode: DerivedNode
+    lineageVnode: DerivedNode,
+    enterVnode: DerivedNode
   };
   function FitWhenReady({ graphKey }) {
     const rf = useReactFlow();
@@ -18953,7 +18961,7 @@
       fitted.current = "";
       let ro = null;
       const paneOf = () => document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow"
       );
       const fit = () => {
         const pane2 = paneOf();
@@ -19388,6 +19396,58 @@
       )
     );
   }
+  function renderEnterCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: ENTER_NODE_CAP,
+      hopCap: ENTER_HOP_CAP,
+      nodeW: 176,
+      nodeH: 64
+    });
+    const hotIds = new Set([...props.hotIds || []].map(String));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || "",
+        kind: n.kind || "Function",
+        kindClass: n.kindClass || "kind-Function",
+        label: n.label || n.fqn || String(n.id),
+        kindLine: n.kindLine || n.kind || "Function",
+        lit: !!n.lit,
+        grey: !!n.grey,
+        isLeaf: n.isLeaf !== false,
+        flow: n.flow || "",
+        uncovered: !!n.uncovered,
+        changed: !!n.changed,
+        selected: !!n.selected,
+        surface: n.surface || "enter-node",
+        showFqn: !!n.showFqn
+      })),
+      hops
+    );
+    const box = layoutBounds(laid);
+    host.style.width = box.W + "px";
+    host.style.height = box.H + "px";
+    host.classList.add("enter-wrap");
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "enterVnode",
+          laid,
+          items,
+          hops,
+          cursor: props.cursor,
+          hotIds,
+          embed: true,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
 
   // extension/media/src/graph/desk.js
   function bootDesk() {
@@ -19472,6 +19532,10 @@
     const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
+    }
+    function enterCanvasActive() {
+      const top = stack[stack.length - 1];
+      return !!(graphFilter.bubble || top && top.kind === "bubble");
     }
     function unmountAllReviewCanvases() {
       unmountReviewCanvas();
@@ -20991,7 +21055,7 @@
     let stageFitRo = null;
     function fitChart() {
       const stage = canvas.querySelector(".stage");
-      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas");
+      const wrap = stage && stage.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas, #enterCanvas") || canvas.querySelector(".comm-wrap, .steiner-wrap, #sliceCanvas, #lineageCanvas, #enterCanvas");
       if (!stage || !wrap) {
         setCamTarget(0, 0, 1);
         return false;
@@ -21240,6 +21304,21 @@
       backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
     }
     function goBack() {
+      if (stack[stack.length - 1]?.kind === "bubble") {
+        const token2 = ++navToken;
+        const go2 = () => {
+          if (token2 !== navToken) return;
+          stack.pop();
+          paint({ animate: "tree", fromInner: true });
+        };
+        if (!reduceMotion()) {
+          canvas.classList.add("leaving");
+          setTimeout(go2, 150);
+        } else {
+          go2();
+        }
+        return;
+      }
       if (graphFilter.bubble && (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs")) {
         graphFilter.bubble = null;
         selectedNodeId = null;
@@ -21275,7 +21354,7 @@
       const animate = opts && opts.animate || "all";
       const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
       if (!snapshot) return;
-      if (!reviewCanvasWorkspace(explorerWs)) {
+      if (!reviewCanvasWorkspace(explorerWs) && !(explorerWs === "map" && enterCanvasActive())) {
         unmountAllReviewCanvases();
       }
       const top = stack[stack.length - 1];
@@ -24942,7 +25021,7 @@
         };
       });
       canvas.querySelectorAll("[data-id]").forEach((el2) => {
-        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas")) return;
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas")) return;
         el2.onclick = () => {
           explorerWs = "lineage";
           explorerPinned = true;
@@ -25392,58 +25471,23 @@
     }
     function renderCommunityGraph() {
       if (!graphFilter.bubble) {
+        unmountReviewCanvas();
         renderBubbleMap(mapAltitudeBubbles());
         return;
       }
-      const degrees2 = degreeMap();
-      const nodes = pickCommunityNodes(degrees2);
-      if (!nodes.length) {
-        canvas.className = "play";
-        canvas.innerHTML = '<div class="empty">No derived nodes match this filter. Clear the search, program chip, or kinds.</div>';
-        setZoomUi(false);
-        return;
-      }
-      const { W, H: H2, pos } = layoutCommunity(nodes);
-      const readable = readableEdgesAmong(nodes.map((n) => idVal(n.id)));
-      const svg = edgeSvg("comm-edges", readable, pos, W, H2);
-      let dots = "";
-      for (const n of nodes) {
-        const id2 = idVal(n.id);
-        const p = pos.get(id2);
-        if (!p) continue;
-        const flags = nodeFlags(id2);
-        dots += '<button type="button" class="comm-node ' + kindClass(n.kind) + (selectedNodeId === id2 ? " selected" : "") + (flags.uncovered ? " uncovered" : "") + '" style="left:' + p.x + "px;top:" + p.y + 'px" data-id="' + id2 + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind) + '" data-file="' + esc(n.span?.file || "") + '" title="' + esc(n.fqn) + '"><span class="name">' + esc(shortOf(n.fqn)) + '</span><span class="meta">' + esc(kindLine(id2, n.kind)) + "</span></button>";
-      }
-      canvas.className = "play has-stage programs-view";
-      canvas.innerHTML = '<div class="stage"><div class="flow-title">' + (graphFilter.q ? nodes.length + " matching “" + esc(graphFilter.q) + "” — click to inspect" : graphFilter.bubble ? "Inside this community — layered on derived hops · " + nodes.length + " review-relevant of " + (findBubble(graphFilter.bubble) && findBubble(graphFilter.bubble).members || []).length + " (uncovered / on-tree first). Drag to rearrange." : "Nodes — zoom in for kind lines, click to inspect") + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + svg + dots + "</div></div></div>";
-      bindStage(canvas.querySelector(".stage"), { reset: true });
-      setZoomUi(true);
-      const wrap = canvas.querySelector(".comm-wrap");
-      separatePaintedCards(wrap, ".comm-node");
-      canvas.querySelectorAll(".comm-node").forEach((el2) => {
-        const id2 = el2.getAttribute("data-id");
-        el2.addEventListener("pointerenter", (ev) => {
-          highlightCommunity(id2);
-          showTip(el2.getAttribute("data-fqn"), ev);
-        });
-        el2.addEventListener("pointerleave", () => {
-          highlightCommunity(selectedNodeId);
-          hideTip();
-        });
-        el2.addEventListener("dblclick", (ev) => {
-          ev.stopPropagation();
-          const p = assignProgram(el2.getAttribute("data-file") || "", snapshot.programs || []);
-          if (p) openProgram(p, el2);
-        });
-      });
-      bindDraggable(wrap, ".comm-node", {
-        onClick: (id2) => selectNode(id2)
-      });
-      applyGraphFilter();
-      bindHopClicks(canvas.querySelector("svg.comm-edges"));
-      renderLedger(nodes, { selected: selectedNodeId });
-      applyEgoPaint();
-      if (selectedNodeId) peekSource(selectedNodeId);
+      const flow = currentFlow() || defaultRunFlow();
+      const inner = enterBubble(snapshot, flow && flow.name, graphFilter.bubble);
+      renderInner(
+        {
+          inner,
+          flow,
+          coverage: snapshot.coverage,
+          findings: snapshot.findings,
+          plugin: snapshot.plugin,
+          stats: snapshot.stats
+        },
+        false
+      );
     }
     function renderBubbleMap(clusters) {
       const path = storyMapBubbles();
@@ -25856,6 +25900,79 @@
       html += "</div>";
       return html;
     }
+    function enterEdgesAmong(nodes) {
+      const ids = new Set((nodes || []).map((n) => String(idVal(n.id))));
+      const hops = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const e of snapshot && snapshot.graph && snapshot.graph.edges || []) {
+        const from = String(idVal(e.from));
+        const to = String(idVal(e.to));
+        if (!ids.has(from) || !ids.has(to) || from === to) continue;
+        const key = from + "	" + to + "	" + (e.kind || "Calls");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        hops.push({
+          i: hops.length,
+          from,
+          to,
+          kind: e.kind || "Calls"
+        });
+        if (hops.length >= 80) break;
+      }
+      return hops;
+    }
+    function enterCanvasProps(inner) {
+      const nodes = (inner.nodes || []).slice(0, 24);
+      const hops = enterEdgesAmong(nodes);
+      const items = nodes.map((n) => {
+        const nid = String(idVal(n.id));
+        const flags = nodeFlags(nid);
+        return {
+          id: nid,
+          fqn: n.fqn || "",
+          kind: n.kind || "Function",
+          kindClass: kindClass(n.kind || "Function"),
+          label: shortOf(n.fqn),
+          kindLine: n.is_leaf ? n.kind || "Function" : "bubble",
+          lit: !!n.lit,
+          grey: !n.lit,
+          isLeaf: !!n.is_leaf,
+          flow: inner.flow,
+          uncovered: !!flags.uncovered,
+          changed: !!flags.changed,
+          selected: selectedNodeId === nid,
+          surface: "enter-node"
+        };
+      });
+      const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
+      return {
+        nodes: items,
+        hops,
+        hotIds,
+        onNodeClick: (id2, data) => {
+          if (!id2) return;
+          if (data && data.isLeaf === false) {
+            enterRun(data.flow || inner.flow, id2);
+            return;
+          }
+          selectedNodeId = id2;
+          selectNode(id2);
+        },
+        onHopClick: (iOrHop) => {
+          const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
+          if (hop) showHop(hop.from, hop.to, hop.kind);
+        }
+      };
+    }
+    function mountEnterCanvas(inner) {
+      const host = document.getElementById("enterCanvas");
+      if (!host) {
+        unmountReviewCanvas();
+        return;
+      }
+      renderEnterCanvas(host, enterCanvasProps(inner));
+      stampXyFlowAttrs();
+    }
     function renderInner(msg, animate) {
       const inner = msg.inner || { nodes: [] };
       renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
@@ -25866,28 +25983,25 @@
       );
       const backToPrograms = meta.querySelector("[data-go=programs]");
       if (backToPrograms) backToPrograms.onclick = () => goBack();
-      let html = '<div class="inner-list' + (animate ? " play" : "") + '">';
-      (inner.nodes || []).forEach((n, i) => {
-        const cls = n.lit ? "lit" : "grey";
-        html += '<div class="inode ' + cls + '" style="--i:' + i + '" data-id="' + idVal(n.id) + '" data-leaf="' + (n.is_leaf ? 1 : 0) + '" data-flow="' + esc(inner.flow) + '">';
-        html += "<div><b>" + esc(shortOf(n.fqn)) + '</b> <span class="meta">' + esc(n.kind) + (n.is_leaf ? " · leaf · source" : " · bubble") + (n.distance != null && !n.lit ? " · d" + n.distance : "") + "</span></div>";
-        html += '<div class="meta">' + esc(n.fqn) + "</div></div>";
-      });
-      html += "</div>";
-      canvas.className = "play";
-      canvas.innerHTML = html;
-      setZoomUi(false);
+      const nodes = inner.nodes || [];
       hideTip();
-      canvas.querySelectorAll(".inode").forEach((el2) => {
-        el2.addEventListener("click", () => {
-          const isLeaf = el2.getAttribute("data-leaf") === "1";
-          if (!isLeaf) {
-            enterRun(el2.getAttribute("data-flow"), el2.getAttribute("data-id"));
-            return;
-          }
-          selectedNodeId = el2.getAttribute("data-id");
-          peekSource(selectedNodeId);
-        });
+      if (!nodes.length) {
+        unmountReviewCanvas();
+        canvas.className = "play";
+        canvas.innerHTML = '<div class="empty">No derived members in this community.</div>';
+        setZoomUi(false);
+        return;
+      }
+      canvas.className = "play has-stage programs-view" + (animate ? " play" : "");
+      canvas.innerHTML = '<div class="stage"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+      bindStage(canvas.querySelector(".stage"), { reset: true });
+      setZoomUi(true);
+      mountEnterCanvas(inner);
+      applyGraphFilter();
+      applyEgoPaint();
+      const leafNodes = nodes.filter((n) => n.is_leaf).map((n) => nodeById.get(String(idVal(n.id)))).filter(Boolean);
+      renderLedger(leafNodes.length ? leafNodes : nodes.map((n) => ({ id: n.id, fqn: n.fqn, kind: n.kind })), {
+        selected: selectedNodeId
       });
     }
     function renderCoverage(cov, findings, graph) {
