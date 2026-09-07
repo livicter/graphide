@@ -19814,15 +19814,15 @@
         setLlmPane(false);
         return;
       }
+      if (e.key === "Escape" && keysPane && !keysPane.hidden) {
+        e.preventDefault();
+        setKeysPane(false);
+        return;
+      }
       if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
       if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
         e.preventDefault();
         closeSourcePane();
-        return;
-      }
-      if (e.key === "Escape" && keysPane && !keysPane.hidden) {
-        e.preventDefault();
-        setKeysPane(false);
         return;
       }
       if (e.key === "Escape" && exportMenu && !exportMenu.hidden) {

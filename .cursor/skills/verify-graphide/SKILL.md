@@ -252,6 +252,7 @@ Ask gate (explorer Map, graph-only):
 Keys gate (explorer Map, shortcut sheet):
 
 - `?` / `#keysBtn` opens `#keysPane`; `#keysClose` / Escape hide it
+  (Escape closes Keys even while Evidence is open)
 - Sheet text lists `/` find, `?` this sheet, `S`/`X` stamp/skip, `E` ego,
   `F` present, `D` day/night — the bindings in `desk.js`
 - Playwright screenshots `verification/keys.png`

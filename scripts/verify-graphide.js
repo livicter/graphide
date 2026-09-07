@@ -1692,6 +1692,15 @@ async function main() {
       wroteStampAsk ? fs.readdirSync(stampDirAsk).join(",") : "absent"
     );
 
+    const srcClose = await page.$("#srcClose");
+    if (srcClose && (await page.evaluate(() => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)))) {
+      await page.click("#srcClose");
+      await page.waitForFunction(
+        () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+        null,
+        { timeout: 5000 }
+      );
+    }
     const beforeKeysPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -1808,6 +1817,47 @@ async function main() {
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
     record("K5", "Escape closes #keysPane", keysClosedEsc, "");
+
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const keysOverEvidence = await page.evaluate(() => ({
+      keysHidden: !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+    }));
+    record(
+      "K5b",
+      "Escape closes Keys without closing Evidence",
+      keysOverEvidence.keysHidden && keysOverEvidence.evidenceOpen,
+      JSON.stringify(keysOverEvidence)
+    );
+    await page.click("#srcClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
 
     const afterKeys = await page.evaluate(() => ({
       cards: document.querySelectorAll(".bubble-card").length,

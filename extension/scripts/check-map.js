@@ -73,6 +73,10 @@ assert(css.includes(".kind-pill"), "kind filters must be pills");
 assert(chrome.includes('id="keysPane"'), "shortcut sheet missing from the webview chrome");
 assert(chrome.includes('id="keysBtn"') && chrome.includes('id="keysClose"'), "Keys chrome ids missing");
 assert(/#keysPane\s*\{[^}]*z-index/.test(css), "Keys pane must stack above the desk");
+assert(
+  /e\.key === "Escape" && keysPane && !keysPane\.hidden[\s\S]{0,250}e\.key === "Escape" && sourcePane && !sourcePane\.hidden/.test(js),
+  "Escape must close Keys before Evidence"
+);
 assert(js.includes("function togglePathWalk"), "feature path must be playable");
 assert(js.includes("function bindWorkbenchPages"), "Semantica-shaped workbench pages missing");
 assert(js.includes('id="tlScrub"'), "timeline scrubber missing");

@@ -59,8 +59,8 @@ Driver assertions:
 
 - `/` is Find. Do not steal it for the sheet. `?` / F1 / `#keysBtn` are
   the product hooks.
-- Escape already closes Keys after Ask / Evidence. Do not break those
-  panes to make Keys dismiss.
+- Escape closes Keys even while Evidence is open (the sheet is on top).
+  Ask still wins first. Do not steal Evidence Escape when Keys is hidden.
 - Do not add `data-component` / `data-testid`. `#keysBtn`, `#keysPane`,
   `#keysClose` are the hooks.
 - Do not invent a second drawing tool or a Mermaid cheatsheet.
