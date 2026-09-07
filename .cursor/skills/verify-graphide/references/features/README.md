@@ -31,6 +31,7 @@ owns this folder.
 | [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
+| [coverage-mark.md](coverage-mark.md) | Evidence `#inspMeta` mark | explorer Slice · `coverage-mark.png` |
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
 | [self-review.md](self-review.md) | This checkout | `?live=1&require=1` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |

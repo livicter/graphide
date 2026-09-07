@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -2693,6 +2693,74 @@ async function main() {
     record("E4", "Evidence has inspect content", !!(evidence.title || /hop_|evidence|fn /i.test(evidence.body)), evidence.body);
     await shot(page, "evidence.png");
 
+    const markBefore = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const markDesk = await page.evaluate(() => {
+      const covText = ((document.getElementById("coverage") || {}).textContent || "").replace(/\s+/g, " ");
+      const uncM = covText.match(/(\d+)\s+uncovered/);
+      const chgM = covText.match(/(\d+)\s+changed/);
+      const uncN = uncM ? Number(uncM[1]) : 0;
+      const chgN = chgM ? Number(chgM[1]) : 0;
+      const readMark = () => {
+        const meta = document.getElementById("inspMeta");
+        const rows = [...(meta ? meta.querySelectorAll(".row") : [])].map((el) => {
+          const k = ((el.querySelector(".k") || {}).textContent || "").trim();
+          const v = (el.textContent || "").replace(k, "").replace(/\s+/g, " ").trim();
+          return { k, v };
+        });
+        const mark = rows.find((r) => r.k === "mark") || { k: "mark", v: "" };
+        const pane = document.getElementById("sourcePane");
+        return {
+          paneOpen: !!(pane && !pane.hidden),
+          kicker: ((document.querySelector(".src-k") || {}).textContent || "").trim(),
+          meta: ((meta || {}).textContent || "").replace(/\s+/g, " ").trim().slice(0, 220),
+          mark: mark.v,
+        };
+      };
+      let insp = readMark();
+      if (!/^(uncovered|changed)$/.test(insp.mark)) {
+        const cell = document.querySelector("#ledgerGrid .cell.uncovered[data-id]");
+        if (cell) cell.click();
+        insp = readMark();
+      }
+      return {
+        covText: covText.slice(0, 160),
+        uncN,
+        chgN,
+        ledgerUnc: !!document.querySelector("#ledgerGrid .cell.uncovered[data-id]"),
+        ...insp,
+      };
+    });
+    record(
+      "CM1",
+      "Explorer snap has coverage.uncovered or coverage.changed",
+      markDesk.uncN > 0 || markDesk.chgN > 0,
+      "unc=" + markDesk.uncN + " changed=" + markDesk.chgN + " " + markDesk.covText
+    );
+    record(
+      "CM2",
+      "#inspMeta mark is uncovered or changed (not only —)",
+      markDesk.paneOpen &&
+        /Evidence/i.test(markDesk.kicker) &&
+        /^(uncovered|changed)$/.test(markDesk.mark) &&
+        /uncovered|changed/.test(markDesk.meta) &&
+        !/^(—|-)$/.test(markDesk.mark),
+      "mark=" + markDesk.mark + " " + markDesk.meta
+    );
+    await shot(page, "coverage-mark.png");
+    const markPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, markBefore);
+    record(
+      "CM3",
+      "Coverage-mark step did not post stamp / skip",
+      markPosts.stampPosts === 0 && markPosts.skipPosts === 0,
+      JSON.stringify(markPosts)
+    );
+
     const stampSkip = await page.evaluate(async () => {
       const stamp = document.getElementById("stampBtn");
       const skip = document.getElementById("skipBtn");
@@ -4059,7 +4127,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

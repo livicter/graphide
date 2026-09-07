@@ -6,6 +6,8 @@ Inspect a node or hop without covering the object rail.
 
 - Pane `#sourcePane` (starts `hidden`). Kicker `.src-k` reads **Evidence**.
 - Title `#srcTitle`, body `#srcBody` (`.src-line` / `.src-line.hot`), inspect meta `#inspMeta`, incident hops `#inspEdges`.
+- Coverage mark row (`mark: uncovered` | `changed` | `—`) is owned by
+  [coverage-mark.md](coverage-mark.md). This map stays pane open / clip.
 - Hop card `#hopCard` (also inside the pane). Click `.edge-hit` / `text.ekind` to open a hop.
 - **Editor** `#srcEditor` posts `{ type: "enterNode" }` to the host (open the span in the editor).
 - **Close** `#srcClose` or `Escape` hides the pane (`sourcePane.hidden = true`, `#workspace` drops `has-source`).

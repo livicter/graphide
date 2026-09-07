@@ -132,17 +132,19 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Appearance: `#themeNight` / `D` adds `.night` on `html`/`body`
      (`.bright` stays); `#themeNight.on`; Map stays `xy=0`; Day restore
      before later suites
+   - Coverage mark: explorer Evidence on an uncovered/changed node;
+     `#inspMeta` mark is `uncovered` or `changed` (not only `—`)
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
-    **path-walk**, and **appearance**. `verification/`
+    **path-walk**, **appearance**, and **coverage-mark**. `verification/`
     holds screenshots plus `report.md`, including `overview.png`,
     `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
     `lineage.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`,
-    `keys.png`, `path-walk.png`, `night.png`,
+    `keys.png`, `path-walk.png`, `night.png`, `coverage-mark.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk; Night is dark vs
@@ -294,10 +296,21 @@ Appearance gate (explorer Map, Day / Night):
 - P3 stays: Day / Night does not change `data-preset`
 - Appearance does not write `.graphide/stamps/`
 
+Coverage mark gate (explorer Evidence, synthetic coverage):
+
+- Explorer `flowPayload()` already seeds `coverage.uncovered` /
+  `coverage.changed`. `#coverage` counts are `> 0`
+- Open Evidence on a Slice vnode (or `#ledgerGrid .cell.uncovered`)
+- `#inspMeta` row `mark` is `uncovered` or `changed`, not only `—`
+- Playwright screenshots `verification/coverage-mark.png` with Evidence
+  open showing the mark (not a black frame)
+- Coverage mark does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, and Appearance steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, and Coverage mark steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -383,6 +396,7 @@ same PR because the harness truly cannot hook existing ones.
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
 | Evidence | `#sourcePane`, `.src-k`, `#srcTitle`, `#srcBody`, `#srcClose`, `#srcEditor` |
+| Coverage mark | `#inspMeta` `.row` `.k` `mark`, `#coverage`, `#ledgerGrid .cell.uncovered` |
 | Stamp / skip | `#stampBtn`, `#skipBtn`, `#toast` |
 | Export | `#exportBtn`, `#exportMenu`, `#exportPng`, `#exportSvg`, `#exportShare`, `window.__graphideLastExport` |
 | Presentation / Style | `#presentBtn`, `#presetBtn`, `body.present`, `html[data-preset]`, `?present=1`, `?preset=` |
