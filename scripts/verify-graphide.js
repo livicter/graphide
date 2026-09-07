@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `progress.png`, `flow-hints.png`, `unmatched-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -908,6 +908,92 @@ async function main() {
       "Decisions step did not write .graphide/stamps/",
       !wroteStampDc,
       wroteStampDc ? fs.readdirSync(stampDirDc).join(",") : "absent"
+    );
+
+    const beforeUhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const unmatchedDesk = await page.evaluate(() => {
+      const cov = document.getElementById("coverage");
+      const covText = ((cov || {}).textContent || "").replace(/\s+/g, " ");
+      const findings = [...document.querySelectorAll("#coverage li.finding")].map((el) =>
+        (el.textContent || "").replace(/\s+/g, " ").trim()
+      );
+      const unmatchedLi = findings.find((t) => /unmatched/i.test(t) && /MissingHit/i.test(t) && /boot/i.test(t));
+      const brokenLi = findings.find((t) => /stamp broken/i.test(t));
+      const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision]")];
+      const hintCard = cards.find((el) => /UnmatchedHint/i.test(el.textContent || "") && /MissingHit/i.test(el.textContent || ""));
+      const brokenCard = cards.find((el) => /StampBroken/i.test(el.textContent || ""));
+      if (hintCard) hintCard.click();
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        covText: covText.slice(0, 240),
+        findings,
+        unmatchedLi: unmatchedLi || "",
+        brokenLi: brokenLi || "",
+        hintTitle: hintCard ? ((hintCard.querySelector(".t") || {}).textContent || "").trim() : "",
+        hintBody: hintCard ? ((hintCard.querySelector(".b") || {}).textContent || "").trim() : "",
+        hintOutcome: hintCard ? hintCard.getAttribute("data-outcome") || "" : "",
+        brokenTitle: brokenCard ? ((brokenCard.querySelector(".t") || {}).textContent || "").trim() : "",
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "UH1",
+      "#coverage li.finding surfaces unmatched solarsim::MissingHit in boot",
+      unmatchedDesk.ws === "decisions" &&
+        /unmatched\s+solarsim::MissingHit\s+in\s+boot/i.test(unmatchedDesk.unmatchedLi) &&
+        /MissingHit/.test(unmatchedDesk.covText),
+      JSON.stringify({
+        ws: unmatchedDesk.ws,
+        unmatched: unmatchedDesk.unmatchedLi,
+        findings: unmatchedDesk.findings,
+      })
+    );
+    record(
+      "UH2",
+      "Decisions lists UnmatchedHint (distinct from StampBroken)",
+      /UnmatchedHint/i.test(unmatchedDesk.hintTitle) &&
+        /MissingHit/i.test(unmatchedDesk.hintTitle + " " + unmatchedDesk.hintBody) &&
+        /solarsim::MissingHit/i.test(unmatchedDesk.hintBody) &&
+        /StampBroken/i.test(unmatchedDesk.brokenTitle) &&
+        unmatchedDesk.hintTitle !== unmatchedDesk.brokenTitle,
+      JSON.stringify({
+        hint: unmatchedDesk.hintTitle,
+        body: unmatchedDesk.hintBody,
+        outcome: unmatchedDesk.hintOutcome,
+        broken: unmatchedDesk.brokenTitle,
+      })
+    );
+    record(
+      "UH3",
+      "Unmatched-hint step keeps Map community LOD (xy=0)",
+      unmatchedDesk.xy === 0,
+      "xy=" + unmatchedDesk.xy + " cards=" + unmatchedDesk.cards
+    );
+    await page.waitForTimeout(200);
+    await shot(page, "unmatched-hint.png");
+    const afterUh = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeUhPosts);
+    record(
+      "UH4",
+      "Unmatched-hint step did not post stamp / skip",
+      afterUh.stampPosts === 0 && afterUh.skipPosts === 0,
+      JSON.stringify(afterUh)
+    );
+    const stampDirUh = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampUh = fs.existsSync(stampDirUh) && fs.readdirSync(stampDirUh).length > 0;
+    record(
+      "UH5",
+      "Unmatched-hint step did not write .graphide/stamps/",
+      !wroteStampUh,
+      wroteStampUh ? fs.readdirSync(stampDirUh).join(",") : "absent"
     );
 
     await page.click('#workspaces [data-ws="registry"]');
@@ -4591,7 +4677,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · progress · flow-hints · unmatched-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
