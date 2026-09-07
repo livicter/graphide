@@ -4505,6 +4505,7 @@ function registryEvents() {
       " edges · " +
       (s.files || 0) +
       " files" +
+      (snapshot.plugin ? " · " + snapshot.plugin : "") +
       (s.elapsed_ms != null ? " · " + s.elapsed_ms + "ms" : ""),
   });
   decisionRecords().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));

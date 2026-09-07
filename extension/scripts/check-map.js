@@ -263,6 +263,10 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md")), "route feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md")), "lens feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline.md")), "timeline feature map missing");
 assert(chrome.includes('id="pathBtn"'), "PATH button missing from chrome");
 assert(chrome.includes('id="lensBtn"'), "LENS button missing from chrome");
 assert(chrome.includes('id="probeDock"') && chrome.includes('id="routeReceipt"') && chrome.includes('id="lensReceipt"'), "route / lens receipt dock missing");
@@ -307,6 +311,10 @@ assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver mus
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
+assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
+assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
+assert(driver.includes("DC1") && driver.includes("data-decision") && driver.includes("RG1") && driver.includes("table.audit") && driver.includes("TL1") && driver.includes("tl-item"), "verify driver must drive Decisions / Registry / Timeline lists");
+assert(/function registryEvents[\s\S]{0,900}snapshot\.plugin/.test(chrome), "registry audit must name the snapshot plugin");
 assert(driver.includes("--assert-snap"), "verify driver must fail the job on a broken/empty self-review snapshot");
 assert(css.includes("html.bright"), "Apple bright material tokens missing");
 assert(css.includes("html.bright #ledgerGrid"), "bright ledger must restyle as a source list");

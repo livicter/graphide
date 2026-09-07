@@ -19,6 +19,10 @@ owns this folder.
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |
 | [route.md](route.md) | PATH probe | Sequence snap · `R` · `route.png` |
 | [lens.md](lens.md) | Role compare | Sequence snap · `L` · `lens.png` |
+| [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
+| [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
+| [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |
+| [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
