@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `delta-sticky-views.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -359,6 +359,41 @@ function assertClusterSnap(snap) {
     failFast(
       "demo vs demo-parent must sticky-match a coarse BubbleId — cluster_facts=" +
         JSON.stringify(facts.slice(0, 8))
+    );
+  }
+  return { bubble: String(hit.bubble), kind: hit.kind, label: hit.label || "", n: facts.length };
+}
+
+function assertStickyViewsSnap(snap) {
+  const facts = (snap.delta && snap.delta.cluster_facts) || [];
+  const coarse = (snap.bubbles || []).filter((b) => b && b.parent == null);
+  const parentBubbles = ((snap.delta && snap.delta.parent_bubbles) || []).filter(
+    (b) => b && b.parent == null
+  );
+  const sticky = facts.filter((f) => f && (f.kind === "stable" || f.kind === "relabel"));
+  const hit = sticky.find(
+    (f) =>
+      coarse.some((b) => String(b.id) === String(f.bubble) && (b.members || []).length) &&
+      parentBubbles.some((b) => String(b.id) === String(f.bubble) && (b.members || []).length)
+  );
+  record(
+    "SV0",
+    "delta snap ships parent_bubbles for a sticky coarse BubbleId",
+    !!hit && parentBubbles.length > 0,
+    hit
+      ? "kind=" +
+          hit.kind +
+          " bubble=" +
+          hit.bubble +
+          " parent_bubbles=" +
+          parentBubbles.length
+      : "cluster_facts=" + facts.length + " parent_bubbles=" + parentBubbles.length
+  );
+  if (!hit) {
+    writeReport("Delta sticky views snapshot failed structural checks (desk not driven).");
+    failFast(
+      "demo vs demo-parent must ship parent_bubbles for a sticky BubbleId — parent_bubbles=" +
+        parentBubbles.length
     );
   }
   return { bubble: String(hit.bubble), kind: hit.kind, label: hit.label || "", n: facts.length };
@@ -5212,6 +5247,95 @@ async function main() {
     }
     await shot(page, "sticky-clusters.png");
 
+    const viewsSnap = assertStickyViewsSnap(deltaSnap);
+    const communitySel =
+      '#deltaFacts .delta-fact[data-delta-class="community"][data-bubble="' + viewsSnap.bubble + '"]';
+    if (await page.$(communitySel)) {
+      await page.click(communitySel);
+      await page.waitForTimeout(200);
+    }
+    const readCommunityView = async (view) => {
+      await page.click('#deltaView [data-delta-view="' + view + '"]');
+      await page.waitForTimeout(220);
+      return page.evaluate((want) => {
+        const onBtn = document.querySelector("#deltaView [data-delta-view].on");
+        const ws = document.querySelector("#workspaces [data-ws].on");
+        const nodes = [...document.querySelectorAll("#deltaCanvas .vnode[data-bubble]")];
+        const match = nodes.filter((el) => el.getAttribute("data-bubble") === want);
+        const current = [...document.querySelectorAll("#deltaCanvas .vnode[data-delta-review-current]")].filter(
+          (el) => el.getAttribute("data-bubble") === want
+        );
+        return {
+          view: onBtn ? onBtn.getAttribute("data-delta-view") : "",
+          ws: ws ? ws.getAttribute("data-ws") : "",
+          n: match.length,
+          current: current.length,
+          xy: document.querySelectorAll("#deltaCanvas .react-flow__node").length,
+          fact: (() => {
+            const on = document.querySelector("#deltaFacts .delta-fact.on");
+            return on ? on.getAttribute("data-bubble") || "" : "";
+          })(),
+        };
+      }, viewsSnap.bubble);
+    };
+    const deltaMembers = await readCommunityView("delta");
+    const beforeMembers = await readCommunityView("before");
+    const afterMembers = await readCommunityView("after");
+    record(
+      "SV1",
+      "Community fact paints Delta members for the sticky BubbleId",
+      deltaMembers.ws === "delta" &&
+        deltaMembers.view === "delta" &&
+        deltaMembers.fact === viewsSnap.bubble &&
+        deltaMembers.n > 0 &&
+        deltaMembers.n <= 24 &&
+        deltaMembers.current > 0,
+      JSON.stringify(deltaMembers)
+    );
+    record(
+      "SV2",
+      "Before paints parent members for the same sticky BubbleId",
+      beforeMembers.view === "before" &&
+        beforeMembers.fact === viewsSnap.bubble &&
+        beforeMembers.n > 0 &&
+        beforeMembers.n <= 24 &&
+        beforeMembers.current > 0,
+      JSON.stringify(beforeMembers)
+    );
+    record(
+      "SV3",
+      "After paints head members for the same sticky BubbleId",
+      afterMembers.view === "after" &&
+        afterMembers.fact === viewsSnap.bubble &&
+        afterMembers.n > 0 &&
+        afterMembers.n <= 24 &&
+        afterMembers.current > 0,
+      JSON.stringify(afterMembers)
+    );
+    await page.waitForTimeout(160);
+    await shot(page, "delta-sticky-views.png");
+    const stampPostsViews = await page.evaluate(() => {
+      const posts = window.__vscodePosts || [];
+      return {
+        stamp: posts.filter((p) => p && p.type === "stamp").length,
+        skip: posts.filter((p) => p && p.type === "skip").length,
+      };
+    });
+    record(
+      "SV4",
+      "Delta sticky views do not post stamp / skip",
+      stampPostsViews.stamp === 0 && stampPostsViews.skip === 0,
+      JSON.stringify(stampPostsViews)
+    );
+    const stampDirViews = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampViews = fs.existsSync(stampDirViews) && fs.readdirSync(stampDirViews).length > 0;
+    record(
+      "SV5",
+      "Delta sticky views did not write .graphide/stamps/",
+      !wroteStampViews,
+      wroteStampViews ? fs.readdirSync(stampDirViews).join(",") : "absent"
+    );
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
     if (await page.$("#zoomFit")) {
@@ -6453,7 +6577,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

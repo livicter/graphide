@@ -377,6 +377,32 @@ fn parent_bubbles_are_sticky_matched() {
         "a coarse BubbleId must stick, cluster_facts={:?}",
         snap.delta.cluster_facts
     );
+    assert!(
+        !snap.delta.parent_bubbles.is_empty(),
+        "parent review must ship coarse parent_bubbles for Before"
+    );
+    assert!(
+        snap.delta.parent_bubbles.iter().all(|b| b.parent.is_none()),
+        "parent_bubbles must be coarse only"
+    );
+    let sticky = snap
+        .delta
+        .cluster_facts
+        .iter()
+        .find(|f| matches!(f.kind, ClusterDeltaKind::Stable | ClusterDeltaKind::Relabel))
+        .expect("sticky community fact");
+    let parent_members = graphide_engine::bubble_members(&snap.delta.parent_bubbles, sticky.bubble);
+    let head_members = graphide_engine::bubble_members(&snap.bubbles, sticky.bubble);
+    assert!(
+        !parent_members.is_empty(),
+        "Before must resolve sticky {} to parent members",
+        sticky.bubble.0
+    );
+    assert!(
+        !head_members.is_empty(),
+        "After must resolve sticky {} to head members",
+        sticky.bubble.0
+    );
 }
 
 #[test]

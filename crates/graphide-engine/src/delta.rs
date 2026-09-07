@@ -216,6 +216,7 @@ pub fn architecture_delta(
         moved: 0,
         rerouted: 0,
         parent: Some(parent.clone()),
+        parent_bubbles: Vec::new(),
     };
     for f in &facts {
         match f.status {

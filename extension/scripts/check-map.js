@@ -299,6 +299,7 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
+assert(featReadme.includes("delta-sticky-views.md") && featReadme.includes("delta-sticky-views.png"), "feature README must list delta-sticky-views.md");
 const stickyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md"), "utf8");
 assert(
   stickyMap.includes("## Sub-features") &&
@@ -306,6 +307,14 @@ assert(
     stickyMap.includes("## Driving it with the harness") &&
     stickyMap.includes("## Gotchas"),
   "sticky-clusters feature map must use the four headings"
+);
+const stickyViewsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md"), "utf8");
+assert(
+  stickyViewsMap.includes("## Sub-features") &&
+    stickyViewsMap.includes("## How to get to it (user POV)") &&
+    stickyViewsMap.includes("## Driving it with the harness") &&
+    stickyViewsMap.includes("## Gotchas"),
+  "delta-sticky-views feature map must use the four headings"
 );
 assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png"), "feature README must list flow-tabs.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
@@ -350,6 +359,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/draft-hint.md")), "draft-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/proposed-uncovered.md")), "proposed-uncovered feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -383,6 +393,7 @@ assert(workflow.includes("lifecycle-snap.json") && workflow.includes("fixtures/d
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
 assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
 assert(driver.includes("sticky-clusters.png") && driver.includes("SC0") && driver.includes("cluster_facts") && driver.includes("data-bubble"), "verify driver must prove sticky cluster identity on the Delta desk");
+assert(driver.includes("delta-sticky-views.png") && driver.includes("SV0") && driver.includes("parent_bubbles") && driver.includes("#deltaCanvas .vnode[data-bubble]"), "verify driver must prove sticky community members on Before/After");
 assert(driver.includes("D6b") && driver.includes("#deltaCanvas .react-flow__node"), "verify driver must prove Delta XYFlow");
 assert(driver.includes("D6c") && driver.includes("Q6c") && driver.includes("F6c") && driver.includes("L6c") && driver.includes("M2d") && driver.includes("Y4b"), "verify driver must prove derived data-shape presence");
 assert(chrome.includes("function shapeOf") && chrome.includes("data-shape") && chrome.includes("DerivedNode"), "derived-node registry missing");
@@ -452,6 +463,12 @@ assert(
   "desk must paint sticky cluster facts on #deltaFacts"
 );
 assert(chrome.includes("data-bubble") && /data-cluster/.test(chrome), "Map cards must expose data-bubble and parent-snap data-cluster");
+assert(
+  chrome.includes("parent_bubbles") &&
+    chrome.includes("function communityWantFqns") &&
+    chrome.includes("function parentBubbles"),
+  "desk must resolve community facts via parent_bubbles"
+);
 assert(chrome.includes('id="progress"') && chrome.includes('id="phases"') && chrome.includes('data-phase="cluster"'), "progress strip missing from chrome");
 assert(/"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(js) || /"mark"[\s\S]{0,80}uncovered[\s\S]{0,40}changed/.test(chrome), "fillInspect must write the coverage mark row");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");

@@ -404,6 +404,10 @@ pub struct ArchitectureDelta {
     /// Parent linked graph, for the Before reading. Absent when no parent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<Graph>,
+    /// Coarse parent communities used for `sticky_match` / `cluster_delta`.
+    /// Before resolves the same sticky `BubbleId` to parent members.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parent_bubbles: Vec<Bubble>,
 }
 
 /// Archify Sequence `variant` on a derived hop. `return` is the same

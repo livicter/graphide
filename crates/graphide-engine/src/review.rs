@@ -1,4 +1,4 @@
-use crate::cluster::{cluster, cluster_delta, cluster_with, sticky_match};
+use crate::cluster::{cluster, cluster_delta, cluster_with, coarse_bubbles, sticky_match};
 use crate::coverage::{changed_nodes_with_sources, coverage};
 use crate::delta::architecture_delta;
 use crate::flowchart::build_flowchart;
@@ -313,6 +313,7 @@ pub fn derive_repo(input: ReviewInput, opts: &ReviewOptions) -> ReviewSnapshot {
     };
     if let Some(prev) = &previous_bubbles {
         delta.cluster_facts = cluster_delta(prev, &bubbles);
+        delta.parent_bubbles = coarse_bubbles(prev).into_iter().cloned().collect();
     }
     for id in &cov.uncovered {
         if let Some(n) = graph.nodes.iter().find(|n| n.id == *id) {

@@ -27,8 +27,11 @@ walks that list once and stops.
   take XYFlow class `on` / `delta-*` (not that attr).
 - Engine: `architecture_delta` pairs two `Graph`s by `NodeId = hash(kind, fqn)`
   and emits facts. Desk `deltaReading` paints added hops on After and
-  removed hops on Before. Classification is semantic / topology /
-  presentation only — no blast radius, no merge safety.
+  removed hops on Before. A selected community fact uses
+  `delta.parent_bubbles` / head `bubbles` instead of the node/hop
+  want-set — see [delta-sticky-views.md](delta-sticky-views.md).
+  Classification is semantic / topology / presentation only — no
+  blast radius, no merge safety.
 - Stamp / skip stay human. Delta never writes `.graphide/stamps/`.
 
 ## How to get to it (user POV)

@@ -27,7 +27,8 @@ mod stamp;
 mod steiner;
 
 pub use cluster::{
-    cluster, cluster_delta, cluster_with, coarse_bubbles, node_coarse_bubble, sticky_match,
+    bubble_members, cluster, cluster_delta, cluster_with, coarse_bubbles, node_coarse_bubble,
+    sticky_match,
 };
 pub use coverage::{changed_nodes, changed_nodes_with_sources, coverage};
 pub use delta::architecture_delta;

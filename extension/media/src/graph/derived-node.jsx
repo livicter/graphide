@@ -116,6 +116,7 @@ export function DerivedNode({ data }) {
   };
   if (d.state) attrs["data-delta-state"] = d.state;
   if (d.hot && d.state) attrs["data-delta-review-current"] = "1";
+  if (d.bubble) attrs["data-bubble"] = String(d.bubble);
   if (d.role != null && d.role !== "") attrs["data-df-role"] = d.role;
   if (d.endRole) attrs["data-end-role"] = d.endRole;
   if (d.channel) attrs["data-channel"] = d.channel;

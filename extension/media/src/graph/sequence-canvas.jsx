@@ -267,6 +267,7 @@ export function renderDeltaCanvas(host, props) {
       state: n.state || "same",
       label: n.label || n.fqn || String(n.id),
       hot: hotIds.has(String(n.id)),
+      bubble: n.bubble || "",
       showFqn: true,
     })),
     hops

@@ -13,7 +13,10 @@ graph diff is not noise. Names stay PageRank / landing hints.
   (`parent == null`). Kinds: stable / split / merge / relabel / added /
   removed. Not Archify authored ids.
 - Snap field `delta.cluster_facts[]` with `kind`, `bubble`, `label`,
-  `detail`. Node/hop `delta.facts` stay `(kind, fqn)` pairing.
+  `detail`. Coarse `delta.parent_bubbles` is the parent cut those
+  ids came from — Before/After membership is
+  [delta-sticky-views.md](delta-sticky-views.md). Node/hop
+  `delta.facts` stay `(kind, fqn)` pairing.
 - Desk `#deltaFacts .delta-fact[data-delta-class="community"]` from
   `clusterFacts` / `renderDeltaBody` in
   `extension/media/src/graph/desk.js`. Hooks: `data-delta-kind`
