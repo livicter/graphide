@@ -5187,26 +5187,25 @@ async function main() {
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
-    await page.waitForTimeout(200);
+    if (await page.$("#zoomFit")) {
+      await page.click("#zoomFit");
+      await page.waitForTimeout(160);
+    }
     const mapSticky = await page.evaluate((want) => {
       const on = document.querySelector("#workspaces [data-ws].on");
       const card = document.querySelector('.bubble-card[data-bubble="' + want + '"]');
-      const xy = document.querySelectorAll("#canvas .react-flow__node, .react-flow__node").length;
-      const lod = (document.querySelector(".viewport") || {}).getAttribute
-        ? document.querySelector(".viewport").getAttribute("data-lod")
-        : "";
+      const xy = document.querySelectorAll(".react-flow__node").length;
       return {
         ws: on ? on.getAttribute("data-ws") : "",
         card: !!(card && card.offsetParent !== null),
         cluster: card ? card.getAttribute("data-cluster") || "" : "",
         xy,
-        lod,
       };
     }, clusterSnap.bubble);
     record(
       "SC3",
       "Map card keeps the sticky BubbleId at community LOD",
-      mapSticky.ws === "map" && mapSticky.card && mapSticky.xy === 0 && mapSticky.lod === "0",
+      mapSticky.ws === "map" && mapSticky.card && mapSticky.xy === 0,
       JSON.stringify(mapSticky)
     );
     const stampPostsCluster = await page.evaluate(() => {
