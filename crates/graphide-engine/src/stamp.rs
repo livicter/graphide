@@ -79,6 +79,7 @@ pub fn stamp_from_graph(
         sequence,
         dataflow,
         lifecycle,
+        proposed: false,
     };
     let stamp = make_stamp(graph, &view, deriver);
     (view, stamp)

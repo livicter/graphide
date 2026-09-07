@@ -37,8 +37,9 @@ pub use hints::parse_flows_toml;
 pub use programs::{assign_file, is_entry, package_of, programs_from_graph};
 pub use link::link;
 pub use review::{
-    default_review_hints, derive_repo, hints_from_toml, progress_pct, resolve_fqn, PreviewFlow,
-    PreviewGraph, PreviewNode, ProgressEvent, ReviewInput, ReviewOptions, ReviewPreview,
+    default_review_hints, derive_repo, hints_from_toml, progress_pct, propose_uncovered_hints,
+    resolve_fqn, PreviewFlow, PreviewGraph, PreviewNode, ProgressEvent, ReviewInput, ReviewOptions,
+    ReviewPreview, PROPOSED_UNCOVERED_NAME,
 };
 pub use dataflow::{flow_dataflow, is_data};
 pub use lifecycle::flow_lifecycle;

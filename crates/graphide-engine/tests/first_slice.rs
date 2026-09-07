@@ -209,6 +209,33 @@ fn coverage_flags_sneaky_helper_only() {
             preview: None,
         },
     );
+    let helper = snap
+        .graph
+        .nodes
+        .iter()
+        .find(|n| n.fqn == "crate::bus::sneaky_helper")
+        .expect("sneaky_helper");
+    assert!(
+        snap.coverage.changed.contains(&helper.id),
+        "parent cut still marks sneaky_helper changed"
+    );
+    let proposed = snap
+        .flows
+        .iter()
+        .find(|f| f.proposed || f.name == graphide_engine::PROPOSED_UNCOVERED_NAME)
+        .expect("proposed-uncovered flow");
+    assert!(proposed.proposed);
+    assert_eq!(proposed.name, graphide_engine::PROPOSED_UNCOVERED_NAME);
+    assert!(
+        proposed.hits.iter().any(|h| h == "crate::bus::sneaky_helper"),
+        "hits={:?}",
+        proposed.hits
+    );
+    assert!(
+        proposed.tree.nodes.contains(&helper.id),
+        "proposed Steiner must include the uncovered hit, tree={:?}",
+        proposed.tree
+    );
     let uncovered: Vec<_> = snap
         .coverage
         .uncovered
@@ -221,16 +248,17 @@ fn coverage_flags_sneaky_helper_only() {
                 .map(|n| n.fqn.as_str())
         })
         .collect();
-    assert_eq!(
-        uncovered,
-        vec!["crate::bus::sneaky_helper"],
-        "{uncovered:?} findings={:?}",
+    assert!(
+        !uncovered.contains(&"crate::bus::sneaky_helper"),
+        "second-pass coverage shrinks when the proposal covers the node: {uncovered:?}"
+    );
+    assert!(
+        !snap.findings.iter().any(|f| {
+            matches!(&f.kind, FindingKind::UncoveredNode { fqn } if fqn == "crate::bus::sneaky_helper")
+        }),
+        "UncoveredNode is for leftover holes, findings={:?}",
         snap.findings
     );
-    assert!(snap
-        .findings
-        .iter()
-        .any(|f| matches!(&f.kind, FindingKind::UncoveredNode { fqn } if fqn == "crate::bus::sneaky_helper")));
     assert!(
         !snap.delta.facts.is_empty(),
         "demo vs demo-parent must produce a non-empty Architecture Delta"
@@ -372,6 +400,10 @@ fn empty_sidecar_gets_overview_and_control_flow() {
     let names: Vec<_> = snap.flows.iter().map(|f| f.name.as_str()).collect();
     assert!(names.contains(&"overview"), "{names:?}");
     assert!(names.contains(&"control-flow"), "{names:?}");
+    assert!(
+        !names.contains(&graphide_engine::PROPOSED_UNCOVERED_NAME),
+        "no parent cut → no proposed-uncovered, {names:?}"
+    );
     let cfg = snap.flows.iter().find(|f| f.name == "control-flow").unwrap();
     assert!(
         !cfg.tree.nodes.is_empty(),

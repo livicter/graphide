@@ -182,6 +182,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       `verification/open-slice.png`
     - Draft hint: explorer Timeline Uncovered; `#draftHintBtn` copies
       a `[[flow]]` hit list of uncovered FQNs; `verification/draft-hint.png`
+    - Proposed uncovered: `?delta=1` demo vs demo-parent; `#tabs`
+      `.tab[data-proposed="1"]` `proposed-uncovered`; Steiner paints;
+      selecting it changes the cut; no stamp; no `flows.toml` write;
+      `verification/proposed-uncovered.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
@@ -189,7 +193,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, **draft-hint**, **sticky-clusters**, and **cancel-review**.
+    **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -202,6 +206,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `uncovered-node.png`,
     `open-slice.png`,
     `draft-hint.png`,
+    `proposed-uncovered.png`,
     `sticky-clusters.png`,
     `cancel-review.png`,
     `export-share.png` (1200×630),
@@ -569,10 +574,26 @@ Draft hint gate (explorer Timeline Uncovered):
 - Draft hint does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` — this gate stays on Timeline
 
+Proposed uncovered gate (fixtures/demo vs demo-parent Delta snap):
+
+- `graphide review --root fixtures/demo --parent fixtures/demo-parent`
+  second-pass `propose_uncovered_hints` after first coverage. A flow
+  is named `proposed-uncovered` with `proposed: true`. Hits are
+  uncovered FQNs (`crate::bus::sneaky_helper`). The deriver builds
+  the Steiner tree. Coverage is recomputed so that hit can leave
+  `coverage.uncovered`.
+- Playwright paints `?delta=1&ws=delta`; `#tabs` shows
+  `[data-proposed="1"]` / `data-flow="proposed-uncovered"`
+- Selecting the chip pins Slice and changes the cut vs
+  `data-subscription`
+- Playwright screenshots `verification/proposed-uncovered.png`
+- Proposed uncovered does not write `.graphide/stamps/`, does not
+  post `{ type: "stamp" }`, and does not write `flows.toml`
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, and Draft hint steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -685,6 +706,7 @@ same PR because the harness truly cannot hook existing ones.
 | Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
 | Open slice | `button[data-open-slice]`, `#workspaces [data-ws="slice"]`, `#tabs .tab[data-flow]` |
 | Draft hint | `#draftHintBtn`, `#draftHint`, `.tl-item.now` Uncovered |
+| Proposed uncovered | `#tabs .tab[data-proposed="1"]`, `#tabs .tab[data-flow="proposed-uncovered"]`, `#sliceCanvas` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

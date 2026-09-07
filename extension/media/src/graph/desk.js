@@ -7897,6 +7897,10 @@ function applyGraphFilter() {
   });
 }
 
+function isProposedFlow(f) {
+  return !!(f && (f.proposed || String(f.name || "").indexOf("proposed-uncovered") === 0));
+}
+
 function renderTabs(flows, current) {
   const m = reviewMarks();
   const head = m.names.length
@@ -7911,13 +7915,17 @@ function renderTabs(flows, current) {
     (flows || [])
     .map((f) => {
       const mark = flowMark(f.name);
+      const proposed = isProposedFlow(f);
       return (
         '<button class="tab' +
         (f.name === current ? " on" : "") +
         (mark ? " " + mark : "") +
+        (proposed ? " proposed" : "") +
         '" data-flow="' +
         esc(f.name) +
-        '">' +
+        '"' +
+        (proposed ? ' data-proposed="1"' : "") +
+        ">" +
         esc(f.name) +
         (mark ? '<span class="mark">' + mark + "</span>" : "") +
         "</button>"

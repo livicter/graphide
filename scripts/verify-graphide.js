@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `kind-filters.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `flow-tabs.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `proposed-uncovered.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sticky-clusters.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -362,6 +362,33 @@ function assertClusterSnap(snap) {
     );
   }
   return { bubble: String(hit.bubble), kind: hit.kind, label: hit.label || "", n: facts.length };
+}
+
+function assertProposedUncoveredSnap(snap) {
+  const flows = snap.flows || [];
+  const named = flows.find((f) => f && (f.proposed || f.name === "proposed-uncovered"));
+  const hits = ((named && named.hits) || []).map((h) => String(h || ""));
+  const tree = (named && named.tree) || { nodes: [], edges: [] };
+  const nodes = (tree.nodes || []).length;
+  const hasHelper = hits.some((h) => /sneaky_helper/.test(h));
+  const leftover = ((snap.coverage && snap.coverage.uncovered) || []).length;
+  record(
+    "PU0",
+    "delta fixture snap has proposed-uncovered Steiner from the parent cut",
+    !!(named && named.proposed && named.name === "proposed-uncovered" && hasHelper && nodes >= 1),
+    named
+      ? "hits=" + hits.join(",") + " tree=" + nodes + "n leftover=" + leftover
+      : "flows=" + flows.map((f) => f && f.name).join(",")
+  );
+  const failed = checks.filter((c) => !c.pass && c.id === "PU0");
+  if (failed.length) {
+    writeReport("Proposed-uncovered snapshot failed structural checks (desk not driven).");
+    failFast(
+      "demo vs demo-parent snap missing proposed-uncovered flow — " +
+        failed.map((c) => c.id + " " + c.title + (c.detail ? " (" + c.detail + ")" : "")).join("; ")
+    );
+  }
+  return { name: named.name, nodes, hits, leftover };
 }
 
 function deriveSequenceSnap() {
@@ -5230,6 +5257,134 @@ async function main() {
       wroteStampCluster ? fs.readdirSync(stampDirCluster).join(",") : "absent"
     );
 
+    const proposedGraph = assertProposedUncoveredSnap(deltaSnap);
+    const flowsTomlPath = path.join(DEMO, "flows.toml");
+    const flowsTomlBefore = fs.existsSync(flowsTomlPath) ? fs.readFileSync(flowsTomlPath, "utf8") : "";
+    const beforePuPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const namedCut = await page.evaluate(async () => {
+      const named = document.querySelector('#tabs .tab[data-flow="data-subscription"]');
+      if (named) named.click();
+      await new Promise((r) => setTimeout(r, 220));
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const tab = document.querySelector("#tabs .tab.on[data-flow]");
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode, #sliceCanvas .react-flow__node")];
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        flow: tab ? tab.getAttribute("data-flow") || "" : "",
+        meta: ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim(),
+        labels: nodes.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean),
+        n: nodes.length,
+      };
+    });
+    const proposedDesk = await page.evaluate(async () => {
+      const tab = document.querySelector('#tabs .tab[data-proposed="1"]');
+      const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")].map((el) => ({
+        name: el.getAttribute("data-flow") || "",
+        proposed: el.getAttribute("data-proposed") === "1",
+        on: el.classList.contains("on"),
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+      }));
+      if (tab) tab.click();
+      await new Promise((r) => setTimeout(r, 280));
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const tabOn = document.querySelector("#tabs .tab.on[data-flow]");
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode, #sliceCanvas .react-flow__node")];
+      const labels = nodes.map((el) => (el.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        tab: !!(tab && /proposed-uncovered/.test((tab.textContent || "") + (tab.getAttribute("data-flow") || ""))),
+        proposed: !!(tab && tab.getAttribute("data-proposed") === "1"),
+        on: !!(tabOn && tabOn.getAttribute("data-proposed") === "1"),
+        flow: tabOn ? tabOn.getAttribute("data-flow") || "" : "",
+        text: tabOn ? (tabOn.textContent || "").replace(/\s+/g, " ").trim() : "",
+        meta: ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim(),
+        tabs,
+        n: nodes.length,
+        labels,
+        helper: labels.some((t) => /sneaky_helper/.test(t)),
+        xy: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        mapXy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "PU1",
+      "Delta desk shows proposed-uncovered chip distinct from sidecar flows",
+      proposedDesk.tab &&
+        proposedDesk.proposed &&
+        proposedDesk.tabs.some((t) => t.name === "proposed-uncovered" && t.proposed) &&
+        proposedDesk.tabs.some((t) => t.name === "data-subscription" && !t.proposed),
+      JSON.stringify({ tabs: proposedDesk.tabs, text: proposedDesk.text })
+    );
+    record(
+      "PU2",
+      "Selecting proposed-uncovered pins Slice and lights the chip",
+      proposedDesk.ws === "slice" &&
+        proposedDesk.on &&
+        proposedDesk.flow === "proposed-uncovered" &&
+        /proposed-uncovered/.test(proposedDesk.meta + proposedDesk.text),
+      JSON.stringify({
+        ws: proposedDesk.ws,
+        flow: proposedDesk.flow,
+        meta: proposedDesk.meta.slice(0, 120),
+      })
+    );
+    const cutChanged =
+      proposedDesk.flow !== namedCut.flow ||
+      proposedDesk.helper ||
+      proposedDesk.labels.join("|") !== namedCut.labels.join("|");
+    record(
+      "PU3",
+      "Selecting proposed-uncovered changes the Steiner cut",
+      cutChanged && proposedDesk.n >= 1 && proposedGraph.nodes >= 1,
+      JSON.stringify({
+        from: namedCut.flow,
+        to: proposedDesk.flow,
+        helper: proposedDesk.helper,
+        n: proposedDesk.n,
+        namedN: namedCut.n,
+      })
+    );
+    record(
+      "PU4",
+      "Proposed flow paints a Steiner slice (not an empty chip)",
+      proposedDesk.n >= 1 && (proposedDesk.xy >= 1 || proposedDesk.n >= 1),
+      "n=" + proposedDesk.n + " xy=" + proposedDesk.xy + " helper=" + proposedDesk.helper
+    );
+    await page.waitForTimeout(200);
+    await shot(page, "proposed-uncovered.png");
+    const afterPu = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        select: posts.filter((m) => m && m.type === "selectFlow").map((m) => m.flow),
+      };
+    }, beforePuPosts);
+    record(
+      "PU5",
+      "Proposed-uncovered step did not post stamp / skip",
+      afterPu.stampPosts === 0 && afterPu.skipPosts === 0,
+      JSON.stringify(afterPu)
+    );
+    const stampDirPu = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampPu = fs.existsSync(stampDirPu) && fs.readdirSync(stampDirPu).length > 0;
+    record(
+      "PU6",
+      "Proposed-uncovered step did not write .graphide/stamps/",
+      !wroteStampPu,
+      wroteStampPu ? fs.readdirSync(stampDirPu).join(",") : "absent"
+    );
+    const flowsTomlAfter = fs.existsSync(flowsTomlPath) ? fs.readFileSync(flowsTomlPath, "utf8") : "";
+    record(
+      "PU7",
+      "Proposed-uncovered did not write flows.toml",
+      flowsTomlAfter === flowsTomlBefore &&
+        /name\s*=\s*"data-subscription"/.test(flowsTomlAfter) &&
+        !/proposed-uncovered/.test(flowsTomlAfter),
+      flowsTomlAfter.slice(0, 160)
+    );
+
     const sequenceSnap = loadSequenceSnap();
     const sequenceGraph = assertSequenceSnap(sequenceSnap);
     const sequenceUrl = origin + SEQUENCE_HARNESS;
@@ -6298,7 +6453,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sticky-clusters · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

@@ -25796,12 +25796,16 @@
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
     }
+    function isProposedFlow(f) {
+      return !!(f && (f.proposed || String(f.name || "").indexOf("proposed-uncovered") === 0));
+    }
     function renderTabs(flows, current) {
       const m = reviewMarks();
       const head = m.names.length ? '<span class="queue-left' + (m.pending ? "" : " done") + '">' + (m.pending ? m.pending + " left" : "queue clear") + "</span>" : "";
       tabs.innerHTML = head + (flows || []).map((f) => {
         const mark = flowMark(f.name);
-        return '<button class="tab' + (f.name === current ? " on" : "") + (mark ? " " + mark : "") + '" data-flow="' + esc(f.name) + '">' + esc(f.name) + (mark ? '<span class="mark">' + mark + "</span>" : "") + "</button>";
+        const proposed = isProposedFlow(f);
+        return '<button class="tab' + (f.name === current ? " on" : "") + (mark ? " " + mark : "") + (proposed ? " proposed" : "") + '" data-flow="' + esc(f.name) + '"' + (proposed ? ' data-proposed="1"' : "") + ">" + esc(f.name) + (mark ? '<span class="mark">' + mark + "</span>" : "") + "</button>";
       }).join("");
       tabs.querySelectorAll(".tab").forEach((el2) => {
         el2.onclick = () => selectFlow(el2.getAttribute("data-flow"));

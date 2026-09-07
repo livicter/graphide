@@ -689,6 +689,10 @@ pub struct FlowView {
     /// Default empty for explorer fixtures that only send a tree.
     #[serde(default)]
     pub lifecycle: FlowLifecycle,
+    /// Engine second-pass coverage proposal. Not a sidecar `flows.toml` flow.
+    /// Default false for explorer fixtures and persisted hints.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub proposed: bool,
 }
 
 /// Source text covered by a 1-based span. Columns are byte offsets in the line.

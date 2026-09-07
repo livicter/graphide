@@ -33,6 +33,8 @@ Not an agent-drawn diagram, not a second hint UI, and not a default
 
 This PR proves the happy path: a **present** hint is visible.
 Under-hint draft (copy uncovered FQNs) is [draft-hint.md](draft-hint.md).
+A first-Review proposed chip from leftover coverage is
+[proposed-uncovered.md](proposed-uncovered.md).
 
 ## Driving it with the harness
 
