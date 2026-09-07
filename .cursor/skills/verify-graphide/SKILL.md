@@ -174,6 +174,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       chip; `.on` / `selectFlow` / `#meta` title (or hops /
       start·end / Slice lit) change; Map returns `xy=0`;
       `verification/flow-tabs.png`
+    - Slice grey: explorer `#tabs` select a flow; `#sliceCanvas`
+      on-tree `data-lit="1"` / `.vnode.lit` and at least one
+      off-slice `data-lit="0"` / `.vnode.grey` / `.slice-dim`;
+      Map stays `xy=0`; `verification/slice-grey.png`
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
@@ -195,7 +199,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds screenshots plus `report.md`, including
@@ -206,6 +210,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `coverage-mark.png`, `hop-card.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `all-programs.png`, `progress.png`,
     `flow-hints.png`,
     `flow-tabs.png`,
+    `slice-grey.png`,
     `unmatched-hint.png`,
     `uncovered-node.png`,
     `open-slice.png`,
@@ -540,6 +545,19 @@ Flow tabs gate (explorer `#tabs` Steiner switch):
 - Honest skip only if a second flow tab cannot exist on explorer
   **and** self-review
 
+Slice grey gate (explorer Overview / Slice lighting mask):
+
+- Explorer `flowPayload()` already seeds `control-flow` / `boot`
+  Steiner plus graph edges off that tree
+- Click a `#tabs .tab[data-flow]` (`control-flow` or `boot`). Slice
+  pins. `#sliceCanvas` paints on-tree lit and 1-hop neighbors grey
+- Playwright screenshots `verification/slice-grey.png` (not a
+  black frame)
+- Map after Back / Map chip is still `xy=0`
+- Slice grey does not write `.graphide/stamps/`, does not post
+  `{ type: "stamp" }` / `{ type: "skip" }`, and does not write
+  `flows.toml`
+
 Unmatched hint gate (explorer synthetic snap):
 
 - Explorer `flowPayload()` already seeds
@@ -609,7 +627,7 @@ Proposed uncovered gate (fixtures/demo vs demo-parent Delta snap):
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Delta sticky views, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sticky clusters, Delta sticky views, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Kind filters, Ask, Keys, Path walk, Appearance, Coverage mark, Hop card, Fit / Reorganize, Zoom, Program chips, All programs, Progress, Cancel review, Flow hints, Flow tabs, Slice grey, Unmatched hint, Uncovered node, Open slice, Draft hint, and Proposed uncovered steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -719,6 +737,7 @@ same PR because the harness truly cannot hook existing ones.
 | Cancel review | `#cancelBtn`, `#reviewBtn`, `#progress`, `{ type: "cancel" }` / `{ type: "cancelled" }` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |
 | Flow tabs | `#tabs .tab[data-flow]`, `#tabs .tab.on`, `#meta`, `#storyRail .feat-chip`, `{ type: "selectFlow" }` |
+| Slice grey | `#sliceCanvas .vnode[data-lit]`, `.vnode.lit`, `.vnode.grey`, `.slice-dim`, `data-slice-dist` |
 | Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
 | Uncovered node | `#coverage`, `.cov-chip`, `#canvas .tl-item` Uncovered, `#tlScrubMeta` |
 | Open slice | `button[data-open-slice]`, `#workspaces [data-ws="slice"]`, `#tabs .tab[data-flow]` |

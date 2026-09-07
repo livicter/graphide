@@ -96,7 +96,8 @@ function classOf(data) {
     data.changed ? "changed" : "",
     data.away ? "away" : "",
     data.lit ? "lit" : "",
-    data.grey ? "grey" : "",
+    data.grey || data.sliceDim ? "grey" : "",
+    data.sliceDim ? "slice-dim" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -134,6 +135,7 @@ export function DerivedNode({ data }) {
   if (d.flow) attrs["data-flow"] = d.flow;
   if (d.hops) attrs["data-hops"] = d.hops;
   if (d.dist != null) attrs["data-dist"] = String(d.dist);
+  if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
   if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
   if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
   const style = d.depth != null ? { "--d": d.depth } : undefined;

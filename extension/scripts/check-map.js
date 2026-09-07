@@ -317,6 +317,7 @@ assert(
   "delta-sticky-views feature map must use the four headings"
 );
 assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png"), "feature README must list flow-tabs.md");
+assert(featReadme.includes("slice-grey.md") && featReadme.includes("slice-grey.png"), "feature README must list slice-grey.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
@@ -358,6 +359,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-slice.md")), "open-slice feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/draft-hint.md")), "draft-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/proposed-uncovered.md")), "proposed-uncovered feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md")), "slice-grey feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
@@ -431,6 +433,17 @@ assert(chrome.includes('id="cancelBtn"') && chrome.includes("Cancel review (Esc)
 assert(/type:\s*"cancel"/.test(chrome) && /type === "cancelled"/.test(chrome), "desk must post cancel and handle cancelled");
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
 assert(driver.includes("flow-tabs.png") && driver.includes("FT0") && driver.includes("FT1") && driver.includes("#tabs .tab[data-flow]") && driver.includes("selectFlow"), "verify driver must prove Map flow-tab Steiner switch");
+assert(driver.includes("slice-grey.png") && driver.includes("GY1") && driver.includes("GY2") && driver.includes("data-lit") && driver.includes("slice-dim"), "verify driver must prove prompt-driven Slice grey-out");
+assert(chrome.includes("function treeDistanceMap") && chrome.includes("sliceDim") && chrome.includes("data-slice-dist"), "Slice lighting must reuse Steiner distance on #sliceCanvas");
+assert(css.includes("#sliceCanvas .vnode.grey") && css.includes("#sliceCanvas .vnode.lit") && css.includes("slice-dim"), "Slice grey / lit mask styles missing");
+const sliceGreyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md"), "utf8");
+assert(
+  sliceGreyMap.includes("## Sub-features") &&
+    sliceGreyMap.includes("## How to get to it (user POV)") &&
+    sliceGreyMap.includes("## Driving it with the harness") &&
+    sliceGreyMap.includes("## Gotchas"),
+  "slice-grey feature map must use the four headings"
+);
 assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver.includes("MissingHit") && driver.includes("#coverage"), "verify driver must prove UnmatchedHint on the Review desk");
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
