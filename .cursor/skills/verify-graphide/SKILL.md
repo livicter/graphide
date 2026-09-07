@@ -126,16 +126,20 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
      sheet, `S`/`X` stamp/skip, `E` ego, `F` present, `D` day/night;
      `#keysClose` / Escape close
+   - Path walk: `P` / `#pathWalkBtn` walks Map start → features → end;
+     `[` `]` step; `.walk` / `.here` on community chips/cards; not Route
+     `#routePlay`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
-    **enter-bubble**, **ego**, **search**, **ask**, and **keys**. `verification/`
+    **enter-bubble**, **ego**, **search**, **ask**, **keys**, and
+    **path-walk**. `verification/`
     holds screenshots plus `report.md`, including `overview.png`,
     `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
     `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
     `lineage.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`,
-    `keys.png`,
+    `keys.png`, `path-walk.png`,
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
@@ -259,10 +263,22 @@ Keys gate (explorer Map, shortcut sheet):
 - Keys does not write `.graphide/stamps/` and does not post `{ type: "stamp" }`
 - Map altitude stays `xy=0`. Close the sheet before Evidence / ledger / Ask
 
+Path walk gate (explorer Map, community Play):
+
+- Explorer `control-flow` already crosses several Map communities
+- `P` or `#pathWalkBtn` starts the walk; `.feat-chip` / `.bubble-card`
+  get `.walk` / `.here`
+- `[` `]` move the walk index; no stamp / skip posts
+- Pause / stop leaves Map `xy=0`
+- Playwright screenshots `verification/path-walk.png` on a mid-path
+  community (not a black frame)
+- Not Route `#pathBtn` / `#routePlay`. Path walk does not write
+  `.graphide/stamps/`
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, and Keys steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, and Path walk steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -357,6 +373,7 @@ same PR because the harness truly cannot hook existing ones.
 | Find | `#graphSearch`, `graphFilter.q`, `.dim`, `.hit`, `matchesExplorerQuery` |
 | Ask | `#llmBtn`, `#llmPane`, `#llmClose`, `#llmAsk`, `#llmSend`, `#llmLog` |
 | Keys | `#keysBtn`, `#keysPane`, `#keysClose`, `?` / F1 |
+| Path walk | `#pathWalkBtn`, `#pathWalkPrev`, `#pathWalkNext`, `.feat-chip`, `.walk` / `.here`, `P` / `[` / `]` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

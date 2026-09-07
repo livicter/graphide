@@ -190,7 +190,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1883,6 +1883,244 @@ async function main() {
       "Keys step did not write .graphide/stamps/",
       !wroteStampKeys,
       wroteStampKeys ? fs.readdirSync(stampDirKeys).join(",") : "absent"
+    );
+
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const srcCloseWalk = await page.$("#srcClose");
+    if (
+      srcCloseWalk &&
+      (await page.evaluate(
+        () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)
+      ))
+    ) {
+      await page.click("#srcClose");
+      await page.waitForFunction(
+        () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+        null,
+        { timeout: 5000 }
+      );
+    }
+    await page.evaluate(() => {
+      const ask = document.getElementById("llmPane");
+      const keys = document.getElementById("keysPane");
+      if (ask && !ask.hidden) {
+        const close = document.getElementById("llmClose");
+        if (close) close.click();
+      }
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(120);
+
+    const walkPath = await page.evaluate(() => {
+      const chips = [...document.querySelectorAll(".feat-chip")];
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const label = (
+        (document.querySelector(".story-rail-label, .feature-path-label") || {}).textContent || ""
+      )
+        .replace(/\s+/g, " ")
+        .trim();
+      return {
+        chips: chips.length,
+        cards: cards.length,
+        startChip: !!document.querySelector(".feat-chip.start"),
+        endChip: !!document.querySelector(".feat-chip.end"),
+        startCard: !!document.querySelector(".bubble-card.start"),
+        endCard: !!document.querySelector(".bubble-card.end"),
+        play: !!document.getElementById("pathWalkBtn"),
+        prev: !!document.getElementById("pathWalkPrev"),
+        next: !!document.getElementById("pathWalkNext"),
+        pathBtnOn: !!(document.getElementById("pathBtn") && document.getElementById("pathBtn").classList.contains("on")),
+        routePlay: !!(document.getElementById("routePlay") && document.getElementById("routeReceipt") && !document.getElementById("routeReceipt").hidden),
+        label,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "PW1",
+      "Map has a start → features → end community path",
+      walkPath.chips >= 3 &&
+        walkPath.cards >= 8 &&
+        walkPath.startChip &&
+        walkPath.endChip &&
+        walkPath.startCard &&
+        walkPath.endCard &&
+        /Start → features → end/i.test(walkPath.label) &&
+        walkPath.xy === 0,
+      JSON.stringify(walkPath)
+    );
+    record(
+      "PW1b",
+      "Map path walk is not Route PATH / #routePlay",
+      !walkPath.pathBtnOn && !walkPath.routePlay,
+      JSON.stringify({ pathBtnOn: walkPath.pathBtnOn, routePlay: walkPath.routePlay })
+    );
+
+    const beforeWalkPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const walkStartedVia = await page.evaluate(() => {
+      const play = document.getElementById("pathWalkBtn");
+      if (play) {
+        play.click();
+        return "pathWalkBtn";
+      }
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "P", bubbles: true }));
+      return "P";
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll(".feat-chip.walk, .bubble-card.walk").length >= 1,
+      null,
+      { timeout: 5000 }
+    );
+    const walkStartPaint = await page.evaluate(() => ({
+      chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+      chipHere: document.querySelectorAll(".feat-chip.here").length,
+      cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+      playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+    }));
+    record(
+      "PW2",
+      "P or #pathWalkBtn starts Map path walk and paints .walk / .here",
+      walkStartPaint.chipWalk >= 1 && walkStartPaint.chipHere >= 1 && walkStartPaint.cardWalk >= 1,
+      "via=" + walkStartedVia + " " + JSON.stringify(walkStartPaint)
+    );
+
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("]");
+    await page.waitForFunction(
+      () => {
+        const midChip = document.querySelector(".feat-chip.walk:not(.start):not(.end)");
+        const midCard = document.querySelector(".bubble-card.walk:not(.start):not(.end)");
+        return !!(midChip || midCard);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const walkMid = await page.evaluate(() => {
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      return {
+        chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+        chipHere: document.querySelectorAll(".feat-chip.here").length,
+        cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+        midChip: !!document.querySelector(".feat-chip.walk:not(.start):not(.end)"),
+        midCard: !!document.querySelector(".bubble-card.walk:not(.start):not(.end)"),
+        chipId: chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "",
+        cardId: card ? card.getAttribute("data-bubble") || "" : "",
+        xy: document.querySelectorAll(".react-flow__node").length,
+        routeOn: !!(document.getElementById("pathBtn") && document.getElementById("pathBtn").classList.contains("on")),
+      };
+    });
+    record(
+      "PW3",
+      "] steps Map path walk to a mid-path community (.walk, not START/END)",
+      walkMid.midChip &&
+        walkMid.midCard &&
+        walkMid.chipWalk >= 1 &&
+        walkMid.chipHere >= 1 &&
+        walkMid.cardWalk >= 1 &&
+        walkMid.xy === 0 &&
+        !walkMid.routeOn,
+      JSON.stringify(walkMid)
+    );
+
+    const srcCloseMid = await page.$("#srcClose");
+    if (
+      srcCloseMid &&
+      (await page.evaluate(
+        () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)
+      ))
+    ) {
+      await page.click("#srcClose");
+      await page.waitForFunction(
+        () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+        null,
+        { timeout: 5000 }
+      );
+    }
+    await shot(page, "path-walk.png");
+
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("[");
+    await page.waitForTimeout(180);
+    const walkBack = await page.evaluate((prev) => {
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      const posts = window.__vscodePosts || [];
+      return {
+        chipId: chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "",
+        cardId: card ? card.getAttribute("data-bubble") || "" : "",
+        chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+        cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+        moved: !!(
+          (chip && (chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "") !== prev.chipId) ||
+          (card && (card.getAttribute("data-bubble") || "") !== prev.cardId)
+        ),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+        xy: document.querySelectorAll(".react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    }, { chipId: walkMid.chipId, cardId: walkMid.cardId });
+    record(
+      "PW4",
+      "[ steps Map path walk without writing stamps",
+      walkBack.moved &&
+        walkBack.chipWalk >= 1 &&
+        walkBack.cardWalk >= 1 &&
+        walkBack.stampPosts === 0 &&
+        walkBack.skipPosts === 0,
+      JSON.stringify(walkBack)
+    );
+
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const play = document.getElementById("pathWalkBtn");
+      if (play && play.classList.contains("on")) play.click();
+    });
+    const walkPaused = await page.evaluate(() => ({
+      playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "PW5",
+      "Pause / stop leaves Map at community LOD (xy=0)",
+      walkPaused.cards >= 8 && walkPaused.xy === 0 && !walkPaused.playOn,
+      JSON.stringify(walkPaused)
+    );
+
+    const walkPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeWalkPosts);
+    record(
+      "PW6",
+      "Map path walk does not post a stamp or skip",
+      walkPosts.stampPosts === 0 && walkPosts.skipPosts === 0,
+      JSON.stringify(walkPosts)
+    );
+    const stampDirWalk = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampWalk = fs.existsSync(stampDirWalk) && fs.readdirSync(stampDirWalk).length > 0;
+    record(
+      "PW7",
+      "Map path walk did not write .graphide/stamps/",
+      !wroteStampWalk,
+      wroteStampWalk ? fs.readdirSync(stampDirWalk).join(",") : "absent"
     );
 
     await page.click("#exportBtn");
@@ -3657,7 +3895,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
