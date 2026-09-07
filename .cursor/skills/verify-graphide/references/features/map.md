@@ -10,7 +10,7 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 - Enter a bubble: click `.bubble-card` → derived XYFlow on `#enterCanvas` (shaped Function / Type / Endpoint, cap 24 nodes / 80 edges). Lit = on the current flow Steiner tree (`[data-lit="1"]` / `.vnode.lit`); grey = siblings (`[data-lit="0"]` / `.vnode.grey`). Not a vanilla `.inode` list and not the raw IR.
 - Back: `#backBtn` / Map crumb pops Enter, unmounts `#enterCanvas`, and returns to community cards.
 - Search: `#graphSearch` dims non-matches (`.bubble-card.dim`).
-- Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`). Switch proof: [program-chips.md](program-chips.md).
+- Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`). Switch proof: [program-chips.md](program-chips.md). Union: [all-programs.md](all-programs.md).
 - Story rail: `#storyRail` sits **outside** `.viewport` (Start → features → end).
 - Layout: drag a card, `#reorgBtn` / `.reorg-btn` restores auto-layout.
 - Fallback: `fallbackProgramBubbles()` emits one `{ id: "_program", label: programs[0].name }` card when clustering is empty **and** the graph still has nodes. Empty graph stays empty. That one-card paint is the degeneration this loop rejects.

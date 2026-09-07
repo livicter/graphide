@@ -37,6 +37,7 @@ owns this folder.
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |
 | [zoom.md](zoom.md) | Map zoom in / out | explorer Map · `#zoomIn` / `#zoomOut` · `zoom.png` |
 | [program-chips.md](program-chips.md) | Program chip switch | self-review Map · `#legend [data-prog]` · `program-chips.png` |
+| [all-programs.md](all-programs.md) | All programs union | self-review Map · `#legend [data-prog="-1"]` · `all-programs.png` |
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |
 | [cancel-review.md](cancel-review.md) | Cancel during strip | explorer · `#cancelBtn` · `cancel-review.png` |
 | [flow-hints.md](flow-hints.md) | Named `flows.toml` chip | `?dataflow=1` · `flow-hints.png` |

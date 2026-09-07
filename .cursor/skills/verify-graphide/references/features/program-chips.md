@@ -11,7 +11,7 @@ canvas leftovers, and not an agent stamp.
 - GraphBar `#legend [data-prog]` (class `.leg`). Text is `bin main` on
   the explorer seed, Graphide crates (`bin graphide-cli`, libs) on
   self-review. `programs.length > 1` also paints `data-prog="-1"` All
-  programs.
+  programs — union proof: [all-programs.md](all-programs.md).
 - Click (`desk.js` `renderLegend`): `graphFilter.program` becomes that
   program (or `null` for All). `renderProgramOverview()` rewrites
   `#meta` (`all` or the program `name`) and repaints Map communities.
@@ -80,8 +80,9 @@ Driver assertions:
 - Legend clicks filter locally. They do not post `{ type:
   "selectProgram" }` — that is `openProgram` / the host stack.
 - Explorer `flowPayload()` seeds one program. Multi-switch lives on
-  `?live=1`. Do not paper a missing second chip by weakening the live
-  drive.
+  `?live=1`. All programs (`data-prog="-1"`) is a separate cut —
+  [all-programs.md](all-programs.md). Do not paper a missing second
+  chip by weakening the live drive.
 - Do not React-mount Map community LOD. Cards stay vanilla. `xy=0`.
 - Agents never stamp. Program chips are a cut, not an approval.
   Do not flip verify `runs-on` off `ubuntu-latest`.
