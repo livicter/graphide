@@ -134,21 +134,24 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      before later suites
    - Coverage mark: explorer Evidence on an uncovered/changed node;
      `#inspMeta` mark is `uncovered` or `changed` (not only `—`)
+   - Fit / Reorganize: explorer Map `#zoomFit` (`0`) and `#reorgBtn`;
+     Map stays `xy=0` with more than one card visible; no stamp posts
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
-    **path-walk**, **appearance**, and **coverage-mark**. `verification/`
-    holds screenshots plus `report.md`, including `overview.png`,
-    `decisions.png`, `registry.png`, `timeline.png`, `self-review.png`,
-    `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`,
-    `lineage.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`,
-    `keys.png`, `path-walk.png`, `night.png`, `coverage-mark.png`,
-    `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
-    `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
-    frame (mean luma well above 0.15 on the bright desk; Night is dark vs
-    day `map.png`, not a flat black frame).
+    **path-walk**, **appearance**, **coverage-mark**, and **fit-reorg**.
+    `verification/` holds screenshots plus `report.md`, including
+    `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
+    `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
+    `lifecycle.png`, `lineage.png`, `enter-bubble.png`, `ego.png`,
+    `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
+    `coverage-mark.png`, `fit-reorg.png`, `export-share.png` (1200×630),
+    a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
+    and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
+    on the bright desk; Night is dark vs day `map.png`, not a flat black
+    frame).
 14. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story. Mac mini self-hosted is blocked until a runner with
     labels `[self-hosted, macOS, ARM64]` is registered on `livicter/graphide`
@@ -307,10 +310,23 @@ Coverage mark gate (explorer Evidence, synthetic coverage):
 - Coverage mark does not write `.graphide/stamps/` and does not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
 
+Fit / Reorganize gate (explorer Map):
+
+- `#zoomFit` or `0` calls `fitChart`. Map stays community LOD (`xy=0`)
+  with more than one `.bubble-card` visible. No card-overlap regression
+  vs G5
+- `#reorgBtn` (GraphBar `.reorg-btn` is the same handler) runs
+  `autoReorganize` without stamp / skip posts. Card count stays or is
+  still `> 1`. Map stays `xy=0`
+- Playwright screenshots `verification/fit-reorg.png` after Fit or
+  Reorganize (not a black frame)
+- Fit / Reorganize do not write `.graphide/stamps/` and do not invent
+  nodes. `R` stays PATH
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, and Coverage mark steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, and Fit / Reorganize steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -408,6 +424,7 @@ same PR because the harness truly cannot hook existing ones.
 | Keys | `#keysBtn`, `#keysPane`, `#keysClose`, `?` / F1 |
 | Path walk | `#pathWalkBtn`, `#pathWalkPrev`, `#pathWalkNext`, `.feat-chip`, `.walk` / `.here`, `P` / `[` / `]` |
 | Appearance | `#themeSeg`, `#themeDay`, `#themeNight`, `html.night` / `body.night`, `.on`, `D` |
+| Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |

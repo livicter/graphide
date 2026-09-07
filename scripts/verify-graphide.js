@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1239,6 +1239,171 @@ async function main() {
     });
 
     await shot(page, "map.png");
+
+    const beforeFitPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const cardsBeforeFit = await page.evaluate(() => document.querySelectorAll(".bubble-card").length);
+    await page.evaluate(() => {
+      const zin = document.getElementById("zoomIn");
+      if (zin) {
+        zin.click();
+        zin.click();
+      }
+    });
+    await page.waitForTimeout(200);
+    const fitVia = await page.evaluate(() => {
+      const fit = document.getElementById("zoomFit");
+      const buried = !fit || fit.hidden || !!(fit.closest && fit.closest("[hidden]"));
+      if (fit && !buried) {
+        fit.click();
+        return "zoomFit";
+      }
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "0", bubbles: true }));
+      return "0";
+    });
+    await page.waitForTimeout(400);
+    const afterFit = await page.evaluate(() => {
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
+        );
+      };
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
+      const stage = document.querySelector("#canvas .stage");
+      const stageBox = stage ? stage.getBoundingClientRect() : null;
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stageBox || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stageBox.left || c.left >= stageBox.right || c.bottom <= stageBox.top || c.top >= stageBox.bottom);
+      });
+      const fit = document.getElementById("zoomFit");
+      const reorg = document.getElementById("reorgBtn");
+      return {
+        cards: cards.length,
+        visible: visible.length,
+        cardHits: pairs(visible, 4),
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        fitBtn: !!fit,
+        reorgBtn: !!reorg,
+      };
+    });
+    record(
+      "FR1",
+      "Fit (#zoomFit or 0) leaves Map community LOD with more than one card visible",
+      afterFit.ws === "map" &&
+        afterFit.fitBtn &&
+        afterFit.xy === 0 &&
+        afterFit.comm === 0 &&
+        afterFit.cards >= 8 &&
+        afterFit.visible >= 3,
+      "via=" + fitVia + " " + JSON.stringify(afterFit)
+    );
+    record(
+      "FR2",
+      "Fit does not regress Map card overlap (G5)",
+      afterFit.cardHits === 0 && afterFit.visible >= 3,
+      JSON.stringify({ cardHits: afterFit.cardHits, visible: afterFit.visible, cards: afterFit.cards })
+    );
+
+    const reorgVia = await page.evaluate(() => {
+      const btn = document.getElementById("reorgBtn");
+      const buried = !btn || btn.hidden || !!(btn.closest && btn.closest("[hidden]"));
+      if (btn && !buried) {
+        btn.click();
+        return "reorgBtn";
+      }
+      const alt = document.querySelector("#graphBar .reorg-btn");
+      if (alt) {
+        alt.click();
+        return "graphBar.reorg-btn";
+      }
+      if (btn) {
+        btn.click();
+        return "reorgBtn";
+      }
+      return "";
+    });
+    await page.waitForTimeout(280);
+    const afterReorg = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const hit = (a, b, slack) => {
+        slack = slack || 0;
+        return !!(
+          a &&
+          b &&
+          a.width > 2 &&
+          b.width > 2 &&
+          !(a.right - slack <= b.left || a.left + slack >= b.right || a.bottom - slack <= b.top || a.top + slack >= b.bottom)
+        );
+      };
+      const pairs = (rects, slack) => {
+        let n = 0;
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j], slack)) n++;
+        }
+        return n;
+      };
+      const stage = document.querySelector("#canvas .stage");
+      const stageBox = stage ? stage.getBoundingClientRect() : null;
+      const cards = [...document.querySelectorAll(".bubble-card")].map((el) => el.getBoundingClientRect());
+      const visible = cards.filter((c) => {
+        if (!stageBox || c.width < 4 || c.height < 4) return false;
+        return !(c.right <= stageBox.left || c.left >= stageBox.right || c.bottom <= stageBox.top || c.top >= stageBox.bottom);
+      });
+      return {
+        cards: cards.length,
+        visible: visible.length,
+        cardHits: pairs(visible, 4),
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        toast: ((document.getElementById("toast") || {}).textContent || "").trim(),
+      };
+    }, beforeFitPosts);
+    record(
+      "FR3",
+      "Reorganize (#reorgBtn) runs without stamp / skip posts",
+      !!reorgVia && afterReorg.stampPosts === 0 && afterReorg.skipPosts === 0,
+      "via=" + reorgVia + " " + JSON.stringify(afterReorg)
+    );
+    record(
+      "FR4",
+      "Reorganize keeps Map community LOD and cards (stable or >1)",
+      afterReorg.xy === 0 &&
+        afterReorg.comm === 0 &&
+        afterReorg.cards > 1 &&
+        (afterReorg.cards === cardsBeforeFit || afterReorg.cards >= 8) &&
+        afterReorg.visible >= 3 &&
+        afterReorg.cardHits === 0,
+      "before=" + cardsBeforeFit + " " + JSON.stringify(afterReorg)
+    );
+    await shot(page, "fit-reorg.png");
+    const stampDirFit = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampFit = fs.existsSync(stampDirFit) && fs.readdirSync(stampDirFit).length > 0;
+    record(
+      "FR5",
+      "Fit / Reorganize did not write .graphide/stamps/",
+      !wroteStampFit,
+      wroteStampFit ? fs.readdirSync(stampDirFit).join(",") : "absent"
+    );
 
     const beforeNightPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
@@ -4127,7 +4292,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
