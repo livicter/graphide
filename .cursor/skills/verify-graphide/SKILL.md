@@ -101,7 +101,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
 10. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
 11. **Package** — `npm ci --prefix extension && npm run package` writes `extension/graphide-*.vsix` and must pass `npm run check:package` plus `npm run check:activation`. The VSIX holds compiled `out/extension.js`, `media/main.js`, `media/main.css`, `media/xyflow.css`, `media/icon.svg`, and `bin/graphide` (or `graphide.exe`) for this host. It must not contain `media/src/` or `extension/src/`. Core Review does not need an LLM key. This does **not** launch a VS Code Extension Host.
-12. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
+12. **Harness** — `npm install && npx playwright install chromium && npm run verify`
    drives seven desks plus Export, Presentation, Style, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - Overview / Decisions / Registry / Timeline lists on that explorer desk
@@ -139,7 +139,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `export-share.png` (1200×630), a desk PNG or SVG, `present.png`,
     `preset-blueprint.png`, `route.png`, and `lens.png`. PNGs are not a black
     frame (mean luma well above 0.15 on the bright desk).
-14. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
+14. **CI** — the GitHub Actions job named `verify` runs on
+    `[self-hosted, macOS, ARM64]` (Mac mini). Green on the PR. No merge
     on a written story.
 
 If the harness cannot boot the derived snap, say exactly what blocked (missing
