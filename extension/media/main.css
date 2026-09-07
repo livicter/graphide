@@ -242,10 +242,14 @@ button:disabled { opacity: 0.45; cursor: default; }
   border: 1px solid var(--vscode-panel-border);
 }
 #llmPane {
+  position: relative;
+  z-index: 24;
+  flex-shrink: 0;
   border-top: 1px solid var(--vscode-panel-border);
   background: color-mix(in srgb, var(--vscode-editor-background) 88%, #000);
   padding: 8px 10px 10px;
   max-height: 42vh;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;

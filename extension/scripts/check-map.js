@@ -178,7 +178,11 @@ assert(js.includes("function separateBoxes"), "layout must push overlapping boxe
 assert(js.includes("maxRows > 4 || buckets.length > maxCols"), "tall ranks must pack into a compact wrap");
 assert(chrome.includes('id="reorgBtn"'), "Reorganize button missing from the webview chrome");
 assert(chrome.includes('id="llmPane"'), "LLM Ask panel missing from the webview chrome");
+assert(chrome.includes('id="llmBtn"') && chrome.includes('id="llmClose"') && chrome.includes('id="llmAsk"') && chrome.includes('id="llmSend"') && chrome.includes('id="llmLog"'), "Ask chrome ids missing");
 assert(js.includes("function sendLlmAsk"), "LLM Ask must be wired in the webview");
+assert(js.includes("function localAsk"), "graph-only Ask fallback missing");
+assert(js.includes("function setLlmPane"), "Ask pane toggle missing");
+assert(/#llmPane\s*\{[^}]*z-index/.test(css), "Ask pane must stack above the desk");
 assert(!/sigma|forceatlas|ForceAtlas|sparql|shacl|owl:/i.test(js), "must not port Semantica graph engines or ontology");
 assert(js.includes('id="scorecard"'), "review scorecard missing");
 assert(js.includes("function reviewMarks"), "review queue marks missing");
@@ -272,6 +276,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md")), "lens feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ego.md")), "ego feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/search.md")), "search feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ask.md")), "ask feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
@@ -323,6 +328,7 @@ assert(driver.includes("export-share.png") && driver.includes("exportBtn") && dr
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
 assert(driver.includes("ego.png") && driver.includes("search.png") && driver.includes("EG1") && driver.includes("SG1") && driver.includes("EG5") && driver.includes("SG3"), "verify driver must drive Ego and Find on enter / Slice / Lineage");
+assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("decisions.png") && driver.includes("registry.png") && driver.includes("timeline.png"), "verify driver must screenshot Decisions / Registry / Timeline");
 assert(driver.includes("OV1") && driver.includes("OV3") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Overview CFG XYFlow");
 assert(driver.includes("DC1") && driver.includes("data-decision") && driver.includes("RG1") && driver.includes("table.audit") && driver.includes("TL1") && driver.includes("tl-item"), "verify driver must drive Decisions / Registry / Timeline lists");
