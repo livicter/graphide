@@ -291,8 +291,10 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md")), "program-chips feature map missing");
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
+assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -300,6 +302,14 @@ assert(
     zoomMap.includes("## Driving it with the harness") &&
     zoomMap.includes("## Gotchas"),
   "zoom feature map must use the four headings"
+);
+const programChipsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md"), "utf8");
+assert(
+  programChipsMap.includes("## Sub-features") &&
+    programChipsMap.includes("## How to get to it (user POV)") &&
+    programChipsMap.includes("## Driving it with the harness") &&
+    programChipsMap.includes("## Gotchas"),
+  "program-chips feature map must use the four headings"
 );
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/progress.md")), "progress feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/cancel-review.md")), "cancel-review feature map missing");
@@ -366,6 +376,8 @@ assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
+assert(driver.includes("program-chips.png") && driver.includes("#legend [data-prog]") && driver.includes("PC1") && driver.includes("PC2"), "verify driver must drive program chip switch");
+assert(js.includes("function renderLegend") && js.includes("data-prog") && js.includes("graphFilter.program"), "desk must paint #legend [data-prog] and filter graphFilter.program");
 assert(/runs-on:\s*ubuntu-latest/.test(workflow), "verify job must stay on ubuntu-latest");
 assert(driver.includes("progress.png") && driver.includes("PG1") && driver.includes("#progress") && driver.includes("data-phase"), "verify driver must prove Review progress strip");
 assert(driver.includes("cancel-review.png") && driver.includes("CR1") && driver.includes("#cancelBtn") && driver.includes('type: "cancel"'), "verify driver must prove Cancel restores the desk");

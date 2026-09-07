@@ -212,7 +212,7 @@ function writeReport(extra) {
       return "| " + c.id + " | " + (c.pass ? "PASS" : "FAIL") + " | " + c.title + " | " + d + " |";
     }),
     "",
-    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
+    "Artifacts: `overview.png`, `decisions.png`, `registry.png`, `timeline.png`, `map.png`, `night.png`, `enter-bubble.png`, `ego.png`, `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `evidence.png`, `coverage-mark.png`, `fit-reorg.png`, `zoom.png`, `program-chips.png`, `progress.png`, `cancel-review.png`, `flow-hints.png`, `unmatched-hint.png`, `uncovered-node.png`, `open-slice.png`, `draft-hint.png`, `stamp-host.png`, `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`, `lifecycle.png`, `lineage.png`, `export-desk.png`, `export-desk.svg`, `export-share.png`, `present.png`, `preset-blueprint.png`, `route.png`, `lens.png`, `report.md`.",
     "",
     "Stamp/skip clicks only prove `window.__vscodePosts`. They do not write `.graphide/stamps/`.",
     "Self-review is `graphide review` of this checkout — not the synthetic explorer fixture.",
@@ -1925,6 +1925,28 @@ async function main() {
       "Zoom did not write .graphide/stamps/",
       !wroteStampZoom,
       wroteStampZoom ? fs.readdirSync(stampDirZoom).join(",") : "absent"
+    );
+
+    const explorerChips = await page.evaluate(() => {
+      const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
+        i: Number(el.getAttribute("data-prog")),
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+        on: el.classList.contains("on"),
+      }));
+      return {
+        chips,
+        programs: chips.filter((c) => c.i >= 0),
+      };
+    });
+    const explorerMulti = explorerChips.programs.length >= 2;
+    record(
+      "PC0",
+      "explorer program chips: single-chip honest path; skip multi unless a second chip exists",
+      explorerChips.programs.length >= 1 &&
+        (explorerMulti || explorerChips.programs.some((p) => /bin\s+main/i.test(p.text))),
+      explorerMulti
+        ? "multi chips=" + explorerChips.programs.map((p) => p.text).join(",")
+        : "single-chip skip multi chips=" + explorerChips.programs.map((p) => p.text).join(",")
     );
 
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
@@ -4001,6 +4023,162 @@ async function main() {
     const wroteStampAfter = fs.existsSync(stampDirAfter) && fs.readdirSync(stampDirAfter).length > 0;
     record("R7", "Self-review step did not write .graphide/stamps/", !wroteStampAfter, wroteStampAfter ? fs.readdirSync(stampDirAfter).join(",") : "absent");
 
+    const readProgDesk = () =>
+      page.evaluate(() => {
+        const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
+          i: Number(el.getAttribute("data-prog")),
+          text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+          on: el.classList.contains("on"),
+        }));
+        const programs = chips.filter((c) => c.i >= 0);
+        const on = chips.find((c) => c.on) || null;
+        const meta = ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim();
+        const cards = [...document.querySelectorAll(".bubble-card")];
+        const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+        const chipName = (text) => {
+          const t = String(text || "").replace(/\s+/g, " ").trim();
+          const sp = t.indexOf(" ");
+          return sp >= 0 ? t.slice(sp + 1) : t;
+        };
+        return {
+          chips,
+          programs,
+          onText: on ? on.text : "",
+          onKey: on ? on.i : null,
+          onName: on ? chipName(on.text) : "",
+          meta,
+          cards: cards.length,
+          names,
+          xy: document.querySelectorAll(".react-flow__node").length,
+          comm: document.querySelectorAll(".comm-node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+            ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+            : "",
+        };
+      });
+    const beforeChipPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const liveChipDesk = await readProgDesk();
+    record(
+      "PC1",
+      "self-review has two or more Graphide program chips",
+      liveChipDesk.programs.length >= 2 &&
+        liveChipDesk.programs.some((p) => /graphide/i.test(p.text)),
+      liveChipDesk.programs
+        .slice(0, 8)
+        .map((p) => p.text)
+        .join(",")
+    );
+    const chipSwitch = await page.evaluate(() => {
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      if (programs.length < 2) return { ok: false, first: "", second: "", firstI: null, secondI: null };
+      const first = programs[0];
+      const second = programs[1];
+      first.click();
+      return {
+        ok: true,
+        first: (first.textContent || "").replace(/\s+/g, " ").trim(),
+        second: (second.textContent || "").replace(/\s+/g, " ").trim(),
+        firstI: Number(first.getAttribute("data-prog")),
+        secondI: Number(second.getAttribute("data-prog")),
+      };
+    });
+    await page.waitForTimeout(280);
+    const afterFirstChip = await readProgDesk();
+    await page.evaluate(() => {
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      if (programs[1]) programs[1].click();
+    });
+    await page.waitForTimeout(280);
+    const afterSecondChip = await page.evaluate((before) => {
+      const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
+        i: Number(el.getAttribute("data-prog")),
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+        on: el.classList.contains("on"),
+      }));
+      const programs = chips.filter((c) => c.i >= 0);
+      const on = chips.find((c) => c.on) || null;
+      const meta = ((document.getElementById("meta") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const chipName = (text) => {
+        const t = String(text || "").replace(/\s+/g, " ").trim();
+        const sp = t.indexOf(" ");
+        return sp >= 0 ? t.slice(sp + 1) : t;
+      };
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        programs,
+        onText: on ? on.text : "",
+        onKey: on ? on.i : null,
+        onName: on ? chipName(on.text) : "",
+        meta,
+        cards: cards.length,
+        names,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, beforeChipPosts);
+    const secondName = afterSecondChip.onName || "";
+    const firstName = afterFirstChip.onName || "";
+    record(
+      "PC2",
+      "second program chip switches the Map / Review cut (caption + program key)",
+      chipSwitch.ok &&
+        afterFirstChip.onKey === chipSwitch.firstI &&
+        afterSecondChip.onKey === chipSwitch.secondI &&
+        afterSecondChip.onKey !== afterFirstChip.onKey &&
+        afterSecondChip.onText !== afterFirstChip.onText &&
+        !!firstName &&
+        !!secondName &&
+        firstName.toLowerCase() !== secondName.toLowerCase() &&
+        afterFirstChip.meta.toLowerCase().includes(firstName.toLowerCase()) &&
+        afterSecondChip.meta.toLowerCase().includes(secondName.toLowerCase()),
+      "first=" +
+        afterFirstChip.onText +
+        " second=" +
+        afterSecondChip.onText +
+        " meta=" +
+        afterSecondChip.meta.slice(0, 120)
+    );
+    record(
+      "PC3",
+      "program chip switch keeps Map community LOD",
+      afterSecondChip.ws === "map" &&
+        afterSecondChip.xy === 0 &&
+        afterSecondChip.comm === 0 &&
+        afterSecondChip.cards > 1,
+      JSON.stringify({
+        ws: afterSecondChip.ws,
+        xy: afterSecondChip.xy,
+        comm: afterSecondChip.comm,
+        cards: afterSecondChip.cards,
+      })
+    );
+    await shot(page, "program-chips.png");
+    record(
+      "PC4",
+      "program chip switch does not post stamp / skip",
+      afterSecondChip.stampPosts === 0 && afterSecondChip.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterSecondChip.stampPosts, skipPosts: afterSecondChip.skipPosts })
+    );
+    const stampDirChips = path.join(ROOT, ".graphide", "stamps");
+    const wroteStampChips = fs.existsSync(stampDirChips) && fs.readdirSync(stampDirChips).length > 0;
+    record(
+      "PC5",
+      "program chip switch did not write .graphide/stamps/",
+      !wroteStampChips,
+      wroteStampChips ? fs.readdirSync(stampDirChips).join(",") : "absent"
+    );
+
     const deltaSnap = loadDeltaSnap();
     const deltaGraph = assertDeltaSnap(deltaSnap);
     const deltaUrl = origin + DELTA_HARNESS;
@@ -5222,7 +5400,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · ask · keys · path-walk · appearance · coverage-mark · fit-reorg · zoom · program-chips · progress · cancel-review · flow-hints · unmatched-hint · uncovered-node · open-slice · draft-hint · stamp posted · delta · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 
