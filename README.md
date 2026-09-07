@@ -128,7 +128,7 @@ Without a host, Ask still answers from the review graph. Reinstall the VSIX afte
 
 ## Prompt
 
-Optional: `name=hit,hit` (repeat flows with `;`). Hits are unique FQN suffixes. The slice is a Steiner tree on the derived graph — static extract, not a live debugger.
+Optional: `name=hit,hit` (repeat flows with `;`). Hits are unique FQN suffixes. The slice is a Steiner tree on the derived graph — static extract, not a live debugger. Timeline **Uncovered** can copy a draft `[[flow]]` hit list from those FQNs; paste it into `flows.toml`. The desk does not apply the hint and does not stamp.
 
 ## Stamp and coverage
 

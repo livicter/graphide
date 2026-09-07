@@ -76,6 +76,8 @@ Driver assertions:
 - Self-review of this checkout is `--no-parent` and may have empty
   coverage. Do not fail closed on live-snap emptiness; the explorer
   fixture is the prove path.
+- Draft `[[flow]]` copy from this row is [draft-hint.md](draft-hint.md).
+  This map stays the aggregate finding.
 - Do not add `data-testid`. `#coverage`, `.cov-chip`,
   `.tl-item[data-t]`, `#tlScrubMeta` are the product hooks.
 - Agents never stamp. Do not click `#stampBtn` to “cover” the node.

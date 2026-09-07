@@ -32,7 +32,7 @@ Not an agent-drawn diagram, not a second hint UI, and not a default
    hit list, not an approval.
 
 This PR proves the happy path: a **present** hint is visible.
-Under-hint suggestion UX is out of scope.
+Under-hint draft (copy uncovered FQNs) is [draft-hint.md](draft-hint.md).
 
 ## Driving it with the harness
 

@@ -23468,6 +23468,35 @@
       });
       return ev;
     }
+    function uncoveredHintFqns() {
+      const uncovered = (snapshot && snapshot.coverage || {}).uncovered || [];
+      const hits = [];
+      for (const raw of uncovered.slice(0, 8)) {
+        const n = nodeById.get(idVal(raw));
+        if (n && n.fqn) hits.push(String(n.fqn));
+      }
+      return hits;
+    }
+    function draftHintToml(hits) {
+      const list = (hits || []).map((h) => JSON.stringify(h)).join(", ");
+      return '[[flow]]\nname = "uncovered"\nhits = [' + list + "]\n";
+    }
+    function copyDraftHint() {
+      const pre = document.getElementById("draftHint");
+      const text = (pre && pre.textContent || draftHintToml(uncoveredHintFqns())).trim();
+      if (!text || !/\[\[flow\]\]/.test(text) || !/hits\s*=/.test(text)) {
+        flashToast("No uncovered FQNs", "skip");
+        return;
+      }
+      const write = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text).then(() => true).catch(() => false) : Promise.resolve(false);
+      write.then((ok) => flashToast(ok ? "Copied draft hint" : "Draft hint ready", ok ? "ok" : ""));
+    }
+    function renderUncoveredDraft(e) {
+      if (!e || e.kind !== "coverage" || e.title !== "Uncovered") return "";
+      const hits = uncoveredHintFqns();
+      if (!hits.length) return "";
+      return '<button type="button" class="crumb-btn" id="draftHintBtn">Copy draft</button><pre id="draftHint">' + esc(draftHintToml(hits)) + "</pre>";
+    }
     function timelineEvents() {
       const cov = snapshot && snapshot.coverage || {};
       const changed = cov.changed || [];
@@ -23615,7 +23644,7 @@
       if (timelineCursor < 0) timelineCursor = 0;
       const cur = ev[timelineCursor];
       return '<div class="tl-page"><div class="tl-scrub"><label>Watch this review <input id="tlScrub" type="range" min="0" max="' + (ev.length - 1) + '" value="' + timelineCursor + '" /></label><span id="tlScrubMeta">t' + timelineCursor + " · " + esc(cur && cur.title || "event") + '</span></div><div class="tl-rail">' + ev.map((e, i) => {
-        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div></article>";
+        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
       }).join("") + "</div></div>";
     }
     function deltaFacts() {
@@ -25174,6 +25203,13 @@
           applyTimelineScrub();
         });
       });
+      const draftBtn = document.getElementById("draftHintBtn");
+      if (draftBtn) {
+        draftBtn.onclick = (ev) => {
+          ev.stopPropagation();
+          copyDraftHint();
+        };
+      }
     }
     function renderCardList(rows, empty2) {
       const shown = (rows || []).filter(

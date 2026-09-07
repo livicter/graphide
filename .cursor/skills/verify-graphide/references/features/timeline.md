@@ -14,6 +14,9 @@ rail. Not a graph canvas and not Architecture Delta.
 - Rail `.tl-page` / `.tl-rail` / `.tl-item[data-t]` with `.now` / `.past` /
   `.ahead`. Scrubber `#tlScrub` and `#tlScrubMeta` (`tN · title`).
 - Items may carry `data-flow` to open Slice.
+- Selected Uncovered item (`.now`) may show `#draftHintBtn` / `#draftHint`
+  — a `[[flow]]` hit list from uncovered FQNs. Proof lives in
+  [draft-hint.md](draft-hint.md).
 - Honest empty (only if find hides every row): “No timeline events match
   …”. No-event copy: “No parent cut or stamp events yet.” (unreachable
   while Parent cut + Uncovered are always pushed).
