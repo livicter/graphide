@@ -139,16 +139,19 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Progress: explorer desk posts synthetic `{ type: "progress" }`;
      `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
      label update; `verification/progress.png` while the strip is on
-   - Flow hints: `?dataflow=1` demo snap; `#tabs` chip
-     `data-subscription`; Steiner nodes/edges on that named flow;
-     `verification/flow-hints.png`
+    - Flow hints: `?dataflow=1` demo snap; `#tabs` chip
+      `data-subscription`; Steiner nodes/edges on that named flow;
+      `verification/flow-hints.png`
+    - Unmatched hint: explorer desk; `#coverage li.finding`
+      `unmatched solarsim::MissingHit in boot`; Decisions card
+      `UnmatchedHint`; `verification/unmatched-hint.png`
 13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
     **delta**, **sequence**, **dataflow**, **lifecycle**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **fit-reorg**,
-    **progress**, and **flow-hints**.
+    **progress**, **flow-hints**, and **unmatched-hint**.
     `verification/` holds screenshots plus `report.md`, including
     `overview.png`, `decisions.png`, `registry.png`, `timeline.png`,
     `self-review.png`, `delta.png`, `sequence.png`, `dataflow.png`,
@@ -156,6 +159,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     `search.png`, `ask.png`, `keys.png`, `path-walk.png`, `night.png`,
     `coverage-mark.png`, `fit-reorg.png`, `progress.png`,
     `flow-hints.png`,
+    `unmatched-hint.png`,
     `export-share.png` (1200×630),
     a desk PNG or SVG, `present.png`, `preset-blueprint.png`, `route.png`,
     and `lens.png`. PNGs are not a black frame (mean luma well above 0.15
@@ -360,10 +364,22 @@ Flow hints gate (fixtures/demo `flows.toml`, Data-flow snap):
 - Flow hints do not write `.graphide/stamps/` and do not post
   `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
 
+Unmatched hint gate (explorer synthetic snap):
+
+- Explorer `flowPayload()` already seeds
+  `{ kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" }`
+- `#coverage li.finding` text is `unmatched solarsim::MissingHit in boot`
+- Decisions `.expl-card[data-decision]` lists `UnmatchedHint` (not only
+  `StampBroken`)
+- Playwright paints `?mode=explorer` and screenshots
+  `verification/unmatched-hint.png`
+- Unmatched hint does not write `.graphide/stamps/` and does not post
+  `{ type: "stamp" }`. Map stays `xy=0` if the drive touches Map
+
 Stamp / skip is **human-only**. Agents never stamp. A harness may click
 `#stampBtn` / `#skipBtn` only to prove the host message is posted
 (`window.__vscodePosts`). It must not write `.graphide/stamps/` as if an agent
-  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, and Flow hints steps do not stamp.
+  approved a flow. The self-review, Overview, Decisions, Registry, Timeline, Delta, Sequence, Data-flow, Lifecycle, Lineage, Export, Presentation, Style, Route, Lens, Enter-bubble, Ego, Find, Ask, Keys, Path walk, Appearance, Coverage mark, Fit / Reorganize, Progress, Flow hints, and Unmatched hint steps do not stamp.
 
 **Coverage rule** (document here; do not try to enforce agent-stamping): every
 changed derived node on a proposed Steiner flow. Stamp / skip stays human.
@@ -464,6 +480,7 @@ same PR because the harness truly cannot hook existing ones.
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |
+| Unmatched hint | `#coverage li.finding`, `.expl-card[data-decision]` |
 | Host stub | `window.__vscodePosts`, `window.acquireVsCodeApi` |
 | Live snap | `window.__graphideLive`, `window.__graphideLiveError` |
 | Delta snap | `window.__graphideDelta`, `window.__graphideDeltaError` |
