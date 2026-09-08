@@ -434,6 +434,7 @@ assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
 assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
 assert(js.includes("function recycleBubbleMap") && js.includes("function recycleBubbleCards") && js.includes("function recycleCommEdges"), "Map recycle helpers missing");
+assert(js.includes("function pinMapCommunityLod") && /mapStageMounted\(\) \? "0"/.test(js), "Map recycle must pin viewport data-lod 0");
 assert(js.includes("function mapStageMounted") && js.includes("function applyPatch") && js.includes('type === "patch"'), "preview/flowchart patch + keepCam missing");
 assert(/bindStage\([\s\S]{0,40}\{ reset: false \}/.test(js), "recycle must bindStage with reset false");
 assert(driver.includes("program-chips.png") && driver.includes("#legend [data-prog]") && driver.includes("PC1") && driver.includes("PC2"), "verify driver must drive program chip switch");

@@ -17,8 +17,10 @@ altitude and not an XYFlow Map rewrite.
 - Preview / flowchart / programs patch snapshot fields when Map is
   mounted. Coverage / findings refresh after the canvas (BEST_EFFORT).
   Stamp / click stay CRITICAL and are not gated on panel refresh.
-- Map stays community LOD (`xy=0`). No second altitude. Off-view
-  skip is not a second LOD.
+- Map stays community LOD (`xy=0`, `.viewport` `data-lod="0"`).
+  Recycle / keepCam may keep pan/zoom scale; they do not raise
+  Map into geometric lod 1. No second altitude. Off-view skip is
+  not a second LOD.
 - Stamp / skip stay human. Recycle never posts `{ type: "stamp" }`
   / `{ type: "skip" }` and never writes `.graphide/stamps/`.
 
@@ -68,7 +70,9 @@ Driver assertions:
 - Do not wipe `#canvas` when a Map stage is already mounted. Slice
   / Enter still replace the canvas when leaving Map.
 - `keepCam` is the recycle default. First paint (no `.comm-wrap`)
-  still `bindStage(..., { reset: true })`.
+  still `bindStage(..., { reset: true })`. Recycle pins
+  `data-lod="0"` so a zoomed `--cam-k` cannot leave community
+  altitude.
 - Do not add `data-testid`. `.stage`, `.viewport`, `.bubble-card`,
   `[data-bubble]`, `svg.comm-edges` are the hooks.
 - Do not React-mount Map community LOD. Cards stay vanilla. `xy=0`.

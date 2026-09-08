@@ -21137,11 +21137,16 @@
         goBack();
       }
     }
+    function pinMapCommunityLod(vp) {
+      const el2 = vp || viewportEl || canvas && canvas.querySelector(".viewport");
+      if (!el2) return;
+      if (el2.getAttribute("data-lod") !== "0") el2.setAttribute("data-lod", "0");
+    }
     function applyCam() {
       if (viewportEl) {
         viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
         viewportEl.style.setProperty("--cam-k", String(cam.k));
-        const lod = String(lodOf(cam.k));
+        const lod = mapStageMounted() ? "0" : String(lodOf(cam.k));
         if (viewportEl.getAttribute("data-lod") !== lod) {
           viewportEl.setAttribute("data-lod", lod);
           const wrap = viewportEl.querySelector(".comm-wrap");
@@ -25950,6 +25955,8 @@
         recycleCommEdges(svg, edges, pos, W, H2);
       }
       recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds);
+      const vp = stage && stage.querySelector(".viewport");
+      pinMapCommunityLod(vp);
     }
     function renderBubbleMap(clusters, opts) {
       const path = storyMapBubbles();
@@ -26026,6 +26033,7 @@
         canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
         bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });
       }
+      pinMapCommunityLod(canvas.querySelector(".viewport"));
       setZoomUi(true);
       const wrap = canvas.querySelector(".comm-wrap");
       separatePaintedCards(wrap, ".bubble-card");

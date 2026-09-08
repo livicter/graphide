@@ -1815,11 +1815,17 @@ function popAltitudeFromZoom() {
   }
 }
 
+function pinMapCommunityLod(vp) {
+  const el = vp || viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (!el) return;
+  if (el.getAttribute("data-lod") !== "0") el.setAttribute("data-lod", "0");
+}
+
 function applyCam() {
   if (viewportEl) {
     viewportEl.style.transform = "translate(" + cam.x + "px," + cam.y + "px) scale(" + cam.k + ")";
     viewportEl.style.setProperty("--cam-k", String(cam.k));
-    const lod = String(lodOf(cam.k));
+    const lod = mapStageMounted() ? "0" : String(lodOf(cam.k));
     if (viewportEl.getAttribute("data-lod") !== lod) {
       viewportEl.setAttribute("data-lod", lod);
       const wrap = viewportEl.querySelector(".comm-wrap");
@@ -8010,6 +8016,8 @@ function recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path) {
     recycleCommEdges(svg, edges, pos, W, H);
   }
   recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds);
+  const vp = stage && stage.querySelector(".viewport");
+  pinMapCommunityLod(vp);
 }
 
 function renderBubbleMap(clusters, opts) {
@@ -8131,6 +8139,7 @@ function renderBubbleMap(clusters, opts) {
       "</div></div></div>";
     bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });
   }
+  pinMapCommunityLod(canvas.querySelector(".viewport"));
   setZoomUi(true);
   const wrap = canvas.querySelector(".comm-wrap");
   separatePaintedCards(wrap, ".bubble-card");
