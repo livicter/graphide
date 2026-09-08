@@ -293,6 +293,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/canvas-recycle.md")), "canvas-recycle feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-onanalysis.md")), "delta-onanalysis feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-offview.md")), "map-offview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md")), "program-chips feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/all-programs.md")), "all-programs feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
@@ -300,6 +301,7 @@ const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/ve
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
+assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
@@ -346,6 +348,14 @@ assert(
     deltaOnAnalysisMap.includes("## Driving it with the harness") &&
     deltaOnAnalysisMap.includes("## Gotchas"),
   "delta-onanalysis feature map must use the four headings"
+);
+const mapOffviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-offview.md"), "utf8");
+assert(
+  mapOffviewMap.includes("## Sub-features") &&
+    mapOffviewMap.includes("## How to get to it (user POV)") &&
+    mapOffviewMap.includes("## Driving it with the harness") &&
+    mapOffviewMap.includes("## Gotchas"),
+  "map-offview feature map must use the four headings"
 );
 const programChipsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md"), "utf8");
 assert(
@@ -444,6 +454,9 @@ assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
 assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
 assert(driver.includes("delta-onanalysis.png") && driver.includes("DA0") && driver.includes("DA1") && driver.includes("OnAnalysisDelta") && driver.includes('type: "patch"'), "verify driver must prove coverage-only patch without canvas rebuild");
+assert(driver.includes("map-offview.png") && driver.includes("OV0") && driver.includes("OV1") && driver.includes("data-offview"), "verify driver must prove Map off-view park + restore");
+assert(js.includes("function syncOffviewCards") && js.includes("function queueOffviewSync") && js.includes("data-offview"), "Map off-view park helpers missing");
+assert(css.includes('.bubble-card[data-offview="1"]') && css.includes("content-visibility"), "Map off-view CSS missing");
 assert(js.includes("function recycleBubbleMap") && js.includes("function recycleBubbleCards") && js.includes("function recycleCommEdges"), "Map recycle helpers missing");
 assert(js.includes("function pinMapCommunityLod") && /mapStageMounted\(\) \? "0"/.test(js), "Map recycle must pin viewport data-lod 0");
 assert(js.includes("function mapStageMounted") && js.includes("function applyPatch") && js.includes('type === "patch"'), "preview/flowchart patch + keepCam missing");
