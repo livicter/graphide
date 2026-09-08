@@ -20164,6 +20164,10 @@
         previewTimer = setTimeout(() => applyPreview(msg), 40);
         return;
       }
+      if (msg.type === "patch") {
+        applyPatch(msg);
+        return;
+      }
       if (msg.type === "cancelled") {
         clearTimeout(previewTimer);
         finishWork();
@@ -20221,12 +20225,76 @@
         appendLlmLog(msg.text || "LLM error", "err");
       }
     });
+    function mapStageMounted() {
+      if (!canvas || !canvas.classList.contains("programs-view")) return false;
+      const stage = canvas.querySelector(".stage");
+      const viewport = stage && stage.querySelector(".viewport");
+      return !!(viewport && viewport.querySelector(".comm-wrap"));
+    }
+    function patchSnapshotFields(msg, opts) {
+      opts = opts || {};
+      if (!snapshot) return false;
+      if (msg.flows && msg.flows.length) {
+        snapshot.flows = msg.flows;
+        snapshot.flow = msg.flow || snapshot.flows.find((f) => f.name === flowName) || snapshot.flows[0] || snapshot.flow;
+      } else if (msg.flow) {
+        snapshot.flow = msg.flow;
+      }
+      if (msg.graph && (msg.graph.nodes || []).length) snapshot.graph = msg.graph;
+      if (msg.bubbles && msg.bubbles.length) snapshot.bubbles = msg.bubbles;
+      if (msg.coverage) snapshot.coverage = msg.coverage;
+      if (msg.findings) snapshot.findings = msg.findings;
+      if (msg.plugin) snapshot.plugin = msg.plugin;
+      if (msg.stats) snapshot.stats = Object.assign({}, snapshot.stats, msg.stats);
+      if (msg.nodes != null || msg.edges != null || msg.elapsed_ms != null) {
+        snapshot.stats = Object.assign({}, snapshot.stats, {
+          nodes: msg.nodes != null ? msg.nodes : snapshot.stats && snapshot.stats.nodes,
+          edges: msg.edges != null ? msg.edges : snapshot.stats && snapshot.stats.edges,
+          elapsed_ms: msg.elapsed_ms != null ? msg.elapsed_ms : snapshot.stats && snapshot.stats.elapsed_ms
+        });
+      }
+      if (msg.stamps) snapshot.stamps = msg.stamps;
+      if (msg.skipped) snapshot.skipped = msg.skipped;
+      if (msg.programs) snapshot.programs = msg.programs;
+      if (msg.delta) snapshot.delta = msg.delta;
+      if (msg.program) snapshot.program = msg.program;
+      if (msg.snippets) snapshot.snippets = msg.snippets;
+      if (opts.preview != null) snapshot.preview = !!opts.preview;
+      if (msg.flow && msg.flow.name) flowName = msg.flow.name;
+      else if (!flowName && snapshot.flows && snapshot.flows[0]) flowName = snapshot.flows[0].name;
+      indexGraph(snapshot.graph);
+      return true;
+    }
+    function applyPatch(msg) {
+      if (!snapshot) return;
+      patchSnapshotFields(msg);
+      paint({ animate: "none", keepCam: mapStageMounted() || !!canvas.querySelector(".stage") });
+    }
     function applyPreview(msg) {
       if (!busy) return;
+      const keep = mapStageMounted() && snapshot;
       const flows = (msg.flows || []).map((f) => ({
         ...f,
         flowchart: { runs: [], spine: [], positions: [] }
       }));
+      if (keep) {
+        if (msg.graph && (msg.graph.nodes || []).length) snapshot.graph = msg.graph;
+        if (msg.plugin) snapshot.plugin = msg.plugin;
+        snapshot.stats = Object.assign({}, snapshot.stats, {
+          elapsed_ms: msg.elapsed_ms,
+          nodes: msg.nodes,
+          edges: msg.edges
+        });
+        snapshot.preview = true;
+        if (flows.length && !(snapshot.flows || []).length) {
+          snapshot.flows = flows;
+          snapshot.flow = flows.find((f) => f.name === flowName) || flows[0];
+        }
+        if (!flowName && flows[0]) flowName = flows[0].name;
+        indexGraph(snapshot.graph);
+        paint({ animate: "none", preview: true, keepCam: true });
+        return;
+      }
       snapshot = {
         flows,
         flow: flows.find((f) => f.name === flowName) || flows[0],
@@ -20244,6 +20312,30 @@
       paint({ animate: "tree", preview: true, keepCam: !!canvas.querySelector(".stage") });
     }
     function applyPrograms(msg) {
+      const keep = mapStageMounted() && snapshot;
+      if (keep) {
+        if (msg.flows) snapshot.flows = msg.flows;
+        if (msg.graph) snapshot.graph = msg.graph;
+        if (msg.bubbles) snapshot.bubbles = msg.bubbles;
+        if (msg.coverage) snapshot.coverage = msg.coverage;
+        if (msg.findings) snapshot.findings = msg.findings;
+        if (msg.plugin) snapshot.plugin = msg.plugin;
+        if (msg.stats) snapshot.stats = msg.stats;
+        snapshot.stamps = msg.stamps || snapshot.stamps || [];
+        snapshot.skipped = msg.skipped || snapshot.skipped || [];
+        if (msg.programs) snapshot.programs = msg.programs;
+        if (msg.delta) snapshot.delta = msg.delta;
+        snapshot.program = null;
+        snapshot.preview = false;
+        snapshot.inner = null;
+        indexGraph(snapshot.graph);
+        stampRows = snapshot.stamps || [];
+        skippedFlows = snapshot.skipped || [];
+        applyExplorerLanding();
+        finishWork();
+        paint({ animate: "none", keepCam: true });
+        return;
+      }
       snapshot = {
         flows: msg.flows || snapshot?.flows || [],
         flow: snapshot?.flow,
@@ -20272,6 +20364,14 @@
       paint({ animate: "none" });
     }
     function applySnapshot(msg, inner) {
+      if (!inner && mapStageMounted() && snapshot) {
+        patchSnapshotFields(msg, { preview: false });
+        stampRows = snapshot.stamps || stampRows;
+        skippedFlows = snapshot.skipped || skippedFlows;
+        finishWork();
+        paint({ animate: "none", keepCam: true });
+        return;
+      }
       snapshot = {
         flows: msg.flows || (msg.flow ? [msg.flow] : snapshot?.flows) || [],
         flow: msg.flow,
@@ -21170,23 +21270,23 @@
       tip.style.top = y + "px";
     }
     function bindStage(stage, opts) {
+      if (!stage) return;
       viewportEl = stage.querySelector(".viewport");
       if (!opts || opts.reset) {
         resetCam();
         scheduleFit(stage);
       } else applyCam();
-      if (stage && !stage.dataset.uiBound) {
-        stage.dataset.uiBound = "1";
-        stage.addEventListener("pointermove", (e) => {
-          const r = stage.getBoundingClientRect();
-          stage.style.setProperty("--mx", e.clientX - r.left + "px");
-          stage.style.setProperty("--my", e.clientY - r.top + "px");
-        });
-        stage.addEventListener("pointerleave", () => {
-          stage.style.setProperty("--mx", "50%");
-          stage.style.setProperty("--my", "40%");
-        });
-      }
+      if (stage.dataset.uiBound) return;
+      stage.dataset.uiBound = "1";
+      stage.addEventListener("pointermove", (e) => {
+        const r = stage.getBoundingClientRect();
+        stage.style.setProperty("--mx", e.clientX - r.left + "px");
+        stage.style.setProperty("--my", e.clientY - r.top + "px");
+      });
+      stage.addEventListener("pointerleave", () => {
+        stage.style.setProperty("--mx", "50%");
+        stage.style.setProperty("--my", "40%");
+      });
       stage.addEventListener(
         "wheel",
         (e) => {
@@ -21431,7 +21531,7 @@
         return;
       }
       if (explorerWs === "map") {
-        renderProgramOverview();
+        renderProgramOverview({ keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
@@ -21461,7 +21561,7 @@
         return;
       }
       if (top.kind === "programs") {
-        renderProgramOverview();
+        renderProgramOverview({ keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
@@ -25540,17 +25640,21 @@
         kinds: hops.map((h) => h.kind)
       };
     }
-    function renderProgramOverview() {
+    function renderProgramOverview(opts) {
       const programs = snapshot.programs || [];
-      renderTabs(snapshot.flows || [], null);
-      renderStats(snapshot);
-      renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
       hideTip();
       if (stampBtn) stampBtn.disabled = true;
       if (skipBtn) skipBtn.disabled = true;
       if (progFocus >= programs.length) progFocus = 0;
       const filt = graphFilter.program ? esc(graphFilter.program.name) : "all";
       const bub = graphFilter.bubble ? mapAltitudeBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble)) : null;
+      setGraphChrome(true);
+      syncBackBtn();
+      setLedgerHead("MAP");
+      renderCommunityGraph(opts);
+      renderTabs(snapshot.flows || [], null);
+      renderStats(snapshot);
+      renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
       setMeta(
         '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-up="map">map</button>' + (bub ? " / <b>" + esc(bub.label || "bubble") + "</b>" : "") + " · " + filt + (bub ? " · click a node to inspect" : " · communities only — click a bubble, then a flow tab")
       );
@@ -25558,13 +25662,9 @@
       if (up)
         up.onclick = () => {
           graphFilter.bubble = null;
-          renderProgramOverview();
+          renderProgramOverview(opts);
         };
-      setGraphChrome(true);
-      syncBackBtn();
-      setLedgerHead("MAP");
       renderLegend();
-      renderCommunityGraph();
       applyEgoPaint();
     }
     function degreeMap() {
@@ -25667,10 +25767,10 @@
         };
       });
     }
-    function renderCommunityGraph() {
+    function renderCommunityGraph(opts) {
       if (!graphFilter.bubble) {
         unmountReviewCanvas();
-        renderBubbleMap(mapAltitudeBubbles());
+        renderBubbleMap(mapAltitudeBubbles(), opts);
         return;
       }
       const flow = currentFlow() || defaultRunFlow();
@@ -25687,7 +25787,171 @@
         false
       );
     }
-    function renderBubbleMap(clusters) {
+    function mapFlowTitle(pathIds) {
+      return pathIds && pathIds.length ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter" : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter";
+    }
+    function commEdgeKey(from, to, kind) {
+      return idVal(from) + "\0" + idVal(to) + "\0" + (kind || "Calls");
+    }
+    function recycleStoryRail() {
+      const html = renderStoryRailHtml();
+      const existing = canvas.querySelector("#storyRail");
+      if (!html) {
+        if (existing) existing.remove();
+        return;
+      }
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      const next = tmp.firstElementChild;
+      if (!next) return;
+      if (existing) existing.replaceWith(next);
+      else {
+        const stage = canvas.querySelector(".stage");
+        if (stage) canvas.insertBefore(next, stage);
+        else canvas.insertAdjacentElement("afterbegin", next);
+      }
+    }
+    function bindBubbleCardHot(el2) {
+      if (!el2 || el2.dataset.hotBound) return;
+      el2.dataset.hotBound = "1";
+      el2.addEventListener("pointerenter", () => {
+        const id2 = el2.getAttribute("data-bubble");
+        canvas.querySelectorAll(".comm-edges path").forEach((p) => {
+          p.classList.toggle("hot", p.getAttribute("data-from") === id2 || p.getAttribute("data-to") === id2);
+        });
+      });
+      el2.addEventListener("pointerleave", () => {
+        canvas.querySelectorAll(".comm-edges path.hot").forEach((p) => p.classList.remove("hot"));
+      });
+    }
+    function applyBubbleCardEl(el2, b, id2, p, pathRank, path, pathIds) {
+      const n = (b.members || []).length;
+      const marks = bubbleMarks(b);
+      const step = pathRank.has(id2) ? pathRank.get(id2) : -1;
+      const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
+      const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
+      const here = graphFilter.bubble && idVal(id2) === idVal(graphFilter.bubble) ? " here" : "";
+      const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
+        (c) => String(c.bubble) === String(id2)
+      );
+      el2.className = "bubble-card" + roleClass + here;
+      el2.style.left = p.x + "px";
+      el2.style.top = p.y + "px";
+      el2.style.setProperty("--c", colorOfBubble(b));
+      el2.setAttribute("data-bubble", id2);
+      if (clusterKind) el2.setAttribute("data-cluster", clusterKind.kind || "");
+      else el2.removeAttribute("data-cluster");
+      el2.innerHTML = (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4);
+    }
+    function recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds) {
+      const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
+      const want = /* @__PURE__ */ new Set();
+      const existing = /* @__PURE__ */ new Map();
+      wrap.querySelectorAll(".bubble-card[data-bubble]").forEach((el2) => {
+        existing.set(el2.getAttribute("data-bubble"), el2);
+      });
+      for (const id2 of clusters.map((b) => idVal(b.id))) {
+        want.add(id2);
+        const b = byId.get(id2);
+        const p = pos.get(id2);
+        if (!b || !p) continue;
+        let el2 = existing.get(id2);
+        if (!el2) {
+          el2 = document.createElement("button");
+          el2.type = "button";
+          wrap.appendChild(el2);
+        }
+        applyBubbleCardEl(el2, b, id2, p, pathRank, path, pathIds);
+      }
+      for (const [id2, el2] of existing) {
+        if (!want.has(id2)) el2.remove();
+      }
+    }
+    function recycleCommEdges(svg, edges, pos, W, H2) {
+      if (!svg) return;
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H2);
+      svg.setAttribute("width", String(W));
+      svg.setAttribute("height", String(H2));
+      const want = [];
+      for (const e of edges || []) {
+        const a = pos.get ? pos.get(idVal(e.from)) : pos[idVal(e.from)];
+        const b = pos.get ? pos.get(idVal(e.to)) : pos[idVal(e.to)];
+        if (!a || !b) continue;
+        want.push({ from: idVal(e.from), to: idVal(e.to), kind: e.kind || "Calls", a, b, count: e.count });
+      }
+      const wantKeys = new Set(want.map((e) => commEdgeKey(e.from, e.to, e.kind)));
+      const groups = /* @__PURE__ */ new Map();
+      [...svg.children].forEach((el2) => {
+        const k = commEdgeKey(el2.getAttribute("data-from"), el2.getAttribute("data-to"), el2.getAttribute("data-kind"));
+        if (!wantKeys.has(k)) {
+          el2.remove();
+          return;
+        }
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(el2);
+      });
+      for (const e of want) {
+        const k = commEdgeKey(e.from, e.to, e.kind);
+        const d = orthoPath(e.a, e.b);
+        const mx = Math.round((e.a.x + e.b.x) / 2);
+        const my = Math.round((e.a.y + e.b.y) / 2) - 10;
+        const els = groups.get(k) || [];
+        if (!els.length) {
+          const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          hit.setAttribute("class", "edge-hit");
+          hit.setAttribute("data-from", e.from);
+          hit.setAttribute("data-to", e.to);
+          hit.setAttribute("data-kind", e.kind);
+          hit.setAttribute("d", d);
+          const vis = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          vis.setAttribute("data-from", e.from);
+          vis.setAttribute("data-to", e.to);
+          vis.setAttribute("data-kind", e.kind);
+          vis.setAttribute("d", d);
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("class", "ekind");
+          text.setAttribute("x", String(mx));
+          text.setAttribute("y", String(my));
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("data-from", e.from);
+          text.setAttribute("data-to", e.to);
+          text.setAttribute("data-kind", e.kind);
+          text.textContent = e.kind + (e.count > 1 ? " · " + e.count : "");
+          svg.appendChild(hit);
+          svg.appendChild(vis);
+          svg.appendChild(text);
+          continue;
+        }
+        els.forEach((el2) => {
+          if (el2.tagName === "path") el2.setAttribute("d", d);
+          if (el2.tagName === "text") {
+            el2.setAttribute("x", String(mx));
+            el2.setAttribute("y", String(my));
+            el2.textContent = e.kind + (e.count > 1 ? " · " + e.count : "");
+          }
+        });
+      }
+    }
+    function recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path) {
+      const { W, H: H2, pos } = laid;
+      recycleStoryRail();
+      const stage = canvas.querySelector(".stage");
+      const title = stage && stage.querySelector(".flow-title");
+      if (title) title.textContent = mapFlowTitle(pathIds);
+      const wrap = canvas.querySelector(".comm-wrap");
+      if (!wrap) return;
+      wrap.style.width = W + "px";
+      wrap.style.height = H2 + "px";
+      let svg = wrap.querySelector("svg.comm-edges");
+      if (!svg) {
+        wrap.insertAdjacentHTML("afterbegin", edgeSvg("comm-edges", edges, pos, W, H2));
+        svg = wrap.querySelector("svg.comm-edges");
+      } else {
+        recycleCommEdges(svg, edges, pos, W, H2);
+      }
+      recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds);
+    }
+    function renderBubbleMap(clusters, opts) {
       const path = storyMapBubbles();
       const pathRank = new Map(path.map((b, i) => [idVal(b.id), i]));
       const seenBubble = /* @__PURE__ */ new Set();
@@ -25736,40 +26000,36 @@
         pins: pinsForCurrent()
       });
       const { W, H: H2, pos } = laid;
-      const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
-      let html = "";
-      for (const id2 of ids) {
-        const b = byId.get(id2);
-        const p = pos.get(id2);
-        if (!b || !p) continue;
-        const n = (b.members || []).length;
-        const marks = bubbleMarks(b);
-        const step = pathRank.has(id2) ? pathRank.get(id2) : -1;
-        const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
-        const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
-        const here = graphFilter.bubble && idVal(id2) === idVal(graphFilter.bubble) ? " here" : "";
-        const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
-          (c) => String(c.bubble) === String(id2)
-        );
-        html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
-      }
+      const recycle = mapStageMounted();
       canvas.className = "play has-stage programs-view";
-      canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + (pathIds.length ? "Start → features → end — control-flow through communities. Drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter" : "Community flow — drag to rearrange, Reorganize to auto-layout. zoom in to peek members, click to enter") + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
-      bindStage(canvas.querySelector(".stage"), { reset: true });
+      if (recycle) {
+        recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path);
+        bindStage(canvas.querySelector(".stage"), { reset: false });
+      } else {
+        const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
+        let html = "";
+        for (const id2 of ids) {
+          const b = byId.get(id2);
+          const p = pos.get(id2);
+          if (!b || !p) continue;
+          const n = (b.members || []).length;
+          const marks = bubbleMarks(b);
+          const step = pathRank.has(id2) ? pathRank.get(id2) : -1;
+          const role = featureRole(step, path.length - 1) || (pathIds.length ? "off path" : "");
+          const roleClass = step === 0 ? " start" : step === path.length - 1 && path.length > 1 ? " end" : role === "off path" ? " off" : "";
+          const here = graphFilter.bubble && idVal(id2) === idVal(graphFilter.bubble) ? " here" : "";
+          const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
+            (c) => String(c.bubble) === String(id2)
+          );
+          html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
+        }
+        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
+        bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });
+      }
       setZoomUi(true);
       const wrap = canvas.querySelector(".comm-wrap");
       separatePaintedCards(wrap, ".bubble-card");
-      canvas.querySelectorAll(".bubble-card").forEach((el2) => {
-        const id2 = el2.getAttribute("data-bubble");
-        el2.addEventListener("pointerenter", () => {
-          canvas.querySelectorAll(".comm-edges path").forEach((p) => {
-            p.classList.toggle("hot", p.getAttribute("data-from") === id2 || p.getAttribute("data-to") === id2);
-          });
-        });
-        el2.addEventListener("pointerleave", () => {
-          canvas.querySelectorAll(".comm-edges path.hot").forEach((p) => p.classList.remove("hot"));
-        });
-      });
+      canvas.querySelectorAll(".bubble-card").forEach((el2) => bindBubbleCardHot(el2));
       bindDraggable(wrap, ".bubble-card", {
         idAttr: "data-bubble",
         onClick: (id2) => {

@@ -152,6 +152,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Map stays `xy=0` with more than one card visible
    - Zoom: explorer Map `#zoomIn` / `#zoomOut`; `#zoomPct` / scale
      change; Map stays `xy=0` with cards visible
+   - Canvas recycle: explorer Map second paint / preview / `patch`;
+     same `.stage` / `.viewport` or keepCam; cards at `xy=0`;
+     `verification/canvas-recycle.png`
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
@@ -199,7 +202,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
@@ -342,6 +345,7 @@ same PR because the harness truly cannot hook existing ones.
 | Appearance | `#themeSeg`, `#themeDay`, `#themeNight`, `html.night` / `body.night`, `.on`, `D` |
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Zoom | `#zoomIn`, `#zoomOut`, `#zoomPct`, `+` / `−`, `zoomBy` |
+| Canvas recycle | `#canvas .stage`, `#canvas .viewport`, `.bubble-card`, `svg.comm-edges`, `{ type: "patch" }` |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
