@@ -164,9 +164,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      back restores `data-bubble`; `xy=0`; `verification/map-offview.png`
    - Panel timeout: explorer Map fat coverage/findings-only
      `{ type: "patch" }` after paint; same `.stage` /
-     `.viewport`; `#coverage[data-panel="shed"]`; `#stampBtn`
-     click posts without waiting on the full findings list;
-     `verification/panel-timeout.png`
+     `.viewport`; `#coverage[data-panel="shed"]`; `#zoomIn`
+     click moves camera without waiting on the full findings
+     list; `verification/panel-timeout.png`
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
@@ -360,7 +360,7 @@ same PR because the harness truly cannot hook existing ones.
 | Canvas recycle | `#canvas .stage`, `#canvas .viewport`, `.bubble-card`, `svg.comm-edges`, `{ type: "patch" }` |
 | Delta onAnalysis | `#canvas .stage`, `#canvas .viewport`, `#coverage`, `{ type: "patch" }` coverage/findings/stats |
 | Map off-view | `#canvas .stage`, `.bubble-card`, `[data-bubble]`, `[data-offview]`, `#zoomIn` / `#zoomFit` |
-| Panel timeout | `#coverage[data-panel="shed"]`, `#canvas .stage`, `#stampBtn`, `{ type: "patch" }` coverage/findings |
+| Panel timeout | `#coverage[data-panel="shed"]`, `#canvas .stage`, `#zoomIn`, `{ type: "patch" }` coverage/findings |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |

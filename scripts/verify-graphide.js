@@ -2389,22 +2389,61 @@ async function main() {
       JSON.stringify(afterPanel)
     );
     await shot(page, "panel-timeout.png");
-    const ptStamp = await page.evaluate(() => {
-      const stamp = document.getElementById("stampBtn");
-      const before = (window.__vscodePosts || []).length;
-      if (stamp && !stamp.disabled) stamp.click();
-      const posts = (window.__vscodePosts || []).slice(before);
+    const ptZoom = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      const btn = document.getElementById("zoomIn");
+      const k0 = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      const pct0 = ((document.getElementById("zoomPct") || {}).textContent || "").trim();
+      if (btn && !btn.disabled) btn.click();
       return {
-        enabled: !!(stamp && !stamp.disabled),
-        stamped: posts.some((p) => p && p.type === "stamp"),
-        skipped: posts.some((p) => p && p.type === "skip"),
+        enabled: !!(btn && !btn.disabled),
+        via: btn ? "zoomIn" : "",
+        k0,
+        pct0,
       };
     });
+    await page.waitForTimeout(400);
+    const ptAfterZoom = await page.evaluate((want) => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const cov = document.getElementById("coverage");
+      const k = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      const pctText = ((document.getElementById("zoomPct") || {}).textContent || "").trim();
+      return {
+        enabled: want.enabled,
+        via: want.via,
+        k0: want.k0,
+        k,
+        pct0: want.pct0,
+        pct: pctText,
+        sameStage: !!(stage && stage.dataset.panelMark === "1"),
+        sameVp: !!(vp && vp.dataset.panelMark === "1"),
+        shed: cov ? cov.getAttribute("data-panel") : "",
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, ptZoom);
     record(
       "PT2",
-      "Stamp handler fires after shed without waiting on the full findings list",
-      ptStamp.enabled && ptStamp.stamped,
-      JSON.stringify(ptStamp)
+      "Zoom handler fires after shed without waiting on the full findings list",
+      ptAfterZoom.enabled &&
+        ptAfterZoom.via === "zoomIn" &&
+        ptAfterZoom.ws === "map" &&
+        ptAfterZoom.sameStage &&
+        ptAfterZoom.sameVp &&
+        ptAfterZoom.shed === "shed" &&
+        ptAfterZoom.lod === "0" &&
+        ptAfterZoom.xy === 0 &&
+        ptAfterZoom.comm === 0 &&
+        ptAfterZoom.cards > 1 &&
+        ptAfterZoom.k > 0 &&
+        (Math.abs(ptAfterZoom.k - ptAfterZoom.k0) > 0.04 || ptAfterZoom.pct !== ptAfterZoom.pct0),
+      JSON.stringify(ptAfterZoom)
     );
     record(
       "PT3",

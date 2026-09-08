@@ -465,7 +465,7 @@ assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.inclu
 assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
 assert(driver.includes("delta-onanalysis.png") && driver.includes("DA0") && driver.includes("DA1") && driver.includes("OnAnalysisDelta") && driver.includes('type: "patch"'), "verify driver must prove coverage-only patch without canvas rebuild");
 assert(driver.includes("map-offview.png") && driver.includes("OV0") && driver.includes("OV1") && driver.includes("data-offview"), "verify driver must prove Map off-view park + restore");
-assert(driver.includes("panel-timeout.png") && driver.includes("PT0") && driver.includes("PT1") && driver.includes("PanelTimeout") && driver.includes('data-panel'), "verify driver must prove BEST_EFFORT panel time-box / shed");
+assert(driver.includes("panel-timeout.png") && driver.includes("PT0") && driver.includes("PT1") && driver.includes("PT2") && driver.includes("PanelTimeout") && driver.includes("Zoom handler fires after shed") && driver.includes('data-panel'), "verify driver must prove BEST_EFFORT panel time-box / shed + live zoom");
 assert(js.includes("function syncOffviewCards") && js.includes("function queueOffviewSync") && js.includes("data-offview"), "Map off-view park helpers missing");
 assert(js.includes("PANEL_BUDGET_MS") && js.includes("PANEL_FAT_FINDINGS") && js.includes('setAttribute("data-panel", "shed")'), "panel flush must time-box and mark data-panel=shed");
 assert(css.includes('.bubble-card[data-offview="1"]') && css.includes("content-visibility"), "Map off-view CSS missing");

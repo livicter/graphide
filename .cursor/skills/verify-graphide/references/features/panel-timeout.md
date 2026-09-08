@@ -20,8 +20,9 @@ may be shed. Not a second Map altitude and not new desk chrome.
   mounted. Same `.stage` / `.viewport` nodes.
 - Stamp / skip stay human. A coverage patch never posts
   `{ type: "stamp" }` / `{ type: "skip" }` and never writes
-  `.graphide/stamps/`. The harness may click `#stampBtn` only
-  to prove the handler fires after shed.
+  `.graphide/stamps/`. Map stamp stays disabled without a
+  current flow — the harness proves CRITICAL work via
+  `#zoomIn` while shed is active.
 
 ## How to get to it (user POV)
 
@@ -54,7 +55,7 @@ window.postMessage({
   stats: { elapsed_ms: 9 },
 }, "*")
 // #coverage[data-panel="shed"]; chip has the new counts; findings list not expanded
-document.getElementById("stampBtn").click()
+document.getElementById("zoomIn").click()
 ```
 
 Driver assertions:
@@ -65,8 +66,9 @@ Driver assertions:
 - `#coverage` reads the new changed / uncovered counts and
   `data-panel="shed"`; `#coverage li.finding` is not the full
   posted list; `PanelTimeout` is not expanded
-- `#stampBtn` is enabled and a click posts `{ type: "stamp" }`
-  without waiting on the full findings list
+- `#zoomIn` is enabled while shed is active and a click moves
+  `--cam-k` / `#zoomPct` without waiting on the full findings
+  list; Map stays `xy=0` / `data-lod="0"`
 - screenshot `verification/panel-timeout.png` is not a black frame
 - no `{ type: "stamp" }` / `{ type: "skip" }` post from the patch
   itself
@@ -80,7 +82,8 @@ Driver assertions:
 - Restore the explorer coverage counts after the prove so later
   Evidence / Timeline gates still see 1123 changed · uncovered.
 - Do not add `data-testid`. `#coverage[data-panel="shed"]`,
-  `.stage`, `.viewport`, `#stampBtn` are the hooks.
+  `.stage`, `.viewport`, `#zoomIn` are the hooks. Map
+  `#stampBtn` is disabled here (`!currentFlow()`).
 - Do not React-mount Map community LOD. Cards stay vanilla. `xy=0`.
   Do not collide OV* / DA* / RC* harness ids — this slice is PT*.
 - Agents never stamp. A coverage delta is paint, not an approval.
