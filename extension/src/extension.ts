@@ -102,6 +102,14 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
   private skipped: string[] = [];
   /** File-projection key `kind\\0name\\0root`. Empty = all programs. */
   private programKey?: string;
+  private lastPosted: {
+    kind: string;
+    flowName?: string;
+    programKey?: string;
+    graph?: unknown;
+    bubbles?: unknown;
+    flows?: unknown;
+  } | null = null;
   private bridge?: BridgeHandle;
   private cachedLlmKey = "";
 
@@ -413,6 +421,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
             });
           }, token);
           this.snapshot = snap;
+          this.lastPosted = null;
           if (!this.snapshot.stats) this.snapshot.stats = {};
           this.snapshot.stats.ui_ms = Date.now() - started;
           this.flowName = pickDefaultRun(this.snapshot);
@@ -607,12 +616,55 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     );
   }
 
+  private rememberPosted(kind: string) {
+    this.lastPosted = {
+      kind,
+      flowName: this.flowName,
+      programKey: this.programKey,
+      graph: this.snapshot?.graph,
+      bubbles: this.snapshot?.bubbles,
+      flows: this.snapshot?.flows,
+    };
+  }
+
+  private canPushPanelPatch(kind: string): boolean {
+    const last = this.lastPosted;
+    if (!last || !this.snapshot) return false;
+    if (last.kind !== kind) return false;
+    if (last.flowName !== this.flowName) return false;
+    if (last.programKey !== this.programKey) return false;
+    return (
+      last.graph === this.snapshot.graph &&
+      last.bubbles === this.snapshot.bubbles &&
+      last.flows === this.snapshot.flows
+    );
+  }
+
+  private pushPanelPatch(kind: string) {
+    if (!this.view || !this.snapshot) return;
+    this.view.webview.postMessage({
+      type: "patch",
+      coverage: this.snapshot.coverage,
+      findings: this.snapshot.findings,
+      plugin: this.snapshot.plugin,
+      stats: this.snapshot.stats,
+      stamps: this.snapshot.stamps || [],
+      skipped: this.skipped,
+    });
+    this.rememberPosted(kind);
+  }
+
   private pushState() {
     if (!this.view) return;
     this.pushLlmStatus();
     const top = this.stack[this.stack.length - 1];
     if (!this.snapshot) {
+      this.lastPosted = null;
       this.view.webview.postMessage({ type: "empty" });
+      return;
+    }
+    if ((top.kind === "programs" || top.kind === "flow") && this.canPushPanelPatch(top.kind)) {
+      this.pushPanelPatch(top.kind);
       return;
     }
     const flow =
@@ -632,6 +684,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         skipped: this.skipped,
         delta: this.snapshot.delta || { facts: [] },
       });
+      this.rememberPosted("programs");
       return;
     }
     if (top.kind === "flow") {
@@ -656,6 +709,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         snippets: snippetsFor(this.snapshot, shown),
         depth: 0,
       });
+      this.rememberPosted("flow");
       return;
     }
     const inner = enterBubble(this.snapshot, top.flow, top.bubble);
@@ -671,6 +725,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       skipped: this.skipped,
       depth: this.stack.length - 1,
     });
+    this.rememberPosted("bubble");
   }
 
   private html(webview: vscode.Webview): string {

@@ -19610,6 +19610,7 @@
     let barRaf = 0;
     let pendingProgress = null;
     let progressRaf = 0;
+    let panelRaf = 0;
     let navToken = 0;
     let viewportEl = null;
     let cam = { x: 0, y: 0, k: 1 };
@@ -20262,12 +20263,43 @@
       if (opts.preview != null) snapshot.preview = !!opts.preview;
       if (msg.flow && msg.flow.name) flowName = msg.flow.name;
       else if (!flowName && snapshot.flows && snapshot.flows[0]) flowName = snapshot.flows[0].name;
-      indexGraph(snapshot.graph);
+      if (opts.reindex !== false) indexGraph(snapshot.graph);
       return true;
+    }
+    function panelOnlyPatch(msg) {
+      if (!msg) return false;
+      if (msg.graph && (msg.graph.nodes || []).length) return false;
+      if (msg.bubbles && msg.bubbles.length) return false;
+      if (msg.flows && msg.flows.length) return false;
+      if (msg.flow) return false;
+      if (msg.programs && msg.programs.length) return false;
+      if (msg.delta) return false;
+      if (msg.snippets) return false;
+      if (msg.inner) return false;
+      if (msg.program) return false;
+      return !!(msg.coverage || msg.findings || msg.stats || msg.stamps || msg.skipped || msg.plugin || msg.nodes != null || msg.edges != null || msg.elapsed_ms != null);
+    }
+    function queuePanelRefresh() {
+      if (panelRaf) return;
+      panelRaf = requestAnimationFrame(flushPanelRefresh);
+    }
+    function flushPanelRefresh() {
+      panelRaf = 0;
+      if (!snapshot) return;
+      renderStats(snapshot);
+      renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
     }
     function applyPatch(msg) {
       if (!snapshot) return;
-      patchSnapshotFields(msg);
+      const panelOnly = panelOnlyPatch(msg);
+      patchSnapshotFields(msg, { reindex: !panelOnly });
+      if (msg.stamps) stampRows = snapshot.stamps || stampRows;
+      if (msg.skipped) skippedFlows = snapshot.skipped || skippedFlows;
+      if (panelOnly && mapStageMounted()) {
+        queuePanelRefresh();
+        consumeHarnessActions();
+        return;
+      }
       paint({ animate: "none", keepCam: mapStageMounted() || !!canvas.querySelector(".stage") });
     }
     function applyPreview(msg) {
