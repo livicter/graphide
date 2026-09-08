@@ -291,11 +291,13 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/canvas-recycle.md")), "canvas-recycle feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md")), "program-chips feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/all-programs.md")), "all-programs feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
+assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
@@ -326,6 +328,14 @@ assert(
     zoomMap.includes("## Driving it with the harness") &&
     zoomMap.includes("## Gotchas"),
   "zoom feature map must use the four headings"
+);
+const canvasRecycleMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/canvas-recycle.md"), "utf8");
+assert(
+  canvasRecycleMap.includes("## Sub-features") &&
+    canvasRecycleMap.includes("## How to get to it (user POV)") &&
+    canvasRecycleMap.includes("## Driving it with the harness") &&
+    canvasRecycleMap.includes("## Gotchas"),
+  "canvas-recycle feature map must use the four headings"
 );
 const programChipsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md"), "utf8");
 assert(
@@ -422,6 +432,11 @@ assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
+assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
+assert(js.includes("function recycleBubbleMap") && js.includes("function recycleBubbleCards") && js.includes("function recycleCommEdges"), "Map recycle helpers missing");
+assert(js.includes("function pinMapCommunityLod") && /mapStageMounted\(\) \? "0"/.test(js), "Map recycle must pin viewport data-lod 0");
+assert(js.includes("function mapStageMounted") && js.includes("function applyPatch") && js.includes('type === "patch"'), "preview/flowchart patch + keepCam missing");
+assert(/bindStage\([\s\S]{0,40}\{ reset: false \}/.test(js), "recycle must bindStage with reset false");
 assert(driver.includes("program-chips.png") && driver.includes("#legend [data-prog]") && driver.includes("PC1") && driver.includes("PC2"), "verify driver must drive program chip switch");
 assert(driver.includes("all-programs.png") && driver.includes('[data-prog="-1"]') && driver.includes("AP1") && driver.includes("AP2"), "verify driver must drive All programs union");
 assert(js.includes("function renderLegend") && js.includes("data-prog") && js.includes("graphFilter.program"), "desk must paint #legend [data-prog] and filter graphFilter.program");

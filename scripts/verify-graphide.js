@@ -1849,6 +1849,157 @@ async function main() {
     );
     assertNoStampDir("Z4", "Zoom did not write .graphide/stamps/");
 
+    const recycleBefore = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      if (stage) stage.dataset.recycleMark = "1";
+      if (vp) vp.dataset.recycleMark = "1";
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        k: kCam,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "RC0",
+      "Map paints communities before recycle",
+      recycleBefore.ws === "map" &&
+        recycleBefore.xy === 0 &&
+        recycleBefore.comm === 0 &&
+        recycleBefore.cards > 1 &&
+        recycleBefore.lod === "0",
+      JSON.stringify(recycleBefore)
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomIn");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(350);
+    const recycleCam = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return parseFloat((vp && vp.style.getPropertyValue("--cam-k")) || "0");
+    });
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(220);
+    const afterReselect = await page.evaluate((wantK) => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        sameStage: !!(stage && stage.dataset.recycleMark === "1"),
+        sameVp: !!(vp && vp.dataset.recycleMark === "1"),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        k: kCam,
+        wantK,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, recycleCam);
+    record(
+      "RC1",
+      "Re-select Map recycles the same .stage / .viewport (keepCam)",
+      afterReselect.ws === "map" &&
+        afterReselect.sameStage &&
+        afterReselect.sameVp &&
+        afterReselect.xy === 0 &&
+        afterReselect.comm === 0 &&
+        afterReselect.cards > 1 &&
+        afterReselect.lod === "0" &&
+        afterReselect.k > 0 &&
+        Math.abs(afterReselect.k - recycleCam) < 0.2 &&
+        (Math.abs(recycleCam - 1) < 0.05 || Math.abs(afterReselect.k - 1) > 0.04),
+      JSON.stringify(afterReselect)
+    );
+    const recyclePostsAt = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Recycle preview",
+          done: 2,
+          total: 5,
+          pct: 40,
+          elapsed_ms: 100,
+        },
+        "*"
+      );
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      window.postMessage({ type: "preview", nodes: 12, edges: 20, elapsed_ms: 120, flows: [] }, "*");
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      window.postMessage({ type: "patch", stats: { elapsed_ms: 140 } }, "*");
+    });
+    await page.waitForTimeout(120);
+    const afterPatch = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        sameStage: !!(stage && stage.dataset.recycleMark === "1"),
+        sameVp: !!(vp && vp.dataset.recycleMark === "1"),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        k: kCam,
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, recyclePostsAt);
+    record(
+      "RC2",
+      "Preview / patch recycles Map stage and keeps the camera",
+      afterPatch.ws === "map" &&
+        afterPatch.sameStage &&
+        afterPatch.sameVp &&
+        afterPatch.xy === 0 &&
+        afterPatch.comm === 0 &&
+        afterPatch.cards > 1 &&
+        afterPatch.lod === "0" &&
+        afterPatch.k > 0 &&
+        Math.abs(afterPatch.k - recycleCam) < 0.25 &&
+        (Math.abs(recycleCam - 1) < 0.05 || Math.abs(afterPatch.k - 1) > 0.04),
+      JSON.stringify(afterPatch)
+    );
+    record(
+      "RC3",
+      "Recycle does not post stamp / skip",
+      afterPatch.stampPosts === 0 && afterPatch.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterPatch.stampPosts, skipPosts: afterPatch.skipPosts })
+    );
+    await shot(page, "canvas-recycle.png");
+    await page.evaluate(() => {
+      window.postMessage({ type: "cancelled" }, "*");
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("progress");
+        return !el || !el.classList.contains("on");
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    assertNoStampDir("RC4", "Canvas recycle did not write .graphide/stamps/");
+
     const explorerChips = await page.evaluate(() => {
       const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
         i: Number(el.getAttribute("data-prog")),
@@ -6384,7 +6535,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

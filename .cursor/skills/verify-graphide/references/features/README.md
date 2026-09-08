@@ -38,6 +38,7 @@ owns this folder.
 | [coverage-mark.md](coverage-mark.md) | Evidence `#inspMeta` mark | explorer Slice · `coverage-mark.png` |
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |
 | [zoom.md](zoom.md) | Map zoom in / out | explorer Map · `#zoomIn` / `#zoomOut` · `zoom.png` |
+| [canvas-recycle.md](canvas-recycle.md) | Map recycle + keepCam | explorer Map · second paint · `canvas-recycle.png` |
 | [program-chips.md](program-chips.md) | Program chip switch | self-review Map · `#legend [data-prog]` · `program-chips.png` |
 | [all-programs.md](all-programs.md) | All programs union | self-review Map · `#legend [data-prog="-1"]` · `all-programs.png` |
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |
