@@ -2287,6 +2287,156 @@ async function main() {
     );
     assertNoStampDir("OV5", "Map off-view did not write .graphide/stamps/");
 
+    const ptBefore = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      if (stage) stage.dataset.panelMark = "1";
+      if (vp) vp.dataset.panelMark = "1";
+      const cov = document.getElementById("coverage");
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        shed: cov ? cov.getAttribute("data-panel") : "",
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        stampOn: !!(document.getElementById("stampBtn") && !document.getElementById("stampBtn").disabled),
+      };
+    });
+    record(
+      "PT0",
+      "Map paints communities before a fat coverage/findings patch",
+      ptBefore.ws === "map" &&
+        ptBefore.xy === 0 &&
+        ptBefore.comm === 0 &&
+        ptBefore.cards > 1 &&
+        ptBefore.lod === "0",
+      JSON.stringify(ptBefore)
+    );
+    const ptPostsAt = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      const ids = Array.from({ length: 80 }, (_, i) => "pt" + i);
+      const findings = ids.map((id, i) => ({
+        kind: "UnmatchedHint",
+        flow: "boot",
+        fqn: "graphide::PanelTimeout" + i,
+      }));
+      window.postMessage(
+        {
+          type: "patch",
+          coverage: { changed: ids, uncovered: ids },
+          findings,
+          stats: { elapsed_ms: 9 },
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("coverage");
+        const t = ((el || {}).textContent || "").replace(/\s+/g, " ");
+        return (
+          el &&
+          el.getAttribute("data-panel") === "shed" &&
+          /Coverage 80 changed/.test(t) &&
+          /80 uncovered/.test(t)
+        );
+      },
+      null,
+      { timeout: 4000 }
+    );
+    const afterPanel = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const cov = document.getElementById("coverage");
+      const text = ((cov || {}).textContent || "").replace(/\s+/g, " ");
+      return {
+        sameStage: !!(stage && stage.dataset.panelMark === "1"),
+        sameVp: !!(vp && vp.dataset.panelMark === "1"),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        shed: cov ? cov.getAttribute("data-panel") : "",
+        findings: cov ? cov.querySelectorAll("li.finding").length : -1,
+        cov: text.slice(0, 240),
+        hasTimeout: /PanelTimeout/.test(text),
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, ptPostsAt);
+    record(
+      "PT1",
+      "Fat panel patch keeps the same .stage / .viewport and sheds findings expansion",
+      afterPanel.ws === "map" &&
+        afterPanel.sameStage &&
+        afterPanel.sameVp &&
+        afterPanel.xy === 0 &&
+        afterPanel.comm === 0 &&
+        afterPanel.cards > 1 &&
+        afterPanel.lod === "0" &&
+        afterPanel.shed === "shed" &&
+        afterPanel.findings === 0 &&
+        !afterPanel.hasTimeout &&
+        /Coverage 80 changed/.test(afterPanel.cov) &&
+        /80 uncovered/.test(afterPanel.cov),
+      JSON.stringify(afterPanel)
+    );
+    await shot(page, "panel-timeout.png");
+    const ptStamp = await page.evaluate(() => {
+      const stamp = document.getElementById("stampBtn");
+      const before = (window.__vscodePosts || []).length;
+      if (stamp && !stamp.disabled) stamp.click();
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        enabled: !!(stamp && !stamp.disabled),
+        stamped: posts.some((p) => p && p.type === "stamp"),
+        skipped: posts.some((p) => p && p.type === "skip"),
+      };
+    });
+    record(
+      "PT2",
+      "Stamp handler fires after shed without waiting on the full findings list",
+      ptStamp.enabled && ptStamp.stamped,
+      JSON.stringify(ptStamp)
+    );
+    record(
+      "PT3",
+      "Fat panel patch itself does not post stamp / skip",
+      afterPanel.stampPosts === 0 && afterPanel.skipPosts === 0,
+      JSON.stringify({ stampPosts: afterPanel.stampPosts, skipPosts: afterPanel.skipPosts })
+    );
+    await page.evaluate(() => {
+      const ids = Array.from({ length: 1123 }, (_, i) => "n" + i);
+      window.postMessage(
+        {
+          type: "patch",
+          coverage: { changed: ids, uncovered: ids },
+          findings: [
+            { kind: "StampBroken", flow: "boot", added: [{ from: "n0", to: "n3" }], removed: [] },
+            { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+          ],
+          stats: { elapsed_ms: 21041 },
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const t = ((document.getElementById("coverage") || {}).textContent || "").replace(/\s+/g, " ");
+        return /Coverage 1123 changed/.test(t) && /1123 uncovered/.test(t);
+      },
+      null,
+      { timeout: 4000 }
+    );
+    assertNoStampDir("PT4", "Panel timeout did not write .graphide/stamps/");
+
     const explorerChips = await page.evaluate(() => {
       const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
         i: Number(el.getAttribute("data-prog")),
@@ -6822,7 +6972,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

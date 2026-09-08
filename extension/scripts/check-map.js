@@ -294,6 +294,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/canvas-recycle.md")), "canvas-recycle feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-onanalysis.md")), "delta-onanalysis feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-offview.md")), "map-offview feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/panel-timeout.md")), "panel-timeout feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md")), "program-chips feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/all-programs.md")), "all-programs feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
@@ -302,6 +303,7 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
+assert(featReadme.includes("panel-timeout.md") && featReadme.includes("panel-timeout.png"), "feature README must list panel-timeout.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
@@ -356,6 +358,14 @@ assert(
     mapOffviewMap.includes("## Driving it with the harness") &&
     mapOffviewMap.includes("## Gotchas"),
   "map-offview feature map must use the four headings"
+);
+const panelTimeoutMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/panel-timeout.md"), "utf8");
+assert(
+  panelTimeoutMap.includes("## Sub-features") &&
+    panelTimeoutMap.includes("## How to get to it (user POV)") &&
+    panelTimeoutMap.includes("## Driving it with the harness") &&
+    panelTimeoutMap.includes("## Gotchas"),
+  "panel-timeout feature map must use the four headings"
 );
 const programChipsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/program-chips.md"), "utf8");
 assert(
@@ -455,7 +465,9 @@ assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.inclu
 assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
 assert(driver.includes("delta-onanalysis.png") && driver.includes("DA0") && driver.includes("DA1") && driver.includes("OnAnalysisDelta") && driver.includes('type: "patch"'), "verify driver must prove coverage-only patch without canvas rebuild");
 assert(driver.includes("map-offview.png") && driver.includes("OV0") && driver.includes("OV1") && driver.includes("data-offview"), "verify driver must prove Map off-view park + restore");
+assert(driver.includes("panel-timeout.png") && driver.includes("PT0") && driver.includes("PT1") && driver.includes("PanelTimeout") && driver.includes('data-panel'), "verify driver must prove BEST_EFFORT panel time-box / shed");
 assert(js.includes("function syncOffviewCards") && js.includes("function queueOffviewSync") && js.includes("data-offview"), "Map off-view park helpers missing");
+assert(js.includes("PANEL_BUDGET_MS") && js.includes("PANEL_FAT_FINDINGS") && js.includes('setAttribute("data-panel", "shed")'), "panel flush must time-box and mark data-panel=shed");
 assert(css.includes('.bubble-card[data-offview="1"]') && css.includes("content-visibility"), "Map off-view CSS missing");
 assert(js.includes("function recycleBubbleMap") && js.includes("function recycleBubbleCards") && js.includes("function recycleCommEdges"), "Map recycle helpers missing");
 assert(js.includes("function pinMapCommunityLod") && /mapStageMounted\(\) \? "0"/.test(js), "Map recycle must pin viewport data-lod 0");
