@@ -7166,7 +7166,18 @@ async function main() {
     );
     await shot(page, "python-desk.png");
 
-    await page.click('#workspaces [data-ws="map"]');
+    await page.evaluate(() => {
+      const tab = document.querySelector('#workspaces [data-ws="map"]');
+      if (tab) tab.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return !!(on && on.getAttribute("data-ws") === "map");
+      },
+      null,
+      { timeout: 8000 }
+    );
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
     await page.waitForTimeout(200);
     const pythonMap = await page.evaluate(() => {
