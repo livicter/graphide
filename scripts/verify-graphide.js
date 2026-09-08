@@ -2250,7 +2250,7 @@ async function main() {
       JSON.stringify({ parkedIds, recycle: ovRecycle })
     );
     await shot(page, "map-offview.png");
-    const fitVia = await page.evaluate(() => {
+    const ovFitVia = await page.evaluate(() => {
       const btn = document.getElementById("zoomFit");
       if (!btn) return "";
       btn.click();
@@ -2268,7 +2268,7 @@ async function main() {
     record(
       "OV3",
       "Fit / pan-back restores parked cards (same data-bubble)",
-      fitVia === "zoomFit" &&
+      ovFitVia === "zoomFit" &&
         ovBack.ws === "map" &&
         ovBack.xy === 0 &&
         ovBack.comm === 0 &&
@@ -2277,7 +2277,7 @@ async function main() {
         parkedIds.every((id) => ovBack.ids.indexOf(id) >= 0) &&
         parkedIds.every((id) => ovBack.offIds.indexOf(id) < 0) &&
         ovBack.inStage >= 1,
-      "via=" + fitVia + " parked=" + parkedIds.join(",") + " " + JSON.stringify(ovBack)
+      "via=" + ovFitVia + " parked=" + parkedIds.join(",") + " " + JSON.stringify(ovBack)
     );
     record(
       "OV4",
