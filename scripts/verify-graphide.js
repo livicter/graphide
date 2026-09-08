@@ -2000,6 +2000,139 @@ async function main() {
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     assertNoStampDir("RC4", "Canvas recycle did not write .graphide/stamps/");
 
+    const daBefore = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      if (stage) stage.dataset.deltaMark = "1";
+      if (vp) vp.dataset.deltaMark = "1";
+      const cov = document.getElementById("coverage");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        k: kCam,
+        cov: ((cov || {}).textContent || "").replace(/\s+/g, " ").trim(),
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "DA0",
+      "Map paints communities before a coverage-only patch",
+      daBefore.ws === "map" &&
+        daBefore.xy === 0 &&
+        daBefore.comm === 0 &&
+        daBefore.cards > 1 &&
+        daBefore.lod === "0",
+      JSON.stringify(daBefore)
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomIn");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(350);
+    const daCam = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return parseFloat((vp && vp.style.getPropertyValue("--cam-k")) || "0");
+    });
+    const daPostsAt = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "patch",
+          coverage: { changed: ["n0"], uncovered: ["n7", "n11", "n13"] },
+          findings: [
+            { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+            { kind: "UnmatchedHint", flow: "boot", fqn: "graphide::OnAnalysisDelta" },
+          ],
+          stats: { elapsed_ms: 77 },
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const t = ((document.getElementById("coverage") || {}).textContent || "").replace(/\s+/g, " ");
+        return /Coverage 1 changed/.test(t) && /3 uncovered/.test(t) && /OnAnalysisDelta/.test(t);
+      },
+      null,
+      { timeout: 4000 }
+    );
+    const afterDelta = await page.evaluate((wantK) => {
+      const posts = (window.__vscodePosts || []).slice(wantK.before);
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      const cov = ((document.getElementById("coverage") || {}).textContent || "").replace(/\s+/g, " ");
+      return {
+        sameStage: !!(stage && stage.dataset.deltaMark === "1"),
+        sameVp: !!(vp && vp.dataset.deltaMark === "1"),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        comm: document.querySelectorAll(".comm-node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        k: kCam,
+        wantK: wantK.k,
+        cov: cov.slice(0, 240),
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, { k: daCam, before: daPostsAt });
+    record(
+      "DA1",
+      "Coverage/findings-only patch keeps the same .stage / .viewport and camera",
+      afterDelta.ws === "map" &&
+        afterDelta.sameStage &&
+        afterDelta.sameVp &&
+        afterDelta.xy === 0 &&
+        afterDelta.comm === 0 &&
+        afterDelta.cards > 1 &&
+        afterDelta.lod === "0" &&
+        afterDelta.k > 0 &&
+        Math.abs(afterDelta.k - daCam) < 0.25 &&
+        (Math.abs(daCam - 1) < 0.05 || Math.abs(afterDelta.k - 1) > 0.04) &&
+        /Coverage 1 changed/.test(afterDelta.cov) &&
+        /3 uncovered/.test(afterDelta.cov),
+      JSON.stringify(afterDelta)
+    );
+    record(
+      "DA2",
+      "Coverage-only patch updates #coverage without posting stamp / skip",
+      /OnAnalysisDelta/.test(afterDelta.cov) && afterDelta.stampPosts === 0 && afterDelta.skipPosts === 0,
+      JSON.stringify({ cov: afterDelta.cov, stampPosts: afterDelta.stampPosts, skipPosts: afterDelta.skipPosts })
+    );
+    await shot(page, "delta-onanalysis.png");
+    await page.evaluate(() => {
+      const ids = Array.from({ length: 1123 }, (_, i) => "n" + i);
+      window.postMessage(
+        {
+          type: "patch",
+          coverage: { changed: ids, uncovered: ids },
+          findings: [
+            { kind: "StampBroken", flow: "boot", added: [{ from: "n0", to: "n3" }], removed: [] },
+            { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+          ],
+          stats: { elapsed_ms: 21041 },
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const t = ((document.getElementById("coverage") || {}).textContent || "").replace(/\s+/g, " ");
+        return /Coverage 1123 changed/.test(t) && /1123 uncovered/.test(t);
+      },
+      null,
+      { timeout: 4000 }
+    );
+    assertNoStampDir("DA3", "Delta onAnalysis did not write .graphide/stamps/");
+
     const explorerChips = await page.evaluate(() => {
       const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
         i: Number(el.getAttribute("data-prog")),
@@ -6535,7 +6668,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

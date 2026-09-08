@@ -155,6 +155,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Canvas recycle: explorer Map second paint / preview / `patch`;
      same `.stage` / `.viewport` or keepCam; cards at `xy=0`;
      `verification/canvas-recycle.png`
+   - Delta onAnalysis: explorer Map coverage/findings-only
+     `{ type: "patch" }` after paint+zoom; same `.stage` /
+     `.viewport` + keepCam + `lod=0`; `#coverage` updates;
+     `verification/delta-onanalysis.png`
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
@@ -202,7 +206,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
@@ -346,6 +350,7 @@ same PR because the harness truly cannot hook existing ones.
 | Fit / Reorganize | `#zoomFit`, `0`, `#reorgBtn`, `.reorg-btn`, `fitChart`, `autoReorganize` |
 | Zoom | `#zoomIn`, `#zoomOut`, `#zoomPct`, `+` / `−`, `zoomBy` |
 | Canvas recycle | `#canvas .stage`, `#canvas .viewport`, `.bubble-card`, `svg.comm-edges`, `{ type: "patch" }` |
+| Delta onAnalysis | `#canvas .stage`, `#canvas .viewport`, `#coverage`, `{ type: "patch" }` coverage/findings/stats |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
