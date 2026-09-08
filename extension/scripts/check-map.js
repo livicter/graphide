@@ -423,8 +423,15 @@ assert(css.includes(".on-route") && css.includes(".lens-on") && css.includes("#p
 assert(chrome.includes('id="exportRouteShare"') && js.includes("route-share"), "Route Share Card hook missing");
 assert(harness.includes('params.get("route")') && harness.includes('params.get("lens")'), "harness route/lens snap pin missing");
 
+const { spawnSync } = require("child_process");
 const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/verify-graphide.yml"), "utf8");
-const driver = fs.readFileSync(path.join(__dirname, "../../scripts/verify-graphide.js"), "utf8");
+const driverPath = path.join(__dirname, "../../scripts/verify-graphide.js");
+const driverParse = spawnSync(process.execPath, ["--check", driverPath], { encoding: "utf8" });
+assert(
+  driverParse.status === 0,
+  "verify-graphide.js must parse: " + String(driverParse.stderr || driverParse.stdout || "node --check failed").trim()
+);
+const driver = fs.readFileSync(driverPath, "utf8");
 assert(workflow.includes("build:webview"), "CI must compile the React desk before Playwright");
 assert(workflow.includes("cargo build -p graphide-cli"), "CI must compile graphide-cli");
 assert(/graphide review/.test(workflow) && workflow.includes("--no-parent"), "CI must run graphide review of this checkout");
