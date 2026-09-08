@@ -162,6 +162,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Map off-view: explorer Map zoom/pan so ≥1 card leaves
      `.stage`; `data-offview` / in-stage rects < total; pan
      back restores `data-bubble`; `xy=0`; `verification/map-offview.png`
+   - Panel timeout: explorer Map fat coverage/findings-only
+     `{ type: "patch" }` after paint; same `.stage` /
+     `.viewport`; `#coverage[data-panel="shed"]`; `#zoomIn`
+     click moves camera without waiting on the full findings
+     list; `verification/panel-timeout.png`
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
@@ -209,7 +214,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
@@ -355,6 +360,7 @@ same PR because the harness truly cannot hook existing ones.
 | Canvas recycle | `#canvas .stage`, `#canvas .viewport`, `.bubble-card`, `svg.comm-edges`, `{ type: "patch" }` |
 | Delta onAnalysis | `#canvas .stage`, `#canvas .viewport`, `#coverage`, `{ type: "patch" }` coverage/findings/stats |
 | Map off-view | `#canvas .stage`, `.bubble-card`, `[data-bubble]`, `[data-offview]`, `#zoomIn` / `#zoomFit` |
+| Panel timeout | `#coverage[data-panel="shed"]`, `#canvas .stage`, `#zoomIn`, `{ type: "patch" }` coverage/findings |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |

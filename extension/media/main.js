@@ -20280,6 +20280,19 @@
       if (msg.program) return false;
       return !!(msg.coverage || msg.findings || msg.stats || msg.stamps || msg.skipped || msg.plugin || msg.nodes != null || msg.edges != null || msg.elapsed_ms != null);
     }
+    const PANEL_BUDGET_MS = 8;
+    const PANEL_FAT_FINDINGS = 48;
+    function panelNow() {
+      return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    }
+    function panelOverBudget(opts) {
+      return !!(opts && opts.budgetMs != null && panelNow() - opts.startedAt > opts.budgetMs);
+    }
+    function markPanelShed(on2) {
+      if (!coverage) return;
+      if (on2) coverage.setAttribute("data-panel", "shed");
+      else coverage.removeAttribute("data-panel");
+    }
     function queuePanelRefresh() {
       if (panelRaf) return;
       panelRaf = requestAnimationFrame(flushPanelRefresh);
@@ -20323,8 +20336,12 @@
     function flushPanelRefresh() {
       panelRaf = 0;
       if (!snapshot) return;
+      const startedAt = panelNow();
       renderStats(snapshot);
-      renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
+      renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph, {
+        budgetMs: PANEL_BUDGET_MS,
+        startedAt
+      });
     }
     function applyPatch(msg) {
       if (!snapshot) return;
@@ -26593,9 +26610,12 @@
         selected: selectedNodeId
       });
     }
-    function renderCoverage(cov, findings, graph) {
+    function renderCoverage(cov, findings, graph, opts) {
       const uncovered = cov && cov.uncovered || [];
       const changed = cov && cov.changed || [];
+      const rawFindings = findings || [];
+      const budgeted = !!(opts && opts.budgetMs != null);
+      let shed = budgeted && (panelOverBudget(opts) || rawFindings.length > PANEL_FAT_FINDINGS);
       const { names, holds, broken, skipped, pending } = reviewMarks();
       let html = "Coverage " + changed.length + " changed · " + uncovered.length + " uncovered";
       if (names.length) {
@@ -26604,14 +26624,25 @@
           html += ' <span class="live holds">complete</span>';
         }
       }
-      if (uncovered.length && graph) {
-        const sample = uncovered.slice(0, 3).map((id2) => shortOf(fqnOf(graph, id2))).filter(Boolean);
-        if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
-        if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
+      if (uncovered.length && graph && !shed) {
+        if (budgeted && panelOverBudget(opts)) {
+          shed = true;
+        } else {
+          const sample = uncovered.slice(0, 3).map((id2) => shortOf(fqnOf(graph, id2))).filter(Boolean);
+          if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
+          if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
+        }
       }
       const score = '<div class="score" id="scorecard"><span class="score-chip pending">' + pending + ' left</span><span class="score-chip holds">' + holds + ' stamped</span><span class="score-chip skip">' + skipped + ' skipped</span><span class="score-chip broken">' + broken + " broken</span></div>";
       html = score + '<span class="cov-chip">' + html + "</span>";
-      const scars = (findings || []).filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
+      let scars = [];
+      if (!shed) {
+        scars = rawFindings.filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
+        if (budgeted && panelOverBudget(opts)) {
+          shed = true;
+          scars = [];
+        }
+      }
       if (scars.length) {
         html += "<ul>" + scars.slice(0, 4).map((f) => {
           if (f.kind === "UnmatchedHint")
@@ -26620,6 +26651,7 @@
         }).join("") + (scars.length > 4 ? "<li>…</li>" : "") + "</ul>";
       }
       coverage.innerHTML = html;
+      markPanelShed(budgeted && shed);
     }
     function enterBubble(snap, flowName2, bubbleId) {
       const flow = (snap.flows || []).find((f) => f.name === flowName2);

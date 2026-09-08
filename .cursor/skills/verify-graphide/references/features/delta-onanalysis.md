@@ -18,6 +18,7 @@ Map altitude and not an XYFlow Map rewrite.
   unused because the canvas is not rebuilt.
 - `#coverage` / `#status` refresh on rAF (`queuePanelRefresh`).
   Panel work must not gate stamp / skip / click on the canvas.
+  A fat flush is time-boxed — see [panel-timeout.md](panel-timeout.md).
 - Map stays community LOD (`xy=0`, `.viewport` `data-lod="0"`).
   A zoomed `--cam-k` does not raise Map into geometric lod 1.
 - Stamp / skip stay human. A coverage patch never posts
