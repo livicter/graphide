@@ -82,6 +82,13 @@ jobs:
             > extension/scripts/lifecycle-snap.json
           test -s extension/scripts/lifecycle-snap.json
 
+      - name: Python desk fixture
+        run: |
+          set -euo pipefail
+          ./target/debug/graphide review --root fixtures/python --json --progress --no-parent \
+            > extension/scripts/python-snap.json
+          test -s extension/scripts/python-snap.json
+
       - name: Static map gate
         run: node extension/scripts/check-map.js
 

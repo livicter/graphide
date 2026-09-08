@@ -369,6 +369,8 @@
     loadNamedSnap("sequence-snap.json", "__graphideSequence", "__graphideSequenceError", afterPaint, params.get("require") === "1");
   } else if (params.get("delta") === "1") {
     loadNamedSnap("delta-snap.json", "__graphideDelta", "__graphideDeltaError", afterPaint, params.get("require") === "1");
+  } else if (params.get("python") === "1") {
+    loadNamedSnap("python-snap.json", "__graphidePython", "__graphidePythonError", afterPaint, params.get("require") === "1");
   } else if (params.get("live") === "1") {
     loadNamedSnap("live-snap.json", "__graphideLive", "__graphideLiveError", afterPaint, params.get("require") === "1");
   } else {
