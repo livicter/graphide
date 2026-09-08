@@ -98,10 +98,23 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    `lifecycle.transitions` must include recover `broken → walking`. Plugin
    Type / Endpoint ends may appear (`crate::bus::events`). No invented
    match/enum-variant states.
-10. **Static map gate** — `node extension/scripts/check-map.js`. This is a
+10. **Python desk fixture** — prove the compiled-in `python@` deriver on
+    the Review desk (not `plugins --check` alone):
+
+    ```
+    ./target/debug/graphide review --root fixtures/python --json --progress --no-parent \
+      > extension/scripts/python-snap.json
+    ```
+
+    Snap `plugin` matches `python@`; nodes / edges / files `> 0`; a flow
+    has Source and Sink (data-subscription: publish → events → subscribe).
+    Desk: `?python=1&probe=0&require=1`. Screenshot
+    `verification/python-desk.png`. Self-review rust / RC* / DA* /
+    map-offview / panel-timeout stay.
+11. **Static map gate** — `node extension/scripts/check-map.js`. This is a
    CSS/string check. It does **not** replace driving the running surface.
-11. **Package** — `npm ci --prefix extension && npm run package` writes `extension/graphide-*.vsix` and must pass `npm run check:package` plus `npm run check:activation`. The VSIX holds compiled `out/extension.js`, `media/main.js`, `media/main.css`, `media/xyflow.css`, `media/icon.svg`, and `bin/graphide` (or `graphide.exe`) for this host. It must not contain `media/src/` or `extension/src/`. Core Review does not need an LLM key. This does **not** launch a VS Code Extension Host.
-12. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
+12. **Package** — `npm ci --prefix extension && npm run package` writes `extension/graphide-*.vsix` and must pass `npm run check:package` plus `npm run check:activation`. The VSIX holds compiled `out/extension.js`, `media/main.js`, `media/main.css`, `media/xyflow.css`, `media/icon.svg`, and `bin/graphide` (or `graphide.exe`) for this host. It must not contain `media/src/` or `extension/src/`. Core Review does not need an LLM key. This does **not** launch a VS Code Extension Host.
+13. **Harness** — `npm install && npx playwright install --with-deps chromium && npm run verify`
    drives seven desks plus Export, Presentation, Style, Appearance, Route, and Lens:
    - chrome 17/17 on `webview-harness.html?mode=explorer&probe=0`
    - Overview / Decisions / Registry / Timeline lists on that explorer desk
@@ -117,6 +130,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Sequence on `?sequence=1&probe=0&require=1&ws=sequence` using fixtures/demo
    - Data-flow on `?dataflow=1&probe=0&require=1&ws=dataflow` using fixtures/demo
    - Lifecycle on `?lifecycle=1&probe=0&require=1&ws=lifecycle` using fixtures/demo
+   - Python desk on `?python=1&probe=0&require=1&ws=dataflow` using fixtures/python
    - Lineage on `?lineage=1&probe=0&require=1&ws=lineage` using fixtures/demo
    - Export on the explorer Map: `#exportBtn` writes PNG / SVG / Share Card
    - Presentation / Style on the explorer Map: `#presetBtn` cycles, `F` /
@@ -208,9 +222,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       `.tab[data-proposed="1"]` `proposed-uncovered`; Steiner paints;
       selecting it changes the cut; no `flows.toml` write;
       `verification/proposed-uncovered.png`
-13. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
+14. **Evidence** — stdout prints a `PASS verify-graphide` line that **mentions
     overview**, **decisions**, **registry**, **timeline**, **self-review**,
-    **delta**, **sequence**, **dataflow**, **lifecycle**,
+    **delta**, **sequence**, **dataflow**, **lifecycle**, **python-desk**,
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
@@ -223,7 +237,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     (mean luma well above 0.15 on the bright desk; Night is dark vs
     day `map.png`, not a flat black frame). The driver lists the
     files it actually wrote — do not maintain a second dump here.
-14. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
+15. **CI** — the GitHub Actions job named `verify` is green on the PR. No merge
     on a written story. Mac mini self-hosted is blocked until a runner with
     labels `[self-hosted, macOS, ARM64]` is registered on `livicter/graphide`
     (or org); do not flip `runs-on` until then.
@@ -235,7 +249,7 @@ synthetic explorer fixture alone.
 
 ## What the job proves
 
-Doctor items 1–14 plus the feature maps. Do not restate every desk
+Doctor items 1–15 plus the feature maps. Do not restate every desk
 here. Unique regressions that must still fail CI:
 
 - **Map is a community map.** Seed `bin main`. After Review, Map shows
@@ -273,6 +287,7 @@ extension/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta
 extension/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence
 extension/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow
 extension/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle
+extension/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow
 extension/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage
 ```
 
@@ -294,8 +309,9 @@ Useful query pins already wired in `webview-harness.js` / `main.js`:
 | `sequence=1` | fetch `sequence-snap.json` (fixtures/demo Sequence) |
 | `dataflow=1` | fetch `dataflow-snap.json` (fixtures/demo Data-flow) |
 | `lifecycle=1` | fetch `lifecycle-snap.json` (fixtures/demo Lifecycle) |
+| `python=1` | fetch `python-snap.json` (fixtures/python Review desk) |
 | `lineage=1` | fetch `sequence-snap.json` (fixtures/demo Lineage) |
-| `require=1` | with `live=1`, `delta=1`, `sequence=1`, `dataflow=1`, `lifecycle=1`, or `lineage=1`, do **not** fall back to the synthetic payload |
+| `require=1` | with `live=1`, `delta=1`, `sequence=1`, `dataflow=1`, `lifecycle=1`, `python=1`, or `lineage=1`, do **not** fall back to the synthetic payload |
 | `present=1` | open Presentation Stage after first paint |
 | `preset=classic` / `signal-flow` / `blueprint` | pin visual Style |
 | `route=1` | open Route probe after first paint (same Sequence snap) |
@@ -379,6 +395,7 @@ same PR because the harness truly cannot hook existing ones.
 | Sequence snap | `window.__graphideSequence`, `window.__graphideSequenceError` |
 | Data-flow snap | `window.__graphideDataflow`, `window.__graphideDataflowError` |
 | Lifecycle snap | `window.__graphideLifecycle`, `window.__graphideLifecycleError` |
+| Python snap | `window.__graphidePython`, `window.__graphidePythonError` |
 | Lineage | `#lineageCanvas`, `window.__graphideLineage` |
 
 Feature maps (four headings each): [references/features/](references/features/README.md).
@@ -395,13 +412,15 @@ Feature maps (four headings each): [references/features/](references/features/RE
   The harness stub only pushes to `__vscodePosts`. Do not treat a stub click as
   a human stamp. Self-review must not write that directory.
 - `live-snap.json`, `delta-snap.json`, `sequence-snap.json`,
-  `dataflow-snap.json`, and `lifecycle-snap.json` are gitignored. CI /
-  `npm run verify` generate them. `?live=1` / `?delta=1` / `?sequence=1` /
-  `?dataflow=1` / `?lifecycle=1` without `require=1` still falls back to the
-  synthetic payload — that is not a proof. The driver uses `require=1`.
+  `dataflow-snap.json`, `lifecycle-snap.json`, and `python-snap.json` are
+  gitignored. CI / `npm run verify` generate them. `?live=1` / `?delta=1` /
+  `?sequence=1` / `?dataflow=1` / `?lifecycle=1` / `?python=1` without
+  `require=1` still falls back to the synthetic payload — that is not a
+  proof. The driver uses `require=1`.
 - Architecture Delta CI uses `fixtures/demo` vs `fixtures/demo-parent`, not
   git `HEAD^`. Sequence, Data-flow, Lifecycle, Route, and Lens CI use
-  `fixtures/demo` with `--no-parent`. Route / Lens reuse `sequence-snap.json`.
+  `fixtures/demo` with `--no-parent`. Python desk CI uses `fixtures/python`
+  with `--no-parent`. Route / Lens reuse `sequence-snap.json`.
   Self-review stays `--no-parent`.
 - This repo's program chips are Graphide crates (`bin graphide-cli`, libs), not
   the explorer fixture's `bin main`.
