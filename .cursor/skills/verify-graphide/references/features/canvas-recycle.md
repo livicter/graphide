@@ -20,7 +20,7 @@ altitude and not an XYFlow Map rewrite.
 - Map stays community LOD (`xy=0`, `.viewport` `data-lod="0"`).
   Recycle / keepCam may keep pan/zoom scale; they do not raise
   Map into geometric lod 1. No second altitude. Off-view skip is
-  not a second LOD.
+  not a second LOD — see [map-offview.md](map-offview.md).
 - Stamp / skip stay human. Recycle never posts `{ type: "stamp" }`
   / `{ type: "skip" }` and never writes `.graphide/stamps/`.
 

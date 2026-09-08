@@ -914,6 +914,13 @@ svg.steiner .edge-hit {
   opacity: 0.7;
 }
 .bubble-card:hover { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
+.bubble-card[data-offview="1"] {
+  content-visibility: hidden;
+  contain: size layout style paint;
+  contain-intrinsic-size: 200px 72px;
+  visibility: hidden;
+  pointer-events: none;
+}
 .bubble-card.dim { opacity: 0.22; }
 .bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
 .bubble-card .members {

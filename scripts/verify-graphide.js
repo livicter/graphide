@@ -2133,6 +2133,160 @@ async function main() {
     );
     assertNoStampDir("DA3", "Delta onAnalysis did not write .graphide/stamps/");
 
+    const readOffviewDesk = () =>
+      page.evaluate(() => {
+        const stage = document.querySelector("#canvas .stage");
+        const vp = document.querySelector("#canvas .viewport");
+        const stageBox = stage ? stage.getBoundingClientRect() : null;
+        const cards = [...document.querySelectorAll("#canvas .comm-wrap .bubble-card[data-bubble]")];
+        const rows = cards.map((el) => {
+          const r = el.getBoundingClientRect();
+          const off = el.getAttribute("data-offview") === "1";
+          const measurable = r.width >= 4 && r.height >= 4;
+          const inStage = !!(
+            stageBox &&
+            measurable &&
+            !(r.right <= stageBox.left || r.left >= stageBox.right || r.bottom <= stageBox.top || r.top >= stageBox.bottom)
+          );
+          const cs = getComputedStyle(el);
+          return {
+            id: el.getAttribute("data-bubble"),
+            off,
+            inStage,
+            parked:
+              off &&
+              (cs.visibility === "hidden" ||
+                cs.pointerEvents === "none" ||
+                cs.contentVisibility === "hidden"),
+          };
+        });
+        return {
+          cards: rows.length,
+          off: rows.filter((c) => c.off).length,
+          parked: rows.filter((c) => c.parked).length,
+          inStage: rows.filter((c) => c.inStage && !c.off).length,
+          ids: rows.map((c) => c.id),
+          offIds: rows.filter((c) => c.off).map((c) => c.id),
+          xy: document.querySelectorAll(".react-flow__node").length,
+          comm: document.querySelectorAll(".comm-node").length,
+          lod: vp ? vp.getAttribute("data-lod") : "",
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+            ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+            : "",
+        };
+      });
+    const ovPostsAt = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const ovBefore = await readOffviewDesk();
+    record(
+      "OV0",
+      "Map paints communities before off-view park",
+      ovBefore.ws === "map" &&
+        ovBefore.xy === 0 &&
+        ovBefore.comm === 0 &&
+        ovBefore.cards > 1 &&
+        ovBefore.lod === "0",
+      JSON.stringify(ovBefore)
+    );
+    for (let i = 0; i < 8; i++) {
+      const cur = await readOffviewDesk();
+      if (cur.off >= 1) break;
+      await page.evaluate(() => {
+        const btn = document.getElementById("zoomIn");
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(220);
+    }
+    let ovZoomed = await readOffviewDesk();
+    if (ovZoomed.off < 1) {
+      const box = await page.locator("#canvas .stage").boundingBox();
+      if (box) {
+        await page.mouse.move(box.x + 18, box.y + 10);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 18 + 520, box.y + 10 + 300, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForTimeout(350);
+      }
+      ovZoomed = await readOffviewDesk();
+    }
+    if (ovZoomed.off >= 1 && ovZoomed.inStage < 1) {
+      await page.evaluate(() => {
+        const btn = document.getElementById("zoomOut");
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(220);
+      ovZoomed = await readOffviewDesk();
+    }
+    record(
+      "OV1",
+      "Zoom/pan parks off-stage community cards (data-offview)",
+      ovZoomed.ws === "map" &&
+        ovZoomed.xy === 0 &&
+        ovZoomed.comm === 0 &&
+        ovZoomed.lod === "0" &&
+        ovZoomed.cards > 1 &&
+        ovZoomed.off >= 1 &&
+        ovZoomed.parked >= 1 &&
+        ovZoomed.inStage >= 1 &&
+        ovZoomed.inStage < ovZoomed.cards,
+      JSON.stringify(ovZoomed)
+    );
+    const parkedIds = ovZoomed.offIds.slice();
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(220);
+    const ovRecycle = await readOffviewDesk();
+    record(
+      "OV2",
+      "Recycle keeps parked data-bubble identity at community LOD",
+      ovRecycle.ws === "map" &&
+        ovRecycle.xy === 0 &&
+        ovRecycle.comm === 0 &&
+        ovRecycle.lod === "0" &&
+        ovRecycle.cards === ovZoomed.cards &&
+        parkedIds.length > 0 &&
+        parkedIds.every((id) => ovRecycle.ids.indexOf(id) >= 0),
+      JSON.stringify({ parkedIds, recycle: ovRecycle })
+    );
+    await shot(page, "map-offview.png");
+    const fitVia = await page.evaluate(() => {
+      const btn = document.getElementById("zoomFit");
+      if (!btn) return "";
+      btn.click();
+      return "zoomFit";
+    });
+    await page.waitForTimeout(450);
+    const ovBack = await readOffviewDesk();
+    const ovAfterPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+      };
+    }, ovPostsAt);
+    record(
+      "OV3",
+      "Fit / pan-back restores parked cards (same data-bubble)",
+      fitVia === "zoomFit" &&
+        ovBack.ws === "map" &&
+        ovBack.xy === 0 &&
+        ovBack.comm === 0 &&
+        ovBack.lod === "0" &&
+        ovBack.cards > 1 &&
+        parkedIds.every((id) => ovBack.ids.indexOf(id) >= 0) &&
+        parkedIds.every((id) => ovBack.offIds.indexOf(id) < 0) &&
+        ovBack.inStage >= 1,
+      "via=" + fitVia + " parked=" + parkedIds.join(",") + " " + JSON.stringify(ovBack)
+    );
+    record(
+      "OV4",
+      "Off-view park does not post stamp / skip",
+      ovAfterPosts.stampPosts === 0 && ovAfterPosts.skipPosts === 0,
+      JSON.stringify(ovAfterPosts)
+    );
+    assertNoStampDir("OV5", "Map off-view did not write .graphide/stamps/");
+
     const explorerChips = await page.evaluate(() => {
       const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
         i: Number(el.getAttribute("data-prog")),
@@ -6668,7 +6822,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · lineage · export · present · preset · route · lens"
   );
 }
 

@@ -144,6 +144,7 @@ let barRaf = 0;
 let pendingProgress = null;
 let progressRaf = 0;
 let panelRaf = 0;
+let offviewRaf = 0;
 let navToken = 0;
 let viewportEl = null;
 let cam = { x: 0, y: 0, k: 1 };
@@ -844,6 +845,44 @@ function panelOnlyPatch(msg) {
 function queuePanelRefresh() {
   if (panelRaf) return;
   panelRaf = requestAnimationFrame(flushPanelRefresh);
+}
+
+function queueOffviewSync() {
+  if (offviewRaf) return;
+  offviewRaf = requestAnimationFrame(syncOffviewCards);
+}
+
+function syncOffviewCards() {
+  offviewRaf = 0;
+  if (!mapStageMounted()) return;
+  const stage = canvas.querySelector(".stage");
+  const wrap = canvas.querySelector(".comm-wrap");
+  if (!stage || !wrap) return;
+  const stageBox = stage.getBoundingClientRect();
+  if (stageBox.width < 8 || stageBox.height < 8) return;
+  const wrapBox = wrap.getBoundingClientRect();
+  const wrapW = wrap.offsetWidth || parseFloat(wrap.style.width) || 1;
+  const wrapH = wrap.offsetHeight || parseFloat(wrap.style.height) || 1;
+  const sx = wrapBox.width / wrapW;
+  const sy = wrapBox.height / wrapH;
+  if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx <= 0 || sy <= 0) return;
+  const slack = 48;
+  const hw = 110 * sx;
+  const hh = 45 * sy;
+  const left = stageBox.left - slack;
+  const right = stageBox.right + slack;
+  const top = stageBox.top - slack;
+  const bottom = stageBox.bottom + slack;
+  wrap.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    const cx = wrapBox.left + (parseFloat(el.style.left) || 0) * sx;
+    const cy = wrapBox.top + (parseFloat(el.style.top) || 0) * sy;
+    const off = cx + hw < left || cx - hw > right || cy + hh < top || cy - hh > bottom;
+    if (off) {
+      if (el.getAttribute("data-offview") !== "1") el.setAttribute("data-offview", "1");
+    } else if (el.hasAttribute("data-offview")) {
+      el.removeAttribute("data-offview");
+    }
+  });
 }
 
 function flushPanelRefresh() {
@@ -1888,6 +1927,7 @@ function applyCam() {
     zoomPopReady = false;
     popAltitudeFromZoom();
   }
+  if (mapStageMounted()) queueOffviewSync();
 }
 
 function tickCam() {
@@ -8199,6 +8239,7 @@ function renderBubbleMap(clusters, opts) {
   });
   bindHopClicks(canvas.querySelector("svg.comm-edges"));
   applyGraphFilter();
+  queueOffviewSync();
   const sample = [];
   const seen = new Set();
   for (const b of clusters) {
