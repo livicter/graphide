@@ -3146,6 +3146,247 @@ async function main() {
       JSON.stringify(afterSrMap)
     );
 
+    const beforeSePosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "slice";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#sliceCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const seSliceBefore = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      if (stage) stage.dataset.recycleMark = "1";
+      if (vp) vp.dataset.recycleMark = "1";
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        slice: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        k: kCam,
+      };
+    });
+    record(
+      "SE0",
+      "Slice paints Steiner XYFlow before recycle",
+      seSliceBefore.ws === "slice" && seSliceBefore.slice > 1 && seSliceBefore.enter === 0 && seSliceBefore.cards === 0,
+      JSON.stringify(seSliceBefore)
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomIn");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(350);
+    const seSliceCam = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return parseFloat((vp && vp.style.getPropertyValue("--cam-k")) || "0");
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForTimeout(220);
+    const seSliceReselect = await page.evaluate((wantK) => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        sameStage: !!(stage && stage.dataset.recycleMark === "1"),
+        sameVp: !!(vp && vp.dataset.recycleMark === "1"),
+        slice: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        k: kCam,
+        wantK,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, seSliceCam);
+    record(
+      "SE1",
+      "Re-select Slice recycles the same .stage / .viewport (keepCam)",
+      seSliceReselect.ws === "slice" &&
+        seSliceReselect.sameStage &&
+        seSliceReselect.sameVp &&
+        seSliceReselect.slice > 1 &&
+        seSliceReselect.enter === 0 &&
+        seSliceReselect.k > 0 &&
+        Math.abs(seSliceReselect.k - seSliceCam) < 0.2 &&
+        (Math.abs(seSliceCam - 1) < 0.05 || Math.abs(seSliceReselect.k - 1) > 0.04),
+      JSON.stringify(seSliceReselect)
+    );
+    await page.evaluate(() => {
+      window.postMessage({ type: "patch", stats: { elapsed_ms: 140 } }, "*");
+    });
+    await page.waitForTimeout(120);
+    const seSlicePatch = await page.evaluate((wantK) => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        sameStage: !!(stage && stage.dataset.recycleMark === "1"),
+        sameVp: !!(vp && vp.dataset.recycleMark === "1"),
+        slice: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        k: kCam,
+        wantK,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    }, seSliceCam);
+    record(
+      "SE2",
+      "Patch recycles Slice stage and keeps the camera",
+      seSlicePatch.ws === "slice" &&
+        seSlicePatch.sameStage &&
+        seSlicePatch.sameVp &&
+        seSlicePatch.slice > 1 &&
+        seSlicePatch.k > 0 &&
+        Math.abs(seSlicePatch.k - seSliceCam) < 0.25 &&
+        (Math.abs(seSliceCam - 1) < 0.05 || Math.abs(seSlicePatch.k - 1) > 0.04),
+      JSON.stringify(seSlicePatch)
+    );
+    await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (run && run.scrollIntoView) run.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    await page.waitForTimeout(80);
+    const seRunClick = await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (!run) return { clicked: false };
+      run.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return { clicked: true, run: run.getAttribute("data-run") || "" };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .react-flow__node").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(async () => {
+        const dump = await page.evaluate(() => ({
+          clicked: true,
+          enter: !!document.getElementById("enterCanvas"),
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        }));
+        failFast("Slice/Enter recycle enter XYFlow did not mount — click=" + JSON.stringify(seRunClick) + " dump=" + JSON.stringify(dump));
+      });
+    await page.waitForTimeout(220);
+    const seEnterBefore = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      if (stage) stage.dataset.recycleMark = "1";
+      if (vp) vp.dataset.recycleMark = "1";
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        shaped: document.querySelectorAll("#enterCanvas .vnode[data-shape]").length,
+        inode: document.querySelectorAll(".inode").length,
+        k: kCam,
+      };
+    });
+    record(
+      "SE3",
+      "Enter a Slice run mounts #enterCanvas before recycle",
+      seRunClick.clicked && seEnterBefore.enter > 1 && seEnterBefore.enter <= 24 && seEnterBefore.shaped === seEnterBefore.enter && seEnterBefore.inode === 0,
+      JSON.stringify({ click: seRunClick, desk: seEnterBefore })
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomIn");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(350);
+    const seEnterCam = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return parseFloat((vp && vp.style.getPropertyValue("--cam-k")) || "0");
+    });
+    await page.evaluate(() => {
+      window.postMessage({ type: "patch", stats: { elapsed_ms: 160 } }, "*");
+    });
+    await page.waitForTimeout(140);
+    const seEnterPatch = await page.evaluate((wantK) => {
+      const stage = document.querySelector("#canvas .stage");
+      const vp = document.querySelector("#canvas .viewport");
+      const kCam = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return {
+        sameStage: !!(stage && stage.dataset.recycleMark === "1"),
+        sameVp: !!(vp && vp.dataset.recycleMark === "1"),
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        k: kCam,
+        wantK,
+      };
+    }, seEnterCam);
+    record(
+      "SE4",
+      "Patch recycles Enter stage and keeps the camera",
+      seEnterPatch.sameStage &&
+        seEnterPatch.sameVp &&
+        seEnterPatch.enter > 1 &&
+        seEnterPatch.enter <= 24 &&
+        seEnterPatch.k > 0 &&
+        Math.abs(seEnterPatch.k - seEnterCam) < 0.25 &&
+        (Math.abs(seEnterCam - 1) < 0.05 || Math.abs(seEnterPatch.k - 1) > 0.04),
+      JSON.stringify(seEnterPatch)
+    );
+    const afterSe = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((p) => p && p.type === "stamp").length,
+        skipPosts: posts.filter((p) => p && p.type === "skip").length,
+      };
+    }, beforeSePosts);
+    record(
+      "SE5",
+      "Slice / Enter recycle does not post stamp / skip",
+      afterSe.stampPosts === 0 && afterSe.skipPosts === 0,
+      JSON.stringify(afterSe)
+    );
+    await shot(page, "slice-enter-recycle.png");
+    assertNoStampDir("SE6", "Slice / Enter recycle did not write .graphide/stamps/");
+    const backSe = page.locator("#backBtn");
+    if (await backSe.isEnabled()) await backSe.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "map";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterSeMap = await page.evaluate(() => ({
+      ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "",
+      xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      comm: document.querySelectorAll(".comm-node").length,
+    }));
+    record(
+      "SE7",
+      "Slice / Enter recycle returns Map to community LOD (xy=0)",
+      afterSeMap.ws === "map" &&
+        afterSeMap.xy === 0 &&
+        afterSeMap.enter === 0 &&
+        afterSeMap.comm === 0 &&
+        afterSeMap.cards > 1,
+      JSON.stringify(afterSeMap)
+    );
+
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       window.postMessage(
@@ -7417,7 +7658,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
   );
 }
 

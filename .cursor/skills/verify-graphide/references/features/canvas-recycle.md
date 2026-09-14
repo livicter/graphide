@@ -67,8 +67,10 @@ Driver assertions:
 
 ## Gotchas
 
-- Do not wipe `#canvas` when a Map stage is already mounted. Slice
-  / Enter still replace the canvas when leaving Map.
+- Do not wipe `#canvas` when a Map stage is already mounted. Leaving
+  Map for Slice / Enter still replaces the canvas. Slice / Enter
+  recycle their own stage when the body key / tree is unchanged —
+  see [slice-enter-recycle.md](slice-enter-recycle.md).
 - `keepCam` is the recycle default. First paint (no `.comm-wrap`)
   still `bindStage(..., { reset: true })`. Recycle pins
   `data-lod="0"` so a zoomed `--cam-k` cannot leave community

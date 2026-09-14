@@ -39,6 +39,7 @@ owns this folder.
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |
 | [zoom.md](zoom.md) | Map zoom in / out | explorer Map · `#zoomIn` / `#zoomOut` · `zoom.png` |
 | [canvas-recycle.md](canvas-recycle.md) | Map recycle + keepCam | explorer Map · second paint · `canvas-recycle.png` |
+| [slice-enter-recycle.md](slice-enter-recycle.md) | Slice / Enter recycle + keepCam | explorer Slice / Enter · second paint · `slice-enter-recycle.png` |
 | [delta-onanalysis.md](delta-onanalysis.md) | Coverage/findings patch, no canvas rebuild | explorer Map · panel `patch` · `delta-onanalysis.png` |
 | [map-offview.md](map-offview.md) | Off-stage Map cards parked | explorer Map · zoom/pan · `map-offview.png` |
 | [panel-timeout.md](panel-timeout.md) | Time-box BEST_EFFORT coverage/findings flush | explorer Map · fat panel `patch` · `panel-timeout.png` |

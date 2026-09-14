@@ -19580,6 +19580,7 @@
       dfBodyKey = "";
       lcBodyKey = "";
       sliceBodyKey = "";
+      enterBodyKey = "";
       lineageBodyKey = "";
       lineageHopCursor = -1;
       lineageEgoId = "";
@@ -19640,6 +19641,7 @@
     let lcWalk = { playing: false, timer: 0 };
     let lcBodyKey = "";
     let sliceBodyKey = "";
+    let enterBodyKey = "";
     let lineageBodyKey = "";
     let lineageHopCursor = -1;
     let lineageEgoId = "";
@@ -20232,6 +20234,18 @@
       const stage = canvas.querySelector(".stage");
       const viewport = stage && stage.querySelector(".viewport");
       return !!(viewport && viewport.querySelector(".comm-wrap"));
+    }
+    function sliceStageMounted() {
+      if (!canvas || !canvas.classList.contains("has-stage")) return false;
+      const stage = canvas.querySelector(".stage");
+      const viewport = stage && stage.querySelector(".viewport");
+      return !!(viewport && document.getElementById("sliceCanvas"));
+    }
+    function enterStageMounted() {
+      if (!canvas || !canvas.classList.contains("has-stage")) return false;
+      const stage = canvas.querySelector(".stage");
+      const viewport = stage && stage.querySelector(".viewport");
+      return !!(viewport && document.getElementById("enterCanvas"));
     }
     function patchSnapshotFields(msg, opts) {
       opts = opts || {};
@@ -25862,6 +25876,7 @@
     function renderCommunityGraph(opts) {
       if (!graphFilter.bubble) {
         unmountReviewCanvas();
+        enterBodyKey = "";
         renderBubbleMap(mapAltitudeBubbles(), opts);
         return;
       }
@@ -26305,15 +26320,16 @@
       const treeHtml = renderSteiner(flow, msg.graph, playTree, scarSet(msg.findings, flow.name));
       const runHtml = renderRuns(flow, msg, playRuns);
       const key = sliceWorkspaceKey();
-      const keep = !!(canvas.classList.contains("has-stage") && document.getElementById("sliceCanvas") && key === sliceBodyKey && lastTreeKey === treeKey(flow));
+      const recycle = sliceStageMounted() && key === sliceBodyKey;
       canvas.className = "play has-stage";
-      if (!keep) {
+      if (recycle) {
+        bindStage(canvas.querySelector(".stage"), { reset: false });
+      } else {
         unmountReviewCanvas();
+        enterBodyKey = "";
         canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
         sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
-      } else {
-        bindStage(canvas.querySelector(".stage"), { reset: false });
       }
       mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
       bindGraphFx();
@@ -26343,6 +26359,12 @@
       const flow = currentFlow() || defaultRunFlow();
       const tree = flow && flow.tree || { nodes: [], edges: [] };
       return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
+    }
+    function enterWorkspaceKey(inner) {
+      const nodes = (inner && inner.nodes || []).map((n) => String(idVal(n.id)));
+      const top = stack[stack.length - 1];
+      const bubble = graphFilter.bubble || top && top.bubble || "";
+      return ["enter", inner && inner.flow || "", String(bubble), nodes.join(",")].join("\0");
     }
     function sliceCanvasProps(flow, graph, scars) {
       const treeNodes = flow && flow.tree && flow.tree.nodes || [];
@@ -26593,14 +26615,27 @@
       hideTip();
       if (!nodes.length) {
         unmountReviewCanvas();
+        enterBodyKey = "";
         canvas.className = "play";
         canvas.innerHTML = '<div class="empty">No derived members in this community.</div>';
         setZoomUi(false);
         return;
       }
+      const key = enterWorkspaceKey(inner);
+      const recycle = enterStageMounted() && key === enterBodyKey;
       canvas.className = "play has-stage programs-view" + (animate ? " play" : "");
-      canvas.innerHTML = '<div class="stage"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
-      bindStage(canvas.querySelector(".stage"), { reset: true });
+      if (recycle) {
+        const title = canvas.querySelector(".flow-title");
+        if (title) {
+          title.textContent = "Inside this community — walk lit, siblings grey · " + nodes.length + " review-relevant";
+        }
+        bindStage(canvas.querySelector(".stage"), { reset: false });
+      } else {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="stage"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+        enterBodyKey = document.getElementById("enterCanvas") ? key : "";
+        bindStage(canvas.querySelector(".stage"), { reset: true });
+      }
       setZoomUi(true);
       mountEnterCanvas(inner);
       applyGraphFilter();
