@@ -330,6 +330,7 @@ assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png
 assert(featReadme.includes("slice-grey.md") && featReadme.includes("slice-grey.png"), "feature README must list slice-grey.md");
 assert(featReadme.includes("slice-runs.md") && featReadme.includes("slice-runs.png"), "feature README must list slice-runs.md");
 assert(featReadme.includes("slice-enter-recycle.md") && featReadme.includes("slice-enter-recycle.png"), "feature README must list slice-enter-recycle.md");
+assert(featReadme.includes("stamp-recheck.md") && featReadme.includes("stamp-recheck.png"), "feature README must list stamp-recheck.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
@@ -406,6 +407,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md")), "slice-grey feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-runs.md")), "slice-runs feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-enter-recycle.md")), "slice-enter-recycle feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/stamp-recheck.md")), "stamp-recheck feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
@@ -505,6 +507,17 @@ assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.inc
 assert(driver.includes("flow-tabs.png") && driver.includes("FT0") && driver.includes("FT1") && driver.includes("#tabs .tab[data-flow]") && driver.includes("selectFlow"), "verify driver must prove Map flow-tab Steiner switch");
 assert(driver.includes("slice-grey.png") && driver.includes("GY1") && driver.includes("GY2") && driver.includes("data-lit") && driver.includes("slice-dim"), "verify driver must prove prompt-driven Slice grey-out");
 assert(driver.includes("slice-runs.png") && driver.includes("SR0") && driver.includes("SR1") && driver.includes(".run") && driver.includes("enterRun") && driver.includes("#enterCanvas"), "verify driver must prove Slice subsystem runs + enter");
+assert(
+  driver.includes("stamp-recheck.png") &&
+    driver.includes("ST0") &&
+    driver.includes("ST1") &&
+    driver.includes("ST2") &&
+    driver.includes("__graphideStampRecheck") &&
+    driver.includes("56") &&
+    driver.includes("152") &&
+    driver.includes("StampBroken"),
+  "verify driver must prove stamp recheck overlay on stored run positions"
+);
 assert(driver.includes("slice-enter-recycle.png") && driver.includes("SE0") && driver.includes("SE1") && driver.includes("recycleMark") && driver.includes("#sliceCanvas") && driver.includes("#enterCanvas"), "verify driver must prove Slice / Enter recycle + keepCam");
 assert(js.includes("function renderRuns") && js.includes("function enterRun") && js.includes('type: "enterRun"'), "desk must paint flowchart.runs and post enterRun");
 assert(harness.includes("b-render") && harness.includes("b-origin") && /runs:\s*\[/.test(harness), "explorer fixture must keep flowchart.runs");
@@ -527,6 +540,15 @@ assert(
     sliceEnterRecycleMap.includes("## Gotchas"),
   "slice-enter-recycle feature map must use the four headings"
 );
+const stampRecheckMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/stamp-recheck.md"), "utf8");
+assert(
+  stampRecheckMap.includes("## Sub-features") &&
+    stampRecheckMap.includes("## How to get to it (user POV)") &&
+    stampRecheckMap.includes("## Driving it with the harness") &&
+    stampRecheckMap.includes("## Gotchas"),
+  "stamp-recheck feature map must use the four headings"
+);
+assert(harness.includes("function stampRecheckOverlay") && harness.includes("STAMP_RECHECK_POSITIONS") && harness.includes("b-render") && harness.includes("__graphideStampRecheck"), "explorer fixture must keep the stamp recheck overlay path");
 assert(chrome.includes("function treeDistanceMap") && chrome.includes("sliceDim") && chrome.includes("data-slice-dist"), "Slice lighting must reuse Steiner distance on #sliceCanvas");
 assert(css.includes("#sliceCanvas .vnode.grey") && css.includes("#sliceCanvas .vnode.lit") && css.includes("slice-dim"), "Slice grey / lit mask styles missing");
 const sliceGreyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md"), "utf8");

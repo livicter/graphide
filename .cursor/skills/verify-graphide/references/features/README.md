@@ -51,6 +51,7 @@ owns this folder.
 | [flow-tabs.md](flow-tabs.md) | Map / Review flow-tab Steiner switch | explorer `#tabs` · `flow-tabs.png` |
 | [slice-grey.md](slice-grey.md) | Prompt / flow-tab lighting mask | explorer Slice · `slice-grey.png` |
 | [slice-runs.md](slice-runs.md) | Slice subsystem-run boxes + enter | explorer Slice · `.run` · `slice-runs.png` |
+| [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
 | [uncovered-node.md](uncovered-node.md) | UncoveredNode finding | explorer · `#coverage` · Timeline · `uncovered-node.png` |
 | [draft-hint.md](draft-hint.md) | Copy draft `[[flow]]` hits | explorer Timeline Uncovered · `draft-hint.png` |
