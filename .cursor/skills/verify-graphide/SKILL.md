@@ -207,6 +207,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       on-tree `data-lit="1"` / `.vnode.lit` and at least one
       off-slice `data-lit="0"` / `.vnode.grey` / `.slice-dim`;
       Map stays `xy=0`; `verification/slice-grey.png`
+    - Slice runs: explorer Slice `#canvas .run[data-run]` `>= 2`;
+      click a run posts `enterRun` and mounts `#enterCanvas`
+      shaped XYFlow (`> 1`, `≤ 24`); Map stays `xy=0`;
+      `verification/slice-runs.png`
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
@@ -228,7 +232,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
@@ -355,6 +359,7 @@ same PR because the harness truly cannot hook existing ones.
 | Map cards | `.bubble-card`, `.bubble-card.start`, `.bubble-card .name`, `[data-bubble]` |
 | Enter-bubble | `#enterCanvas .react-flow__node`, `#enterCanvas .vnode[data-shape]`, `[data-lit]`, `[data-leaf]` |
 | Slice / CFG boxes | `.vnode[data-id]`, `.vnode[data-kind]` |
+| Slice runs | `#canvas .run[data-run]`, `[data-flow]`, `[data-bubble]`, `#enterCanvas .vnode[data-shape]` |
 | Object rail | `#ledgerPane`, `#ledgerGrid .cell` |
 | Evidence | `#sourcePane`, `.src-k`, `#srcTitle`, `#srcBody`, `#srcClose`, `#srcEditor` |
 | Hop card | `#hopCard`, `#inspEdges .row[data-from][data-to]`, `.edge-hit`, `text.ekind`, `#hopCard [data-id]` |
