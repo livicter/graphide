@@ -60,6 +60,7 @@ owns this folder.
 | [stamp-skip.md](stamp-skip.md) | Human stamp / skip | host stub only · `stamp-host.png` |
 | [self-review.md](self-review.md) | This checkout | `?live=1&require=1` |
 | [python-desk.md](python-desk.md) | Python fixture desk | `?python=1` · `verification/python-desk.png` |
+| [js-desk.md](js-desk.md) | JavaScript fixture desk | `?js=1` · `verification/js-desk.png` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
 
 Regression sweep: every row above must still have a source path and a

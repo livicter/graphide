@@ -23,9 +23,11 @@ const SEQUENCE_SNAP = path.join(EXT, "scripts", "sequence-snap.json");
 const DATAFLOW_SNAP = path.join(EXT, "scripts", "dataflow-snap.json");
 const LIFECYCLE_SNAP = path.join(EXT, "scripts", "lifecycle-snap.json");
 const PYTHON_SNAP = path.join(EXT, "scripts", "python-snap.json");
+const JS_SNAP = path.join(EXT, "scripts", "js-snap.json");
 const DEMO = path.join(ROOT, "fixtures", "demo");
 const DEMO_PARENT = path.join(ROOT, "fixtures", "demo-parent");
 const PYTHON = path.join(ROOT, "fixtures", "python");
+const JS = path.join(ROOT, "fixtures", "js");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
 const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
 const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
@@ -33,6 +35,7 @@ const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&requi
 const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
 const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
+const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const LINEAGE_HARNESS = "/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage";
 const LINEAGE_DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=lineage";
 const SYNTHETIC_NODES = 2050;
@@ -660,6 +663,81 @@ function assertPythonSnap(snap) {
     /^PY0/,
     "Python snapshot failed structural checks (desk not driven).",
     "empty Python desk on fixtures/python"
+  );
+  return {
+    nodes: nodes.length,
+    hops: best ? best.hops : 0,
+    source: hasSource,
+    sink: hasSink,
+    plugin,
+  };
+}
+
+function deriveJsSnap() {
+  return deriveReviewSnap({
+    dest: JS_SNAP,
+    label: "js",
+    args: ["--root", JS, "--json", "--progress", "--no-parent"],
+  });
+}
+
+function loadJsSnap() {
+  return loadJsonSnap(JS_SNAP, deriveJsSnap, "js");
+}
+
+function assertJsSnap(snap) {
+  const nodes = (snap.graph && snap.graph.nodes) || [];
+  const edges = (snap.graph && snap.graph.edges) || [];
+  const files = snap.stats && snap.stats.files != null ? Number(snap.stats.files) : 0;
+  const plugin = String(snap.plugin || "");
+  const jsFiles = nodes.filter((n) => /\.js$/i.test(((n && n.span) || {}).file || "")).length;
+  const flows = snap.flows || [];
+  const named = flows.find((f) => f && f.name === "data-subscription");
+  const hits = ((named && named.hits) || []).map((h) => String(h || ""));
+  const tree = (named && named.tree) || { nodes: [], edges: [] };
+  const treeNodes = (tree.nodes || []).length;
+  const treeEdges = (tree.edges || []).length;
+  const hasSubscribe = hits.some((h) => /subscribe/i.test(h));
+  const hasEvents = hits.some((h) => /events/i.test(h));
+  const readings = flows.map((f) => {
+    const df = (f && f.dataflow) || { nodes: [], hops: [] };
+    const roles = (df.nodes || []).map((n) => n && n.role).filter(Boolean);
+    return {
+      name: f && f.name,
+      nodes: (df.nodes || []).length,
+      hops: (df.hops || []).length,
+      roles,
+    };
+  });
+  const best = readings.reduce((a, b) => (b.hops > (a ? a.hops : 0) ? b : a), readings[0] || null);
+  const hasSource = !!(best && best.roles.indexOf("source") >= 0);
+  const hasSink = !!(best && best.roles.indexOf("sink") >= 0);
+  const text = JSON.stringify(snap);
+  const subscribe = /subscribe/i.test(text) && /events/i.test(text);
+  record(
+    "JS0",
+    "javascript fixture snap is javascript@ with a real graph",
+    /javascript@/i.test(plugin) && nodes.length > 0 && edges.length > 0 && files > 0 && jsFiles > 0,
+    "plugin=" + plugin + " nodes=" + nodes.length + " edges=" + edges.length + " files=" + files + " js=" + jsFiles
+  );
+  record(
+    "JS0b",
+    "javascript fixture snap has named flow data-subscription with a Steiner tree",
+    !!(named && hasSubscribe && hasEvents && treeNodes >= 2 && treeEdges >= 1),
+    named
+      ? "hits=" + hits.join(",") + " tree=" + treeNodes + "n/" + treeEdges + "e"
+      : "flows=" + flows.map((f) => f && f.name).join(",")
+  );
+  record(
+    "JS0c",
+    "javascript fixture snap has a flow with Source and Sink hops",
+    !!(best && best.nodes >= 2 && best.hops >= 1 && hasSource && hasSink && subscribe),
+    readings.map((r) => r.name + ":" + r.nodes + "n/" + r.hops + "h/" + r.roles.join("+")).join(" ")
+  );
+  failSnapChecks(
+    /^JS0/,
+    "JavaScript snapshot failed structural checks (desk not driven).",
+    "empty JavaScript desk on fixtures/js"
   );
   return {
     nodes: nodes.length,
@@ -7867,6 +7945,148 @@ async function main() {
       "cards=" + pythonMap.cards + " xy=" + pythonMap.xy + " names=" + pythonMap.names.join(",")
     );
     assertNoStampDir("PY7", "Python desk step did not write .graphide/stamps/");
+
+    const jsSnap = loadJsSnap();
+    const jsGraph = assertJsSnap(jsSnap);
+    const jsUrl = origin + JS_HARNESS;
+    console.log("js " + jsUrl);
+    await page.goto(jsUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const jsBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideJsError) return "error";
+          if (window.__graphideJs === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /js-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+    const jsHost = await page.evaluate(() => ({
+      live: window.__graphideJs === true,
+      error: window.__graphideJsError || "",
+      ws:
+        ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+        "",
+      empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      plugin: ((document.getElementById("status") || {}).textContent || ""),
+    }));
+    if (jsBoot !== "ok" || !jsHost.live) {
+      const why =
+        jsHost.error ||
+        jsHost.empty ||
+        (jsBoot && jsBoot !== "ok" ? jsBoot : "") ||
+        "harness did not load the javascript fixture";
+      record("JS1", "javascript desk loaded the fixtures/js snap", false, why);
+      failFast("desk could not be driven from the javascript fixture — " + why);
+    }
+    record("JS1", "javascript desk loaded the fixtures/js snap", true, jsHost.ws + " " + jsGraph.plugin);
+    if (jsHost.ws !== "dataflow") {
+      await page.click('#workspaces [data-ws="dataflow"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#dfCanvas .df-node, #dfHops .df-hop", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const jsDesk = await page.evaluate(() => {
+      const sources = document.querySelectorAll('#dfCanvas .df-node[data-df-role="source"]').length;
+      const sinks = document.querySelectorAll('#dfCanvas .df-node[data-df-role="sink"]').length;
+      const nodes = document.querySelectorAll("#dfCanvas .df-node").length;
+      const hops = document.querySelectorAll("#dfHops .df-hop").length;
+      const xy = document.querySelectorAll("#dfCanvas .react-flow__node").length;
+      const shapes = [...document.querySelectorAll("#dfCanvas .vnode[data-shape]")].map((el) =>
+        el.getAttribute("data-shape")
+      );
+      const roles = [...document.querySelectorAll("#dfCanvas .df-node[data-df-role]")].map((el) =>
+        el.getAttribute("data-df-role")
+      );
+      const text = [
+        ...[...document.querySelectorAll("#dfCanvas .df-node, #dfHops .df-hop")].map((el) =>
+          (el.textContent || "").replace(/\s+/g, " ").trim()
+        ),
+      ];
+      const blob = text.join(" ");
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        sources,
+        sinks,
+        nodes,
+        hops,
+        xy,
+        xyFlow: !!document.querySelector("#dfCanvas .react-flow"),
+        shapes: [...new Set(shapes)],
+        shapeN: shapes.length,
+        roles,
+        subscribe: /subscribe/i.test(blob) && /events/i.test(blob),
+        publish: /publish/i.test(blob),
+        text: text.slice(0, 6),
+      };
+    });
+    record("JS2", "JavaScript Data-flow workspace is active", jsDesk.ws === "dataflow", jsDesk.ws);
+    record(
+      "JS3",
+      "JavaScript Data-flow paints Source and Sink (not a raw IR dump)",
+      jsDesk.sources >= 1 && jsDesk.sinks >= 1 && jsDesk.nodes >= 2,
+      "roles=" + jsDesk.roles.join(",") + " " + jsDesk.text.slice(0, 3).join(" | ")
+    );
+    record(
+      "JS4",
+      "JavaScript Data-flow names subscribe / publish / events",
+      jsDesk.subscribe && jsDesk.publish,
+      jsDesk.text.join(" | ")
+    );
+    record(
+      "JS5",
+      "JavaScript Data-flow XYFlow nodes expose data-shape",
+      jsDesk.xyFlow && jsDesk.xy > 1 && jsDesk.xy <= 48 && jsDesk.shapeN > 1,
+      "xy=" + jsDesk.xy + " shapes=" + jsDesk.shapes.join(",")
+    );
+    await shot(page, "js-desk.png");
+
+    await page.evaluate(() => {
+      const tab = document.querySelector('#workspaces [data-ws="map"]');
+      if (tab) tab.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return !!(on && on.getAttribute("data-ws") === "map");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const jsMap = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const loneStart =
+        cards.length <= 1 &&
+        (names.length === 0 || /^(main|program|start|_program)$/i.test(names[0] || ""));
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        cards: cards.length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        names: names.slice(0, 8),
+        loneStart,
+      };
+    });
+    record(
+      "JS6",
+      "JavaScript Map is community LOD (cards, xy=0, not a lone START)",
+      jsMap.ws === "map" && jsMap.cards >= 2 && jsMap.xy === 0 && !jsMap.loneStart,
+      "cards=" + jsMap.cards + " xy=" + jsMap.xy + " names=" + jsMap.names.join(",")
+    );
+    assertNoStampDir("JS7", "JavaScript desk step did not write .graphide/stamps/");
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -7891,12 +8111,14 @@ async function main() {
       SEQUENCE_HARNESS +
       "` (Route / Lens on fixtures/demo) then `" +
       PYTHON_HARNESS +
-      "` (Python desk on fixtures/python) served from `extension/`.",
+      "` (Python desk on fixtures/python) then `" +
+      JS_HARNESS +
+      "` (JavaScript desk on fixtures/js) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · lineage · export · present · preset · route · lens"
   );
 }
 

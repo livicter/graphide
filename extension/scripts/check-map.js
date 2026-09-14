@@ -256,6 +256,7 @@ assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSeq
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
 assert(harness.includes("python-snap.json") && harness.includes("__graphidePython"), "python fixture snap loader missing");
+assert(harness.includes("js-snap.json") && harness.includes("__graphideJs"), "javascript fixture snap loader missing");
 assert(harness.includes('params.get("lineage")') && harness.includes("__graphideLineage"), "lineage fixture snap loader missing");
 assert(chrome.includes('id="exportBtn"'), "Export button missing from chrome");
 assert(chrome.includes('id="exportMenu"'), "Export menu missing from chrome");
@@ -306,6 +307,7 @@ assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
 assert(featReadme.includes("panel-timeout.md") && featReadme.includes("panel-timeout.png"), "feature README must list panel-timeout.md");
 assert(featReadme.includes("python-desk.md") && featReadme.includes("python-desk.png"), "feature README must list python-desk.md");
+assert(featReadme.includes("js-desk.md") && featReadme.includes("js-desk.png"), "feature README must list js-desk.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
@@ -413,6 +415,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline.md")), "timeline feature map missing");
@@ -449,6 +452,7 @@ assert(workflow.includes("sequence-snap.json") && workflow.includes("fixtures/de
 assert(workflow.includes("dataflow-snap.json") && workflow.includes("fixtures/demo"), "CI must derive fixtures/demo for Data-flow");
 assert(workflow.includes("lifecycle-snap.json") && workflow.includes("fixtures/demo"), "CI must derive fixtures/demo for Lifecycle");
 assert(workflow.includes("python-snap.json") && workflow.includes("fixtures/python"), "CI must derive fixtures/python for the Python desk");
+assert(workflow.includes("js-snap.json") && workflow.includes("fixtures/js"), "CI must derive fixtures/js for the JavaScript desk");
 assert(driver.includes("self-review.png") && driver.includes("LIVE_HARNESS"), "verify driver must drive the self-review desk");
 assert(driver.includes("delta.png") && driver.includes("DELTA_HARNESS") && driver.includes("sneaky_helper"), "verify driver must drive Architecture Delta on the demo fixture");
 assert(driver.includes("sticky-clusters.png") && driver.includes("SC0") && driver.includes("cluster_facts") && driver.includes("data-bubble"), "verify driver must prove sticky cluster identity on the Delta desk");
@@ -464,6 +468,7 @@ assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") &&
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
+assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("lineage.png") && driver.includes("LINEAGE_HARNESS") && driver.includes("#lineageCanvas .react-flow__node"), "verify driver must drive Lineage XYFlow on the demo fixture");
@@ -582,6 +587,14 @@ assert(
     pythonDeskMap.includes("## Gotchas"),
   "python-desk feature map must use the four headings"
 );
+const jsDeskMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md"), "utf8");
+assert(
+  jsDeskMap.includes("## Sub-features") &&
+    jsDeskMap.includes("## How to get to it (user POV)") &&
+    jsDeskMap.includes("## Driving it with the harness") &&
+    jsDeskMap.includes("## Gotchas"),
+  "js-desk feature map must use the four headings"
+);
 assert(js.includes("id=\"draftHintBtn\"") && js.includes("id=\"draftHint\"") && js.includes("[[flow]]") && js.includes("Copy draft"), "timeline Uncovered must expose a draft flows.toml fragment");
 assert(chrome.includes("function copyDraftHint") && chrome.includes("function draftHintToml") && !/copyDraftHint[\s\S]{0,500}type:\s*["']stamp["']/.test(chrome), "draft hint must copy a hit list and not stamp");
 assert(harness.includes("solarsim::MissingHit") && harness.includes("UnmatchedHint"), "explorer snap must keep the unmatched hit");
@@ -592,6 +605,8 @@ const demoFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/demo/flow
 assert(/name\s*=\s*"data-subscription"/.test(demoFlows) && /crate::sub::subscribe/.test(demoFlows), "demo flows.toml must keep the data-subscription hit list");
 const pythonFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/python/flows.toml"), "utf8");
 assert(/name\s*=\s*"data-subscription"/.test(pythonFlows) && /pkg\.sub\.subscribe/.test(pythonFlows), "python flows.toml must keep the data-subscription hit list");
+const jsFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/js/flows.toml"), "utf8");
+assert(/name\s*=\s*"data-subscription"/.test(jsFlows) && /pkg\.sub\.subscribe/.test(jsFlows), "js flows.toml must keep the data-subscription hit list");
 assert(js.includes("function renderTabs") && js.includes('data-flow="'), "desk must render named flow chips on #tabs");
 assert(
   chrome.includes("function clusterFacts") &&
