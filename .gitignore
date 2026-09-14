@@ -7,6 +7,7 @@ extension/scripts/sequence-snap.json
 extension/scripts/dataflow-snap.json
 extension/scripts/lifecycle-snap.json
 extension/scripts/python-snap.json
+extension/scripts/js-snap.json
 extension/*.vsix
 extension/bin/graphide
 extension/bin/graphide.exe
