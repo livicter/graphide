@@ -279,6 +279,62 @@
     };
   }
 
+  // Saved stamp run_keys (b-render#0 / b-origin#0). Recheck overlays the
+  // new Steiner on these coords — not the fresh layout (24,16) / (280,16).
+  const STAMP_RECHECK_POSITIONS = [
+    { run: 1, x: 56, y: 152 },
+    { run: 2, x: 360, y: 152 },
+  ];
+
+  function stampRecheckOverlay() {
+    const kinds = ["Calls", "Reads", "TypeUses", "Calls", "Writes", "Calls", "Reads"];
+    const nodes = ["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7"];
+    const edges = nodes.slice(1).map((id, i) => ({
+      from: nodes[i],
+      to: id,
+      kind: kinds[i] || "Calls",
+    }));
+    edges.push({ from: "n0", to: "n3", kind: "Calls" });
+    const tree = { nodes: nodes.slice(), edges };
+    const flowchart = {
+      runs: [
+        { id: 1, bubble: "b-render", nodes: ["n0", "n1"] },
+        { id: 2, bubble: "b-origin", nodes: ["n2", "n3"] },
+      ],
+      spine: [{ from: 1, to: 2 }],
+      positions: STAMP_RECHECK_POSITIONS.map((p) => ({ run: p.run, x: p.x, y: p.y })),
+    };
+    const boot = { name: "boot", tree, flowchart };
+    const controlFlow = {
+      name: "control-flow",
+      tree: { nodes: tree.nodes.slice(), edges: tree.edges.map((e) => ({ ...e })) },
+      flowchart: {
+        runs: flowchart.runs.map((r) => ({ ...r, nodes: r.nodes.slice() })),
+        spine: flowchart.spine.map((s) => ({ ...s })),
+        positions: flowchart.positions.map((p) => ({ ...p })),
+      },
+    };
+    return {
+      type: "patch",
+      flows: [
+        {
+          name: "overview",
+          tree: { nodes: ["n0"], edges: [] },
+          flowchart: { runs: [], spine: [], positions: [] },
+        },
+        controlFlow,
+        boot,
+      ],
+      flow: boot,
+      findings: [
+        { kind: "StampBroken", flow: "boot", added: [{ from: "n0", to: "n3" }], removed: [] },
+        { kind: "UnmatchedHint", flow: "boot", fqn: "solarsim::MissingHit" },
+      ],
+      stamps: [{ name: "boot", holds: false }],
+    };
+  }
+  window.__graphideStampRecheck = stampRecheckOverlay;
+
   const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow" || mode === "explorer";
   const msg = mode === "flow" || mode === "explorer" ? flowPayload() : solarsimPayload(includeBubbles);
   const hideProbe = params.get("probe") === "0";

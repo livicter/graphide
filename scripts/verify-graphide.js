@@ -3387,6 +3387,244 @@ async function main() {
       JSON.stringify(afterSeMap)
     );
 
+    const beforeStPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "slice";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const stPick = await page.evaluate(() => {
+      const tab =
+        document.querySelector('#tabs .tab[data-flow="control-flow"]') ||
+        document.querySelector('#tabs .tab[data-flow="boot"]') ||
+        document.querySelector("#tabs .tab[data-flow]");
+      const flow = tab ? tab.getAttribute("data-flow") || "" : "";
+      if (tab && !tab.classList.contains("on")) tab.click();
+      return { flow, clicked: !!tab };
+    });
+    if (stPick.clicked && stPick.flow) {
+      await page.waitForFunction(
+        (name) => {
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          const ws = document.querySelector("#workspaces [data-ws].on");
+          return !!(on && on.getAttribute("data-flow") === name && ws && ws.getAttribute("data-ws") === "slice");
+        },
+        stPick.flow,
+        { timeout: 8000 }
+      );
+    }
+    await page.waitForSelector("#canvas .run[data-run], .chart .run", { timeout: 10000 });
+    await page.waitForTimeout(180);
+    const stFresh = await page.evaluate(() => {
+      const runs = [...document.querySelectorAll("#canvas .run[data-run], .chart .run")];
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        flow: (document.querySelector("#tabs .tab.on[data-flow]") || {}).getAttribute
+          ? document.querySelector("#tabs .tab.on[data-flow]").getAttribute("data-flow") || ""
+          : "",
+        n: runs.length,
+        layout: runs.map((el) => ({
+          id: el.getAttribute("data-run") || "",
+          bubble: el.getAttribute("data-bubble") || "",
+          left: parseFloat(el.style.left) || 0,
+          top: parseFloat(el.style.top) || 0,
+        })),
+      };
+    });
+    const stFreshOk =
+      stFresh.ws === "slice" &&
+      stFresh.n >= 2 &&
+      stFresh.layout.some((p) => Math.abs(p.left - 24) < 1 && Math.abs(p.top - 16) < 1) &&
+      stFresh.layout.some((p) => Math.abs(p.left - 280) < 1 && Math.abs(p.top - 16) < 1) &&
+      !stFresh.layout.some((p) => Math.abs(p.left - 56) < 1 && Math.abs(p.top - 152) < 1);
+    record(
+      "ST0",
+      "Slice first paint is the fresh run layout, not the stamp overlay",
+      stFreshOk,
+      JSON.stringify(stFresh)
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "map";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const stPosted = await page.evaluate(() => {
+      const fn = window.__graphideStampRecheck;
+      if (typeof fn !== "function") return { ok: false, why: "no __graphideStampRecheck" };
+      const msg = fn();
+      window.postMessage(msg, "*");
+      const pos = ((msg.flow && msg.flow.flowchart && msg.flow.flowchart.positions) || []).map((p) => ({
+        run: p.run,
+        x: p.x,
+        y: p.y,
+      }));
+      const added = ((msg.findings || []).find((f) => f && f.kind === "StampBroken") || {}).added || [];
+      return {
+        ok: true,
+        type: msg.type,
+        flow: msg.flow && msg.flow.name,
+        pos,
+        added,
+        holds: (msg.stamps || []).map((s) => ({ name: s.name, holds: s.holds })),
+      };
+    });
+    record(
+      "ST1",
+      "Fixture recheck posts overlayed stamp positions and StampBroken",
+      stPosted.ok &&
+        stPosted.type === "patch" &&
+        stPosted.flow === "boot" &&
+        (stPosted.pos || []).some((p) => p.run === 1 && p.x === 56 && p.y === 152) &&
+        (stPosted.pos || []).some((p) => p.run === 2 && p.x === 360 && p.y === 152) &&
+        (stPosted.added || []).some((e) => e.from === "n0" && e.to === "n3") &&
+        (stPosted.holds || []).some((s) => s.name === "boot" && s.holds === false),
+      JSON.stringify(stPosted)
+    );
+    await page.waitForTimeout(160);
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "slice";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    if (stPick.clicked && stPick.flow) {
+      await page.evaluate((name) => {
+        const tab = document.querySelector('#tabs .tab[data-flow="' + name + '"]');
+        if (tab && !tab.classList.contains("on")) tab.click();
+      }, stPick.flow);
+      await page.waitForFunction(
+        (name) => {
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          const ws = document.querySelector("#workspaces [data-ws].on");
+          return !!(on && on.getAttribute("data-flow") === name && ws && ws.getAttribute("data-ws") === "slice");
+        },
+        stPick.flow,
+        { timeout: 8000 }
+      );
+    }
+    await page.waitForSelector("#canvas .run[data-run], .chart .run", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const stOverlay = await page.evaluate(() => {
+      const runs = [...document.querySelectorAll("#canvas .run[data-run], .chart .run")];
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        flow: (document.querySelector("#tabs .tab.on[data-flow]") || {}).getAttribute
+          ? document.querySelector("#tabs .tab.on[data-flow]").getAttribute("data-flow") || ""
+          : "",
+        n: runs.length,
+        layout: runs.map((el) => ({
+          id: el.getAttribute("data-run") || "",
+          bubble: el.getAttribute("data-bubble") || "",
+          flow: el.getAttribute("data-flow") || "",
+          left: parseFloat(el.style.left) || 0,
+          top: parseFloat(el.style.top) || 0,
+        })),
+      };
+    });
+    const stOverlayOk =
+      stOverlay.ws === "slice" &&
+      stOverlay.n >= 2 &&
+      stOverlay.layout.some((p) => Math.abs(p.left - 56) < 1 && Math.abs(p.top - 152) < 1) &&
+      stOverlay.layout.some((p) => Math.abs(p.left - 360) < 1 && Math.abs(p.top - 152) < 1) &&
+      !stOverlay.layout.some((p) => Math.abs(p.left - 24) < 1 && Math.abs(p.top - 16) < 1);
+    record(
+      "ST2",
+      "Recheck lays the new tree on stored stamp run positions",
+      stOverlayOk && stFreshOk,
+      "fresh=" + JSON.stringify(stFresh.layout) + " overlay=" + JSON.stringify(stOverlay)
+    );
+    await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (run && run.scrollIntoView) run.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    await page.waitForTimeout(120);
+    await shot(page, "stamp-recheck.png");
+    await page.click('#workspaces [data-ws="decisions"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "decisions";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(120);
+    const stBroken = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".expl-card[data-decision], .expl-card")];
+      const broken = cards.filter((el) => /StampBroken/i.test(el.textContent || ""));
+      return {
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        n: broken.length,
+        title: broken
+          .map((el) => (el.textContent || "").replace(/\s+/g, " ").trim())
+          .join(" | ")
+          .slice(0, 180),
+      };
+    });
+    record(
+      "ST3",
+      "Decisions still lists StampBroken on the overlayed boot tree",
+      stBroken.ws === "decisions" && stBroken.n >= 1 && /boot/i.test(stBroken.title),
+      JSON.stringify(stBroken)
+    );
+    const afterSt = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeStPosts);
+    record(
+      "ST4",
+      "Stamp recheck overlay does not post stamp / skip",
+      afterSt.stampPosts === 0 && afterSt.skipPosts === 0,
+      JSON.stringify(afterSt)
+    );
+    assertNoStampDir("ST5", "Stamp recheck overlay did not write .graphide/stamps/");
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "map";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterStMap = await page.evaluate(() => ({
+      ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "",
+      xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      comm: document.querySelectorAll(".comm-node").length,
+    }));
+    record(
+      "ST6",
+      "Stamp recheck overlay returns Map to community LOD (xy=0)",
+      afterStMap.ws === "map" && afterStMap.xy === 0 && afterStMap.comm === 0 && afterStMap.cards > 1,
+      JSON.stringify(afterStMap)
+    );
+
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       window.postMessage(
@@ -7658,7 +7896,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
   );
 }
 

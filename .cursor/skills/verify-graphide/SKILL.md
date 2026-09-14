@@ -215,6 +215,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
       keeps `#sliceCanvas` `.stage` / `.viewport` + keepCam; Enter
       same-tree `patch` keeps `#enterCanvas` stage; Map stays
       `xy=0`; `verification/slice-enter-recycle.png`
+    - Stamp recheck overlay: explorer Slice fresh `.run` layout
+      then `__graphideStampRecheck` patch; run boxes sit at stored
+      stamp positions (`56,152` / `360,152`); Decisions
+      `StampBroken`; Map stays `xy=0`;
+      `verification/stamp-recheck.png`
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
@@ -236,7 +241,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
