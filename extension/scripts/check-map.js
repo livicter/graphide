@@ -328,6 +328,7 @@ assert(
 );
 assert(featReadme.includes("flow-tabs.md") && featReadme.includes("flow-tabs.png"), "feature README must list flow-tabs.md");
 assert(featReadme.includes("slice-grey.md") && featReadme.includes("slice-grey.png"), "feature README must list slice-grey.md");
+assert(featReadme.includes("slice-runs.md") && featReadme.includes("slice-runs.png"), "feature README must list slice-runs.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
@@ -402,6 +403,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/draft-hint.md")), "draft-hint feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/proposed-uncovered.md")), "proposed-uncovered feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md")), "slice-grey feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-runs.md")), "slice-runs feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
@@ -500,6 +502,17 @@ assert(/type:\s*"cancel"/.test(chrome) && /type === "cancelled"/.test(chrome), "
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
 assert(driver.includes("flow-tabs.png") && driver.includes("FT0") && driver.includes("FT1") && driver.includes("#tabs .tab[data-flow]") && driver.includes("selectFlow"), "verify driver must prove Map flow-tab Steiner switch");
 assert(driver.includes("slice-grey.png") && driver.includes("GY1") && driver.includes("GY2") && driver.includes("data-lit") && driver.includes("slice-dim"), "verify driver must prove prompt-driven Slice grey-out");
+assert(driver.includes("slice-runs.png") && driver.includes("SR0") && driver.includes("SR1") && driver.includes(".run") && driver.includes("enterRun") && driver.includes("#enterCanvas"), "verify driver must prove Slice subsystem runs + enter");
+assert(js.includes("function renderRuns") && js.includes("function enterRun") && js.includes('type: "enterRun"'), "desk must paint flowchart.runs and post enterRun");
+assert(harness.includes("b-render") && harness.includes("b-origin") && /runs:\s*\[/.test(harness), "explorer fixture must keep flowchart.runs");
+const sliceRunsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-runs.md"), "utf8");
+assert(
+  sliceRunsMap.includes("## Sub-features") &&
+    sliceRunsMap.includes("## How to get to it (user POV)") &&
+    sliceRunsMap.includes("## Driving it with the harness") &&
+    sliceRunsMap.includes("## Gotchas"),
+  "slice-runs feature map must use the four headings"
+);
 assert(chrome.includes("function treeDistanceMap") && chrome.includes("sliceDim") && chrome.includes("data-slice-dist"), "Slice lighting must reuse Steiner distance on #sliceCanvas");
 assert(css.includes("#sliceCanvas .vnode.grey") && css.includes("#sliceCanvas .vnode.lit") && css.includes("slice-dim"), "Slice grey / lit mask styles missing");
 const sliceGreyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-grey.md"), "utf8");

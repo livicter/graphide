@@ -2962,6 +2962,190 @@ async function main() {
       JSON.stringify(afterGyMap)
     );
 
+    const beforeSrPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "slice";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const srPick = await page.evaluate(() => {
+      const tab =
+        document.querySelector('#tabs .tab[data-flow="control-flow"]') ||
+        document.querySelector('#tabs .tab[data-flow="boot"]') ||
+        document.querySelector("#tabs .tab[data-flow]");
+      const flow = tab ? tab.getAttribute("data-flow") || "" : "";
+      if (tab && !tab.classList.contains("on")) tab.click();
+      return { flow, clicked: !!tab };
+    });
+    record(
+      "SR0",
+      "Slice is on with a flow that can paint subsystem runs",
+      srPick.clicked && !!srPick.flow,
+      JSON.stringify(srPick)
+    );
+    if (srPick.clicked && srPick.flow) {
+      await page.waitForFunction(
+        (name) => {
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          const ws = document.querySelector("#workspaces [data-ws].on");
+          return !!(on && on.getAttribute("data-flow") === name && ws && ws.getAttribute("data-ws") === "slice");
+        },
+        srPick.flow,
+        { timeout: 8000 }
+      );
+    }
+    await page.waitForSelector("#canvas .run[data-run], .chart .run", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const srDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const tabOn = document.querySelector("#tabs .tab.on[data-flow]");
+      const runs = [...document.querySelectorAll("#canvas .run[data-run], .chart .run")];
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        flow: tabOn ? tabOn.getAttribute("data-flow") || "" : "",
+        n: runs.length,
+        ids: runs.map((el) => el.getAttribute("data-run") || ""),
+        flows: runs.map((el) => el.getAttribute("data-flow") || ""),
+        bubbles: runs.map((el) => el.getAttribute("data-bubble") || ""),
+        title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 120),
+      };
+    });
+    record(
+      "SR1",
+      "Slice paints subsystem-run boxes (.run / data-run)",
+      srDesk.ws === "slice" &&
+        srDesk.n >= 2 &&
+        srDesk.ids.filter(Boolean).length >= 2 &&
+        srDesk.bubbles.filter(Boolean).length >= 2 &&
+        srDesk.flows.some((f) => f === srDesk.flow || f === srPick.flow),
+      JSON.stringify(srDesk)
+    );
+    await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (run && run.scrollIntoView) run.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    await page.waitForTimeout(120);
+    await shot(page, "slice-runs.png");
+    const srClick = await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (!run) return { clicked: false };
+      run.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return {
+        clicked: true,
+        run: run.getAttribute("data-run") || "",
+        flow: run.getAttribute("data-flow") || "",
+        bubble: run.getAttribute("data-bubble") || "",
+      };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .react-flow__node").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(async () => {
+        const dump = await page.evaluate(() => {
+          const host = document.getElementById("enterCanvas");
+          return {
+            runs: document.querySelectorAll("#canvas .run[data-run], .chart .run").length,
+            enter: !!host,
+            xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+            rf: !!document.querySelector("#enterCanvas .react-flow"),
+            empty: ((document.querySelector("#canvas .empty") || {}).textContent || "").trim(),
+            meta: ((document.getElementById("meta") || {}).textContent || "").trim().slice(0, 160),
+            title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 160),
+          };
+        });
+        failFast("Slice enter-run XYFlow did not mount — click=" + JSON.stringify(srClick) + " dump=" + JSON.stringify(dump));
+      });
+    await page.waitForTimeout(250);
+    const srEnter = await page.evaluate(() => {
+      const xy = document.querySelectorAll("#enterCanvas .react-flow__node").length;
+      const shapes = [
+        ...new Set(
+          [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")].map((el) => el.getAttribute("data-shape"))
+        ),
+      ];
+      const shaped = document.querySelectorAll("#enterCanvas .vnode[data-shape]").length;
+      return {
+        xy,
+        shaped,
+        shapes,
+        inode: document.querySelectorAll(".inode").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        enterRun: (window.__vscodePosts || []).some((m) => m && m.type === "enterRun"),
+      };
+    });
+    record(
+      "SR2",
+      "Enter a Slice run mounts shaped #enterCanvas XYFlow (not raw IR)",
+      srClick.clicked &&
+        srEnter.xy > 1 &&
+        srEnter.xy <= 24 &&
+        srEnter.shaped === srEnter.xy &&
+        srEnter.inode === 0 &&
+        srEnter.cards === 0 &&
+        srEnter.enterRun,
+      "xy=" + srEnter.xy + " shapes=" + srEnter.shapes.join(",") + " click=" + JSON.stringify(srClick)
+    );
+    const afterSr = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        enterRun: posts.filter((m) => m && m.type === "enterRun").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeSrPosts);
+    record(
+      "SR3",
+      "Slice run enter posts enterRun and does not post stamp / skip",
+      afterSr.enterRun >= 1 && afterSr.stampPosts === 0 && afterSr.skipPosts === 0,
+      JSON.stringify(afterSr)
+    );
+    assertNoStampDir("SR4", "Slice runs step did not write .graphide/stamps/");
+    const backSr = page.locator("#backBtn");
+    if (await backSr.isEnabled()) await backSr.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "map";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const afterSrMap = await page.evaluate(() => ({
+      ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+        ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+        : "",
+      xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      comm: document.querySelectorAll(".comm-node").length,
+    }));
+    record(
+      "SR5",
+      "Slice runs returns Map to community LOD (xy=0)",
+      afterSrMap.ws === "map" &&
+        afterSrMap.xy === 0 &&
+        afterSrMap.enter === 0 &&
+        afterSrMap.comm === 0 &&
+        afterSrMap.cards > 1,
+      JSON.stringify(afterSrMap)
+    );
+
     const beforeProgressPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       window.postMessage(
@@ -7233,7 +7417,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · lineage · export · present · preset · route · lens"
   );
 }
 
