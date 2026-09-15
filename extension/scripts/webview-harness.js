@@ -429,6 +429,8 @@
     loadNamedSnap("python-snap.json", "__graphidePython", "__graphidePythonError", afterPaint, params.get("require") === "1");
   } else if (params.get("js") === "1") {
     loadNamedSnap("js-snap.json", "__graphideJs", "__graphideJsError", afterPaint, params.get("require") === "1");
+  } else if (params.get("ts") === "1") {
+    loadNamedSnap("ts-snap.json", "__graphideTs", "__graphideTsError", afterPaint, params.get("require") === "1");
   } else if (params.get("live") === "1") {
     loadNamedSnap("live-snap.json", "__graphideLive", "__graphideLiveError", afterPaint, params.get("require") === "1");
   } else {
