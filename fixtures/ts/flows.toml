@@ -1,0 +1,3 @@
+[[flow]]
+name = "data-subscription"
+hits = ["pkg.sub.subscribe", "pkg.bus.events"]
