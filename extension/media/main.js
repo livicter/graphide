@@ -7452,20 +7452,91 @@
 
   // extension/media/src/chrome/GraphBar.jsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime());
+  function WsIco({ children: children2 }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("svg", { className: "ws-ico", width: "12", height: "12", viewBox: "0 0 16 16", fill: "none", "aria-hidden": "true", children: children2 });
+  }
   function GraphBar() {
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { id: "graphBar", hidden: true, children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("nav", { id: "workspaces", className: "workspaces", "aria-label": "Explorer workspaces", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "map", children: "Map" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "slice", children: "Slice" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "lineage", children: "Lineage" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "decisions", children: "Decisions" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "registry", children: "Registry" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "overview", children: "Overview" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "timeline", children: "Timeline" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "delta", children: "Delta" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "sequence", children: "Sequence" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "dataflow", children: "Data-flow" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", "data-ws": "lifecycle", children: "Lifecycle" })
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "map", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M2.5 4.2 6 3.2 10 4.8 13.5 3.6v8.2L10 13l-4-1.6-3.5 1.2z" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M6 3.2v8.2M10 4.8v8.2" })
+          ] }),
+          "Map"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "slice", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "8", r: "5.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M8 2.8v5.2l3.6 2.2" })
+          ] }),
+          "Slice"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "lineage", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "3.4", r: "1.35" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "3.6", cy: "12.2", r: "1.35" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.4", cy: "12.2", r: "1.35" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M8 4.8v2.4L4.4 11m3.6-3.8 3.6 3.8" })
+          ] }),
+          "Lineage"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "decisions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "3", y: "3", width: "7.2", height: "7.2", rx: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "5.8", y: "5.8", width: "7.2", height: "7.2", rx: "1.3" })
+          ] }),
+          "Decisions"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "registry", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(WsIco, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3 4.2h10M3 8h10M3 11.8h7" }) }),
+          "Registry"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "overview", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "2.8", y: "2.8", width: "4.4", height: "4.4", rx: "0.9" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "8.8", y: "2.8", width: "4.4", height: "4.4", rx: "0.9" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "2.8", y: "8.8", width: "4.4", height: "4.4", rx: "0.9" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "8.8", y: "8.8", width: "4.4", height: "4.4", rx: "0.9" })
+          ] }),
+          "Overview"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "timeline", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "8", r: "5.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M8 5v3.2l2.2 1.4" })
+          ] }),
+          "Timeline"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "delta", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(WsIco, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M8 3.2 13.4 13H2.6z" }) }),
+          "Delta"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "sequence", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "3.2", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.8", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.5 8h2.2M9.3 8h2.2" })
+          ] }),
+          "Sequence"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "dataflow", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "3.4", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.4", cy: "4.2", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.4", cy: "11.8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.8 8h2.4L11 4.8M7.2 8 11 11.2" })
+          ] }),
+          "Data-flow"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "lifecycle", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M12.2 6.2A4.6 4.6 0 1 0 12 11" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M10.4 6.2h1.8V4.4" })
+          ] }),
+          "Lifecycle"
+        ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("nav", { id: "tabs" }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { id: "egoBtn", type: "button", title: "Ego: isolate the selected node and its k-hop neighborhood", children: "Ego" }),
@@ -25931,8 +26002,29 @@
         canvas.querySelectorAll(".comm-edges path.hot").forEach((p) => p.classList.remove("hot"));
       });
     }
+    function tileKind(role, id2) {
+      if (role === "START") return "entry";
+      if (role === "END") return "exit";
+      if (role && String(role).indexOf("STEP") === 0) return "mid";
+      let h = 0;
+      const s = String(id2 || "");
+      for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) | 0;
+      return ["core", "shallow", "high", "mid"][Math.abs(h) % 4];
+    }
+    function tileSvg(kind) {
+      const inner = {
+        entry: '<path d="M1.6 12.6 5.6 6.6 8 9.4 11.2 5l3.2 7.6z"/>',
+        exit: '<circle cx="8" cy="8" r="5.2"/><path d="M5.1 8.2 7.2 10.3 11 5.8"/>',
+        mid: '<rect x="3" y="3.2" width="10" height="2.6" rx="0.7"/><rect x="3" y="6.7" width="10" height="2.6" rx="0.7"/><rect x="3" y="10.2" width="10" height="2.6" rx="0.7"/>',
+        core: '<circle cx="8" cy="3.6" r="1.35"/><circle cx="3.6" cy="12.1" r="1.35"/><circle cx="12.4" cy="12.1" r="1.35"/><path d="M8 5v2.2L4.5 10.8M8 7.2l3.5 3.6"/>',
+        shallow: '<path d="M2 6.6q2-2 4 0t4 0 4 0"/><path d="M2 9.6q2-2 4 0t4 0 4 0"/><path d="M2 12.6q2-2 4 0t4 0 4 0"/>',
+        high: '<path d="M8 3.2v9.6"/><path d="M4.2 7 8 3.2 11.8 7"/>'
+      }[kind] || '<circle cx="8" cy="8" r="3.2"/>';
+      return '<svg class="tile-ico" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">' + inner + "</svg>";
+    }
     function bubbleCardInnerHtml(b, role, n, marks) {
-      return '<span class="tile" aria-hidden="true"></span><span class="card-copy">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + '</span><span class="n">' + n + "</span>";
+      const tile = tileKind(role, b && b.id);
+      return '<span class="tile" data-tile="' + tile + '" aria-hidden="true">' + tileSvg(tile) + '</span><span class="card-copy">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + '</span><span class="n">' + n + "</span>";
     }
     function applyBubbleCardEl(el2, b, id2, p, pathRank, path, pathIds) {
       const n = (b.members || []).length;

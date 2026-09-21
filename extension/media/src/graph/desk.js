@@ -7999,9 +7999,40 @@ function bindBubbleCardHot(el) {
   });
 }
 
-function bubbleCardInnerHtml(b, role, n, marks) {
+function tileKind(role, id) {
+  if (role === "START") return "entry";
+  if (role === "END") return "exit";
+  if (role && String(role).indexOf("STEP") === 0) return "mid";
+  let h = 0;
+  const s = String(id || "");
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return ["core", "shallow", "high", "mid"][Math.abs(h) % 4];
+}
+
+function tileSvg(kind) {
+  const inner = {
+    entry: '<path d="M1.6 12.6 5.6 6.6 8 9.4 11.2 5l3.2 7.6z"/>',
+    exit: '<circle cx="8" cy="8" r="5.2"/><path d="M5.1 8.2 7.2 10.3 11 5.8"/>',
+    mid: '<rect x="3" y="3.2" width="10" height="2.6" rx="0.7"/><rect x="3" y="6.7" width="10" height="2.6" rx="0.7"/><rect x="3" y="10.2" width="10" height="2.6" rx="0.7"/>',
+    core: '<circle cx="8" cy="3.6" r="1.35"/><circle cx="3.6" cy="12.1" r="1.35"/><circle cx="12.4" cy="12.1" r="1.35"/><path d="M8 5v2.2L4.5 10.8M8 7.2l3.5 3.6"/>',
+    shallow: '<path d="M2 6.6q2-2 4 0t4 0 4 0"/><path d="M2 9.6q2-2 4 0t4 0 4 0"/><path d="M2 12.6q2-2 4 0t4 0 4 0"/>',
+    high: '<path d="M8 3.2v9.6"/><path d="M4.2 7 8 3.2 11.8 7"/>',
+  }[kind] || '<circle cx="8" cy="8" r="3.2"/>';
   return (
-    '<span class="tile" aria-hidden="true"></span>' +
+    '<svg class="tile-ico" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+    inner +
+    "</svg>"
+  );
+}
+
+function bubbleCardInnerHtml(b, role, n, marks) {
+  const tile = tileKind(role, b && b.id);
+  return (
+    '<span class="tile" data-tile="' +
+    tile +
+    '" aria-hidden="true">' +
+    tileSvg(tile) +
+    "</span>" +
     '<span class="card-copy">' +
     (role ? '<span class="role">' + esc(role) + "</span>" : "") +
     '<span class="name">' +
