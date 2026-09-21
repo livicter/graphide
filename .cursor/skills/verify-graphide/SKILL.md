@@ -186,8 +186,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      before later suites
    - Apple chrome: explorer Day Map; `#reviewBtn` system blue; capsule
      `#stampBtn` / `#skipBtn` / `#llmBtn` / `#exportBtn`; `.workspaces`
-     pill rack with tinted `.on`; `#coverage` frost; Map `xy=0`;
+     pill rack with tinted `.on`;      `#coverage` frost; Map `xy=0`;
      `verification/apple-chrome.png`
+   - Apple chrome icons: explorer Day Map; `#workspaces [data-ws]`
+     contain `svg` / `img` / `.ws-ico`; `.bubble-card .tile` visible;
+     Map `xy=0`; `verification/apple-chrome-icons.png`
    - Coverage mark: explorer Evidence on an uncovered/changed node;
      `#inspMeta` mark is `uncovered` or `changed` (not only `—`)
    - Hop card: explorer Evidence on a Slice vnode; `#inspEdges` hop
@@ -272,7 +275,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **delta**, **sequence**, **dataflow**, **lifecycle**, **python-desk**,
     **js-desk**, **ts-desk**, **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
-    **path-walk**, **appearance**, **apple-chrome**, **coverage-mark**, **hop-card**, **fit-reorg**,
+    **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.

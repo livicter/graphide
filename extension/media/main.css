@@ -340,6 +340,9 @@ button:disabled { opacity: 0.45; cursor: default; }
   overflow: hidden;
 }
 .workspaces button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: transparent;
   color: inherit;
   border: 1px solid var(--vscode-panel-border);
@@ -351,6 +354,17 @@ button:disabled { opacity: 0.45; cursor: default; }
 .workspaces button.on {
   border-color: var(--vscode-focusBorder);
   color: var(--vscode-textLink-foreground);
+}
+.workspaces .ws-ico {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 #egoBtn {
   background: transparent;
@@ -884,6 +898,27 @@ svg.steiner .edge-hit {
   cursor: grabbing;
   z-index: 6;
   outline: 1px dashed var(--vscode-focusBorder);
+}
+.bubble-card .tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--c, var(--vscode-focusBorder));
+  background: color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 18%, transparent);
+}
+.bubble-card .tile .tile-ico,
+.bubble-card .tile svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .bubble-card .role {
   font-size: 9px;
@@ -2952,7 +2987,7 @@ body.desk #workspace.has-source #canvas {
 
 /* Iteration 2 — two-row glass chrome, kind-tinted objects, no repeated now-pill. */
 html.bright header {
-  gap: 8px;
+  gap: 10px;
 }
 html.bright header #prompt {
   width: auto;
@@ -3185,7 +3220,7 @@ html.bright #presentBtn {
   border: none;
   border-radius: 999px;
   box-shadow: 0 0 0 1px rgba(60, 60, 67, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04);
-  padding: 5px 13px;
+  padding: 5px 12px;
   min-height: 28px;
   font-weight: 500;
 }
@@ -3220,34 +3255,27 @@ html.bright .workspaces button {
   padding: 4px 9px;
   font-size: 11px;
   font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none;
 }
-html.bright .workspaces button::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 2.5px;
-  background: currentColor;
-  opacity: 0.36;
-  flex: 0 0 auto;
-}
-html.bright .workspaces button[data-ws="slice"]::before,
-html.bright .workspaces button[data-ws="overview"]::before,
-html.bright .workspaces button[data-ws="lifecycle"]::before {
-  border-radius: 999px;
-}
-html.bright .workspaces button[data-ws="lineage"]::before,
-html.bright .workspaces button[data-ws="sequence"]::before,
-html.bright .workspaces button[data-ws="dataflow"]::before {
-  width: 9px;
-  height: 3px;
-  border-radius: 999px;
+html.bright .workspaces .ws-ico {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.72;
 }
 html.bright .workspaces button.on {
   background: rgba(0, 122, 255, 0.14);
   color: #007aff;
   box-shadow: none;
 }
-html.bright .workspaces button.on::before { opacity: 0.9; }
+html.bright .workspaces button.on .ws-ico { opacity: 1; }
 html.bright .bubble-card {
   flex-direction: row;
   align-items: center;
@@ -3259,15 +3287,22 @@ html.bright .bubble-card {
   min-width: 176px;
   max-width: 228px;
   min-height: 58px;
-  padding: 10px 12px 10px 10px;
+  padding: 10px 36px 10px 10px;
 }
 html.bright .bubble-card .tile {
   flex: 0 0 28px;
   width: 28px;
   height: 28px;
   border-radius: 8px;
+  color: var(--c, #007aff);
   background: color-mix(in srgb, var(--c, #007aff) 18%, #f2f2f7);
 }
+html.bright .bubble-card .tile[data-tile="entry"] { color: #34c759; background: #e8f6ec; }
+html.bright .bubble-card .tile[data-tile="shallow"] { color: #007aff; background: #e8f1fb; }
+html.bright .bubble-card .tile[data-tile="mid"] { color: #af52de; background: #f3e8fa; }
+html.bright .bubble-card .tile[data-tile="core"] { color: #5856d6; background: #eceafb; }
+html.bright .bubble-card .tile[data-tile="high"] { color: #ff9f0a; background: #fff4e5; }
+html.bright .bubble-card .tile[data-tile="exit"] { color: #30d158; background: #e6f8ef; }
 html.bright .bubble-card .card-copy {
   flex: 1 1 auto;
   min-width: 0;
@@ -3276,6 +3311,7 @@ html.bright .bubble-card .card-copy {
   align-items: flex-start;
   gap: 1px;
 }
+html.bright .bubble-card .role { display: none; }
 html.bright .bubble-card .name {
   font-family: var(--vscode-font-family);
   font-size: 13px;
@@ -3291,6 +3327,9 @@ html.bright .bubble-card .meta {
   color: var(--g-label2, rgba(60, 60, 67, 0.55));
 }
 html.bright .bubble-card .n {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   flex: 0 0 auto;
   min-width: 22px;
   height: 22px;
@@ -3450,6 +3489,12 @@ html.bright.night .bubble-card {
 html.bright.night .bubble-card .tile {
   background: color-mix(in srgb, var(--c, #0a84ff) 28%, #2c2c2e);
 }
+html.bright.night .bubble-card .tile[data-tile="entry"] { color: #30d158; background: rgba(48, 209, 88, 0.18); }
+html.bright.night .bubble-card .tile[data-tile="shallow"] { color: #0a84ff; background: rgba(10, 132, 255, 0.2); }
+html.bright.night .bubble-card .tile[data-tile="mid"] { color: #bf5af2; background: rgba(191, 90, 242, 0.2); }
+html.bright.night .bubble-card .tile[data-tile="core"] { color: #5e5ce6; background: rgba(94, 92, 230, 0.2); }
+html.bright.night .bubble-card .tile[data-tile="high"] { color: #ff9f0a; background: rgba(255, 159, 10, 0.2); }
+html.bright.night .bubble-card .tile[data-tile="exit"] { color: #30d158; background: rgba(48, 209, 88, 0.18); }
 html.bright.night .bubble-card .n {
   background: rgba(120, 120, 128, 0.28);
   color: rgba(235, 235, 245, 0.55);

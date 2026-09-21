@@ -1957,6 +1957,60 @@ async function main() {
     );
     assertNoStampDir("AC8", "Apple-chrome step did not write .graphide/stamps/");
 
+    const beforeAppleIconsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const appleIcons = await page.evaluate(() => {
+      const tabs = [...document.querySelectorAll("#workspaces [data-ws]")];
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const iconOk = tabs.length > 0 && tabs.every((el) => !!(el.querySelector("svg, img, .ws-ico")));
+      const tiles = cards.map((card) => {
+        const tile = card.querySelector(".tile");
+        const r = tile ? tile.getBoundingClientRect() : null;
+        return !!(tile && r && r.width >= 16 && r.height >= 16);
+      });
+      return {
+        tabs: tabs.length,
+        withIco: tabs.filter((el) => el.querySelector("svg, img, .ws-ico")).length,
+        iconOk,
+        cards: cards.length,
+        tiles: tiles.filter(Boolean).length,
+        tileOk: cards.length > 0 && tiles.every(Boolean),
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "AI0",
+      "workspace buttons contain an icon mark (svg / img / .ws-ico)",
+      appleIcons.iconOk,
+      JSON.stringify({ tabs: appleIcons.tabs, withIco: appleIcons.withIco })
+    );
+    record(
+      "AI1",
+      "Map bubble cards have a visible .tile",
+      appleIcons.tileOk && appleIcons.cards >= 8,
+      JSON.stringify({ cards: appleIcons.cards, tiles: appleIcons.tiles })
+    );
+    record(
+      "AI2",
+      "Apple chrome icons keep Map community LOD (xy=0)",
+      appleIcons.xy === 0 && appleIcons.cards >= 8,
+      "xy=" + appleIcons.xy + " cards=" + appleIcons.cards
+    );
+    await shot(page, "apple-chrome-icons.png");
+    const afterAppleIcons = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeAppleIconsPosts);
+    record(
+      "AI3",
+      "Apple-chrome-icons step did not post stamp / skip",
+      afterAppleIcons.stampPosts === 0 && afterAppleIcons.skipPosts === 0,
+      JSON.stringify(afterAppleIcons)
+    );
+    assertNoStampDir("AI4", "Apple-chrome-icons step did not write .graphide/stamps/");
+
     const beforeFitPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -8499,7 +8553,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
