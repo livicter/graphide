@@ -1798,6 +1798,165 @@ async function main() {
 
     await shot(page, "map.png");
 
+    const beforeAppleChromePosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const appleChrome = await page.evaluate(() => {
+      const cs = (el) => (el ? getComputedStyle(el) : null);
+      const parseRgb = (v) => {
+        const m = String(v || "").match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+      };
+      const near = (a, b, slack) => Math.abs(a - b) <= slack;
+      const rad = (el) => {
+        const r = el ? parseFloat(cs(el).borderRadius) : 0;
+        return Number.isFinite(r) ? r : 0;
+      };
+      const capsule = (el) => {
+        if (!el) return false;
+        const st = cs(el);
+        const r = parseFloat(st.borderRadius);
+        const h = el.getBoundingClientRect().height;
+        return (Number.isFinite(r) && r >= 12) || (Number.isFinite(r) && h > 0 && r >= h / 2 - 1);
+      };
+      const frost = (el) => {
+        if (!el) return false;
+        const st = cs(el);
+        const bg = st.backgroundColor || "";
+        const blur = st.backdropFilter || st.webkitBackdropFilter || "";
+        return /blur\(/i.test(blur) || /rgba?\(\s*255,\s*255,\s*255/i.test(bg) || /rgba?\(\s*242,\s*242,\s*247/i.test(bg);
+      };
+      const review = document.getElementById("reviewBtn");
+      const stamp = document.getElementById("stampBtn");
+      const skip = document.getElementById("skipBtn");
+      const llm = document.getElementById("llmBtn");
+      const exp = document.getElementById("exportBtn");
+      const ws = document.getElementById("workspaces");
+      const mapTab = document.querySelector('#workspaces [data-ws="map"]');
+      const card = document.querySelector(".bubble-card");
+      const cov = document.getElementById("coverage");
+      const reviewBg = review ? parseRgb(cs(review).backgroundColor) : null;
+      const reviewBlue = !!(
+        reviewBg &&
+        near(reviewBg[0], 0, 12) &&
+        near(reviewBg[1], 122, 20) &&
+        near(reviewBg[2], 255, 20)
+      );
+      const onBg = mapTab ? parseRgb(cs(mapTab).backgroundColor) : null;
+      const onColor = mapTab ? parseRgb(cs(mapTab).color) : null;
+      const tinted = !!(
+        mapTab &&
+        mapTab.classList.contains("on") &&
+        ((onColor && near(onColor[0], 0, 24) && near(onColor[1], 122, 36) && near(onColor[2], 255, 36)) ||
+          (onBg && onBg[2] > onBg[0] + 20 && onBg[2] > 140))
+      );
+      const tile = card && card.querySelector(".tile");
+      return {
+        bright:
+          document.documentElement.classList.contains("bright") && document.body.classList.contains("bright"),
+        night: document.documentElement.classList.contains("night") || document.body.classList.contains("night"),
+        dayOn: !!(document.getElementById("themeDay") && document.getElementById("themeDay").classList.contains("on")),
+        seg: !!document.getElementById("themeSeg"),
+        reviewBlue,
+        reviewBg: review ? cs(review).backgroundColor : "",
+        capsules: [stamp, skip, llm, exp].every(capsule),
+        capsuleR: [stamp, skip, llm, exp].map(rad),
+        wsRadius: rad(ws),
+        mapOn: !!(mapTab && mapTab.classList.contains("on")),
+        tinted,
+        onBg: mapTab ? cs(mapTab).backgroundColor : "",
+        onColor: mapTab ? cs(mapTab).color : "",
+        cardR: rad(card),
+        cardShadow: card ? cs(card).boxShadow : "",
+        tile: !!(tile && tile.getBoundingClientRect().width >= 16),
+        covFrost: frost(cov),
+        covBg: cov ? cs(cov).backgroundColor + " " + (cs(cov).backdropFilter || "") : "",
+        xy: document.querySelectorAll(".react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+      };
+    });
+    record(
+      "AC0",
+      "explorer Day Map shows bright chrome markers",
+      appleChrome.bright &&
+        !appleChrome.night &&
+        appleChrome.dayOn &&
+        appleChrome.seg &&
+        appleChrome.ws === "map",
+      JSON.stringify({
+        bright: appleChrome.bright,
+        night: appleChrome.night,
+        dayOn: appleChrome.dayOn,
+        seg: appleChrome.seg,
+        ws: appleChrome.ws,
+      })
+    );
+    record(
+      "AC1",
+      "#reviewBtn is system blue #007AFF on Day",
+      appleChrome.reviewBlue,
+      appleChrome.reviewBg
+    );
+    record(
+      "AC2",
+      "Stamp / Skip / LLM / Export are capsules",
+      appleChrome.capsules,
+      JSON.stringify(appleChrome.capsuleR)
+    );
+    record(
+      "AC3",
+      ".workspaces is a pill rack with tinted Map .on",
+      appleChrome.wsRadius >= 10 && appleChrome.mapOn && appleChrome.tinted,
+      JSON.stringify({
+        wsRadius: appleChrome.wsRadius,
+        mapOn: appleChrome.mapOn,
+        tinted: appleChrome.tinted,
+        onBg: appleChrome.onBg,
+        onColor: appleChrome.onColor,
+      })
+    );
+    record(
+      "AC4",
+      "Map .bubble-card is a soft card with a tinted tile",
+      appleChrome.cardR >= 12 &&
+        appleChrome.tile &&
+        appleChrome.cardShadow &&
+        appleChrome.cardShadow !== "none",
+      JSON.stringify({
+        cardR: appleChrome.cardR,
+        tile: appleChrome.tile,
+        shadow: appleChrome.cardShadow,
+      })
+    );
+    record(
+      "AC5",
+      "#coverage is a frosted grouped strip",
+      appleChrome.covFrost,
+      appleChrome.covBg
+    );
+    record(
+      "AC6",
+      "Apple chrome keeps Map community LOD (xy=0)",
+      appleChrome.xy === 0 && appleChrome.cards >= 8,
+      "xy=" + appleChrome.xy + " cards=" + appleChrome.cards
+    );
+    await shot(page, "apple-chrome.png");
+    const afterAppleChrome = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeAppleChromePosts);
+    record(
+      "AC7",
+      "Apple-chrome step did not post stamp / skip",
+      afterAppleChrome.stampPosts === 0 && afterAppleChrome.skipPosts === 0,
+      JSON.stringify(afterAppleChrome)
+    );
+    assertNoStampDir("AC8", "Apple-chrome step did not write .graphide/stamps/");
+
     const beforeFitPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -8340,7 +8499,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

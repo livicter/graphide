@@ -3170,6 +3170,164 @@ html.bright .theme-seg button.on {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
+/* Sequoia grouped Review chrome — locked mock: capsules, pill rack, frost. */
+html.bright header > button,
+html.bright #cancelBtn,
+html.bright #stampBtn,
+html.bright #skipBtn,
+html.bright #llmBtn,
+html.bright #keysBtn,
+html.bright #exportBtn,
+html.bright #presetBtn,
+html.bright #presentBtn {
+  background: #fff;
+  color: #1d1d1f;
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(60, 60, 67, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 5px 13px;
+  min-height: 28px;
+  font-weight: 500;
+}
+html.bright header > button:hover:not(:disabled),
+html.bright #stampBtn:hover:not(:disabled),
+html.bright #skipBtn:hover:not(:disabled),
+html.bright #llmBtn:hover:not(:disabled),
+html.bright #keysBtn:hover:not(:disabled),
+html.bright #exportBtn:hover:not(:disabled),
+html.bright #presetBtn:hover:not(:disabled),
+html.bright #presentBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+}
+html.bright #reviewBtn {
+  background: #007aff;
+  color: #fff;
+  box-shadow: none;
+}
+html.bright #reviewBtn:hover:not(:disabled) { background: #0066d6; }
+html.bright .workspaces {
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 14px;
+  padding: 3px;
+  gap: 2px;
+}
+html.bright .workspaces button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 11px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 500;
+}
+html.bright .workspaces button::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2.5px;
+  background: currentColor;
+  opacity: 0.36;
+  flex: 0 0 auto;
+}
+html.bright .workspaces button[data-ws="slice"]::before,
+html.bright .workspaces button[data-ws="overview"]::before,
+html.bright .workspaces button[data-ws="lifecycle"]::before {
+  border-radius: 999px;
+}
+html.bright .workspaces button[data-ws="lineage"]::before,
+html.bright .workspaces button[data-ws="sequence"]::before,
+html.bright .workspaces button[data-ws="dataflow"]::before {
+  width: 9px;
+  height: 3px;
+  border-radius: 999px;
+}
+html.bright .workspaces button.on {
+  background: rgba(0, 122, 255, 0.14);
+  color: #007aff;
+  box-shadow: none;
+}
+html.bright .workspaces button.on::before { opacity: 0.9; }
+html.bright .bubble-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 20px rgba(0, 0, 0, 0.045);
+  min-width: 176px;
+  max-width: 228px;
+  min-height: 58px;
+  padding: 10px 12px 10px 10px;
+}
+html.bright .bubble-card .tile {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c, #007aff) 18%, #f2f2f7);
+}
+html.bright .bubble-card .card-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+html.bright .bubble-card .name {
+  font-family: var(--vscode-font-family);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+html.bright .bubble-card .meta {
+  font-family: var(--vscode-font-family);
+  font-size: 11px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--g-label2, rgba(60, 60, 67, 0.55));
+}
+html.bright .bubble-card .n {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(60, 60, 67, 0.55);
+  background: rgba(120, 120, 128, 0.12);
+}
+html.bright #coverage,
+html.bright #status {
+  margin-left: 14px;
+  margin-right: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border: none;
+}
+html.bright #coverage {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 8px 14px 6px;
+  border-radius: 14px 14px 0 0;
+}
+html.bright #status {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding: 2px 14px 8px;
+  border-radius: 0 0 14px 14px;
+}
+
 /* Night — Apple dark grouped (#1C1C1E on #000), system blue #0A84FF. Layout stays the bright desk. */
 html.bright.night, html.bright.night body, body.bright.night {
   --vscode-foreground: #f5f5f7;
@@ -3260,6 +3418,46 @@ html.bright.night .theme-seg button.on {
   background: #3a3a3c;
   color: #f5f5f7;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+html.bright.night header > button,
+html.bright.night #cancelBtn,
+html.bright.night #stampBtn,
+html.bright.night #skipBtn,
+html.bright.night #llmBtn,
+html.bright.night #keysBtn,
+html.bright.night #exportBtn,
+html.bright.night #presetBtn,
+html.bright.night #presentBtn {
+  background: rgba(44, 44, 46, 0.92);
+  color: #f5f5f7;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+html.bright.night header > button:hover:not(:disabled) { background: rgba(120, 120, 128, 0.44); }
+html.bright.night #reviewBtn {
+  background: #0a84ff;
+  color: #fff;
+  box-shadow: none;
+}
+html.bright.night .workspaces button.on {
+  background: rgba(10, 132, 255, 0.22);
+  color: #0a84ff;
+  box-shadow: none;
+}
+html.bright.night .bubble-card {
+  background: #2c2c2e;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+html.bright.night .bubble-card .tile {
+  background: color-mix(in srgb, var(--c, #0a84ff) 28%, #2c2c2e);
+}
+html.bright.night .bubble-card .n {
+  background: rgba(120, 120, 128, 0.28);
+  color: rgba(235, 235, 245, 0.55);
+}
+html.bright.night #coverage,
+html.bright.night #status {
+  background: rgba(44, 44, 46, 0.72);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 html.bright.night .tab[data-proposed="1"] {
   background: transparent;
