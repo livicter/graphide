@@ -28,6 +28,7 @@ owns this folder.
 | [keys.md](keys.md) | Shortcut sheet | explorer · `?` / `#keysBtn` · `keys.png` |
 | [path-walk.md](path-walk.md) | Map start → features → end Play | explorer Map · `P` · `path-walk.png` |
 | [appearance.md](appearance.md) | Day / Night | explorer Map · `#themeNight` / `D` · `night.png` |
+| [apple-chrome.md](apple-chrome.md) | Sequoia Day chrome | explorer Day Map · `apple-chrome.png` |
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |

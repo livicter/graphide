@@ -25931,6 +25931,9 @@
         canvas.querySelectorAll(".comm-edges path.hot").forEach((p) => p.classList.remove("hot"));
       });
     }
+    function bubbleCardInnerHtml(b, role, n, marks) {
+      return '<span class="tile" aria-hidden="true"></span><span class="card-copy">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + '</span><span class="n">' + n + "</span>";
+    }
     function applyBubbleCardEl(el2, b, id2, p, pathRank, path, pathIds) {
       const n = (b.members || []).length;
       const marks = bubbleMarks(b);
@@ -25948,7 +25951,7 @@
       el2.setAttribute("data-bubble", id2);
       if (clusterKind) el2.setAttribute("data-cluster", clusterKind.kind || "");
       else el2.removeAttribute("data-cluster");
-      el2.innerHTML = (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4);
+      el2.innerHTML = bubbleCardInnerHtml(b, role, n, marks);
     }
     function recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds) {
       const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -26130,7 +26133,7 @@
           const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
             (c) => String(c.bubble) === String(id2)
           );
-          html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + "</button>";
+          html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + bubbleCardInnerHtml(b, role, n, marks) + "</button>";
         }
         canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
         bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });

@@ -7999,6 +7999,28 @@ function bindBubbleCardHot(el) {
   });
 }
 
+function bubbleCardInnerHtml(b, role, n, marks) {
+  return (
+    '<span class="tile" aria-hidden="true"></span>' +
+    '<span class="card-copy">' +
+    (role ? '<span class="role">' + esc(role) + "</span>" : "") +
+    '<span class="name">' +
+    esc(shortOf(b.label) || "bubble") +
+    '</span><span class="meta">' +
+    (role ? role + " · " : "") +
+    n +
+    (n === 1 ? " node" : " nodes") +
+    (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
+    (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
+    "</span>" +
+    bubbleMemberChips(b, 4) +
+    "</span>" +
+    '<span class="n">' +
+    n +
+    "</span>"
+  );
+}
+
 function applyBubbleCardEl(el, b, id, p, pathRank, path, pathIds) {
   const n = (b.members || []).length;
   const marks = bubbleMarks(b);
@@ -8016,18 +8038,7 @@ function applyBubbleCardEl(el, b, id, p, pathRank, path, pathIds) {
   el.setAttribute("data-bubble", id);
   if (clusterKind) el.setAttribute("data-cluster", clusterKind.kind || "");
   else el.removeAttribute("data-cluster");
-  el.innerHTML =
-    (role ? '<span class="role">' + esc(role) + "</span>" : "") +
-    '<span class="name">' +
-    esc(shortOf(b.label) || "bubble") +
-    '</span><span class="meta">' +
-    (role ? role + " · " : "") +
-    n +
-    (n === 1 ? " node" : " nodes") +
-    (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
-    (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
-    "</span>" +
-    bubbleMemberChips(b, 4);
+  el.innerHTML = bubbleCardInnerHtml(b, role, n, marks);
 }
 
 function recycleBubbleCards(wrap, clusters, pos, pathRank, path, pathIds) {
@@ -8231,18 +8242,8 @@ function renderBubbleMap(clusters, opts) {
         id +
         '"' +
         (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") +
-        '>' +
-        (role ? '<span class="role">' + esc(role) + "</span>" : "") +
-        '<span class="name">' +
-        esc(shortOf(b.label) || "bubble") +
-        '</span><span class="meta">' +
-        (role ? role + " · " : "") +
-        n +
-        (n === 1 ? " node" : " nodes") +
-        (marks.uncovered ? " · " + marks.uncovered + " unc." : "") +
-        (marks.onTree ? " · " + marks.onTree + " on tree" : "") +
-        "</span>" +
-        bubbleMemberChips(b, 4) +
+        ">" +
+        bubbleCardInnerHtml(b, role, n, marks) +
         "</button>";
     }
     canvas.innerHTML =
