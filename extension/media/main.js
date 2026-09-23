@@ -26740,6 +26740,10 @@
         selected: selectedNodeId
       });
     }
+    function dialHtml(key, label, title, text, pct, tone) {
+      const p = Math.max(0, Math.min(100, pct || 0));
+      return '<div class="dial" data-dial="' + key + '"' + (tone ? ' data-tone="' + tone + '"' : "") + ' title="' + title + '"><span class="ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="track" cx="20" cy="20" r="17"/>' + (p ? '<circle class="arc" cx="20" cy="20" r="17" pathLength="100" stroke-dasharray="' + p + ' 100"/>' : "") + "</svg><b>" + text + '</b></span><span class="label">' + label + "</span></div>";
+    }
     function renderCoverage(cov, findings, graph, opts) {
       const uncovered = cov && cov.uncovered || [];
       const changed = cov && cov.changed || [];
@@ -26763,8 +26767,15 @@
           if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
         }
       }
+      const flows = names.length;
+      const covPct = changed.length ? Math.round(100 * (changed.length - uncovered.length) / changed.length) : null;
+      const healthPct = flows ? Math.round(100 * (flows - broken) / flows) : null;
+      const open = pending + broken;
+      const pctText = (v) => v == null ? "—" : v + "<small>%</small>";
+      const healthTone = healthPct == null ? "" : healthPct >= 67 ? "green" : healthPct >= 34 ? "yellow" : "red";
+      const dials = '<div class="dials">' + dialHtml("coverage", "Coverage", "Changed nodes on a proposed flow", pctText(covPct), covPct) + dialHtml("health", "Health", "Flows without a broken stamp", pctText(healthPct), healthPct, healthTone) + dialHtml("open", "Open", "Flows pending or broken", String(open), flows ? Math.round(100 * open / flows) : 0) + "</div>";
       const score = '<div class="score" id="scorecard"><span class="score-chip pending">' + pending + ' left</span><span class="score-chip holds">' + holds + ' stamped</span><span class="score-chip skip">' + skipped + ' skipped</span><span class="score-chip broken">' + broken + " broken</span></div>";
-      html = score + '<span class="cov-chip">' + html + "</span>";
+      html = dials + score + '<span class="cov-chip">' + html + "</span>";
       let scars = [];
       if (!shed) {
         scars = rawFindings.filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");

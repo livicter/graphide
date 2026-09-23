@@ -1794,6 +1794,7 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   align-items: center;
   gap: 8px 10px;
 }
+#coverage .dials { display: none; }
 #coverage .cov-chip {
   display: inline-block;
   padding: 4px 10px;
@@ -3367,11 +3368,11 @@ html.bright #status {
   border-radius: 0 0 14px 14px;
 }
 
-/* Night — Apple dark grouped (#1C1C1E on #000), system blue #0A84FF. Layout stays the bright desk. */
+/* Night — WHOOP athletic dark: cool near-black (#101518), raised soft surfaces, system blue #0A84FF accent. Layout stays the bright desk. */
 html.bright.night, html.bright.night body, body.bright.night {
   --vscode-foreground: #f5f5f7;
-  --vscode-sideBar-background: #1c1c1e;
-  --vscode-editor-background: #2c2c2e;
+  --vscode-sideBar-background: #151b1f;
+  --vscode-editor-background: #1c2328;
   --vscode-panel-border: rgba(255, 255, 255, 0.08);
   --vscode-focusBorder: #0a84ff;
   --vscode-textLink-foreground: #0a84ff;
@@ -3383,7 +3384,7 @@ html.bright.night, html.bright.night body, body.bright.night {
   --vscode-input-foreground: #f5f5f7;
   --vscode-input-border: transparent;
   --vscode-descriptionForeground: rgba(235, 235, 245, 0.6);
-  --vscode-editorHoverWidget-background: #2c2c2e;
+  --vscode-editorHoverWidget-background: #1c2328;
   --vscode-editorHoverWidget-foreground: #f5f5f7;
   --vscode-editorHoverWidget-border: rgba(255, 255, 255, 0.08);
   --vscode-progressBar-background: #0a84ff;
@@ -3395,41 +3396,27 @@ html.bright.night, html.bright.night body, body.bright.night {
   --g-line: rgba(235, 235, 245, 0.18);
   --g-lift: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
   --g-inset: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
-  --g-grouped: #1c1c1e;
+  --g-grouped: #151b1f;
   --g-fill: rgba(120, 120, 128, 0.32);
   --g-label2: rgba(235, 235, 245, 0.55);
   --g-hold: #30d158;
   color-scheme: dark;
-  background: #000;
+  background: #101518;
   color: var(--vscode-foreground);
 }
 html.bright.night header {
-  background: rgba(28, 28, 30, 0.86);
+  background: rgba(21, 27, 31, 0.86);
 }
 html.bright.night .brand { color: #f5f5f7; }
 html.bright.night .brand span { color: #0a84ff; }
-html.bright.night header > button,
-html.bright.night #cancelBtn,
-html.bright.night #zoomBar button,
-html.bright.night #stampBtn,
-html.bright.night #skipBtn,
-html.bright.night #llmBtn,
-html.bright.night #keysBtn,
-html.bright.night #exportBtn,
-html.bright.night #presetBtn,
-html.bright.night #presentBtn {
+html.bright.night #zoomBar button {
   background: var(--g-fill);
   color: #f5f5f7;
-}
-html.bright.night header > button:hover:not(:disabled) { background: rgba(120, 120, 128, 0.44); }
-html.bright.night #reviewBtn {
-  background: #0a84ff;
-  color: #fff;
 }
 html.bright.night #reviewBtn:hover:not(:disabled) { background: #409cff; }
 html.bright.night #graphBar,
 html.bright.night #status {
-  background: rgba(28, 28, 30, 0.92);
+  background: rgba(21, 27, 31, 0.92);
 }
 html.bright.night header #prompt,
 html.bright.night #graphSearch,
@@ -3443,7 +3430,7 @@ html.bright.night .search-wrap {
 }
 html.bright.night header #prompt:focus,
 html.bright.night .search-wrap:focus-within {
-  background: #2c2c2e;
+  background: #1c2328;
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
 }
 html.bright.night .workspaces { background: rgba(120, 120, 128, 0.28); }
@@ -3461,14 +3448,13 @@ html.bright.night .kind-pill,
 html.bright.night .review-step {
   background: rgba(120, 120, 128, 0.2);
 }
-html.bright.night .workspaces button.on,
 html.bright.night .tab.on,
 html.bright.night #egoBtn.on,
 html.bright.night #pathBtn.on,
 html.bright.night #lensBtn.on,
 html.bright.night .leg.on,
 html.bright.night .theme-seg button.on {
-  background: #3a3a3c;
+  background: #283037;
   color: #f5f5f7;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
@@ -3481,7 +3467,7 @@ html.bright.night #keysBtn,
 html.bright.night #exportBtn,
 html.bright.night #presetBtn,
 html.bright.night #presentBtn {
-  background: rgba(44, 44, 46, 0.92);
+  background: rgba(28, 35, 40, 0.92);
   color: #f5f5f7;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
@@ -3497,11 +3483,13 @@ html.bright.night .workspaces button.on {
   box-shadow: none;
 }
 html.bright.night .bubble-card {
-  background: #2c2c2e;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.28);
+  background: linear-gradient(180deg, #242c32, #1c2328);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.45);
 }
 html.bright.night .bubble-card .tile {
-  background: color-mix(in srgb, var(--c, #0a84ff) 28%, #2c2c2e);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c, #0a84ff) 28%, #1c2328);
 }
 html.bright.night .bubble-card .tile[data-tile="entry"] { color: #30d158; background: rgba(48, 209, 88, 0.18); }
 html.bright.night .bubble-card .tile[data-tile="shallow"] { color: #0a84ff; background: rgba(10, 132, 255, 0.2); }
@@ -3515,8 +3503,44 @@ html.bright.night .bubble-card .n {
 }
 html.bright.night #coverage,
 html.bright.night #status {
-  background: rgba(44, 44, 46, 0.72);
+  background: rgba(28, 35, 40, 0.72);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+html.bright.night #coverage { padding: 12px 18px 8px; gap: 10px 24px; }
+html.bright.night #coverage .score { display: none; }
+html.bright.night #coverage .dials { display: flex; gap: 18px; }
+html.bright.night #coverage .cov-chip { max-width: 560px; font-size: 12px; line-height: 1.45; opacity: 0.72; }
+html.bright.night #coverage ul { margin: 0; }
+html.bright.night .dial { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 76px; }
+html.bright.night .dial .ring { position: relative; display: block; width: 60px; height: 60px; }
+html.bright.night .dial svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+html.bright.night .dial circle { fill: none; stroke-width: 4.2; }
+html.bright.night .dial .track { stroke: rgba(255, 255, 255, 0.1); }
+html.bright.night .dial .arc { stroke: #7ba1bb; stroke-linecap: round; }
+html.bright.night .dial[data-tone="green"] .arc { stroke: #16ec06; }
+html.bright.night .dial[data-tone="yellow"] .arc { stroke: #ffde00; }
+html.bright.night .dial[data-tone="red"] .arc { stroke: #ff0026; }
+html.bright.night .dial[data-dial="open"] .arc { stroke: #0093e7; }
+html.bright.night .dial b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 18px/1 "DIN Alternate", "DIN Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+html.bright.night .dial b small { margin-left: 1px; font-size: 11px; opacity: 0.85; }
+html.bright.night .dial .label,
+html.bright.night .story-rail-label,
+html.bright.night .led-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
 }
 html.bright.night .tab[data-proposed="1"] {
   background: transparent;
@@ -3524,7 +3548,7 @@ html.bright.night .tab[data-proposed="1"] {
   box-shadow: none;
 }
 html.bright.night .tab[data-proposed="1"].on {
-  background: #3a3a3c;
+  background: #283037;
   outline-color: rgba(255, 255, 255, 0.45);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
@@ -3552,7 +3576,7 @@ html.bright.night #tip,
 html.bright.night #sourcePane,
 html.bright.night .prog-chip,
 html.bright.night .story-rail {
-  background: #2c2c2e;
+  background: #1c2328;
   box-shadow: var(--g-lift);
   border-color: var(--vscode-panel-border);
 }
@@ -3561,14 +3585,13 @@ html.bright.night #ledgerPane {
   background: var(--g-grouped);
   box-shadow: none;
 }
-html.bright.night .bubble-card,
 html.bright.night .comm-node,
 html.bright.night .steiner-wrap .vnode {
-  background: color-mix(in srgb, var(--c, #0a84ff) 18%, #2c2c2e);
+  background: color-mix(in srgb, var(--c, #0a84ff) 18%, #1c2328);
   border-color: color-mix(in srgb, var(--c, #0a84ff) 55%, rgba(255, 255, 255, 0.08));
 }
 html.bright.night #canvas { background: var(--g-grouped); }
-html.bright.night .llm-log { background: #1c1c1e; }
+html.bright.night .llm-log { background: #151b1f; }
 html.bright.night .llm-msg.user { background: rgba(10, 132, 255, 0.16); }
 html.bright.night .src-line.hot { background: rgba(10, 132, 255, 0.2); }
 html.bright.night #progressBar { background: rgba(255, 255, 255, 0.1); }
@@ -3582,7 +3605,7 @@ html.bright.night #coverage .score-chip.broken { color: #ff453a; }
 html.bright.night .search-wrap kbd,
 html.bright.night #keysPane kbd,
 html.bright.night .desk-keys kbd {
-  background: #3a3a3c;
+  background: #283037;
   color: #f5f5f7;
 }
 
@@ -3647,7 +3670,7 @@ html.bright.night[data-preset="signal-flow"] .stage,
 .export-root.bright.night[data-preset="signal-flow"] .stage {
   background:
     radial-gradient(280px 180px at var(--mx, 50%) var(--my, 36%), color-mix(in srgb, var(--g-fn) 22%, transparent), transparent 70%),
-    #2c2c2e;
+    #1c2328;
 }
 html.bright[data-preset="signal-flow"] .bubble-card,
 html.bright[data-preset="signal-flow"] .comm-node,
