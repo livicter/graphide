@@ -224,6 +224,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      absent; self-review starts on a crate chip then clicks All
      programs; `#meta` token `all` / key `-1`; Map stays `xy=0`;
      `verification/all-programs.png`
+   - Graph report: self-review Map rail `#ledgerPane.report`; god
+     cells `.dag-n` equal the snap degree (Evidence `degree`);
+     `#ledgerMeta` cut counts; `#graphReport` bridges are real
+     cross-community edges; question opens Lineage; a program chip
+     re-ranks; Map stays `xy=0`; `verification/graph-report.png`
    - Progress: explorer desk posts synthetic `{ type: "progress" }`;
      `#progress.on`, a `#phases li` is `.on` / `.done`, fill / pct /
      label update; `verification/progress.png` while the strip is on
@@ -276,7 +281,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **js-desk**, **ts-desk**, **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **graph-report**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
@@ -433,6 +438,7 @@ same PR because the harness truly cannot hook existing ones.
 | Panel timeout | `#coverage[data-panel="shed"]`, `#canvas .stage`, `#zoomIn`, `{ type: "patch" }` coverage/findings |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
+| Graph report | `#ledgerPane.report`, `#ledgerGrid .cell[data-id] .dag-n`, `#ledgerMeta`, `#graphReport [data-rep]`, `.rep-row[data-from][data-to][data-support]`, `.rep-q[data-focus]` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |
 | Cancel review | `#cancelBtn`, `#reviewBtn`, `#progress`, `{ type: "cancel" }` / `{ type: "cancelled" }` |
 | Flow hints | `#tabs .tab[data-flow="data-subscription"]`, `#dfCanvas .df-node`, `#dfHops .df-hop` |

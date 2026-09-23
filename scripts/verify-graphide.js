@@ -6662,6 +6662,248 @@ async function main() {
     );
     assertNoStampDir("AP6", "All programs did not write .graphide/stamps/");
 
+    const grNodes = new Map(snap.graph.nodes.map((n) => [String(n.id), n]));
+    const grDegree = new Map();
+    let grCutEdges = 0;
+    for (const e of snap.graph.edges) {
+      const f = String(e.from);
+      const t = String(e.to);
+      grDegree.set(f, (grDegree.get(f) || 0) + 1);
+      if (t !== f) grDegree.set(t, (grDegree.get(t) || 0) + 1);
+      if (grNodes.has(f) && grNodes.has(t)) grCutEdges++;
+    }
+    const deg = (id) => grDegree.get(String(id)) || 0;
+    const grMaxDeg = Math.max(0, ...snap.graph.nodes.map((n) => deg(n.id)));
+    const grComm = new Map();
+    for (const b of mapAltitudeBubbles(snap.bubbles)) {
+      for (const m of b.members || []) if (!grComm.has(String(m))) grComm.set(String(m), b);
+    }
+    const comm = (id) => grComm.get(String(id)) || null;
+    const grPairKey = (f, t) => [String(comm(f).id), String(comm(t).id)].sort().join("|");
+    const grSupport = new Map();
+    for (const e of snap.graph.edges) {
+      const f = String(e.from);
+      const t = String(e.to);
+      if (e.kind === "Contains" || f === t || !comm(f) || !comm(t) || comm(f) === comm(t)) continue;
+      const k = grPairKey(f, t);
+      grSupport.set(k, (grSupport.get(k) || 0) + 1);
+    }
+    const grMinSupport = grSupport.size ? Math.min(...grSupport.values()) : 0;
+    const grFile = (id) => ((grNodes.get(String(id)) || {}).span || {}).file || "";
+    const readGraphReport = () =>
+      page.evaluate(() => {
+        const text = (el) => ((el && el.textContent) || "").replace(/\s+/g, " ").trim();
+        const pane = document.getElementById("ledgerPane");
+        const rep = document.getElementById("graphReport");
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const vp = document.querySelector("#canvas .viewport");
+        return {
+          head: text(pane && pane.querySelector(":scope > .led-head")),
+          report: !!(pane && pane.classList.contains("report")),
+          visible: !!(rep && !rep.hidden && rep.getBoundingClientRect().height > 0),
+          god: [...document.querySelectorAll("#ledgerGrid .cell[data-id]")].map((el) => ({
+            id: el.getAttribute("data-id") || "",
+            short: text(el.querySelector(".dag-id")),
+            n: text(el.querySelector(".dag-n")),
+          })),
+          meta: text(document.getElementById("ledgerMeta")),
+          bridges: [...document.querySelectorAll('#graphReport [data-rep="bridges"] [data-from][data-to]')].map((el) => ({
+            from: el.getAttribute("data-from") || "",
+            to: el.getAttribute("data-to") || "",
+            kind: el.getAttribute("data-kind") || "",
+            support: Number(el.getAttribute("data-support")),
+          })),
+          bridgeEmpty: !!document.querySelector('#graphReport [data-rep="bridges"] .rep-empty'),
+          questions: [...document.querySelectorAll("#graphReport .rep-q[data-focus]")].map((el) => ({
+            focus: el.getAttribute("data-focus") || "",
+            text: text(el),
+          })),
+          ws: on ? on.getAttribute("data-ws") : "",
+          cards: document.querySelectorAll(".bubble-card").length,
+          xy: document.querySelectorAll(".react-flow__node").length,
+          lod: vp ? vp.getAttribute("data-lod") : "",
+        };
+      });
+    const beforeGrPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const grAll = await readGraphReport();
+    record(
+      "GR1",
+      "All programs Map rail is a Graph Report (God nodes head, report sections shown)",
+      grAll.head === "God nodes" && grAll.report && grAll.visible && grAll.god.length >= 3,
+      JSON.stringify({ head: grAll.head, report: grAll.report, visible: grAll.visible, god: grAll.god.length })
+    );
+    const grDegOk = grAll.god.every((g) => g.n === String(deg(g.id)));
+    const grSorted = grAll.god.every((g, i) => i === 0 || Number(g.n) <= Number(grAll.god[i - 1].n));
+    record(
+      "GR2",
+      "god node degrees equal the snapshot's incident-edge count, ranked, led by the max",
+      grAll.god.length > 0 && grDegOk && grSorted && Number(grAll.god[0].n) === grMaxDeg,
+      grAll.god
+        .slice(0, 3)
+        .map((g) => g.short + "=" + deg(g.id))
+        .join(" ") +
+        " max=" +
+        grMaxDeg
+    );
+    const grMetaWant = "all · " + snap.graph.nodes.length + " nodes · " + grCutEdges + " edges";
+    record("GR3", "rail meta counts the All programs cut", grAll.meta === grMetaWant, grAll.meta + " want=" + grMetaWant);
+    const grEdge = (b) =>
+      snap.graph.edges.find((e) => String(e.from) === b.from && String(e.to) === b.to && e.kind === b.kind) || null;
+    const grBridgeOk = grAll.bridges.every(
+      (b) =>
+        !!grEdge(b) &&
+        b.kind !== "Contains" &&
+        !!comm(b.from) &&
+        !!comm(b.to) &&
+        comm(b.from) !== comm(b.to) &&
+        b.support === grSupport.get(grPairKey(b.from, b.to))
+    );
+    record(
+      "GR4",
+      "surprising connections are real cross-community edges, weakest pair first",
+      grSupport.size
+        ? grAll.bridges.length === Math.min(4, grSupport.size) && grBridgeOk && grAll.bridges[0].support === grMinSupport
+        : grAll.bridges.length === 0 && grAll.bridgeEmpty,
+      "pairs=" +
+        grSupport.size +
+        " minSupport=" +
+        grMinSupport +
+        " rows=" +
+        grAll.bridges
+          .map((b) => (grNodes.get(b.from) || {}).fqn + " -" + b.kind + "-> " + (grNodes.get(b.to) || {}).fqn + " ×" + b.support)
+          .join("; ")
+    );
+    await page.locator("#ledgerGrid .cell[data-id]").first().click();
+    await page
+      .waitForFunction(() => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden), null, {
+        timeout: 5000,
+      })
+      .catch(() => {});
+    const grEvidence = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const row = [...document.querySelectorAll("#inspMeta .row")].find(
+        (el) => ((el.querySelector(".k") || {}).textContent || "").trim() === "degree"
+      );
+      return {
+        open: !!(pane && !pane.hidden),
+        degree: row && row.children[1] ? row.children[1].textContent.trim() : "",
+      };
+    });
+    record(
+      "GR5",
+      "god node cell opens Evidence with the same degree",
+      grEvidence.open && !!grAll.god[0] && grEvidence.degree === grAll.god[0].n,
+      JSON.stringify({ open: grEvidence.open, evidence: grEvidence.degree, cell: grAll.god[0] && grAll.god[0].n })
+    );
+    if (grAll.bridges.length) {
+      await page.locator('#graphReport [data-rep="bridges"] [data-from][data-to]').first().click();
+      await page.waitForTimeout(200);
+      const grHop = await page.evaluate(() => {
+        const hop = document.getElementById("hopCard");
+        return {
+          visible: !!(hop && !hop.hidden),
+          ends: [...(hop ? hop.querySelectorAll("[data-id]") : [])].map((el) => el.getAttribute("data-id") || ""),
+        };
+      });
+      const want = grAll.bridges[0];
+      record(
+        "GR6",
+        "surprising connection opens the hop card on both ends",
+        grHop.visible && grHop.ends.length === 2 && grHop.ends[0] === want.from && grHop.ends[1] === want.to,
+        JSON.stringify({ visible: grHop.visible, ends: grHop.ends, want: [want.from, want.to] })
+      );
+    }
+    await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const close = document.getElementById("srcClose");
+      if (pane && !pane.hidden && close) close.click();
+    });
+    await page.waitForTimeout(200);
+
+    const grProgram = (() => {
+      const file = grAll.bridges.length ? grFile(grAll.bridges[0].from) : "";
+      let best = -1;
+      (snap.programs || []).forEach((p, i) => {
+        const root = p.root || "";
+        if (!root || !file.startsWith(root + "/")) return;
+        if (best < 0 || root.length > (snap.programs[best].root || "").length) best = i;
+      });
+      return best;
+    })();
+    const grProgI = await page.evaluate((want) => {
+      if (want >= 0 && document.querySelector('#legend [data-prog="' + want + '"]')) return want;
+      const chip = [...document.querySelectorAll("#legend [data-prog]")].find(
+        (el) => Number(el.getAttribute("data-prog")) >= 0 && /graphide/.test(el.textContent || "")
+      );
+      return chip ? Number(chip.getAttribute("data-prog")) : -1;
+    }, grProgram);
+    const grProg = (snap.programs || [])[grProgI] || null;
+    if (grProg) await page.click('#legend [data-prog="' + grProgI + '"]');
+    await page.waitForTimeout(280);
+    const grCut = await readGraphReport();
+    const grRoot = grProg ? (grProg.root || "") + "/" : "";
+    const grAllIds = grAll.god.map((g) => g.id).join(",");
+    record(
+      "GR7",
+      "program cut re-ranks the rail inside that program and keeps Map community LOD",
+      !!grProg &&
+        grCut.meta.startsWith(grProg.name + " · ") &&
+        grCut.god.length > 0 &&
+        grCut.god.every((g) => grFile(g.id).startsWith(grRoot) && g.n === String(deg(g.id))) &&
+        grCut.god.every((g, i) => i === 0 || Number(g.n) <= Number(grCut.god[i - 1].n)) &&
+        grCut.god.map((g) => g.id).join(",") !== grAllIds &&
+        grCut.ws === "map" &&
+        grCut.cards > 1 &&
+        grCut.xy === 0 &&
+        grCut.lod === "0",
+      JSON.stringify({
+        program: grProg ? grProg.kind + " " + grProg.name : "",
+        meta: grCut.meta,
+        god: grCut.god.map((g) => g.short + "=" + g.n).join(" "),
+        cards: grCut.cards,
+        xy: grCut.xy,
+        lod: grCut.lod,
+      })
+    );
+    await shot(page, "graph-report.png");
+    const grQ = grCut.questions[0] || null;
+    if (grQ) await page.locator("#graphReport .rep-q[data-focus]").first().click();
+    await page
+      .waitForFunction(
+        (focus) =>
+          !!document.querySelector('#workspaces [data-ws="lineage"].on') &&
+          !!window.__graphideLineage &&
+          window.__graphideLineage.focus === focus,
+        grQ ? grQ.focus : "",
+        { timeout: 5000 }
+      )
+      .catch(() => {});
+    const grLineage = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const l = window.__graphideLineage || {};
+      return {
+        on: !!document.querySelector('#workspaces [data-ws="lineage"].on'),
+        focus: l.focus || "",
+        fqn: l.fqn || "",
+        hops: l.hops || 0,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeGrPosts);
+    record(
+      "GR8",
+      "suggested question opens Lineage on its focus with hops",
+      !!grQ && grLineage.on && grLineage.focus === grQ.focus && grLineage.hops > 0,
+      JSON.stringify({ question: grQ && grQ.text, focus: grLineage.focus, fqn: grLineage.fqn, hops: grLineage.hops })
+    );
+    record(
+      "GR9",
+      "Graph Report steps do not post stamp / skip",
+      grLineage.stampPosts === 0 && grLineage.skipPosts === 0,
+      JSON.stringify({ stampPosts: grLineage.stampPosts, skipPosts: grLineage.skipPosts })
+    );
+    assertNoStampDir("GR10", "Graph Report did not write .graphide/stamps/");
+
     const deltaSnap = loadDeltaSnap();
     const deltaGraph = assertDeltaSnap(deltaSnap);
     const deltaUrl = origin + DELTA_HARNESS;
@@ -8553,7 +8795,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · graph-report · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
