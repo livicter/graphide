@@ -10,7 +10,8 @@ human — this pass never writes `.graphide/stamps/`. Day is unchanged.
 
 - Night page (`html.bright.night`) is cool near-black `#101518`. System
   blue `#0A84FF` stays the accent.
-- `#coverage` opens with `.dials`: three equal `.dial[data-dial]` —
+- `#coverage` leads with `.dials` (`order: -1`; last in the DOM so the
+  caption text stays first): three equal `.dial[data-dial]` —
   `coverage`, `health`, `open`. Each is a `.ring` (`svg` `0 0 40 40`,
   `circle.track` + `circle.arc` `pathLength="100"`) around a big white
   `b` value, then an UPPERCASE tracked `.label`. Arcs are thick, round cap.
@@ -58,8 +59,8 @@ Driver assertions (ids `WH0`…`WH10`):
 
 - `WH0` `html` / `body` `.bright.night`; `#themeNight.on`; Map on; page
   is cool near-black (luma < 0.12, blue > red — Apple `#000` fails)
-- `WH1` exactly three `.dial`, order coverage / health / open, first in
-  `#coverage`; `.dials` shown; widths equal (±1px)
+- `WH1` exactly three `.dial`, order coverage / health / open, leftmost
+  in `#coverage`; `.dials` shown; widths equal (±1px)
 - `WH2` every `circle.arc` round cap, stroke-width ≥ 3.5; stroke is
   `#7ba1bb` / tone green · yellow · red / `#0093e7` (±6)
 - `WH3` `.dial b` near white, ≥ 18px, weight ≥ 600

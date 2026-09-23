@@ -3508,7 +3508,7 @@ html.bright.night #status {
 }
 html.bright.night #coverage { padding: 12px 18px 8px; gap: 10px 24px; }
 html.bright.night #coverage .score { display: none; }
-html.bright.night #coverage .dials { display: flex; gap: 18px; }
+html.bright.night #coverage .dials { display: flex; gap: 18px; order: -1; }
 html.bright.night #coverage .cov-chip { max-width: 560px; font-size: 12px; line-height: 1.45; opacity: 0.72; }
 html.bright.night #coverage ul { margin: 0; }
 html.bright.night .dial { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 76px; }

@@ -9054,7 +9054,9 @@ function renderCoverage(cov, findings, graph, opts) {
     }
   }
   const flows = names.length;
-  const covPct = changed.length ? Math.round((100 * (changed.length - uncovered.length)) / changed.length) : null;
+  const covPct = changed.length
+    ? Math.round((100 * Math.max(0, changed.length - uncovered.length)) / changed.length)
+    : null;
   const healthPct = flows ? Math.round((100 * (flows - broken)) / flows) : null;
   const open = pending + broken;
   const pctText = (v) => (v == null ? "—" : v + "<small>%</small>");
@@ -9080,7 +9082,7 @@ function renderCoverage(cov, findings, graph, opts) {
     broken +
     " broken</span>" +
     "</div>";
-  html = dials + score + '<span class="cov-chip">' + html + "</span>";
+  html = score + '<span class="cov-chip">' + html + "</span>";
   let scars = [];
   if (!shed) {
     scars = rawFindings.filter((f) => f.kind === "StampBroken" || f.kind === "UnmatchedHint");
@@ -9111,7 +9113,7 @@ function renderCoverage(cov, findings, graph, opts) {
       (scars.length > 4 ? "<li>…</li>" : "") +
       "</ul>";
   }
-  coverage.innerHTML = html;
+  coverage.innerHTML = html + dials;
   markPanelShed(budgeted && shed);
 }
 

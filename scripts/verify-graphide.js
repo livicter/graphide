@@ -4512,7 +4512,13 @@ async function main() {
           : "",
         pageBg: pageBg ? pageBg.slice(0, 3) : null,
         pageLuma: pageBg ? luma(pageBg) : 1,
-        dialsFirst: !!(dialsEl && cov && cov.firstElementChild === dialsEl),
+        dialsFirst: !!(
+          dialsEl &&
+          cov &&
+          [...cov.children].every(
+            (el) => el === dialsEl || !shown(el) || dialsEl.getBoundingClientRect().left <= el.getBoundingClientRect().left
+          )
+        ),
         dialsDisplay: dialsEl ? cs(dialsEl).display : "missing",
         dials,
         caption: caption.slice(0, 120),
@@ -4551,7 +4557,7 @@ async function main() {
     );
     record(
       "WH1",
-      "#coverage opens with three equal dials: Coverage / Health / Open",
+      "#coverage leads with three equal dials: Coverage / Health / Open",
       whoop.dials.length === 3 &&
         whoop.dials.map((d) => d.key).join(",") === "coverage,health,open" &&
         whoop.dialsFirst &&
