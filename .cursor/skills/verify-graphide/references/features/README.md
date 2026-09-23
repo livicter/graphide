@@ -30,6 +30,7 @@ owns this folder.
 | [appearance.md](appearance.md) | Day / Night | explorer Map · `#themeNight` / `D` · `night.png` |
 | [apple-chrome.md](apple-chrome.md) | Sequoia Day chrome | explorer Day Map · `apple-chrome.png` |
 | [apple-chrome-icons.md](apple-chrome-icons.md) | Sequoia Day icons + tiles | explorer Day Map · `apple-chrome-icons.png` |
+| [whoop-health-chrome.md](whoop-health-chrome.md) | WHOOP Night chrome + coverage dials | explorer Night Map · `whoop-health-night.png` |
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |

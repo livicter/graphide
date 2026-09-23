@@ -293,6 +293,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome.md")), "apple-chrome feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome-icons.md")), "apple-chrome-icons feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/whoop-health-chrome.md")), "whoop-health-chrome feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
@@ -314,6 +315,7 @@ assert(featReadme.includes("js-desk.md") && featReadme.includes("js-desk.png"), 
 assert(featReadme.includes("ts-desk.md") && featReadme.includes("ts-desk.png"), "feature README must list ts-desk.md");
 assert(featReadme.includes("apple-chrome.md") && featReadme.includes("apple-chrome.png"), "feature README must list apple-chrome.md");
 assert(featReadme.includes("apple-chrome-icons.md") && featReadme.includes("apple-chrome-icons.png"), "feature README must list apple-chrome-icons.md");
+assert(featReadme.includes("whoop-health-chrome.md") && featReadme.includes("whoop-health-night.png"), "feature README must list whoop-health-chrome.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
@@ -493,6 +495,7 @@ assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && dri
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("apple-chrome.png") && driver.includes("AC0") && driver.includes("#reviewBtn") && /007aff/i.test(driver), "verify driver must drive Sequoia Day chrome on the explorer Map");
 assert(driver.includes("apple-chrome-icons.png") && driver.includes("AI0") && driver.includes("ws-ico"), "verify driver must drive Sequoia Day workspace icons and Map tiles");
+assert(driver.includes("whoop-health-night.png") && driver.includes("WH0") && driver.includes("WH10") && /#0093e7/i.test(driver), "verify driver must drive WHOOP Night chrome and coverage dials on the explorer Map");
 assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.includes("CM2") && driver.includes("#inspMeta"), "verify driver must prove Evidence coverage mark on #inspMeta");
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
@@ -630,6 +633,14 @@ assert(
     appleChromeIconsMap.includes("## Gotchas"),
   "apple-chrome-icons feature map must use the four headings"
 );
+const whoopHealthMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/whoop-health-chrome.md"), "utf8");
+assert(
+  whoopHealthMap.includes("## Sub-features") &&
+    whoopHealthMap.includes("## How to get to it (user POV)") &&
+    whoopHealthMap.includes("## Driving it with the harness") &&
+    whoopHealthMap.includes("## Gotchas"),
+  "whoop-health-chrome feature map must use the four headings"
+);
 assert(js.includes("id=\"draftHintBtn\"") && js.includes("id=\"draftHint\"") && js.includes("[[flow]]") && js.includes("Copy draft"), "timeline Uncovered must expose a draft flows.toml fragment");
 assert(chrome.includes("function copyDraftHint") && chrome.includes("function draftHintToml") && !/copyDraftHint[\s\S]{0,500}type:\s*["']stamp["']/.test(chrome), "draft hint must copy a hit list and not stamp");
 assert(harness.includes("solarsim::MissingHit") && harness.includes("UnmatchedHint"), "explorer snap must keep the unmatched hit");
@@ -677,6 +688,9 @@ assert(css.includes(".bubble-card .tile"), "Map cards must style a tinted tile")
 assert(chrome.includes("function bubbleCardInnerHtml") && chrome.includes('class="tile"'), "Map cards must paint a tile hook");
 assert(chrome.includes("ws-ico") && css.includes(".ws-ico"), "workspace tabs must carry an icon mark");
 assert(chrome.includes("data-tile") && chrome.includes("function tileKind"), "Map tiles must tint per community kind");
+assert(/html\.bright\.night #coverage \.dials/.test(css) && /#16ec06/i.test(css) && /#7ba1bb/i.test(css), "Night coverage strip must paint WHOOP dials");
+assert(/html\.bright\.night \.bubble-card \{[^}]*linear-gradient[^}]*box-shadow/.test(css), "Night Map cards must be raised soft surfaces");
+assert(chrome.includes("function dialHtml") && chrome.includes('class="dials"'), "coverage strip must paint Coverage / Health / Open dials");
 assert(/class="\$\{themeClass\}"|class="bright/.test(ext), "webview must opt into the bright look");
 assert(harnessHtml.includes('class="bright"'), "harness must preview the bright look");
 assert(ext.includes('id="root"') && harnessHtml.includes('id="root"'), "host and harness must mount the React desk on #root");

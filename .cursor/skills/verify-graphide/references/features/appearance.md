@@ -2,7 +2,8 @@
 
 Reader-controlled Day / Night on the Review desk. Header `#themeSeg`
 pins it. `D` flips it. Night is `html.bright.night` / `body.bright.night`
-(Apple dark grouped, system blue `#0A84FF`). Day drops `.night` and keeps
+(WHOOP cool near-black `#101518`, system blue `#0A84FF` accent; see
+whoop-health-chrome.md). Day drops `.night` and keeps
 `.bright`. Not a visual preset and not a second Map altitude. Stamp /
 skip stay human — appearance never writes `.graphide/stamps/`.
 

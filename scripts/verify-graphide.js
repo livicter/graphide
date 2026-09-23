@@ -4403,6 +4403,271 @@ async function main() {
       JSON.stringify(nightPosts)
     );
 
+    const beforeWhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.waitForTimeout(400);
+    const whoop = await page.evaluate(() => {
+      const cs = (el) => getComputedStyle(el);
+      const rgba = (v) => {
+        const s = String(v || "");
+        const m = s.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+        if (m) return [Number(m[1]), Number(m[2]), Number(m[3]), m[4] == null ? 1 : Number(m[4])];
+        const f = s.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)/);
+        return f ? [f[1] * 255, f[2] * 255, f[3] * 255, f[4] == null ? 1 : Number(f[4])] : null;
+      };
+      const luma = (c) => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+      const near = (c, hex) =>
+        !!c && [1, 3, 5].every((i, k) => Math.abs(c[k] - parseInt(hex.slice(i, i + 2), 16)) <= 6);
+      const shown = (el) => {
+        const r = el ? el.getBoundingClientRect() : null;
+        return !!(r && r.width > 0 && r.height > 0 && cs(el).visibility !== "hidden");
+      };
+      const ARC = { coverage: "#7ba1bb", open: "#0093e7", green: "#16ec06", yellow: "#ffde00", red: "#ff0026" };
+      const cov = document.getElementById("coverage");
+      const dialsEl = document.querySelector("#coverage .dials");
+      const dials = [...document.querySelectorAll("#coverage .dials .dial")].map((d) => {
+        const key = d.getAttribute("data-dial") || "";
+        const tone = d.getAttribute("data-tone") || "";
+        const svg = d.querySelector(".ring svg");
+        const arc = d.querySelector(".ring svg circle.arc");
+        const b = d.querySelector(".ring b");
+        const label = d.querySelector(".label");
+        const ast = arc ? cs(arc) : null;
+        const bst = b ? cs(b) : null;
+        const lst = label ? cs(label) : null;
+        const dash = arc ? String(arc.getAttribute("stroke-dasharray") || "").match(/^\s*(\d+)\s+100\s*$/) : null;
+        const ink = bst ? rgba(bst.color) : null;
+        return {
+          key,
+          tone,
+          title: !!d.getAttribute("title"),
+          shown: shown(d),
+          w: d.getBoundingClientRect().width,
+          viewBox: svg ? svg.getAttribute("viewBox") : "",
+          track: !!d.querySelector(".ring svg circle.track"),
+          arc: !!arc,
+          dash: dash ? Number(dash[1]) : null,
+          pathLength: arc ? arc.getAttribute("pathLength") : "",
+          cap: ast ? ast.strokeLinecap : "",
+          strokeW: ast ? parseFloat(ast.strokeWidth) : 0,
+          stroke: ast ? ast.stroke : "",
+          strokeOk: !!(ast && near(rgba(ast.stroke), key === "health" ? ARC[tone] || "" : ARC[key])),
+          value: b ? (b.textContent || "").trim() : "",
+          color: bst ? bst.color : "",
+          white: !!(ink && ink[0] >= 230 && ink[1] >= 230 && ink[2] >= 230),
+          fontPx: bst ? parseFloat(bst.fontSize) : 0,
+          weight: bst ? Number(bst.fontWeight) : 0,
+          label: label ? (label.textContent || "").trim() : "",
+          transform: lst ? lst.textTransform : "",
+          tracking: lst ? parseFloat(lst.letterSpacing) : 0,
+        };
+      });
+      const caption = ((document.querySelector("#coverage .cov-chip") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const covM = caption.match(/^Coverage (\d+) changed · (\d+) uncovered/);
+      const revM = caption.match(/Review (\d+) stamped · (\d+) skipped · (\d+) broken · (\d+) pending/);
+      const score = document.querySelector("#coverage .score");
+      const bodyBg = rgba(cs(document.body).backgroundColor);
+      const pageBg = bodyBg && bodyBg[3] >= 0.3 ? bodyBg : rgba(cs(document.documentElement).backgroundColor);
+      const cardEls = [...document.querySelectorAll(".bubble-card")];
+      const cards = cardEls.filter(shown).map((el) => {
+        const st = cs(el);
+        const fills = (String(st.backgroundImage || "").match(/rgba?\([^)]*\)|color\(srgb [^)]*\)/g) || [])
+          .map(rgba)
+          .filter(Boolean);
+        const bg = rgba(st.backgroundColor);
+        if (!fills.length && bg && bg[3] >= 0.3) fills.push(bg);
+        const layers = st.boxShadow && st.boxShadow !== "none" ? st.boxShadow.split(/,(?![^(]*\))/) : [];
+        const blurs = layers.map((l) => parseFloat((l.replace(/rgba?\([^)]*\)/g, "").match(/-?[\d.]+px/g) || [])[2]) || 0);
+        const tile = el.querySelector(".tile");
+        const r = parseFloat(st.borderRadius) || 0;
+        const neutral =
+          fills.length > 0 &&
+          fills.every((c) => Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 14 && luma(c) < 0.3);
+        const tileOk = !!(tile && tile.getBoundingClientRect().width >= 16);
+        return {
+          ok: r >= 14 && layers.length >= 2 && Math.max(0, ...blurs) >= 16 && neutral && tileOk,
+          r,
+          layers: layers.length,
+          blur: Math.max(0, ...blurs),
+          neutral,
+          tile: tileOk,
+          fill: st.backgroundImage !== "none" ? st.backgroundImage : st.backgroundColor,
+        };
+      });
+      const leakSeen = {};
+      const leaks = [];
+      for (const sel of ["#tabs .tab", ".kind-pill", ".leg", ".feat-chip", "#storyRail", ".stage > .flow-title"]) {
+        const els = [...document.querySelectorAll(sel)].filter(shown);
+        leakSeen[sel] = els.length;
+        for (const el of els) {
+          const c = rgba(cs(el).backgroundColor);
+          if (c && c[3] >= 0.3 && luma(c) >= 0.5) leaks.push(sel + " " + cs(el).backgroundColor);
+        }
+      }
+      return {
+        htmlNight: document.documentElement.classList.contains("night") && document.documentElement.classList.contains("bright"),
+        bodyNight: document.body.classList.contains("night") && document.body.classList.contains("bright"),
+        nightOn: !!(document.getElementById("themeNight") && document.getElementById("themeNight").classList.contains("on")),
+        ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute
+          ? document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")
+          : "",
+        pageBg: pageBg ? pageBg.slice(0, 3) : null,
+        pageLuma: pageBg ? luma(pageBg) : 1,
+        dialsFirst: !!(dialsEl && cov && cov.firstElementChild === dialsEl),
+        dialsDisplay: dialsEl ? cs(dialsEl).display : "missing",
+        dials,
+        caption: caption.slice(0, 120),
+        changed: covM ? Number(covM[1]) : null,
+        uncovered: covM ? Number(covM[2]) : null,
+        review: revM ? revM.slice(1, 5).map(Number) : null,
+        scoreDisplay: score ? cs(score).display : "missing",
+        cardCount: cardEls.length,
+        cards,
+        leakSeen,
+        leaks,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        lod0: !!document.querySelector('#canvas .viewport[data-lod="0"]'),
+      };
+    });
+    const whDial = (key) => whoop.dials.find((d) => d.key === key) || {};
+    const whWidths = whoop.dials.map((d) => d.w);
+    record(
+      "WH0",
+      "Night explorer Map is WHOOP cool near-black (#101518)",
+      whoop.htmlNight &&
+        whoop.bodyNight &&
+        whoop.nightOn &&
+        whoop.ws === "map" &&
+        !!whoop.pageBg &&
+        whoop.pageLuma < 0.12 &&
+        whoop.pageBg[2] > whoop.pageBg[0],
+      JSON.stringify({
+        htmlNight: whoop.htmlNight,
+        bodyNight: whoop.bodyNight,
+        nightOn: whoop.nightOn,
+        ws: whoop.ws,
+        pageBg: whoop.pageBg,
+        pageLuma: Number(whoop.pageLuma.toFixed(3)),
+      })
+    );
+    record(
+      "WH1",
+      "#coverage opens with three equal dials: Coverage / Health / Open",
+      whoop.dials.length === 3 &&
+        whoop.dials.map((d) => d.key).join(",") === "coverage,health,open" &&
+        whoop.dialsFirst &&
+        whoop.dialsDisplay !== "none" &&
+        whoop.dials.every((d) => d.shown && d.title && d.track && d.viewBox === "0 0 40 40") &&
+        Math.max(...whWidths) - Math.min(...whWidths) <= 1,
+      JSON.stringify({
+        keys: whoop.dials.map((d) => d.key),
+        first: whoop.dialsFirst,
+        display: whoop.dialsDisplay,
+        shown: whoop.dials.map((d) => d.shown),
+        widths: whWidths.map((w) => Math.round(w * 10) / 10),
+      })
+    );
+    const whArcs = whoop.dials.filter((d) => d.arc);
+    record(
+      "WH2",
+      "Dial arcs are thick round rings in WHOOP colors",
+      whArcs.length >= 1 && whArcs.every((d) => d.cap === "round" && d.strokeW >= 3.5 && d.strokeOk),
+      JSON.stringify(whArcs.map((d) => ({ key: d.key, tone: d.tone, cap: d.cap, w: d.strokeW, stroke: d.stroke })))
+    );
+    record(
+      "WH3",
+      "Dial numbers are big white type",
+      whoop.dials.length === 3 &&
+        whoop.dials.every((d) => d.white && d.fontPx >= 18 && d.weight >= 600),
+      JSON.stringify(whoop.dials.map((d) => ({ key: d.key, color: d.color, px: d.fontPx, weight: d.weight })))
+    );
+    record(
+      "WH4",
+      "Dial labels are UPPERCASE tracked Coverage / Health / Open",
+      whoop.dials.map((d) => d.label.toLowerCase()).join(",") === "coverage,health,open" &&
+        whoop.dials.every((d) => d.transform === "uppercase" && d.tracking >= 1),
+      JSON.stringify(whoop.dials.map((d) => ({ label: d.label, transform: d.transform, tracking: d.tracking })))
+    );
+    const whRev = whoop.review;
+    const whBroken = whRev ? whRev[2] : 0;
+    const whOpenN = whRev ? whRev[2] + whRev[3] : 0;
+    const whFlowsLo = whRev ? whRev[0] + whOpenN : 0;
+    const whFlowsHi = whRev ? whFlowsLo + whRev[1] : 0;
+    const whRing = (d, lo, hi) =>
+      d.arc ? d.pathLength === "100" && d.dash > 0 && d.dash >= lo && d.dash <= hi : lo === 0;
+    const whCovPct = whoop.changed ? Math.round((100 * (whoop.changed - whoop.uncovered)) / whoop.changed) : null;
+    const whHealthPct = /^\d+%$/.test(whDial("health").value || "") ? parseInt(whDial("health").value, 10) : null;
+    const whHealthLo = whBroken ? Math.round((100 * (whFlowsLo - whBroken)) / whFlowsLo) : 100;
+    const whHealthHi = whBroken ? Math.round((100 * (whFlowsHi - whBroken)) / whFlowsHi) : 100;
+    const whTone = whHealthPct == null ? "" : whHealthPct >= 67 ? "green" : whHealthPct >= 34 ? "yellow" : "red";
+    const whOpenLo = whOpenN ? Math.round((100 * whOpenN) / whFlowsHi) : 0;
+    const whOpenHi = whOpenN ? Math.round((100 * whOpenN) / whFlowsLo) : 0;
+    const whHonest = {
+      coverage:
+        whoop.changed != null &&
+        whDial("coverage").value === (whCovPct == null ? "—" : whCovPct + "%") &&
+        whRing(whDial("coverage"), whCovPct || 0, whCovPct || 0),
+      health: whRev
+        ? whHealthPct != null &&
+          whHealthPct >= whHealthLo &&
+          whHealthPct <= whHealthHi &&
+          whDial("health").tone === whTone &&
+          whRing(whDial("health"), whHealthPct, whHealthPct)
+        : whDial("health").value === "—" && !whDial("health").arc && !whDial("health").tone,
+      open: whDial("open").value === String(whOpenN) && whRing(whDial("open"), whOpenLo, whOpenHi),
+      scoreHidden: whoop.scoreDisplay === "none",
+    };
+    record(
+      "WH5",
+      "Dial values match the #coverage caption; .score is hidden on Night",
+      whHonest.coverage && whHonest.health && whHonest.open && whHonest.scoreHidden,
+      JSON.stringify({
+        ...whHonest,
+        caption: whoop.caption,
+        review: whRev,
+        values: whoop.dials.map((d) => d.key + "=" + d.value + (d.arc ? "@" + d.dash : "") + (d.tone ? ":" + d.tone : "")),
+        score: whoop.scoreDisplay,
+      })
+    );
+    const whBadCard = whoop.cards.find((c) => !c.ok);
+    record(
+      "WH6",
+      "Night Map cards are raised soft neutral surfaces; chrome does not leak Day white",
+      whoop.cardCount >= 8 &&
+        whoop.cards.length >= 3 &&
+        !whBadCard &&
+        whoop.leakSeen["#tabs .tab"] >= 1 &&
+        whoop.leaks.length === 0,
+      JSON.stringify({
+        cards: whoop.cardCount,
+        shown: whoop.cards.length,
+        ok: whoop.cards.filter((c) => c.ok).length,
+        card: whBadCard || whoop.cards[0] || null,
+        leakSeen: whoop.leakSeen,
+        leaks: whoop.leaks.slice(0, 4),
+      })
+    );
+    record(
+      "WH7",
+      "WHOOP chrome keeps Map community LOD (xy=0)",
+      whoop.xy === 0 && whoop.lod0,
+      "xy=" + whoop.xy + " lod0=" + whoop.lod0 + " cards=" + whoop.cardCount
+    );
+    await shot(page, "whoop-health-night.png", { minLuma: 0.02, maxLuma: 0.45, minStd: 0.03 });
+    const afterWh = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeWhPosts);
+    record(
+      "WH8",
+      "WHOOP night step did not post stamp / skip",
+      afterWh.stampPosts === 0 && afterWh.skipPosts === 0,
+      JSON.stringify(afterWh)
+    );
+    assertNoStampDir("WH9", "WHOOP night step did not write .graphide/stamps/");
+
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
@@ -4434,6 +4699,22 @@ async function main() {
         dayRestored.cards >= 8 &&
         dayRestored.xy === 0,
       JSON.stringify(dayRestored)
+    );
+    const whDay = await page.evaluate(() => {
+      const dials = document.querySelector("#coverage .dials");
+      const score = document.querySelector("#coverage .score");
+      const r = score ? score.getBoundingClientRect() : null;
+      return {
+        dials: dials ? getComputedStyle(dials).display : "missing",
+        score: score ? getComputedStyle(score).display : "missing",
+        scoreShown: !!(r && r.width > 0 && r.height > 0),
+      };
+    });
+    record(
+      "WH10",
+      "Day hides #coverage .dials and keeps the .score row",
+      whDay.dials === "none" && whDay.score !== "none" && whDay.scoreShown,
+      JSON.stringify(whDay)
     );
     assertNoStampDir("N6", "Appearance step did not write .graphide/stamps/");
 
@@ -8553,7 +8834,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · whoop-health · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
