@@ -7795,6 +7795,7 @@
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "ledgerPane", hidden: true, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "led-head", children: "SLICE" }),
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: "ledgerGrid" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: "graphReport", hidden: true }),
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: "ledgerMeta" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "sourcePane", hidden: true, children: [
@@ -19555,6 +19556,82 @@
     );
   }
 
+  // extension/media/src/graph/report.js
+  var KIND_WEIGHT = { Calls: 3, Publishes: 3, Subscribes: 3, Reads: 2, Writes: 2 };
+  function cmp(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  function graphReport(graph, communities, inCut, limits) {
+    const godCap = limits && limits.god != null ? limits.god : 6;
+    const bridgeCap = limits && limits.bridges != null ? limits.bridges : 4;
+    const edges = graph && graph.edges || [];
+    const cut = /* @__PURE__ */ new Map();
+    for (const n of graph && graph.nodes || []) {
+      if (inCut(n)) cut.set(String(n.id), n);
+    }
+    const community = /* @__PURE__ */ new Map();
+    for (const c of communities || []) {
+      for (const m of c.members || []) {
+        const id2 = String(m);
+        if (!community.has(id2)) community.set(id2, c);
+      }
+    }
+    const stats = /* @__PURE__ */ new Map();
+    for (const id2 of cut.keys()) stats.set(id2, { id: id2, degree: 0, in: 0, out: 0 });
+    let cutEdges = 0;
+    const pairs = /* @__PURE__ */ new Map();
+    for (const e of edges) {
+      const from = String(e.from);
+      const to = String(e.to);
+      const sf = stats.get(from);
+      const st2 = stats.get(to);
+      if (from === to) {
+        if (sf) sf.degree++;
+      } else {
+        if (sf) {
+          sf.degree++;
+          sf.out++;
+        }
+        if (st2) {
+          st2.degree++;
+          st2.in++;
+        }
+      }
+      if (!sf || !st2) continue;
+      cutEdges++;
+      if (e.kind === "Contains" || from === to) continue;
+      const ca = community.get(from);
+      const cb = community.get(to);
+      if (!ca || !cb || ca === cb) continue;
+      const ia = String(ca.id);
+      const ib = String(cb.id);
+      const key = ia < ib ? ia + "\0" + ib : ib + "\0" + ia;
+      const w = KIND_WEIGHT[e.kind] || 1;
+      const pair = pairs.get(key);
+      if (!pair) {
+        const sa = (ca.members || []).length;
+        const sb = (cb.members || []).length;
+        pairs.set(key, {
+          w,
+          small: Math.min(sa, sb),
+          large: Math.max(sa, sb),
+          bridge: { from, to, kind: e.kind, a: ia, b: ib, support: 1 }
+        });
+        continue;
+      }
+      pair.bridge.support++;
+      if (w > pair.w) {
+        pair.w = w;
+        pair.bridge = { from, to, kind: e.kind, a: ia, b: ib, support: pair.bridge.support };
+      }
+    }
+    const god = [...stats.values()].filter((s) => s.degree > 0).sort((x, y) => y.degree - x.degree || cmp(String(cut.get(x.id).fqn || ""), String(cut.get(y.id).fqn || ""))).slice(0, godCap);
+    const bridges = [...pairs.values()].sort(
+      (x, y) => x.bridge.support - y.bridge.support || y.small - x.small || y.large - x.large || cmp(x.bridge.from, y.bridge.from)
+    ).slice(0, bridgeCap).map((p) => p.bridge);
+    return { nodes: cut.size, edges: cutEdges, god, bridges };
+  }
+
   // extension/media/src/graph/desk.js
   function bootDesk() {
     const vscode = acquireHost();
@@ -19599,6 +19676,7 @@
     const ledgerPane = document.getElementById("ledgerPane");
     const ledgerGrid = document.getElementById("ledgerGrid");
     const ledgerMeta = document.getElementById("ledgerMeta");
+    const graphReportEl = document.getElementById("graphReport");
     const workspacesEl = document.getElementById("workspaces");
     const egoBtn = document.getElementById("egoBtn");
     const egoHopsEl = document.getElementById("egoHops");
@@ -22578,7 +22656,7 @@
         ledgerGrid.querySelectorAll(".cell").forEach((el2) => {
           el2.classList.toggle("on", el2.getAttribute("data-id") === String(id2));
         });
-        if (ledgerMeta) {
+        if (ledgerMeta && !(ledgerPane && ledgerPane.classList.contains("report"))) {
           const lit = ledgerGrid.querySelectorAll(".on").length;
           const n = ledgerGrid.querySelectorAll(".cell").length;
           ledgerMeta.textContent = "objects " + lit + "/" + n;
@@ -25449,7 +25527,7 @@
         bindGraphFx();
         applyEgoPaint();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
-        if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
+        renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow && flow.tree && flow.tree.nodes || []).map(idVal)) });
         setLedgerHead("RUN");
       }
       canvas.querySelectorAll("[data-decision]").forEach((el2) => {
@@ -25724,6 +25802,7 @@
         canvas.className = "play";
         canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
         setZoomUi(false);
+        renderLedger([], {});
         window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [] };
         return;
       }
@@ -25827,7 +25906,7 @@
       const bub = graphFilter.bubble ? mapAltitudeBubbles().find((b) => idVal(b.id) === String(graphFilter.bubble)) : null;
       setGraphChrome(true);
       syncBackBtn();
-      setLedgerHead("MAP");
+      setLedgerHead(graphFilter.bubble ? "MAP" : "God nodes");
       renderCommunityGraph(opts);
       renderTabs(snapshot.flows || [], null);
       renderStats(snapshot);
@@ -25852,6 +25931,12 @@
       }
       return m;
     }
+    function programCut() {
+      if (!graphFilter.program) return () => true;
+      const want = programKeyOf(graphFilter.program);
+      const programs = snapshot.programs || [];
+      return (n) => !!n.span?.file && programKeyOf(assignProgram(n.span.file, programs)) === want;
+    }
     function pickCommunityNodes(degrees2) {
       const must = /* @__PURE__ */ new Set();
       for (const id2 of (snapshot.coverage && snapshot.coverage.uncovered || []).concat(
@@ -25862,13 +25947,7 @@
       for (const f of snapshot.flows || []) {
         for (const id2 of f.tree?.nodes || []) must.add(idVal(id2));
       }
-      let nodes = (snapshot.graph && snapshot.graph.nodes || []).slice();
-      if (graphFilter.program) {
-        const want = programKeyOf(graphFilter.program);
-        nodes = nodes.filter(
-          (n) => n.span?.file && programKeyOf(assignProgram(n.span.file, snapshot.programs || [])) === want
-        );
-      }
+      let nodes = (snapshot.graph && snapshot.graph.nodes || []).filter(programCut());
       if (graphFilter.bubble) {
         const bub = findBubble(graphFilter.bubble);
         const mem = new Set((bub?.members || []).map((m) => idVal(m)));
@@ -26246,20 +26325,8 @@
       bindHopClicks(canvas.querySelector("svg.comm-edges"));
       applyGraphFilter();
       queueOffviewSync();
-      const sample = [];
-      const seen = /* @__PURE__ */ new Set();
-      for (const b of clusters) {
-        for (const id2 of b.members || []) {
-          const sid = idVal(id2);
-          if (seen.has(sid)) continue;
-          seen.add(sid);
-          const n = nodeById.get(sid);
-          if (n) sample.push(n);
-          if (sample.length >= 48) break;
-        }
-        if (sample.length >= 48) break;
-      }
-      renderLedger(sample, { selected: selectedNodeId });
+      const report = graphReport(snapshot.graph, mapAltitudeBubbles(), programCut());
+      renderLedger(report.god.map((g) => nodeById.get(g.id)).filter(Boolean), { selected: selectedNodeId, report });
       bindStoryRail();
       applyPathWalkPaint();
     }
@@ -26348,6 +26415,8 @@
       if (!ledgerGrid) return;
       const selected2 = opts && opts.selected ? String(opts.selected) : "";
       const onTree = opts && opts.onTree || null;
+      const report = opts && opts.report || null;
+      const god = new Map((report && report.god || []).map((g) => [g.id, g]));
       const list = (nodes || []).filter((n) => {
         const id2 = idVal(n.id || n);
         const kind = n.kind || kindOf(snapshot && snapshot.graph, id2);
@@ -26358,17 +26427,78 @@
         const kind = n.kind || kindOf(snapshot && snapshot.graph, id2);
         const flags = nodeFlags(id2);
         const on2 = selected2 === id2 || flags.uncovered || onTree && onTree.has(id2);
-        const name = shortOf(n.fqn || fqnOf(snapshot && snapshot.graph, id2)) || shortToken(id2);
-        return '<button type="button" class="cell dag ' + kindClass(kind) + (on2 ? " on" : "") + (flags.uncovered ? " uncovered" : "") + '" data-id="' + id2 + '"><span class="dag-k">' + esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") + '</span><span class="dag-id">' + esc(name) + "</span></button>";
+        const fqn = n.fqn || fqnOf(snapshot && snapshot.graph, id2);
+        const name = shortOf(fqn) || shortToken(id2);
+        const g = god.get(id2);
+        return '<button type="button" class="cell dag ' + kindClass(kind) + (on2 ? " on" : "") + (flags.uncovered ? " uncovered" : "") + '" data-id="' + id2 + '"' + (g ? ' title="' + esc(fqn + " · in " + g.in + " · out " + g.out) + '"' : "") + '><span class="dag-k">' + esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") + '</span><span class="dag-id">' + esc(name) + "</span>" + (g ? '<span class="dag-n">' + g.degree + "</span>" : "") + "</button>";
       }).join("");
       if (ledgerMeta) {
-        const lit = ledgerGrid.querySelectorAll(".on").length;
-        ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+        if (report) {
+          ledgerMeta.textContent = (graphFilter.program ? graphFilter.program.name : "all") + " · " + report.nodes + " nodes · " + report.edges + " edges";
+        } else {
+          const lit = ledgerGrid.querySelectorAll(".on").length;
+          ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+        }
       }
+      if (ledgerPane) ledgerPane.classList.toggle("report", !!report);
       ledgerGrid.querySelectorAll("[data-id]").forEach((el2) => {
         el2.onclick = () => {
           selectNode(el2.getAttribute("data-id"));
-          renderLedger(list, { selected: selectedNodeId, onTree });
+          renderLedger(list, { ...opts, selected: selectedNodeId });
+        };
+      });
+      renderGraphReport(report);
+    }
+    function reportQuestions(report) {
+      const g = snapshot && snapshot.graph;
+      const out = [];
+      const add = (focus, text) => {
+        if (!focus || out.some((q2) => q2.focus === focus) || !hasLineageHops(focus)) return;
+        out.push({ focus, text });
+      };
+      const ask = (n) => {
+        if (!n) return;
+        const kind = kindOf(g, n.id);
+        const short = shortOf(fqnOf(g, n.id));
+        if (kind === "Type" || kind === "Endpoint") add(n.id, "What reads or writes " + short + "?");
+        else add(n.id, n.in >= n.out ? "What calls " + short + "?" : "What does " + short + " call?");
+      };
+      const why = (b) => {
+        if (!b) return;
+        const focus = lineageKindsFor(b.from)[b.kind] ? b.from : lineageKindsFor(b.to)[b.kind] ? b.to : "";
+        add(focus, "Why does " + shortOf(fqnOf(g, b.from)) + " reach " + shortOf(fqnOf(g, b.to)) + "?");
+      };
+      ask(report.god[0]);
+      why(report.bridges[0]);
+      ask(report.god[1]);
+      return out;
+    }
+    function renderGraphReport(report) {
+      if (!graphReportEl) return;
+      if (!report) {
+        graphReportEl.hidden = true;
+        graphReportEl.innerHTML = "";
+        return;
+      }
+      const g = snapshot && snapshot.graph;
+      const bridges = report.bridges.map((b) => {
+        const fromFqn = fqnOf(g, b.from);
+        const toFqn = fqnOf(g, b.to);
+        const span = (graphEdge(b.from, b.to, b.kind) || {}).span || {};
+        const line = span.start && span.start.line || span.line;
+        const where = span.file ? " · " + span.file + (line ? ":" + line : "") : "";
+        return '<button type="button" class="rep-row" data-from="' + esc(b.from) + '" data-to="' + esc(b.to) + '" data-kind="' + esc(b.kind) + '" data-support="' + b.support + '" title="' + esc(fromFqn + " → " + toFqn + where) + '"><span class="rep-t">' + esc(shortOf((findBubble(b.a) || {}).label || b.a)) + " ↔ " + esc(shortOf((findBubble(b.b) || {}).label || b.b)) + '</span><span class="rep-b">' + esc(shortOf(fromFqn) + " → " + shortOf(toFqn) + " · " + b.kind + " · " + b.support + (b.support === 1 ? " edge" : " edges")) + "</span></button>";
+      });
+      const questions = reportQuestions(report).map(
+        (q2) => '<button type="button" class="rep-q" data-focus="' + esc(q2.focus) + '">' + esc(q2.text) + "</button>"
+      );
+      graphReportEl.hidden = false;
+      graphReportEl.innerHTML = '<div class="led-head">Surprising connections</div><div class="rep-list" data-rep="bridges">' + (bridges.join("") || '<div class="rep-empty">No edge crosses communities in this cut.</div>') + '</div><div class="led-head">Suggested questions</div><div class="rep-list" data-rep="questions">' + (questions.join("") || '<div class="rep-empty">No traversable hub in this cut.</div>') + "</div>";
+      bindHopClicks(graphReportEl);
+      graphReportEl.querySelectorAll("[data-focus]").forEach((el2) => {
+        el2.onclick = () => {
+          selectedNodeId = el2.getAttribute("data-focus");
+          setWorkspace("lineage", true);
         };
       });
     }

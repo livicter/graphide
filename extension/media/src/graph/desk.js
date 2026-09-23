@@ -11,6 +11,7 @@ import {
   unmountSequenceCanvas,
   unmountReviewCanvas,
 } from "./sequence-canvas.jsx";
+import { graphReport } from "./report.js";
 
 export function bootDesk() {
   const vscode = acquireHost();
@@ -55,6 +56,7 @@ const inspEdges = document.getElementById("inspEdges");
 const ledgerPane = document.getElementById("ledgerPane");
 const ledgerGrid = document.getElementById("ledgerGrid");
 const ledgerMeta = document.getElementById("ledgerMeta");
+const graphReportEl = document.getElementById("graphReport");
 const workspacesEl = document.getElementById("workspaces");
 const egoBtn = document.getElementById("egoBtn");
 const egoHopsEl = document.getElementById("egoHops");
@@ -3395,7 +3397,7 @@ function fillInspect(msg) {
     ledgerGrid.querySelectorAll(".cell").forEach((el) => {
       el.classList.toggle("on", el.getAttribute("data-id") === String(id));
     });
-    if (ledgerMeta) {
+    if (ledgerMeta && !(ledgerPane && ledgerPane.classList.contains("report"))) {
       const lit = ledgerGrid.querySelectorAll(".on").length;
       const n = ledgerGrid.querySelectorAll(".cell").length;
       ledgerMeta.textContent = "objects " + lit + "/" + n;
@@ -7192,7 +7194,7 @@ function renderExplorerList(ws) {
     bindGraphFx();
     applyEgoPaint();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
-    if (treeIds.length) renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set((flow.tree.nodes || []).map(idVal)) });
+    renderLedger(treeIds, { selected: selectedNodeId, onTree: new Set(((flow && flow.tree && flow.tree.nodes) || []).map(idVal)) });
     setLedgerHead("RUN");
   }
   canvas.querySelectorAll("[data-decision]").forEach((el) => {
@@ -7580,6 +7582,7 @@ function renderLineage() {
     canvas.className = "play";
     canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
     setZoomUi(false);
+    renderLedger([], {});
     window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [] };
     return;
   }
@@ -7786,7 +7789,7 @@ function renderProgramOverview(opts) {
     : null;
   setGraphChrome(true);
   syncBackBtn();
-  setLedgerHead("MAP");
+  setLedgerHead(graphFilter.bubble ? "MAP" : "God nodes");
   renderCommunityGraph(opts);
   renderTabs(snapshot.flows || [], null);
   renderStats(snapshot);
@@ -7819,6 +7822,13 @@ function degreeMap() {
   return m;
 }
 
+function programCut() {
+  if (!graphFilter.program) return () => true;
+  const want = programKeyOf(graphFilter.program);
+  const programs = snapshot.programs || [];
+  return (n) => !!n.span?.file && programKeyOf(assignProgram(n.span.file, programs)) === want;
+}
+
 function pickCommunityNodes(degrees) {
   const must = new Set();
   for (const id of ((snapshot.coverage && snapshot.coverage.uncovered) || []).concat(
@@ -7829,13 +7839,7 @@ function pickCommunityNodes(degrees) {
   for (const f of snapshot.flows || []) {
     for (const id of f.tree?.nodes || []) must.add(idVal(id));
   }
-  let nodes = ((snapshot.graph && snapshot.graph.nodes) || []).slice();
-  if (graphFilter.program) {
-    const want = programKeyOf(graphFilter.program);
-    nodes = nodes.filter(
-      (n) => n.span?.file && programKeyOf(assignProgram(n.span.file, snapshot.programs || [])) === want
-    );
-  }
+  let nodes = ((snapshot.graph && snapshot.graph.nodes) || []).filter(programCut());
   if (graphFilter.bubble) {
     const bub = findBubble(graphFilter.bubble);
     const mem = new Set((bub?.members || []).map((m) => idVal(m)));
@@ -8310,20 +8314,8 @@ function renderBubbleMap(clusters, opts) {
   bindHopClicks(canvas.querySelector("svg.comm-edges"));
   applyGraphFilter();
   queueOffviewSync();
-  const sample = [];
-  const seen = new Set();
-  for (const b of clusters) {
-    for (const id of b.members || []) {
-      const sid = idVal(id);
-      if (seen.has(sid)) continue;
-      seen.add(sid);
-      const n = nodeById.get(sid);
-      if (n) sample.push(n);
-      if (sample.length >= 48) break;
-    }
-    if (sample.length >= 48) break;
-  }
-  renderLedger(sample, { selected: selectedNodeId });
+  const report = graphReport(snapshot.graph, mapAltitudeBubbles(), programCut());
+  renderLedger(report.god.map((g) => nodeById.get(g.id)).filter(Boolean), { selected: selectedNodeId, report });
   bindStoryRail();
   applyPathWalkPaint();
 }
@@ -8458,6 +8450,8 @@ function renderLedger(nodes, opts) {
   if (!ledgerGrid) return;
   const selected = opts && opts.selected ? String(opts.selected) : "";
   const onTree = (opts && opts.onTree) || null;
+  const report = (opts && opts.report) || null;
+  const god = new Map(((report && report.god) || []).map((g) => [g.id, g]));
   const list = (nodes || [])
     .filter((n) => {
       const id = idVal(n.id || n);
@@ -8471,7 +8465,9 @@ function renderLedger(nodes, opts) {
       const kind = n.kind || kindOf(snapshot && snapshot.graph, id);
       const flags = nodeFlags(id);
       const on = selected === id || flags.uncovered || (onTree && onTree.has(id));
-      const name = shortOf(n.fqn || fqnOf(snapshot && snapshot.graph, id)) || shortToken(id);
+      const fqn = n.fqn || fqnOf(snapshot && snapshot.graph, id);
+      const name = shortOf(fqn) || shortToken(id);
+      const g = god.get(id);
       return (
         '<button type="button" class="cell dag ' +
         kindClass(kind) +
@@ -8479,22 +8475,111 @@ function renderLedger(nodes, opts) {
         (flags.uncovered ? " uncovered" : "") +
         '" data-id="' +
         id +
-        '"><span class="dag-k">' +
+        '"' +
+        (g ? ' title="' + esc(fqn + " · in " + g.in + " · out " + g.out) + '"' : "") +
+        '><span class="dag-k">' +
         esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") +
         '</span><span class="dag-id">' +
         esc(name) +
-        "</span></button>"
+        "</span>" +
+        (g ? '<span class="dag-n">' + g.degree + "</span>" : "") +
+        "</button>"
       );
     })
     .join("");
   if (ledgerMeta) {
-    const lit = ledgerGrid.querySelectorAll(".on").length;
-    ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+    if (report) {
+      ledgerMeta.textContent =
+        (graphFilter.program ? graphFilter.program.name : "all") + " · " + report.nodes + " nodes · " + report.edges + " edges";
+    } else {
+      const lit = ledgerGrid.querySelectorAll(".on").length;
+      ledgerMeta.textContent = "objects " + lit + "/" + list.length;
+    }
   }
+  if (ledgerPane) ledgerPane.classList.toggle("report", !!report);
   ledgerGrid.querySelectorAll("[data-id]").forEach((el) => {
     el.onclick = () => {
       selectNode(el.getAttribute("data-id"));
-      renderLedger(list, { selected: selectedNodeId, onTree });
+      renderLedger(list, { ...opts, selected: selectedNodeId });
+    };
+  });
+  renderGraphReport(report);
+}
+
+function reportQuestions(report) {
+  const g = snapshot && snapshot.graph;
+  const out = [];
+  const add = (focus, text) => {
+    if (!focus || out.some((q) => q.focus === focus) || !hasLineageHops(focus)) return;
+    out.push({ focus, text });
+  };
+  const ask = (n) => {
+    if (!n) return;
+    const kind = kindOf(g, n.id);
+    const short = shortOf(fqnOf(g, n.id));
+    if (kind === "Type" || kind === "Endpoint") add(n.id, "What reads or writes " + short + "?");
+    else add(n.id, n.in >= n.out ? "What calls " + short + "?" : "What does " + short + " call?");
+  };
+  const why = (b) => {
+    if (!b) return;
+    const focus = lineageKindsFor(b.from)[b.kind] ? b.from : lineageKindsFor(b.to)[b.kind] ? b.to : "";
+    add(focus, "Why does " + shortOf(fqnOf(g, b.from)) + " reach " + shortOf(fqnOf(g, b.to)) + "?");
+  };
+  ask(report.god[0]);
+  why(report.bridges[0]);
+  ask(report.god[1]);
+  return out;
+}
+
+function renderGraphReport(report) {
+  if (!graphReportEl) return;
+  if (!report) {
+    graphReportEl.hidden = true;
+    graphReportEl.innerHTML = "";
+    return;
+  }
+  const g = snapshot && snapshot.graph;
+  const bridges = report.bridges.map((b) => {
+    const fromFqn = fqnOf(g, b.from);
+    const toFqn = fqnOf(g, b.to);
+    const span = (graphEdge(b.from, b.to, b.kind) || {}).span || {};
+    const line = (span.start && span.start.line) || span.line;
+    const where = span.file ? " · " + span.file + (line ? ":" + line : "") : "";
+    return (
+      '<button type="button" class="rep-row" data-from="' +
+      esc(b.from) +
+      '" data-to="' +
+      esc(b.to) +
+      '" data-kind="' +
+      esc(b.kind) +
+      '" data-support="' +
+      b.support +
+      '" title="' +
+      esc(fromFqn + " → " + toFqn + where) +
+      '"><span class="rep-t">' +
+      esc(shortOf((findBubble(b.a) || {}).label || b.a)) +
+      " ↔ " +
+      esc(shortOf((findBubble(b.b) || {}).label || b.b)) +
+      '</span><span class="rep-b">' +
+      esc(shortOf(fromFqn) + " → " + shortOf(toFqn) + " · " + b.kind + " · " + b.support + (b.support === 1 ? " edge" : " edges")) +
+      "</span></button>"
+    );
+  });
+  const questions = reportQuestions(report).map(
+    (q) => '<button type="button" class="rep-q" data-focus="' + esc(q.focus) + '">' + esc(q.text) + "</button>"
+  );
+  graphReportEl.hidden = false;
+  graphReportEl.innerHTML =
+    '<div class="led-head">Surprising connections</div><div class="rep-list" data-rep="bridges">' +
+    (bridges.join("") || '<div class="rep-empty">No edge crosses communities in this cut.</div>') +
+    '</div><div class="led-head">Suggested questions</div><div class="rep-list" data-rep="questions">' +
+    (questions.join("") || '<div class="rep-empty">No traversable hub in this cut.</div>') +
+    "</div>";
+  bindHopClicks(graphReportEl);
+  graphReportEl.querySelectorAll("[data-focus]").forEach((el) => {
+    el.onclick = () => {
+      selectedNodeId = el.getAttribute("data-focus");
+      setWorkspace("lineage", true);
     };
   });
 }

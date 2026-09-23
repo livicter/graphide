@@ -5,6 +5,7 @@ export function Workspace() {
       <aside id="ledgerPane" hidden>
         <div className="led-head">SLICE</div>
         <div id="ledgerGrid" />
+        <div id="graphReport" hidden />
         <div id="ledgerMeta" />
       </aside>
       <aside id="sourcePane" hidden>
