@@ -3447,6 +3447,20 @@ html.bright.night .search-wrap:focus-within {
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
 }
 html.bright.night .workspaces { background: rgba(120, 120, 128, 0.28); }
+html.bright.night .tab,
+html.bright.night #egoBtn,
+html.bright.night #pathBtn,
+html.bright.night #lensBtn,
+html.bright.night #reorgBtn,
+html.bright.night .reorg-btn,
+html.bright.night .leg,
+html.bright.night .path-walk button,
+html.bright.night .outcome-filter,
+html.bright.night .feat-chip,
+html.bright.night .kind-pill,
+html.bright.night .review-step {
+  background: rgba(120, 120, 128, 0.2);
+}
 html.bright.night .workspaces button.on,
 html.bright.night .tab.on,
 html.bright.night #egoBtn.on,
@@ -3536,11 +3550,13 @@ html.bright.night #exportMenu,
 html.bright.night #toast,
 html.bright.night #tip,
 html.bright.night #sourcePane,
-html.bright.night .prog-chip {
+html.bright.night .prog-chip,
+html.bright.night .story-rail {
   background: #2c2c2e;
   box-shadow: var(--g-lift);
   border-color: var(--vscode-panel-border);
 }
+html.bright.night .stage > .flow-title { background: transparent; }
 html.bright.night #ledgerPane {
   background: var(--g-grouped);
   box-shadow: none;
