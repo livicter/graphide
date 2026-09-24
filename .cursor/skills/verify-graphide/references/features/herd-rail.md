@@ -26,8 +26,8 @@ decision. Not a terminal, not a worktree list, and not a second stamp.
 
 ## How to get to it (user POV)
 
-1. Review a folder. The herd rail sits on the left of the desk (one row
-   when the desk is narrow).
+1. Review a folder. The herd rail sits on the left of the desk. Under
+   860px it hides so the map grid keeps its stage.
 2. Blocked cuts sort first. Press the blocked row.
 3. Decisions opens on the pending card for that flow (UnmatchedHint on
    the explorer fixture).
