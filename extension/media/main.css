@@ -717,19 +717,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .herd-cut[data-herd-state="idle"] .herd-state { opacity: 0.55; }
 .herd-cut[data-herd-state="done"] .herd-state { color: #34c759; }
 @media (max-width: 860px) {
-  #workspace { flex-direction: column; }
-  #herd {
-    width: auto;
-    min-width: 0;
-    max-height: 72px;
-    flex-direction: row;
-    align-items: center;
-    border-right: none;
-    border-bottom: 1px solid var(--vscode-panel-border);
-  }
-  .herd-head { white-space: nowrap; }
-  #herdList { flex-direction: row; flex: 1; padding-bottom: 6px; }
-  .herd-cut { width: auto; }
+  #herd { display: none; }
 }
 .led-head, #ledgerMeta {
   padding: 7px 8px 5px;
