@@ -26793,17 +26793,23 @@
       markPanelShed(budgeted && shed);
       renderHerd();
     }
-    function herdActiveFlowName() {
-      if (flowName) return flowName;
-      const run = defaultRunFlow();
-      return run && run.name || "";
-    }
-    function herdFlowState(name, active) {
+    function flowNeedsHuman(name) {
       const mark = flowMark(name);
       const blocked = decisionRecords().some(
         (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
       );
-      if (blocked || mark === "broken") return "blocked";
+      return blocked || mark === "broken";
+    }
+    function herdActiveFlowName() {
+      const open = (name) => !!name && flowMark(name) !== "holds" && flowMark(name) !== "skipped" && !flowNeedsHuman(name);
+      if (open(flowName)) return flowName;
+      const run = defaultRunFlow();
+      if (run && open(run.name)) return run.name;
+      return "";
+    }
+    function herdFlowState(name, active) {
+      const mark = flowMark(name);
+      if (flowNeedsHuman(name)) return "blocked";
       if (mark === "holds") return "done";
       if (mark === "skipped") return "idle";
       if (active && name === active) return "working";
