@@ -56,6 +56,7 @@ owns this folder.
 | [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
 | [herd-rail.md](herd-rail.md) | Herd status list | explorer · `#herd` · `herd-rail.png` |
+| [agent-drive.md](agent-drive.md) | Agent herd wait | `herd.mjs` · `verification/herd-wait.txt` |
 | [layout-resume.md](layout-resume.md) | Review desk layout resume | explorer · lineage / map · `layout-resume.png` |
 | [uncovered-node.md](uncovered-node.md) | UncoveredNode finding | explorer · `#coverage` · Timeline · `uncovered-node.png` |
 | [draft-hint.md](draft-hint.md) | Copy draft `[[flow]]` hits | explorer Timeline Uncovered · `draft-hint.png` |

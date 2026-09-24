@@ -941,6 +941,13 @@ async function main() {
     return;
   }
 
+  const herdWait = spawnSync(process.execPath, ["--test", path.join(EXT, "scripts", "herd-wait.test.mjs")], {
+    encoding: "utf8",
+  });
+  process.stdout.write(herdWait.stdout || "");
+  process.stderr.write(herdWait.stderr || "");
+  if (herdWait.status !== 0) failFast("herd-wait failed");
+
   if (!fs.existsSync(path.join(EXT, "scripts", "webview-harness.html"))) {
     failFast("missing extension/scripts/webview-harness.html");
   }
@@ -8917,7 +8924,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · herd · layout-resume · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · herd · herd-wait · layout-resume · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

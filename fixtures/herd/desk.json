@@ -1,0 +1,13 @@
+{
+  "flows": [
+    { "name": "overview" },
+    { "name": "control-flow" },
+    { "name": "boot" }
+  ],
+  "stamps": [{ "name": "boot", "holds": false }],
+  "skipped": ["legacy"],
+  "findings": [
+    { "kind": "StampBroken", "flow": "boot", "added": [], "removed": [] },
+    { "kind": "UnmatchedHint", "flow": "boot", "fqn": "solarsim::MissingHit" }
+  ]
+}

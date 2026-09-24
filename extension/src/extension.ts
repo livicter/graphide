@@ -6,6 +6,7 @@ import * as os from "os";
 import { askReview, LLM_PRESETS, llmConfigured, LlmConfig, testLlmConnection } from "./llm";
 import { BridgeHandle, newBridgeToken, startBridge, stopBridge } from "./bridge";
 import { reviewFolder } from "./review-folder";
+import { reviewArgv } from "./review-argv";
 
 const SECRET_LLM_KEY = "graphide.llm.apiKey";
 const SECRET_BRIDGE = "graphide.bridge.token";
@@ -384,13 +385,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
           throw new Error(missingCliHint());
         }
       }
-      const args = ["review", "--root", root, "--json", "--progress"];
-      const parent = parentRoot();
-      if (parent) args.push("--parent", parent);
       const flows = promptFlows?.filter(Boolean) ?? configuredFlows();
-      for (const f of flows) {
-        args.push("--flow", f);
-      }
+      const args = reviewArgv(root, { parent: parentRoot(), flows });
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Window,

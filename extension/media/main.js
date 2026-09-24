@@ -7841,6 +7841,52 @@
     return fn2();
   }
 
+  // extension/media/src/graph/herd.mjs
+  function findingKind(f) {
+    if (!f) return "";
+    if (typeof f.kind === "string") return f.kind;
+    return f.kind && f.kind.kind || "";
+  }
+  function flowMark(name, skipped, stamps) {
+    const skips = skipped || [];
+    const rows = stamps || [];
+    if (skips.indexOf(name) >= 0) return "skipped";
+    const row = rows.find((s) => s && s.name === name);
+    if (!row) return "";
+    return row.holds ? "holds" : "broken";
+  }
+  function herd(desk) {
+    const d = desk || {};
+    const names = [];
+    const seen = /* @__PURE__ */ new Set();
+    const add = (n) => {
+      if (!n || seen.has(n)) return;
+      seen.add(n);
+      names.push(n);
+    };
+    (d.flows || []).forEach((f) => add(f && f.name));
+    (d.stamps || []).concat(d.snapshotStamps || []).forEach((s) => add(s && (s.name || s.flow)));
+    (d.skipped || []).concat(d.snapshotSkipped || []).forEach(add);
+    (d.findings || []).forEach((f) => {
+      const k = findingKind(f);
+      if (k === "UnmatchedHint" || k === "StampBroken") add(f && f.flow);
+    });
+    const rows = names.map((name) => {
+      const mark = flowMark(name, d.skipped, d.stamps);
+      const needs = mark === "broken" || (d.findings || []).some((f) => {
+        if (!f || f.flow !== name) return false;
+        const k = findingKind(f);
+        return k === "UnmatchedHint" || k === "StampBroken";
+      });
+      let state = "idle";
+      if (needs) state = "blocked";
+      else if (mark === "holds" || mark === "skipped") state = "done";
+      return { name, state };
+    });
+    if (d.progress) rows.unshift({ name: "review", state: "working" });
+    return rows;
+  }
+
   // extension/media/src/graph/sequence-canvas.jsx
   var import_react4 = __toESM(require_react());
   var import_client = __toESM(require_client());
@@ -21073,7 +21119,7 @@
       const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
       let holds = 0, broken = 0, skipped = 0, pending = 0;
       for (const name of names) {
-        const mark = flowMark(name);
+        const mark = flowMark2(name);
         if (mark === "holds") holds++;
         else if (mark === "broken") broken++;
         else if (mark === "skipped") skipped++;
@@ -22482,11 +22528,8 @@
     function esc(s) {
       return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-    function flowMark(name) {
-      if (skippedFlows.indexOf(name) >= 0) return "skipped";
-      const row = stampRows.find((s) => s.name === name);
-      if (!row) return "";
-      return row.holds ? "holds" : "broken";
+    function flowMark2(name) {
+      return flowMark(name, skippedFlows, stampRows);
     }
     function requestStamp(name) {
       const flow = name || currentFlow() && currentFlow().name;
@@ -23869,9 +23912,7 @@
       return String(text || "").toLowerCase().includes(q2);
     }
     function findingKindOf(f) {
-      if (!f) return "";
-      if (typeof f.kind === "string") return f.kind;
-      return f.kind && f.kind.kind || "";
+      return findingKind(f);
     }
     function findingTitle(f) {
       const k = findingKindOf(f);
@@ -25271,7 +25312,7 @@
       return lifecycleOf(lifecycleFlow()).states;
     }
     function lcCurrentId(flow) {
-      const mark = flowMark(flow && flow.name);
+      const mark = flowMark2(flow && flow.name);
       if (mark === "holds") return "stamped";
       if (mark === "skipped") return "skipped";
       if (mark === "broken") return "broken";
@@ -25777,7 +25818,7 @@
       const kinds = countMap(nodes, (n) => n.kind);
       const hops = countMap(edges, (e) => e.kind);
       const marks = countMap(
-        flows.map((f) => ({ m: flowMark(f.name) || "open" })),
+        flows.map((f) => ({ m: flowMark2(f.name) || "open" })),
         (x) => x.m
       );
       const degrees2 = degreeMap();
@@ -26515,7 +26556,7 @@
       const m = reviewMarks();
       const head = m.names.length ? '<span class="queue-left' + (m.pending ? "" : " done") + '">' + (m.pending ? m.pending + " left" : "queue clear") + "</span>" : "";
       tabs.innerHTML = head + (flows || []).map((f) => {
-        const mark = flowMark(f.name);
+        const mark = flowMark2(f.name);
         const proposed = isProposedFlow(f);
         return '<button class="tab' + (f.name === current ? " on" : "") + (mark ? " " + mark : "") + (proposed ? " proposed" : "") + '" data-flow="' + esc(f.name) + '"' + (proposed ? ' data-proposed="1"' : "") + ">" + esc(f.name) + (mark ? '<span class="mark">' + mark + "</span>" : "") + "</button>";
       }).join("");
@@ -26617,7 +26658,7 @@
       applyPathWalkPaint();
     }
     function stampBadge(name) {
-      const mark = flowMark(name);
+      const mark = flowMark2(name);
       if (!mark) return "";
       return ' <span class="live ' + mark + '">' + mark + "</span>";
     }
@@ -26920,34 +26961,15 @@
       });
     }
     function herdRows() {
-      const names = [];
-      const seen = /* @__PURE__ */ new Set();
-      const add = (n) => {
-        if (!n || seen.has(n)) return;
-        seen.add(n);
-        names.push(n);
-      };
-      (snapshot && snapshot.flows || []).forEach((f) => add(f.name));
-      stampRows.concat(snapshot && snapshot.stamps || []).forEach((s) => add(s.name || s.flow));
-      skippedFlows.concat(snapshot && snapshot.skipped || []).forEach(add);
-      (snapshot && snapshot.findings || []).forEach((f) => {
-        const k = findingKindOf(f);
-        if (k === "UnmatchedHint" || k === "StampBroken") add(f.flow);
+      return herd({
+        flows: snapshot && snapshot.flows || [],
+        stamps: stampRows,
+        snapshotStamps: snapshot && snapshot.stamps || [],
+        skipped: skippedFlows,
+        snapshotSkipped: snapshot && snapshot.skipped || [],
+        findings: snapshot && snapshot.findings || [],
+        progress: !!(progressEl && progressEl.classList.contains("on"))
       });
-      const rows = names.map((name) => {
-        const mark = flowMark(name);
-        const needs = mark === "broken" || (snapshot && snapshot.findings || []).some((f) => {
-          if (f.flow !== name) return false;
-          const k = findingKindOf(f);
-          return k === "UnmatchedHint" || k === "StampBroken";
-        });
-        let state = "idle";
-        if (needs) state = "blocked";
-        else if (mark === "holds" || mark === "skipped") state = "done";
-        return { name, state };
-      });
-      if (progressEl && progressEl.classList.contains("on")) rows.unshift({ name: "review", state: "working" });
-      return rows;
     }
     function herdHtml() {
       return '<div id="herd">' + herdRows().map(

@@ -3,4 +3,4 @@ description: Prefer the herd rail and Review graph over raw grep when they are p
 alwaysApply: true
 ---
 
-When the folder has a Graphide Review desk, a herd rail (`#herd`), or a `graphide review` snapshot, use that surface to find a flow, a blocked cut, or what changed. Do not start with raw grep while those are present. Grep is for a folder with no review graph. Agents never stamp. Map stays the community map.
+When the folder has a Graphide Review desk, a herd rail (`#herd`), or a `graphide review` snapshot, use that surface to find a flow, a blocked cut, or what changed. Do not start with raw grep while those are present. Grep is for a folder with no review graph. To start a review and read blocked cuts without the desk, run `node extension/scripts/herd.mjs --root <folder> --no-parent`, or `--snapshot <review.json>` when a snapshot already exists. Agents never stamp. Map stays the community map.

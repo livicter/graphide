@@ -1,5 +1,6 @@
 /** Vanilla graph paint + host wiring. React mounts chrome; bootDesk binds the same ids. */
 import { acquireHost } from "../host/adapter.js";
+import { findingKind, flowMark as markFlow, herd as herdOf } from "./herd.mjs";
 import {
   renderSequenceCanvas,
   renderDeltaCanvas as mountDeltaCanvas,
@@ -3239,10 +3240,7 @@ function esc(s) {
 }
 
 function flowMark(name) {
-  if (skippedFlows.indexOf(name) >= 0) return "skipped";
-  const row = stampRows.find((s) => s.name === name);
-  if (!row) return "";
-  return row.holds ? "holds" : "broken";
+  return markFlow(name, skippedFlows, stampRows);
 }
 
 function requestStamp(name) {
@@ -4937,9 +4935,7 @@ function matchesExplorerQuery(text) {
 }
 
 function findingKindOf(f) {
-  if (!f) return "";
-  if (typeof f.kind === "string") return f.kind;
-  return (f.kind && f.kind.kind) || "";
+  return findingKind(f);
 }
 
 function findingTitle(f) {
@@ -9183,36 +9179,15 @@ function renderInner(msg, animate) {
 }
 
 function herdRows() {
-  const names = [];
-  const seen = new Set();
-  const add = (n) => {
-    if (!n || seen.has(n)) return;
-    seen.add(n);
-    names.push(n);
-  };
-  ((snapshot && snapshot.flows) || []).forEach((f) => add(f.name));
-  stampRows.concat((snapshot && snapshot.stamps) || []).forEach((s) => add(s.name || s.flow));
-  skippedFlows.concat((snapshot && snapshot.skipped) || []).forEach(add);
-  ((snapshot && snapshot.findings) || []).forEach((f) => {
-    const k = findingKindOf(f);
-    if (k === "UnmatchedHint" || k === "StampBroken") add(f.flow);
+  return herdOf({
+    flows: (snapshot && snapshot.flows) || [],
+    stamps: stampRows,
+    snapshotStamps: (snapshot && snapshot.stamps) || [],
+    skipped: skippedFlows,
+    snapshotSkipped: (snapshot && snapshot.skipped) || [],
+    findings: (snapshot && snapshot.findings) || [],
+    progress: !!(progressEl && progressEl.classList.contains("on")),
   });
-  const rows = names.map((name) => {
-    const mark = flowMark(name);
-    const needs =
-      mark === "broken" ||
-      ((snapshot && snapshot.findings) || []).some((f) => {
-        if (f.flow !== name) return false;
-        const k = findingKindOf(f);
-        return k === "UnmatchedHint" || k === "StampBroken";
-      });
-    let state = "idle";
-    if (needs) state = "blocked";
-    else if (mark === "holds" || mark === "skipped") state = "done";
-    return { name, state };
-  });
-  if (progressEl && progressEl.classList.contains("on")) rows.unshift({ name: "review", state: "working" });
-  return rows;
 }
 
 function herdHtml() {

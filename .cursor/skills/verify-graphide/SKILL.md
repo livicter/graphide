@@ -287,7 +287,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **js-desk**, **ts-desk**, **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **herd**, **layout-resume**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **herd**, **herd-wait**, **layout-resume**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in

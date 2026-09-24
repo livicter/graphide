@@ -1,0 +1,8 @@
+PASS herd-wait
+snapshot: fixtures/herd/desk.json
+fixture: overview idle, control-flow idle, boot blocked, legacy done
+command: node extension/scripts/herd.mjs --snapshot fixtures/herd/desk.json --focus boot
+exit: 0 blocked, 3 settled, 2 usage
+root: fixtures/demo exit 3
+rows: data-subscription:idle
+stamps: not written
