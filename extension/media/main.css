@@ -973,9 +973,9 @@ svg.steiner .edge-hit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   color: var(--c, var(--vscode-focusBorder));
   background: color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 18%, transparent);
@@ -3360,9 +3360,9 @@ html.bright .bubble-card {
   padding: 10px 36px 10px 10px;
 }
 html.bright .bubble-card .tile {
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   color: var(--c, #007aff);
   background: color-mix(in srgb, var(--c, #007aff) 18%, #f2f2f7);
