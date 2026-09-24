@@ -12,3 +12,5 @@ For Review-desk correctness, load:
 
 - [Verify Graphide](.cursor/skills/verify-graphide/SKILL.md)
 - [Harness engineering](.cursor/skills/harness-engineering/SKILL.md)
+
+When a Review graph is present (`live-snap.json`, `graphide review --json`, or `#herd`), read that herd and report before grepping the tree. See [prefer-herd](.cursor/skills/prefer-herd/SKILL.md). Agents never stamp.
