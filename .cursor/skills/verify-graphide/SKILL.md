@@ -221,6 +221,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      on the pending card; Map `xy=0` / `data-lod=0`;
      `verification/herd-rail.png`. Self-review lists
      `#herd [data-herd-kind="program"]` per crate
+   - Layout resume: explorer Map sets workspace, `#legend [data-prog]`,
+     `#graphSearch`, `#ledgerGrid .cell` focus, and a dragged
+     `.bubble-card` pin; second `page.goto` of the same harness restores
+     them from `vscode.getState()`; Map `xy=0` / `data-lod=0`;
+     `verification/layout-resume.png`. `?ws=` still wins. No stamp
    - Program chips: explorer `#legend [data-prog]` single-chip honest
      path (`bin main`); self-review (`?live=1`) clicks a second Graphide
      crate chip; `#meta` / `.on` / program key change; Map stays
@@ -282,7 +287,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, **draft-hint**, **proposed-uncovered**, **herd**, **sticky-clusters**,
+    **open-slice**, **draft-hint**, **proposed-uncovered**, **herd**, **layout-resume**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
     [references/features/](references/features/README.md) plus
@@ -437,6 +442,7 @@ same PR because the harness truly cannot hook existing ones.
 | Map off-view | `#canvas .stage`, `.bubble-card`, `[data-bubble]`, `[data-offview]`, `#zoomIn` / `#zoomFit` |
 | Panel timeout | `#coverage[data-panel="shed"]`, `#canvas .stage`, `#zoomIn`, `{ type: "patch" }` coverage/findings |
 | Herd rail | `#herd`, `#herdList .herd-cut[data-herd-state]`, `[data-flow]`, `[data-herd-kind="program"]` |
+| Layout resume | `vscode.getState()` / `setState`, `#workspaces [data-ws]`, `#legend [data-prog]`, `#graphSearch`, `#ledgerGrid .cell.on`, `.bubble-card` `style.left` / `style.top` |
 | Program chips | `#legend [data-prog]`, `.leg`, `#meta`, `graphFilter.program` |
 | All programs | `#legend [data-prog="-1"]`, `#meta` `all`, `graphFilter.program = null` |
 | Progress | `#progress`, `#phases li[data-phase]`, `#progressFill`, `#progressLabel`, `#progressCounts`, `#progressPct`, `#progressTime` |

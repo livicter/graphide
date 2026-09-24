@@ -5865,7 +5865,7 @@ async function main() {
       JSON.stringify(restored)
     );
     await page.evaluate(() => {
-      if (typeof applyPreset === "function") applyPreset("classic", false);
+      if (typeof applyPreset === "function") applyPreset("classic", true);
     });
     assertNoStampDir("P8", "Present / preset step did not write .graphide/stamps/");
 
@@ -6251,6 +6251,115 @@ async function main() {
     record("H3", "Editor button posts enterNode to the host stub", editor.posted, JSON.stringify(editor.posts.slice(-2)));
 
     await shot(page, "stamp-host.png");
+
+    const beforeLayoutPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForSelector("#legend [data-prog]", { timeout: 8000 });
+    const layoutSeed = await page.evaluate(() => {
+      const chip = document.querySelector('#legend [data-prog="0"]');
+      if (chip) chip.click();
+      const cell = document.querySelector("#ledgerGrid .cell:not(.uncovered)") || document.querySelector("#ledgerGrid .cell");
+      const focus = cell ? cell.getAttribute("data-id") || "" : "";
+      if (cell) cell.click();
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const moved = cards[1] || cards[0];
+      const name = ((cards[0] && cards[0].querySelector(".name")) || {}).textContent || "";
+      const q = String(name).trim().slice(0, 4);
+      return {
+        focus,
+        q,
+        id: moved ? moved.getAttribute("data-bubble") || "" : "",
+        left: moved ? parseFloat(moved.style.left) || 0 : 0,
+        top: moved ? parseFloat(moved.style.top) || 0 : 0,
+      };
+    });
+    const dragCard = page.locator('.bubble-card[data-bubble="' + layoutSeed.id + '"]');
+    const dragBox = await dragCard.boundingBox();
+    if (dragBox) {
+      await page.mouse.move(dragBox.x + 24, dragBox.y + 24);
+      await page.mouse.down();
+      await page.mouse.move(dragBox.x + 210, dragBox.y + 90, { steps: 10 });
+      await page.mouse.up();
+      await page.waitForTimeout(80);
+    }
+    const layoutBefore = await page.evaluate((seed) => {
+      const el = document.querySelector('.bubble-card[data-bubble="' + seed.id + '"]');
+      const search = document.getElementById("graphSearch");
+      if (search) {
+        search.value = seed.q;
+        search.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const chip = document.querySelector('#legend [data-prog].on');
+      return {
+        ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) || "",
+        program: chip ? chip.getAttribute("data-prog") : "",
+        q: search ? search.value : "",
+        focusOn: !!(seed.focus && document.querySelector('#ledgerGrid .cell[data-id="' + seed.focus + '"].on')),
+        left: el ? parseFloat(el.style.left) || 0 : 0,
+        top: el ? parseFloat(el.style.top) || 0 : 0,
+        lod: (document.querySelector("#canvas .viewport") || {}).getAttribute
+          ? document.querySelector("#canvas .viewport").getAttribute("data-lod")
+          : "",
+      };
+    }, layoutSeed);
+    await page.waitForTimeout(80);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const layoutAfter = await page.evaluate((seed) => {
+      const el = document.querySelector('.bubble-card[data-bubble="' + seed.id + '"]');
+      const search = document.getElementById("graphSearch");
+      const chip = document.querySelector('#legend [data-prog].on');
+      const lod = document.querySelector("#canvas .viewport");
+      return {
+        ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) || "",
+        program: chip ? chip.getAttribute("data-prog") : "",
+        q: search ? search.value : "",
+        focusOn: !!(seed.focus && document.querySelector('#ledgerGrid .cell[data-id="' + seed.focus + '"].on')),
+        left: el ? parseFloat(el.style.left) || 0 : 0,
+        top: el ? parseFloat(el.style.top) || 0 : 0,
+        moved: !!(el && Math.abs((parseFloat(el.style.left) || 0) - seed.left) > 40),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        lod: lod ? lod.getAttribute("data-lod") : "",
+        herd: !!document.querySelector("#herd .herd-cut"),
+      };
+    }, { id: layoutSeed.id, left: layoutSeed.left, focus: layoutSeed.focus });
+    const layoutPosts = await page.evaluate(
+      (n) => (window.__vscodePosts || []).slice(n).map((p) => p && p.type),
+      beforeLayoutPosts
+    );
+    const pinHeld =
+      Math.abs(layoutAfter.left - layoutBefore.left) <= 36 && Math.abs(layoutAfter.top - layoutBefore.top) <= 36;
+    record(
+      "LR1",
+      "Webview recreate restores workspace, program chip, Find, focus, and Map pins",
+      layoutBefore.ws === "map" &&
+        layoutBefore.program === "0" &&
+        layoutBefore.q === layoutSeed.q &&
+        layoutSeed.q.length >= 2 &&
+        layoutAfter.ws === "map" &&
+        layoutAfter.program === "0" &&
+        layoutAfter.q === layoutSeed.q &&
+        layoutAfter.focusOn &&
+        layoutAfter.moved &&
+        pinHeld &&
+        layoutAfter.cards > 1 &&
+        layoutAfter.xy === 0 &&
+        layoutAfter.lod === "0" &&
+        layoutAfter.herd &&
+        !layoutPosts.includes("stamp") &&
+        !layoutPosts.includes("skip"),
+      JSON.stringify({ before: layoutBefore, after: layoutAfter, seed: layoutSeed, posts: layoutPosts })
+    );
+    await shot(page, "layout-resume.png");
+    assertNoStampDir("LR2", "Layout resume did not write .graphide/stamps/");
+    await page.evaluate(() => {
+      try { sessionStorage.removeItem("graphide-vscode-state"); } catch (e) {}
+    });
 
     const liveUrl = origin + LIVE_HARNESS;
     console.log("self-review " + liveUrl);
@@ -8634,7 +8743,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · herd · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · herd · layout-resume · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

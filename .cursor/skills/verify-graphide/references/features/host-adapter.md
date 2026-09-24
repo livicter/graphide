@@ -13,14 +13,19 @@ How the Review webview talks to VS Code / Cursor — and how the headless harnes
 
 ```js
 window.acquireVsCodeApi = function () {
+  var KEY = "graphide-vscode-state";
+  var state = null;
+  try { state = JSON.parse(sessionStorage.getItem(KEY) || "null"); } catch (e) { state = null; }
   return {
     postMessage: function (m) {
       window.__vscodePosts = window.__vscodePosts || [];
       window.__vscodePosts.push(m);
-      console.log("vscode.postMessage", m);
     },
-    getState: function () { return null; },
-    setState: function () {},
+    getState: function () { return state; },
+    setState: function (next) {
+      state = next;
+      try { sessionStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+    },
   };
 };
 ```

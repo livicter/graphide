@@ -550,6 +550,7 @@ if (graphSearch)
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
     refreshExplorer();
+    rememberDeskLayout();
   });
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
@@ -1767,7 +1768,103 @@ function defaultLandingWorkspace() {
   return defaultRunFlow() ? "overview" : "map";
 }
 
+function readHostState() {
+  try {
+    return (vscode.getState && vscode.getState()) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeHostState(patch) {
+  try {
+    if (!vscode.setState) return;
+    vscode.setState(Object.assign({}, readHostState(), patch));
+  } catch (_) {}
+}
+
+let deskResumeOnce = false;
+let deskRememberTimer = 0;
+
+function deskSnapKey() {
+  if (!snapshot) return "";
+  const nodes = (snapshot.graph && snapshot.graph.nodes) || [];
+  const flows = (snapshot.flows || []).map((f) => f.name).join(",");
+  return (snapshot.plugin || "") + "|" + nodes.length + "|" + flows;
+}
+
+function deskLayoutBlob() {
+  const pins = [];
+  for (const [k, v] of layoutPins) {
+    if (!v || !Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
+    pins.push([String(k), Math.round(v.x), Math.round(v.y)]);
+    if (pins.length >= 48) break;
+  }
+  const prog = graphFilter.program;
+  const flow = currentFlow();
+  return {
+    snap: deskSnapKey(),
+    ws: explorerWs,
+    flow: (flow && flow.name) || flowName || "",
+    program: prog ? programKeyOf(prog) : "",
+    q: graphFilter.q || "",
+    focus: selectedNodeId ? idVal(selectedNodeId) : "",
+    pins: pins,
+  };
+}
+
+function rememberDeskLayout() {
+  if (deskRememberTimer) clearTimeout(deskRememberTimer);
+  deskRememberTimer = setTimeout(() => {
+    deskRememberTimer = 0;
+    writeHostState({ desk: deskLayoutBlob() });
+  }, 40);
+}
+
+function restoreDeskLayout() {
+  if (deskResumeOnce) return;
+  deskResumeOnce = true;
+  const desk = readHostState().desk;
+  if (!desk || typeof desk !== "object") return;
+  if (desk.snap && desk.snap !== deskSnapKey()) return;
+  if (desk.flow) flowName = String(desk.flow);
+  let urlWs = "";
+  try {
+    urlWs = new URLSearchParams(location.search || "").get("ws") || "";
+  } catch (_) {}
+  if (!(urlWs && WORKSPACES.indexOf(urlWs) >= 0) && desk.ws && WORKSPACES.indexOf(desk.ws) >= 0) {
+    explorerWs = desk.ws;
+    explorerPinned = true;
+    if (desk.ws === "lineage") egoMode = true;
+  }
+  if (typeof desk.q === "string") {
+    graphFilter.q = desk.q.slice(0, 240);
+    if (graphSearch) graphSearch.value = graphFilter.q;
+  }
+  if (desk.focus) selectedNodeId = String(desk.focus);
+  if (Array.isArray(desk.pins)) {
+    layoutPins = new Map();
+    for (const row of desk.pins) {
+      if (!row || row.length < 3) continue;
+      const x = Number(row[1]);
+      const y = Number(row[2]);
+      if (!row[0] || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+      layoutPins.set(String(row[0]), { x: x, y: y });
+    }
+  }
+  const programs = (snapshot && snapshot.programs) || [];
+  if (desk.program && programs.length) {
+    const hit = programs.find((p) => programKeyOf(p) === desk.program);
+    if (hit) {
+      graphFilter.program = hit;
+      const i = programs.indexOf(hit);
+      if (i >= 0) progFocus = i;
+    }
+  }
+}
+
 function applyExplorerLanding() {
+  restoreDeskLayout();
   if (explorerPinned) return;
   try {
     const q = new URLSearchParams(location.search || "").get("ws");
@@ -1861,6 +1958,7 @@ function setWorkspace(name, pin) {
   if (name === "lineage" && !egoMode) egoMode = true;
   paint({ animate: "none" });
   flashCanvas();
+  rememberDeskLayout();
 }
 
 function setEgoMode(on) {
@@ -2623,11 +2721,13 @@ function pinsForCurrent() {
 
 function pinNode(id, x, y) {
   layoutPins.set(layoutViewKey() + ":" + String(id), { x: x, y: y });
+  rememberDeskLayout();
 }
 
 function clearCurrentPins() {
   const prefix = layoutViewKey() + ":";
   for (const k of [...layoutPins.keys()]) if (k.startsWith(prefix)) layoutPins.delete(k);
+  rememberDeskLayout();
 }
 
 function autoReorganize() {
@@ -3995,6 +4095,7 @@ function selectNode(id, opts) {
   if (selectedNodeId && selectedNodeId !== sid) pathEnds = [selectedNodeId, sid];
   else if (pathEnds.length < 2) pathEnds = [sid];
   selectedNodeId = sid;
+  rememberDeskLayout();
   highlightCommunity(sid);
   applyEgoPaint();
   if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
@@ -7925,6 +8026,7 @@ function renderLegend() {
       graphFilter.program = i >= 0 ? programs[i] : null;
       progFocus = i >= 0 ? i : 0;
       renderProgramOverview();
+      rememberDeskLayout();
     };
   });
   legendEl.querySelectorAll("[data-bubble]").forEach((el) => {
@@ -9171,6 +9273,7 @@ function openHerdCut(cut) {
     explorerWs = "map";
     explorerPinned = true;
     paint({ animate: "none" });
+    rememberDeskLayout();
     return;
   }
   if (cut.state === "blocked") {
@@ -9179,6 +9282,7 @@ function openHerdCut(cut) {
     explorerWs = "decisions";
     explorerPinned = true;
     paint({ animate: "none" });
+    rememberDeskLayout();
     return;
   }
   if (cut.flow) selectFlow(cut.flow);
