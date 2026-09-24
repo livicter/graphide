@@ -1798,6 +1798,78 @@ async function main() {
 
     await shot(page, "map.png");
 
+    const beforeHerdPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const herdDesk = await page.evaluate(() => {
+      const herd = document.getElementById("herd");
+      const rows = [...document.querySelectorAll("#herd .herd-cut")];
+      const states = rows.map((el) => el.getAttribute("data-herd-state"));
+      const blocked = rows.find((el) => el.getAttribute("data-herd-state") === "blocked");
+      const lod = document.querySelector("#canvas .viewport");
+      return {
+        open: !!(herd && !herd.hidden && rows.length >= 2),
+        states,
+        blockedFlow: blocked ? blocked.getAttribute("data-flow") : "",
+        blockedKind: blocked ? blocked.getAttribute("data-herd-kind") : "",
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        lod: lod ? lod.getAttribute("data-lod") : "",
+        ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) || "",
+      };
+    });
+    record(
+      "HR1",
+      "Herd rail lists cuts with working, blocked, and idle",
+      herdDesk.open &&
+        herdDesk.ws === "map" &&
+        herdDesk.states.includes("working") &&
+        herdDesk.states.includes("blocked") &&
+        herdDesk.states.includes("idle") &&
+        herdDesk.blockedFlow === "boot" &&
+        herdDesk.xy === 0 &&
+        herdDesk.cards > 1 &&
+        herdDesk.lod === "0",
+      JSON.stringify(herdDesk)
+    );
+    const herdJump = await page.evaluate(() => {
+      const blocked = document.querySelector('#herd .herd-cut[data-herd-state="blocked"]');
+      if (blocked) blocked.click();
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const card = document.querySelector("#canvas .expl-card.on[data-decision]");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        title: card ? ((card.querySelector(".t") || {}).textContent || "").trim() : "",
+        outcome: card ? card.getAttribute("data-outcome") || "" : "",
+        flow: card ? card.getAttribute("data-decision") || "" : "",
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        herd: !!document.querySelector("#herd:not([hidden]) .herd-cut[data-herd-state='blocked']"),
+      };
+    });
+    const herdPosts = await page.evaluate(
+      (n) => (window.__vscodePosts || []).slice(n).map((p) => p && p.type),
+      beforeHerdPosts
+    );
+    record(
+      "HR2",
+      "Blocked herd row opens the pending decision",
+      herdJump.ws === "decisions" &&
+        herdJump.outcome === "pending" &&
+        /UnmatchedHint/i.test(herdJump.title) &&
+        /boot/i.test(herdJump.flow) &&
+        herdJump.xy === 0 &&
+        herdJump.herd &&
+        !herdPosts.includes("stamp") &&
+        !herdPosts.includes("skip"),
+      JSON.stringify({ ...herdJump, posts: herdPosts })
+    );
+    await shot(page, "herd-rail.png");
+    assertNoStampDir("HR3", "Herd step did not write .graphide/stamps/");
+    await page.evaluate(() => {
+      const tab = document.querySelector('#workspaces [data-ws="map"]');
+      if (tab) tab.click();
+    });
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+
     const beforeAppleChromePosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const appleChrome = await page.evaluate(() => {
       const cs = (el) => (el ? getComputedStyle(el) : null);
@@ -6411,6 +6483,15 @@ async function main() {
         .map((p) => p.text)
         .join(",")
     );
+    const herdPrograms = await page.evaluate(
+      () => document.querySelectorAll('#herd [data-herd-kind="program"]').length
+    );
+    record(
+      "HR4",
+      "self-review herd lists a cut per program",
+      herdPrograms >= 2,
+      "programs=" + herdPrograms
+    );
     const chipSwitch = await page.evaluate(() => {
       const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
         (el) => Number(el.getAttribute("data-prog")) >= 0
@@ -8553,7 +8634,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · herd · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

@@ -1721,6 +1721,8 @@ function setGraphChrome(on) {
   if (graphBar) graphBar.hidden = !on;
   const list = !!LIST_WORKSPACES[explorerWs];
   if (ledgerPane) ledgerPane.hidden = !on || list;
+  const herd = document.getElementById("herd");
+  if (herd && !on) herd.hidden = true;
   if (workspace) workspace.classList.toggle("has-ledger", !!(on && !list));
   if (kindFilters) kindFilters.hidden = list;
   if (egoBtn) {
@@ -9082,6 +9084,137 @@ function renderCoverage(cov, findings, graph, opts) {
   }
   coverage.innerHTML = html;
   markPanelShed(budgeted && shed);
+  renderHerd();
+}
+
+function herdActiveFlowName() {
+  if (flowName) return flowName;
+  const run = defaultRunFlow();
+  return (run && run.name) || "";
+}
+
+function herdFlowState(name, active) {
+  const mark = flowMark(name);
+  const blocked = decisionRecords().some(
+    (r) =>
+      r.flow === name &&
+      (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
+  );
+  if (blocked || mark === "broken") return "blocked";
+  if (mark === "holds") return "done";
+  if (mark === "skipped") return "idle";
+  if (active && name === active) return "working";
+  return "idle";
+}
+
+function herdCuts() {
+  if (!snapshot) return [];
+  const programs = snapshot.programs || [];
+  const seen = new Set();
+  const names = [];
+  for (const f of snapshot.flows || []) {
+    if (!f.name || seen.has(f.name)) continue;
+    seen.add(f.name);
+    names.push(f.name);
+  }
+  for (const n of skippedFlows.concat(snapshot.skipped || [])) {
+    if (!n || seen.has(n)) continue;
+    seen.add(n);
+    names.push(n);
+  }
+  const active = herdActiveFlowName();
+  const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
+  const cuts = names.map((name) => ({
+    kind: "flow",
+    flow: name,
+    label: name,
+    state: herdFlowState(name, active),
+  }));
+  programs.forEach((p, i) => {
+    const on = graphFilter.program
+      ? programKeyOf(graphFilter.program) === programKeyOf(p)
+      : programs.length === 1;
+    cuts.push({
+      kind: "program",
+      index: i,
+      label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
+      state: on ? "working" : "idle",
+    });
+  });
+  cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
+  return cuts;
+}
+
+function pendingDecisionFor(flow) {
+  const rows = decisionRecords().filter((r) => r.flow === flow);
+  return (
+    rows.find((r) => r.outcome === "pending") ||
+    rows.find((r) => r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint") ||
+    null
+  );
+}
+
+function openHerdCut(cut) {
+  if (!cut || !snapshot) return;
+  if (cut.kind === "program") {
+    const programs = snapshot.programs || [];
+    graphFilter.program = cut.index >= 0 ? programs[cut.index] : null;
+    progFocus = cut.index >= 0 ? cut.index : 0;
+    explorerWs = "map";
+    explorerPinned = true;
+    paint({ animate: "none" });
+    return;
+  }
+  if (cut.state === "blocked") {
+    const rec = pendingDecisionFor(cut.flow);
+    if (rec) selectedDecisionKey = decisionKey(rec);
+    explorerWs = "decisions";
+    explorerPinned = true;
+    paint({ animate: "none" });
+    return;
+  }
+  if (cut.flow) selectFlow(cut.flow);
+}
+
+function renderHerd() {
+  const herd = document.getElementById("herd");
+  const list = document.getElementById("herdList");
+  const count = document.getElementById("herdCount");
+  if (!herd || !list) return;
+  if (!snapshot) {
+    herd.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  const cuts = herdCuts();
+  const blocked = cuts.filter((c) => c.state === "blocked").length;
+  if (count) count.textContent = cuts.length + (cuts.length === 1 ? " cut" : " cuts") + " · " + blocked + " blocked";
+  list.innerHTML = cuts
+    .map((c) => {
+      const flowAttr = c.kind === "flow" ? ' data-flow="' + esc(c.flow) + '"' : "";
+      const progAttr = c.kind === "program" ? ' data-prog="' + c.index + '"' : "";
+      return (
+        '<button type="button" class="herd-cut" data-herd="' +
+        esc(c.kind === "flow" ? c.flow : "prog:" + c.index) +
+        '" data-herd-kind="' +
+        c.kind +
+        '" data-herd-state="' +
+        c.state +
+        '"' +
+        flowAttr +
+        progAttr +
+        '><span class="herd-name">' +
+        esc(c.label) +
+        '</span><span class="herd-state">' +
+        esc(c.state) +
+        "</span></button>"
+      );
+    })
+    .join("");
+  herd.hidden = false;
+  list.querySelectorAll(".herd-cut").forEach((el, i) => {
+    el.onclick = () => openHerdCut(cuts[i]);
+  });
 }
 
 function enterBubble(snap, flowName, bubbleId) {
