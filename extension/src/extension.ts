@@ -20,7 +20,9 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("graphide.review", () => provider.runReview())
+    vscode.commands.registerCommand("graphide.review", (target?: unknown) =>
+      provider.reviewFolder(target)
+    )
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("graphide.openSource", (args) => {
@@ -98,6 +100,8 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     | { kind: "bubble"; flow: string; bubble: string }
   > = [{ kind: "flow" }];
   private running = false;
+  /** Folder from `graphide.review` (explorer Uri or palette). Empty = `packageRoot()`. */
+  private reviewRoot?: string;
   private child?: cp.ChildProcess;
   private skipped: string[] = [];
   /** File-projection key `kind\\0name\\0root`. Empty = all programs. */
@@ -351,6 +355,12 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  async reviewFolder(target?: unknown, promptFlows?: string[]) {
+    this.reviewRoot = resolveReviewFolder(target);
+    await vscode.commands.executeCommand(ReviewViewProvider.viewType + ".focus");
+    return this.runReview(promptFlows);
+  }
+
   async runReview(promptFlows?: string[]) {
     if (this.running) return;
     this.running = true;
@@ -368,7 +378,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       this.view?.webview.postMessage({ type: "tick", elapsed_ms: Date.now() - started });
     }, 120);
     try {
-      const root = packageRoot();
+      const root = this.reviewRoot || packageRoot();
       let cli = findCli(this.context);
       if (!cli) {
         const go = await vscode.window.showInformationMessage(
@@ -860,6 +870,33 @@ function stampFromView(snap: any, flow: any) {
     positions,
     deriver: snap.plugin || "",
   };
+}
+
+function resolveReviewFolder(target: unknown): string | undefined {
+  const raw = coerceFsPath(target);
+  if (!raw) return undefined;
+  try {
+    const stat = fs.statSync(raw);
+    if (stat.isDirectory()) return raw;
+    if (stat.isFile()) return path.dirname(raw);
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+function coerceFsPath(target: unknown): string | undefined {
+  if (!target) return undefined;
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+    return trimmed || undefined;
+  }
+  if (Array.isArray(target)) return coerceFsPath(target[0]);
+  if (typeof target === "object" && "fsPath" in target) {
+    const fsPath = (target as { fsPath?: unknown }).fsPath;
+    if (typeof fsPath === "string" && fsPath.trim()) return fsPath;
+  }
+  return undefined;
 }
 
 function packageRoot(): string {

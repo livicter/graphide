@@ -67,6 +67,7 @@ owns this folder.
 | [js-desk.md](js-desk.md) | JavaScript fixture desk | `?js=1` · `verification/js-desk.png` |
 | [ts-desk.md](ts-desk.md) | TypeScript fixture desk | `?ts=1` · `verification/ts-desk.png` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
+| [prefer-herd.md](prefer-herd.md) | Review on a folder + herd rule | `check-activation` · `plugins-packaging.md` |
 
 Regression sweep: every row above must still have a source path and a
 harness drive. Drop a file only when the product surface is gone. Do not
