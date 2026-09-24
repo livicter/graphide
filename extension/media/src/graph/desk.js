@@ -156,6 +156,11 @@ let selectedNodeId = null;
 let pathEnds = [];
 let explorerWs = "map";
 let explorerPinned = false;
+let landingDone = false;
+let layoutGate = false;
+let urlLocksWs = false;
+let layoutProgramHold = null;
+let layoutProgramTouched = false;
 let egoMode = false;
 let egoHops = 1;
 let selectedDecisionKey = "";
@@ -550,6 +555,7 @@ if (graphSearch)
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
     refreshExplorer();
+    commitDesk();
   });
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
@@ -666,6 +672,11 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "empty") {
+    layoutGate = false;
+    landingDone = false;
+    urlLocksWs = false;
+    layoutProgramHold = null;
+    layoutProgramTouched = false;
     stopPathWalk();
     snapshot = null;
     finishWork();
@@ -1772,18 +1783,174 @@ function defaultLandingWorkspace() {
   return defaultRunFlow() ? "overview" : "map";
 }
 
+function readDeskLayout(state) {
+  try {
+    if (!state || typeof state !== "object" || Array.isArray(state)) return null;
+    const raw = state.layout;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    if (raw.v !== 1) return null;
+    if (typeof raw.ws !== "string" || WORKSPACES.indexOf(raw.ws) < 0) return null;
+    if (typeof raw.pinned !== "boolean") return null;
+    if (typeof raw.q !== "string") return null;
+    let program = null;
+    if (raw.program != null) {
+      const p = raw.program;
+      if (!p || typeof p !== "object" || Array.isArray(p)) return null;
+      if (typeof p.kind !== "string" || typeof p.name !== "string" || typeof p.root !== "string") return null;
+      program = { kind: p.kind, name: p.name, root: p.root };
+    }
+    if (!(raw.focus == null || typeof raw.focus === "string")) return null;
+    if (!Array.isArray(raw.pins)) return null;
+    const pins = [];
+    for (const pin of raw.pins) {
+      if (!pin || typeof pin !== "object" || Array.isArray(pin)) return null;
+      if (typeof pin.k !== "string" || !pin.k) return null;
+      if (typeof pin.x !== "number" || typeof pin.y !== "number") return null;
+      if (!Number.isFinite(pin.x) || !Number.isFinite(pin.y)) return null;
+      pins.push({ k: pin.k, x: pin.x, y: pin.y });
+    }
+    return {
+      v: 1,
+      ws: raw.ws,
+      pinned: raw.pinned,
+      q: raw.q,
+      program,
+      focus: raw.focus ? raw.focus : null,
+      pins,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function canonicalDeskLayout(layout) {
+  const pins = layout.pins.slice().sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  return JSON.stringify({
+    v: 1,
+    ws: layout.ws,
+    pinned: !!layout.pinned,
+    q: layout.q,
+    program: layout.program
+      ? { kind: layout.program.kind, name: layout.program.name, root: layout.program.root }
+      : null,
+    focus: layout.focus || null,
+    pins: pins.map((p) => ({ k: p.k, x: p.x, y: p.y })),
+  });
+}
+
+function touchDeskProgram() {
+  layoutProgramTouched = true;
+  layoutProgramHold = null;
+}
+
+function currentDeskLayout() {
+  let program = null;
+  if (!layoutProgramTouched && layoutProgramHold) program = layoutProgramHold;
+  else if (graphFilter.program) {
+    const p = graphFilter.program;
+    program = { kind: p.kind || "", name: p.name || "", root: p.root || "" };
+  }
+  const pins = [];
+  for (const [k, v] of layoutPins) pins.push({ k: k, x: v.x, y: v.y });
+  return {
+    v: 1,
+    ws: explorerWs,
+    pinned: !!explorerPinned,
+    q: graphFilter.q || "",
+    program,
+    focus: selectedNodeId ? idVal(selectedNodeId) : null,
+    pins,
+  };
+}
+
+function commitDesk() {
+  if (!layoutGate || !snapshot) return;
+  try {
+    const prev = (vscode.getState && vscode.getState()) || {};
+    const layout = currentDeskLayout();
+    const prevLayout = readDeskLayout(prev);
+    // A ?ws= pin is this document's view. It must not replace a saved workspace.
+    if (urlLocksWs && prevLayout) {
+      layout.ws = prevLayout.ws;
+      layout.pinned = prevLayout.pinned;
+    }
+    if (prevLayout && canonicalDeskLayout(prevLayout) === canonicalDeskLayout(layout)) return;
+    const base = prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
+    vscode.setState(Object.assign({}, base, { layout: JSON.parse(canonicalDeskLayout(layout)) }));
+  } catch (e) {}
+}
+
+function resumeDesk(snap) {
+  let layout = null;
+  try {
+    layout = readDeskLayout(vscode.getState && vscode.getState());
+  } catch (e) {
+    layout = null;
+  }
+  layoutProgramTouched = false;
+  layoutProgramHold = null;
+  if (layout) {
+    explorerWs = layout.ws;
+    explorerPinned = layout.pinned;
+    graphFilter.q = layout.q;
+    if (graphSearch) graphSearch.value = layout.q;
+    const programs = (snap && snap.programs) || [];
+    if (layout.program) {
+      let idx = -1;
+      for (let i = 0; i < programs.length; i++) {
+        if (programKeyOf(programs[i]) === programKeyOf(layout.program)) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx >= 0) {
+        graphFilter.program = programs[idx];
+        progFocus = idx;
+      } else {
+        graphFilter.program = null;
+        progFocus = 0;
+        // Keep the saved key until the user picks a chip. All is only the live cut.
+        layoutProgramHold = {
+          kind: layout.program.kind,
+          name: layout.program.name,
+          root: layout.program.root,
+        };
+      }
+    } else {
+      graphFilter.program = null;
+      progFocus = 0;
+    }
+    const focus = layout.focus && nodeById.get(layout.focus) ? layout.focus : null;
+    selectedNodeId = focus;
+    layoutPins = new Map();
+    for (const pin of layout.pins) layoutPins.set(pin.k, { x: pin.x, y: pin.y });
+    if (layout.ws === "lineage" && focus) lineageEgoId = focus;
+  }
+  layoutGate = true;
+  return !!layout;
+}
+
 function applyExplorerLanding() {
-  if (explorerPinned) return;
+  if (landingDone) return;
+  let urlWs = "";
   try {
     const q = new URLSearchParams(location.search || "").get("ws");
-    if (q && WORKSPACES.indexOf(q) >= 0) {
-      explorerWs = q;
-      explorerPinned = true;
-      if (q === "lineage" && !egoMode) egoMode = true;
-      return;
-    }
+    if (q && WORKSPACES.indexOf(q) >= 0) urlWs = q;
   } catch (e) {}
-  explorerWs = defaultLandingWorkspace();
+  if (urlWs) urlLocksWs = true;
+  const resumed = resumeDesk(snapshot);
+  if (urlWs) {
+    explorerWs = urlWs;
+    explorerPinned = true;
+  } else if (!resumed) {
+    explorerWs = defaultLandingWorkspace();
+  }
+  if (explorerWs === "lineage") {
+    if (!egoMode) egoMode = true;
+    const id = selectedNodeId ? idVal(selectedNodeId) : "";
+    if (id && nodeById.get(id)) lineageEgoId = id;
+  }
+  landingDone = true;
 }
 
 let harnessConsumed = false;
@@ -2330,6 +2497,7 @@ function goBack() {
 }
 
 function paint(opts) {
+  try {
   const animate = (opts && opts.animate) || "all";
   const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
   if (!snapshot) return;
@@ -2439,6 +2607,9 @@ function paint(opts) {
     animate
   );
   consumeHarnessActions();
+  } finally {
+    commitDesk();
+  }
 }
 
 function queueProgress(msg) {
@@ -3015,11 +3186,13 @@ function bindDraggable(root, selector, opts) {
     };
     const end = () => {
       if (!start) return;
+      const moved = !!start.moved;
       el.classList.remove("dragging");
       start = null;
       window.removeEventListener("pointermove", moveTo, true);
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", end, true);
+      if (moved) commitDesk();
     };
     el.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
@@ -3959,7 +4132,9 @@ function moveProgFocus(delta) {
   if (!n.length) return;
   progFocus = (progFocus + delta + n.length) % n.length;
   graphFilter.program = n[progFocus];
+  touchDeskProgram();
   renderProgramOverview();
+  commitDesk();
 }
 
 function openAllPrograms() {
@@ -4006,6 +4181,7 @@ function selectNode(id, opts) {
   applyEgoPaint();
   if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
   if (!opts || opts.peek !== false) peekSource(sid);
+  commitDesk();
 }
 
 function shortestPath(from, to) {
@@ -7576,6 +7752,7 @@ function renderLineage() {
   renderStats(snapshot);
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
   setGraphChrome(true);
+  renderLegend();
   hideTip();
   if (stampBtn) stampBtn.disabled = !currentFlow();
   if (skipBtn) skipBtn.disabled = !currentFlow();
@@ -7931,7 +8108,9 @@ function renderLegend() {
       const i = Number(el.getAttribute("data-prog"));
       graphFilter.program = i >= 0 ? programs[i] : null;
       progFocus = i >= 0 ? i : 0;
+      touchDeskProgram();
       renderProgramOverview();
+      commitDesk();
     };
   });
   legendEl.querySelectorAll("[data-bubble]").forEach((el) => {

@@ -258,6 +258,12 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
+    - Layout resume: explorer desk; Lineage, `#legend [data-prog="0"]`
+      `bin main`, a lineage vnode, `#graphSearch` `Toast`, Map drag
+      of `.bubble-card`, then Lineage; reload keeps that cut;
+      screenshot `verification/layout-resume.png`; a second flowchart
+      message keeps LR1 to LR4; corrupt `layout.ws` `search` lands on
+      overview or map with an empty Find
     - Herd rail: explorer `#herd [data-herd]`; idle overview and
       control-flow, blocked `boot`, done `legacy`; progress adds
       a `review` row `working` and leaves boot blocked; click
@@ -281,7 +287,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **js-desk**, **ts-desk**, **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **herd**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **herd**, **layout-resume**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in

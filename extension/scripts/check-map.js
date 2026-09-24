@@ -585,6 +585,19 @@ assert(
     herdMap.includes("## Gotchas"),
   "herd-rail feature map must use the four headings"
 );
+const deskSrc = fs.readFileSync(path.join(__dirname, "../media/src/graph/desk.js"), "utf8");
+assert(deskSrc.includes("function resumeDesk") && deskSrc.includes("function commitDesk"), "desk must resume and commit the Review layout");
+assert(!deskSrc.includes("graphide-desk") && !deskSrc.includes("workspaceState"), "desk layout must stay on vscode state, not a private key or workspaceState");
+assert(driver.includes("LR1") && driver.includes("layout-resume.png"), "verify driver must prove layout resume");
+assert(featReadme.includes("layout-resume.md") && featReadme.includes("layout-resume.png"), "feature README must list layout-resume.md");
+const layoutResumeMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/layout-resume.md"), "utf8");
+assert(
+  layoutResumeMap.includes("## Sub-features") &&
+    layoutResumeMap.includes("## How to get to it (user POV)") &&
+    layoutResumeMap.includes("## Driving it with the harness") &&
+    layoutResumeMap.includes("## Gotchas"),
+  "layout-resume feature map must use the four headings"
+);
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
 assert(js.includes("data-open-slice") && js.includes("Open slice") && js.includes("selectFlow(name)"), "decision record must Open slice via selectFlow");

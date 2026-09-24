@@ -434,6 +434,7 @@
   } else if (params.get("live") === "1") {
     loadNamedSnap("live-snap.json", "__graphideLive", "__graphideLiveError", afterPaint, params.get("require") === "1");
   } else {
+    window.__graphideHarnessPayload = msg;
     window.postMessage(msg, "*");
     afterPaint();
   }

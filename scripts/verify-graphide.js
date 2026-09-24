@@ -6278,6 +6278,272 @@ async function main() {
 
     await shot(page, "stamp-host.png");
 
+    const beforeLrPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForSelector("#lineageCanvas .vnode[data-id]", { timeout: 8000 });
+    const lrChip = await page.$('#legend [data-prog="0"]');
+    const lrHadChip = !!lrChip;
+    if (lrChip) {
+      const chipText = ((await lrChip.textContent()) || "").replace(/\s+/g, " ").trim();
+      record(
+        "LR0",
+        "Explorer program chip is bin main",
+        chipText === "bin main",
+        chipText
+      );
+      await lrChip.click();
+      await page.waitForTimeout(150);
+    }
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForSelector("#lineageCanvas .vnode[data-id]", { timeout: 8000 });
+    const lrFocusId = await page.evaluate(() => {
+      const el = document.querySelector("#lineageCanvas .vnode[data-id]");
+      return el ? el.getAttribute("data-id") || "" : "";
+    });
+    if (lrFocusId) await page.click('#lineageCanvas .vnode[data-id="' + lrFocusId + '"]');
+    await page.waitForFunction(
+      (id) => {
+        const rec = window.__graphideLineage || {};
+        return !!id && rec.focus === id;
+      },
+      lrFocusId,
+      { timeout: 8000 }
+    );
+    await page.fill("#graphSearch", "Toast");
+    await page.waitForFunction(
+      () => ((document.getElementById("graphSearch") || {}).value || "") === "Toast",
+      null,
+      { timeout: 4000 }
+    );
+    const bootTab = await page.$('#tabs .tab[data-flow="boot"]');
+    if (bootTab) {
+      await bootTab.click();
+      await page.waitForTimeout(150);
+    }
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(280);
+    const lrCardBefore = await page.evaluate(() => {
+      const el = document.querySelector(".bubble-card");
+      if (!el) return null;
+      return {
+        id: el.getAttribute("data-bubble") || "",
+        left: parseFloat(el.style.left),
+        top: parseFloat(el.style.top),
+      };
+    });
+    const lrCardLoc = lrCardBefore
+      ? page.locator('.bubble-card[data-bubble="' + lrCardBefore.id + '"]')
+      : null;
+    if (lrCardLoc) await lrCardLoc.scrollIntoViewIfNeeded();
+    const lrCardBox = lrCardLoc ? await lrCardLoc.boundingBox() : null;
+    if (!lrCardBox) throw new Error("layout resume: bubble card has no box");
+    await page.mouse.move(lrCardBox.x + lrCardBox.width / 2, lrCardBox.y + lrCardBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      lrCardBox.x + lrCardBox.width / 2 + 1400,
+      lrCardBox.y + lrCardBox.height / 2 + 1000,
+      { steps: 14 }
+    );
+    await page.mouse.up();
+    await page.waitForTimeout(80);
+    const lrPin = await page.evaluate((before) => {
+      const el = before && before.id ? document.querySelector('.bubble-card[data-bubble="' + before.id + '"]') : null;
+      if (!el) return null;
+      return {
+        id: before.id,
+        left: parseFloat(el.style.left),
+        top: parseFloat(el.style.top),
+        moved:
+          Math.hypot(parseFloat(el.style.left) - before.left, parseFloat(el.style.top) - before.top) > 80,
+      };
+    }, lrCardBefore);
+    record(
+      "LR0b",
+      "Map drag pinned a community card",
+      !!(lrPin && lrPin.id && lrPin.moved && Number.isFinite(lrPin.left) && Number.isFinite(lrPin.top)),
+      JSON.stringify({ before: lrCardBefore, pin: lrPin })
+    );
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return !!(on && on.getAttribute("data-ws") === "lineage");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrSetupPosts = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return posts.filter((m) => m && (m.type === "stamp" || m.type === "skip")).length;
+    }, beforeLrPosts);
+
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(
+      () => document.body.classList.contains("desk") && document.querySelector("#workspaces [data-ws].on"),
+      null,
+      { timeout: 20000 }
+    );
+    await page.waitForSelector("#lineageCanvas .vnode[data-id], #canvas .empty", { timeout: 8000 });
+    await page.waitForTimeout(200);
+    const lrRestored = await page.evaluate((focusId) => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const chip = document.querySelector('#legend [data-prog="0"]');
+      const rec = window.__graphideLineage || {};
+      const selected = focusId
+        ? document.querySelector('#lineageCanvas .vnode.selected[data-id="' + focusId + '"]')
+        : null;
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        chipOn: !!(chip && chip.classList.contains("on")),
+        chipText: chip ? (chip.textContent || "").replace(/\s+/g, " ").trim() : "",
+        q: ((document.getElementById("graphSearch") || {}).value || ""),
+        focus: rec.focus || "",
+        selected: !!selected,
+        ego: !!(
+          focusId &&
+          document.querySelector('#lineageCanvas .ego-node[data-id="' + focusId + '"][data-side="focus"], #lineageCanvas .vnode.ego[data-id="' + focusId + '"]')
+        ),
+      };
+    }, lrFocusId);
+    record("LR1", "Restored workspace is lineage", lrRestored.ws === "lineage", lrRestored.ws);
+    record(
+      "LR2",
+      "Restored program chip bin main is on",
+      lrHadChip ? lrRestored.chipOn && lrRestored.chipText === "bin main" : true,
+      lrHadChip ? lrRestored.chipText : "no chip on the first document"
+    );
+    record("LR3", "Restored Find is Toast", lrRestored.q === "Toast", JSON.stringify(lrRestored.q));
+    record(
+      "LR4",
+      "Restored focus node is the lineage ego",
+      !!lrFocusId && lrRestored.focus === lrFocusId && (lrRestored.selected || lrRestored.ego),
+      JSON.stringify({ id: lrFocusId, focus: lrRestored.focus, selected: lrRestored.selected, ego: lrRestored.ego })
+    );
+    await shot(page, "layout-resume.png");
+
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      (id) => !!(id && document.querySelector('.bubble-card[data-bubble="' + id + '"]')),
+      lrPin && lrPin.id,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(150);
+    const lrMap = await page.evaluate((pin) => {
+      const el = pin && pin.id ? document.querySelector('.bubble-card[data-bubble="' + pin.id + '"]') : null;
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        left: el ? parseFloat(el.style.left) : NaN,
+        top: el ? parseFloat(el.style.top) : NaN,
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+        lod: vp ? vp.getAttribute("data-lod") : "",
+        comm: document.querySelectorAll(".comm-node").length,
+      };
+    }, lrPin);
+    record(
+      "LR5",
+      "Restored Map pin keeps the dragged card at community LOD",
+      !!lrPin &&
+        Math.abs(lrMap.left - lrPin.left) < 1 &&
+        Math.abs(lrMap.top - lrPin.top) < 1 &&
+        lrMap.xy === 0 &&
+        lrMap.lod === "0" &&
+        lrMap.comm === 0,
+      JSON.stringify({ pin: lrPin, map: lrMap })
+    );
+
+    await page.click('#workspaces [data-ws="lineage"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return !!(on && on.getAttribute("data-ws") === "lineage");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (window.__graphideHarnessPayload) window.postMessage(window.__graphideHarnessPayload, "*");
+    });
+    await page.waitForTimeout(250);
+    const lrReplay = await page.evaluate((focusId) => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const chip = document.querySelector('#legend [data-prog="0"]');
+      const rec = window.__graphideLineage || {};
+      const selected = focusId
+        ? document.querySelector('#lineageCanvas .vnode.selected[data-id="' + focusId + '"]')
+        : null;
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        chipOn: !!(chip && chip.classList.contains("on")),
+        chipText: chip ? (chip.textContent || "").replace(/\s+/g, " ").trim() : "",
+        q: ((document.getElementById("graphSearch") || {}).value || ""),
+        focus: rec.focus || "",
+        selected: !!selected,
+      };
+    }, lrFocusId);
+    record(
+      "LR6",
+      "A second flowchart message keeps the restored cut",
+      lrReplay.ws === "lineage" &&
+        lrReplay.q === "Toast" &&
+        lrReplay.focus === lrFocusId &&
+        (lrHadChip ? lrReplay.chipOn && lrReplay.chipText === "bin main" : true) &&
+        (lrReplay.selected || lrReplay.focus === lrFocusId),
+      JSON.stringify(lrReplay)
+    );
+
+    const lrReplayPosts = await page.evaluate(() =>
+      (window.__vscodePosts || []).filter((m) => m && (m.type === "stamp" || m.type === "skip")).length
+    );
+    await page.evaluate(() => {
+      const key = "vscode:" + location.pathname + location.search;
+      const raw = localStorage.getItem(key);
+      const state = raw ? JSON.parse(raw) : null;
+      if (!state || !state.layout) throw new Error("missing layout");
+      state.layout.ws = "search";
+      localStorage.setItem(key, JSON.stringify(state));
+    });
+    const lrErrors = [];
+    const onLrError = (err) => {
+      lrErrors.push(String(err && err.message ? err.message : err));
+    };
+    page.on("pageerror", onLrError);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(
+      () => document.body.classList.contains("desk") && document.querySelector("#workspaces [data-ws].on"),
+      null,
+      { timeout: 20000 }
+    );
+    await page.waitForTimeout(200);
+    page.off("pageerror", onLrError);
+    const lrCorrupt = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        q: ((document.getElementById("graphSearch") || {}).value || ""),
+        desk: document.body.classList.contains("desk"),
+      };
+    });
+    const lrCorruptPosts = await page.evaluate(() =>
+      (window.__vscodePosts || []).filter((m) => m && (m.type === "stamp" || m.type === "skip")).length
+    );
+    record(
+      "LR7",
+      "A corrupt layout boots the normal landing",
+      lrCorrupt.desk &&
+        (lrCorrupt.ws === "overview" || lrCorrupt.ws === "map") &&
+        lrCorrupt.q === "" &&
+        lrErrors.length === 0,
+      JSON.stringify({ lrCorrupt, errors: lrErrors })
+    );
+    record(
+      "LR8",
+      "Layout resume did not post stamp or skip",
+      lrSetupPosts === 0 && lrReplayPosts === 0 && lrCorruptPosts === 0,
+      JSON.stringify({ setup: lrSetupPosts, replay: lrReplayPosts, corrupt: lrCorruptPosts })
+    );
+    assertNoStampDir("LR8", "Layout resume did not write .graphide/stamps/");
+
     const liveUrl = origin + LIVE_HARNESS;
     console.log("self-review " + liveUrl);
     await page.goto(liveUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -8651,7 +8917,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · herd · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · herd · layout-resume · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

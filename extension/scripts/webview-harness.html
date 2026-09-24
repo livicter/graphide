@@ -65,14 +65,33 @@
   </style>
   <script>
     window.acquireVsCodeApi = function () {
+      const slot = "vscode:" + location.pathname + location.search;
+      let state = null;
+      try {
+        const raw = localStorage.getItem(slot);
+        if (raw) state = JSON.parse(raw);
+      } catch (e) {
+        state = null;
+      }
+      if (!state || typeof state !== "object" || Array.isArray(state)) state = null;
       return {
         postMessage: function (m) {
           window.__vscodePosts = window.__vscodePosts || [];
           window.__vscodePosts.push(m);
           console.log("vscode.postMessage", m);
         },
-        getState: function () { return null; },
-        setState: function () {},
+        getState: function () { return state; },
+        setState: function (next) {
+          try {
+            state = JSON.parse(JSON.stringify(next));
+          } catch (e) {
+            return;
+          }
+          if (!state || typeof state !== "object" || Array.isArray(state)) state = null;
+          try {
+            localStorage.setItem(slot, JSON.stringify(state));
+          } catch (e) {}
+        },
       };
     };
   </script>
