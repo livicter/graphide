@@ -7848,6 +7848,151 @@
     return fn2();
   }
 
+  // extension/media/src/graph/herd.js
+  function programKeyOf(p) {
+    return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+  }
+  function shortOf(fqn) {
+    return String(fqn || "").split(/::|\./).pop();
+  }
+  function shortFile(file) {
+    const f = String(file || "").replace(/\\/g, "/");
+    const parts = f.split("/");
+    return parts.length > 2 ? parts.slice(-2).join("/") : f;
+  }
+  function findingKindOf(f) {
+    if (!f) return "";
+    if (typeof f.kind === "string") return f.kind;
+    return f.kind && f.kind.kind || "";
+  }
+  function findingTitle(f) {
+    const k = findingKindOf(f);
+    if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
+    if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
+    if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
+    if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
+    if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
+    if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
+    if (k === "PluginBug") return "PluginBug";
+    return k || "finding";
+  }
+  function flowMark(name, session) {
+    const skipped = session && session.skipped || [];
+    const stamps = session && session.stamps || [];
+    if (skipped.indexOf(name) >= 0) return "skipped";
+    const row = stamps.find((s) => s.name === name);
+    if (!row) return "";
+    return row.holds ? "holds" : "broken";
+  }
+  function decisionRecords(snapshot, session) {
+    const skipped = session && session.skipped || [];
+    const stamps = session && session.stamps || [];
+    const rows = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const s of stamps.concat(snapshot && snapshot.stamps || [])) {
+      const name = s.name || s.flow;
+      if (!name || seen.has("stamp:" + name)) continue;
+      seen.add("stamp:" + name);
+      rows.push({
+        kind: "stamp",
+        flow: name,
+        verdict: s.holds ? "holds" : "broken",
+        title: name,
+        body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
+        outcome: s.holds ? "approved" : "rejected"
+      });
+    }
+    for (const name of skipped.concat(snapshot && snapshot.skipped || [])) {
+      if (!name || seen.has("skip:" + name)) continue;
+      seen.add("skip:" + name);
+      rows.push({
+        kind: "skip",
+        flow: name,
+        verdict: "skipped",
+        title: name,
+        body: "Skipped this session — no stamp written.",
+        outcome: "deferred"
+      });
+    }
+    for (const f of snapshot && snapshot.findings || []) {
+      const k = findingKindOf(f);
+      if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
+      rows.push({
+        kind: "finding",
+        flow: f.flow || "",
+        verdict: k === "StampBroken" ? "broken" : "hint",
+        title: findingTitle(f),
+        body: k === "StampBroken" ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops" : String(f.fqn || "unmatched hit"),
+        outcome: k === "StampBroken" ? "rejected" : "pending",
+        added: f.added || [],
+        removed: f.removed || []
+      });
+    }
+    return rows;
+  }
+  function flowNeedsHuman(name, snapshot, session) {
+    const mark = flowMark(name, session);
+    const blocked = decisionRecords(snapshot, session).some(
+      (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
+    );
+    return blocked || mark === "broken";
+  }
+  function herdActiveFlowName(snapshot, session, flowName, defaultRunName) {
+    const open = (name) => !!name && flowMark(name, session) !== "holds" && flowMark(name, session) !== "skipped" && !flowNeedsHuman(name, snapshot, session);
+    if (open(flowName)) return flowName;
+    if (open(defaultRunName)) return defaultRunName;
+    return "";
+  }
+  function herdFlowState(name, active, snapshot, session) {
+    const mark = flowMark(name, session);
+    if (flowNeedsHuman(name, snapshot, session)) return "blocked";
+    if (mark === "holds") return "done";
+    if (mark === "skipped") return "idle";
+    if (active && name === active) return "working";
+    return "idle";
+  }
+  function herdCuts(input) {
+    const snapshot = input && input.snapshot;
+    if (!snapshot) return [];
+    const session = {
+      skipped: input.skipped || [],
+      stamps: input.stamps || []
+    };
+    const programs = snapshot.programs || [];
+    const seen = /* @__PURE__ */ new Set();
+    const names = [];
+    for (const f of snapshot.flows || []) {
+      if (!f.name || seen.has(f.name)) continue;
+      seen.add(f.name);
+      names.push(f.name);
+    }
+    for (const n of session.skipped.concat(snapshot.skipped || [])) {
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      names.push(n);
+    }
+    const active = herdActiveFlowName(snapshot, session, input.flowName || "", input.defaultRunName || "");
+    const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
+    const cuts = names.map((name) => ({
+      kind: "flow",
+      flow: name,
+      label: name,
+      state: herdFlowState(name, active, snapshot, session)
+    }));
+    const program = input.program || null;
+    programs.forEach((p, i) => {
+      const on2 = program ? programKeyOf(program) === programKeyOf(p) : programs.length === 1;
+      cuts.push({
+        kind: "program",
+        index: i,
+        label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
+        state: on2 ? "working" : "idle"
+      });
+    });
+    cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
+    return cuts;
+  }
+
   // extension/media/src/graph/sequence-canvas.jsx
   var import_react4 = __toESM(require_react());
   var import_client = __toESM(require_client());
@@ -21063,7 +21208,7 @@
       const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
       let holds = 0, broken = 0, skipped = 0, pending = 0;
       for (const name of names) {
-        const mark = flowMark(name);
+        const mark = flowMark2(name);
         if (mark === "holds") holds++;
         else if (mark === "broken") broken++;
         else if (mark === "skipped") skipped++;
@@ -21086,7 +21231,7 @@
       const ws = explorerWs || "overview";
       const alt = reviewAltitude();
       const walk = pathWalk.i >= 0 ? pathWalkStops()[pathWalk.i] : null;
-      const here = walk ? shortOf(walk.label) || "" : "";
+      const here = walk ? shortOf2(walk.label) || "" : "";
       const place = ws === alt ? ws : ws + " · " + alt;
       return '<span class="now-pill" id="nowPill">' + esc(place) + (here ? " · " + esc(here) : "") + (m.names.length ? " · " + (m.pending ? m.pending + " left" : "queue clear") : "") + "</span>";
     }
@@ -21191,7 +21336,7 @@
         snap: deskSnapKey(),
         ws: explorerWs,
         flow: flow && flow.name || flowName || "",
-        program: prog ? programKeyOf(prog) : "",
+        program: prog ? programKeyOf2(prog) : "",
         q: graphFilter.q || "",
         focus: selectedNodeId ? idVal(selectedNodeId) : "",
         pins
@@ -21238,7 +21383,7 @@
       }
       const programs = snapshot && snapshot.programs || [];
       if (desk.program && programs.length) {
-        const hit = programs.find((p) => programKeyOf(p) === desk.program);
+        const hit = programs.find((p) => programKeyOf2(p) === desk.program);
         if (hit) {
           graphFilter.program = hit;
           const i = programs.indexOf(hit);
@@ -21975,7 +22120,7 @@
       const n = nodeById.get(idVal(id2)) || (graph.nodes || []).find((x) => sameId(x.id, id2));
       return n ? n.kind : "";
     }
-    function shortOf(fqn) {
+    function shortOf2(fqn) {
       return String(fqn || "").split(/::|\./).pop();
     }
     function shortToken(id2) {
@@ -22413,11 +22558,11 @@
     function esc(s) {
       return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-    function flowMark(name) {
-      if (skippedFlows.indexOf(name) >= 0) return "skipped";
-      const row = stampRows.find((s) => s.name === name);
-      if (!row) return "";
-      return row.holds ? "holds" : "broken";
+    function herdSession() {
+      return { skipped: skippedFlows, stamps: stampRows };
+    }
+    function flowMark2(name) {
+      return flowMark(name, herdSession());
     }
     function requestStamp(name) {
       const flow = name || currentFlow() && currentFlow().name;
@@ -22430,7 +22575,7 @@
         snapshot.skipped = (snapshot.skipped || []).filter((n) => n !== flow);
         snapshot.stamps = stampRows.slice();
         snapshot.findings = (snapshot.findings || []).filter(
-          (f) => !(findingKindOf(f) === "StampBroken" && f.flow === flow)
+          (f) => !(findingKindOf2(f) === "StampBroken" && f.flow === flow)
         );
       }
       vscode.postMessage({ type: "stamp", flow });
@@ -22450,8 +22595,8 @@
       flashBtn(skipBtn, "flash-skip");
       paint({ animate: "none" });
     }
-    function programKeyOf(p) {
-      return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+    function programKeyOf2(p) {
+      return programKeyOf(p);
     }
     function detectHint(file) {
       const f = String(file || "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -22522,13 +22667,13 @@
       return { kind: "pkg", name: "root", root: "" };
     }
     function flowTouchesProgram(flow, program) {
-      const want = programKeyOf(program);
+      const want = programKeyOf2(program);
       const graph = snapshot && snapshot.graph;
       const programs = snapshot && snapshot.programs || [];
       for (const id2 of flow?.tree?.nodes || []) {
         const n = nodeById.get(idVal(id2)) || (graph?.nodes || []).find((x) => sameId(x.id, id2));
         const file = n?.span?.file;
-        if (file && programKeyOf(assignProgram(file, programs)) === want) return true;
+        if (file && programKeyOf2(assignProgram(file, programs)) === want) return true;
       }
       return false;
     }
@@ -22568,7 +22713,7 @@
       const n = nodeById.get(idVal(id2));
       const file = n?.span?.file;
       if (!file) return false;
-      return programKeyOf(assignProgram(file, snapshot.programs || [])) !== programKeyOf(prog);
+      return programKeyOf2(assignProgram(file, snapshot.programs || [])) !== programKeyOf2(prog);
     }
     function peekSource(id2) {
       if (!id2) return;
@@ -22619,8 +22764,8 @@
       }
       sourceId = msg.id || sourceId;
       revealSourcePane();
-      const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
-      if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
+      const where = msg.file ? shortFile2(msg.file) + (msg.line ? ":" + msg.line : "") : "";
+      if (srcTitle) srcTitle.textContent = (shortOf2(msg.fqn) || "source") + (where ? " · " + where : "");
       fillInspect(msg);
       if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
@@ -22631,12 +22776,12 @@
       const edge = graphEdge(a, b, kind);
       const k = edge && edge.kind || kind || "Calls";
       const span = edge && edge.span || {};
-      const where = span.file ? shortFile(span.file) + (span.start && span.start.line ? ":" + span.start.line : span.line ? ":" + span.line : "") : "";
+      const where = span.file ? shortFile2(span.file) + (span.start && span.start.line ? ":" + span.start.line : span.line ? ":" + span.line : "") : "";
       revealSourcePane();
       if (srcTitle) srcTitle.textContent = k + " · " + shortToken(a) + " → " + shortToken(b);
       if (hopCard) {
         hopCard.hidden = false;
-        hopCard.innerHTML = '<div class="hop-k">Hop · ' + esc(k) + '</div><div class="hop-path"><button type="button" data-id="' + esc(a) + '" class="' + kindClass(kindOf(snapshot && snapshot.graph, a)) + '">' + esc(shortOf(fqnOf(snapshot && snapshot.graph, a))) + " · " + esc(shortToken(a)) + '</button><span class="arr">→</span><button type="button" data-id="' + esc(b) + '" class="' + kindClass(kindOf(snapshot && snapshot.graph, b)) + '">' + esc(shortOf(fqnOf(snapshot && snapshot.graph, b))) + " · " + esc(shortToken(b)) + "</button></div>" + (where ? '<div class="hop-span">' + esc(where) + "</div>" : "") + '<div class="hop-fqn">' + esc(fqnOf(snapshot && snapshot.graph, a)) + '</div><div class="hop-fqn">' + esc(fqnOf(snapshot && snapshot.graph, b)) + "</div>";
+        hopCard.innerHTML = '<div class="hop-k">Hop · ' + esc(k) + '</div><div class="hop-path"><button type="button" data-id="' + esc(a) + '" class="' + kindClass(kindOf(snapshot && snapshot.graph, a)) + '">' + esc(shortOf2(fqnOf(snapshot && snapshot.graph, a))) + " · " + esc(shortToken(a)) + '</button><span class="arr">→</span><button type="button" data-id="' + esc(b) + '" class="' + kindClass(kindOf(snapshot && snapshot.graph, b)) + '">' + esc(shortOf2(fqnOf(snapshot && snapshot.graph, b))) + " · " + esc(shortToken(b)) + "</button></div>" + (where ? '<div class="hop-span">' + esc(where) + "</div>" : "") + '<div class="hop-fqn">' + esc(fqnOf(snapshot && snapshot.graph, a)) + '</div><div class="hop-fqn">' + esc(fqnOf(snapshot && snapshot.graph, b)) + "</div>";
         hopCard.querySelectorAll("[data-id]").forEach((el2) => {
           el2.onclick = () => selectNode(el2.getAttribute("data-id"));
         });
@@ -22660,10 +22805,10 @@
           ["kind", msg.kind || node && node.kind || ""],
           ["role", ep && ep.role ? ep.role : "—"],
           ["channel", ep && ep.channel ? ep.channel : "—"],
-          ["span", file ? shortFile(file) + (line ? ":" + line : "") : "—"],
+          ["span", file ? shortFile2(file) + (line ? ":" + line : "") : "—"],
           ["slice", onTree ? "on tree" : "off tree"],
           ["community", bub ? bub.label || idVal(bub.id) : "—"],
-          ["file", file ? shortFile(file) : "—"],
+          ["file", file ? shortFile2(file) : "—"],
           ["program", prog ? prog.kind + " " + prog.name : "—"],
           ["degree", String(deg)],
           ["mark", flags.uncovered ? "uncovered" : flags.changed ? "changed" : "—"]
@@ -22674,7 +22819,7 @@
         const edges = incidentEdges(id2).slice(0, 18);
         inspEdges.innerHTML = edges.length ? edges.map((e) => {
           const other = e.dir === "out" ? e.to : e.from;
-          return '<div class="row" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><span class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + "</span><span>" + esc(shortOf(fqnOf(snapshot.graph, other))) + "</span></div>";
+          return '<div class="row" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><span class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + "</span><span>" + esc(shortOf2(fqnOf(snapshot.graph, other))) + "</span></div>";
         }).join("") : '<div class="row"><span class="k">edges</span><span>none on the derived graph</span></div>';
         bindHopClicks(inspEdges);
       }
@@ -22845,7 +22990,7 @@
         const n = nodeById.get(sid);
         hops.push({
           id: sid,
-          label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
+          label: n ? shortOf2(n.fqn) || n.fqn || sid : sid,
           kind: "hop"
         });
       }
@@ -22871,7 +23016,7 @@
       const path = storyRailStops();
       if (!path.length) return "";
       const chips = path.map((stop, i) => {
-        const name = shortOf(stop.label) || "feature";
+        const name = shortOf2(stop.label) || "feature";
         const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
         const hop = stop.kind === "hop";
         const here = hop ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id) ? " here" : "" : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble) ? " here" : "";
@@ -22883,7 +23028,7 @@
       const path = storyRailStops();
       if (!path.length) return "";
       const chips = path.map((stop, i) => {
-        const name = shortOf(stop.label) || "feature";
+        const name = shortOf2(stop.label) || "feature";
         const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
         const hop = stop.kind === "hop";
         const here = hop ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id) ? " here" : "" : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble) ? " here" : "";
@@ -23003,7 +23148,7 @@
       }
       const metaEl = document.getElementById("pathWalkMeta");
       if (metaEl) {
-        metaEl.textContent = cur ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature") : "";
+        metaEl.textContent = cur ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf2(cur.label) || "feature") : "";
       }
       refreshNowPill();
     }
@@ -23034,7 +23179,7 @@
     function renderSourceLines(msg) {
       const text = msg.text || msg.preview || "";
       if (!text) {
-        const span = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
+        const span = msg.file ? shortFile2(msg.file) + (msg.line ? ":" + msg.line : "") : "";
         return '<div class="src-line"><span class="ln">—</span><span class="tx">' + esc(span ? "Span " + span + " · open Editor for the file" : "No snippet on this snapshot — inspect rows still hold") + "</span></div>";
       }
       const lines = String(text).split("\n");
@@ -23063,12 +23208,12 @@
       return true;
     }
     function programMarks(p) {
-      const key = programKeyOf(p);
+      const key = programKeyOf2(p);
       const programs = snapshot && snapshot.programs || [];
       let uncovered = 0;
       for (const id2 of snapshot && snapshot.coverage && snapshot.coverage.uncovered || []) {
         const n = nodeById.get(idVal(id2));
-        if (n?.span?.file && programKeyOf(assignProgram(n.span.file, programs)) === key) uncovered++;
+        if (n?.span?.file && programKeyOf2(assignProgram(n.span.file, programs)) === key) uncovered++;
       }
       const flows = (snapshot && snapshot.flows || []).filter((f) => flowTouchesProgram(f, p)).length;
       return { uncovered, flows };
@@ -23081,8 +23226,8 @@
         const a = nodeById.get(idVal(e.from));
         const b = nodeById.get(idVal(e.to));
         if (!a?.span?.file || !b?.span?.file) continue;
-        const ka = programKeyOf(assignProgram(a.span.file, programs));
-        const kb = programKeyOf(assignProgram(b.span.file, programs));
+        const ka = programKeyOf2(assignProgram(a.span.file, programs));
+        const kb = programKeyOf2(assignProgram(b.span.file, programs));
         if (!ka || ka === kb) continue;
         const kind = e.kind || "Imports";
         const k = ka + "	" + kb + "	" + kind;
@@ -23504,14 +23649,14 @@
       lastRoute = route;
       const fromN = route.from ? nodeById.get(route.from) : null;
       const toN = route.to ? nodeById.get(route.to) : null;
-      const fromL = shortOf(fromN && fromN.fqn || route.from || "?");
-      const toL = shortOf(toN && toN.fqn || route.to || "?");
+      const fromL = shortOf2(fromN && fromN.fqn || route.from || "?");
+      const toL = shortOf2(toN && toN.fqn || route.to || "?");
       const hops = route.hops || [];
       if (routeCursor >= hops.length) routeCursor = hops.length - 1;
       const hot = routeCursor >= 0 ? hops[routeCursor] : null;
-      const status2 = !route.ok ? route.reason === "unreachable" ? "Unreachable" : "Pick two nodes" : hot ? routeCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(fqnOf(snapshot.graph, hot.from)) + " → " + shortOf(fqnOf(snapshot.graph, hot.to)) : hops.length + " hops · " + fromL + " → " + toL;
+      const status2 = !route.ok ? route.reason === "unreachable" ? "Unreachable" : "Pick two nodes" : hot ? routeCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf2(fqnOf(snapshot.graph, hot.from)) + " → " + shortOf2(fqnOf(snapshot.graph, hot.to)) : hops.length + " hops · " + fromL + " → " + toL;
       const list = hops.map((h, i) => {
-        return '<button type="button" class="route-hop' + (i === routeCursor ? " on" : "") + '" data-route-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-kind="' + esc(h.kind || "") + '">' + esc((h.kind || "") + " " + shortOf(fqnOf(snapshot.graph, h.from)) + " → " + shortOf(fqnOf(snapshot.graph, h.to))) + "</button>";
+        return '<button type="button" class="route-hop' + (i === routeCursor ? " on" : "") + '" data-route-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-kind="' + esc(h.kind || "") + '">' + esc((h.kind || "") + " " + shortOf2(fqnOf(snapshot.graph, h.from)) + " → " + shortOf2(fqnOf(snapshot.graph, h.to))) + "</button>";
       }).join("");
       routeReceipt.innerHTML = '<div class="review-strip" id="routeReview"><span class="probe-k">PATH</span><button type="button" class="review-step" id="routeOverview">Overview</button><button type="button" class="review-step" id="routePrev">Prev</button><button type="button" class="review-step' + (routeWalk.playing ? " on" : "") + '" id="routePlay" aria-pressed="' + (routeWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="routeNext">Next</button><span id="routeStatus">' + esc(status2) + '</span></div><div id="routeHops" class="route-hops">' + (list || '<span class="empty">No derived directed hops.</span>') + "</div>";
       const overview = document.getElementById("routeOverview");
@@ -23797,65 +23942,14 @@
       if (!q2) return true;
       return String(text || "").toLowerCase().includes(q2);
     }
-    function findingKindOf(f) {
-      if (!f) return "";
-      if (typeof f.kind === "string") return f.kind;
-      return f.kind && f.kind.kind || "";
+    function findingKindOf2(f) {
+      return findingKindOf(f);
     }
-    function findingTitle(f) {
-      const k = findingKindOf(f);
-      if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
-      if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
-      if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
-      if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
-      if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
-      if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
-      if (k === "PluginBug") return "PluginBug";
-      return k || "finding";
+    function findingTitle2(f) {
+      return findingTitle(f);
     }
-    function decisionRecords() {
-      const rows = [];
-      const seen = /* @__PURE__ */ new Set();
-      for (const s of stampRows.concat(snapshot && snapshot.stamps || [])) {
-        const name = s.name || s.flow;
-        if (!name || seen.has("stamp:" + name)) continue;
-        seen.add("stamp:" + name);
-        rows.push({
-          kind: "stamp",
-          flow: name,
-          verdict: s.holds ? "holds" : "broken",
-          title: name,
-          body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
-          outcome: s.holds ? "approved" : "rejected"
-        });
-      }
-      for (const name of skippedFlows.concat(snapshot && snapshot.skipped || [])) {
-        if (!name || seen.has("skip:" + name)) continue;
-        seen.add("skip:" + name);
-        rows.push({
-          kind: "skip",
-          flow: name,
-          verdict: "skipped",
-          title: name,
-          body: "Skipped this session — no stamp written.",
-          outcome: "deferred"
-        });
-      }
-      for (const f of snapshot && snapshot.findings || []) {
-        const k = findingKindOf(f);
-        if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
-        rows.push({
-          kind: "finding",
-          flow: f.flow || "",
-          verdict: k === "StampBroken" ? "broken" : "hint",
-          title: findingTitle(f),
-          body: k === "StampBroken" ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops" : String(f.fqn || "unmatched hit"),
-          outcome: k === "StampBroken" ? "rejected" : "pending",
-          added: f.added || [],
-          removed: f.removed || []
-        });
-      }
-      return rows;
+    function decisionRecords2() {
+      return decisionRecords(snapshot, herdSession());
     }
     function registryEvents() {
       const ev = [];
@@ -23865,16 +23959,16 @@
         title: "Review snapshot",
         body: (snapshot.graph && snapshot.graph.nodes || []).length + " nodes · " + (snapshot.graph && snapshot.graph.edges || []).length + " edges · " + (s.files || 0) + " files" + (snapshot.plugin ? " · " + snapshot.plugin : "") + (s.elapsed_ms != null ? " · " + s.elapsed_ms + "ms" : "")
       });
-      decisionRecords().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
+      decisionRecords2().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
       const findings = (snapshot && snapshot.findings || []).filter((f) => {
-        const k = findingKindOf(f);
+        const k = findingKindOf2(f);
         return k && k !== "UncoveredNode" && k !== "StampBroken" && k !== "UnmatchedHint";
       });
       findings.forEach((f) => {
-        const hop = f.from && f.to ? shortOf(f.from) + " → " + shortOf(f.to) : "";
+        const hop = f.from && f.to ? shortOf2(f.from) + " → " + shortOf2(f.to) : "";
         ev.push({
           kind: "finding",
-          title: findingTitle(f),
+          title: findingTitle2(f),
           body: f.message || f.fqn || hop || f.plugin || f.span && f.span.file || "",
           flow: f.flow || ""
         });
@@ -23927,7 +24021,7 @@
           sample: uncovered.slice(0, 8).map((id2) => idVal(id2))
         }
       ];
-      decisionRecords().forEach((d) => ev.push({ kind: d.verdict || d.kind, title: d.title, body: d.body, flow: d.flow }));
+      decisionRecords2().forEach((d) => ev.push({ kind: d.verdict || d.kind, title: d.title, body: d.body, flow: d.flow }));
       return ev;
     }
     function decisionKey(r) {
@@ -23948,7 +24042,7 @@
           from: idVal(e.from),
           to: idVal(e.to),
           relationship: e.kind || "Calls",
-          content: shortOf(fqnOf(snapshot.graph, e.to)),
+          content: shortOf2(fqnOf(snapshot.graph, e.to)),
           type: kindOf(snapshot.graph, e.to),
           scar: ""
         });
@@ -23959,13 +24053,13 @@
           from: "",
           to: id2,
           relationship: "hit",
-          content: shortOf(fqnOf(snapshot.graph, id2)),
+          content: shortOf2(fqnOf(snapshot.graph, id2)),
           type: kindOf(snapshot.graph, id2),
           scar: ""
         });
       }
       const scars = (snapshot.findings || []).filter(
-        (f) => findingKindOf(f) === "StampBroken" && (!rec.flow || f.flow === rec.flow)
+        (f) => findingKindOf2(f) === "StampBroken" && (!rec.flow || f.flow === rec.flow)
       );
       scars.forEach((f) => {
         (f.added || []).forEach((e) => {
@@ -23973,7 +24067,7 @@
             from: idVal(e.from),
             to: idVal(e.to),
             relationship: e.kind || "Calls",
-            content: shortOf(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
+            content: shortOf2(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
             type: kindOf(snapshot.graph, e.to),
             scar: "added"
           });
@@ -23983,7 +24077,7 @@
             from: idVal(e.from),
             to: idVal(e.to),
             relationship: e.kind || "Calls",
-            content: shortOf(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
+            content: shortOf2(fqnOf(snapshot.graph, e.to)) || shortToken(idVal(e.to)),
             type: kindOf(snapshot.graph, e.to),
             scar: "removed"
           });
@@ -23998,7 +24092,7 @@
       }).join("") + "</div>";
     }
     function renderDecisionBody() {
-      const rows = decisionRecords().filter(
+      const rows = decisionRecords2().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
       );
       if (!rows.length) {
@@ -24288,7 +24382,7 @@
           kind: n.kind || "Function",
           kindClass: kindClass(n.kind),
           state: deltaNodeState(n.fqn),
-          label: shortOf(n.fqn),
+          label: shortOf2(n.fqn),
           hot: hotNode,
           bubble: community ? String(hot.bubble) : ""
         };
@@ -24634,13 +24728,13 @@
       }
       if (seqCursor >= hops.length) seqCursor = hops.length - 1;
       const hot = seqCursor >= 0 ? hops[seqCursor] : null;
-      const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
+      const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf2(hot.from_fqn) + " → " + shortOf2(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
       const heads = parts.map((p) => {
         const on2 = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
-        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(p.id)) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span></button>";
+        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(p.id)) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"><span class="name">' + esc(shortOf2(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span></button>";
       }).join("");
       const list = hops.map((h, i) => {
-        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
+        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf2(h.from_fqn) + " → " + shortOf2(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
       }).join("");
       return '<div class="seq-page">' + review + '<div class="seq-parts" id="seqParts" style="--seq-n:' + parts.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
@@ -24656,7 +24750,7 @@
           id: idVal(p.id),
           fqn: p.fqn,
           kind: p.kind || "Function",
-          label: shortOf(p.fqn)
+          label: shortOf2(p.fqn)
         })),
         hops: reading.hops.map((h, i) => ({
           i,
@@ -24664,8 +24758,8 @@
           to: idVal(h.to),
           kind: h.kind || "",
           variant: h.variant || "default",
-          fromLabel: shortOf(h.from_fqn),
-          toLabel: shortOf(h.to_fqn)
+          fromLabel: shortOf2(h.from_fqn),
+          toLabel: shortOf2(h.to_fqn)
         })),
         cursor: seqCursor,
         onNodeClick: (id2) => {
@@ -24697,7 +24791,7 @@
       const status2 = document.getElementById("seqStatus");
       const flow = sequenceFlow();
       if (status2) {
-        status2.textContent = hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
+        status2.textContent = hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf2(hot.from_fqn) + " → " + shortOf2(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
       }
       const play = document.getElementById("seqPlay");
       if (play) {
@@ -24987,19 +25081,19 @@
       }
       if (dfCursor >= hops.length) dfCursor = hops.length - 1;
       const hot = dfCursor >= 0 ? hops[dfCursor] : null;
-      const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
+      const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf2(hot.from_fqn) + " → " + shortOf2(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
       const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
       const stageCols = stages.map((role) => {
         const col = nodes.filter((n) => n.role === role);
         const cards = col.map((n) => {
           const on2 = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
           const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
-          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(n.kind || "") + (ep ? " · " + esc(ep) : "") + "</span></button>";
+          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + '><span class="name">' + esc(shortOf2(n.fqn)) + '</span> <span class="meta">' + esc(n.kind || "") + (ep ? " · " + esc(ep) : "") + "</span></button>";
         }).join("");
         return '<div class="df-stage" data-df-role="' + role + '"><div class="k">' + esc(dfRoleLabel(role)) + "</div>" + cards + "</div>";
       }).join("");
       const list = hops.map((h, i) => {
-        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
+        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf2(h.from_fqn) + " → " + shortOf2(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
       }).join("");
       return '<div class="df-page">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
     }
@@ -25017,7 +25111,7 @@
             id: idVal(n.id),
             fqn: n.fqn,
             kind: n.kind || "Function",
-            label: shortOf(n.fqn),
+            label: shortOf2(n.fqn),
             role: n.role,
             endRole: n.end_role || "",
             channel: n.channel || "",
@@ -25060,7 +25154,7 @@
       const status2 = document.getElementById("dfStatus");
       const flow = dataflowFlow();
       if (status2) {
-        status2.textContent = hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
+        status2.textContent = hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf2(hot.from_fqn) + " → " + shortOf2(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow");
       }
       const play = document.getElementById("dfPlay");
       if (play) {
@@ -25200,7 +25294,7 @@
       return lifecycleOf(lifecycleFlow()).states;
     }
     function lcCurrentId(flow) {
-      const mark = flowMark(flow && flow.name);
+      const mark = flowMark2(flow && flow.name);
       if (mark === "holds") return "stamped";
       if (mark === "skipped") return "skipped";
       if (mark === "broken") return "broken";
@@ -25314,7 +25408,7 @@
         return '<article class="lc-trans expl-card' + (i === lcCursor ? " on" : "") + '" data-lc-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-lc-event="' + esc(h.label || "") + '"><div class="k">' + esc(h.label || "event") + '</div><div class="t">' + esc(h.from + " → " + h.to) + "</div></article>";
       }).join("");
       const endCards = ends.map((e) => {
-        return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
+        return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"><span class="name">' + esc(shortOf2(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
       }).join("");
       const endsBlock = ends.length ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>" : "";
       return '<div class="lc-page">' + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
@@ -25706,7 +25800,7 @@
       const kinds = countMap(nodes, (n) => n.kind);
       const hops = countMap(edges, (e) => e.kind);
       const marks = countMap(
-        flows.map((f) => ({ m: flowMark(f.name) || "open" })),
+        flows.map((f) => ({ m: flowMark2(f.name) || "open" })),
         (x) => x.m
       );
       const degrees2 = degreeMap();
@@ -25724,10 +25818,10 @@
         const marks2 = bubbleMarks(b);
         const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
         const role = featureRole(step, path.length - 1);
-        return '<article class="expl-card" data-ws="map"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
+        return '<article class="expl-card" data-ws="map"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf2(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
       }).join("") + '</div><div class="flow-title">Highest degree</div><div class="expl-list compact">' + topDeg.slice(0, 6).map((x) => {
         const id2 = idVal(x.n.id);
-        return '<article class="expl-card" data-id="' + esc(id2) + '"><div class="k">' + esc(x.n.kind) + '</div><div class="t">' + esc(shortOf(x.n.fqn)) + '</div><div class="b">degree ' + x.d + " · " + esc(shortToken(id2)) + "</div></article>";
+        return '<article class="expl-card" data-id="' + esc(id2) + '"><div class="k">' + esc(x.n.kind) + '</div><div class="t">' + esc(shortOf2(x.n.fqn)) + '</div><div class="b">degree ' + x.d + " · " + esc(shortToken(id2)) + "</div></article>";
       }).join("") + "</div>";
     }
     function renderDefaultCfg() {
@@ -25766,7 +25860,7 @@
           fqn,
           kind,
           kindClass: kindClass(kind),
-          label: shortOf(fqn),
+          label: shortOf2(fqn),
           kindLine: kindLine(nid, kind),
           side: n.side || "",
           hop: n.hop,
@@ -25837,7 +25931,7 @@
       const hops = reading.hops;
       const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [id2];
       setMeta(
-        '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-ws="map">map</button> / <b>lineage</b> · ' + esc(shortOf(node && node.fqn || id2)) + " · " + hops.length + " incident hops" + (path.length > 1 ? " · path " + path.length : "")
+        '<span class="crumb">Review</span> / <button type="button" class="crumb-btn" data-ws="map">map</button> / <b>lineage</b> · ' + esc(shortOf2(node && node.fqn || id2)) + " · " + hops.length + " incident hops" + (path.length > 1 ? " · path " + path.length : "")
       );
       const up = meta.querySelector("[data-ws]");
       if (up) up.onclick = () => setWorkspace("map", true);
@@ -25847,10 +25941,10 @@
           [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
         )
       ).slice(0, 24).map(({ e, i }) => {
-        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
+        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf2(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
       });
       const pathRow = path.length > 1 ? '<div class="path-row">' + path.map((pid) => {
-        return '<button type="button" class="path-chip ' + kindClass(kindOf(snapshot.graph, pid)) + '" data-id="' + esc(pid) + '">' + esc(shortOf(fqnOf(snapshot.graph, pid))) + "</button>";
+        return '<button type="button" class="path-chip ' + kindClass(kindOf(snapshot.graph, pid)) + '" data-id="' + esc(pid) + '">' + esc(shortOf2(fqnOf(snapshot.graph, pid))) + "</button>";
       }).join('<span class="arr">→</span>') + "</div>" : '<div class="path-row muted">Click a second node to draw the shortest path on the derived edges.</div>';
       const buckets = { used: [], informed: [], generated: [] };
       hops.forEach((e) => {
@@ -25859,7 +25953,7 @@
       const provCol = (name, label, items) => {
         return '<div class="prov-col" data-prov="' + name + '"><div class="k">' + label + "</div>" + (items.length ? items.map((e) => {
           const other = e.dir === "out" ? e.to : e.from;
-          return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, other))) + '</div><div class="b">' + esc(e.kind) + "</div></button>";
+          return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><div class="t">' + esc(shortOf2(fqnOf(snapshot.graph, other))) + '</div><div class="b">' + esc(e.kind) + "</div></button>";
         }).join("") : '<div class="empty">—</div>') + "</div>";
       };
       const key = lineageWorkspaceKey(id2, reading);
@@ -25867,13 +25961,13 @@
       canvas.className = "play has-stage explorer-lineage";
       if (!keep) {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
+        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf2(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
         lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: true });
       } else {
         const title = canvas.querySelector(".flow-title");
         if (title) {
-          title.textContent = "Lineage · ego of " + shortOf(node && node.fqn || id2) + " · " + egoHops + "-hop";
+          title.textContent = "Lineage · ego of " + shortOf2(node && node.fqn || id2) + " · " + egoHops + "-hop";
         }
         const hopsEl = document.getElementById("lineageHops");
         if (hopsEl) hopsEl.innerHTML = hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>';
@@ -25969,9 +26063,9 @@
       }
       let nodes = (snapshot.graph && snapshot.graph.nodes || []).slice();
       if (graphFilter.program) {
-        const want = programKeyOf(graphFilter.program);
+        const want = programKeyOf2(graphFilter.program);
         nodes = nodes.filter(
-          (n) => n.span?.file && programKeyOf(assignProgram(n.span.file, snapshot.programs || [])) === want
+          (n) => n.span?.file && programKeyOf2(assignProgram(n.span.file, snapshot.programs || [])) === want
         );
       }
       if (graphFilter.bubble) {
@@ -26026,7 +26120,7 @@
       const programs = snapshot.programs || [];
       let html = "";
       programs.forEach((p, i) => {
-        const on2 = graphFilter.program && programKeyOf(graphFilter.program) === programKeyOf(p);
+        const on2 = graphFilter.program && programKeyOf2(graphFilter.program) === programKeyOf2(p);
         html += '<button type="button" class="leg' + (on2 ? " on" : "") + '" data-prog="' + i + '">' + esc(p.kind) + " " + esc(p.name) + "</button>";
       });
       if (programs.length > 1) {
@@ -26130,7 +26224,7 @@
     }
     function bubbleCardInnerHtml(b, role, n, marks) {
       const tile = tileKind(role, b && b.id);
-      return '<span class="tile" data-tile="' + tile + '" aria-hidden="true">' + tileSvg(tile) + '</span><span class="card-copy">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + '</span><span class="n">' + n + "</span>";
+      return '<span class="tile" data-tile="' + tile + '" aria-hidden="true">' + tileSvg(tile) + '</span><span class="card-copy">' + (role ? '<span class="role">' + esc(role) + "</span>" : "") + '<span class="name">' + esc(shortOf2(b.label) || "bubble") + '</span><span class="meta">' + (role ? role + " · " : "") + n + (n === 1 ? " node" : " nodes") + (marks.uncovered ? " · " + marks.uncovered + " unc." : "") + (marks.onTree ? " · " + marks.onTree + " on tree" : "") + "</span>" + bubbleMemberChips(b, 4) + '</span><span class="n">' + n + "</span>";
     }
     function applyBubbleCardEl(el2, b, id2, p, pathRank, path, pathIds) {
       const n = (b.members || []).length;
@@ -26383,7 +26477,7 @@
       const extra = Math.max(0, (b.members || []).length - preview.length);
       return '<span class="members">' + preview.map((x) => {
         const kind = x.n && x.n.kind || kindOf(snapshot && snapshot.graph, x.id);
-        return '<i class="' + kindClass(kind) + '">' + esc(shortOf(x.n && x.n.fqn || x.id)) + "</i>";
+        return '<i class="' + kindClass(kind) + '">' + esc(shortOf2(x.n && x.n.fqn || x.id)) + "</i>";
       }).join("") + (extra ? '<i class="more">+' + extra + "</i>" : "") + "</span>";
     }
     function bubbleMarks(b) {
@@ -26442,7 +26536,7 @@
       const m = reviewMarks();
       const head = m.names.length ? '<span class="queue-left' + (m.pending ? "" : " done") + '">' + (m.pending ? m.pending + " left" : "queue clear") + "</span>" : "";
       tabs.innerHTML = head + (flows || []).map((f) => {
-        const mark = flowMark(f.name);
+        const mark = flowMark2(f.name);
         const proposed = isProposedFlow(f);
         return '<button class="tab' + (f.name === current ? " on" : "") + (mark ? " " + mark : "") + (proposed ? " proposed" : "") + '" data-flow="' + esc(f.name) + '"' + (proposed ? ' data-proposed="1"' : "") + ">" + esc(f.name) + (mark ? '<span class="mark">' + mark + "</span>" : "") + "</button>";
       }).join("");
@@ -26464,7 +26558,7 @@
         const kind = n.kind || kindOf(snapshot && snapshot.graph, id2);
         const flags = nodeFlags(id2);
         const on2 = selected2 === id2 || flags.uncovered || onTree && onTree.has(id2);
-        const name = shortOf(n.fqn || fqnOf(snapshot && snapshot.graph, id2)) || shortToken(id2);
+        const name = shortOf2(n.fqn || fqnOf(snapshot && snapshot.graph, id2)) || shortToken(id2);
         return '<button type="button" class="cell dag ' + kindClass(kind) + (on2 ? " on" : "") + (flags.uncovered ? " uncovered" : "") + '" data-id="' + id2 + '"><span class="dag-k">' + esc(kind === "Type" ? "ty" : kind === "Endpoint" ? "ep" : "fn") + '</span><span class="dag-id">' + esc(name) + "</span></button>";
       }).join("");
       if (ledgerMeta) {
@@ -26544,7 +26638,7 @@
       applyPathWalkPaint();
     }
     function stampBadge(name) {
-      const mark = flowMark(name);
+      const mark = flowMark2(name);
       if (!mark) return "";
       return ' <span class="live ' + mark + '">' + mark + "</span>";
     }
@@ -26603,10 +26697,10 @@
           fqn,
           kind,
           kindClass: kindClass(kind),
-          label: shortOf(fqn),
+          label: shortOf2(fqn),
           kindLine: hopRole + kindLine(nid, kind),
           steiner: onTree && at2 === 0 ? "start" : onTree && at2 === walk.length - 1 && walk.length > 1 ? "end" : "",
-          where: file ? shortFile(file) + (line ? ":" + line : "") : "",
+          where: file ? shortFile2(file) + (line ? ":" + line : "") : "",
           file: file || "",
           snip: snippetPreview(snippets[nid]),
           away: nodeAway(nid),
@@ -26675,7 +26769,7 @@
       if (!nodes.length) return '<div class="empty">Empty tree.</div>';
       return '<div id="sliceCanvas" class="slice-canvas steiner-wrap' + (animate ? " play" : "") + '"></div>';
     }
-    function shortFile(file) {
+    function shortFile2(file) {
       const f = String(file || "").replace(/\\/g, "/");
       const parts = f.split("/");
       return parts.length > 2 ? parts.slice(-2).join("/") : f;
@@ -26716,10 +26810,10 @@
         const chips = members.slice(0, 3).map((n) => {
           const id2 = idVal(n);
           const k = kindOf(msg.graph, n);
-          return '<span class="chip ' + kindClass(k) + '">' + esc(shortOf(fqnOf(msg.graph, n))) + " · " + esc(shortToken(id2)) + "</span>";
+          return '<span class="chip ' + kindClass(k) + '">' + esc(shortOf2(fqnOf(msg.graph, n))) + " · " + esc(shortToken(id2)) + "</span>";
         }).join("");
         html += '<div class="run" style="left:' + p.x + "px;top:" + p.y + "px;--i:" + i + '" data-run="' + idVal(run.id) + '" data-flow="' + esc(flow.name) + '" data-bubble="' + idVal(run.bubble) + '" data-nodes="' + nodeIds + '">';
-        html += '<div class="label">' + esc(shortOf(label)) + "</div>";
+        html += '<div class="label">' + esc(shortOf2(label)) + "</div>";
         html += '<div class="chips">' + chips + (members.length > 3 ? '<span class="chip">+' + (members.length - 3) + "</span>" : "") + "</div></div>";
       });
       html += "</div>";
@@ -26761,7 +26855,7 @@
           fqn,
           kind,
           kindClass: kindClass(kind),
-          label: shortOf(n.fqn),
+          label: shortOf2(n.fqn),
           kindLine: n.is_leaf ? kind : "bubble",
           lit: !!n.lit,
           grey: !n.lit,
@@ -26864,7 +26958,7 @@
         if (budgeted && panelOverBudget(opts)) {
           shed = true;
         } else {
-          const sample = uncovered.slice(0, 3).map((id2) => shortOf(fqnOf(graph, id2))).filter(Boolean);
+          const sample = uncovered.slice(0, 3).map((id2) => shortOf2(fqnOf(graph, id2))).filter(Boolean);
           if (sample.length) html += " · e.g. " + sample.map(esc).join(", ");
           if (uncovered.length > 3) html += " +" + (uncovered.length - 3);
         }
@@ -26890,65 +26984,29 @@
       markPanelShed(budgeted && shed);
       renderHerd();
     }
-    function flowNeedsHuman(name) {
-      const mark = flowMark(name);
-      const blocked = decisionRecords().some(
-        (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
-      );
-      return blocked || mark === "broken";
+    function flowNeedsHuman2(name) {
+      return flowNeedsHuman(name, snapshot, herdSession());
     }
-    function herdActiveFlowName() {
-      const open = (name) => !!name && flowMark(name) !== "holds" && flowMark(name) !== "skipped" && !flowNeedsHuman(name);
-      if (open(flowName)) return flowName;
+    function herdActiveFlowName2() {
       const run = defaultRunFlow();
-      if (run && open(run.name)) return run.name;
-      return "";
+      return herdActiveFlowName(snapshot, herdSession(), flowName, run && run.name);
     }
-    function herdFlowState(name, active) {
-      const mark = flowMark(name);
-      if (flowNeedsHuman(name)) return "blocked";
-      if (mark === "holds") return "done";
-      if (mark === "skipped") return "idle";
-      if (active && name === active) return "working";
-      return "idle";
+    function herdFlowState2(name, active) {
+      return herdFlowState(name, active, snapshot, herdSession());
     }
-    function herdCuts() {
-      if (!snapshot) return [];
-      const programs = snapshot.programs || [];
-      const seen = /* @__PURE__ */ new Set();
-      const names = [];
-      for (const f of snapshot.flows || []) {
-        if (!f.name || seen.has(f.name)) continue;
-        seen.add(f.name);
-        names.push(f.name);
-      }
-      for (const n of skippedFlows.concat(snapshot.skipped || [])) {
-        if (!n || seen.has(n)) continue;
-        seen.add(n);
-        names.push(n);
-      }
-      const active = herdActiveFlowName();
-      const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
-      const cuts = names.map((name) => ({
-        kind: "flow",
-        flow: name,
-        label: name,
-        state: herdFlowState(name, active)
-      }));
-      programs.forEach((p, i) => {
-        const on2 = graphFilter.program ? programKeyOf(graphFilter.program) === programKeyOf(p) : programs.length === 1;
-        cuts.push({
-          kind: "program",
-          index: i,
-          label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
-          state: on2 ? "working" : "idle"
-        });
+    function herdCuts2() {
+      const run = defaultRunFlow();
+      return herdCuts({
+        snapshot,
+        skipped: skippedFlows,
+        stamps: stampRows,
+        flowName,
+        defaultRunName: run && run.name,
+        program: graphFilter.program
       });
-      cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
-      return cuts;
     }
     function pendingDecisionFor(flow) {
-      const rows = decisionRecords().filter((r) => r.flow === flow);
+      const rows = decisionRecords2().filter((r) => r.flow === flow);
       return rows.find((r) => r.outcome === "pending") || rows.find((r) => r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint") || null;
     }
     function openHerdCut(cut) {
@@ -26984,7 +27042,7 @@
         list.innerHTML = "";
         return;
       }
-      const cuts = herdCuts();
+      const cuts = herdCuts2();
       const blocked = cuts.filter((c) => c.state === "blocked").length;
       if (count) count.textContent = cuts.length + (cuts.length === 1 ? " cut" : " cuts") + " · " + blocked + " blocked";
       list.innerHTML = cuts.map((c) => {
@@ -27110,7 +27168,7 @@
       const nodes = flow && flow.tree && flow.tree.nodes || [];
       const names = nodes.slice(0, 12).map((id2) => {
         const n = nodeById.get(idVal(id2));
-        return shortOf(n && n.fqn || id2);
+        return shortOf2(n && n.fqn || id2);
       }).filter(Boolean);
       const path = [];
       const seen = /* @__PURE__ */ new Set();
@@ -27123,8 +27181,8 @@
       }
       const edges = flow && flow.tree && flow.tree.edges || [];
       const hopKinds = edges.slice(0, 8).map((e) => {
-        const from = shortOf((nodeById.get(idVal(e.from)) || {}).fqn || e.from);
-        const to = shortOf((nodeById.get(idVal(e.to)) || {}).fqn || e.to);
+        const from = shortOf2((nodeById.get(idVal(e.from)) || {}).fqn || e.from);
+        const to = shortOf2((nodeById.get(idVal(e.to)) || {}).fqn || e.to);
         return (e.kind || "Calls") + " " + from + " → " + to;
       });
       const lines = [

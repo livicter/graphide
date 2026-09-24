@@ -83,6 +83,101 @@ function failSnapChecks(idRe, report, msg) {
   );
 }
 
+function proveAgentHerd() {
+  const script = path.join(ROOT, "scripts", "agent-herd.mjs");
+  const src = fs.readFileSync(script, "utf8");
+  const stampsBefore = stampDirWrote();
+  const reviewFn = src.slice(src.indexOf("function reviewSnapshot"), src.indexOf("function report"));
+  record(
+    "AH0",
+    "agent command has no stamp path",
+    src.includes("agents never stamp") && reviewFn.includes('["review"') && !reviewFn.includes("stamp"),
+    ""
+  );
+  function run(args) {
+    return spawnSync(process.execPath, [script].concat(args), { encoding: "utf8", cwd: ROOT, timeout: 5 * 60 * 1000 });
+  }
+  function parse(r) {
+    try {
+      return JSON.parse(String(r.stdout || ""));
+    } catch (e) {
+      return null;
+    }
+  }
+  const states = new Set();
+  const blocked = run(["--snap", path.join(ROOT, "fixtures/herd/blocked.json"), "--focus", "boot", "--wait", "--json"]);
+  const blockedRep = parse(blocked);
+  if (blockedRep) for (const c of blockedRep.cuts || []) states.add(c.state);
+  record(
+    "AH1",
+    "fixture wait exits 0 when the focused cut is blocked",
+    blocked.status === 0 && blockedRep && blockedRep.status === "blocked" && blockedRep.state === "blocked" && blockedRep.focus === "boot",
+    "exit=" + blocked.status + " " + String(blocked.stdout || blocked.stderr || "").slice(0, 240)
+  );
+  const settled = run(["--snap", path.join(ROOT, "fixtures/herd/settled.json"), "--focus", "control-flow", "--wait", "--json"]);
+  const settledRep = parse(settled);
+  if (settledRep) for (const c of settledRep.cuts || []) states.add(c.state);
+  record(
+    "AH2",
+    "fixture wait exits 2 when the focused cut settled and is not blocked",
+    settled.status === 2 && settledRep && settledRep.status === "settled" && settledRep.state === "done" && settledRep.focus === "control-flow",
+    "exit=" + settled.status + " state=" + (settledRep && settledRep.state)
+  );
+  const working = run(["--snap", path.join(ROOT, "fixtures/herd/blocked.json"), "--focus", "control-flow", "--wait", "--json"]);
+  const workingRep = parse(working);
+  record(
+    "AH3",
+    "a focused open cut is settled, not blocked",
+    working.status === 2 && workingRep && workingRep.state === "working" && workingRep.status === "settled",
+    "exit=" + working.status + " state=" + (workingRep && workingRep.state)
+  );
+  record(
+    "AH4",
+    "herd rows cover working, blocked, idle, and done",
+    ["working", "blocked", "idle", "done"].every((s) => states.has(s)),
+    [...states].join(",")
+  );
+  const refused = run(["--stamp"]);
+  record("AH5", "stamp flag is refused", refused.status === 1 && /never stamp/i.test(String(refused.stderr || "")), String(refused.stderr || "").trim());
+  const real = run(["--root", DEMO, "--no-parent", "--wait", "--json"]);
+  const realRep = parse(real);
+  const realStates = new Set(((realRep && realRep.cuts) || []).map((c) => c.state));
+  const allowed = ["working", "blocked", "idle", "done"];
+  record(
+    "AH6",
+    "graphide review on fixtures/demo reports a herd and a wait exit",
+    (real.status === 0 || real.status === 2) &&
+      realRep &&
+      (realRep.status === "blocked") === (real.status === 0) &&
+      (realRep.cuts || []).some((c) => c.kind === "flow") &&
+      [...realStates].every((s) => allowed.includes(s)) &&
+      (real.status === 0 ? realRep.state === "blocked" : realRep.state !== "blocked"),
+    "exit=" + real.status + " focus=" + (realRep && realRep.focus) + " state=" + (realRep && realRep.state) + " cuts=" + ((realRep && realRep.cuts) || []).length
+  );
+  record("AH7", "agent wait did not write .graphide/stamps/", !stampDirWrote() && !stampsBefore, stampDirWrote() ? "wrote" : "absent");
+  const lines = [
+    "# Agent herd",
+    "",
+    "Command: `node scripts/agent-herd.mjs`",
+    "",
+    "Predicate: `extension/media/src/graph/herd.js` (same module the desk rail calls).",
+    "",
+    "- AH1 blocked fixture `--focus boot --wait` exit " + blocked.status,
+    "- AH2 settled fixture `--focus control-flow --wait` exit " + settled.status + " (" + (settledRep && settledRep.state) + ")",
+    "- AH3 open cut on the blocked fixture exit " + working.status + " (" + (workingRep && workingRep.state) + ")",
+    "- AH6 `graphide review --root fixtures/demo --no-parent` exit " + real.status + " focus " + (realRep && realRep.focus) + " " + (realRep && realRep.state),
+    "- Stamp path: none. `.graphide/stamps/` " + (stampDirWrote() ? "present" : "absent") + ".",
+    "",
+  ];
+  fs.writeFileSync(path.join(OUT, "agent-herd.md"), lines.join("\n"));
+  noteArtifact("agent-herd.md");
+  const failed = checks.filter((c) => /^AH/.test(c.id) && !c.pass);
+  if (failed.length) {
+    writeReport("Agent herd proof failed.");
+    failFast("agent herd — " + failed.map((c) => c.id).join(", "));
+  }
+}
+
 function deriveReviewSnap(opts) {
   const dest = opts.dest;
   const label = opts.label;
@@ -940,6 +1035,8 @@ async function main() {
     );
     return;
   }
+
+  proveAgentHerd();
 
   if (!fs.existsSync(path.join(EXT, "scripts", "webview-harness.html"))) {
     failFast("missing extension/scripts/webview-harness.html");
@@ -8743,7 +8840,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · herd · layout-resume · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · herd · layout-resume · agent-herd · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

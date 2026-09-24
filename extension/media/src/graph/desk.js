@@ -1,6 +1,17 @@
 /** Vanilla graph paint + host wiring. React mounts chrome; bootDesk binds the same ids. */
 import { acquireHost } from "../host/adapter.js";
 import {
+  decisionRecords as herdDecisionRecords,
+  findingKindOf as herdFindingKind,
+  findingTitle as herdFindingTitle,
+  flowMark as herdFlowMark,
+  flowNeedsHuman as herdFlowNeedsHuman,
+  herdActiveFlowName as herdActiveName,
+  herdCuts as herdCutsOf,
+  herdFlowState as herdStateOf,
+  programKeyOf as herdProgramKey,
+} from "./herd.js";
+import {
   renderSequenceCanvas,
   renderDeltaCanvas as mountDeltaCanvas,
   renderDataflowCanvas,
@@ -3158,11 +3169,12 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function herdSession() {
+  return { skipped: skippedFlows, stamps: stampRows };
+}
+
 function flowMark(name) {
-  if (skippedFlows.indexOf(name) >= 0) return "skipped";
-  const row = stampRows.find((s) => s.name === name);
-  if (!row) return "";
-  return row.holds ? "holds" : "broken";
+  return herdFlowMark(name, herdSession());
 }
 
 function requestStamp(name) {
@@ -3199,7 +3211,7 @@ function requestSkip(name) {
 }
 
 function programKeyOf(p) {
-  return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+  return herdProgramKey(p);
 }
 
 function detectHint(file) {
@@ -4855,69 +4867,15 @@ function matchesExplorerQuery(text) {
 }
 
 function findingKindOf(f) {
-  if (!f) return "";
-  if (typeof f.kind === "string") return f.kind;
-  return (f.kind && f.kind.kind) || "";
+  return herdFindingKind(f);
 }
 
 function findingTitle(f) {
-  const k = findingKindOf(f);
-  if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
-  if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
-  if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
-  if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
-  if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
-  if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
-  if (k === "PluginBug") return "PluginBug";
-  return k || "finding";
+  return herdFindingTitle(f);
 }
 
 function decisionRecords() {
-  const rows = [];
-  const seen = new Set();
-  for (const s of stampRows.concat((snapshot && snapshot.stamps) || [])) {
-    const name = s.name || s.flow;
-    if (!name || seen.has("stamp:" + name)) continue;
-    seen.add("stamp:" + name);
-    rows.push({
-      kind: "stamp",
-      flow: name,
-      verdict: s.holds ? "holds" : "broken",
-      title: name,
-      body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
-      outcome: s.holds ? "approved" : "rejected",
-    });
-  }
-  for (const name of skippedFlows.concat((snapshot && snapshot.skipped) || [])) {
-    if (!name || seen.has("skip:" + name)) continue;
-    seen.add("skip:" + name);
-    rows.push({
-      kind: "skip",
-      flow: name,
-      verdict: "skipped",
-      title: name,
-      body: "Skipped this session — no stamp written.",
-      outcome: "deferred",
-    });
-  }
-  for (const f of (snapshot && snapshot.findings) || []) {
-    const k = findingKindOf(f);
-    if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
-    rows.push({
-      kind: "finding",
-      flow: f.flow || "",
-      verdict: k === "StampBroken" ? "broken" : "hint",
-      title: findingTitle(f),
-      body:
-        k === "StampBroken"
-          ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops"
-          : String(f.fqn || "unmatched hit"),
-      outcome: k === "StampBroken" ? "rejected" : "pending",
-      added: f.added || [],
-      removed: f.removed || [],
-    });
-  }
-  return rows;
+  return herdDecisionRecords(snapshot, herdSession());
 }
 
 function registryEvents() {
@@ -9190,69 +9148,28 @@ function renderCoverage(cov, findings, graph, opts) {
 }
 
 function flowNeedsHuman(name) {
-  const mark = flowMark(name);
-  const blocked = decisionRecords().some(
-    (r) =>
-      r.flow === name &&
-      (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
-  );
-  return blocked || mark === "broken";
+  return herdFlowNeedsHuman(name, snapshot, herdSession());
 }
 
 function herdActiveFlowName() {
-  const open = (name) =>
-    !!name && flowMark(name) !== "holds" && flowMark(name) !== "skipped" && !flowNeedsHuman(name);
-  if (open(flowName)) return flowName;
   const run = defaultRunFlow();
-  if (run && open(run.name)) return run.name;
-  return "";
+  return herdActiveName(snapshot, herdSession(), flowName, run && run.name);
 }
 
 function herdFlowState(name, active) {
-  const mark = flowMark(name);
-  if (flowNeedsHuman(name)) return "blocked";
-  if (mark === "holds") return "done";
-  if (mark === "skipped") return "idle";
-  if (active && name === active) return "working";
-  return "idle";
+  return herdStateOf(name, active, snapshot, herdSession());
 }
 
 function herdCuts() {
-  if (!snapshot) return [];
-  const programs = snapshot.programs || [];
-  const seen = new Set();
-  const names = [];
-  for (const f of snapshot.flows || []) {
-    if (!f.name || seen.has(f.name)) continue;
-    seen.add(f.name);
-    names.push(f.name);
-  }
-  for (const n of skippedFlows.concat(snapshot.skipped || [])) {
-    if (!n || seen.has(n)) continue;
-    seen.add(n);
-    names.push(n);
-  }
-  const active = herdActiveFlowName();
-  const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
-  const cuts = names.map((name) => ({
-    kind: "flow",
-    flow: name,
-    label: name,
-    state: herdFlowState(name, active),
-  }));
-  programs.forEach((p, i) => {
-    const on = graphFilter.program
-      ? programKeyOf(graphFilter.program) === programKeyOf(p)
-      : programs.length === 1;
-    cuts.push({
-      kind: "program",
-      index: i,
-      label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
-      state: on ? "working" : "idle",
-    });
+  const run = defaultRunFlow();
+  return herdCutsOf({
+    snapshot,
+    skipped: skippedFlows,
+    stamps: stampRows,
+    flowName,
+    defaultRunName: run && run.name,
+    program: graphFilter.program,
   });
-  cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
-  return cuts;
 }
 
 function pendingDecisionFor(flow) {

@@ -11,4 +11,6 @@ Read `programs`, `flows`, `findings`, `coverage`, and `bubbles` from that snapsh
 
 Agents never stamp. Do not write `.graphide/stamps/` and do not run `graphide stamp`.
 
+To start a cut and wait: `node scripts/agent-herd.mjs --root <folder> --wait`. Exit 0 means the focused cut is blocked. Exit 2 means the review settled and that cut is not blocked.
+
 Map stays community LOD. This is not a terminal and not a worktree list.
