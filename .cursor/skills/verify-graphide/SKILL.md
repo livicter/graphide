@@ -221,6 +221,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      on the pending card; Map `xy=0` / `data-lod=0`;
      `verification/herd-rail.png`. Self-review lists
      `#herd [data-herd-kind="program"]` per crate
+   - Agent herd: `node scripts/agent-herd.mjs` before Chromium.
+     Fixture `--wait` exits 0 on blocked `boot` and 2 when the focused
+     cut settled (done or working). Real path is
+     `graphide review --root fixtures/demo --no-parent`. Proof
+     `verification/agent-herd.md`. No stamp spawn.
    - Layout resume: explorer Map sets workspace, `#legend [data-prog]`,
      `#graphSearch`, `#ledgerGrid .cell` focus, and a dragged
      `.bubble-card` pin; second `page.goto` of the same harness restores
@@ -287,7 +292,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
     **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
-    **open-slice**, **draft-hint**, **proposed-uncovered**, **herd**, **layout-resume**, **sticky-clusters**,
+    **open-slice**, **draft-hint**, **proposed-uncovered**, **herd**, **layout-resume**, **agent-herd**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in
     [references/features/](references/features/README.md) plus
