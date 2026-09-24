@@ -12,3 +12,5 @@ For Review-desk correctness, load:
 
 - [Verify Graphide](.cursor/skills/verify-graphide/SKILL.md)
 - [Harness engineering](.cursor/skills/harness-engineering/SKILL.md)
+
+When a Review graph or the herd rail is present, prefer that surface over raw grep. The always-on rule is [prefer-herd](.cursor/rules/prefer-herd.mdc). Agents never stamp.

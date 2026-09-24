@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as os from "os";
 import { askReview, LLM_PRESETS, llmConfigured, LlmConfig, testLlmConnection } from "./llm";
 import { BridgeHandle, newBridgeToken, startBridge, stopBridge } from "./bridge";
+import { reviewFolder } from "./review-folder";
 
 const SECRET_LLM_KEY = "graphide.llm.apiKey";
 const SECRET_BRIDGE = "graphide.bridge.token";
@@ -864,11 +865,10 @@ function stampFromView(snap: any, flow: any) {
 
 function packageRoot(): string {
   const cfg = vscode.workspace.getConfiguration("graphide");
-  const configured = cfg.get<string>("packageRoot")?.trim();
-  if (configured) return configured;
-  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (!folder) throw new Error("Open a workspace folder");
-  return folder;
+  return reviewFolder(
+    cfg.get<string>("packageRoot"),
+    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+  );
 }
 
 function parentRoot(): string | undefined {

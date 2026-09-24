@@ -1,0 +1,10 @@
+PASS plugin-packaging
+command: graphide.review → runReview → packageRoot → reviewFolder
+reviewFolder("  /opt/pkg  ", "/ws") = /opt/pkg
+reviewFolder("", "/ws/app") = /ws/app
+reviewFolder(undefined, "/ws/app") = /ws/app
+reviewFolder("  ", undefined) throws Open a workspace folder
+rule: .cursor/rules/prefer-herd.mdc alwaysApply true
+referenced: AGENTS.md
+activation: onCommand:graphide.review onView:graphide.reviewView
+extension host: not launched

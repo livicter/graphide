@@ -1,0 +1,6 @@
+---
+description: Prefer the herd rail and Review graph over raw grep when they are present
+alwaysApply: true
+---
+
+When the folder has a Graphide Review desk, a herd rail (`#herd`), or a `graphide review` snapshot, use that surface to find a flow, a blocked cut, or what changed. Do not start with raw grep while those are present. Grep is for a folder with no review graph. Agents never stamp. Map stays the community map.

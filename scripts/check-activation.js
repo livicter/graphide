@@ -63,4 +63,57 @@ console.log("ok   activate does not require an LLM");
 
 if (pkg.main !== "./out/extension.js") fail("main is " + pkg.main);
 
-console.log("PASS check-activation · " + commands.length + " commands · CSP nonce · Review view");
+const reviewCmd = src.slice(src.indexOf('registerCommand("graphide.review"'));
+if (!reviewCmd.startsWith('registerCommand("graphide.review"') || !reviewCmd.slice(0, 180).includes("runReview(")) {
+  fail("graphide.review does not call runReview");
+}
+if (!src.includes("return reviewFolder(")) fail("packageRoot does not call reviewFolder");
+console.log("ok   graphide.review → runReview → reviewFolder");
+
+const compiled = path.join(EXT, "out", "review-folder.js");
+if (!fs.existsSync(compiled)) fail("missing " + path.relative(ROOT, compiled) + " (compile the extension first)");
+const { reviewFolder } = require(compiled);
+const cases = [
+  [reviewFolder("  /opt/pkg  ", "/ws"), "/opt/pkg"],
+  [reviewFolder("", "/ws/app"), "/ws/app"],
+  [reviewFolder(undefined, "/ws/app"), "/ws/app"],
+];
+for (const [got, want] of cases) {
+  if (got !== want) fail("reviewFolder returned " + JSON.stringify(got) + " want " + JSON.stringify(want));
+}
+let threw = "";
+try {
+  reviewFolder("  ", undefined);
+} catch (e) {
+  threw = e && e.message ? e.message : String(e);
+}
+if (threw !== "Open a workspace folder") fail("empty folder threw " + JSON.stringify(threw));
+console.log("ok   reviewFolder config then workspace");
+
+const rulePath = path.join(ROOT, ".cursor", "rules", "prefer-herd.mdc");
+const rule = fs.readFileSync(rulePath, "utf8");
+if (!/^alwaysApply:\s*true\s*$/m.test(rule)) fail("prefer-herd.mdc is not alwaysApply");
+if (!/herd/i.test(rule) || !/grep/.test(rule)) fail("prefer-herd.mdc does not prefer herd over grep");
+const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+if (!agents.includes(".cursor/rules/prefer-herd.mdc")) fail("AGENTS.md does not reference prefer-herd.mdc");
+console.log("ok   prefer-herd always-on and referenced");
+
+const proofDir = path.join(ROOT, "verification");
+fs.mkdirSync(proofDir, { recursive: true });
+const proof = [
+  "PASS plugin-packaging",
+  "command: graphide.review → runReview → packageRoot → reviewFolder",
+  "reviewFolder(\"  /opt/pkg  \", \"/ws\") = /opt/pkg",
+  "reviewFolder(\"\", \"/ws/app\") = /ws/app",
+  "reviewFolder(undefined, \"/ws/app\") = /ws/app",
+  "reviewFolder(\"  \", undefined) throws Open a workspace folder",
+  "rule: .cursor/rules/prefer-herd.mdc alwaysApply true",
+  "referenced: AGENTS.md",
+  "activation: onCommand:graphide.review onView:graphide.reviewView",
+  "extension host: not launched",
+  "",
+].join("\n");
+fs.writeFileSync(path.join(proofDir, "plugin-packaging.txt"), proof);
+console.log("ok   verification/plugin-packaging.txt");
+
+console.log("PASS check-activation · " + commands.length + " commands · CSP nonce · Review view · open-folder · prefer-herd");
