@@ -576,6 +576,15 @@ assert(
   "slice-grey feature map must use the four headings"
 );
 assert(driver.includes("unmatched-hint.png") && driver.includes("UH1") && driver.includes("MissingHit") && driver.includes("#coverage"), "verify driver must prove UnmatchedHint on the Review desk");
+assert(driver.includes("herd-rail.png") && driver.includes("HD1") && driver.includes("HD3") && driver.includes("#herd"), "verify driver must prove the herd rail and blocked jump");
+const herdMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/herd-rail.md"), "utf8");
+assert(
+  herdMap.includes("## Sub-features") &&
+    herdMap.includes("## How to get to it (user POV)") &&
+    herdMap.includes("## Driving it with the harness") &&
+    herdMap.includes("## Gotchas"),
+  "herd-rail feature map must use the four headings"
+);
 assert(driver.includes("uncovered-node.png") && driver.includes("UN1") && driver.includes("off every proposed tree") && driver.includes("#coverage"), "verify driver must prove UncoveredNode on the Review desk");
 assert(driver.includes("open-slice.png") && driver.includes("OS1") && driver.includes("data-open-slice"), "verify driver must prove Decisions Open slice lands on Slice");
 assert(js.includes("data-open-slice") && js.includes("Open slice") && js.includes("selectFlow(name)"), "decision record must Open slice via selectFlow");

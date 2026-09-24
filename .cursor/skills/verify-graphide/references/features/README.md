@@ -55,6 +55,7 @@ owns this folder.
 | [slice-runs.md](slice-runs.md) | Slice subsystem-run boxes + enter | explorer Slice · `.run` · `slice-runs.png` |
 | [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
+| [herd-rail.md](herd-rail.md) | Herd status list | explorer · `#herd` · `herd-rail.png` |
 | [uncovered-node.md](uncovered-node.md) | UncoveredNode finding | explorer · `#coverage` · Timeline · `uncovered-node.png` |
 | [draft-hint.md](draft-hint.md) | Copy draft `[[flow]]` hits | explorer Timeline Uncovered · `draft-hint.png` |
 | [proposed-uncovered.md](proposed-uncovered.md) | Proposed flow from uncovered | `?delta=1` · `proposed-uncovered.png` |

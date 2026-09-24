@@ -1801,6 +1801,26 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
   background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
 }
+#herd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+#herd button {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-panel-border);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+#herd button[data-herd-state="working"] { color: #007aff; }
+#herd button[data-herd-state="blocked"] { color: #ff9f0a; }
+#herd button[data-herd-state="idle"] { opacity: 0.55; }
+#herd button[data-herd-state="done"] { color: #34c759; }
 #toast {
   position: fixed;
   left: 50%;

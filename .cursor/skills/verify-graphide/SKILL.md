@@ -258,6 +258,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     - Unmatched hint: explorer desk; `#coverage li.finding`
       `unmatched solarsim::MissingHit in boot`; Decisions card
       `UnmatchedHint`; `verification/unmatched-hint.png`
+    - Herd rail: explorer `#herd [data-herd]`; idle overview and
+      control-flow, blocked `boot`, done `legacy`; progress adds
+      a `review` row `working` and leaves boot blocked; click
+      blocked opens Decisions `.expl-card.on` UnmatchedHint pending;
+      `verification/herd-rail.png`
     - Uncovered node: explorer desk; `#coverage` `Coverage N changed · N
       uncovered`; Timeline `.tl-item` Uncovered / off every proposed
       tree; `verification/uncovered-node.png`
@@ -276,7 +281,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
     **js-desk**, **ts-desk**, **lineage**, **export**, **present**, **preset**, **route**, **lens**,
     **enter-bubble**, **ego**, **search**, **kind-filters**, **ask**, **keys**,
     **path-walk**, **appearance**, **apple-chrome**, **apple-chrome-icons**, **coverage-mark**, **hop-card**, **fit-reorg**,
-    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **uncovered-node**,
+    **zoom**, **canvas-recycle**, **delta-onanalysis**, **map-offview**, **panel-timeout**, **program-chips**, **all-programs**, **progress**, **flow-hints**, **flow-tabs**, **slice-grey**, **slice-runs**, **slice-enter-recycle**, **stamp-recheck**, **unmatched-hint**, **herd**, **uncovered-node**,
     **open-slice**, **draft-hint**, **proposed-uncovered**, **sticky-clusters**,
     **delta-sticky-views**, and **cancel-review**.
     `verification/` holds the screenshots named in

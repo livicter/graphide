@@ -1201,6 +1201,104 @@ async function main() {
     );
     assertNoStampDir("UH5", "Unmatched-hint step did not write .graphide/stamps/");
 
+    const herdBefore = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll("#herd [data-herd]")].map((el) => ({
+        name: el.getAttribute("data-herd") || "",
+        state: el.getAttribute("data-herd-state") || "",
+        text: (el.textContent || "").trim(),
+      }));
+      return { rows, xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length };
+    });
+    const herdBlocked = herdBefore.rows.find((r) => r.name === "boot");
+    const herdIdle = herdBefore.rows.filter((r) => r.state === "idle").map((r) => r.name);
+    const herdDone = herdBefore.rows.filter((r) => r.state === "done").map((r) => r.name);
+    record(
+      "HD1",
+      "Herd lists idle cuts, a blocked boot row, and a done skip",
+      !!herdBlocked &&
+        herdBlocked.state === "blocked" &&
+        /boot · blocked/.test(herdBlocked.text) &&
+        herdIdle.indexOf("overview") >= 0 &&
+        herdIdle.indexOf("control-flow") >= 0 &&
+        herdDone.indexOf("legacy") >= 0 &&
+        herdBefore.xy === 0,
+      JSON.stringify(herdBefore)
+    );
+    const beforeHerdPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      window.postMessage({ type: "progress", phase: "walk", label: "Herd working", pct: 40, elapsed_ms: 80 }, "*");
+    });
+    await page.waitForFunction(
+      () => !!document.querySelector('#herd [data-herd-state="working"]'),
+      null,
+      { timeout: 4000 }
+    );
+    const herdWork = await page.evaluate(() => {
+      const el = document.querySelector('#herd [data-herd-state="working"]');
+      const boot = document.querySelector('#herd [data-herd="boot"]');
+      return {
+        name: el ? el.getAttribute("data-herd") : "",
+        boot: boot ? boot.getAttribute("data-herd-state") : "",
+      };
+    });
+    record(
+      "HD2",
+      "A live review adds a working row and leaves boot blocked",
+      herdWork.name === "review" && herdWork.boot === "blocked",
+      JSON.stringify(herdWork)
+    );
+    await page.evaluate(() => {
+      window.postMessage({ type: "cancelled" }, "*");
+    });
+    await page.waitForFunction(
+      () => !document.querySelector('#herd [data-herd-state="working"]'),
+      null,
+      { timeout: 4000 }
+    );
+    await page.click('#herd [data-herd="boot"][data-herd-state="blocked"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const card = document.querySelector("#canvas .expl-card.on[data-decision]");
+        return !!(
+          on &&
+          on.getAttribute("data-ws") === "decisions" &&
+          card &&
+          /UnmatchedHint/i.test(card.textContent || "") &&
+          /MissingHit/i.test(card.textContent || "")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const herdJump = await page.evaluate(() => {
+      const card = document.querySelector("#canvas .expl-card.on[data-decision]");
+      return {
+        ws: document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws"),
+        title: card ? ((card.querySelector(".t") || {}).textContent || "").trim() : "",
+        outcome: card ? card.getAttribute("data-outcome") || "" : "",
+        xy: document.querySelectorAll("#canvas .react-flow__node, .bubble-map .react-flow__node").length,
+      };
+    });
+    record(
+      "HD3",
+      "Blocked herd row opens the pending UnmatchedHint decision",
+      herdJump.ws === "decisions" &&
+        /UnmatchedHint/i.test(herdJump.title) &&
+        /MissingHit/i.test(herdJump.title) &&
+        herdJump.outcome === "pending" &&
+        herdJump.xy === 0,
+      JSON.stringify(herdJump)
+    );
+    await page.waitForTimeout(200);
+    await shot(page, "herd-rail.png");
+    const afterHerd = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return { stampPosts: posts.filter((m) => m && m.type === "stamp").length };
+    }, beforeHerdPosts);
+    record("HD4", "Herd jump did not post stamp", afterHerd.stampPosts === 0, JSON.stringify(afterHerd));
+    assertNoStampDir("HD5", "Herd step did not write .graphide/stamps/");
+
     const beforeOsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       const on = document.querySelector("#workspaces [data-ws].on");
@@ -8553,7 +8651,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · herd · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

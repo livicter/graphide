@@ -20123,6 +20123,13 @@
         };
       });
     }
+    if (coverage) {
+      coverage.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("[data-herd]");
+        if (!btn || btn.getAttribute("data-herd-state") !== "blocked") return;
+        jumpHerd(btn.getAttribute("data-herd"));
+      });
+    }
     if (egoBtn) egoBtn.onclick = () => setEgoMode(!egoMode);
     reorgBtns.forEach((el2) => {
       el2.onclick = () => autoReorganize();
@@ -21823,6 +21830,7 @@
         }
       }
       status.textContent = (msg.phase || "review") + " · " + Math.round(targetPct) + "%";
+      syncHerd();
     }
     function tickBar() {
       shownPct += (targetPct - shownPct) * 0.22;
@@ -21847,6 +21855,7 @@
       targetPct = 0;
       shownPct = 0;
       progressFill.style.width = "0%";
+      syncHerd();
     }
     function finishWork() {
       setBusy(false);
@@ -26740,6 +26749,53 @@
         selected: selectedNodeId
       });
     }
+    function herdRows() {
+      const names = [];
+      const seen = /* @__PURE__ */ new Set();
+      const add = (n) => {
+        if (!n || seen.has(n)) return;
+        seen.add(n);
+        names.push(n);
+      };
+      (snapshot && snapshot.flows || []).forEach((f) => add(f.name));
+      stampRows.concat(snapshot && snapshot.stamps || []).forEach((s) => add(s.name || s.flow));
+      skippedFlows.concat(snapshot && snapshot.skipped || []).forEach(add);
+      (snapshot && snapshot.findings || []).forEach((f) => {
+        const k = findingKindOf(f);
+        if (k === "UnmatchedHint" || k === "StampBroken") add(f.flow);
+      });
+      const rows = names.map((name) => {
+        const mark = flowMark(name);
+        const needs = mark === "broken" || (snapshot && snapshot.findings || []).some((f) => {
+          if (f.flow !== name) return false;
+          const k = findingKindOf(f);
+          return k === "UnmatchedHint" || k === "StampBroken";
+        });
+        let state = "idle";
+        if (needs) state = "blocked";
+        else if (mark === "holds" || mark === "skipped") state = "done";
+        return { name, state };
+      });
+      if (progressEl && progressEl.classList.contains("on")) rows.unshift({ name: "review", state: "working" });
+      return rows;
+    }
+    function herdHtml() {
+      return '<div id="herd">' + herdRows().map(
+        (r) => '<button type="button" data-herd="' + esc(r.name) + '" data-herd-state="' + r.state + '">' + esc(r.name) + " · " + r.state + "</button>"
+      ).join("") + "</div>";
+    }
+    function syncHerd() {
+      const host = document.getElementById("herd");
+      if (!host) return;
+      host.outerHTML = herdHtml();
+    }
+    function jumpHerd(name) {
+      if (!name) return;
+      const rows = decisionRecords().filter((r) => r.flow === name);
+      const prefer = rows.find((r) => r.outcome === "pending") || rows.find((r) => r.verdict === "broken" || r.verdict === "hint") || rows[0];
+      if (prefer) selectedDecisionKey = decisionKey(prefer);
+      setWorkspace("decisions");
+    }
     function renderCoverage(cov, findings, graph, opts) {
       const uncovered = cov && cov.uncovered || [];
       const changed = cov && cov.changed || [];
@@ -26780,6 +26836,7 @@
           return '<li class="finding">stamp broken ' + esc(f.flow) + " · +" + (f.added || []).length + " / −" + (f.removed || []).length + "</li>";
         }).join("") + (scars.length > 4 ? "<li>…</li>" : "") + "</ul>";
       }
+      html += herdHtml();
       coverage.innerHTML = html;
       markPanelShed(budgeted && shed);
     }
