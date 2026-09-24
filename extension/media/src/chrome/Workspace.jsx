@@ -1,6 +1,12 @@
 export function Workspace() {
   return (
     <section id="workspace">
+      <aside id="herd" hidden aria-label="Herd">
+        <div className="herd-head">
+          Herd <span id="herdCount" />
+        </div>
+        <div id="herdList" />
+      </aside>
       <section id="canvas" />
       <aside id="ledgerPane" hidden>
         <div className="led-head">SLICE</div>
