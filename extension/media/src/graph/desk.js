@@ -1887,7 +1887,7 @@ function setEgoMode(on) {
 
 function refreshExplorer() {
   if (!snapshot) return;
-  if (isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
+  if (enterCanvasActive() || isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
     paint({ animate: "none" });
     return;
   }
