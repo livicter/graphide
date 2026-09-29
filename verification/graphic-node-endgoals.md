@@ -48,10 +48,21 @@ Choice: click `.bubble-card.end`. The leaf is already lit on the Steiner tree, s
 
 Proof target: `E1j` (one lit end on `n7`, no start, XYFlow only inside `#enterCanvas`) and `E1k` (Back to Map `xy=0` / `data-lod="0"`, no stamp). Enter follows the camera lod. `E1c` still holds on `b-render`.
 
-Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, and `E1c`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. One lit end pill (`END · Function` / `Body` on `n7`), not a black frame. No `.graphide/stamps/` write.
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, and `E1c`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. One lit end pill (`END · Function` / `Body` on `n7`), not a black frame. No `.graphide/stamps/` write. That shot panned the pill into the stage: enter fit held zoom at 78% and the community was taller than the stage.
 
-## Ranked backlog (Pass 5+)
+## Pass 5 (2026-09-30)
 
-1. Enter fit clips the walk end. `fitChart` holds `k >= 0.78` while enter is open so zoom-pop does not fire, and the `b-ui` graph is taller than the stage. `n7` paints above the stage until the camera pans. Do not drop that floor under `0.42`.
-2. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
-3. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.
+Base: Pass 4 tip `4436cdd` (`cursor/enter-sink-end-d0cf`, #120). Herdr #113–#116 stayed parked.
+
+Gap: `fitChart` forced `k >= 0.78` while enter was open. The `b-ui` chart is taller than the stage at that hold, so `n7` and other members painted off stage until the camera panned. The 0.78 hold was there so one zoom-in would arm zoom-pop. Fit is not that gesture.
+
+Choice: subtract the hold. The existing fit frames `.comm-wrap` / `#enterCanvas`. A tall community uses that scale, including when it sits under 0.78 and just under the 0.42 pop line. `zoomPopReady` stays false across the fit, so landing there does not pop. Pop is still a later zoom-out after `k > 0.8`. No new IR kind. No new shape. No new camera. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`. Decision shape stays parked.
+
+Proof target: `E1j` (one lit end on `n7`, every entered member inside the stage, zoom under 78%, no pan). `E1k` and `E1c` still hold. Zoom-pop (`E1h`, `SR2f`) zooms in until the arm, then out.
+
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, `E1c`, `E1h`, and `SR2f`. `E1j` fit is `k=0.414` with all 24 members inside the stage and the lit end on `n7`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. Not a black frame. No pan. No `.graphide/stamps/` write.
+
+## Ranked backlog (Pass 6+)
+
+1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
+2. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.
