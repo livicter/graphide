@@ -12,6 +12,8 @@ Choice: one `steinerOfWalk` rule, used by Slice and by Enter. `renderEnterCanvas
 
 Proof target: `SR2b` (Slice `b-render` enter, one lit start on `n0`, no end) and `E1c` (Map first community, same start, XYFlow only inside `#enterCanvas`). Map community LOD stays `xy=0` / `data-lod=0` on the card altitude. Enter follows the camera lod.
 
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 445/445`, including `SR2b` and `E1c`. `verification/enter-bubble.png` luma 0.964 at 1440×900. Not a black frame. No `.graphide/stamps/` write.
+
 ## Ranked backlog (Pass 2+)
 
 1. Nested communities. `enterBubble` labels child bubbles `kind: "Type"`, so a non-leaf reads as a TYPE pill. Give them a real derived shape without a new IR kind, and prove deeper enter / back on both the Map path (`graphFilter.bubble`) and the Slice stack path.
