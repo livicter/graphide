@@ -3494,6 +3494,14 @@ function flowWalk(flow) {
   return walk;
 }
 
+function steinerOfWalk(walk, id) {
+  if (!walk || !walk.length) return "";
+  const nid = String(id);
+  if (nid === String(walk[0])) return "start";
+  if (walk.length > 1 && nid === String(walk[walk.length - 1])) return "end";
+  return "";
+}
+
 function storyFlow() {
   return defaultRunFlow() || currentFlow();
 }
@@ -8649,7 +8657,8 @@ function sliceCanvasProps(flow, graph, scars) {
     const at = walk.indexOf(nid);
     const sliceDist = dist.has(nid) ? dist.get(nid) : 99;
     const onTree = sliceDist === 0;
-    const hopRole = onTree && at === 0 ? "START · " : onTree && at === walk.length - 1 && walk.length > 1 ? "END · " : "";
+    const steiner = onTree ? steinerOfWalk(walk, nid) : "";
+    const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
     return {
       id: nid,
       fqn,
@@ -8657,7 +8666,7 @@ function sliceCanvasProps(flow, graph, scars) {
       kindClass: kindClass(kind),
       label: shortOf(fqn),
       kindLine: hopRole + kindLine(nid, kind),
-      steiner: onTree && at === 0 ? "start" : onTree && at === walk.length - 1 && walk.length > 1 ? "end" : "",
+      steiner,
       where: file ? shortFile(file) + (line ? ":" + line : "") : "",
       file: file || "",
       snip: snippetPreview(snippets[nid]),
@@ -8881,6 +8890,8 @@ function enterEdgesAmong(nodes) {
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
   const hops = enterEdgesAmong(nodes);
+  const flow = ((snapshot && snapshot.flows) || []).find((f) => f.name === inner.flow);
+  const walk = flowWalk(flow);
   const items = nodes.map((n) => {
     const nid = String(idVal(n.id));
     const flags = nodeFlags(nid);
@@ -8888,13 +8899,16 @@ function enterCanvasProps(inner) {
     const fqn = n.fqn || "";
     const node = nodeById.get(nid);
     const file = node && node.span ? node.span.file : "";
+    const steiner = n.lit ? steinerOfWalk(walk, nid) : "";
+    const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
     return {
       id: nid,
       fqn,
       kind,
       kindClass: kindClass(kind),
       label: shortOf(n.fqn),
-      kindLine: n.is_leaf ? kind : "bubble",
+      kindLine: hopRole + (n.is_leaf ? kind : "bubble"),
+      steiner,
       lit: !!n.lit,
       grey: !n.lit,
       isLeaf: !!n.is_leaf,

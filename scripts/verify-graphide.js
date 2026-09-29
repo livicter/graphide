@@ -3461,6 +3461,29 @@ async function main() {
         srEnter.enterRun,
       "xy=" + srEnter.xy + " shapes=" + srEnter.shapes.join(",") + " click=" + JSON.stringify(srClick)
     );
+    const srEnds = await page.evaluate(() => {
+      const starts = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='start']")];
+      const ends = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='end']")];
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        starts: starts.length,
+        startId: starts[0] ? starts[0].getAttribute("data-id") || "" : "",
+        startLit: starts.filter((el) => el.getAttribute("data-lit") === "1").length,
+        ends: ends.length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+      };
+    });
+    record(
+      "SR2b",
+      "Slice run enter stamps the walk start on #enterCanvas and leaves the walk end for its own community",
+      srClick.bubble === "b-render" &&
+        srEnds.starts === 1 &&
+        srEnds.startId === "n0" &&
+        srEnds.startLit === 1 &&
+        srEnds.ends === 0 &&
+        srEnds.lod === "0",
+      JSON.stringify({ bubble: srClick.bubble, ...srEnds })
+    );
     const afterSr = await page.evaluate((before) => {
       const posts = (window.__vscodePosts || []).slice(before);
       return {
@@ -4494,6 +4517,34 @@ async function main() {
       return nodes.length > 1 && nodes.length === document.querySelectorAll("#enterCanvas .react-flow__node").length;
     });
     record("E1b", "Enter-bubble XYFlow nodes each carry data-shape", enterShapesOk, "xy=" + entered.xy + " shapes=" + entered.shapes.join(","));
+    const enterEnds = await page.evaluate(() => {
+      const starts = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='start']")];
+      const ends = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='end']")];
+      const vp = document.querySelector("#canvas .viewport");
+      const enterXy = document.querySelectorAll("#enterCanvas .react-flow__node").length;
+      return {
+        starts: starts.length,
+        startId: starts[0] ? starts[0].getAttribute("data-id") || "" : "",
+        startLit: starts.filter((el) => el.getAttribute("data-lit") === "1").length,
+        ends: ends.length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enterXy,
+      };
+    });
+    record(
+      "E1c",
+      "Map community enter stamps the same walk-start shape and keeps community LOD off the Map",
+      enterEnds.starts === 1 &&
+        enterEnds.startId === "n0" &&
+        enterEnds.startLit === 1 &&
+        enterEnds.ends === 0 &&
+        enterEnds.lod === "0" &&
+        enterEnds.cards === 0 &&
+        enterEnds.xy === enterEnds.enterXy,
+      JSON.stringify(enterEnds)
+    );
 
     await shot(page, "enter-bubble.png");
 

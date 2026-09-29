@@ -19515,6 +19515,7 @@
         kindLine: n.kindLine || n.kind || "Function",
         lit: !!n.lit,
         grey: !!n.grey,
+        steiner: n.steiner || "",
         isLeaf: n.isLeaf !== false,
         uncovered: !!n.uncovered,
         changed: !!n.changed,
@@ -22663,6 +22664,13 @@
         if (!seen.has(id2)) walk.push(id2);
       }
       return walk;
+    }
+    function steinerOfWalk(walk, id2) {
+      if (!walk || !walk.length) return "";
+      const nid = String(id2);
+      if (nid === String(walk[0])) return "start";
+      if (walk.length > 1 && nid === String(walk[walk.length - 1])) return "end";
+      return "";
     }
     function storyFlow() {
       return defaultRunFlow() || currentFlow();
@@ -26491,7 +26499,8 @@
         const at2 = walk.indexOf(nid);
         const sliceDist = dist.has(nid) ? dist.get(nid) : 99;
         const onTree = sliceDist === 0;
-        const hopRole = onTree && at2 === 0 ? "START · " : onTree && at2 === walk.length - 1 && walk.length > 1 ? "END · " : "";
+        const steiner = onTree ? steinerOfWalk(walk, nid) : "";
+        const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
         return {
           id: nid,
           fqn,
@@ -26499,7 +26508,7 @@
           kindClass: kindClass(kind),
           label: shortOf(fqn),
           kindLine: hopRole + kindLine(nid, kind),
-          steiner: onTree && at2 === 0 ? "start" : onTree && at2 === walk.length - 1 && walk.length > 1 ? "end" : "",
+          steiner,
           where: file ? shortFile(file) + (line ? ":" + line : "") : "",
           file: file || "",
           snip: snippetPreview(snippets[nid]),
@@ -26643,6 +26652,8 @@
     function enterCanvasProps(inner) {
       const nodes = (inner.nodes || []).slice(0, 24);
       const hops = enterEdgesAmong(nodes);
+      const flow = (snapshot && snapshot.flows || []).find((f) => f.name === inner.flow);
+      const walk = flowWalk(flow);
       const items = nodes.map((n) => {
         const nid = String(idVal(n.id));
         const flags = nodeFlags(nid);
@@ -26650,13 +26661,16 @@
         const fqn = n.fqn || "";
         const node = nodeById.get(nid);
         const file = node && node.span ? node.span.file : "";
+        const steiner = n.lit ? steinerOfWalk(walk, nid) : "";
+        const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
         return {
           id: nid,
           fqn,
           kind,
           kindClass: kindClass(kind),
           label: shortOf(n.fqn),
-          kindLine: n.is_leaf ? kind : "bubble",
+          kindLine: hopRole + (n.is_leaf ? kind : "bubble"),
+          steiner,
           lit: !!n.lit,
           grey: !n.lit,
           isLeaf: !!n.is_leaf,

@@ -481,7 +481,9 @@ assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver
 assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("lineage.png") && driver.includes("LINEAGE_HARNESS") && driver.includes("#lineageCanvas .react-flow__node"), "verify driver must drive Lineage XYFlow on the demo fixture");
-assert(driver.includes("enter-bubble.png") && driver.includes("#enterCanvas .react-flow__node") && driver.includes("E1"), "verify driver must prove enter-bubble XYFlow from Map");
+assert(driver.includes("enter-bubble.png") && driver.includes("#enterCanvas .react-flow__node") && driver.includes("E1") && driver.includes("E1c") && driver.includes("data-shape='start'"), "verify driver must prove enter-bubble XYFlow from Map, including the walk-start shape");
+assert(driver.includes("SR2b") && driver.includes("b-render"), "verify driver must prove Slice run enter stamps the same walk-start shape");
+assert(js.includes("function steinerOfWalk"), "Slice and Enter must share one walk start/end rule");
 assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver must prove Lineage upstream / downstream");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");
 assert(driver.includes("present.png") && driver.includes("preset-blueprint.png"), "verify driver must screenshot present and blueprint");
