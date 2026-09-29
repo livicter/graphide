@@ -282,6 +282,44 @@ async function shot(page, name, opts) {
   return dest;
 }
 
+async function enterCutSig(page) {
+  return page.evaluate(() => {
+    const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+    return {
+      ids: nodes.map((el) => el.getAttribute("data-id") || "").sort().join(","),
+      types: nodes.filter((el) => el.getAttribute("data-shape") === "type" && el.getAttribute("data-leaf") === "0").length,
+      leaves: nodes.filter((el) => el.getAttribute("data-leaf") === "1").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      runs: document.querySelectorAll("#canvas .run[data-run]").length,
+      enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+    };
+  });
+}
+
+async function zoomPopOneLevel(page) {
+  const before = await enterCutSig(page);
+  await page.evaluate(() => {
+    const zin = document.getElementById("zoomIn");
+    if (zin) zin.click();
+  });
+  for (let i = 0; i < 12; i++) {
+    const jumped = await page.evaluate(() => {
+      const read = () => {
+        const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+        return m ? Number(m[1]) : 100;
+      };
+      const beforePct = read();
+      const btn = document.getElementById("zoomOut");
+      if (btn) btn.click();
+      return read() > beforePct;
+    });
+    if (jumped) break;
+  }
+  await page.waitForTimeout(450);
+  const after = await enterCutSig(page);
+  return { before, after };
+}
+
 function writeReport(extra) {
   fs.mkdirSync(OUT, { recursive: true });
   const failed = checks.filter((c) => !c.pass);
@@ -3605,6 +3643,32 @@ async function main() {
       backSrTypes >= 2,
       "types=" + backSrTypes
     );
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='1']").length > 1,
+      null,
+      { timeout: 10000 }
+    );
+    const srZoom = await zoomPopOneLevel(page);
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    const srZoomCut = await enterCutSig(page);
+    record(
+      "SR2f",
+      "Zoom-pop from deeper Slice enter returns to the Type cut on the same stack",
+      srZoom.before.leaves > 1 &&
+        srZoomCut.types >= 2 &&
+        srZoomCut.cards === 0 &&
+        srZoomCut.runs === 0 &&
+        srZoomCut.enter > 1,
+      JSON.stringify({ before: srZoom.before, after: srZoomCut })
+    );
     const backSrRuns = page.locator("#backBtn");
     if (await backSrRuns.isEnabled()) await backSrRuns.click();
     else {
@@ -4964,6 +5028,89 @@ async function main() {
       "Back from child communities returns Map to xy=0 and data-lod=0",
       afterChildren.cards >= 8 && afterChildren.xy === 0 && afterChildren.enter === 0 && afterChildren.lod === "0",
       JSON.stringify(afterChildren)
+    );
+
+    const stackClick = await page.evaluate(() => {
+      const card = document.querySelector('.bubble-card[data-bubble="b-physics"]');
+      if (!card) return { clicked: false };
+      card.click();
+      return { clicked: true };
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='1']").length > 1,
+      null,
+      { timeout: 10000 }
+    );
+    const mapZoom = await zoomPopOneLevel(page);
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    await page.waitForTimeout(150);
+    const zoomCut = await enterCutSig(page);
+    record(
+      "E1h",
+      "Zoom-pop from deeper Map enter returns to the Type cut",
+      stackClick.clicked &&
+        mapZoom.before.leaves > 1 &&
+        zoomCut.types >= 2 &&
+        zoomCut.ids.indexOf("b-physics-a") >= 0 &&
+        zoomCut.ids.indexOf("b-physics-b") >= 0 &&
+        zoomCut.cards === 0 &&
+        zoomCut.enter > 1,
+      JSON.stringify({ before: mapZoom.before, zoom: zoomCut })
+    );
+    await shot(page, "enter-back-stack.png");
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='1']").length > 1,
+      null,
+      { timeout: 10000 }
+    );
+    const backSame = page.locator("#backBtn");
+    if (await backSame.isEnabled()) await backSame.click();
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    const backCut = await enterCutSig(page);
+    const backMapStack = page.locator("#backBtn");
+    if (await backMapStack.isEnabled()) await backMapStack.click();
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const afterStack = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+      };
+    });
+    record(
+      "E1i",
+      "Back from that same depth returns to the same Type cut, then Map xy=0 and data-lod=0",
+      backCut.ids === zoomCut.ids &&
+        backCut.types >= 2 &&
+        afterStack.cards >= 8 &&
+        afterStack.xy === 0 &&
+        afterStack.enter === 0 &&
+        afterStack.lod === "0",
+      JSON.stringify({ zoom: zoomCut.ids, back: backCut.ids, map: afterStack })
     );
 
     await page.fill("#graphSearch", "render");

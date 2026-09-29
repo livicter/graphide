@@ -19,12 +19,14 @@ not Map enter-bubble, and not an agent stamp.
 - Click / drag-click: `bindDraggable(..., ".run")` → `enterRun(flow, bubble)`.
   Posts `{ type: "enterRun", flow, bubble }`. Stack `{ kind: "bubble" }`
   then `enterBubble` + `renderInner` mounts `#enterCanvas` shaped XYFlow
-  (`.vnode[data-shape]`, cap 24), not a vanilla `.inode` list. Walk
-  source and sink use the same `steinerOfWalk` marks as Slice
+  (`.vnode[data-shape]`, cap 24), not a vanilla `.inode` list. Map
+  community click uses the same `enterRun` frame (`enterMapBubble`).
+  Walk source and sink use the same `steinerOfWalk` marks as Slice
   (`data-shape="start"` / `"end"`). The `b-render` run holds the source
   (`n0`) and not the sink. The `b-physics` run has child communities;
   entering it stamps `data-shape="type"` on those non-leaves. Deeper
-  enter shows member shapes. Back returns along the same stack.
+  enter pushes another bubble frame. Back and zoom-pop each pop one
+  frame on that stack.
 - Stamp / skip stay human. Entering a run never posts `{ type: "stamp" }`
   / `{ type: "skip" }` and never writes `.graphide/stamps/`.
 
@@ -64,7 +66,8 @@ Driver assertions (ids `SR0`…):
   (no `.inode`). The `b-render` run shows one lit `[data-shape="start"]`
   on `n0` and no `[data-shape="end"]`. The `b-physics` run shows
   Type-shaped child communities (`data-leaf="0"`); deeper enter shows
-  member shapes and Back returns to that Type cut, then to the runs
+  member shapes and Back returns to that Type cut, then to the runs.
+  Zoom-pop from the deeper enter lands on that same Type cut (`SR2f`)
 - screenshot `verification/slice-runs.png` is not a black frame
 - no `{ type: "stamp" }` / `{ type: "skip" }` post on this step
 - `.graphide/stamps/` is still empty
