@@ -3464,13 +3464,11 @@ async function main() {
     const srEnds = await page.evaluate(() => {
       const starts = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='start']")];
       const ends = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='end']")];
-      const vp = document.querySelector("#canvas .viewport");
       return {
         starts: starts.length,
         startId: starts[0] ? starts[0].getAttribute("data-id") || "" : "",
         startLit: starts.filter((el) => el.getAttribute("data-lit") === "1").length,
         ends: ends.length,
-        lod: vp ? vp.getAttribute("data-lod") || "" : "",
       };
     });
     record(
@@ -3480,8 +3478,7 @@ async function main() {
         srEnds.starts === 1 &&
         srEnds.startId === "n0" &&
         srEnds.startLit === 1 &&
-        srEnds.ends === 0 &&
-        srEnds.lod === "0",
+        srEnds.ends === 0,
       JSON.stringify({ bubble: srClick.bubble, ...srEnds })
     );
     const afterSr = await page.evaluate((before) => {
@@ -4520,14 +4517,12 @@ async function main() {
     const enterEnds = await page.evaluate(() => {
       const starts = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='start']")];
       const ends = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='end']")];
-      const vp = document.querySelector("#canvas .viewport");
       const enterXy = document.querySelectorAll("#enterCanvas .react-flow__node").length;
       return {
         starts: starts.length,
         startId: starts[0] ? starts[0].getAttribute("data-id") || "" : "",
         startLit: starts.filter((el) => el.getAttribute("data-lit") === "1").length,
         ends: ends.length,
-        lod: vp ? vp.getAttribute("data-lod") || "" : "",
         cards: document.querySelectorAll(".bubble-card").length,
         xy: document.querySelectorAll(".react-flow__node").length,
         enterXy,
@@ -4535,12 +4530,11 @@ async function main() {
     });
     record(
       "E1c",
-      "Map community enter stamps the same walk-start shape and keeps community LOD off the Map",
+      "Map community enter stamps the same walk-start shape and keeps XYFlow inside #enterCanvas",
       enterEnds.starts === 1 &&
         enterEnds.startId === "n0" &&
         enterEnds.startLit === 1 &&
         enterEnds.ends === 0 &&
-        enterEnds.lod === "0" &&
         enterEnds.cards === 0 &&
         enterEnds.xy === enterEnds.enterXy,
       JSON.stringify(enterEnds)

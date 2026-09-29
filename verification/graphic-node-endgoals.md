@@ -10,7 +10,7 @@ Gap vs #64: Map click and Slice `.run` click both reach `enterBubble` → `rende
 
 Choice: one `steinerOfWalk` rule, used by Slice and by Enter. `renderEnterCanvas` forwards `steiner`. No new IR kind. No new shape. Agents still never stamp.
 
-Proof target: `SR2b` (Slice `b-render` enter, one lit start on `n0`, no end) and `E1c` (Map first community, same start, viewport `data-lod=0`, XYFlow only inside `#enterCanvas`).
+Proof target: `SR2b` (Slice `b-render` enter, one lit start on `n0`, no end) and `E1c` (Map first community, same start, XYFlow only inside `#enterCanvas`). Map community LOD stays `xy=0` / `data-lod=0` on the card altitude. Enter follows the camera lod.
 
 ## Ranked backlog (Pass 2+)
 
