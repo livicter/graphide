@@ -7841,11 +7841,6 @@
     return fn2();
   }
 
-  // extension/media/src/graph/sequence-canvas.jsx
-  var import_react4 = __toESM(require_react());
-  var import_client = __toESM(require_client());
-  var import_react_dom2 = __toESM(require_react_dom());
-
   // node_modules/@xyflow/react/dist/esm/index.js
   var import_jsx_runtime10 = __toESM(require_jsx_runtime());
   var import_react2 = __toESM(require_react());
@@ -16995,6 +16990,11 @@
       /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(Handle, { type: "source", position: Position.Right })
     ] });
   }
+
+  // extension/media/src/graph/sequence-canvas.jsx
+  var import_react4 = __toESM(require_react());
+  var import_client = __toESM(require_client());
+  var import_react_dom2 = __toESM(require_react_dom());
 
   // node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var Te = Object.defineProperty;
@@ -26657,11 +26657,12 @@
       const items = nodes.map((n) => {
         const nid = String(idVal(n.id));
         const flags = nodeFlags(nid);
-        const kind = n.kind || "Function";
+        const leaf = !!n.is_leaf;
+        const kind = leaf ? n.kind || "Function" : "Type";
         const fqn = n.fqn || "";
         const node = nodeById.get(nid);
         const file = node && node.span ? node.span.file : "";
-        const steiner = n.lit ? steinerOfWalk(walk, nid) : "";
+        const steiner = leaf && n.lit ? steinerOfWalk(walk, nid) : "";
         const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
         return {
           id: nid,
@@ -26669,16 +26670,17 @@
           kind,
           kindClass: kindClass(kind),
           label: shortOf(n.fqn),
-          kindLine: hopRole + (n.is_leaf ? kind : "bubble"),
+          kindLine: hopRole + kind,
           steiner,
           lit: !!n.lit,
           grey: !n.lit,
-          isLeaf: !!n.is_leaf,
+          isLeaf: leaf,
           flow: inner.flow,
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
           surface: "enter-node",
-          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" })
+          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+          shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" })
         };
       });
       const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));

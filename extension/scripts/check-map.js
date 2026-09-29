@@ -482,7 +482,11 @@ assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"),
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("lineage.png") && driver.includes("LINEAGE_HARNESS") && driver.includes("#lineageCanvas .react-flow__node"), "verify driver must drive Lineage XYFlow on the demo fixture");
 assert(driver.includes("enter-bubble.png") && driver.includes("#enterCanvas .react-flow__node") && driver.includes("E1") && driver.includes("E1c") && driver.includes("data-shape='start'"), "verify driver must prove enter-bubble XYFlow from Map, including the walk-start shape");
+assert(driver.includes("E1d") && driver.includes("enter-child-type.png") && driver.includes("b-physics") && driver.includes("data-shape='type'") && driver.includes("E1g") && driver.includes("data-lod"), "verify driver must prove child communities use the Type data-shape and return Map to lod 0");
 assert(driver.includes("SR2b") && driver.includes("b-render"), "verify driver must prove Slice run enter stamps the same walk-start shape");
+assert(driver.includes("SR2c") && driver.includes("SR2e") && driver.includes("b-physics"), "verify driver must prove Slice stack enter of a parent community stamps the Type data-shape");
+assert(harness.includes("b-physics-a") && harness.includes('parent: "b-physics"'), "explorer fixture must nest child communities under b-physics");
+assert(chrome.includes('shapeOf({ id: nid, kind: "Type" })'), "child communities must take the Type shape from the registry");
 assert(js.includes("function steinerOfWalk"), "Slice and Enter must share one walk start/end rule");
 assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver must prove Lineage upstream / downstream");
 assert(driver.includes("export-share.png") && driver.includes("exportBtn") && driver.includes("1200"), "verify driver must trigger Export and assert the 1200×630 Share Card");

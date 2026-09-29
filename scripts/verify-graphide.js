@@ -3504,6 +3504,116 @@ async function main() {
         if (crumb) crumb.click();
       });
     }
+    await page.waitForSelector("#canvas .run[data-bubble='b-physics']", { timeout: 10000 });
+    const srChildClick = await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-bubble='b-physics']");
+      if (!run) return { clicked: false };
+      run.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return {
+        clicked: true,
+        run: run.getAttribute("data-run") || "",
+        bubble: run.getAttribute("data-bubble") || "",
+      };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("Slice child communities did not mount — click=" + JSON.stringify(srChildClick)));
+    await page.waitForTimeout(200);
+    const srChild = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      const starts = document.querySelectorAll("#enterCanvas .vnode[data-shape='start']").length;
+      return {
+        n: nodes.length,
+        types: nodes.filter((el) => el.getAttribute("data-shape") === "type" && el.getAttribute("data-leaf") === "0").length,
+        starts,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+      };
+    });
+    record(
+      "SR2c",
+      "Slice stack enter of a parent community stamps the Type data-shape",
+      srChildClick.clicked &&
+        srChildClick.bubble === "b-physics" &&
+        srChild.n >= 2 &&
+        srChild.n <= 24 &&
+        srChild.types === srChild.n &&
+        srChild.starts === 0 &&
+        srChild.cards === 0 &&
+        srChild.xy === srChild.enterXy,
+      JSON.stringify({ click: srChildClick, ...srChild })
+    );
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='1']").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("deeper Slice enter did not mount member shapes"));
+    await page.waitForTimeout(200);
+    const srDeeper = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      return {
+        n: nodes.length,
+        leaves: nodes.filter((el) => el.getAttribute("data-leaf") === "1").length,
+        fn: nodes.some((el) => el.getAttribute("data-shape") === "fn"),
+        startId: (document.querySelector("#enterCanvas .vnode[data-shape='start']") || {}).getAttribute
+          ? document.querySelector("#enterCanvas .vnode[data-shape='start']").getAttribute("data-id") || ""
+          : "",
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "SR2d",
+      "Deeper Slice enter shows member shapes and does not move the walk start",
+      srDeeper.n > 1 &&
+        srDeeper.n <= 24 &&
+        srDeeper.leaves === srDeeper.n &&
+        srDeeper.fn &&
+        srDeeper.startId !== "n0" &&
+        srDeeper.cards === 0,
+      JSON.stringify(srDeeper)
+    );
+    const backSrChild = page.locator("#backBtn");
+    if (await backSrChild.isEnabled()) await backSrChild.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    const backSrTypes = await page.evaluate(() =>
+      document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length
+    );
+    record(
+      "SR2e",
+      "Back on the Slice stack returns to Type-shaped child communities",
+      backSrTypes >= 2,
+      "types=" + backSrTypes
+    );
+    const backSrRuns = page.locator("#backBtn");
+    if (await backSrRuns.isEnabled()) await backSrRuns.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForSelector("#canvas .run[data-run]", { timeout: 10000 });
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForFunction(
       () => {
@@ -4714,6 +4824,146 @@ async function main() {
       "Back from enter-bubble returns to Map community LOD (xy=0)",
       afterEnter.cards >= 8 && afterEnter.xy === 0 && afterEnter.enter === 0,
       "cards=" + afterEnter.cards + " xy=" + afterEnter.xy
+    );
+
+    const childClick = await page.evaluate(() => {
+      const card = document.querySelector('.bubble-card[data-bubble="b-physics"]');
+      if (!card) return { clicked: false };
+      card.click();
+      return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='0']").length >= 2,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("child communities did not mount — click=" + JSON.stringify(childClick)));
+    await page.waitForTimeout(200);
+    const childCut = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      return {
+        n: nodes.length,
+        shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))],
+        kinds: [...new Set(nodes.map((el) => el.getAttribute("data-kind")))],
+        nonLeaves: nodes.filter((el) => el.getAttribute("data-leaf") === "0").length,
+        ids: nodes.map((el) => el.getAttribute("data-id") || ""),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        inode: document.querySelectorAll(".inode").length,
+      };
+    });
+    record(
+      "E1d",
+      "Map child communities use the Type data-shape and stay non-leaves",
+      childClick.clicked &&
+        childClick.id === "b-physics" &&
+        childCut.n >= 2 &&
+        childCut.n <= 24 &&
+        childCut.nonLeaves === childCut.n &&
+        childCut.shapes.length === 1 &&
+        childCut.shapes[0] === "type" &&
+        childCut.kinds.length === 1 &&
+        childCut.kinds[0] === "Type" &&
+        childCut.ids.indexOf("b-physics-a") >= 0 &&
+        childCut.ids.indexOf("b-physics-b") >= 0 &&
+        childCut.inode === 0 &&
+        childCut.cards === 0 &&
+        childCut.xy === childCut.enterXy,
+      JSON.stringify({ click: childClick, ...childCut })
+    );
+    await shot(page, "enter-child-type.png");
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-leaf='1']").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("deeper Map enter did not mount member shapes"));
+    await page.waitForTimeout(200);
+    const deeperMap = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      return {
+        n: nodes.length,
+        leaves: nodes.filter((el) => el.getAttribute("data-leaf") === "1").length,
+        shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))],
+        fn: nodes.some((el) => el.getAttribute("data-shape") === "fn"),
+        allType: nodes.length > 0 && nodes.every((el) => el.getAttribute("data-shape") === "type"),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+      };
+    });
+    record(
+      "E1e",
+      "Deeper Map enter shows member shapes on the stack path",
+      deeperMap.n > 1 &&
+        deeperMap.n <= 24 &&
+        deeperMap.leaves === deeperMap.n &&
+        deeperMap.fn &&
+        !deeperMap.allType &&
+        deeperMap.cards === 0 &&
+        deeperMap.xy === deeperMap.enterXy,
+      JSON.stringify(deeperMap)
+    );
+    const backChild = page.locator("#backBtn");
+    if (await backChild.isEnabled()) await backChild.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll("#enterCanvas .vnode[data-shape='type'][data-leaf='0']").length >= 2,
+      null,
+      { timeout: 10000 }
+    );
+    await page.waitForTimeout(150);
+    const backToChildren = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-shape]")];
+      return {
+        n: nodes.length,
+        types: nodes.filter((el) => el.getAttribute("data-shape") === "type" && el.getAttribute("data-leaf") === "0").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    record(
+      "E1f",
+      "Back from deeper Map enter returns to Type-shaped child communities",
+      backToChildren.n >= 2 && backToChildren.types === backToChildren.n && backToChildren.cards === 0,
+      JSON.stringify(backToChildren)
+    );
+    const backMap = page.locator("#backBtn");
+    if (await backMap.isEnabled()) await backMap.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const afterChildren = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+      };
+    });
+    record(
+      "E1g",
+      "Back from child communities returns Map to xy=0 and data-lod=0",
+      afterChildren.cards >= 8 && afterChildren.xy === 0 && afterChildren.enter === 0 && afterChildren.lod === "0",
+      JSON.stringify(afterChildren)
     );
 
     await page.fill("#graphSearch", "render");
