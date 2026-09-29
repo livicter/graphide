@@ -24,6 +24,8 @@ Choice: non-leaves ask `shapeOf({ kind: "Type" })` and do not take walk start / 
 
 Proof target: `E1d`–`E1g` (Map Type cut, deeper member shapes, Back to the Type cut, Back to Map `xy=0` / `data-lod="0"`) and `SR2c`–`SR2e` (same Type cut on the Slice stack, deeper members, Back). `E1c` and `SR2b` still hold on `b-render`.
 
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 453/453`, including `E1d`, `E1e`, `E1f`, `E1g`, `SR2c`, `SR2d`, `SR2e`, `E1c`, and `SR2b`. `verification/enter-child-type.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`), not a black frame. No `.graphide/stamps/` write.
+
 ## Ranked backlog (Pass 3+)
 
 1. One enter navigation. Map sets `graphFilter.bubble`. Slice `.run` pushes `{ kind: "bubble" }`. Deeper enter from a Map community then uses the stack while the filter still names the parent. Collapse to one back stack so zoom-pop and Back cannot disagree.
