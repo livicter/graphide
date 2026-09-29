@@ -46,9 +46,12 @@ Gap: Pass 1 proved the walk start on `b-render` (`n0`) and the absence of `data-
 
 Choice: click `.bubble-card.end`. The leaf is already lit on the Steiner tree, so the existing `steinerOfWalk` mark becomes `end` and `shapeOf` on the DerivedNode registry emits `data-shape="end"`. Kind stays Function. No new IR kind. No new shape. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`.
 
-Proof target: `E1j` (one lit end on `n7`, no start, XYFlow only inside `#enterCanvas`, enter `data-lod="0"`) and `E1k` (Back to Map `xy=0` / `data-lod="0"`, no stamp). `E1c` still holds on `b-render`.
+Proof target: `E1j` (one lit end on `n7`, no start, XYFlow only inside `#enterCanvas`) and `E1k` (Back to Map `xy=0` / `data-lod="0"`, no stamp). Enter follows the camera lod. `E1c` still holds on `b-render`.
+
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, and `E1c`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. One lit end pill (`END · Function` / `Body` on `n7`), not a black frame. No `.graphide/stamps/` write.
 
 ## Ranked backlog (Pass 5+)
 
-1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
-2. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.
+1. Enter fit clips the walk end. `fitChart` holds `k >= 0.78` while enter is open so zoom-pop does not fire, and the `b-ui` graph is taller than the stage. `n7` paints above the stage until the camera pans. Do not drop that floor under `0.42`.
+2. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
+3. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.

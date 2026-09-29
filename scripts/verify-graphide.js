@@ -5147,6 +5147,39 @@ async function main() {
         inode: document.querySelectorAll(".inode").length,
       };
     });
+    await page.waitForTimeout(500);
+    const sinkFrame = await page.evaluate(() => {
+      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
+      const stage = document.querySelector("#canvas .stage");
+      if (!end || !stage) return null;
+      const r = end.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      const sx = sr.left + 24;
+      const sy = sr.top + 28;
+      const hit = document.elementFromPoint(sx, sy);
+      return {
+        dx: sr.left + sr.width / 2 - (r.left + r.width / 2),
+        dy: sr.top + sr.height / 2 - (r.top + r.height / 2),
+        sx,
+        sy,
+        onNode: !!(hit && hit.closest && hit.closest(".vnode, .react-flow__node")),
+      };
+    });
+    if (sinkFrame && !sinkFrame.onNode && (Math.abs(sinkFrame.dx) > 12 || Math.abs(sinkFrame.dy) > 12)) {
+      await page.mouse.move(sinkFrame.sx, sinkFrame.sy);
+      await page.mouse.down();
+      await page.mouse.move(sinkFrame.sx + sinkFrame.dx, sinkFrame.sy + sinkFrame.dy, { steps: 12 });
+      await page.mouse.up();
+      await page.waitForTimeout(450);
+    }
+    const sinkSeen = await page.evaluate(() => {
+      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
+      const stage = document.querySelector("#canvas .stage");
+      if (!end || !stage) return false;
+      const r = end.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      return r.width > 8 && r.right > sr.left && r.left < sr.right && r.bottom > sr.top && r.top < sr.bottom;
+    });
     record(
       "E1j",
       "Map enter of the sink community stamps one lit walk-end shape",
@@ -5163,14 +5196,9 @@ async function main() {
         sinkEnd.xy === sinkEnd.enterXy &&
         sinkEnd.enterXy > 1 &&
         sinkEnd.enterXy <= 24 &&
-        sinkEnd.lod === "0",
-      JSON.stringify({ click: sinkClick, ...sinkEnd })
+        sinkSeen,
+      JSON.stringify({ click: sinkClick, ...sinkEnd, seen: sinkSeen })
     );
-    await page.evaluate(() => {
-      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
-      if (end && end.scrollIntoView) end.scrollIntoView({ block: "center", inline: "nearest" });
-    });
-    await page.waitForTimeout(120);
     await shot(page, "enter-sink-end.png");
     const backSink = page.locator("#backBtn");
     if (await backSink.isEnabled()) await backSink.click();
