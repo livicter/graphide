@@ -38,8 +38,17 @@ Proof target: `E1h` (zoom-pop from deeper Map enter lands on the Type cut, not M
 
 Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 457/457`, including `E1h`, `E1i`, `SR2f`, `E1f`, `E1g`, and `SR2e`. `verification/enter-back-stack.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) after zoom-pop, not a black frame. No `.graphide/stamps/` write.
 
-## Ranked backlog (Pass 4+)
+## Pass 4 (2026-09-30)
 
-1. Walk end on its own community. `n7` lives outside `b-render`. Pass 1 asserts the absence there. Enter the sink community and require one lit `data-shape="end"`.
-2. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
-3. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.
+Base: Pass 3 tip `f049a05` (`cursor/enter-back-stack-e009`, #119). Herdr #113–#116 stayed parked.
+
+Gap: Pass 1 proved the walk start on `b-render` (`n0`) and the absence of `data-shape="end"` there. The walk sink is `n7`, in the story end card `b-ui`, outside that community. Enter never drove that card.
+
+Choice: click `.bubble-card.end`. The leaf is already lit on the Steiner tree, so the existing `steinerOfWalk` mark becomes `end` and `shapeOf` on the DerivedNode registry emits `data-shape="end"`. Kind stays Function. No new IR kind. No new shape. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`.
+
+Proof target: `E1j` (one lit end on `n7`, no start, XYFlow only inside `#enterCanvas`, enter `data-lod="0"`) and `E1k` (Back to Map `xy=0` / `data-lod="0"`, no stamp). `E1c` still holds on `b-render`.
+
+## Ranked backlog (Pass 5+)
+
+1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
+2. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.
