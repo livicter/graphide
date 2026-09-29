@@ -36,6 +36,8 @@ Choice: one back stack. Map click (`enterMapBubble`), story chips, and Slice `.r
 
 Proof target: `E1h` (zoom-pop from deeper Map enter lands on the Type cut, not Map) and `E1i` (Back from that depth lands on the same Type ids, then Map `xy=0` / `data-lod="0"`). `SR2f` is the same zoom-pop on the Slice stack. `E1f`, `E1g`, and `SR2e` still hold.
 
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 457/457`, including `E1h`, `E1i`, `SR2f`, `E1f`, `E1g`, and `SR2e`. `verification/enter-back-stack.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) after zoom-pop, not a black frame. No `.graphide/stamps/` write.
+
 ## Ranked backlog (Pass 4+)
 
 1. Walk end on its own community. `n7` lives outside `b-render`. Pass 1 asserts the absence there. Enter the sink community and require one lit `data-shape="end"`.
