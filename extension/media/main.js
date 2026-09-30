@@ -22299,12 +22299,16 @@
       const want = new Set(pathIds || []);
       const out = [];
       const seen = /* @__PURE__ */ new Set();
+      const push = (a, b, kind, hopFrom, hopTo) => {
+        if (!a || !b || a === b || !want.has(a) || !want.has(b) || !kind || !hopFrom || !hopTo) return;
+        const key = a + "	" + b + "	" + kind + "	" + hopFrom + "	" + hopTo;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ from: a, to: b, kind, hopFrom, hopTo });
+      };
       for (let i = 0; i < walk.length - 1; i++) {
         const aNode = idVal(walk[i]);
         const bNode = idVal(walk[i + 1]);
-        const a = bubbleOfId(aNode);
-        const b = bubbleOfId(bNode);
-        if (!a || !b || a === b || !want.has(a) || !want.has(b)) continue;
         let kind = "";
         let hopFrom = aNode;
         let hopTo = bNode;
@@ -22313,8 +22317,6 @@
           const et2 = idVal(e.to);
           if (ef === aNode && et2 === bNode) {
             kind = e.kind || "Calls";
-            hopFrom = ef;
-            hopTo = et2;
             break;
           }
           if (ef === bNode && et2 === aNode) {
@@ -22324,11 +22326,12 @@
             break;
           }
         }
-        if (!kind) continue;
-        const key = a + "	" + b + "	" + kind + "	" + hopFrom + "	" + hopTo;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({ from: a, to: b, kind, hopFrom, hopTo });
+        push(bubbleOfId(aNode), bubbleOfId(bNode), kind, hopFrom, hopTo);
+      }
+      for (const e of treeEdges) {
+        const ef = idVal(e.from);
+        const et2 = idVal(e.to);
+        push(bubbleOfId(ef), bubbleOfId(et2), e.kind || "Calls", ef, et2);
       }
       return out;
     }
