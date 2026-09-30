@@ -521,6 +521,7 @@ assert(driver.includes("coverage-mark.png") && driver.includes("CM1") && driver.
 assert(driver.includes("fit-reorg.png") && driver.includes("#zoomFit") && driver.includes("#reorgBtn") && driver.includes("FR1"), "verify driver must drive Map Fit / Reorganize");
 assert(driver.includes("zoom.png") && driver.includes("#zoomIn") && driver.includes("#zoomOut") && driver.includes("Z1"), "verify driver must drive Map zoom in / out");
 assert(driver.includes("canvas-recycle.png") && driver.includes("RC0") && driver.includes("RC1") && driver.includes("recycleMark") && driver.includes('type: "patch"'), "verify driver must prove Map recycle + keepCam");
+assert(driver.includes("RC1b") && driver.includes("map-spine-recycle.png") && driver.includes("solarsim::ext"), "verify driver must prove a recycled Map story hop still names the member nodes");
 assert(driver.includes("delta-onanalysis.png") && driver.includes("DA0") && driver.includes("DA1") && driver.includes("OnAnalysisDelta") && driver.includes('type: "patch"'), "verify driver must prove coverage-only patch without canvas rebuild");
 assert(driver.includes("map-offview.png") && driver.includes("OV0") && driver.includes("OV1") && driver.includes("data-offview"), "verify driver must prove Map off-view park + restore");
 assert(driver.includes("panel-timeout.png") && driver.includes("PT0") && driver.includes("PT1") && driver.includes("PT2") && driver.includes("PanelTimeout") && driver.includes("Zoom handler fires after shed") && driver.includes('data-panel'), "verify driver must prove BEST_EFFORT panel time-box / shed + live zoom");
@@ -528,6 +529,7 @@ assert(js.includes("function syncOffviewCards") && js.includes("function queueOf
 assert(js.includes("PANEL_BUDGET_MS") && js.includes("PANEL_FAT_FINDINGS") && js.includes('setAttribute("data-panel", "shed")'), "panel flush must time-box and mark data-panel=shed");
 assert(css.includes('.bubble-card[data-offview="1"]') && css.includes("content-visibility"), "Map off-view CSS missing");
 assert(js.includes("function recycleBubbleMap") && js.includes("function recycleBubbleCards") && js.includes("function recycleCommEdges"), "Map recycle helpers missing");
+assert(/function recycleCommEdges[\s\S]{0,900}hopFrom: e\.hopFrom/.test(js), "Map recycle must keep story hop member ends");
 assert(js.includes("function pinMapCommunityLod") && /mapStageMounted\(\) \? "0"/.test(js), "Map recycle must pin viewport data-lod 0");
 assert(js.includes("function mapStageMounted") && js.includes("function applyPatch") && js.includes('type === "patch"'), "preview/flowchart patch + keepCam missing");
 assert(js.includes("function panelOnlyPatch") && js.includes("function queuePanelRefresh") && js.includes("function flushPanelRefresh"), "panel-only patch must skip paint and rAF coverage");

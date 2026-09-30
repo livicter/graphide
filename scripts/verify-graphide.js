@@ -2465,6 +2465,40 @@ async function main() {
         (Math.abs(recycleCam - 1) < 0.05 || Math.abs(afterReselect.k - 1) > 0.04),
       JSON.stringify(afterReselect)
     );
+    const recycledSpine = await page.evaluate(() => {
+      const edge = document.querySelector(
+        'svg.comm-edges path.edge-hit[data-from="b-integration"][data-to="b-origin"]'
+      );
+      if (edge) edge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const card = document.getElementById("hopCard");
+      const text = card ? card.textContent.replace(/\s+/g, " ").trim() : "";
+      return {
+        kind: edge ? edge.getAttribute("data-kind") || "" : "",
+        hopFrom: edge ? edge.getAttribute("data-hop-from") || "" : "",
+        hopTo: edge ? edge.getAttribute("data-hop-to") || "" : "",
+        hidden: !card || card.hidden,
+        text,
+        ids: card ? [...card.querySelectorAll("[data-id]")].map((el) => el.getAttribute("data-id") || "") : [],
+      };
+    });
+    record(
+      "RC1b",
+      "Recycled Map story hop still names the member nodes",
+      recycledSpine.kind === "Reads" &&
+        recycledSpine.hopFrom === "n1" &&
+        recycledSpine.hopTo === "n2" &&
+        !recycledSpine.hidden &&
+        recycledSpine.ids.indexOf("n1") >= 0 &&
+        recycledSpine.ids.indexOf("n2") >= 0 &&
+        recycledSpine.ids.indexOf("b-integration") < 0 &&
+        /Reads/.test(recycledSpine.text) &&
+        /solarsim::ext/.test(recycledSpine.text) &&
+        /solarsim::as_str/.test(recycledSpine.text),
+      JSON.stringify(recycledSpine)
+    );
+    await shot(page, "map-spine-recycle.png");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
     const recyclePostsAt = await page.evaluate(() => (window.__vscodePosts || []).length);
     await page.evaluate(() => {
       window.postMessage(

@@ -59,6 +59,10 @@ Driver assertions:
 
 - Map has more than one `.bubble-card` and `xy=0` before recycle
 - Re-select Map keeps the same `.stage` and `.viewport` nodes
+- That recycle keeps the story hop `b-integration → b-origin` as
+  Reads `n1 → n2`. The hop card still names `solarsim::ext` and
+  `solarsim::as_str`, not the community ids (`RC1b`,
+  `verification/map-spine-recycle.png`)
 - Preview / patch keeps those nodes and the zoomed `--cam-k`
 - Cards stay present at `xy=0` / `data-lod="0"`
 - screenshot `verification/canvas-recycle.png` is not a black frame
