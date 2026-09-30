@@ -84,6 +84,8 @@ Choice: alias each shown child's members to that shown id. A hop whose ends land
 
 Proof target: `E1m` (`n164` has a hop to `b-physics-a` or `b-physics-b`; both stay `data-shape="type"`). `E1l` / `E1d` still hold.
 
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 462/462`, including `E1m`, `E1l`, and `E1d`. `E1m` is two hops (`Reads` `b-physics-a` → `n164`, `Calls` `n164` → `b-physics-a`) and both communities stay `type`. `verification/enter-child-type.png` luma 0.971 at 1440×900. Two Type rects, one Endpoint stadium, and the two hops. Not a black frame. No `.graphide/stamps/` write.
+
 ## Ranked backlog (Pass 8+)
 
 1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
