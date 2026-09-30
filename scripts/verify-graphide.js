@@ -5034,6 +5034,11 @@ async function main() {
     await shot(page, "enter-child-type.png");
     await shot(page, "enter-back-hop.png");
     await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-id='n164']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
         hops.value = "1";
@@ -5041,11 +5046,6 @@ async function main() {
       }
       const btn = document.getElementById("egoBtn");
       if (btn && !btn.classList.contains("on")) btn.click();
-    });
-    await page.waitForTimeout(200);
-    await page.evaluate(() => {
-      const node = document.querySelector("#enterCanvas .vnode[data-id='n164']");
-      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await page.waitForTimeout(250);
     const egoComm = await page.evaluate(() => {

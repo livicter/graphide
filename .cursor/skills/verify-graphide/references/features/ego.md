@@ -70,6 +70,9 @@ Driver assertions:
   are member ids. Ego lights that community when a member is inside
   the hop depth. `data-dist` is the nearest member, not 99. Do not
   turn the community into a store.
+- `#enterCanvas .vnode.grey` is 0.48. Ego has to beat that: neighbors
+  `#enterCanvas .vnode.ego` at full opacity, the rest
+  `#enterCanvas .vnode.ego-dim` at 0.12.
 - Do not add `data-component` / `data-testid`. `#egoBtn`, `#egoHops`,
   `.ego`, `.ego-dim`, `data-dist` are the hooks.
 - `applyEgoPaint` must keep classes on XYFlow `.vnode` after remount
