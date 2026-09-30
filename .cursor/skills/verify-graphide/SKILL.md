@@ -172,7 +172,7 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      shows child communities as `[data-shape="type"][data-leaf="0"]`. A
      one-member child is that derived node (`b-physics-c` → `n164`
      `[data-shape="endpoint"][data-leaf="1"]`), not a Type rect. Its hops
-     into a sibling community stay on that Type node (`E1m`). Deeper
+     into a sibling community stay on that Type node, and the return hop stays inside `#enterCanvas` (`E1m`, `verification/enter-back-hop.png`). Deeper
      enter shows member shapes. Map click and Slice `.run` both push
      `{ kind: "bubble" }` on one stack. Zoom-pop and Back pop one frame:
      Type cut, then Map `xy=0` / `data-lod="0"` (Slice: the runs).

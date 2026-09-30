@@ -18882,6 +18882,7 @@
   var LINEAGE_HOP_CAP = 80;
   var ENTER_NODE_CAP = 24;
   var ENTER_HOP_CAP = 80;
+  var BACK_EDGE_GAP = 36;
   var DEFAULT_W = 168;
   var DEFAULT_H = 58;
   function capGraph(nodes, hops, nodeCap, hopCap) {
@@ -18951,6 +18952,19 @@
       laid = fallbackPositions(parts, nodeW, nodeH);
     }
     return { nodes: laid, hops: hs, width: nodeW, height: nodeH };
+  }
+  function reserveBackChannel(laid) {
+    const nodes = laid && laid.nodes || [];
+    if (!nodes.length) return laid;
+    let top = Infinity;
+    for (const n of nodes) top = Math.min(top, n.y || 0);
+    const slack = 16;
+    const need = BACK_EDGE_GAP + slack - top;
+    if (need <= 0) return laid;
+    return {
+      ...laid,
+      nodes: nodes.map((n) => ({ ...n, y: (n.y || 0) + need }))
+    };
   }
   function layoutSequence(participants, hops) {
     const capped = capSequence(participants, hops);
@@ -19033,7 +19047,6 @@
     lineageVnode: DerivedNode,
     enterVnode: DerivedNode
   };
-  var BACK_EDGE_GAP = 36;
   function ReviewBackEdge(props) {
     const top = useStore((s) => {
       let y = Infinity;
@@ -19552,12 +19565,14 @@
   function renderEnterCanvas(host, props) {
     const nodes = props.nodes || [];
     const hops = props.hops || [];
-    const laid = layoutGraph(nodes, hops, {
-      nodeCap: ENTER_NODE_CAP,
-      hopCap: ENTER_HOP_CAP,
-      nodeW: 176,
-      nodeH: 64
-    });
+    const laid = reserveBackChannel(
+      layoutGraph(nodes, hops, {
+        nodeCap: ENTER_NODE_CAP,
+        hopCap: ENTER_HOP_CAP,
+        nodeW: 176,
+        nodeH: 64
+      })
+    );
     const hotIds = new Set([...props.hotIds || []].map(String));
     const items = decorateDerived(
       nodes.map((n) => ({

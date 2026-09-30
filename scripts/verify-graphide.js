@@ -4990,24 +4990,49 @@ async function main() {
         (el) => el.getAttribute("data-id") || ""
       );
       const linked = hops.filter((id) => id.indexOf("n164") >= 0 && (id.indexOf("b-physics-a") >= 0 || id.indexOf("b-physics-b") >= 0));
+      const pane = document.querySelector("#enterCanvas .react-flow");
+      const pr = pane ? pane.getBoundingClientRect() : null;
+      let clipped = 0;
+      let sampled = 0;
+      if (pr) {
+        for (const edge of document.querySelectorAll("#enterCanvas .react-flow__edge")) {
+          const id = edge.getAttribute("data-id") || "";
+          if (id.indexOf("n164") < 0) continue;
+          const path = edge.querySelector("path.react-flow__edge-path");
+          if (!path || !path.getTotalLength || !path.getScreenCTM()) continue;
+          const len = path.getTotalLength();
+          const ctm = path.getScreenCTM();
+          for (let i = 0; i <= 16; i++) {
+            const p = path.getPointAtLength((len * i) / 16);
+            const s = new DOMPoint(p.x, p.y).matrixTransform(ctm);
+            sampled++;
+            if (s.x < pr.left - 2 || s.x > pr.right + 2 || s.y < pr.top - 2 || s.y > pr.bottom + 2) clipped++;
+          }
+        }
+      }
       return {
         hops: hops.length,
         linked: linked.length,
         a: shapeOf("b-physics-a"),
         b: shapeOf("b-physics-b"),
+        clipped,
+        sampled,
       };
     });
     record(
       "E1m",
-      "A one-member child keeps the hops into its sibling community",
+      "A one-member child keeps the hops into its sibling community on the stage",
       childHops.linked >= 1 &&
         childHops.hops >= 1 &&
         childHops.hops <= 80 &&
         childHops.a === "type" &&
-        childHops.b === "type",
+        childHops.b === "type" &&
+        childHops.sampled > 0 &&
+        childHops.clipped === 0,
       JSON.stringify(childHops)
     );
     await shot(page, "enter-child-type.png");
+    await shot(page, "enter-back-hop.png");
     await page.evaluate(() => {
       const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
       if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));

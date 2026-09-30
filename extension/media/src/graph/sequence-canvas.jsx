@@ -17,7 +17,15 @@ import {
   useStore,
 } from "@xyflow/react";
 import { decorateDerived, DerivedNode } from "./derived-node.jsx";
-import { layoutGraph, layoutLineage, layoutSequence, ENTER_NODE_CAP, ENTER_HOP_CAP } from "./sequence-layout.js";
+import {
+  layoutGraph,
+  layoutLineage,
+  layoutSequence,
+  reserveBackChannel,
+  BACK_EDGE_GAP,
+  ENTER_NODE_CAP,
+  ENTER_HOP_CAP,
+} from "./sequence-layout.js";
 
 const NODE_TYPES = {
   seqPart: DerivedNode,
@@ -28,8 +36,6 @@ const NODE_TYPES = {
   lineageVnode: DerivedNode,
   enterVnode: DerivedNode,
 };
-
-const BACK_EDGE_GAP = 36;
 
 function ReviewBackEdge(props) {
   const top = useStore((s) => {
@@ -46,7 +52,7 @@ function ReviewBackEdge(props) {
     }
     return y;
   });
-  // ponytail: one gap outside the node stack. A pane filled to the edge clips it; grow fit padding if that shows up.
+  // One gap outside the node stack. Embed hosts shift the graph (reserveBackChannel) so this channel stays at y >= 0.
   const above = props.sourceY - top;
   const below = bottom - props.sourceY;
   const centerY = above >= below ? top - BACK_EDGE_GAP : bottom + BACK_EDGE_GAP;
@@ -558,12 +564,14 @@ export function renderLineageCanvas(host, props) {
 export function renderEnterCanvas(host, props) {
   const nodes = props.nodes || [];
   const hops = props.hops || [];
-  const laid = layoutGraph(nodes, hops, {
-    nodeCap: ENTER_NODE_CAP,
-    hopCap: ENTER_HOP_CAP,
-    nodeW: 176,
-    nodeH: 64,
-  });
+  const laid = reserveBackChannel(
+    layoutGraph(nodes, hops, {
+      nodeCap: ENTER_NODE_CAP,
+      hopCap: ENTER_HOP_CAP,
+      nodeW: 176,
+      nodeH: 64,
+    })
+  );
   const hotIds = new Set([...(props.hotIds || [])].map(String));
   const items = decorateDerived(
     nodes.map((n) => ({
