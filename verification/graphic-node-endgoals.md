@@ -72,6 +72,8 @@ Choice: that one-member leaf is the derived node (`is_leaf`, real kind, `steiner
 
 Proof target: `E1l` (`b-physics-c` enters as `n164` `[data-shape="endpoint"][data-leaf="1"]`, not as a Type id). `E1d` / `SR2c` / `E1f` still keep the two Type communities.
 
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 461/461`, including `E1l`, `E1d`, `E1f`, and `SR2c`. `verification/enter-child-type.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) and one Endpoint stadium (`SimulationScale_164`), not a black frame. No `.graphide/stamps/` write.
+
 ## Ranked backlog (Pass 7+)
 
 1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
