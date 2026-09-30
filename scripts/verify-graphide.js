@@ -5450,6 +5450,48 @@ async function main() {
       JSON.stringify(afterSink)
     );
 
+    const beforeLeave = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => {
+      const card = document.querySelector('.bubble-card[data-bubble="b-physics"]');
+      if (card) card.click();
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#enterCanvas .vnode[data-id='n164']").length === 1,
+      null,
+      { timeout: 10000 }
+    );
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(250);
+    const leftEnter = await page.evaluate((before) => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        slice: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+        runs: document.querySelectorAll(".run").length,
+        inside: /Inside this community/i.test((document.querySelector("#canvas .flow-title") || {}).textContent || ""),
+        backs: posts.filter((m) => m && m.type === "back").length,
+      };
+    }, beforeLeave);
+    record(
+      "E1o",
+      "Slice workspace leaves the Map enter cut and shows the Steiner",
+      leftEnter.ws === "slice" &&
+        leftEnter.enter === 0 &&
+        leftEnter.slice > 1 &&
+        leftEnter.slice <= 48 &&
+        leftEnter.runs >= 2 &&
+        !leftEnter.inside &&
+        leftEnter.backs >= 1,
+      JSON.stringify(leftEnter)
+    );
+    await shot(page, "slice-from-enter.png");
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(150);
+
     await page.fill("#graphSearch", "render");
     await page.waitForTimeout(200);
     const searchMap = await page.evaluate(() => ({
