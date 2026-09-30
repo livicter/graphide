@@ -561,6 +561,25 @@ function assertDataflowSnap(snap) {
     subscribe,
     best ? best.name + " kinds=" + (best.kinds || []).join(",") : "no flow"
   );
+  const namedDf = flows.find((f) => f && f.name === "data-subscription");
+  const pipeHops = (namedDf && namedDf.dataflow && namedDf.dataflow.hops) || [];
+  const pipe =
+    pipeHops.length >= 2 &&
+    pipeHops[0].kind === "Publishes" &&
+    /publish/i.test(pipeHops[0].from_fqn || "") &&
+    /events/i.test(pipeHops[0].to_fqn || "") &&
+    pipeHops[1].kind === "Subscribes" &&
+    /events/i.test(pipeHops[1].from_fqn || "") &&
+    /subscribe/i.test(pipeHops[1].to_fqn || "");
+  record(
+    "F0c",
+    "data-subscription hops run publish → events → subscribe",
+    pipe,
+    pipeHops
+      .slice(0, 2)
+      .map((h) => (h && h.kind) + " " + ((h && h.from_fqn) || "") + " → " + ((h && h.to_fqn) || ""))
+      .join(" | ")
+  );
   failSnapChecks(
     /^F0/,
     "Data-flow snapshot failed structural checks (desk not driven).",
@@ -7931,6 +7950,7 @@ async function main() {
         sinks: sinks.length,
         roles: nodes.map((el) => el.getAttribute("data-df-role")),
         kinds: hops.map((el) => el.getAttribute("data-kind")),
+        hopText: hops.map((el) => ((el.querySelector(".t") || el).textContent || "").replace(/\s+/g, " ").trim()),
         text,
         subscribe: text.some((t) => /subscribe|publish|events|Subscribes|Publishes/i.test(t)),
         play: !!document.getElementById("dfPlay"),
@@ -7954,6 +7974,19 @@ async function main() {
       "Data-flow has an ordered hop list",
       dataflowDesk.hops >= 1 && dataflowDesk.ordered,
       "hops=" + dataflowDesk.hops + " kinds=" + dataflowDesk.kinds.join(",")
+    );
+    const hop0 = (dataflowDesk.hopText && dataflowDesk.hopText[0]) || "";
+    const hop1 = (dataflowDesk.hopText && dataflowDesk.hopText[1]) || "";
+    record(
+      "F4b",
+      "Data-flow Play list starts at the source (publish → events → subscribe)",
+      dataflowDesk.kinds[0] === "Publishes" &&
+        /publish/i.test(hop0) &&
+        /events/i.test(hop0) &&
+        dataflowDesk.kinds[1] === "Subscribes" &&
+        /events/i.test(hop1) &&
+        /subscribe/i.test(hop1),
+      "kinds=" + dataflowDesk.kinds.join(",") + " hops=" + (dataflowDesk.hopText || []).slice(0, 2).join(" | ")
     );
     record(
       "F5",
@@ -7988,6 +8021,7 @@ async function main() {
       dfShapes.n > 1 && dfShapes.store,
       "n=" + dfShapes.n + " shapes=" + dfShapes.shapes.join(",")
     );
+    await shot(page, "dataflow-order.png");
 
     const beforeHintsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const flowHintsDesk = await page.evaluate(() => {

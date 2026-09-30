@@ -16,6 +16,9 @@ workspace is the left-to-right pipeline, not a second ego tab.
   (`data-end-role`, `data-channel`).
 - Ordered hops `#dfHops .df-hop` with `data-df-i`, `data-kind`, `data-from`,
   `data-to`. Reads / Subscribes are reversed so each hop is producer → consumer.
+  The list is that pipeline, sources first. An off-tree publisher is not
+  sorted after the hop it feeds. Demo: Publishes `publish → events`, then
+  Subscribes `events → subscribe`.
 - Canvas `#dfCanvas` mounts XYFlow (`#dfCanvas .react-flow`, `.react-flow__node`)
   for the pipeline (cap 48). Each `.vnode` carries `data-shape` (`start`
   source oval, `store` cylinder when `role==="store"`, `end` sink stadium,
@@ -69,6 +72,8 @@ Driver assertions:
 - `#dfCanvas .df-node[data-df-role="source"]` length `>= 1`
 - `#dfCanvas .df-node[data-df-role="sink"]` length `>= 1`
 - `#dfHops .df-hop` length `>= 1` and hops are ordered (`data-df-i`)
+- data-subscription hop 0 is Publishes `publish → events`; hop 1 is
+  Subscribes `events → subscribe` (`verification/dataflow-order.png`)
 - some hop or node text matches `subscribe` / `publish` / `events`
 - `#dfPlay` / `#dfPrev` / `#dfNext` / `#dfOverview` / `#dfCanvas` exist
 - `#dfCanvas .react-flow__node` length `> 1` and `<= 48`

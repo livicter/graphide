@@ -167,6 +167,17 @@ fn steiner_of_hits_is_subscribes_edge() {
         "bus Publishes should be a data hop, hops={:?}",
         flow.dataflow.hops
     );
+    assert!(
+        flow.dataflow.hops.len() >= 2
+            && flow.dataflow.hops[0].kind == EdgeKind::Publishes
+            && flow.dataflow.hops[0].from_fqn.contains("publish")
+            && flow.dataflow.hops[0].to_fqn.contains("events")
+            && flow.dataflow.hops[1].kind == EdgeKind::Subscribes
+            && flow.dataflow.hops[1].from_fqn.contains("events")
+            && flow.dataflow.hops[1].to_fqn.contains("subscribe"),
+        "pipeline order publish → events → subscribe, hops={:?}",
+        flow.dataflow.hops
+    );
     let bus = snap
         .graph
         .nodes

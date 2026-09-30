@@ -6195,6 +6195,95 @@ function dataflowOf(flow) {
   return deriveDataflow(flow);
 }
 
+const DATA_EDGE_ORD = {
+  Calls: 0,
+  Reads: 1,
+  Writes: 2,
+  Imports: 3,
+  TypeUses: 4,
+  Contains: 5,
+  Publishes: 6,
+  Subscribes: 7,
+};
+
+function cmpDataId(a, b) {
+  if (a === b) return 0;
+  try {
+    const d = BigInt(a) - BigInt(b);
+    if (d < 0n) return -1;
+    if (d > 0n) return 1;
+    return 0;
+  } catch (err) {
+    return a < b ? -1 : 1;
+  }
+}
+
+function dataEndsOf(e) {
+  const rev = dataReverses(e.kind);
+  return rev ? [idVal(e.to), idVal(e.from)] : [idVal(e.from), idVal(e.to)];
+}
+
+/** Producer → consumer. Steiner rank only breaks ties. */
+function orderDataHops(edges, rank) {
+  if (!edges || edges.length <= 1) return (edges || []).slice();
+  const rankOf = (id) => (rank.has(id) ? rank.get(id) : 1e15);
+  const indeg = new Map();
+  const outs = new Map();
+  edges.forEach((e, i) => {
+    const ends = dataEndsOf(e);
+    const prod = ends[0];
+    const cons = ends[1];
+    if (!indeg.has(prod)) indeg.set(prod, 0);
+    indeg.set(cons, (indeg.get(cons) || 0) + 1);
+    if (!outs.has(prod)) outs.set(prod, []);
+    outs.get(prod).push(i);
+  });
+  const byRank = (a, b) => rankOf(a) - rankOf(b) || cmpDataId(a, b);
+  const ready = [...indeg.keys()].filter((id) => indeg.get(id) === 0);
+  ready.sort(byRank);
+  const used = edges.map(() => false);
+  const ordered = [];
+  let i = 0;
+  while (i < ready.length) {
+    const prod = ready[i];
+    i += 1;
+    const idxs = (outs.get(prod) || []).slice().sort((a, b) => {
+      const ea = dataEndsOf(edges[a]);
+      const eb = dataEndsOf(edges[b]);
+      const ra = rankOf(ea[1]);
+      const rb = rankOf(eb[1]);
+      if (ra !== rb) return ra - rb;
+      const ka = DATA_EDGE_ORD[edges[a].kind] == null ? 99 : DATA_EDGE_ORD[edges[a].kind];
+      const kb = DATA_EDGE_ORD[edges[b].kind] == null ? 99 : DATA_EDGE_ORD[edges[b].kind];
+      if (ka !== kb) return ka - kb;
+      return cmpDataId(ea[1], eb[1]);
+    });
+    for (const ix of idxs) {
+      if (used[ix]) continue;
+      used[ix] = true;
+      ordered.push(edges[ix]);
+      const cons = dataEndsOf(edges[ix])[1];
+      if (cons === prod) continue;
+      indeg.set(cons, (indeg.get(cons) || 1) - 1);
+      if (indeg.get(cons) === 0) {
+        ready.push(cons);
+        const tail = ready.slice(i).sort(byRank);
+        ready.splice(i, ready.length - i, ...tail);
+      }
+    }
+  }
+  if (ordered.length !== edges.length) {
+    const rest = edges.filter((_, ix) => !used[ix]);
+    rest.sort((a, b) => {
+      const ea = dataEndsOf(a);
+      const eb = dataEndsOf(b);
+      return rankOf(ea[0]) - rankOf(eb[0]) || rankOf(ea[1]) - rankOf(eb[1]) || (DATA_EDGE_ORD[a.kind] || 0) - (DATA_EDGE_ORD[b.kind] || 0);
+    });
+    ordered.push(...rest);
+  }
+  return ordered;
+}
+
 function deriveDataflow(flow) {
   const tree = (flow && flow.tree) || { nodes: [], edges: [] };
   const treeIds = new Set((tree.nodes || []).map(idVal));
@@ -6223,16 +6312,7 @@ function deriveDataflow(flow) {
   if (!edges.length) return { nodes: [], hops: [] };
   const walk = flowWalk(flow);
   const rank = new Map(walk.map((id, i) => [idVal(id), i]));
-  const ordered = edges.slice().sort((a, b) => {
-    const aEnds = dataReverses(a.kind) ? [idVal(a.to), idVal(a.from)] : [idVal(a.from), idVal(a.to)];
-    const bEnds = dataReverses(b.kind) ? [idVal(b.to), idVal(b.from)] : [idVal(b.from), idVal(b.to)];
-    const af = rank.has(aEnds[0]) ? rank.get(aEnds[0]) : 1e9;
-    const bf = rank.has(bEnds[0]) ? rank.get(bEnds[0]) : 1e9;
-    if (af !== bf) return af - bf;
-    const at = rank.has(aEnds[1]) ? rank.get(aEnds[1]) : 1e9;
-    const bt = rank.has(bEnds[1]) ? rank.get(bEnds[1]) : 1e9;
-    return at - bt;
-  });
+  const ordered = orderDataHops(edges, rank);
   const hops = [];
   for (const e of ordered) {
     const rev = dataReverses(e.kind);
