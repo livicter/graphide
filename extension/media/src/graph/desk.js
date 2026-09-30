@@ -4155,6 +4155,42 @@ function stampXyFlowAttrs() {
   });
 }
 
+/** Child community id → member node ids. Hops are on members; the card id is not. */
+let shownMemberOf = new Map();
+
+function noteShownMembers(nodes) {
+  const next = new Map();
+  for (const n of nodes || []) {
+    const id = String(idVal(n.id));
+    const members = [];
+    for (const m of n.members || []) {
+      const mid = String(idVal(m));
+      if (!mid || mid === id) continue;
+      members.push(mid);
+    }
+    if (id && members.length) next.set(id, members);
+  }
+  shownMemberOf = next;
+}
+
+function expandShown(id) {
+  if (id == null || id === "") return [];
+  const sid = String(id);
+  const members = shownMemberOf.get(sid);
+  if (!members || !members.length) return [sid];
+  return [sid].concat(members);
+}
+
+function shownInSet(set, id) {
+  return expandShown(id).some((x) => set.has(x));
+}
+
+function shownDist(from, id) {
+  let best = 99;
+  for (const x of expandShown(id)) best = Math.min(best, hopDistance(from, x));
+  return best;
+}
+
 function applyEgoPaint() {
   stampXyFlowAttrs();
   const sid = selectedNodeId ? String(selectedNodeId) : "";
@@ -4163,8 +4199,8 @@ function applyEgoPaint() {
   const pathSet = new Set(path);
   canvas.querySelectorAll(".vnode, .comm-node, .ego-node").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const onEgo = neighbors.has(id);
-    if (sid && id) el.setAttribute("data-dist", String(hopDistance(sid, id)));
+    const onEgo = shownInSet(neighbors, id);
+    if (sid && id) el.setAttribute("data-dist", String(shownDist(sid, id)));
     const onPath = pathSet.has(id);
     el.classList.toggle("selected", id === sid);
     el.classList.toggle("ego", onEgo);
@@ -4174,7 +4210,7 @@ function applyEgoPaint() {
   canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
     const a = el.getAttribute("data-from"),
       b = el.getAttribute("data-to");
-    const incident = !!(sid && neighbors.has(a) && neighbors.has(b));
+    const incident = !!(sid && shownInSet(neighbors, a) && shownInSet(neighbors, b));
     const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
     el.classList.toggle("ego", incident);
     el.classList.toggle("on-path", onPath);
@@ -4196,7 +4232,7 @@ function graphNodePaint(id, extra) {
   const sid = selectedNodeId ? String(selectedNodeId) : "";
   const neighbors = sid ? neighborhood(sid, egoHops) : new Set();
   const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
-  const onEgo = neighbors.has(nid);
+  const onEgo = shownInSet(neighbors, nid);
   const onPath = path.indexOf(nid) >= 0;
   const node = nodeById.get(nid);
   const file = extra.file != null ? extra.file : (node && node.span && node.span.file) || "";
@@ -4215,7 +4251,7 @@ function graphNodePaint(id, extra) {
     selected: nid === sid,
     ego: onEgo,
     egoDim: !!(egoMode && sid && !onEgo && !onPath),
-    dist: sid ? hopDistance(sid, nid) : undefined,
+    dist: sid ? shownDist(sid, nid) : undefined,
   };
 }
 
@@ -8963,6 +8999,7 @@ function enterEdgesAmong(nodes) {
 
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
+  noteShownMembers(nodes);
   const hops = enterEdgesAmong(nodes);
   const flow = ((snapshot && snapshot.flows) || []).find((f) => f.name === inner.flow);
   const walk = flowWalk(flow);
