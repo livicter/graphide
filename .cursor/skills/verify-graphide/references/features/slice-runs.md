@@ -88,6 +88,11 @@ Driver assertions (ids `SR0`…):
   the fixture to one run and call the gate green.
 - Host `enterRun` only aligns stacks. The desk paints `enterBubble` from
   the in-memory snap. The stub records `__vscodePosts`.
+- A workspace change drops the enter drill and posts `back` once per
+  frame. Slice then shows `#sliceCanvas` and `.run`, not the Map
+  community cut (`E1o`, `verification/slice-from-enter.png`). A flow
+  tab does the same pop without a second `back`: `selectFlow` already
+  replaced the host stack.
 - Do not add `data-testid`. `.run`, `[data-run]`, `[data-flow]`,
   `[data-bubble]`, `#enterCanvas .vnode[data-shape]` are the product hooks.
 - Do not invent a Slice-runs workspace or recycle OPTIMIZE here.
