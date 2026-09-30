@@ -52,6 +52,7 @@ Driver assertions:
 
 - `#egoBtn` toggles `.on`; `#egoHops` is `1` or `2`
 - with a selected node, `.ego` ≥ 1 and `.ego-dim` ≥ 1 on enter or Slice
+- physics enter: Ego on `n164` lights `b-physics-a` (`.ego`, `data-dist` 1) and leaves `b-physics-b` dim (`data-dist` 2). Both stay `data-shape="type"`. Screenshot `verification/ego-community.png`
 - 2-hop dims fewer (or equal) nodes than 1-hop
 - Ego off removes `.ego-dim`
 - Lineage keeps a focus `.ego` / `[data-side=focus]`; hops 1 vs 2 changes
@@ -65,6 +66,10 @@ Driver assertions:
 - `E` is Ego. Do not steal it for Export (that's `#exportBtn`).
 - Neighborhood is undirected derived edges. Lineage is the directed
   Calls / data-hop reading of one symbol. Do not merge the two walks.
+- A child community's shown id is the bubble id. Its graph neighbors
+  are member ids. Ego lights that community when a member is inside
+  the hop depth. `data-dist` is the nearest member, not 99. Do not
+  turn the community into a store.
 - Do not add `data-component` / `data-testid`. `#egoBtn`, `#egoHops`,
   `.ego`, `.ego-dim`, `data-dist` are the hooks.
 - `applyEgoPaint` must keep classes on XYFlow `.vnode` after remount

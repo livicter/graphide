@@ -5034,6 +5034,56 @@ async function main() {
     await shot(page, "enter-child-type.png");
     await shot(page, "enter-back-hop.png");
     await page.evaluate(() => {
+      const hops = document.getElementById("egoHops");
+      if (hops) {
+        hops.value = "1";
+        hops.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      const btn = document.getElementById("egoBtn");
+      if (btn && !btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const node = document.querySelector("#enterCanvas .vnode[data-id='n164']");
+      if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await page.waitForTimeout(250);
+    const egoComm = await page.evaluate(() => {
+      const node = (id) => document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+      const a = node("b-physics-a");
+      const b = node("b-physics-b");
+      const ep = node("n164");
+      return {
+        aEgo: !!(a && a.classList.contains("ego") && !a.classList.contains("ego-dim")),
+        aDist: a ? a.getAttribute("data-dist") : "",
+        aShape: a ? a.getAttribute("data-shape") : "",
+        bDim: !!(b && b.classList.contains("ego-dim") && !b.classList.contains("ego")),
+        bDist: b ? b.getAttribute("data-dist") : "",
+        bShape: b ? b.getAttribute("data-shape") : "",
+        epEgo: !!(ep && ep.classList.contains("ego") && !ep.classList.contains("ego-dim")),
+      };
+    });
+    record(
+      "EG5",
+      "Ego on the one-member endpoint lights the sibling community its hop enters",
+      egoComm.aEgo &&
+        egoComm.aDist === "1" &&
+        egoComm.aShape === "type" &&
+        egoComm.bDim &&
+        egoComm.bDist === "2" &&
+        egoComm.bShape === "type" &&
+        egoComm.epEgo,
+      JSON.stringify(egoComm)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(120);
+    await shot(page, "ego-community.png");
+    await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      if (btn && btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
       const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");
       if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
