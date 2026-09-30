@@ -5068,6 +5068,35 @@ async function main() {
     );
     await shot(page, "enter-child-type.png");
     await shot(page, "enter-back-hop.png");
+    const enterMemberHop = await page.evaluate(() => {
+      const edge = [...document.querySelectorAll("#enterCanvas .react-flow__edge")].find((el) =>
+        /b-physics-a:n164:Reads/.test(el.getAttribute("data-id") || "")
+      );
+      if (edge) edge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const card = document.getElementById("hopCard");
+      const text = card ? card.textContent.replace(/\s+/g, " ").trim() : "";
+      return {
+        id: edge ? edge.getAttribute("data-id") || "" : "",
+        hidden: !card || card.hidden,
+        text,
+        ids: card ? [...card.querySelectorAll("[data-id]")].map((el) => el.getAttribute("data-id") || "") : [],
+      };
+    });
+    record(
+      "E1n",
+      "Enter hop card names the member nodes, not the sibling community",
+      /b-physics-a:n164:Reads/.test(enterMemberHop.id) &&
+        !enterMemberHop.hidden &&
+        enterMemberHop.ids.indexOf("n152") >= 0 &&
+        enterMemberHop.ids.indexOf("n164") >= 0 &&
+        enterMemberHop.ids.indexOf("b-physics-a") < 0 &&
+        /solarsim::mod72::SimulationData_152/.test(enterMemberHop.text) &&
+        /solarsim::mod4::SimulationScale_164/.test(enterMemberHop.text),
+      JSON.stringify(enterMemberHop)
+    );
+    await shot(page, "enter-member-hop.png");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const node = document.querySelector("#enterCanvas .vnode[data-id='n164']");
       if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));

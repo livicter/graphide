@@ -9103,14 +9103,17 @@ function enterEdgesAmong(nodes) {
     const from = shown.get(String(idVal(e.from)));
     const to = shown.get(String(idVal(e.to)));
     if (!from || !to || from === to) continue;
-    const key = from + "\t" + to + "\t" + (e.kind || "Calls");
+    const kind = e.kind || "Calls";
+    const key = from + "\t" + to + "\t" + kind;
     if (seen.has(key)) continue;
     seen.add(key);
     hops.push({
       i: hops.length,
       from,
       to,
-      kind: e.kind || "Calls",
+      kind,
+      hopFrom: String(idVal(e.from)),
+      hopTo: String(idVal(e.to)),
     });
     if (hops.length >= 80) break;
   }
@@ -9168,7 +9171,10 @@ function enterCanvasProps(inner) {
     },
     onHopClick: (iOrHop) => {
       const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;
-      if (hop) showHop(hop.from, hop.to, hop.kind);
+      if (!hop) return;
+      const from = hop.hopFrom != null ? hop.hopFrom : hop.from;
+      const to = hop.hopTo != null ? hop.hopTo : hop.to;
+      showHop(from, to, hop.kind);
     },
   };
 }

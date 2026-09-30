@@ -501,6 +501,8 @@ assert(driver.includes("SR2c") && driver.includes("SR2e") && driver.includes("b-
 assert(harness.includes("b-physics-a") && harness.includes("b-physics-c") && harness.includes('members: [alone]') && harness.includes('parent: "b-physics"'), "explorer fixture must nest child communities under b-physics, including one singleton");
 assert(driver.includes("E1l") && driver.includes("n164") && driver.includes("data-shape") && driver.includes("endpoint"), "verify driver must prove a one-member child keeps the derived Endpoint shape");
 assert(driver.includes("E1m") && driver.includes("b-physics-a") && driver.includes("react-flow__edge") && driver.includes("enter-back-hop.png") && driver.includes("clipped === 0"), "verify driver must prove a one-member child keeps hops into its sibling community on the stage");
+assert(driver.includes("E1n") && driver.includes("enter-member-hop.png") && driver.includes("n152") && driver.includes("SimulationData_152"), "verify driver must prove an Enter hop card names the member nodes, not the sibling community");
+assert(chrome.includes("hop.hopFrom") && chrome.includes("hop.hopTo"), "enter hop card must name member ends, not the shown community id");
 assert(chrome.includes("n.members") && chrome.includes("shown.set"), "enter hops must follow child members, not only bubble ids");
 assert(chrome.includes('shapeOf({ id: nid, kind: "Type" })'), "child communities must take the Type shape from the registry");
 assert(js.includes("function steinerOfWalk"), "Slice and Enter must share one walk start/end rule");
