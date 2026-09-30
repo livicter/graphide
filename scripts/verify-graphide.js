@@ -8262,6 +8262,7 @@ async function main() {
       lcRecover.has && lcRecover.hits === 0,
       "hits=" + lcRecover.hits + " d=" + lcRecover.d
     );
+    await shot(page, "lifecycle-recover.png");
 
     if (lifecycleDesk.overview) await page.click("#lcOverview");
     await page.waitForTimeout(120);

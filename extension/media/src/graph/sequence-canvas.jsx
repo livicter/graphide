@@ -8,10 +8,13 @@ import { useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import {
+  BaseEdge,
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
+  getSmoothStepPath,
   useReactFlow,
+  useStore,
 } from "@xyflow/react";
 import { decorateDerived, DerivedNode } from "./derived-node.jsx";
 import { layoutGraph, layoutLineage, layoutSequence, ENTER_NODE_CAP, ENTER_HOP_CAP } from "./sequence-layout.js";
@@ -24,6 +27,55 @@ const NODE_TYPES = {
   sliceVnode: DerivedNode,
   lineageVnode: DerivedNode,
   enterVnode: DerivedNode,
+};
+
+const BACK_EDGE_GAP = 36;
+
+function ReviewBackEdge(props) {
+  const top = useStore((s) => {
+    let y = Infinity;
+    for (const n of s.nodes) if (n.position.y < y) y = n.position.y;
+    return y;
+  });
+  const bottom = useStore((s) => {
+    let y = -Infinity;
+    for (const n of s.nodes) {
+      const h = n.measured?.height || n.height || 58;
+      const b = n.position.y + h;
+      if (b > y) y = b;
+    }
+    return y;
+  });
+  // ponytail: one gap outside the node stack. A pane filled to the edge clips it; grow fit padding if that shows up.
+  const above = props.sourceY - top;
+  const below = bottom - props.sourceY;
+  const centerY = above >= below ? top - BACK_EDGE_GAP : bottom + BACK_EDGE_GAP;
+  const [path, labelX, labelY] = getSmoothStepPath({
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+    borderRadius: 0,
+    centerY,
+  });
+  return (
+    <BaseEdge
+      id={props.id}
+      path={path}
+      labelX={labelX}
+      labelY={labelY}
+      label={props.label}
+      markerEnd={props.markerEnd}
+      style={props.style}
+      interactionWidth={20}
+    />
+  );
+}
+
+const EDGE_TYPES = {
+  reviewBack: ReviewBackEdge,
 };
 
 function FitWhenReady({ graphKey }) {
@@ -100,16 +152,21 @@ function ReviewCanvas({
     [laid, items, hotIds, nodeType]
   );
   const edges = useMemo(
-    () =>
-      laid.hops.map((h) => {
+    () => {
+      const xOf = new Map(laid.nodes.map((n) => [String(n.id), n.x]));
+      const nodeW = laid.width || 168;
+      return laid.hops.map((h) => {
         const on = h.i === cursor || !!(h.hot);
         const ret = h.variant === "return";
         const state = h.state || "";
+        const fromX = xOf.get(String(h.from));
+        const toX = xOf.get(String(h.to));
+        const back = fromX != null && toX != null && toX + nodeW <= fromX;
         return {
           id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
           source: String(h.from),
           target: String(h.to),
-          type: "step",
+          type: back ? "reviewBack" : "step",
           label: (h.kind || h.label || "") + (ret ? " return" : ""),
           className:
             (on ? "on" : "") +
@@ -127,7 +184,8 @@ function ReviewCanvas({
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
           style: ret || state === "removed" ? { strokeDasharray: "5 4" } : undefined,
         };
-      }),
+      });
+    },
     [laid, cursor]
   );
 
@@ -137,6 +195,7 @@ function ReviewCanvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         proOptions={{ hideAttribution: true }}
         fitView={!embed}
         fitViewOptions={{ padding: 0.2, maxZoom: 1, minZoom: 0.25 }}
