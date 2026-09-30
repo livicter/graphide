@@ -21745,6 +21745,7 @@
       const animate = opts && opts.animate || "all";
       const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
       if (!snapshot) return;
+      clearDistCache();
       if (!reviewCanvasWorkspace(explorerWs) && !(explorerWs === "map" && enterCanvasActive())) {
         unmountAllReviewCanvases();
       }
@@ -23282,12 +23283,43 @@
     function shownInSet(set3, id2) {
       return expandShown(id2).some((x) => set3.has(x));
     }
+    let distCacheFrom = "";
+    let distCache = null;
+    function clearDistCache() {
+      distCacheFrom = "";
+      distCache = null;
+    }
+    function distFrom(from) {
+      const key = String(from || "");
+      if (distCache && distCacheFrom === key) return distCache;
+      const dist = /* @__PURE__ */ new Map();
+      distCacheFrom = key;
+      distCache = dist;
+      if (!key) return dist;
+      dist.set(key, 0);
+      const q2 = [key];
+      for (let i = 0; i < q2.length; i++) {
+        const cur = q2[i];
+        const d = dist.get(cur);
+        incidentEdges(cur).forEach((e) => {
+          const other = e.from === cur ? e.to : e.from;
+          if (!other || dist.has(other)) return;
+          dist.set(other, d + 1);
+          q2.push(other);
+        });
+      }
+      return dist;
+    }
     function shownDist(from, id2) {
+      const dist = distFrom(from);
       let best = 99;
-      for (const x of expandShown(id2)) best = Math.min(best, hopDistance(from, x));
+      for (const x of expandShown(id2)) {
+        if (dist.has(x)) best = Math.min(best, dist.get(x));
+      }
       return best;
     }
     function applyEgoPaint() {
+      clearDistCache();
       stampXyFlowAttrs();
       const sid = selectedNodeId ? String(selectedNodeId) : "";
       const neighbors = sid ? neighborhood(sid, egoHops) : /* @__PURE__ */ new Set();

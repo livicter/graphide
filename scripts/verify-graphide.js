@@ -5064,7 +5064,7 @@ async function main() {
       };
     });
     record(
-      "EG5",
+      "EG6",
       "Ego on the one-member endpoint lights the sibling community its hop enters",
       egoComm.aEgo &&
         egoComm.aDist === "1" &&
