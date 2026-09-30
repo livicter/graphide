@@ -2358,6 +2358,11 @@ html.bright .route-hop {
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
 #sliceCanvas .vnode[data-slice-dist="1"] { opacity: 0.48; }
 #sliceCanvas .vnode[data-slice-dist="2"] { opacity: 0.36; }
+/* Enter greys by graph distance. Ego still wins: these rules skip .ego / .ego-dim. */
+#enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim) { opacity: 0.18; }
+#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim) { opacity: 0.56; }
+#enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim) { opacity: 0.40; }
+#enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim) { opacity: 0.28; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }

@@ -4816,6 +4816,46 @@ async function main() {
       JSON.stringify(enterEnds)
     );
 
+    const enterDist = await page.evaluate(() => {
+      const node = (id) => document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+      const row = (id) => {
+        const el = node(id);
+        if (!el) return null;
+        return {
+          id,
+          dist: el.getAttribute("data-slice-dist"),
+          lit: el.getAttribute("data-lit"),
+          shape: el.getAttribute("data-shape"),
+          opacity: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n0: row("n0"), n12: row("n12"), n108: row("n108"), n1200: row("n1200") };
+    });
+    const fade = (row) => row && Number.isFinite(row.opacity);
+    record(
+      "E1p",
+      "Enter greys off-tree members by graph distance to the walk",
+      fade(enterDist.n0) &&
+        enterDist.n0.dist === "0" &&
+        enterDist.n0.lit === "1" &&
+        enterDist.n0.shape === "start" &&
+        enterDist.n0.opacity === 1 &&
+        fade(enterDist.n12) &&
+        enterDist.n12.dist === "1" &&
+        enterDist.n12.lit === "0" &&
+        enterDist.n12.shape === "fn" &&
+        fade(enterDist.n108) &&
+        enterDist.n108.dist === "2" &&
+        enterDist.n108.shape === "fn" &&
+        fade(enterDist.n1200) &&
+        enterDist.n1200.dist === "3" &&
+        enterDist.n1200.shape === "fn" &&
+        enterDist.n12.opacity > enterDist.n108.opacity &&
+        enterDist.n108.opacity > enterDist.n1200.opacity,
+      JSON.stringify(enterDist)
+    );
+    await shot(page, "enter-distance.png");
+
     await shot(page, "enter-bubble.png");
 
     await page.evaluate(() => {
@@ -4839,14 +4879,18 @@ async function main() {
       const btn = document.getElementById("egoBtn");
       const hops = document.getElementById("egoHops");
       const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const egoNodes = nodes.filter((el) => el.classList.contains("ego") && !el.classList.contains("ego-dim"));
+      const dimNodes = nodes.filter((el) => el.classList.contains("ego-dim"));
       return {
         on: !!(btn && btn.classList.contains("on")),
         hops: hops ? hops.value : "",
         nodes: nodes.length,
-        ego: nodes.filter((el) => el.classList.contains("ego")).length,
-        dim: nodes.filter((el) => el.classList.contains("ego-dim")).length,
+        ego: egoNodes.length,
+        dim: dimNodes.length,
         selected: nodes.filter((el) => el.classList.contains("selected")).length,
         files: nodes.filter((el) => el.getAttribute("data-file")).length,
+        egoOpacity: egoNodes.length ? Math.min(...egoNodes.map((el) => Number(getComputedStyle(el).opacity))) : 0,
+        dimOpacity: dimNodes.length ? Math.max(...dimNodes.map((el) => Number(getComputedStyle(el).opacity))) : 1,
       };
     });
     record(
@@ -4858,7 +4902,7 @@ async function main() {
     record(
       "EG2",
       "Enter-bubble Ego lights neighbors (and dims non-neighbors when the cut has them)",
-      egoEnter.selected >= 1 && egoEnter.ego >= 1,
+      egoEnter.selected >= 1 && egoEnter.ego >= 1 && egoEnter.egoOpacity === 1 && egoEnter.dimOpacity <= 0.12,
       JSON.stringify(egoEnter)
     );
 

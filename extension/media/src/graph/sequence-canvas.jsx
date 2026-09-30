@@ -599,6 +599,7 @@ export function renderEnterCanvas(host, props) {
       surface: n.surface || "enter-node",
       showFqn: !!n.showFqn,
       shape: n.shape || "",
+      sliceDist: n.sliceDist,
     })),
     hops
   );
