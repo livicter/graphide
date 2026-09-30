@@ -169,7 +169,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
      (same `steinerOfWalk` as Slice `.run` enter). `.bubble-card[data-bubble="b-physics"]`
-     shows child communities as `[data-shape="type"][data-leaf="0"]`; deeper
+     shows child communities as `[data-shape="type"][data-leaf="0"]`. A
+     one-member child is that derived node (`b-physics-c` → `n164`
+     `[data-shape="endpoint"][data-leaf="1"]`), not a Type rect. Deeper
      enter shows member shapes. Map click and Slice `.run` both push
      `{ kind: "bubble" }` on one stack. Zoom-pop and Back pop one frame:
      Type cut, then Map `xy=0` / `data-lod="0"` (Slice: the runs).

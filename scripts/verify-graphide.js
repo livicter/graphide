@@ -3573,6 +3573,13 @@ async function main() {
       return {
         n: nodes.length,
         types: nodes.filter((el) => el.getAttribute("data-shape") === "type" && el.getAttribute("data-leaf") === "0").length,
+        endpoint: nodes.filter(
+          (el) =>
+            el.getAttribute("data-id") === "n164" &&
+            el.getAttribute("data-shape") === "endpoint" &&
+            el.getAttribute("data-leaf") === "1" &&
+            el.getAttribute("data-kind") === "Endpoint"
+        ).length,
         starts,
         cards: document.querySelectorAll(".bubble-card").length,
         xy: document.querySelectorAll(".react-flow__node").length,
@@ -3586,7 +3593,8 @@ async function main() {
         srChildClick.bubble === "b-physics" &&
         srChild.n >= 2 &&
         srChild.n <= 24 &&
-        srChild.types === srChild.n &&
+        srChild.types >= 2 &&
+        srChild.endpoint === 1 &&
         srChild.starts === 0 &&
         srChild.cards === 0 &&
         srChild.xy === srChild.enterXy,
@@ -4917,6 +4925,13 @@ async function main() {
         shapes: [...new Set(nodes.map((el) => el.getAttribute("data-shape")))],
         kinds: [...new Set(nodes.map((el) => el.getAttribute("data-kind")))],
         nonLeaves: nodes.filter((el) => el.getAttribute("data-leaf") === "0").length,
+        endpoint: nodes.filter(
+          (el) =>
+            el.getAttribute("data-id") === "n164" &&
+            el.getAttribute("data-shape") === "endpoint" &&
+            el.getAttribute("data-leaf") === "1" &&
+            el.getAttribute("data-kind") === "Endpoint"
+        ).length,
         ids: nodes.map((el) => el.getAttribute("data-id") || ""),
         cards: document.querySelectorAll(".bubble-card").length,
         xy: document.querySelectorAll(".react-flow__node").length,
@@ -4931,17 +4946,21 @@ async function main() {
         childClick.id === "b-physics" &&
         childCut.n >= 2 &&
         childCut.n <= 24 &&
-        childCut.nonLeaves === childCut.n &&
-        childCut.shapes.length === 1 &&
-        childCut.shapes[0] === "type" &&
-        childCut.kinds.length === 1 &&
-        childCut.kinds[0] === "Type" &&
+        childCut.nonLeaves >= 2 &&
+        childCut.shapes.indexOf("type") >= 0 &&
+        childCut.kinds.indexOf("Type") >= 0 &&
         childCut.ids.indexOf("b-physics-a") >= 0 &&
         childCut.ids.indexOf("b-physics-b") >= 0 &&
         childCut.inode === 0 &&
         childCut.cards === 0 &&
         childCut.xy === childCut.enterXy,
       JSON.stringify({ click: childClick, ...childCut })
+    );
+    record(
+      "E1l",
+      "A one-member child is the derived Endpoint, not a Type community",
+      childCut.endpoint === 1 && childCut.ids.indexOf("n164") >= 0 && childCut.ids.indexOf("b-physics-c") < 0,
+      JSON.stringify({ endpoint: childCut.endpoint, ids: childCut.ids })
     );
     await shot(page, "enter-child-type.png");
     await page.evaluate(() => {
@@ -5001,13 +5020,16 @@ async function main() {
       return {
         n: nodes.length,
         types: nodes.filter((el) => el.getAttribute("data-shape") === "type" && el.getAttribute("data-leaf") === "0").length,
+        endpoint: nodes.filter(
+          (el) => el.getAttribute("data-id") === "n164" && el.getAttribute("data-shape") === "endpoint" && el.getAttribute("data-leaf") === "1"
+        ).length,
         cards: document.querySelectorAll(".bubble-card").length,
       };
     });
     record(
       "E1f",
       "Back from deeper Map enter returns to Type-shaped child communities",
-      backToChildren.n >= 2 && backToChildren.types === backToChildren.n && backToChildren.cards === 0,
+      backToChildren.n >= 2 && backToChildren.types >= 2 && backToChildren.endpoint === 1 && backToChildren.cards === 0,
       JSON.stringify(backToChildren)
     );
     const backMap = page.locator("#backBtn");

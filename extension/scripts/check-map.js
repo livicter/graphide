@@ -494,7 +494,8 @@ assert(driver.includes("E1h") && driver.includes("E1i") && driver.includes("ente
 assert(driver.includes("E1j") && driver.includes("E1k") && driver.includes("enter-sink-end.png") && driver.includes("data-shape='end'") && driver.includes("b-ui") && driver.includes("n7"), "verify driver must prove the sink community stamps one lit walk-end shape");
 assert(driver.includes("SR2b") && driver.includes("b-render"), "verify driver must prove Slice run enter stamps the same walk-start shape");
 assert(driver.includes("SR2c") && driver.includes("SR2e") && driver.includes("b-physics"), "verify driver must prove Slice stack enter of a parent community stamps the Type data-shape");
-assert(harness.includes("b-physics-a") && harness.includes('parent: "b-physics"'), "explorer fixture must nest child communities under b-physics");
+assert(harness.includes("b-physics-a") && harness.includes("b-physics-c") && harness.includes('members: [alone]') && harness.includes('parent: "b-physics"'), "explorer fixture must nest child communities under b-physics, including one singleton");
+assert(driver.includes("E1l") && driver.includes("n164") && driver.includes("data-shape") && driver.includes("endpoint"), "verify driver must prove a one-member child keeps the derived Endpoint shape");
 assert(chrome.includes('shapeOf({ id: nid, kind: "Type" })'), "child communities must take the Type shape from the registry");
 assert(js.includes("function steinerOfWalk"), "Slice and Enter must share one walk start/end rule");
 assert(driver.includes("Y5") && driver.includes("data-side"), "verify driver must prove Lineage upstream / downstream");

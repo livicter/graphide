@@ -13,6 +13,11 @@ pub fn enter_bubble(snap: &ReviewSnapshot, flow_name: &str, bubble_id: u64) -> O
         .filter(|b| b.parent.map(|p| p.0) == Some(bubble_id))
         .collect();
 
+    let parent_ids: HashSet<u64> = snap
+        .bubbles
+        .iter()
+        .filter_map(|b| b.parent.map(|p| p.0))
+        .collect();
     let mut nodes = Vec::new();
     if child_bubbles.is_empty() {
         for &id in &bubble.members {
@@ -37,6 +42,28 @@ pub fn enter_bubble(snap: &ReviewSnapshot, flow_name: &str, bubble_id: u64) -> O
         }
     } else {
         for b in child_bubbles {
+            // A one-member leaf is that derived node. A Type rect hides the IR kind.
+            if !parent_ids.contains(&b.id.0) && b.members.len() == 1 {
+                let id = b.members[0];
+                if let Some(n) = snap.graph.nodes.iter().find(|n| n.id == id) {
+                    let lit = tree_set.contains(&id);
+                    let distance = if lit {
+                        Some(0)
+                    } else {
+                        Some(graph_distance(&snap.graph, &tree_set, id).unwrap_or(99))
+                    };
+                    nodes.push(InnerViewNode {
+                        id,
+                        fqn: n.fqn.clone(),
+                        kind: n.kind,
+                        lit,
+                        grey: !lit,
+                        is_leaf: true,
+                        distance,
+                    });
+                    continue;
+                }
+            }
             let lit = b.members.iter().any(|m| tree_set.contains(m));
             let dist = b
                 .members

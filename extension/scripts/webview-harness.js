@@ -109,7 +109,8 @@
       });
       const physics = bubbles.find((b) => b.id === "b-physics");
       if (physics) {
-        const members = physics.members.slice();
+        const alone = "n164";
+        const members = physics.members.filter((id) => id !== alone);
         const mid = Math.ceil(members.length / 2);
         bubbles.push({
           id: "b-physics-a",
@@ -122,6 +123,12 @@
           label: "physics-b",
           parent: "b-physics",
           members: members.slice(mid),
+        });
+        bubbles.push({
+          id: "b-physics-c",
+          label: "physics-c",
+          parent: "b-physics",
+          members: [alone],
         });
       }
     }

@@ -24,8 +24,10 @@ not Map enter-bubble, and not an agent stamp.
   Walk source and sink use the same `steinerOfWalk` marks as Slice
   (`data-shape="start"` / `"end"`). The `b-render` run holds the source
   (`n0`) and not the sink. The sink is the Map end card (`b-ui` / `n7`),
-  not a Slice run. The `b-physics` run has child communities;
-  entering it stamps `data-shape="type"` on those non-leaves. Deeper
+  not a Slice run.   The `b-physics` run has child communities;
+  entering it stamps `data-shape="type"` on the multi-member non-leaves.
+  The one-member child is the derived Endpoint (`n164`), not a Type rect.
+  Deeper
   enter pushes another bubble frame. Back and zoom-pop each pop one
   frame on that stack.
 - Stamp / skip stay human. Entering a run never posts `{ type: "stamp" }`
@@ -65,8 +67,9 @@ Driver assertions (ids `SR0`…):
 - click a `.run` posts `{ type: "enterRun" }` and mounts
   `#enterCanvas .react-flow__node` (`> 1`, `≤ 24`) with `data-shape`
   (no `.inode`). The `b-render` run shows one lit `[data-shape="start"]`
-  on `n0` and no `[data-shape="end"]`. The `b-physics` run shows
-  Type-shaped child communities (`data-leaf="0"`); deeper enter shows
+  on `n0` and no `[data-shape="end"]`.   The `b-physics` run shows
+  Type-shaped child communities (`data-leaf="0"`) and the one-member
+  Endpoint (`n164`, `data-leaf="1"`); deeper enter shows
   member shapes and Back returns to that Type cut, then to the runs.
   Zoom-pop from the deeper enter lands on that same Type cut (`SR2f`)
 - screenshot `verification/slice-runs.png` is not a black frame
