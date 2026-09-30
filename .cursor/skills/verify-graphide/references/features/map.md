@@ -44,6 +44,11 @@ Assertions the driver owns:
 - `document.querySelectorAll(".react-flow__node").length === 0` at map altitude (`M2b` / `R5b`)
 - not a lone `.bubble-card.start` (or a single card whose `.name` is `main` / `program`)
 - `#legend` still names **bin main** after seed
+- Story spine `b-integration → b-origin` is the derived Reads hop
+  `n1 → n2` (`data-kind="Reads"`, `data-hop-from="n1"`,
+  `data-hop-to="n2"`). Clicking it opens `#hopCard` naming
+  `solarsim::ext` and `solarsim::as_str`, not the community ids
+  (`M2d`, `verification/map-spine-hop.png`)
 - screenshot of `#workspace` / Map is not a black frame
 - After click `.bubble-card`: `#enterCanvas .react-flow__node` length `> 1` and `<= 24`, `#enterCanvas .vnode[data-shape]` present, the first community (`b-render`) has one lit `[data-shape="start"]` (`n0`) and no `[data-shape="end"]`, leaf click opens `#sourcePane`, screenshot `verification/enter-bubble.png` is not a black frame, no stamps written
 - After click `.bubble-card[data-bubble="b-physics"]`: child communities `b-physics-a` / `b-physics-b` are `[data-shape="type"][data-leaf="0"]`. The one-member child `b-physics-c` is `n164` `[data-shape="endpoint"][data-leaf="1"]` (`E1l`). That Endpoint keeps at least one hop to `b-physics-a` or `b-physics-b`, and those communities stay `[data-shape="type"]` (`E1m`). The return hop stays inside `#enterCanvas` (a leftward step no longer clips above the host). Screenshot `verification/enter-back-hop.png`. Click `b-physics-a` shows member shapes (`data-leaf="1"`, a `fn`). Back returns to the Type cut, then to Map cards at `xy=0` / `data-lod="0"`. Screenshot `verification/enter-child-type.png` is not a black frame. Zoom-pop from that deeper enter lands on the same Type cut (`E1h`); Back from the same depth matches those ids, then Map `xy=0` / `data-lod="0"` (`E1i`). Screenshot `verification/enter-back-stack.png` is not a black frame
@@ -57,6 +62,7 @@ Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-ca
 - Overview also embeds a CFG (`.vnode`). Map must be the **community** workspace, not that CFG.
 - `.bubble-card.start` on a **populated** map is correct (walk start). Fail only when START is the *only* card.
 - `check-map.js` asserts `renderBubbleMap` / `storyMapBubbles` strings exist. It cannot see a one-card paint. Drive the harness.
+- The story spine is the derived tree hop that crosses those communities. Do not paint every step as Calls, and do not point the hop card at bubble ids.
 - Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops one** enter frame (`popAltitudeFromZoom` → `goBack`). It does not clear a separate Map filter.
 - Recycle: a second Map paint must keep `.stage` / `.viewport` when they already exist. See [canvas-recycle.md](canvas-recycle.md).
 - Off-view: cards clearly outside `.stage` park (`data-offview`). See [map-offview.md](map-offview.md).
