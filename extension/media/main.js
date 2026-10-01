@@ -26359,7 +26359,16 @@
         const a = pos.get ? pos.get(idVal(e.from)) : pos[idVal(e.from)];
         const b = pos.get ? pos.get(idVal(e.to)) : pos[idVal(e.to)];
         if (!a || !b) continue;
-        want.push({ from: idVal(e.from), to: idVal(e.to), kind: e.kind || "Calls", a, b, count: e.count });
+        want.push({
+          from: idVal(e.from),
+          to: idVal(e.to),
+          kind: e.kind || "Calls",
+          hopFrom: e.hopFrom,
+          hopTo: e.hopTo,
+          a,
+          b,
+          count: e.count
+        });
       }
       const wantKeys = new Set(want.map((e) => commEdgeKey(e.from, e.to, e.kind)));
       const groups = /* @__PURE__ */ new Map();

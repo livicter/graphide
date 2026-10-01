@@ -225,6 +225,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      change; Map stays `xy=0` with cards visible
    - Canvas recycle: explorer Map second paint / preview / `patch`;
      same `.stage` / `.viewport` or keepCam; cards at `xy=0`;
+     the story hop `b-integration → b-origin` still names `n1 → n2`
+     (`RC1b`, `verification/map-spine-recycle.png`);
      `verification/canvas-recycle.png`
    - Delta onAnalysis: explorer Map coverage/findings-only
      `{ type: "patch" }` after paint+zoom; same `.stage` /

@@ -62,7 +62,7 @@ Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-ca
 - Overview also embeds a CFG (`.vnode`). Map must be the **community** workspace, not that CFG.
 - `.bubble-card.start` on a **populated** map is correct (walk start). Fail only when START is the *only* card.
 - `check-map.js` asserts `renderBubbleMap` / `storyMapBubbles` strings exist. It cannot see a one-card paint. Drive the harness.
-- The story spine is the derived tree hop that crosses those communities. Do not paint every step as Calls, and do not point the hop card at bubble ids.
+- The story spine is the derived tree hop that crosses those communities. Do not paint every step as Calls, and do not point the hop card at bubble ids. A second Map paint recycles `svg.comm-edges` and must keep those member ends (`RC1b`).
 - Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops one** enter frame (`popAltitudeFromZoom` → `goBack`). It does not clear a separate Map filter.
 - Recycle: a second Map paint must keep `.stage` / `.viewport` when they already exist. See [canvas-recycle.md](canvas-recycle.md).
 - Off-view: cards clearly outside `.stage` park (`data-offview`). See [map-offview.md](map-offview.md).
