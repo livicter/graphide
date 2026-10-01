@@ -107,6 +107,23 @@
           members,
         });
       });
+      const physics = bubbles.find((b) => b.id === "b-physics");
+      if (physics) {
+        const members = physics.members.slice();
+        const mid = Math.ceil(members.length / 2);
+        bubbles.push({
+          id: "b-physics-a",
+          label: "physics-a",
+          parent: "b-physics",
+          members: members.slice(0, mid),
+        });
+        bubbles.push({
+          id: "b-physics-b",
+          label: "physics-b",
+          parent: "b-physics",
+          members: members.slice(mid),
+        });
+      }
     }
 
     return {
@@ -230,11 +247,16 @@
         runs: [
           { id: 1, bubble: "b-render", nodes: ["n0", "n1"] },
           { id: 2, bubble: "b-origin", nodes: ["n2", "n3"] },
+          { id: 3, bubble: "b-physics", nodes: ["n8", "n20"] },
         ],
-        spine: [{ from: 1, to: 2 }],
+        spine: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3 },
+        ],
         positions: [
           { run: 1, x: 24, y: 16 },
           { run: 2, x: 280, y: 16 },
+          { run: 3, x: 536, y: 16 },
         ],
       },
     };

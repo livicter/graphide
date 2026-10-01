@@ -1,5 +1,6 @@
 /** Vanilla graph paint + host wiring. React mounts chrome; bootDesk binds the same ids. */
 import { acquireHost } from "../host/adapter.js";
+import { shapeOf } from "./derived-node.jsx";
 import {
   renderSequenceCanvas,
   renderDeltaCanvas as mountDeltaCanvas,
@@ -8895,11 +8896,12 @@ function enterCanvasProps(inner) {
   const items = nodes.map((n) => {
     const nid = String(idVal(n.id));
     const flags = nodeFlags(nid);
-    const kind = n.kind || "Function";
+    const leaf = !!n.is_leaf;
+    const kind = leaf ? n.kind || "Function" : "Type";
     const fqn = n.fqn || "";
     const node = nodeById.get(nid);
     const file = node && node.span ? node.span.file : "";
-    const steiner = n.lit ? steinerOfWalk(walk, nid) : "";
+    const steiner = leaf && n.lit ? steinerOfWalk(walk, nid) : "";
     const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
     return {
       id: nid,
@@ -8907,16 +8909,17 @@ function enterCanvasProps(inner) {
       kind,
       kindClass: kindClass(kind),
       label: shortOf(n.fqn),
-      kindLine: hopRole + (n.is_leaf ? kind : "bubble"),
+      kindLine: hopRole + kind,
       steiner,
       lit: !!n.lit,
       grey: !n.lit,
-      isLeaf: !!n.is_leaf,
+      isLeaf: leaf,
       flow: inner.flow,
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
       surface: "enter-node",
       ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+      shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
     };
   });
   const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));

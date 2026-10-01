@@ -168,7 +168,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
-     (same `steinerOfWalk` as Slice `.run` enter); Map altitude stays `xy=0`
+     (same `steinerOfWalk` as Slice `.run` enter). `.bubble-card[data-bubble="b-physics"]`
+     shows child communities as `[data-shape="type"][data-leaf="0"]`; deeper
+     enter shows member shapes; Back returns to Map `xy=0` / `data-lod="0"`.
+     The Slice `b-physics` run uses the same Type shape on the stack path.
+     Map altitude stays `xy=0`
    - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
      `#graphSearch` dims cards and XYFlow nodes
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
