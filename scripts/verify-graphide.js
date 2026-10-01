@@ -4962,6 +4962,32 @@ async function main() {
       childCut.endpoint === 1 && childCut.ids.indexOf("n164") >= 0 && childCut.ids.indexOf("b-physics-c") < 0,
       JSON.stringify({ endpoint: childCut.endpoint, ids: childCut.ids })
     );
+    const childHops = await page.evaluate(() => {
+      const shapeOf = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        return el ? el.getAttribute("data-shape") || "" : "";
+      };
+      const hops = [...document.querySelectorAll("#enterCanvas .react-flow__edge")].map(
+        (el) => el.getAttribute("data-id") || ""
+      );
+      const linked = hops.filter((id) => id.indexOf("n164") >= 0 && (id.indexOf("b-physics-a") >= 0 || id.indexOf("b-physics-b") >= 0));
+      return {
+        hops: hops.length,
+        linked: linked.length,
+        a: shapeOf("b-physics-a"),
+        b: shapeOf("b-physics-b"),
+      };
+    });
+    record(
+      "E1m",
+      "A one-member child keeps the hops into its sibling community",
+      childHops.linked >= 1 &&
+        childHops.hops >= 1 &&
+        childHops.hops <= 80 &&
+        childHops.a === "type" &&
+        childHops.b === "type",
+      JSON.stringify(childHops)
+    );
     await shot(page, "enter-child-type.png");
     await page.evaluate(() => {
       const node = document.querySelector("#enterCanvas .vnode[data-leaf='0'][data-id='b-physics-a']");

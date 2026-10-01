@@ -74,7 +74,19 @@ Proof target: `E1l` (`b-physics-c` enters as `n164` `[data-shape="endpoint"][dat
 
 Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 461/461`, including `E1l`, `E1d`, `E1f`, and `SR2c`. `verification/enter-child-type.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) and one Endpoint stadium (`SimulationScale_164`), not a black frame. No `.graphide/stamps/` write.
 
-## Ranked backlog (Pass 7+)
+## Pass 7 (2026-10-01)
+
+Base: Pass 6 tip `a5e9883` (`cursor/enter-singleton-member-71e3`, #122). Herdr #113–#116 stayed parked.
+
+Gap: parent enter filtered hops by the shown id. A multi-member child uses its bubble id, which is not a graph node id. The one-member sibling is the real node (`n164`, Endpoint). Its Reads and Calls land on members inside `b-physics-a`. Those hops failed the filter, so the Endpoint sat on the stage with zero edges. The same miss hits every parent on this checkout's review (2819 cross-child hops). Leaf enter was already fine: both ends are member ids.
+
+Choice: alias each shown child's members to that shown id. A hop whose ends land on two different shown nodes is drawn (cap 80). A hop inside one child is not a self-edge. Non-leaves keep the precomputed Type shape, so a lifted Reads does not turn the community into a store. No new IR kind. No new shape. No new camera. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`. Decision shape stays parked.
+
+Proof target: `E1m` (`n164` has a hop to `b-physics-a` or `b-physics-b`; both stay `data-shape="type"`). `E1l` / `E1d` still hold.
+
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 462/462`, including `E1m`, `E1l`, and `E1d`. `E1m` is two hops (`Reads` `b-physics-a` → `n164`, `Calls` `n164` → `b-physics-a`) and both communities stay `type`. `verification/enter-child-type.png` luma 0.971 at 1440×900. Two Type rects, one Endpoint stadium, and the two hops. Not a black frame. No `.graphide/stamps/` write.
+
+## Ranked backlog (Pass 8+)
 
 1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
 2. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.

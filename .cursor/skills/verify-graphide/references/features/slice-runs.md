@@ -27,6 +27,8 @@ not Map enter-bubble, and not an agent stamp.
   not a Slice run.   The `b-physics` run has child communities;
   entering it stamps `data-shape="type"` on the multi-member non-leaves.
   The one-member child is the derived Endpoint (`n164`), not a Type rect.
+  Hops into that Endpoint from a sibling community's members are drawn on
+  the sibling. The sibling stays Type.
   Deeper
   enter pushes another bubble frame. Back and zoom-pop each pop one
   frame on that stack.

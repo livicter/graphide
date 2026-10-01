@@ -8854,13 +8854,19 @@ function renderRuns(flow, msg, animate) {
 }
 
 function enterEdgesAmong(nodes) {
-  const ids = new Set((nodes || []).map((n) => String(idVal(n.id))));
+  // Shown child ids are bubble ids. Graph hops use member ids.
+  const shown = new Map();
+  for (const n of nodes || []) {
+    const id = String(idVal(n.id));
+    shown.set(id, id);
+    for (const m of n.members || []) shown.set(String(idVal(m)), id);
+  }
   const hops = [];
   const seen = new Set();
   for (const e of (snapshot && snapshot.graph && snapshot.graph.edges) || []) {
-    const from = String(idVal(e.from));
-    const to = String(idVal(e.to));
-    if (!ids.has(from) || !ids.has(to) || from === to) continue;
+    const from = shown.get(String(idVal(e.from)));
+    const to = shown.get(String(idVal(e.to)));
+    if (!from || !to || from === to) continue;
     const key = from + "\t" + to + "\t" + (e.kind || "Calls");
     if (seen.has(key)) continue;
     seen.add(key);
@@ -9166,6 +9172,7 @@ function enterBubble(snap, flowName, bubbleId) {
         grey: !lit,
         is_leaf: false,
         distance: lit ? 0 : distance,
+        members,
       };
     });
   }

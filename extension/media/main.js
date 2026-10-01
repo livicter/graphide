@@ -19529,7 +19529,8 @@
         egoDim: !!n.egoDim,
         dist: n.dist,
         surface: n.surface || "enter-node",
-        showFqn: !!n.showFqn
+        showFqn: !!n.showFqn,
+        shape: n.shape || ""
       })),
       hops
     );
@@ -26609,13 +26610,18 @@
       return html;
     }
     function enterEdgesAmong(nodes) {
-      const ids = new Set((nodes || []).map((n) => String(idVal(n.id))));
+      const shown = /* @__PURE__ */ new Map();
+      for (const n of nodes || []) {
+        const id2 = String(idVal(n.id));
+        shown.set(id2, id2);
+        for (const m of n.members || []) shown.set(String(idVal(m)), id2);
+      }
       const hops = [];
       const seen = /* @__PURE__ */ new Set();
       for (const e of snapshot && snapshot.graph && snapshot.graph.edges || []) {
-        const from = String(idVal(e.from));
-        const to = String(idVal(e.to));
-        if (!ids.has(from) || !ids.has(to) || from === to) continue;
+        const from = shown.get(String(idVal(e.from)));
+        const to = shown.get(String(idVal(e.to)));
+        if (!from || !to || from === to) continue;
         const key = from + "	" + to + "	" + (e.kind || "Calls");
         if (seen.has(key)) continue;
         seen.add(key);
@@ -26854,7 +26860,8 @@
             lit,
             grey: !lit,
             is_leaf: false,
-            distance: lit ? 0 : distance2
+            distance: lit ? 0 : distance2,
+            members
           };
         });
       }
