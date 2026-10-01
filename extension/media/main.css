@@ -2356,8 +2356,9 @@ html.bright .route-hop {
 #sliceCanvas .vnode.ego-dim { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
-#sliceCanvas .vnode[data-slice-dist="1"] { opacity: 0.48; }
-#sliceCanvas .vnode[data-slice-dist="2"] { opacity: 0.36; }
+/* Distance grey must not cover Ego: neighbors stay full, the rest stay dim. */
+#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim) { opacity: 0.48; }
+#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim) { opacity: 0.36; }
 /* Enter greys by graph distance. Ego still wins: these rules skip .ego / .ego-dim. */
 #enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim) { opacity: 0.18; }
 #enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim) { opacity: 0.56; }

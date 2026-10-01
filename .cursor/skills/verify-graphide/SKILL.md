@@ -193,7 +193,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `#graphSearch` dims cards and XYFlow nodes. On the physics enter
      cut, Ego on `n164` lights `b-physics-a` (`data-dist` 1) and
      leaves `b-physics-b` dim (`data-dist` 2); both stay `data-shape="type"`
-     (`EG6`, `verification/ego-community.png`)
+     (`EG6`, `verification/ego-community.png`). On Slice, Ego on `n0`
+     lights off-slice `n12` (`data-slice-dist` 1) at opacity 1 and dims
+     the other distance-1 nodes to at most 0.12 (`EG3c`,
+     `verification/slice-ego.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
