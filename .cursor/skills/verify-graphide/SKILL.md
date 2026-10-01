@@ -196,7 +196,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      (`EG6`, `verification/ego-community.png`). On Slice, Ego on `n0`
      lights off-slice `n12` (`data-slice-dist` 1) at opacity 1 and dims
      the other distance-1 nodes to at most 0.12 (`EG3c`,
-     `verification/slice-ego.png`)
+     `verification/slice-ego.png`). Selecting `n0` with Ego off keeps
+     lit `n2` / `n4` (`data-dist` 2) at full opacity (`EG3d`,
+     `verification/slice-select.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

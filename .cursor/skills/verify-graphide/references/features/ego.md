@@ -80,6 +80,9 @@ Driver assertions:
   explorer Slice, Ego on `n0` lights off-slice `n12` at opacity 1 and
   dims the other distance-1 nodes to at most 0.12 (`EG3c`,
   `verification/slice-ego.png`).
+- Selecting a Slice node with Ego off still stamps `data-dist`, but
+  that must not fade the lit walk. `n2` and `n4` stay at opacity 1
+  (`EG3d`, `verification/slice-select.png`).
 - Do not add `data-component` / `data-testid`. `#egoBtn`, `#egoHops`,
   `.ego`, `.ego-dim`, `data-dist` are the hooks.
 - `applyEgoPaint` must keep classes on XYFlow `.vnode` after remount
