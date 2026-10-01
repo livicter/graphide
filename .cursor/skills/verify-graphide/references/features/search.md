@@ -72,5 +72,7 @@ Driver assertions:
   `.steiner-wrap .vnode.dim`; do not leave Enter unstyled.
 - Distance grey (`data-slice-dist`) must skip `.dim`. A Find miss on an
   off-tree node is opacity 0.18, same as a miss on the lit walk.
+- Off-path Map cards (`.bubble-card.off`) stay at 0.72. A `.hit` paints
+  at opacity 1 (`SG1b`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
