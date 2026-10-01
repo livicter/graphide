@@ -7,7 +7,7 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 - Workspace tab `#workspaces [data-ws="map"]` (key `1`).
 - Community boxes `.bubble-card` with `.name`, `.meta`, optional `.role`, member peek `.bubble-card .members`.
 - Story pin: first hop community gets `.bubble-card.start` (CSS outline); last gets `.bubble-card.end`. Off-path cards get `.bubble-card.off`.
-- Enter a bubble: click `.bubble-card` → derived XYFlow on `#enterCanvas` (shaped Function / Type / Endpoint, cap 24 nodes / 80 edges). Lit = on the current flow Steiner tree (`[data-lit="1"]` / `.vnode.lit`); grey = siblings (`[data-lit="0"]` / `.vnode.grey`). Not a vanilla `.inode` list and not the raw IR.
+- Enter a bubble: click `.bubble-card` → derived XYFlow on `#enterCanvas` (shaped Function / Type / Endpoint, cap 24 nodes / 80 edges). Lit = on the current flow Steiner tree (`[data-lit="1"]` / `.vnode.lit`); grey = siblings (`[data-lit="0"]` / `.vnode.grey`). The walk source in that community is `data-shape="start"`; the walk sink is `data-shape="end"`. Same `steinerOfWalk` rule as Slice. Not a vanilla `.inode` list and not the raw IR.
 - Back: `#backBtn` / Map crumb pops Enter, unmounts `#enterCanvas`, and returns to community cards.
 - Search: `#graphSearch` dims non-matches (`.bubble-card.dim`).
 - Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`). Switch proof: [program-chips.md](program-chips.md). Union: [all-programs.md](all-programs.md).
@@ -45,7 +45,7 @@ Assertions the driver owns:
 - not a lone `.bubble-card.start` (or a single card whose `.name` is `main` / `program`)
 - `#legend` still names **bin main** after seed
 - screenshot of `#workspace` / Map is not a black frame
-- After click `.bubble-card`: `#enterCanvas .react-flow__node` length `> 1` and `<= 24`, `#enterCanvas .vnode[data-shape]` present, leaf click opens `#sourcePane`, screenshot `verification/enter-bubble.png` is not a black frame, no stamps written
+- After click `.bubble-card`: `#enterCanvas .react-flow__node` length `> 1` and `<= 24`, `#enterCanvas .vnode[data-shape]` present, the first community (`b-render`) has one lit `[data-shape="start"]` (`n0`) and no `[data-shape="end"]`, leaf click opens `#sourcePane`, screenshot `verification/enter-bubble.png` is not a black frame, no stamps written
 - After Back: Map altitude is cards again and `xy=0`
 
 Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-card`).

@@ -166,7 +166,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Route / Lens on the Sequence demo snap: `R` lights a derived path,
      `L` highlights Function / Endpoint
    - Enter-bubble on the explorer Map: click `.bubble-card` →
-     `#enterCanvas .react-flow__node` (> 1, ≤24); Map altitude stays `xy=0`
+     `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
+     shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
+     (same `steinerOfWalk` as Slice `.run` enter); Map altitude stays `xy=0`
    - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
      `#graphSearch` dims cards and XYFlow nodes
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`

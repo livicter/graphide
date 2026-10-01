@@ -19,7 +19,10 @@ not Map enter-bubble, and not an agent stamp.
 - Click / drag-click: `bindDraggable(..., ".run")` → `enterRun(flow, bubble)`.
   Posts `{ type: "enterRun", flow, bubble }`. Stack `{ kind: "bubble" }`
   then `enterBubble` + `renderInner` mounts `#enterCanvas` shaped XYFlow
-  (`.vnode[data-shape]`, cap 24), not a vanilla `.inode` list.
+  (`.vnode[data-shape]`, cap 24), not a vanilla `.inode` list. Walk
+  source and sink use the same `steinerOfWalk` marks as Slice
+  (`data-shape="start"` / `"end"`). The `b-render` run holds the source
+  (`n0`) and not the sink.
 - Stamp / skip stay human. Entering a run never posts `{ type: "stamp" }`
   / `{ type: "skip" }` and never writes `.graphide/stamps/`.
 
@@ -56,7 +59,8 @@ Driver assertions (ids `SR0`…):
 - `#canvas .run[data-run]` length `>= 2` with `data-flow` / `data-bubble`
 - click a `.run` posts `{ type: "enterRun" }` and mounts
   `#enterCanvas .react-flow__node` (`> 1`, `≤ 24`) with `data-shape`
-  (no `.inode`)
+  (no `.inode`). The `b-render` run shows one lit `[data-shape="start"]`
+  on `n0` and no `[data-shape="end"]`
 - screenshot `verification/slice-runs.png` is not a black frame
 - no `{ type: "stamp" }` / `{ type: "skip" }` post on this step
 - `.graphide/stamps/` is still empty

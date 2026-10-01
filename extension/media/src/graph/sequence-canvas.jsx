@@ -516,6 +516,7 @@ export function renderEnterCanvas(host, props) {
       kindLine: n.kindLine || n.kind || "Function",
       lit: !!n.lit,
       grey: !!n.grey,
+      steiner: n.steiner || "",
       isLeaf: n.isLeaf !== false,
       uncovered: !!n.uncovered,
       changed: !!n.changed,
