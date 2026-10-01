@@ -3500,7 +3500,29 @@ async function main() {
       );
     }
     await page.waitForSelector("#canvas .run[data-run], .chart .run", { timeout: 10000 });
-    await page.waitForTimeout(220);
+    // Fit eases the camera. A fixed 220ms read races the last frames on CI.
+    await page
+      .waitForFunction(
+        () => {
+          const stage = document.querySelector("#canvas .stage");
+          const sr = stage ? stage.getBoundingClientRect() : null;
+          const runs = [...document.querySelectorAll("#canvas .run[data-run], .chart .run")];
+          if (!sr || runs.length < 2) return false;
+          return runs.every((el) => {
+            const r = el.getBoundingClientRect();
+            return (
+              r.height >= 16 &&
+              r.top >= sr.top - 2 &&
+              r.bottom <= sr.bottom + 2 &&
+              r.left >= sr.left - 2 &&
+              r.right <= sr.right + 2
+            );
+          });
+        },
+        null,
+        { timeout: 4000 }
+      )
+      .catch(() => {});
     const srDesk = await page.evaluate(() => {
       const on = document.querySelector("#workspaces [data-ws].on");
       const tabOn = document.querySelector("#tabs .tab.on[data-flow]");
