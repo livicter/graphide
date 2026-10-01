@@ -23421,7 +23421,7 @@
         if (sid && id2) el2.setAttribute("data-dist", String(shownDist(sid, id2)));
         const onPath = pathSet.has(id2);
         el2.classList.toggle("selected", id2 === sid);
-        el2.classList.toggle("ego", onEgo);
+        el2.classList.toggle("ego", !!(egoMode && onEgo));
         el2.classList.toggle("on-path", onPath);
         el2.classList.toggle("ego-dim", !!(egoMode && sid && !onEgo && !onPath));
       });
@@ -23429,7 +23429,7 @@
         const a = el2.getAttribute("data-from"), b = el2.getAttribute("data-to");
         const incident = !!(sid && shownInSet(neighbors, a) && shownInSet(neighbors, b));
         const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
-        el2.classList.toggle("ego", incident);
+        el2.classList.toggle("ego", !!(egoMode && incident));
         el2.classList.toggle("on-path", onPath);
         el2.classList.toggle("ego-dim", !!(egoMode && sid && !incident && !onPath));
       });
@@ -23459,7 +23459,7 @@
         dim: !match,
         hit: !!(graphFilter.q && match),
         selected: nid === sid,
-        ego: onEgo,
+        ego: !!(egoMode && onEgo),
         egoDim: !!(egoMode && sid && !onEgo && !onPath),
         dist: sid ? shownDist(sid, nid) : void 0
       };

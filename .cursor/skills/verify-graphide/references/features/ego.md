@@ -82,7 +82,11 @@ Driver assertions:
   `verification/slice-ego.png`).
 - Selecting a Slice node with Ego off still stamps `data-dist`, but
   that must not fade the lit walk. `n2` and `n4` stay at opacity 1
-  (`EG3d`, `verification/slice-select.png`).
+  (`EG3d`, `verification/slice-select.png`). The same selection must
+  not lift the off-tree ring: `n12` stays `data-slice-dist` 1 at
+  opacity 0.48, without class `ego` (`EG3e`,
+  `verification/slice-select-grey.png`). `.ego` is stamped only while
+  Ego is on.
 - Do not add `data-component` / `data-testid`. `#egoBtn`, `#egoHops`,
   `.ego`, `.ego-dim`, `data-dist` are the hooks.
 - `applyEgoPaint` must keep classes on XYFlow `.vnode` after remount

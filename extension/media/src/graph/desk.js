@@ -4340,7 +4340,7 @@ function applyEgoPaint() {
     if (sid && id) el.setAttribute("data-dist", String(shownDist(sid, id)));
     const onPath = pathSet.has(id);
     el.classList.toggle("selected", id === sid);
-    el.classList.toggle("ego", onEgo);
+    el.classList.toggle("ego", !!(egoMode && onEgo));
     el.classList.toggle("on-path", onPath);
     el.classList.toggle("ego-dim", !!(egoMode && sid && !onEgo && !onPath));
   });
@@ -4349,7 +4349,7 @@ function applyEgoPaint() {
       b = el.getAttribute("data-to");
     const incident = !!(sid && shownInSet(neighbors, a) && shownInSet(neighbors, b));
     const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
-    el.classList.toggle("ego", incident);
+    el.classList.toggle("ego", !!(egoMode && incident));
     el.classList.toggle("on-path", onPath);
     el.classList.toggle("ego-dim", !!(egoMode && sid && !incident && !onPath));
   });
@@ -4386,7 +4386,7 @@ function graphNodePaint(id, extra) {
     dim: !match,
     hit: !!(graphFilter.q && match),
     selected: nid === sid,
-    ego: onEgo,
+    ego: !!(egoMode && onEgo),
     egoDim: !!(egoMode && sid && !onEgo && !onPath),
     dist: sid ? shownDist(sid, nid) : undefined,
   };

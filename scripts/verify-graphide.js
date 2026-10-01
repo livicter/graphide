@@ -5659,7 +5659,9 @@ async function main() {
         return {
           lit: el.getAttribute("data-lit"),
           dist: el.getAttribute("data-dist"),
+          slice: el.getAttribute("data-slice-dist"),
           op: op(el),
+          ego: el.classList.contains("ego"),
           dim: el.classList.contains("ego-dim"),
         };
       };
@@ -5667,6 +5669,8 @@ async function main() {
         ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
         n2: read(document.querySelector('#sliceCanvas .vnode[data-id="n2"]')),
         n4: read(document.querySelector('#sliceCanvas .vnode[data-id="n4"]')),
+        n12: read(document.querySelector('#sliceCanvas .vnode[data-id="n12"]')),
+        n10: read(document.querySelector('#sliceCanvas .vnode[data-id="n10"]')),
       };
     });
     record(
@@ -5677,7 +5681,24 @@ async function main() {
         !!(selectFade.n4 && selectFade.n4.lit === "1" && selectFade.n4.dist === "2" && selectFade.n4.op >= 0.99),
       JSON.stringify(selectFade)
     );
+    record(
+      "EG3e",
+      "Selecting a Slice node with Ego off keeps off-tree neighbors in distance grey",
+      selectFade.ego === false &&
+        !!(
+          selectFade.n12 &&
+          selectFade.n12.lit === "0" &&
+          selectFade.n12.slice === "1" &&
+          selectFade.n12.ego === false &&
+          !selectFade.n12.dim &&
+          selectFade.n12.op <= 0.48 &&
+          selectFade.n12.op >= 0.4
+        ) &&
+        !!(selectFade.n10 && selectFade.n10.slice === "1" && selectFade.n10.ego === false && selectFade.n10.op <= 0.48),
+      JSON.stringify({ n12: selectFade.n12, n10: selectFade.n10 })
+    );
     await shot(page, "slice-select.png");
+    await shot(page, "slice-select-grey.png");
     await page.fill("#graphSearch", "ScreenshotFormat");
     await page.waitForTimeout(200);
     const sliceFindDim = await page.evaluate(() => {
