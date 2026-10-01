@@ -40,7 +40,7 @@ not Map enter-bubble, and not an agent stamp.
 1. Review a folder (or open the explorer fixture). The desk lands on
    Overview. Open **Slice**, or press a `#tabs` chip that has subsystem
    runs (`control-flow` / `boot` on the explorer snap).
-2. Below the Steiner, **Subsystem runs** boxes appear. Click a run.
+2. Below the Steiner, **Subsystem runs** boxes appear, fully inside the stage. Click a run.
 3. You are inside that community: shaped nodes on `#enterCanvas`. Back
    returns to Slice. Map stays community cards (`xy=0`).
 
@@ -82,8 +82,9 @@ Driver assertions (ids `SR0`…):
 ## Gotchas
 
 - `#sliceCanvas` is the Steiner. Run boxes live in `.chart .run`, not
-  `#sliceCanvas .run`. Do not treat Map `.bubble-card` → `#enterCanvas`
-  as this gate — that is enter-bubble.
+  `#sliceCanvas .run`. The default fit frames that chart with the Steiner
+  so each `.run` stays inside `#canvas .stage` (`SR1b`). Do not treat Map
+  `.bubble-card` → `#enterCanvas` as this gate — that is enter-bubble.
 - `renderRuns` is silent when `flowchart.runs.length < 2`. Do not weaken
   the fixture to one run and call the gate green.
 - Host `enterRun` only aligns stacks. The desk paints `enterBubble` from
