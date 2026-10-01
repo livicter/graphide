@@ -11,6 +11,8 @@ export const LINEAGE_NODE_CAP = 48;
 export const LINEAGE_HOP_CAP = 80;
 export const ENTER_NODE_CAP = 24;
 export const ENTER_HOP_CAP = 80;
+/** Leftward step edges route this far outside the node stack. */
+export const BACK_EDGE_GAP = 36;
 
 const DEFAULT_W = 168;
 const DEFAULT_H = 58;
@@ -88,6 +90,25 @@ export function layoutGraph(nodes, hops, opts) {
     laid = fallbackPositions(parts, nodeW, nodeH);
   }
   return { nodes: laid, hops: hs, width: nodeW, height: nodeH };
+}
+
+/**
+ * Drop the graph so a leftward hop's channel (BACK_EDGE_GAP above the top
+ * node) stays inside an embed host. The host origin is y=0; a channel at
+ * y<0 is clipped.
+ */
+export function reserveBackChannel(laid) {
+  const nodes = (laid && laid.nodes) || [];
+  if (!nodes.length) return laid;
+  let top = Infinity;
+  for (const n of nodes) top = Math.min(top, n.y || 0);
+  const slack = 16;
+  const need = BACK_EDGE_GAP + slack - top;
+  if (need <= 0) return laid;
+  return {
+    ...laid,
+    nodes: nodes.map((n) => ({ ...n, y: (n.y || 0) + need })),
+  };
 }
 
 export function layoutSequence(participants, hops) {
