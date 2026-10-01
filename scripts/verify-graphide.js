@@ -5745,6 +5745,29 @@ async function main() {
       JSON.stringify(sliceFindDim)
     );
     await shot(page, "slice-find-dim.png");
+    await page.fill("#graphSearch", "SimulationData");
+    await page.waitForTimeout(200);
+    const sliceFindHit = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          dim: el.classList.contains("dim"),
+          hit: el.classList.contains("hit"),
+          dist: el.getAttribute("data-slice-dist"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n12: read("n12"), n10: read("n10") };
+    });
+    record(
+      "SG4b",
+      "Find lifts an off-tree Slice hit out of distance grey",
+      !!(sliceFindHit.n12 && sliceFindHit.n12.hit && !sliceFindHit.n12.dim && sliceFindHit.n12.dist === "1" && sliceFindHit.n12.op >= 0.99) &&
+        !!(sliceFindHit.n10 && sliceFindHit.n10.dim && !sliceFindHit.n10.hit && sliceFindHit.n10.op <= 0.18),
+      JSON.stringify(sliceFindHit)
+    );
+    await shot(page, "slice-find-hit.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
     await page.evaluate(() => {
@@ -5778,6 +5801,32 @@ async function main() {
       };
     });
     await shot(page, "slice-ego.png");
+    await page.fill("#graphSearch", "ToastContainer");
+    await page.waitForTimeout(200);
+    const sliceEgoFind = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          ego: el.classList.contains("ego"),
+          egoDim: el.classList.contains("ego-dim"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n10: read("n10"), n12: read("n12"), n13: read("n13") };
+    });
+    record(
+      "SG5",
+      "Find hit outside the Ego neighborhood stays lit; misses stay dim",
+      !!(sliceEgoFind.n10 && sliceEgoFind.n10.hit && sliceEgoFind.n10.egoDim && sliceEgoFind.n10.op >= 0.99) &&
+        !!(sliceEgoFind.n12 && sliceEgoFind.n12.dim && sliceEgoFind.n12.ego && !sliceEgoFind.n12.hit && sliceEgoFind.n12.op <= 0.18) &&
+        !!(sliceEgoFind.n13 && sliceEgoFind.n13.egoDim && sliceEgoFind.n13.dim && sliceEgoFind.n13.op <= 0.12),
+      JSON.stringify(sliceEgoFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
