@@ -5595,7 +5595,9 @@ async function main() {
     await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
     await page.waitForTimeout(200);
     await page.evaluate(() => {
-      const node = document.querySelector("#sliceCanvas .vnode[data-id]");
+      const node =
+        document.querySelector('#sliceCanvas .vnode[data-id="n0"]') ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
       if (node) node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await page.waitForTimeout(180);
@@ -5609,11 +5611,27 @@ async function main() {
       if (btn && !btn.classList.contains("on")) btn.click();
     });
     await page.waitForTimeout(280);
-    const egoSlice1 = await page.evaluate(() => ({
-      dim: document.querySelectorAll("#sliceCanvas .vnode.ego-dim").length,
-      ego: document.querySelectorAll("#sliceCanvas .vnode.ego").length,
-      selected: document.querySelectorAll("#sliceCanvas .vnode.selected").length,
-    }));
+    const egoSlice1 = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const off = (pred) => nodes.filter((el) => pred(el) && el.getAttribute("data-slice-dist") === "1");
+      const egoOff = off((el) => el.classList.contains("ego") && !el.classList.contains("ego-dim"));
+      const dimOff = off((el) => el.classList.contains("ego-dim"));
+      const n12 = nodes.find((el) => el.getAttribute("data-id") === "n12");
+      return {
+        dim: nodes.filter((el) => el.classList.contains("ego-dim")).length,
+        ego: nodes.filter((el) => el.classList.contains("ego")).length,
+        selected: nodes.filter((el) => el.classList.contains("selected")).length,
+        offEgo: egoOff.length,
+        offDim: dimOff.length,
+        offEgoOpacity: egoOff.length ? Math.min(...egoOff.map(op)) : 0,
+        offDimOpacity: dimOff.length ? Math.max(...dimOff.map(op)) : 1,
+        n12: n12
+          ? { ego: n12.classList.contains("ego"), dist: n12.getAttribute("data-slice-dist"), opacity: op(n12) }
+          : null,
+      };
+    });
+    await shot(page, "slice-ego.png");
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
@@ -5631,6 +5649,27 @@ async function main() {
       "Slice Ego dims non-neighbors; 2-hop is at least as wide as 1-hop",
       egoSlice1.selected >= 1 && egoSlice1.ego >= 1 && egoSlice1.dim >= 1 && egoSlice2.dim <= egoSlice1.dim,
       "1-hop=" + JSON.stringify(egoSlice1) + " 2-hop=" + JSON.stringify(egoSlice2)
+    );
+    record(
+      "EG3c",
+      "Slice Ego lights off-slice neighbors and dims the other grey nodes",
+      !!(
+        egoSlice1.n12 &&
+        egoSlice1.n12.ego &&
+        egoSlice1.n12.dist === "1" &&
+        egoSlice1.n12.opacity === 1 &&
+        egoSlice1.offEgo >= 1 &&
+        egoSlice1.offDim >= 1 &&
+        egoSlice1.offEgoOpacity === 1 &&
+        egoSlice1.offDimOpacity <= 0.12
+      ),
+      JSON.stringify({
+        n12: egoSlice1.n12,
+        offEgo: egoSlice1.offEgo,
+        offDim: egoSlice1.offDim,
+        offEgoOpacity: egoSlice1.offEgoOpacity,
+        offDimOpacity: egoSlice1.offDimOpacity,
+      })
     );
     await page.evaluate(() => {
       const btn = document.getElementById("egoBtn");

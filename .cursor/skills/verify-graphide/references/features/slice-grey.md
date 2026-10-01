@@ -75,6 +75,8 @@ Driver assertions:
   not a raw-IR dump. Total still caps at 48 (`OV3` / `M2c`).
 - Ego `data-dist` is hop distance from the selected node. Slice
   lighting uses `data-slice-dist` so the two do not overwrite.
+  Distance opacity skips `.ego` and `.ego-dim`, so a neighbor at
+  distance 1 stays fully lit.
 - `#prompt` does not invent a client-side Steiner. Type
   `name=hit,hit`, Review, then the derived tree drives the mask.
 - S/X on a proposed-uncovered chip already posts
