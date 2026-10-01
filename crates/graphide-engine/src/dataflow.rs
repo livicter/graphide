@@ -7,7 +7,9 @@
 //!
 //! Reads and Subscribes are reversed so each hop is producer → consumer.
 //! Publishes / Subscribes that touch a Steiner Endpoint are bus hops even
-//! when the publisher sits just off the tree.
+//! when the publisher sits just off the tree. Hop order is that pipeline
+//! (sources first). Steiner walk rank only breaks ties — an off-tree
+//! publisher still leads the hop it feeds.
 
 use graphide_ir::{
     DataflowHop, DataflowNode, DataflowRole, Edge, EdgeKind, EndChannel, EndRole, FlowDataflow,
@@ -63,14 +65,7 @@ pub fn flow_dataflow(graph: &graphide_ir::Graph, tree: &Steiner) -> FlowDataflow
 
     let walk = steiner_walk(tree);
     let rank: HashMap<NodeId, usize> = walk.iter().enumerate().map(|(i, id)| (*id, i)).collect();
-    edges.sort_by_key(|e| {
-        let (prod, cons) = data_ends(e);
-        (
-            rank.get(&prod).copied().unwrap_or(usize::MAX),
-            rank.get(&cons).copied().unwrap_or(usize::MAX),
-            e.kind as u8,
-        )
-    });
+    let edges = order_data_hops(edges, &rank);
 
     let mut hops = Vec::new();
     for e in edges {
@@ -129,6 +124,74 @@ pub fn flow_dataflow(graph: &graphide_ir::Graph, tree: &Steiner) -> FlowDataflow
     }
 
     FlowDataflow { nodes, hops }
+}
+
+/// Kahn order on producer → consumer. A cycle keeps its leftover hops
+/// (Steiner-rank sort) so a loop cannot drop a derived edge.
+fn order_data_hops<'a>(edges: Vec<&'a Edge>, rank: &HashMap<NodeId, usize>) -> Vec<&'a Edge> {
+    if edges.len() <= 1 {
+        return edges;
+    }
+    let rank_of = |id: NodeId| rank.get(&id).copied().unwrap_or(usize::MAX);
+    let mut indeg: HashMap<NodeId, usize> = HashMap::new();
+    let mut outs: HashMap<NodeId, Vec<usize>> = HashMap::new();
+    for (i, e) in edges.iter().enumerate() {
+        let (prod, cons) = data_ends(e);
+        indeg.entry(prod).or_insert(0);
+        *indeg.entry(cons).or_insert(0) += 1;
+        outs.entry(prod).or_default().push(i);
+    }
+    let mut ready: Vec<NodeId> = indeg
+        .iter()
+        .filter(|(_, d)| **d == 0)
+        .map(|(id, _)| *id)
+        .collect();
+    ready.sort_by_key(|id| (rank_of(*id), id.0));
+
+    let mut used = vec![false; edges.len()];
+    let mut ordered = Vec::with_capacity(edges.len());
+    let mut i = 0;
+    while i < ready.len() {
+        let prod = ready[i];
+        i += 1;
+        let mut idxs = outs.get(&prod).cloned().unwrap_or_default();
+        idxs.sort_by_key(|&ix| {
+            let (_, cons) = data_ends(edges[ix]);
+            (rank_of(cons), edges[ix].kind as u8, cons.0)
+        });
+        for ix in idxs {
+            if used[ix] {
+                continue;
+            }
+            used[ix] = true;
+            ordered.push(edges[ix]);
+            let (_, cons) = data_ends(edges[ix]);
+            if cons == prod {
+                continue;
+            }
+            let left = indeg.get_mut(&cons).expect("consumer indegree");
+            *left = left.saturating_sub(1);
+            if *left == 0 {
+                ready.push(cons);
+                ready[i..].sort_by_key(|id| (rank_of(*id), id.0));
+            }
+        }
+    }
+    if ordered.len() != edges.len() {
+        let mut rest: Vec<&Edge> = edges
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(ix, _)| !used[*ix])
+            .map(|(_, e)| e)
+            .collect();
+        rest.sort_by_key(|e| {
+            let (prod, cons) = data_ends(e);
+            (rank_of(prod), rank_of(cons), e.kind as u8)
+        });
+        ordered.extend(rest);
+    }
+    ordered
 }
 
 fn data_ends(e: &Edge) -> (NodeId, NodeId) {
@@ -317,6 +380,10 @@ mod tests {
         assert_eq!(role("events"), Some(DataflowRole::Store));
         assert_eq!(role("subscribe"), Some(DataflowRole::Sink));
         assert!(d.nodes.iter().any(|n| n.end_role == Some(EndRole::Sink)));
+        assert_eq!(d.hops[0].kind, EdgeKind::Publishes, "source hop first: {:?}", d.hops);
+        assert!(d.hops[0].from_fqn.contains("publish") && d.hops[0].to_fqn.contains("events"));
+        assert_eq!(d.hops[1].kind, EdgeKind::Subscribes, "store hop second: {:?}", d.hops);
+        assert!(d.hops[1].from_fqn.contains("events") && d.hops[1].to_fqn.contains("subscribe"));
     }
 
     #[test]
@@ -348,5 +415,29 @@ mod tests {
         assert_eq!(role("crate::src"), Some(DataflowRole::Source));
         assert_eq!(role("crate::xform"), Some(DataflowRole::Transform));
         assert_eq!(role("crate::dst"), Some(DataflowRole::Sink));
+        assert_eq!(d.hops[0].kind, EdgeKind::Reads, "read before write: {:?}", d.hops);
+        assert_eq!(d.hops[0].from_fqn, "crate::src");
+        assert_eq!(d.hops[1].kind, EdgeKind::Writes);
+        assert_eq!(d.hops[1].to_fqn, "crate::dst");
+    }
+
+    #[test]
+    fn write_cycle_keeps_both_hops() {
+        let a = n("crate::a");
+        let b = n("crate::b");
+        let ab = e(&a, &b, EdgeKind::Writes);
+        let ba = e(&b, &a, EdgeKind::Writes);
+        let g = Graph {
+            nodes: vec![a.clone(), b.clone()],
+            edges: vec![ab.clone(), ba.clone()],
+        };
+        let d = flow_dataflow(
+            &g,
+            &Steiner {
+                nodes: vec![a.id, b.id],
+                edges: vec![ab, ba],
+            },
+        );
+        assert_eq!(d.hops.len(), 2, "{:?}", d.hops);
     }
 }
