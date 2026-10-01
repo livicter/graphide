@@ -21464,8 +21464,13 @@
       }
       const sr2 = stage.getBoundingClientRect();
       if (sr2.width < 24 || sr2.height < 24) return false;
-      const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
-      const H2 = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
+      let W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
+      let H2 = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
+      const chart = stage.querySelector(".chart");
+      if (chart && chart.querySelector(".run")) {
+        H2 = Math.max(H2 + (wrap.offsetTop || 0), chart.offsetTop + chart.offsetHeight);
+        W = Math.max(W, chart.offsetLeft + chart.offsetWidth);
+      }
       const pad = 36;
       let k = Math.min((sr2.width - pad) / W, (sr2.height - pad) / H2, 1.05);
       if (!Number.isFinite(k) || k <= 0) return false;

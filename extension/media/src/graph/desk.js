@@ -2030,8 +2030,14 @@ function fitChart() {
   }
   const sr = stage.getBoundingClientRect();
   if (sr.width < 24 || sr.height < 24) return false;
-  const W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
-  const H = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
+  let W = Math.max(1, parseFloat(wrap.style.width) || wrap.scrollWidth || wrap.offsetWidth || 1);
+  let H = Math.max(1, parseFloat(wrap.style.height) || wrap.scrollHeight || wrap.offsetHeight || 1);
+  const chart = stage.querySelector(".chart");
+  if (chart && chart.querySelector(".run")) {
+    // Subsystem runs sit under the Steiner. Framing only the canvas clips them.
+    H = Math.max(H + (wrap.offsetTop || 0), chart.offsetTop + chart.offsetHeight);
+    W = Math.max(W, chart.offsetLeft + chart.offsetWidth);
+  }
   const pad = 36;
   let k = Math.min((sr.width - pad) / W, (sr.height - pad) / H, 1.05);
   if (!Number.isFinite(k) || k <= 0) return false;
