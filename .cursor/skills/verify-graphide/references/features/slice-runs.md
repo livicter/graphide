@@ -23,7 +23,8 @@ not Map enter-bubble, and not an agent stamp.
   community click uses the same `enterRun` frame (`enterMapBubble`).
   Walk source and sink use the same `steinerOfWalk` marks as Slice
   (`data-shape="start"` / `"end"`). The `b-render` run holds the source
-  (`n0`) and not the sink. The `b-physics` run has child communities;
+  (`n0`) and not the sink. The sink is the Map end card (`b-ui` / `n7`),
+  not a Slice run. The `b-physics` run has child communities;
   entering it stamps `data-shape="type"` on those non-leaves. Deeper
   enter pushes another bubble frame. Back and zoom-pop each pop one
   frame on that stack.

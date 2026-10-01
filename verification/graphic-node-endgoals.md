@@ -38,8 +38,20 @@ Proof target: `E1h` (zoom-pop from deeper Map enter lands on the Type cut, not M
 
 Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 457/457`, including `E1h`, `E1i`, `SR2f`, `E1f`, `E1g`, and `SR2e`. `verification/enter-back-stack.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) after zoom-pop, not a black frame. No `.graphide/stamps/` write.
 
-## Ranked backlog (Pass 4+)
+## Pass 4 (2026-09-30)
 
-1. Walk end on its own community. `n7` lives outside `b-render`. Pass 1 asserts the absence there. Enter the sink community and require one lit `data-shape="end"`.
+Base: Pass 3 tip `f049a05` (`cursor/enter-back-stack-e009`, #119). Herdr #113–#116 stayed parked.
+
+Gap: Pass 1 proved the walk start on `b-render` (`n0`) and the absence of `data-shape="end"` there. The walk sink is `n7`, in the story end card `b-ui`, outside that community. Enter never drove that card.
+
+Choice: click `.bubble-card.end`. The leaf is already lit on the Steiner tree, so the existing `steinerOfWalk` mark becomes `end` and `shapeOf` on the DerivedNode registry emits `data-shape="end"`. Kind stays Function. No new IR kind. No new shape. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`.
+
+Proof target: `E1j` (one lit end on `n7`, no start, XYFlow only inside `#enterCanvas`) and `E1k` (Back to Map `xy=0` / `data-lod="0"`, no stamp). Enter follows the camera lod. `E1c` still holds on `b-render`.
+
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, and `E1c`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. One lit end pill (`END · Function` / `Body` on `n7`), not a black frame. No `.graphide/stamps/` write.
+
+## Ranked backlog (Pass 5+)
+
+1. Enter fit clips the walk end. `fitChart` holds `k >= 0.78` while enter is open so zoom-pop does not fire, and the `b-ui` graph is taller than the stage. `n7` paints above the stage until the camera pans. Do not drop that floor under `0.42`.
 2. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
 3. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.

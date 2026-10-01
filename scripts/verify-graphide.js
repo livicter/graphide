@@ -5113,6 +5113,127 @@ async function main() {
       JSON.stringify({ zoom: zoomCut.ids, back: backCut.ids, map: afterStack })
     );
 
+    const beforeSinkPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const sinkClick = await page.evaluate(() => {
+      const card = document.querySelector(".bubble-card.end");
+      if (!card) return { clicked: false };
+      card.click();
+      return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-shape='end'][data-lit='1']").length === 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("sink community did not light one end shape — click=" + JSON.stringify(sinkClick)));
+    await page.waitForTimeout(250);
+    const sinkEnd = await page.evaluate(() => {
+      const ends = [...document.querySelectorAll("#enterCanvas .vnode[data-shape='end']")];
+      const lit = ends.filter((el) => el.getAttribute("data-lit") === "1");
+      const vp = document.querySelector("#canvas .viewport");
+      const one = lit[0];
+      return {
+        ends: ends.length,
+        lit: lit.length,
+        endId: one ? one.getAttribute("data-id") || "" : "",
+        kind: one ? one.getAttribute("data-kind") || "" : "",
+        leaf: one ? one.getAttribute("data-leaf") || "" : "",
+        starts: document.querySelectorAll("#enterCanvas .vnode[data-shape='start']").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+        inode: document.querySelectorAll(".inode").length,
+      };
+    });
+    await page.waitForTimeout(500);
+    const sinkFrame = await page.evaluate(() => {
+      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
+      const stage = document.querySelector("#canvas .stage");
+      if (!end || !stage) return null;
+      const r = end.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      const sx = sr.left + 24;
+      const sy = sr.top + 28;
+      const hit = document.elementFromPoint(sx, sy);
+      return {
+        dx: sr.left + sr.width / 2 - (r.left + r.width / 2),
+        dy: sr.top + sr.height / 2 - (r.top + r.height / 2),
+        sx,
+        sy,
+        onNode: !!(hit && hit.closest && hit.closest(".vnode, .react-flow__node")),
+      };
+    });
+    if (sinkFrame && !sinkFrame.onNode && (Math.abs(sinkFrame.dx) > 12 || Math.abs(sinkFrame.dy) > 12)) {
+      await page.mouse.move(sinkFrame.sx, sinkFrame.sy);
+      await page.mouse.down();
+      await page.mouse.move(sinkFrame.sx + sinkFrame.dx, sinkFrame.sy + sinkFrame.dy, { steps: 12 });
+      await page.mouse.up();
+      await page.waitForTimeout(450);
+    }
+    const sinkSeen = await page.evaluate(() => {
+      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
+      const stage = document.querySelector("#canvas .stage");
+      if (!end || !stage) return false;
+      const r = end.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      return r.width > 8 && r.right > sr.left && r.left < sr.right && r.bottom > sr.top && r.top < sr.bottom;
+    });
+    record(
+      "E1j",
+      "Map enter of the sink community stamps one lit walk-end shape",
+      sinkClick.clicked &&
+        sinkClick.id === "b-ui" &&
+        sinkEnd.ends === 1 &&
+        sinkEnd.lit === 1 &&
+        sinkEnd.endId === "n7" &&
+        sinkEnd.kind === "Function" &&
+        sinkEnd.leaf === "1" &&
+        sinkEnd.starts === 0 &&
+        sinkEnd.inode === 0 &&
+        sinkEnd.cards === 0 &&
+        sinkEnd.xy === sinkEnd.enterXy &&
+        sinkEnd.enterXy > 1 &&
+        sinkEnd.enterXy <= 24 &&
+        sinkSeen,
+      JSON.stringify({ click: sinkClick, ...sinkEnd, seen: sinkSeen })
+    );
+    await shot(page, "enter-sink-end.png");
+    const backSink = page.locator("#backBtn");
+    if (await backSink.isEnabled()) await backSink.click();
+    else {
+      await page.evaluate(() => {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      });
+    }
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const afterSink = await page.evaluate((before) => {
+      const vp = document.querySelector("#canvas .viewport");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        enter: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        lod: vp ? vp.getAttribute("data-lod") || "" : "",
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, beforeSinkPosts);
+    record(
+      "E1k",
+      "Back from the sink community returns Map to xy=0 and data-lod=0 without a stamp",
+      afterSink.cards >= 8 &&
+        afterSink.xy === 0 &&
+        afterSink.enter === 0 &&
+        afterSink.lod === "0" &&
+        afterSink.stampPosts === 0 &&
+        afterSink.skipPosts === 0,
+      JSON.stringify(afterSink)
+    );
+
     await page.fill("#graphSearch", "render");
     await page.waitForTimeout(200);
     const searchMap = await page.evaluate(() => ({
