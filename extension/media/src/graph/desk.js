@@ -9178,6 +9178,7 @@ function enterCanvasProps(inner) {
       surface: "enter-node",
       ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
       shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
+      sliceDist: n.distance == null ? undefined : n.distance,
     };
   });
   const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));

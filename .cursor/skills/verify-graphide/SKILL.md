@@ -168,7 +168,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
-     (same `steinerOfWalk` as Slice `.run` enter). `.bubble-card[data-bubble="b-physics"]`
+     (same `steinerOfWalk` as Slice `.run` enter). Off-tree members in that
+     cut carry `data-slice-dist`; `n12` / `n108` / `n1200` are distances
+     1 / 2 / 3 and opacity falls with distance
+     (`E1p`, `verification/enter-distance.png`). `.bubble-card[data-bubble="b-physics"]`
      shows child communities as `[data-shape="type"][data-leaf="0"]`. A
      one-member child is that derived node (`b-physics-c` → `n164`
      `[data-shape="endpoint"][data-leaf="1"]`), not a Type rect. Its hops

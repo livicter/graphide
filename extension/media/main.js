@@ -19599,7 +19599,8 @@
         dist: n.dist,
         surface: n.surface || "enter-node",
         showFqn: !!n.showFqn,
-        shape: n.shape || ""
+        shape: n.shape || "",
+        sliceDist: n.sliceDist
       })),
       hops
     );
@@ -26974,7 +26975,8 @@
           changed: !!flags.changed,
           surface: "enter-node",
           ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
-          shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" })
+          shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
+          sliceDist: n.distance == null ? void 0 : n.distance
         };
       });
       const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
