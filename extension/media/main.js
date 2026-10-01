@@ -19033,6 +19033,52 @@
     lineageVnode: DerivedNode,
     enterVnode: DerivedNode
   };
+  var BACK_EDGE_GAP = 36;
+  function ReviewBackEdge(props) {
+    const top = useStore((s) => {
+      let y = Infinity;
+      for (const n of s.nodes) if (n.position.y < y) y = n.position.y;
+      return y;
+    });
+    const bottom = useStore((s) => {
+      let y = -Infinity;
+      for (const n of s.nodes) {
+        const h = n.measured?.height || n.height || 58;
+        const b = n.position.y + h;
+        if (b > y) y = b;
+      }
+      return y;
+    });
+    const above = props.sourceY - top;
+    const below = bottom - props.sourceY;
+    const centerY = above >= below ? top - BACK_EDGE_GAP : bottom + BACK_EDGE_GAP;
+    const [path, labelX, labelY] = getSmoothStepPath({
+      sourceX: props.sourceX,
+      sourceY: props.sourceY,
+      sourcePosition: props.sourcePosition,
+      targetX: props.targetX,
+      targetY: props.targetY,
+      targetPosition: props.targetPosition,
+      borderRadius: 0,
+      centerY
+    });
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      BaseEdge,
+      {
+        id: props.id,
+        path,
+        labelX,
+        labelY,
+        label: props.label,
+        markerEnd: props.markerEnd,
+        style: props.style,
+        interactionWidth: 20
+      }
+    );
+  }
+  var EDGE_TYPES = {
+    reviewBack: ReviewBackEdge
+  };
   function FitWhenReady({ graphKey }) {
     const rf = useReactFlow();
     const fitted = (0, import_react4.useRef)("");
@@ -19101,29 +19147,36 @@
       [laid, items, hotIds, nodeType]
     );
     const edges = (0, import_react4.useMemo)(
-      () => laid.hops.map((h) => {
-        const on2 = h.i === cursor || !!h.hot;
-        const ret = h.variant === "return";
-        const state = h.state || "";
-        return {
-          id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
-          source: String(h.from),
-          target: String(h.to),
-          type: "step",
-          label: (h.kind || h.label || "") + (ret ? " return" : ""),
-          className: (on2 ? "on" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
-          data: {
-            i: h.i,
-            from: String(h.from),
-            to: String(h.to),
-            kind: h.kind,
-            variant: h.variant,
-            state
-          },
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-          style: ret || state === "removed" ? { strokeDasharray: "5 4" } : void 0
-        };
-      }),
+      () => {
+        const xOf = new Map(laid.nodes.map((n) => [String(n.id), n.x]));
+        const nodeW = laid.width || 168;
+        return laid.hops.map((h) => {
+          const on2 = h.i === cursor || !!h.hot;
+          const ret = h.variant === "return";
+          const state = h.state || "";
+          const fromX = xOf.get(String(h.from));
+          const toX = xOf.get(String(h.to));
+          const back = fromX != null && toX != null && toX + nodeW <= fromX;
+          return {
+            id: "xy:" + String(h.from) + ":" + String(h.to) + ":" + (h.kind || "") + ":" + (h.i != null ? h.i : 0),
+            source: String(h.from),
+            target: String(h.to),
+            type: back ? "reviewBack" : "step",
+            label: (h.kind || h.label || "") + (ret ? " return" : ""),
+            className: (on2 ? "on" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
+            data: {
+              i: h.i,
+              from: String(h.from),
+              to: String(h.to),
+              kind: h.kind,
+              variant: h.variant,
+              state
+            },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+            style: ret || state === "removed" ? { strokeDasharray: "5 4" } : void 0
+          };
+        });
+      },
       [laid, cursor]
     );
     return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ReactFlowProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
@@ -19132,6 +19185,7 @@
         nodes,
         edges,
         nodeTypes: NODE_TYPES,
+        edgeTypes: EDGE_TYPES,
         proOptions: { hideAttribution: true },
         fitView: !embed,
         fitViewOptions: { padding: 0.2, maxZoom: 1, minZoom: 0.25 },

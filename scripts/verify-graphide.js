@@ -8230,6 +8230,39 @@ async function main() {
       lcShapes.n > 1 && lcShapes.start && lcShapes.decision,
       "n=" + lcShapes.n + " shapes=" + lcShapes.shapes.join(",")
     );
+    const lcRecover = await page.evaluate(() => {
+      const edge = [...document.querySelectorAll("#lcCanvas .react-flow__edge")].find((el) =>
+        /broken:walking:recover/.test(el.getAttribute("data-id") || "")
+      );
+      const path = edge && edge.querySelector("path.react-flow__edge-path");
+      const waiting = document.querySelector('#lcCanvas .vnode[data-lc-id="waiting"]');
+      const wr = waiting ? waiting.getBoundingClientRect() : null;
+      let hits = 0;
+      if (path && wr && path.getTotalLength) {
+        const len = path.getTotalLength();
+        const steps = 32;
+        for (let i = 1; i < steps; i++) {
+          const p = path.getPointAtLength((len * i) / steps);
+          const ctm = path.getScreenCTM();
+          if (!ctm) continue;
+          const s = new DOMPoint(p.x, p.y).matrixTransform(ctm);
+          const inset = 6;
+          if (s.x > wr.left + inset && s.x < wr.right - inset && s.y > wr.top + inset && s.y < wr.bottom - inset) hits++;
+        }
+      }
+      return {
+        has: !!path,
+        hits,
+        d: path ? (path.getAttribute("d") || "").slice(0, 160) : "",
+      };
+    });
+    record(
+      "L6d",
+      "Lifecycle recover back-edge does not cut through Waiting",
+      lcRecover.has && lcRecover.hits === 0,
+      "hits=" + lcRecover.hits + " d=" + lcRecover.d
+    );
+    await shot(page, "lifecycle-recover.png");
 
     if (lifecycleDesk.overview) await page.click("#lcOverview");
     await page.waitForTimeout(120);

@@ -475,7 +475,10 @@ assert(driver.includes("delta-sticky-views.png") && driver.includes("SV0") && dr
 assert(driver.includes("D6b") && driver.includes("#deltaCanvas .react-flow__node"), "verify driver must prove Delta XYFlow");
 assert(driver.includes("D6c") && driver.includes("Q6c") && driver.includes("F6c") && driver.includes("L6c") && driver.includes("M2d") && driver.includes("Y4b"), "verify driver must prove derived data-shape presence");
 assert(chrome.includes("function shapeOf") && chrome.includes("data-shape") && chrome.includes("DerivedNode"), "derived-node registry missing");
-assert(chrome.includes('type: "step"'), "derived graphs must use orthogonal step edges");
+assert(
+  chrome.includes('type: "step"') || chrome.includes('type: back ? "reviewBack" : "step"'),
+  "derived graphs must use orthogonal step edges"
+);
 assert(css.includes('[data-shape="store"]') && css.includes('[data-shape="decision"]') && css.includes('[data-shape="endpoint"]'), "shape CSS missing");
 assert(!/Instrument Serif|atomic-tangerine|#eb6c36/.test(css + chrome), "must not vendor diagram-design fonts or coral tokens");
 assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") && driver.includes("subscribe"), "verify driver must drive Sequence on the demo fixture");
