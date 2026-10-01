@@ -204,7 +204,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Find on off-tree `n12` (`SimulationData`) lifts that hit to
      opacity 1 (`SG4b`, `verification/slice-find-hit.png`). With Ego
      on, a hit outside the neighborhood (`n10`, `ToastContainer`)
-     stays at 1 instead of ego-dim 0.12 (`SG5`)
+     stays at 1 instead of ego-dim 0.12 (`SG5`). On Map, an
+     off-path Find hit (`b-physics`, `.off`) paints at opacity 1
+     (`SG1b`, `verification/map-find-hit.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

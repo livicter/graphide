@@ -956,7 +956,8 @@ svg.steiner .edge-hit {
   pointer-events: none;
 }
 .bubble-card.dim { opacity: 0.22; }
-.bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
+/* Off-path grey must not cover a Find hit. */
+.bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); opacity: 1; }
 .bubble-card .members {
   display: none;
   flex-wrap: wrap;
