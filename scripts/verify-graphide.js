@@ -3525,11 +3525,35 @@ async function main() {
         srDesk.flows.some((f) => f === srDesk.flow || f === srPick.flow),
       JSON.stringify(srDesk)
     );
-    await page.evaluate(() => {
-      const run = document.querySelector("#canvas .run[data-run], .chart .run");
-      if (run && run.scrollIntoView) run.scrollIntoView({ block: "center", inline: "nearest" });
+    const srOnStage = await page.evaluate(() => {
+      const stage = document.querySelector("#canvas .stage");
+      const sr = stage ? stage.getBoundingClientRect() : null;
+      const runs = [...document.querySelectorAll("#canvas .run[data-run], .chart .run")];
+      const boxes = runs.map((el) => {
+        const r = el.getBoundingClientRect();
+        const inside =
+          !!sr &&
+          r.height >= 16 &&
+          r.top >= sr.top - 2 &&
+          r.bottom <= sr.bottom + 2 &&
+          r.left >= sr.left - 2 &&
+          r.right <= sr.right + 2;
+        return {
+          id: el.getAttribute("data-run") || "",
+          h: Math.round(r.height),
+          top: Math.round(r.top),
+          bottom: Math.round(r.bottom),
+          inside,
+        };
+      });
+      return { n: runs.length, boxes, stageBottom: sr ? Math.round(sr.bottom) : 0 };
     });
-    await page.waitForTimeout(120);
+    record(
+      "SR1b",
+      "Slice subsystem runs sit fully on the stage",
+      srOnStage.n >= 2 && srOnStage.boxes.length >= 2 && srOnStage.boxes.every((b) => b.inside),
+      JSON.stringify(srOnStage)
+    );
     await shot(page, "slice-runs.png");
     const srClick = await page.evaluate(() => {
       const run = document.querySelector("#canvas .run[data-run], .chart .run");

@@ -563,7 +563,8 @@ assert(/type:\s*"cancel"/.test(chrome) && /type === "cancelled"/.test(chrome), "
 assert(driver.includes("flow-hints.png") && driver.includes("FH0") && driver.includes("FH1") && driver.includes('data-flow="data-subscription"'), "verify driver must prove a flows.toml named flow on the desk");
 assert(driver.includes("flow-tabs.png") && driver.includes("FT0") && driver.includes("FT1") && driver.includes("#tabs .tab[data-flow]") && driver.includes("selectFlow"), "verify driver must prove Map flow-tab Steiner switch");
 assert(driver.includes("slice-grey.png") && driver.includes("GY1") && driver.includes("GY2") && driver.includes("data-lit") && driver.includes("slice-dim"), "verify driver must prove prompt-driven Slice grey-out");
-assert(driver.includes("slice-runs.png") && driver.includes("SR0") && driver.includes("SR1") && driver.includes(".run") && driver.includes("enterRun") && driver.includes("#enterCanvas"), "verify driver must prove Slice subsystem runs + enter");
+assert(driver.includes("slice-runs.png") && driver.includes("SR0") && driver.includes("SR1") && driver.includes("SR1b") && driver.includes(".run") && driver.includes("enterRun") && driver.includes("#enterCanvas"), "verify driver must prove Slice subsystem runs + enter");
+assert(js.includes("function fitChart") && js.includes('chart.querySelector(".run")'), "Slice fit must include the subsystem-run chart");
 assert(
   driver.includes("stamp-recheck.png") &&
     driver.includes("ST0") &&
