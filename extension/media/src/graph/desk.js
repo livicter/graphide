@@ -9120,6 +9120,9 @@ function enterBubble(snap, flowName, bubbleId) {
     }
     return 99;
   };
+  const parentIds = new Set(
+    (snap.bubbles || []).filter((b) => b.parent != null).map((b) => String(idVal(b.parent)))
+  );
   let nodes;
   if (!children.length) {
     nodes = (bubble.members || []).map((id) => {
@@ -9138,6 +9141,21 @@ function enterBubble(snap, flowName, bubbleId) {
   } else {
     nodes = children.map((b) => {
       const members = (b.members || []).map((m) => String(idVal(m)));
+      const id = members[0];
+      // A one-member leaf is that derived node. A Type rect hides the IR kind.
+      const member = !parentIds.has(String(idVal(b.id))) && members.length === 1 ? nodeById.get(id) : null;
+      if (member) {
+        const memberLit = tree.has(id);
+        return {
+          id,
+          fqn: member.fqn || id,
+          kind: member.kind || "Function",
+          lit: memberLit,
+          grey: !memberLit,
+          is_leaf: true,
+          distance: memberLit ? 0 : distTo(id),
+        };
+      }
       const lit = members.some((m) => tree.has(m));
       const distance = Math.min(...members.map((m) => distTo(m)), 99);
       return {

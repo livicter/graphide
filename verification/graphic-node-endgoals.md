@@ -62,7 +62,19 @@ Proof target: `E1j` (one lit end on `n7`, every entered member inside the stage,
 
 Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 460/460`, including `E1j`, `E1k`, `E1c`, `E1h`, and `SR2f`. `E1j` fit is `k=0.414` with all 24 members inside the stage and the lit end on `n7`. `verification/enter-sink-end.png` luma 0.966 at 1440×900. Not a black frame. No pan. No `.graphide/stamps/` write.
 
-## Ranked backlog (Pass 6+)
+## Pass 6 (2026-09-30)
+
+Base: Pass 5 tip `ee188f6` (`cursor/enter-fit-on-stage-8115`, #121). Herdr #113–#116 stayed parked.
+
+Gap: a child bubble with no grandchildren and one member was still `kind: "Type"` / `data-shape="type"`. The live control-flow card's sibling of the walk is `MAX_FILE_BYTES`, an Endpoint. Enter painted a Type rect. The IR kind showed only after another click. 1861 singleton leaves in this checkout's review sat behind that rect. Multi-member children (`b-physics-a` / `b-physics-b`) were already the Type cut.
+
+Choice: that one-member leaf is the derived node (`is_leaf`, real kind, `steinerOfWalk` if it is lit). Communities with more members stay Type. No new IR kind. No new shape. No new camera. Agents still never stamp. Map community LOD stays `xy=0` / `data-lod="0"`. Decision shape stays parked.
+
+Proof target: `E1l` (`b-physics-c` enters as `n164` `[data-shape="endpoint"][data-leaf="1"]`, not as a Type id). `E1d` / `SR2c` / `E1f` still keep the two Type communities.
+
+Proved on this Mac mini: `npm run verify` → `PASS verify-graphide · 461/461`, including `E1l`, `E1d`, `E1f`, and `SR2c`. `verification/enter-child-type.png` luma 0.972 at 1440×900. Two Type rects (`physics-a`, `physics-b`) and one Endpoint stadium (`SimulationScale_164`), not a black frame. No `.graphide/stamps/` write.
+
+## Ranked backlog (Pass 7+)
 
 1. Decision shape. `shapeOf` already returns `decision` for lifecycle waiting. Enter has no branch producer. Do not invent one until the IR has a decision.
 2. Out of scope until the end goal is closed: Herdr chrome, Wasm, continuous Map LOD, Mermaid, Archify, elkjs, MiniMap, Whoop / Graphify.

@@ -26810,6 +26810,9 @@
         }
         return 99;
       };
+      const parentIds = new Set(
+        (snap.bubbles || []).filter((b) => b.parent != null).map((b) => String(idVal(b.parent)))
+      );
       let nodes;
       if (!children2.length) {
         nodes = (bubble.members || []).map((id2) => {
@@ -26828,6 +26831,20 @@
       } else {
         nodes = children2.map((b) => {
           const members = (b.members || []).map((m) => String(idVal(m)));
+          const id2 = members[0];
+          const member = !parentIds.has(String(idVal(b.id))) && members.length === 1 ? nodeById.get(id2) : null;
+          if (member) {
+            const memberLit = tree.has(id2);
+            return {
+              id: id2,
+              fqn: member.fqn || id2,
+              kind: member.kind || "Function",
+              lit: memberLit,
+              grey: !memberLit,
+              is_leaf: true,
+              distance: memberLit ? 0 : distTo(id2)
+            };
+          }
           const lit = members.some((m) => tree.has(m));
           const distance2 = Math.min(...members.map((m) => distTo(m)), 99);
           return {
