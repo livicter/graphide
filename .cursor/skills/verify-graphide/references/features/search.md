@@ -70,5 +70,7 @@ Driver assertions:
   works after the XYFlow remount (same paint-flag path as Ego).
 - `#enterCanvas .vnode.dim` needs the dim opacity — Slice already has
   `.steiner-wrap .vnode.dim`; do not leave Enter unstyled.
+- Distance grey (`data-slice-dist`) must skip `.dim`. A Find miss on an
+  off-tree node is opacity 0.18, same as a miss on the lit walk.
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
