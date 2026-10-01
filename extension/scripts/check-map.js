@@ -518,11 +518,13 @@ assert(driver.includes("SG4") && driver.includes("slice-find-dim.png") && driver
 assert(!css.includes('.vnode[data-dist="2"] { opacity'), "selecting a node must not fade the 2-hop ring");
 assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim)') && css.includes('#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim)'), "Slice distance grey must not override Ego");
 assert(
-  css.includes("#sliceCanvas .vnode.grey:not(.dim)") &&
+  css.includes("#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim)") &&
+    css.includes("#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim)") &&
     css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim)') &&
-    css.includes('#enterCanvas .vnode.grey:not(.dim)') &&
-    css.includes('#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim)'),
-  "Find dim must beat Slice and Enter distance grey"
+    css.includes('#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim)') &&
+    css.includes("#sliceCanvas .vnode.dim:not(.ego-dim)") &&
+    css.includes("#enterCanvas .vnode.dim:not(.ego-dim)"),
+  "Find dim must beat Slice and Enter distance grey without covering Ego"
 );
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");

@@ -2346,9 +2346,9 @@ html.bright .route-hop {
 #sliceCanvas .vnode .fqn,
 #lineageCanvas .vnode .fqn,
 #enterCanvas .vnode .fqn { display: none; }
-#enterCanvas .vnode.grey:not(.dim),
-#sliceCanvas .vnode.grey:not(.dim),
-#sliceCanvas .vnode.slice-dim:not(.dim) { opacity: 0.48; }
+#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
+#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
+#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.48; }
 #enterCanvas .vnode.ego,
 #sliceCanvas .vnode.ego { opacity: 1; }
 #enterCanvas .vnode.ego-dim,
@@ -2363,6 +2363,10 @@ html.bright .route-hop {
 #enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.56; }
 #enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.40; }
 #enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.28; }
+/* Find .dim beats distance grey and the selection-neighbor .ego paint. Ego-dim stays darker. */
+#enterCanvas .vnode.dim:not(.ego-dim),
+#sliceCanvas .vnode.dim:not(.ego-dim),
+#lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
