@@ -299,10 +299,16 @@ async function enterCutSig(page) {
 async function zoomPopOneLevel(page) {
   const before = await enterCutSig(page);
   await page.evaluate(() => {
+    const read = () => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return m ? Number(m[1]) : 100;
+    };
     const zin = document.getElementById("zoomIn");
-    if (zin) zin.click();
+    for (let i = 0; i < 8 && read() <= 80; i++) {
+      if (zin) zin.click();
+    }
   });
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 14; i++) {
     const jumped = await page.evaluate(() => {
       const read = () => {
         const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
@@ -5147,42 +5153,44 @@ async function main() {
         inode: document.querySelectorAll(".inode").length,
       };
     });
-    await page.waitForTimeout(500);
-    const sinkFrame = await page.evaluate(() => {
-      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
-      const stage = document.querySelector("#canvas .stage");
-      if (!end || !stage) return null;
-      const r = end.getBoundingClientRect();
-      const sr = stage.getBoundingClientRect();
-      const sx = sr.left + 24;
-      const sy = sr.top + 28;
-      const hit = document.elementFromPoint(sx, sy);
-      return {
-        dx: sr.left + sr.width / 2 - (r.left + r.width / 2),
-        dy: sr.top + sr.height / 2 - (r.top + r.height / 2),
-        sx,
-        sy,
-        onNode: !!(hit && hit.closest && hit.closest(".vnode, .react-flow__node")),
-      };
-    });
-    if (sinkFrame && !sinkFrame.onNode && (Math.abs(sinkFrame.dx) > 12 || Math.abs(sinkFrame.dy) > 12)) {
-      await page.mouse.move(sinkFrame.sx, sinkFrame.sy);
-      await page.mouse.down();
-      await page.mouse.move(sinkFrame.sx + sinkFrame.dx, sinkFrame.sy + sinkFrame.dy, { steps: 12 });
-      await page.mouse.up();
-      await page.waitForTimeout(450);
-    }
+    await page.waitForFunction(
+      () => {
+        const vp = document.querySelector("#canvas .viewport");
+        if (!vp) return false;
+        const m = /scale\(([-0-9.]+)\)/.exec(vp.style.transform || "");
+        const k = m ? Number(m[1]) : 0;
+        const pct = Number((/(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || "")) || [])[1] || 0);
+        return pct > 30 && pct < 78 && Math.abs(k * 100 - pct) < 1.5;
+      },
+      null,
+      { timeout: 4000 }
+    );
     const sinkSeen = await page.evaluate(() => {
-      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
       const stage = document.querySelector("#canvas .stage");
-      if (!end || !stage) return false;
-      const r = end.getBoundingClientRect();
+      const vp = document.querySelector("#canvas .viewport");
+      const nodes = [...document.querySelectorAll("#enterCanvas .react-flow__node")];
+      const end = document.querySelector("#enterCanvas .vnode[data-shape='end']");
+      if (!stage || !nodes.length || !end) return { ok: false, n: nodes.length, off: nodes.length, k: 0 };
       const sr = stage.getBoundingClientRect();
-      return r.width > 8 && r.right > sr.left && r.left < sr.right && r.bottom > sr.top && r.top < sr.bottom;
+      const slack = 2;
+      const inside = (el) => {
+        const r = el.getBoundingClientRect();
+        return (
+          r.width > 8 &&
+          r.height > 8 &&
+          r.left >= sr.left - slack &&
+          r.top >= sr.top - slack &&
+          r.right <= sr.right + slack &&
+          r.bottom <= sr.bottom + slack
+        );
+      };
+      const off = nodes.filter((el) => !inside(el));
+      const k = vp ? parseFloat(vp.style.getPropertyValue("--cam-k") || "0") : 0;
+      return { ok: off.length === 0 && inside(end), n: nodes.length, off: off.length, k, endOn: inside(end) };
     });
     record(
       "E1j",
-      "Map enter of the sink community stamps one lit walk-end shape",
+      "Map enter of the sink community fits one lit walk-end on stage",
       sinkClick.clicked &&
         sinkClick.id === "b-ui" &&
         sinkEnd.ends === 1 &&
@@ -5196,7 +5204,9 @@ async function main() {
         sinkEnd.xy === sinkEnd.enterXy &&
         sinkEnd.enterXy > 1 &&
         sinkEnd.enterXy <= 24 &&
-        sinkSeen,
+        sinkSeen.ok &&
+        sinkSeen.k < 0.78 &&
+        sinkSeen.endOn,
       JSON.stringify({ click: sinkClick, ...sinkEnd, seen: sinkSeen })
     );
     await shot(page, "enter-sink-end.png");

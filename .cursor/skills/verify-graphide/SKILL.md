@@ -175,7 +175,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Type cut, then Map `xy=0` / `data-lod="0"` (Slice: the runs).
      The Slice `b-physics` run uses the same Type shape on that stack.
      `.bubble-card.end` (`b-ui`) shows one lit `[data-shape="end"]` on `n7`
-     and no start. Back returns Map to `xy=0` / `data-lod="0"`.
+     and no start. Enter fit keeps that end and the other members on
+     the stage. Back returns Map to `xy=0` / `data-lod="0"`.
      Map altitude stays `xy=0`
    - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
      `#graphSearch` dims cards and XYFlow nodes

@@ -21385,7 +21385,6 @@
       const pad = 36;
       let k = Math.min((sr2.width - pad) / W, (sr2.height - pad) / H2, 1.05);
       if (!Number.isFinite(k) || k <= 0) return false;
-      if (canPopAltitude()) k = Math.max(k, 0.78);
       k = clamp2(k, CAM_MIN, CAM_MAX);
       zoomPopReady = false;
       setCamTarget((sr2.width - W * k) / 2, (sr2.height - H2 * k) / 2, k);

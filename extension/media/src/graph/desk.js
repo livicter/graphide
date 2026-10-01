@@ -2021,8 +2021,9 @@ function fitChart() {
   const pad = 36;
   let k = Math.min((sr.width - pad) / W, (sr.height - pad) / H, 1.05);
   if (!Number.isFinite(k) || k <= 0) return false;
-  if (canPopAltitude()) k = Math.max(k, 0.78);
   k = clamp(k, CAM_MIN, CAM_MAX);
+  // Fit is not a zoom-out. A tall enter chart may sit under the old 0.78 hold,
+  // including just under the 0.42 pop line. Pop stays a later zoom-out after k > 0.8.
   zoomPopReady = false;
   setCamTarget((sr.width - W * k) / 2, (sr.height - H * k) / 2, k);
   zoomPopReady = k > 0.8;
