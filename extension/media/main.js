@@ -21304,8 +21304,21 @@
       } catch (_) {
       }
     }
+    function popEnterFrames() {
+      let n = 0;
+      while (stack.length && stack[stack.length - 1] && stack[stack.length - 1].kind === "bubble") {
+        stack.pop();
+        n += 1;
+      }
+      if (n) graphFilter.bubble = null;
+      return n;
+    }
     function setWorkspace(name, pin) {
       if (WORKSPACES.indexOf(name) < 0) return;
+      if (name !== explorerWs) {
+        const n = popEnterFrames();
+        for (let i = 0; i < n; i++) vscode.postMessage({ type: "back" });
+      }
       if (explorerWs === "lineage" && name !== "lineage") {
         lineageEgoId = "";
         lineageHopCursor = -1;
@@ -21665,6 +21678,7 @@
       vscode.postMessage({ type: "selectFlow", flow: name });
       const flow = currentFlow();
       if (flow && (flow.tree && flow.tree.edges && flow.tree.edges.length || flow.tree && flow.tree.nodes && flow.tree.nodes.length)) {
+        popEnterFrames();
         explorerWs = "slice";
         paint({ animate: "none" });
       }
