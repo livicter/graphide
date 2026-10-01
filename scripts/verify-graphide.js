@@ -5654,6 +5654,36 @@ async function main() {
     );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
+    await page.fill("#graphSearch", "physics");
+    await page.waitForTimeout(200);
+    const mapFindHit = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          off: el.classList.contains("off"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        physics: read("b-physics"),
+        assets: read("b-assets"),
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "SG1b",
+      "Find lifts an off-path Map card out of path grey",
+      !!(mapFindHit.physics && mapFindHit.physics.hit && mapFindHit.physics.off && !mapFindHit.physics.dim && mapFindHit.physics.op >= 0.99) &&
+        !!(mapFindHit.assets && mapFindHit.assets.dim && !mapFindHit.assets.hit && mapFindHit.assets.op <= 0.22) &&
+        mapFindHit.xy === 0,
+      JSON.stringify(mapFindHit)
+    );
+    await shot(page, "map-find-hit.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const box = document.getElementById("graphSearch");
       if (box && box.blur) box.blur();
