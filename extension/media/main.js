@@ -21745,6 +21745,7 @@
       const animate = opts && opts.animate || "all";
       const preview = !!(opts && opts.preview) || !!(snapshot && snapshot.preview);
       if (!snapshot) return;
+      clearDistCache();
       if (!reviewCanvasWorkspace(explorerWs) && !(explorerWs === "map" && enterCanvasActive())) {
         unmountAllReviewCanvases();
       }
@@ -23257,7 +23258,68 @@
         if (parts[2]) el2.setAttribute("data-kind", parts[2]);
       });
     }
+    let shownMemberOf = /* @__PURE__ */ new Map();
+    function noteShownMembers(nodes) {
+      const next = /* @__PURE__ */ new Map();
+      for (const n of nodes || []) {
+        const id2 = String(idVal(n.id));
+        const members = [];
+        for (const m of n.members || []) {
+          const mid = String(idVal(m));
+          if (!mid || mid === id2) continue;
+          members.push(mid);
+        }
+        if (id2 && members.length) next.set(id2, members);
+      }
+      shownMemberOf = next;
+    }
+    function expandShown(id2) {
+      if (id2 == null || id2 === "") return [];
+      const sid = String(id2);
+      const members = shownMemberOf.get(sid);
+      if (!members || !members.length) return [sid];
+      return [sid].concat(members);
+    }
+    function shownInSet(set3, id2) {
+      return expandShown(id2).some((x) => set3.has(x));
+    }
+    let distCacheFrom = "";
+    let distCache = null;
+    function clearDistCache() {
+      distCacheFrom = "";
+      distCache = null;
+    }
+    function distFrom(from) {
+      const key = String(from || "");
+      if (distCache && distCacheFrom === key) return distCache;
+      const dist = /* @__PURE__ */ new Map();
+      distCacheFrom = key;
+      distCache = dist;
+      if (!key) return dist;
+      dist.set(key, 0);
+      const q2 = [key];
+      for (let i = 0; i < q2.length; i++) {
+        const cur = q2[i];
+        const d = dist.get(cur);
+        incidentEdges(cur).forEach((e) => {
+          const other = e.from === cur ? e.to : e.from;
+          if (!other || dist.has(other)) return;
+          dist.set(other, d + 1);
+          q2.push(other);
+        });
+      }
+      return dist;
+    }
+    function shownDist(from, id2) {
+      const dist = distFrom(from);
+      let best = 99;
+      for (const x of expandShown(id2)) {
+        if (dist.has(x)) best = Math.min(best, dist.get(x));
+      }
+      return best;
+    }
     function applyEgoPaint() {
+      clearDistCache();
       stampXyFlowAttrs();
       const sid = selectedNodeId ? String(selectedNodeId) : "";
       const neighbors = sid ? neighborhood(sid, egoHops) : /* @__PURE__ */ new Set();
@@ -23265,8 +23327,8 @@
       const pathSet = new Set(path);
       canvas.querySelectorAll(".vnode, .comm-node, .ego-node").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
-        const onEgo = neighbors.has(id2);
-        if (sid && id2) el2.setAttribute("data-dist", String(hopDistance(sid, id2)));
+        const onEgo = shownInSet(neighbors, id2);
+        if (sid && id2) el2.setAttribute("data-dist", String(shownDist(sid, id2)));
         const onPath = pathSet.has(id2);
         el2.classList.toggle("selected", id2 === sid);
         el2.classList.toggle("ego", onEgo);
@@ -23275,7 +23337,7 @@
       });
       canvas.querySelectorAll("[data-from][data-to]").forEach((el2) => {
         const a = el2.getAttribute("data-from"), b = el2.getAttribute("data-to");
-        const incident = !!(sid && neighbors.has(a) && neighbors.has(b));
+        const incident = !!(sid && shownInSet(neighbors, a) && shownInSet(neighbors, b));
         const onPath = path.length > 1 && consecutiveOnPath(path, a, b);
         el2.classList.toggle("ego", incident);
         el2.classList.toggle("on-path", onPath);
@@ -23292,7 +23354,7 @@
       const sid = selectedNodeId ? String(selectedNodeId) : "";
       const neighbors = sid ? neighborhood(sid, egoHops) : /* @__PURE__ */ new Set();
       const path = pathEnds.length === 2 ? shortestPath(pathEnds[0], pathEnds[1]) : [];
-      const onEgo = neighbors.has(nid);
+      const onEgo = shownInSet(neighbors, nid);
       const onPath = path.indexOf(nid) >= 0;
       const node = nodeById.get(nid);
       const file = extra.file != null ? extra.file : node && node.span && node.span.file || "";
@@ -23309,7 +23371,7 @@
         selected: nid === sid,
         ego: onEgo,
         egoDim: !!(egoMode && sid && !onEgo && !onPath),
-        dist: sid ? hopDistance(sid, nid) : void 0
+        dist: sid ? shownDist(sid, nid) : void 0
       };
     }
     function isRouteKind(kind) {
@@ -26781,6 +26843,7 @@
     }
     function enterCanvasProps(inner) {
       const nodes = (inner.nodes || []).slice(0, 24);
+      noteShownMembers(nodes);
       const hops = enterEdgesAmong(nodes);
       const flow = (snapshot && snapshot.flows || []).find((f) => f.name === inner.flow);
       const walk = flowWalk(flow);

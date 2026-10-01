@@ -182,7 +182,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      the stage. Back returns Map to `xy=0` / `data-lod="0"`.
      Map altitude stays `xy=0`
    - Ego / Find: `#egoBtn` + `#egoHops` 1 vs 2 on enter / Slice / Lineage;
-     `#graphSearch` dims cards and XYFlow nodes
+     `#graphSearch` dims cards and XYFlow nodes. On the physics enter
+     cut, Ego on `n164` lights `b-physics-a` (`data-dist` 1) and
+     leaves `b-physics-b` dim (`data-dist` 2); both stay `data-shape="type"`
+     (`EG6`, `verification/ego-community.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

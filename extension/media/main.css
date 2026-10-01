@@ -2350,6 +2350,10 @@ html.bright .route-hop {
 #enterCanvas .vnode.grey,
 #sliceCanvas .vnode.grey,
 #sliceCanvas .vnode.slice-dim { opacity: 0.48; }
+#enterCanvas .vnode.ego,
+#sliceCanvas .vnode.ego { opacity: 1; }
+#enterCanvas .vnode.ego-dim,
+#sliceCanvas .vnode.ego-dim { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
 #sliceCanvas .vnode[data-slice-dist="1"] { opacity: 0.48; }
