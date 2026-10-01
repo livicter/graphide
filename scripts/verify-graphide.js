@@ -4977,6 +4977,28 @@ async function main() {
       searchEnter.q === searchQ && searchEnter.dim >= 1 && (searchEnter.hit >= 1 || searchQ === "zzzz-no-such-symbol"),
       JSON.stringify({ q: searchQ, ...searchEnter })
     );
+    await page.fill("#graphSearch", "ScreenshotFormat");
+    await page.waitForTimeout(200);
+    const enterFindDim = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          dim: el.classList.contains("dim"),
+          hit: el.classList.contains("hit"),
+          dist: el.getAttribute("data-slice-dist"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n0: read("n0"), n12: read("n12") };
+    });
+    record(
+      "SG2b",
+      "Find dims Enter off-tree nodes under distance grey",
+      !!(enterFindDim.n0 && enterFindDim.n0.hit && !enterFindDim.n0.dim && enterFindDim.n0.op >= 0.99) &&
+        !!(enterFindDim.n12 && enterFindDim.n12.dim && enterFindDim.n12.dist === "1" && enterFindDim.n12.op <= 0.18),
+      JSON.stringify(enterFindDim)
+    );
     await shot(page, "search.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(150);
@@ -5632,6 +5654,32 @@ async function main() {
       JSON.stringify(selectFade)
     );
     await shot(page, "slice-select.png");
+    await page.fill("#graphSearch", "ScreenshotFormat");
+    await page.waitForTimeout(200);
+    const sliceFindDim = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          dim: el.classList.contains("dim"),
+          hit: el.classList.contains("hit"),
+          lit: el.getAttribute("data-lit"),
+          dist: el.getAttribute("data-slice-dist"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n0: read("n0"), n12: read("n12") };
+    });
+    record(
+      "SG4",
+      "Find dims Slice off-tree nodes under distance grey",
+      !!(sliceFindDim.n0 && sliceFindDim.n0.hit && !sliceFindDim.n0.dim && sliceFindDim.n0.lit === "1" && sliceFindDim.n0.op >= 0.99) &&
+        !!(sliceFindDim.n12 && sliceFindDim.n12.dim && sliceFindDim.n12.dist === "1" && sliceFindDim.n12.op <= 0.18),
+      JSON.stringify(sliceFindDim)
+    );
+    await shot(page, "slice-find-dim.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
