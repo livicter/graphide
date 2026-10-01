@@ -5602,6 +5602,37 @@ async function main() {
     });
     await page.waitForTimeout(180);
     await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      if (btn && btn.classList.contains("on")) btn.click();
+    });
+    await page.waitForTimeout(180);
+    const selectFade = await page.evaluate(() => {
+      const op = (el) => (el ? Number(getComputedStyle(el).opacity) : 0);
+      const read = (el) => {
+        if (!el) return null;
+        return {
+          lit: el.getAttribute("data-lit"),
+          dist: el.getAttribute("data-dist"),
+          op: op(el),
+          dim: el.classList.contains("ego-dim"),
+        };
+      };
+      return {
+        ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        n2: read(document.querySelector('#sliceCanvas .vnode[data-id="n2"]')),
+        n4: read(document.querySelector('#sliceCanvas .vnode[data-id="n4"]')),
+      };
+    });
+    record(
+      "EG3d",
+      "Selecting a Slice node with Ego off keeps the lit 2-hop walk fully opaque",
+      selectFade.ego === false &&
+        !!(selectFade.n2 && selectFade.n2.lit === "1" && selectFade.n2.dist === "2" && selectFade.n2.op >= 0.99 && !selectFade.n2.dim) &&
+        !!(selectFade.n4 && selectFade.n4.lit === "1" && selectFade.n4.dist === "2" && selectFade.n4.op >= 0.99),
+      JSON.stringify(selectFade)
+    );
+    await shot(page, "slice-select.png");
+    await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
         hops.value = "1";

@@ -513,6 +513,8 @@ assert(driver.includes("present.png") && driver.includes("preset-blueprint.png")
 assert(driver.includes("route.png") && driver.includes("lens.png") && driver.includes("__graphideRoute"), "verify driver must drive Route and Lens on the demo snap");
 assert(driver.includes("ego.png") && driver.includes("search.png") && driver.includes("EG1") && driver.includes("SG1") && driver.includes("EG5") && driver.includes("SG3"), "verify driver must drive Ego and Find on enter / Slice / Lineage");
 assert(driver.includes("EG3c") && driver.includes("slice-ego.png") && driver.includes('data-id="n0"') && driver.includes("n12"), "verify driver must prove Slice Ego beats distance grey on n12");
+assert(driver.includes("EG3d") && driver.includes("slice-select.png") && driver.includes('data-id="n2"'), "verify driver must prove Slice select does not fade the lit 2-hop walk");
+assert(!css.includes('.vnode[data-dist="2"] { opacity'), "selecting a node must not fade the 2-hop ring");
 assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim)') && css.includes('#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim)'), "Slice distance grey must not override Ego");
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");

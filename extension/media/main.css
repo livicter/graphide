@@ -562,7 +562,6 @@ button:disabled { opacity: 0.45; cursor: default; }
   opacity: 0.55;
   margin-bottom: 6px;
 }
-.comm-node[data-dist="2"], .vnode[data-dist="2"] { opacity: 0.72; }
 .comm-node[data-dist="0"], .vnode[data-dist="0"] { z-index: 2; }
 #graphSearch {
   flex: 1;
