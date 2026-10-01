@@ -8,7 +8,7 @@ Community cut of the reviewed program. Not a function dump and not a lone START 
 - Community boxes `.bubble-card` with `.name`, `.meta`, optional `.role`, member peek `.bubble-card .members`.
 - Story pin: first hop community gets `.bubble-card.start` (CSS outline); last gets `.bubble-card.end`. Off-path cards get `.bubble-card.off`.
 - Enter a bubble: click `.bubble-card` → derived XYFlow on `#enterCanvas` (shaped Function / Type / Endpoint, cap 24 nodes / 80 edges). Lit = on the current flow Steiner tree (`[data-lit="1"]` / `.vnode.lit`); grey = siblings (`[data-lit="0"]` / `.vnode.grey`). The walk source in that community is `data-shape="start"`; the walk sink is `data-shape="end"`. Same `steinerOfWalk` rule as Slice. A community that has children shows those children as non-leaves (`data-leaf="0"`) with the registry Type shape (`data-shape="type"`, `data-kind="Type"`). Click one to enter its members. Not a vanilla `.inode` list and not the raw IR.
-- Back: `#backBtn` / Map crumb pops Enter, unmounts `#enterCanvas`, and returns to community cards.
+- Back: `#backBtn` / Map crumb pops one `{ kind: "bubble" }` frame (the same stack Slice `.run` pushes). Zoom-out past `k <= 0.42` pops that same frame. Deeper enter returns to the Type cut, then to community cards.
 - Search: `#graphSearch` dims non-matches (`.bubble-card.dim`).
 - Program chip: `#legend [data-prog]` — seed **bin main** (`programs: [{ kind: "bin", name: "main" }]`). Switch proof: [program-chips.md](program-chips.md). Union: [all-programs.md](all-programs.md).
 - Story rail: `#storyRail` sits **outside** `.viewport` (Start → features → end).
@@ -46,7 +46,7 @@ Assertions the driver owns:
 - `#legend` still names **bin main** after seed
 - screenshot of `#workspace` / Map is not a black frame
 - After click `.bubble-card`: `#enterCanvas .react-flow__node` length `> 1` and `<= 24`, `#enterCanvas .vnode[data-shape]` present, the first community (`b-render`) has one lit `[data-shape="start"]` (`n0`) and no `[data-shape="end"]`, leaf click opens `#sourcePane`, screenshot `verification/enter-bubble.png` is not a black frame, no stamps written
-- After click `.bubble-card[data-bubble="b-physics"]`: child communities `b-physics-a` / `b-physics-b` are `[data-shape="type"][data-leaf="0"]`. Click `b-physics-a` shows member shapes (`data-leaf="1"`, a `fn`). Back returns to the Type cut, then to Map cards at `xy=0` / `data-lod="0"`. Screenshot `verification/enter-child-type.png` is not a black frame
+- After click `.bubble-card[data-bubble="b-physics"]`: child communities `b-physics-a` / `b-physics-b` are `[data-shape="type"][data-leaf="0"]`. Click `b-physics-a` shows member shapes (`data-leaf="1"`, a `fn`). Back returns to the Type cut, then to Map cards at `xy=0` / `data-lod="0"`. Screenshot `verification/enter-child-type.png` is not a black frame. Zoom-pop from that deeper enter lands on the same Type cut (`E1h`); Back from the same depth matches those ids, then Map `xy=0` / `data-lod="0"` (`E1i`). Screenshot `verification/enter-back-stack.png` is not a black frame
 - After Back: Map altitude is cards again and `xy=0`
 
 Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-card`).
@@ -56,7 +56,7 @@ Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-ca
 - Overview also embeds a CFG (`.vnode`). Map must be the **community** workspace, not that CFG.
 - `.bubble-card.start` on a **populated** map is correct (walk start). Fail only when START is the *only* card.
 - `check-map.js` asserts `renderBubbleMap` / `storyMapBubbles` strings exist. It cannot see a one-card paint. Drive the harness.
-- Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops** Enter (`popAltitudeFromZoom`).
+- Geometric zoom (`#zoomIn`) must not Enter a bubble (`J1` in the in-page suite). Click Enter is a different gesture. Zoom-out past `k <= 0.42` **pops one** enter frame (`popAltitudeFromZoom` → `goBack`). It does not clear a separate Map filter.
 - Recycle: a second Map paint must keep `.stage` / `.viewport` when they already exist. See [canvas-recycle.md](canvas-recycle.md).
 - Off-view: cards clearly outside `.stage` park (`data-offview`). See [map-offview.md](map-offview.md).
 - Do not invent `data-testid` on cards. `[data-bubble]`, `.bubble-card`, `.bubble-card.start` already exist in `extension/media/src/graph/desk.js` (`renderBubbleMap`). React mounts `#canvas`; vanilla paint fills Map altitude. Map must stay `0` `.react-flow__node` (community LOD, cap 24). Enter-bubble XYFlow lives in `#enterCanvas` only — unmount when leaving enter / going back to Map. Slice / Overview CFG use `#sliceCanvas` XYFlow — that is not Map. Selectors: `#enterCanvas .react-flow__node`, `#enterCanvas .vnode[data-shape]`, `#enterCanvas .vnode.lit` / `[data-lit="1"]`, `#enterCanvas .vnode.grey` / `[data-lit="0"]`, `[data-leaf]`.

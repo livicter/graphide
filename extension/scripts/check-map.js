@@ -122,7 +122,14 @@ assert(js.includes("function requestSkip"), "skip must update the webview withou
 assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not steal workspace shortcuts");
 assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
-assert(js.includes("graphFilter.bubble && (explorerWs === \"map\""), "Back must pop a Map bubble even when the stack is a flow");
+assert(js.includes("function enterMapBubble"), "Map enter must use the same bubble stack as Slice");
+assert(/function enterMapBubble\(\w+\) \{\s*if \(!\w+\) return;\s*const flow = currentFlow\(\) \|\| defaultRunFlow\(\);\s*enterRun\(flow && flow\.name/.test(js), "Map enter must push the same bubble frame Slice uses");
+{
+  const popAt = js.indexOf("function popAltitudeFromZoom");
+  const popFn = popAt >= 0 ? js.slice(popAt, js.indexOf("function pinMapCommunityLod")) : "";
+  assert(popFn.includes("goBack()"), "zoom-pop must pop the same back stack as Back");
+  assert(!popFn.includes("graphFilter.bubble"), "zoom-pop must not keep a second Map bubble cursor");
+}
 assert(js.includes("applyGraphFilter();"), "community cards must honor search/kind filters");
 assert(js.includes("popK"), "zoom-out pop must use the camera target, not the animated k");
 assert(js.includes("function causalChainFor"), "decisions must show a Semantica-style causal chain on derived hops");
@@ -483,6 +490,7 @@ assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node
 assert(driver.includes("lineage.png") && driver.includes("LINEAGE_HARNESS") && driver.includes("#lineageCanvas .react-flow__node"), "verify driver must drive Lineage XYFlow on the demo fixture");
 assert(driver.includes("enter-bubble.png") && driver.includes("#enterCanvas .react-flow__node") && driver.includes("E1") && driver.includes("E1c") && driver.includes("data-shape='start'"), "verify driver must prove enter-bubble XYFlow from Map, including the walk-start shape");
 assert(driver.includes("E1d") && driver.includes("enter-child-type.png") && driver.includes("b-physics") && driver.includes("data-shape='type'") && driver.includes("E1g") && driver.includes("data-lod"), "verify driver must prove child communities use the Type data-shape and return Map to lod 0");
+assert(driver.includes("E1h") && driver.includes("E1i") && driver.includes("enter-back-stack.png") && driver.includes("SR2f"), "verify driver must prove zoom-pop and Back share one enter stack");
 assert(driver.includes("SR2b") && driver.includes("b-render"), "verify driver must prove Slice run enter stamps the same walk-start shape");
 assert(driver.includes("SR2c") && driver.includes("SR2e") && driver.includes("b-physics"), "verify driver must prove Slice stack enter of a parent community stamps the Type data-shape");
 assert(harness.includes("b-physics-a") && harness.includes('parent: "b-physics"'), "explorer fixture must nest child communities under b-physics");

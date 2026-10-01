@@ -101,7 +101,7 @@ function reviewCanvasWorkspace(ws) {
 
 function enterCanvasActive() {
   const top = stack[stack.length - 1];
-  return !!(graphFilter.bubble || (top && top.kind === "bubble"));
+  return !!(top && top.kind === "bubble");
 }
 
 function unmountAllReviewCanvases() {
@@ -1069,13 +1069,26 @@ function applySnapshot(msg, inner) {
   };
   if (msg.flow?.name) flowName = msg.flow.name;
   else if (!flowName && snapshot.flows[0]) flowName = snapshot.flows[0].name;
-  if (inner) {
-    stack = [
-      { kind: "programs" },
-      { kind: "flow" },
-      { kind: "bubble", flow: msg.inner.flow, bubble: String(msg.inner.bubble) },
-    ];
-  } else {
+  if (inner && msg.inner) {
+    const frame = {
+      kind: "bubble",
+      flow: msg.inner.flow,
+      bubble: String(msg.inner.bubble),
+    };
+    const top = stack[stack.length - 1];
+    const same = top && top.kind === "bubble" && String(top.bubble) === frame.bubble;
+    if (!same) {
+      let at = -1;
+      for (let i = 0; i < stack.length; i++) {
+        if (stack[i] && stack[i].kind === "bubble" && String(stack[i].bubble) === frame.bubble) at = i;
+      }
+      if (at >= 0) stack.length = at + 1;
+      else {
+        if (!stack.length) stack.push({ kind: "programs" });
+        stack.push(frame);
+      }
+    }
+  } else if (!inner) {
     stack = [{ kind: "programs" }, { kind: "flow" }];
   }
   indexGraph(snapshot.graph);
@@ -1663,7 +1676,7 @@ function reviewMarks() {
 }
 
 function reviewAltitude() {
-  if (graphFilter.bubble) return "inside";
+  if (enterCanvasActive()) return "inside";
   if (explorerWs === "slice") return "slice";
   if (explorerWs === "map") return "map";
   if (explorerWs === "overview") return "overview";
@@ -1805,11 +1818,7 @@ function consumeHarnessActions() {
         paint({ animate: "none" });
       }
       const card = document.querySelector(".bubble-card");
-      if (card) {
-        graphFilter.bubble = card.getAttribute("data-bubble");
-        selectedNodeId = null;
-        renderProgramOverview();
-      }
+      if (card) enterMapBubble(card.getAttribute("data-bubble"));
     }
     if (hop) {
       if (!document.querySelector(".edge-hit, text.ekind")) {
@@ -1878,7 +1887,7 @@ function setEgoMode(on) {
 
 function refreshExplorer() {
   if (!snapshot) return;
-  if (isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
+  if (enterCanvasActive() || isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
     paint({ animate: "none" });
     return;
   }
@@ -1915,26 +1924,14 @@ function lodName(lod) {
 }
 
 function canPopAltitude() {
-  if (graphFilter.bubble) return true;
-  const top = stack[stack.length - 1];
-  return !!(top && top.kind === "bubble");
+  return enterCanvasActive();
 }
 
 function popAltitudeFromZoom() {
-  if (graphFilter.bubble) {
-    graphFilter.bubble = null;
-    selectedNodeId = null;
-    resetCam();
-    zoomPopReady = false;
-    if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") renderProgramOverview();
-    else paint({ animate: "none" });
-    return;
-  }
-  if (stack[stack.length - 1]?.kind === "bubble") {
-    resetCam();
-    zoomPopReady = false;
-    goBack();
-  }
+  if (!enterCanvasActive()) return;
+  resetCam();
+  zoomPopReady = false;
+  goBack();
 }
 
 function pinMapCommunityLod(vp) {
@@ -2252,12 +2249,25 @@ function selectFlow(name) {
   }
 }
 
+function enterMapBubble(id) {
+  if (!id) return;
+  const flow = currentFlow() || defaultRunFlow();
+  enterRun(flow && flow.name, id);
+}
+
 function enterRun(flow, bubble, fromEl) {
+  graphFilter.bubble = null;
   vscode.postMessage({ type: "enterRun", flow, bubble });
   const token = ++navToken;
   const go = () => {
     if (token !== navToken) return;
-    stack.push({ kind: "bubble", flow, bubble: String(bubble) });
+    const top = stack[stack.length - 1];
+    const same =
+      top &&
+      top.kind === "bubble" &&
+      String(top.bubble) === String(bubble) &&
+      String(top.flow || "") === String(flow || "");
+    if (!same) stack.push({ kind: "bubble", flow, bubble: String(bubble) });
     paint({ animate: "list" });
   };
   if (fromEl && !reduceMotion()) {
@@ -2272,7 +2282,7 @@ function enterRun(flow, bubble, fromEl) {
 
 function syncBackBtn() {
   if (!backBtn) return;
-  backBtn.disabled = stack.length <= 1 && !graphFilter.bubble;
+  backBtn.disabled = !enterCanvasActive() && stack.length <= 1;
 }
 
 function goBack() {
@@ -2281,6 +2291,8 @@ function goBack() {
     const go = () => {
       if (token !== navToken) return;
       stack.pop();
+      graphFilter.bubble = null;
+      vscode.postMessage({ type: "back" });
       paint({ animate: "tree", fromInner: true });
     };
     if (!reduceMotion()) {
@@ -2289,12 +2301,6 @@ function goBack() {
     } else {
       go();
     }
-    return;
-  }
-  if (graphFilter.bubble && (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs")) {
-    graphFilter.bubble = null;
-    selectedNodeId = null;
-    renderProgramOverview();
     return;
   }
   if (stack.length <= 1) return;
@@ -2603,9 +2609,11 @@ function orthoPath(a, b) {
 }
 
 function layoutViewKey() {
+  const top = stack[stack.length - 1];
+  const bubble = top && top.kind === "bubble" ? String(top.bubble) : "";
   return [
     explorerWs || "map",
-    graphFilter.bubble || "",
+    bubble,
     (currentFlow() && currentFlow().name) || "",
     (graphFilter.program && graphFilter.program.name) || "",
   ].join("/");
@@ -3534,11 +3542,10 @@ function bindStoryRail() {
   canvas.querySelectorAll(".story-rail [data-feature]").forEach((el) => {
     el.onclick = () => {
       stopPathWalk();
-      graphFilter.bubble = el.getAttribute("data-feature");
       selectedNodeId = null;
       explorerWs = "map";
       explorerPinned = true;
-      renderProgramOverview();
+      enterMapBubble(el.getAttribute("data-feature"));
     };
   });
   canvas.querySelectorAll(".story-rail [data-hop]").forEach((el) => {
@@ -3574,7 +3581,7 @@ function storyMapBubbles() {
 }
 
 function storyRailPath() {
-  if (explorerWs === "map" && !graphFilter.bubble) return storyMapBubbles();
+  if (explorerWs === "map" && !enterCanvasActive()) return storyMapBubbles();
   return featurePath(storyFlow());
 }
 
@@ -7250,11 +7257,10 @@ function renderExplorerList(ws) {
   canvas.querySelectorAll("[data-feature]").forEach((el) => {
     el.onclick = () => {
       stopPathWalk();
-      graphFilter.bubble = el.getAttribute("data-feature");
       selectedNodeId = null;
       explorerWs = "map";
       explorerPinned = true;
-      renderProgramOverview();
+      enterMapBubble(el.getAttribute("data-feature"));
     };
   });
   canvas.querySelectorAll(".feature-path [data-hop]").forEach((el) => {
@@ -7935,34 +7941,15 @@ function renderLegend() {
     };
   });
   legendEl.querySelectorAll("[data-bubble]").forEach((el) => {
-    el.onclick = () => {
-      const id = el.getAttribute("data-bubble");
-      graphFilter.bubble = String(graphFilter.bubble) === id ? null : id;
-      renderProgramOverview();
-    };
+    el.onclick = () => enterMapBubble(el.getAttribute("data-bubble"));
   });
 }
 
 function renderCommunityGraph(opts) {
-  if (!graphFilter.bubble) {
-    unmountReviewCanvas();
-    enterBodyKey = "";
-    renderBubbleMap(mapAltitudeBubbles(), opts);
-    return;
-  }
-  const flow = currentFlow() || defaultRunFlow();
-  const inner = enterBubble(snapshot, flow && flow.name, graphFilter.bubble);
-  renderInner(
-    {
-      inner,
-      flow,
-      coverage: snapshot.coverage,
-      findings: snapshot.findings,
-      plugin: snapshot.plugin,
-      stats: snapshot.stats,
-    },
-    false
-  );
+  graphFilter.bubble = null;
+  unmountReviewCanvas();
+  enterBodyKey = "";
+  renderBubbleMap(mapAltitudeBubbles(), opts);
 }
 
 function mapFlowTitle(pathIds) {
@@ -8311,9 +8298,8 @@ function renderBubbleMap(clusters, opts) {
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
     onClick: (id) => {
-      graphFilter.bubble = id;
       selectedNodeId = null;
-      renderProgramOverview();
+      enterMapBubble(id);
     },
   });
   bindHopClicks(canvas.querySelector("svg.comm-edges"));
@@ -8622,7 +8608,7 @@ function sliceWorkspaceKey() {
 function enterWorkspaceKey(inner) {
   const nodes = ((inner && inner.nodes) || []).map((n) => String(idVal(n.id)));
   const top = stack[stack.length - 1];
-  const bubble = graphFilter.bubble || (top && top.bubble) || "";
+  const bubble = top && top.kind === "bubble" ? String(top.bubble) : "";
   return ["enter", (inner && inner.flow) || "", String(bubble), nodes.join(",")].join("\0");
 }
 
