@@ -2599,7 +2599,9 @@ function bindHopClicks(root) {
     el.dataset.hopBound = "1";
     const go = (ev) => {
       ev.stopPropagation();
-      showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
+      const from = el.getAttribute("data-hop-from") || el.getAttribute("data-from");
+      const to = el.getAttribute("data-hop-to") || el.getAttribute("data-to");
+      showHop(from, to, el.getAttribute("data-kind"));
     };
     el.addEventListener("click", go);
     el.addEventListener("pointerdown", (ev) => ev.stopPropagation());
@@ -2896,6 +2898,77 @@ function communityEdgeList(clusters) {
   return out;
 }
 
+function hopEndAttrs(e) {
+  if (!e || e.hopFrom == null || e.hopTo == null) return "";
+  const a = idVal(e.hopFrom);
+  const b = idVal(e.hopTo);
+  if (!a || !b) return "";
+  return ' data-hop-from="' + a + '" data-hop-to="' + b + '"';
+}
+
+function stampHopEnds(el, e) {
+  if (!el) return;
+  const a = e && e.hopFrom != null ? idVal(e.hopFrom) : "";
+  const b = e && e.hopTo != null ? idVal(e.hopTo) : "";
+  if (a && b) {
+    el.setAttribute("data-hop-from", a);
+    el.setAttribute("data-hop-to", b);
+  } else {
+    el.removeAttribute("data-hop-from");
+    el.removeAttribute("data-hop-to");
+  }
+}
+
+/** Story steps are the derived tree hops that cross communities, not a Calls label on bubble ids. */
+function storySpineEdges(pathIds) {
+  const flow = storyFlow();
+  const walk = flowWalk(flow);
+  const treeEdges = (flow && flow.tree && flow.tree.edges) || [];
+  const shown = mapAltitudeBubbles();
+  const bubbleOfId = (id) => {
+    const b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id)));
+    return b ? idVal(b.id) : "";
+  };
+  const want = new Set(pathIds || []);
+  const out = [];
+  const seen = new Set();
+  const push = (a, b, kind, hopFrom, hopTo) => {
+    if (!a || !b || a === b || !want.has(a) || !want.has(b) || !kind || !hopFrom || !hopTo) return;
+    const key = a + "\t" + b + "\t" + kind + "\t" + hopFrom + "\t" + hopTo;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ from: a, to: b, kind, hopFrom, hopTo });
+  };
+  for (let i = 0; i < walk.length - 1; i++) {
+    const aNode = idVal(walk[i]);
+    const bNode = idVal(walk[i + 1]);
+    let kind = "";
+    let hopFrom = aNode;
+    let hopTo = bNode;
+    for (const e of treeEdges) {
+      const ef = idVal(e.from);
+      const et = idVal(e.to);
+      if (ef === aNode && et === bNode) {
+        kind = e.kind || "Calls";
+        break;
+      }
+      if (ef === bNode && et === aNode) {
+        kind = e.kind || "Calls";
+        hopFrom = ef;
+        hopTo = et;
+        break;
+      }
+    }
+    push(bubbleOfId(aNode), bubbleOfId(bNode), kind, hopFrom, hopTo);
+  }
+  for (const e of treeEdges) {
+    const ef = idVal(e.from);
+    const et = idVal(e.to);
+    push(bubbleOfId(ef), bubbleOfId(et), e.kind || "Calls", ef, et);
+  }
+  return out;
+}
+
 function edgeSvg(cls, edges, pos, W, H) {
   let svg =
     '<svg class="' +
@@ -2914,6 +2987,7 @@ function edgeSvg(cls, edges, pos, W, H) {
     const b = pos.get ? pos.get(idVal(e.to)) : pos[idVal(e.to)];
     if (!a || !b) continue;
     const kind = e.kind || "Calls";
+    const hop = hopEndAttrs(e);
     const d = orthoPath(a, b);
     const mx = Math.round((a.x + b.x) / 2),
       my = Math.round((a.y + b.y) / 2) - 10;
@@ -2924,7 +2998,9 @@ function edgeSvg(cls, edges, pos, W, H) {
       idVal(e.to) +
       '" data-kind="' +
       esc(kind) +
-      '" d="' +
+      '"' +
+      hop +
+      ' d="' +
       d +
       '" />';
     svg +=
@@ -2934,7 +3010,9 @@ function edgeSvg(cls, edges, pos, W, H) {
       idVal(e.to) +
       '" data-kind="' +
       esc(kind) +
-      '" d="' +
+      '"' +
+      hop +
+      ' d="' +
       d +
       '" />';
     svg +=
@@ -2948,7 +3026,9 @@ function edgeSvg(cls, edges, pos, W, H) {
       idVal(e.to) +
       '" data-kind="' +
       esc(kind) +
-      '">' +
+      '"' +
+      hop +
+      '>' +
       esc(kind) +
       (e.count > 1 ? " · " + e.count : "") +
       "</text>";
@@ -8280,11 +8360,13 @@ function recycleCommEdges(svg, edges, pos, W, H) {
       hit.setAttribute("data-from", e.from);
       hit.setAttribute("data-to", e.to);
       hit.setAttribute("data-kind", e.kind);
+      stampHopEnds(hit, e);
       hit.setAttribute("d", d);
       const vis = document.createElementNS("http://www.w3.org/2000/svg", "path");
       vis.setAttribute("data-from", e.from);
       vis.setAttribute("data-to", e.to);
       vis.setAttribute("data-kind", e.kind);
+      stampHopEnds(vis, e);
       vis.setAttribute("d", d);
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("class", "ekind");
@@ -8294,6 +8376,7 @@ function recycleCommEdges(svg, edges, pos, W, H) {
       text.setAttribute("data-from", e.from);
       text.setAttribute("data-to", e.to);
       text.setAttribute("data-kind", e.kind);
+      stampHopEnds(text, e);
       text.textContent = e.kind + (e.count > 1 ? " · " + e.count : "");
       svg.appendChild(hit);
       svg.appendChild(vis);
@@ -8301,6 +8384,7 @@ function recycleCommEdges(svg, edges, pos, W, H) {
       continue;
     }
     els.forEach((el) => {
+      stampHopEnds(el, e);
       if (el.tagName === "path") el.setAttribute("d", d);
       if (el.tagName === "text") {
         el.setAttribute("x", String(mx));
@@ -8366,6 +8450,7 @@ function renderBubbleMap(clusters, opts) {
   for (let i = 0; i < pathIds.length - 1; i++) {
     pathEdges.push({ from: pathIds[i], to: pathIds[i + 1], kind: "Calls" });
   }
+  const spine = storySpineEdges(pathIds);
   const layoutEdges = pathEdges.slice();
   if (pathIds.length && rest.length) {
     layoutEdges.push({ from: pathIds[pathIds.length - 1], to: rest[0], kind: "Contains" });
@@ -8373,7 +8458,7 @@ function renderBubbleMap(clusters, opts) {
       layoutEdges.push({ from: rest[i], to: rest[i + 1], kind: "Contains" });
     }
   }
-  const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
+  const edges = pathIds.length >= 2 ? (spine.length ? spine : pathEdges) : communityEdgeList(clusters);
   const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
     nodeW: 220,
     nodeH: 160,

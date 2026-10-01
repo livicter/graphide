@@ -1645,6 +1645,41 @@ async function main() {
     );
     record("M3", "Program chip seed includes bin main", /bin\s+main/i.test(map.legend), map.legend.slice(0, 80));
 
+    const mapSpine = await page.evaluate(() => {
+      const edge = document.querySelector(
+        'svg.comm-edges path.edge-hit[data-from="b-integration"][data-to="b-origin"]'
+      );
+      if (edge) edge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const card = document.getElementById("hopCard");
+      const text = card ? card.textContent.replace(/\s+/g, " ").trim() : "";
+      return {
+        kind: edge ? edge.getAttribute("data-kind") || "" : "",
+        hopFrom: edge ? edge.getAttribute("data-hop-from") || "" : "",
+        hopTo: edge ? edge.getAttribute("data-hop-to") || "" : "",
+        hidden: !card || card.hidden,
+        text,
+        ids: card ? [...card.querySelectorAll("[data-id]")].map((el) => el.getAttribute("data-id") || "") : [],
+      };
+    });
+    record(
+      "M2d",
+      "Map story hop is the derived Reads edge, not Calls between community ids",
+      mapSpine.kind === "Reads" &&
+        mapSpine.hopFrom === "n1" &&
+        mapSpine.hopTo === "n2" &&
+        !mapSpine.hidden &&
+        mapSpine.ids.indexOf("n1") >= 0 &&
+        mapSpine.ids.indexOf("n2") >= 0 &&
+        mapSpine.ids.indexOf("b-integration") < 0 &&
+        /Reads/.test(mapSpine.text) &&
+        /solarsim::ext/.test(mapSpine.text) &&
+        /solarsim::as_str/.test(mapSpine.text),
+      JSON.stringify(mapSpine)
+    );
+    await shot(page, "map-spine-hop.png");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(120);
+
     const layoutBugs = await page.evaluate(() => {
       const hit = (a, b, slack) => {
         slack = slack || 0;

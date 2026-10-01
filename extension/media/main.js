@@ -21994,7 +21994,9 @@
         el2.dataset.hopBound = "1";
         const go = (ev) => {
           ev.stopPropagation();
-          showHop(el2.getAttribute("data-from"), el2.getAttribute("data-to"), el2.getAttribute("data-kind"));
+          const from = el2.getAttribute("data-hop-from") || el2.getAttribute("data-from");
+          const to = el2.getAttribute("data-hop-to") || el2.getAttribute("data-to");
+          showHop(from, to, el2.getAttribute("data-kind"));
         };
         el2.addEventListener("click", go);
         el2.addEventListener("pointerdown", (ev) => ev.stopPropagation());
@@ -22266,6 +22268,73 @@
       }
       return out;
     }
+    function hopEndAttrs(e) {
+      if (!e || e.hopFrom == null || e.hopTo == null) return "";
+      const a = idVal(e.hopFrom);
+      const b = idVal(e.hopTo);
+      if (!a || !b) return "";
+      return ' data-hop-from="' + a + '" data-hop-to="' + b + '"';
+    }
+    function stampHopEnds(el2, e) {
+      if (!el2) return;
+      const a = e && e.hopFrom != null ? idVal(e.hopFrom) : "";
+      const b = e && e.hopTo != null ? idVal(e.hopTo) : "";
+      if (a && b) {
+        el2.setAttribute("data-hop-from", a);
+        el2.setAttribute("data-hop-to", b);
+      } else {
+        el2.removeAttribute("data-hop-from");
+        el2.removeAttribute("data-hop-to");
+      }
+    }
+    function storySpineEdges(pathIds) {
+      const flow = storyFlow();
+      const walk = flowWalk(flow);
+      const treeEdges = flow && flow.tree && flow.tree.edges || [];
+      const shown = mapAltitudeBubbles();
+      const bubbleOfId = (id2) => {
+        const b = shown.find((bub) => (bub.members || []).some((m) => idVal(m) === idVal(id2)));
+        return b ? idVal(b.id) : "";
+      };
+      const want = new Set(pathIds || []);
+      const out = [];
+      const seen = /* @__PURE__ */ new Set();
+      const push = (a, b, kind, hopFrom, hopTo) => {
+        if (!a || !b || a === b || !want.has(a) || !want.has(b) || !kind || !hopFrom || !hopTo) return;
+        const key = a + "	" + b + "	" + kind + "	" + hopFrom + "	" + hopTo;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ from: a, to: b, kind, hopFrom, hopTo });
+      };
+      for (let i = 0; i < walk.length - 1; i++) {
+        const aNode = idVal(walk[i]);
+        const bNode = idVal(walk[i + 1]);
+        let kind = "";
+        let hopFrom = aNode;
+        let hopTo = bNode;
+        for (const e of treeEdges) {
+          const ef = idVal(e.from);
+          const et2 = idVal(e.to);
+          if (ef === aNode && et2 === bNode) {
+            kind = e.kind || "Calls";
+            break;
+          }
+          if (ef === bNode && et2 === aNode) {
+            kind = e.kind || "Calls";
+            hopFrom = ef;
+            hopTo = et2;
+            break;
+          }
+        }
+        push(bubbleOfId(aNode), bubbleOfId(bNode), kind, hopFrom, hopTo);
+      }
+      for (const e of treeEdges) {
+        const ef = idVal(e.from);
+        const et2 = idVal(e.to);
+        push(bubbleOfId(ef), bubbleOfId(et2), e.kind || "Calls", ef, et2);
+      }
+      return out;
+    }
     function edgeSvg(cls, edges, pos, W, H2) {
       let svg = '<svg class="' + cls + '" viewBox="0 0 ' + W + " " + H2 + '" width="' + W + '" height="' + H2 + '">';
       for (const e of edges || []) {
@@ -22273,11 +22342,12 @@
         const b = pos.get ? pos.get(idVal(e.to)) : pos[idVal(e.to)];
         if (!a || !b) continue;
         const kind = e.kind || "Calls";
+        const hop = hopEndAttrs(e);
         const d = orthoPath(a, b);
         const mx = Math.round((a.x + b.x) / 2), my = Math.round((a.y + b.y) / 2) - 10;
-        svg += '<path class="edge-hit" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '" d="' + d + '" />';
-        svg += '<path data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '" d="' + d + '" />';
-        svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '">' + esc(kind) + (e.count > 1 ? " · " + e.count : "") + "</text>";
+        svg += '<path class="edge-hit" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '"' + hop + ' d="' + d + '" />';
+        svg += '<path data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '"' + hop + ' d="' + d + '" />';
+        svg += '<text class="ekind" x="' + mx + '" y="' + my + '" text-anchor="middle" data-from="' + idVal(e.from) + '" data-to="' + idVal(e.to) + '" data-kind="' + esc(kind) + '"' + hop + ">" + esc(kind) + (e.count > 1 ? " · " + e.count : "") + "</text>";
       }
       svg += "</svg>";
       return svg;
@@ -26300,11 +26370,13 @@
           hit.setAttribute("data-from", e.from);
           hit.setAttribute("data-to", e.to);
           hit.setAttribute("data-kind", e.kind);
+          stampHopEnds(hit, e);
           hit.setAttribute("d", d);
           const vis = document.createElementNS("http://www.w3.org/2000/svg", "path");
           vis.setAttribute("data-from", e.from);
           vis.setAttribute("data-to", e.to);
           vis.setAttribute("data-kind", e.kind);
+          stampHopEnds(vis, e);
           vis.setAttribute("d", d);
           const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
           text.setAttribute("class", "ekind");
@@ -26314,6 +26386,7 @@
           text.setAttribute("data-from", e.from);
           text.setAttribute("data-to", e.to);
           text.setAttribute("data-kind", e.kind);
+          stampHopEnds(text, e);
           text.textContent = e.kind + (e.count > 1 ? " · " + e.count : "");
           svg.appendChild(hit);
           svg.appendChild(vis);
@@ -26321,6 +26394,7 @@
           continue;
         }
         els.forEach((el2) => {
+          stampHopEnds(el2, e);
           if (el2.tagName === "path") el2.setAttribute("d", d);
           if (el2.tagName === "text") {
             el2.setAttribute("x", String(mx));
@@ -26380,6 +26454,7 @@
       for (let i = 0; i < pathIds.length - 1; i++) {
         pathEdges.push({ from: pathIds[i], to: pathIds[i + 1], kind: "Calls" });
       }
+      const spine = storySpineEdges(pathIds);
       const layoutEdges = pathEdges.slice();
       if (pathIds.length && rest.length) {
         layoutEdges.push({ from: pathIds[pathIds.length - 1], to: rest[0], kind: "Contains" });
@@ -26387,7 +26462,7 @@
           layoutEdges.push({ from: rest[i], to: rest[i + 1], kind: "Contains" });
         }
       }
-      const edges = pathIds.length >= 2 ? pathEdges : communityEdgeList(clusters);
+      const edges = pathIds.length >= 2 ? spine.length ? spine : pathEdges : communityEdgeList(clusters);
       const laid = layeredPositions(ids, pathIds.length >= 2 ? layoutEdges : edges, {
         nodeW: 220,
         nodeH: 160,
