@@ -198,7 +198,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      the other distance-1 nodes to at most 0.12 (`EG3c`,
      `verification/slice-ego.png`). Selecting `n0` with Ego off keeps
      lit `n2` / `n4` (`data-dist` 2) at full opacity (`EG3d`,
-     `verification/slice-select.png`)
+     `verification/slice-select.png`). Off-tree neighbor `n12`
+     (`data-slice-dist` 1) stays in distance grey at opacity 0.48
+     (`EG3e`, `verification/slice-select-grey.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
