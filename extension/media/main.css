@@ -2346,27 +2346,30 @@ html.bright .route-hop {
 #sliceCanvas .vnode .fqn,
 #lineageCanvas .vnode .fqn,
 #enterCanvas .vnode .fqn { display: none; }
-#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
-#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
-#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.48; }
+#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
+#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
+#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.48; }
 #enterCanvas .vnode.ego,
 #sliceCanvas .vnode.ego { opacity: 1; }
-#enterCanvas .vnode.ego-dim,
-#sliceCanvas .vnode.ego-dim { opacity: 0.12; }
+#enterCanvas .vnode.ego-dim:not(.hit),
+#sliceCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
-/* Distance grey must not cover Ego or Find. Off-query nodes stay at .dim. */
-#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.48; }
-#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.36; }
+/* Distance grey must not cover Ego, Find misses, or Find hits. */
+#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.48; }
+#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.36; }
 /* Enter greys by graph distance. Ego and Find still win. */
-#enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.18; }
-#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.56; }
-#enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.40; }
-#enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.28; }
-/* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker. */
+#enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }
+#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.56; }
+#enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.40; }
+#enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.28; }
+/* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker than a miss. A .hit stays lit. */
 #enterCanvas .vnode.dim:not(.ego-dim),
 #sliceCanvas .vnode.dim:not(.ego-dim),
 #lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
+#enterCanvas .vnode.hit,
+#sliceCanvas .vnode.hit,
+#lineageCanvas .vnode.hit { opacity: 1; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
