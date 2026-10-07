@@ -6733,6 +6733,34 @@ async function main() {
       JSON.stringify(repeatKeys)
     );
 
+    // A kind pill is a checkbox, not a text field: after clicking one, desk keys (R = PATH) still work.
+    await page.click("#kindFilters label.kind-Type");
+    await page.waitForTimeout(120);
+    await page.click("#kindFilters label.kind-Type");
+    await page.waitForTimeout(120);
+    const pillFocus = await page.evaluate(() => {
+      const a = document.activeElement;
+      return {
+        focus: a ? a.tagName.toLowerCase() + ":" + (a.getAttribute("type") || "") : "",
+        typeOn: !!(document.querySelector('#kindFilters input[data-kind="Type"]') || {}).checked,
+        routeBefore: !!(window.__graphideRoute && window.__graphideRoute.open),
+      };
+    });
+    await page.keyboard.press("r");
+    await page.waitForTimeout(200);
+    pillFocus.routeAfter = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+    if (pillFocus.routeAfter !== pillFocus.routeBefore) {
+      await page.keyboard.press("r");
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    record(
+      "K11",
+      "After clicking a kind pill (checkbox focus), R still toggles PATH",
+      pillFocus.focus === "input:checkbox" && pillFocus.typeOn && pillFocus.routeAfter !== pillFocus.routeBefore,
+      JSON.stringify(pillFocus)
+    );
+
     // A focused <select> (Ego hops, Ask host) owns its typeahead keys: "2" picks 2-hop, it does not switch workspace; "s" never stamps.
     const selPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
     const selWs0 = await page.evaluate(() =>
