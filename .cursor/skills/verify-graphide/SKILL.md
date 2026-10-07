@@ -164,7 +164,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Presentation / Style on the explorer Map: `#presetBtn` cycles, `F` /
      Escape enter and exit the stage
    - Route / Lens on the Sequence demo snap: `R` lights a derived path,
-     `L` highlights Function / Endpoint
+     `L` highlights Function / Endpoint. On the explorer Slice, `R`
+     dims the off-route grey ring to the off-route walk (≤ 0.22,
+     `RT8`, `verification/slice-route-dim.png`)
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`

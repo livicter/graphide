@@ -64,6 +64,9 @@ Driver assertions:
   `#sliceCanvas .vnode[data-lit="0"]` / `.vnode.grey` / `.slice-dim`
   with `data-slice-dist` ≥ 1
 - screenshot `verification/slice-grey.png` is not a black frame
+- `R` on the explorer Slice: off-route ring nodes (`data-slice-dist`
+  1/2, `.route-dim`) are no brighter than off-route lit nodes (≤ 0.22,
+  `RT8`)
 - no `{ type: "stamp" }` / `{ type: "skip" }` post on this step
 - `.graphide/stamps/` is still empty
 - `fixtures/demo/flows.toml` is unchanged
@@ -76,7 +79,9 @@ Driver assertions:
 - Ego `data-dist` is hop distance from the selected node. Slice
   lighting uses `data-slice-dist` so the two do not overwrite.
   Distance opacity skips `.ego` and `.ego-dim`, so a neighbor at
-  distance 1 stays fully lit.
+  distance 1 stays fully lit. It also skips `.route-dim`: with `R` on,
+  an off-route ring node drops to 0.22 with the off-route walk instead
+  of staying at 0.48 (`RT8`, `verification/slice-route-dim.png`).
 - `#prompt` does not invent a client-side Steiner. Type
   `name=hit,hit`, Review, then the derived tree drives the mask.
 - S/X on a proposed-uncovered chip already posts

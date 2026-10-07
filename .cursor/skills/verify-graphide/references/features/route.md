@@ -57,6 +57,8 @@ Driver assertions:
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)
 - `#routeNext` past the end stays on the last hop (no loop)
 - screenshot `verification/route.png` is not a black frame
+- explorer Slice: `.route-dim` beats distance grey — off-route ring
+  nodes ≤ the off-route walk (≤ 0.22, `RT8`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
