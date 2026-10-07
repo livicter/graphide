@@ -120,6 +120,7 @@ assert(js.includes("explorerWs = \"slice\""), "selecting a flow must open the sl
 assert(js.includes("function requestStamp"), "stamp must update the webview without waiting on the host");
 assert(js.includes("function requestSkip"), "skip must update the webview without waiting on the host");
 assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not steal workspace shortcuts");
+assert(js.includes("if (e.metaKey || e.ctrlKey && !e.altKey) return;"), "Cmd / Ctrl chords must not fire desk keys (Cmd+S must not stamp)");
 assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
 assert(js.includes("function enterMapBubble"), "Map enter must use the same bubble stack as Slice");
@@ -543,6 +544,7 @@ assert(
 );
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
+assert(driver.includes("K8") && driver.includes("K8b") && driver.includes("metaKey: true"), "verify driver must prove Cmd / Ctrl chords do not stamp or toggle desk keys");
 assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && driver.includes("PW1") && driver.includes(".feat-chip.walk"), "verify driver must drive Map path walk on the Review desk");
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("apple-chrome.png") && driver.includes("AC0") && driver.includes("#reviewBtn") && /007aff/i.test(driver), "verify driver must drive Sequoia Day chrome on the explorer Map");

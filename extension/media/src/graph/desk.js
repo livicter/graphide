@@ -393,6 +393,8 @@ document.addEventListener("keydown", (e) => {
     applyPresent(false);
     return;
   }
+  // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
+  if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
   if (stack[stack.length - 1]?.kind === "programs") {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();

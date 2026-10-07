@@ -6583,6 +6583,57 @@ async function main() {
     );
     assertNoStampDir("K7", "Keys step did not write .graphide/stamps/");
 
+    // Cmd / Ctrl chords belong to VS Code (save, cut, find, quick open…). They must not fire desk keys:
+    // a reflex Cmd+S must not post a human stamp. Ctrl+Alt (AltGr) still types / [ ] ? on EU layouts.
+    const chordKeys = await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const posts0 = (window.__vscodePosts || []).length;
+      const state = () => ({
+        night: document.documentElement.classList.contains("night"),
+        present: document.body.classList.contains("present"),
+        ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+        lens: !!(window.__graphideLens && window.__graphideLens.open),
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+      });
+      const before = state();
+      const chords = [
+        ["s", { ctrlKey: true }],
+        ["s", { metaKey: true }],
+        ["x", { ctrlKey: true }],
+        ["x", { metaKey: true }],
+        ["f", { metaKey: true }],
+        ["d", { ctrlKey: true }],
+        ["e", { metaKey: true }],
+        ["r", { ctrlKey: true }],
+        ["l", { metaKey: true }],
+        ["2", { ctrlKey: true }],
+      ];
+      chords.forEach(([key, mods]) =>
+        document.dispatchEvent(new KeyboardEvent("keydown", Object.assign({ key, bubbles: true, cancelable: true }, mods)))
+      );
+      const after = state();
+      const posts = (window.__vscodePosts || []).slice(posts0);
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "/", ctrlKey: true, altKey: true, bubbles: true, cancelable: true })
+      );
+      const altGrFind = document.activeElement === document.getElementById("graphSearch");
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        changed: Object.keys(before).filter((k) => before[k] !== after[k]),
+        altGrFind,
+      };
+    });
+    record(
+      "K8",
+      "Cmd / Ctrl chords (Cmd+S, Ctrl+X, Cmd+F…) do not stamp, skip or toggle desk modes",
+      chordKeys.stampPosts === 0 && chordKeys.skipPosts === 0 && chordKeys.changed.length === 0,
+      JSON.stringify(chordKeys)
+    );
+    record("K8b", "Ctrl+Alt (AltGr) / still opens Find", chordKeys.altGrFind, JSON.stringify({ altGrFind: chordKeys.altGrFind }));
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

@@ -231,7 +231,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      flow / hop / coverage without an LLM key; `#llmClose` / Escape close
    - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
      sheet, `S`/`X` stamp/skip, `E` ego, `F` present, `D` day/night;
-     `#keysClose` / Escape close
+     `#keysClose` / Escape close; Cmd / Ctrl chords (`Cmd+S`, `Ctrl+X`,
+     `Cmd+F`…) post no stamp / skip and toggle nothing (`K8`), Ctrl+Alt
+     `/` still opens Find (`K8b`)
    - Path walk: `P` / `#pathWalkBtn` walks Map start → features → end;
      `[` `]` step; `.walk` / `.here` on community chips/cards; not Route
      `#routePlay`

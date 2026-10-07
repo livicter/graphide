@@ -5,7 +5,9 @@ Human attestation that a proposed Steiner flow still holds — or an explicit sk
 ## Sub-features
 
 - Header buttons `#stampBtn` (“Human stamp: this flow still holds (S)”) and `#skipBtn` (“Skip this flow without a stamp (X)”).
-- Keys `S` / `X` when focus is not in an input.
+- Keys `S` / `X` when focus is not in an input, bare only: `Cmd+S` /
+  `Ctrl+S` (save) and `Cmd+X` / `Ctrl+X` (cut) are VS Code's and never
+  stamp or skip (`K8`).
 - Enabled only when `currentFlow()` is set (`stampBtn.disabled = !currentFlow()`).
 - Webview `requestStamp` / `requestSkip` update in-memory `stampRows` / `skippedFlows`, flash `#toast`, flash the button (`.flash-holds` / `.flash-skip`), then `vscode.postMessage({ type: "stamp"|"skip", flow })`.
 - Decisions workspace (`#workspaces [data-ws="decisions"]`) lists holds / broken / skipped. Registry and Timeline also surface stamp scars.
