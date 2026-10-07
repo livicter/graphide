@@ -229,7 +229,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Type-only; restore; Map `xy=0`; `verification/kind-filters.png`
    - Ask: `#llmBtn` opens `#llmPane`; graph-only `localAsk` answers a
      flow / hop / coverage without an LLM key; `#llmClose` / Escape close;
-     IME-composing Enter sends nothing (`A3b`)
+     IME-composing Enter sends nothing (`A3b`); after Ask, typing goes
+     back into `#llmAsk`, not desk keys (`A3c`)
    - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
      sheet, `S`/`X` stamp/skip, `E` ego, `F` present, `D` day/night;
      `#keysClose` / Escape close; Cmd / Ctrl chords (`Cmd+S`, `Ctrl+X`,
