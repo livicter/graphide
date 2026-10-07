@@ -5911,6 +5911,37 @@ async function main() {
     await page.keyboard.press("r");
     await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
     await page.waitForTimeout(150);
+    // Same for Lens: a lens-dim ring node is not brighter than a lens-dim walk node.
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const sliceLens = await page.evaluate(() => {
+      const dimmed = [...document.querySelectorAll("#sliceCanvas .vnode[data-id].lens-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const walk = dimmed.filter((el) => el.getAttribute("data-lit") === "1");
+      const ring = dimmed.filter((el) => /^[12]$/.test(el.getAttribute("data-slice-dist") || ""));
+      return {
+        open: !!(window.__graphideLens && window.__graphideLens.open),
+        walk: walk.length,
+        ring: ring.length,
+        walkMax: Math.max(0, ...walk.map(op)),
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "LN6",
+      "Slice Lens dims the off-tree ring as far as the lit walk",
+      sliceLens.open &&
+        sliceLens.walk >= 1 &&
+        sliceLens.ring >= 1 &&
+        sliceLens.walkMax <= 0.281 &&
+        sliceLens.ringMax <= sliceLens.walkMax + 0.001,
+      JSON.stringify(sliceLens)
+    );
+    await shot(page, "slice-lens-dim.png");
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {

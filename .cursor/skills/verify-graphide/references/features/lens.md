@@ -51,6 +51,8 @@ Driver assertions:
 - `.lens-on` length `>= 1` and `window.__graphideLens.hits >= 1`
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
 - screenshot `verification/lens.png` is not a black frame
+- explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
+  ≤ the lit non-matches (≤ 0.28, `LN6`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

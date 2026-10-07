@@ -67,6 +67,8 @@ Driver assertions:
 - `R` on the explorer Slice: off-route ring nodes (`data-slice-dist`
   1/2, `.route-dim`) are no brighter than off-route lit nodes (≤ 0.22,
   `RT8`)
+- `L` on the explorer Slice: `.lens-dim` ring nodes are no brighter
+  than `.lens-dim` lit nodes (≤ 0.28, `LN6`)
 - no `{ type: "stamp" }` / `{ type: "skip" }` post on this step
 - `.graphide/stamps/` is still empty
 - `fixtures/demo/flows.toml` is unchanged
@@ -82,6 +84,8 @@ Driver assertions:
   distance 1 stays fully lit. It also skips `.route-dim`: with `R` on,
   an off-route ring node drops to 0.22 with the off-route walk instead
   of staying at 0.48 (`RT8`, `verification/slice-route-dim.png`).
+  Same for `.lens-dim`: with `L` on, an off-tree non-match drops to
+  0.28 with the lit non-matches (`LN6`, `verification/slice-lens-dim.png`).
 - `#prompt` does not invent a client-side Steiner. Type
   `name=hit,hit`, Review, then the derived tree drives the mask.
 - S/X on a proposed-uncovered chip already posts
