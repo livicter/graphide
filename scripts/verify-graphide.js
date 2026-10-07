@@ -6345,6 +6345,29 @@ async function main() {
       askAns.log.slice(0, 220)
     );
     record("A3", "Ask does not post a stamp", askAns.stampPosts === 0, "stampPosts=" + askAns.stampPosts);
+    // After clicking Ask, typing the next question goes into the field, not into desk shortcuts (s = stamp, x = skip…).
+    const beforeRetype = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.fill("#llmAsk", "What is the coverage?");
+    await page.click("#llmSend");
+    await page.keyboard.type("sx");
+    const askRetype = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const ask = document.getElementById("llmAsk");
+      const out = {
+        value: ask ? ask.value : null,
+        focused: document.activeElement && document.activeElement.id,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+      if (ask) ask.value = "";
+      return out;
+    }, beforeRetype);
+    record(
+      "A3c",
+      "After Ask, focus returns to #llmAsk so the next question does not fire S / X",
+      askRetype.value === "sx" && askRetype.stampPosts === 0 && askRetype.skipPosts === 0,
+      JSON.stringify(askRetype)
+    );
     // Enter that commits an IME candidate (Cantonese / Japanese / Korean input) is not a send.
     const askIme = await page.evaluate(() => {
       const before = (window.__vscodePosts || []).length;

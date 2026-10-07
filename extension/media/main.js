@@ -27281,6 +27281,7 @@
     }
     function sendLlmAsk() {
       if (!llmAsk) return;
+      llmAsk.focus();
       const q2 = llmAsk.value.trim();
       if (!q2) return;
       appendLlmLog(q2, "user");

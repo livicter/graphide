@@ -9566,6 +9566,8 @@ function localAsk(q) {
 
 function sendLlmAsk() {
   if (!llmAsk) return;
+  // Keep the caret in the field: the next question must not land on the Send button and fire desk keys (s = stamp).
+  llmAsk.focus();
   const q = llmAsk.value.trim();
   if (!q) return;
   appendLlmLog(q, "user");

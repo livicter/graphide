@@ -17,6 +17,9 @@ workspace and not an agent stamp.
 - Enter sends (Shift+Enter is a newline). An Enter that commits an IME
   candidate (`isComposing`, e.g. Cantonese / Japanese input) never sends;
   same for the header `#prompt`, which never starts a review mid-compose.
+- Ask (`#llmSend`) returns focus to `#llmAsk`, so typing the next
+  question never lands on the button and fires desk keys (`S` stamp,
+  `X` skip…).
 - Graph-only text names the start → features → end path, control-flow
   hops, and coverage counts when asked. It always says agents never stamp.
 - Host `llmReply` / `llmError` increment the in-flight token. Empty host
@@ -62,6 +65,8 @@ Driver assertions:
 - hop or coverage questions still produce a non-empty `#llmLog`
 - IME-composing Enter in `#llmAsk` / `#prompt` keeps the text and posts
   no `llmAsk` / `review` (`A3b`)
+- click `#llmSend`, type `sx`: text lands in `#llmAsk`, no stamp / skip
+  post (`A3c`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame
