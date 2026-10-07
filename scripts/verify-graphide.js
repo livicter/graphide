@@ -5684,6 +5684,41 @@ async function main() {
     await shot(page, "map-find-hit.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
+    // A member FQN is not a card name. The card that holds it must stay lit.
+    await page.fill("#graphSearch", "SimulationData");
+    await page.waitForTimeout(200);
+    const mapFindMember = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          chip: /SimulationData/.test((el.querySelector(".members") || {}).textContent || ""),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        render: read("b-render"),
+        assets: read("b-assets"),
+        hits: document.querySelectorAll(".bubble-card.hit").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "SG1c",
+      "Find on a member FQN keeps the holding Map card lit",
+      !!(mapFindMember.render && mapFindMember.render.chip && mapFindMember.render.hit && !mapFindMember.render.dim && mapFindMember.render.op >= 0.99) &&
+        !!(mapFindMember.assets && mapFindMember.assets.dim && !mapFindMember.assets.hit) &&
+        mapFindMember.hits >= 1 &&
+        mapFindMember.hits < mapFindMember.cards &&
+        mapFindMember.xy === 0,
+      JSON.stringify(mapFindMember)
+    );
+    await shot(page, "map-find-member.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const box = document.getElementById("graphSearch");
       if (box && box.blur) box.blur();

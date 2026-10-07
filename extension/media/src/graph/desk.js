@@ -8670,10 +8670,21 @@ function applyGraphFilter() {
     el.classList.toggle("hit", !!(graphFilter.q && match));
   });
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
-    const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
-    const match = matchesExplorerQuery(name);
+    const match = bubbleCardMatchesQuery(el);
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
+  });
+}
+
+/** A Map card matches on its name or on a member's FQN / file, so Find does not dim the card that holds the hit. */
+function bubbleCardMatchesQuery(el) {
+  const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
+  if (matchesExplorerQuery(name)) return true;
+  const b = findBubble(el.getAttribute("data-bubble") || "");
+  return ((b && b.members) || []).some((m) => {
+    const n = nodeById.get(idVal(m));
+    if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+    return matchesExplorerQuery((n.fqn || "") + " " + ((n.span && n.span.file) || ""));
   });
 }
 

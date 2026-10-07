@@ -521,6 +521,8 @@ assert(driver.includes("SG4b") && driver.includes("slice-find-hit.png") && drive
 assert(css.includes(":not(.hit)") && css.includes("#sliceCanvas .vnode.hit") && css.includes("#enterCanvas .vnode.hit") && css.includes("#sliceCanvas .vnode.ego-dim:not(.hit)"), "Find hits must beat distance grey and Ego dim");
 assert(/\.bubble-card\.hit\s*\{[^}]*opacity:\s*1/.test(css) && css.includes(".bubble-card.off { opacity: 0.72; }") && css.includes(".bubble-card.dim { opacity: 0.22; }"), "Map Find hits must beat off-path grey; misses stay dim");
 assert(driver.includes("SG1b") && driver.includes("map-find-hit.png") && driver.includes('data-bubble=\'" + id + "\'') && driver.includes("b-physics") && driver.includes("op >= 0.99"), "verify driver must prove an off-path Map Find hit paints full opacity");
+assert(chrome.includes("function bubbleCardMatchesQuery") && chrome.includes("const match = bubbleCardMatchesQuery(el);"), "Map Find must match a card's member FQN / file, not the card name alone");
+assert(driver.includes("SG1c") && driver.includes("map-find-member.png") && driver.includes("b-render"), "verify driver must prove a member-FQN Find keeps the holding Map card lit");
 assert(!css.includes('.vnode[data-dist="2"] { opacity'), "selecting a node must not fade the 2-hop ring");
 assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim)') && css.includes('#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim)'), "Slice distance grey must not override Ego");
 assert(
