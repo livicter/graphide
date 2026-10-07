@@ -2351,8 +2351,9 @@ html.bright .route-hop {
 #enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
 #sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
-#enterCanvas .vnode.ego,
-#sliceCanvas .vnode.ego { opacity: 1; }
+/* Ego lifts its neighborhood, but Find / Route / Lens dim still read inside it. */
+#enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
+#sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }
 #enterCanvas .vnode.ego-dim:not(.hit),
 #sliceCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
 #enterCanvas .vnode.lit,

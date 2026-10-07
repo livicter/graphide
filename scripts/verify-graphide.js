@@ -7862,6 +7862,85 @@ async function main() {
     await page.keyboard.press("l");
     await page.waitForTimeout(150);
 
+    // Ego on Slice lifts its neighborhood to 1 (#sliceCanvas .vnode.ego). Route / Lens must still dim inside it.
+    await page.goto(origin + HARNESS, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('#workspaces [data-ws="slice"]', { timeout: 15000 });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    await page.click('#sliceCanvas .vnode[data-id="n1"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("e");
+    await page.waitForFunction(() => document.querySelectorAll("#sliceCanvas .vnode.ego").length >= 2, null, { timeout: 5000 });
+    const readEgo = (onCls, offCls, host = "#sliceCanvas") =>
+      page.evaluate(
+        ({ onCls, offCls, host }) => {
+          const ego = [...document.querySelectorAll(host + " .vnode[data-id].ego")];
+          const op = (el) => Number(getComputedStyle(el).opacity);
+          const on = ego.filter((el) => el.classList.contains(onCls));
+          const off = ego.filter((el) => el.classList.contains(offCls));
+          return {
+            ego: ego.length,
+            on: on.length,
+            off: off.length,
+            onMin: on.length ? Math.min(...on.map(op)) : 0,
+            offMax: Math.max(0, ...off.map(op)),
+          };
+        },
+        { onCls, offCls, host }
+      );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const egoRoute = await readEgo("on-route", "route-dim");
+    record(
+      "RT8d",
+      "Slice Route dims off-route nodes inside the Ego neighborhood",
+      egoRoute.on >= 1 && egoRoute.off >= 1 && egoRoute.offMax <= 0.221 && egoRoute.onMin > egoRoute.offMax,
+      JSON.stringify(egoRoute)
+    );
+    await shot(page, "slice-ego-route.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const egoLens = await readEgo("lens-on", "lens-dim");
+    record(
+      "LN6c",
+      "Slice Lens dims non-matches inside the Ego neighborhood",
+      egoLens.on >= 1 && egoLens.off >= 1 && egoLens.offMax <= 0.281 && egoLens.onMin > egoLens.offMax,
+      JSON.stringify(egoLens)
+    );
+    await page.keyboard.press("l");
+    await page.keyboard.press("e");
+    await page.waitForTimeout(150);
+    // Same lift on Enter b-render: Ego on n0 lights n12; Route must still dim the off-route neighbor.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('.bubble-card[data-bubble="b-render"]', { timeout: 8000 });
+    await page.click('.bubble-card[data-bubble="b-render"]');
+    await page.waitForSelector('#enterCanvas .vnode[data-id="n0"]', { timeout: 8000 });
+    await page.waitForTimeout(400);
+    await page.click('#enterCanvas .vnode[data-id="n0"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("e");
+    await page.waitForFunction(() => document.querySelectorAll("#enterCanvas .vnode.ego").length >= 2, null, { timeout: 5000 });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterEgoRoute = await readEgo("on-route", "route-dim", "#enterCanvas");
+    record(
+      "RT8e",
+      "Enter Route dims off-route nodes inside the Ego neighborhood",
+      enterEgoRoute.on >= 1 && enterEgoRoute.off >= 1 && enterEgoRoute.offMax <= 0.221 && enterEgoRoute.onMin > enterEgoRoute.offMax,
+      JSON.stringify(enterEgoRoute)
+    );
+    await page.keyboard.press("r");
+    await page.keyboard.press("e");
+    await page.waitForTimeout(150);
+
     const liveUrl = origin + LIVE_HARNESS;
     console.log("self-review " + liveUrl);
     await page.goto(liveUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
