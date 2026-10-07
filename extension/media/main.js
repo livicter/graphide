@@ -26622,10 +26622,19 @@
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
       canvas.querySelectorAll(".bubble-card").forEach((el2) => {
-        const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
-        const match = matchesExplorerQuery(name);
+        const match = bubbleCardMatchesQuery(el2);
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
+      });
+    }
+    function bubbleCardMatchesQuery(el2) {
+      const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
+      if (matchesExplorerQuery(name)) return true;
+      const b = findBubble(el2.getAttribute("data-bubble") || "");
+      return (b && b.members || []).some((m) => {
+        const n = nodeById.get(idVal(m));
+        if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+        return matchesExplorerQuery((n.fqn || "") + " " + (n.span && n.span.file || ""));
       });
     }
     function isProposedFlow(f) {

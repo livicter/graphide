@@ -10,6 +10,8 @@ the desk.
 - Header `#graphSearch`. `/` focuses and selects. Input writes
   `graphFilter.q` and calls `refreshExplorer`.
 - Map altitude: non-matching `.bubble-card` get `.dim`; matches get `.hit`.
+  A card matches on its name or on a member's FQN / file
+  (`bubbleCardMatchesQuery`). Hidden kinds do not count.
 - Derived XYFlow: `#enterCanvas` / `#sliceCanvas` / `#lineageCanvas`
   `.vnode` dim the same way (`data-fqn`, `data-file`, `data-flow`,
   `data-kind`, `data-hops`). Kind pills still hide Function / Type /
@@ -54,6 +56,8 @@ Driver assertions:
 
 - `#graphSearch` is present; `/` focuses it
 - Map: `.bubble-card.dim` ≥ 1 for a partial community name
+- Map: a member FQN (`SimulationData`) keeps `b-render` `.hit`; `b-assets`
+  dims (`SG1c`)
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
 - Lineage: query filters `#lineageHops .expl-card.hop` and dims
   off-query `.vnode`
@@ -74,5 +78,7 @@ Driver assertions:
   off-tree node is opacity 0.18, same as a miss on the lit walk.
 - Off-path Map cards (`.bubble-card.off`) stay at 0.72. A `.hit` paints
   at opacity 1 (`SG1b`).
+- Card name alone is not enough: an FQN Find used to dim every card,
+  even the one whose member chip shows the hit (`SG1c`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
