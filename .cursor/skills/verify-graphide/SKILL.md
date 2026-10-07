@@ -170,7 +170,11 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      non-matches to the lit non-matches (≤ 0.28, `LN6`,
      `verification/slice-lens-dim.png`). On Enter `b-render`, `R`
      drops the off-route grey ring to 0.18 instead of 0.56 / 0.40 /
-     0.28 (`RT8b`, `verification/enter-route-dim.png`)
+     0.28 (`RT8b`, `verification/enter-route-dim.png`). On
+     `?mode=explorer&away=1` (host-picked program owns no fixture file,
+     so every Slice node is `.away`), `R` / `L` still drop off-route /
+     non-match walk nodes below the 0.38 off-program fade (`RT8c`,
+     `LN6b`, `verification/slice-away-route.png`)
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`

@@ -53,6 +53,8 @@ Driver assertions:
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)
+- explorer Slice with `away=1`: `.lens-dim` beats the off-program
+  `.away` fade (0.38) — non-match walk ≤ 0.28 < matches (`LN6b`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

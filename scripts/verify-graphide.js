@@ -7561,6 +7561,71 @@ async function main() {
 
     await shot(page, "stamp-host.png");
 
+    // Off-program (.away) Slice nodes: Route / Lens dim must still separate them, not leave every node at 0.38.
+    const awayUrl = origin + HARNESS + "&away=1";
+    console.log("slice away " + awayUrl);
+    await page.goto(awayUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('#workspaces [data-ws="slice"]', { timeout: 15000 });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const readAway = (onCls, offCls) =>
+      page.evaluate(
+        ({ onCls, offCls }) => {
+          const lit = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+            (el) => el.getAttribute("data-slice-dist") === "0"
+          );
+          const op = (el) => Number(getComputedStyle(el).opacity);
+          const on = lit.filter((el) => el.classList.contains(onCls));
+          const off = lit.filter((el) => el.classList.contains(offCls));
+          return {
+            lit: lit.length,
+            away: lit.filter((el) => el.classList.contains("away")).length,
+            on: on.length,
+            off: off.length,
+            onMin: on.length ? Math.min(...on.map(op)) : 0,
+            offMax: Math.max(0, ...off.map(op)),
+          };
+        },
+        { onCls, offCls }
+      );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const awayRoute = await readAway("on-route", "route-dim");
+    record(
+      "RT8c",
+      "Slice Route dims an off-route off-program walk node below the on-route ones",
+      awayRoute.lit >= 2 &&
+        awayRoute.away === awayRoute.lit &&
+        awayRoute.on >= 1 &&
+        awayRoute.off >= 1 &&
+        awayRoute.offMax <= 0.221 &&
+        awayRoute.onMin > awayRoute.offMax,
+      JSON.stringify(awayRoute)
+    );
+    await shot(page, "slice-away-route.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const awayLens = await readAway("lens-on", "lens-dim");
+    record(
+      "LN6b",
+      "Slice Lens dims an off-program non-match below the off-program matches",
+      awayLens.lit >= 2 &&
+        awayLens.away === awayLens.lit &&
+        awayLens.on >= 1 &&
+        awayLens.off >= 1 &&
+        awayLens.offMax <= 0.281 &&
+        awayLens.onMin > awayLens.offMax,
+      JSON.stringify(awayLens)
+    );
+    await page.keyboard.press("l");
+    await page.waitForTimeout(150);
+
     const liveUrl = origin + LIVE_HARNESS;
     console.log("self-review " + liveUrl);
     await page.goto(liveUrl, { waitUntil: "domcontentloaded", timeout: 30000 });

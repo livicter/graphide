@@ -1219,7 +1219,8 @@ svg.steiner .edge-hit {
   width: calc(100% * var(--cam-k, 1));
 }
 .viewport[data-lod="3"] .vnode .snip { max-height: 110px; }
-.steiner-wrap .vnode.away { opacity: 0.38; }
+/* Route / Lens dim beat the off-program fade, so an off-route .away node does not sit level with an on-route one. */
+.steiner-wrap .vnode.away:not(.route-dim):not(.lens-dim) { opacity: 0.38; }
 .steiner-wrap .vnode.changed,
 #lineageCanvas .vnode.changed,
 #lineageCanvas .comm-node.changed { box-shadow: inset 3px 0 0 #d29922; }

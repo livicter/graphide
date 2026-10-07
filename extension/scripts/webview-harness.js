@@ -366,6 +366,8 @@
 
   const includeBubbles = mode === "fixed" || mode === "bubbles" || mode === "flow" || mode === "explorer";
   const msg = mode === "flow" || mode === "explorer" ? flowPayload() : solarsimPayload(includeBubbles);
+  // away=1: the host picked a program none of the fixture files belong to, so every Slice node is `.away`.
+  if (params.get("away") === "1") msg.program = { kind: "lib", name: "elsewhere", root: "crates/elsewhere" };
   const hideProbe = params.get("probe") === "0";
   if (hideProbe) {
     const p = document.getElementById("probe");
