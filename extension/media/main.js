@@ -20729,7 +20729,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
