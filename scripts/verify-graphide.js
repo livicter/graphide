@@ -6666,6 +6666,50 @@ async function main() {
     );
     record("K8b", "Ctrl+Alt (AltGr) / still opens Find", chordKeys.altGrFind, JSON.stringify({ altGrFind: chordKeys.altGrFind }));
 
+    // Holding a key must not flip toggles or stack actions: auto-repeat S / X / D / F / E / R / L / P / Backspace is ignored,
+    // while + / − (zoom) and [ ] (step) keep repeating.
+    const repeatKeys = await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const posts0 = (window.__vscodePosts || []).length;
+      const state = () => ({
+        night: document.documentElement.classList.contains("night"),
+        present: document.body.classList.contains("present"),
+        ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+        lens: !!(window.__graphideLens && window.__graphideLens.open),
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+      });
+      const before = state();
+      const zoom0 = (document.getElementById("zoomPct") || {}).textContent || "";
+      ["s", "x", "d", "f", "e", "r", "l", "p", "Backspace"].forEach((key) =>
+        document.dispatchEvent(new KeyboardEvent("keydown", { key, repeat: true, bubbles: true, cancelable: true }))
+      );
+      const after = state();
+      const posts = (window.__vscodePosts || []).slice(posts0);
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "+", repeat: true, bubbles: true, cancelable: true }));
+      const zoom1 = (document.getElementById("zoomPct") || {}).textContent || "";
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "0", bubbles: true, cancelable: true }));
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        appearancePosts: posts.filter((m) => m && m.type === "setAppearance").length,
+        changed: Object.keys(before).filter((k) => before[k] !== after[k]),
+        zoomRepeats: zoom1 !== zoom0,
+        zoom0,
+        zoom1,
+      };
+    });
+    record(
+      "K10",
+      "Auto-repeat of toggle / action keys (S X D F E R L P Backspace) does nothing; + still repeats",
+      repeatKeys.stampPosts === 0 &&
+        repeatKeys.skipPosts === 0 &&
+        repeatKeys.appearancePosts === 0 &&
+        repeatKeys.changed.length === 0 &&
+        repeatKeys.zoomRepeats,
+      JSON.stringify(repeatKeys)
+    );
+
     // A focused <select> (Ego hops, Ask host) owns its typeahead keys: "2" picks 2-hop, it does not switch workspace; "s" never stamps.
     const selPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
     const selWs0 = await page.evaluate(() =>

@@ -19,6 +19,10 @@ second command palette and not an agent stamp.
 - A focused `<select>` (`#egoHops`, `#llmPreset`) owns its typeahead:
   `2` picks 2-hop instead of switching workspace, `S` / `X` never stamp
   or skip. Escape still backs out of the desk layers.
+- Holding a key fires its toggle / action once: auto-repeat (`e.repeat`)
+  of `S` `X` `D` `F` `E` `R` `L` `P` Backspace is ignored (no stamp
+  spam, no theme flicker writing the global `graphide.appearance`, no
+  multi-level Back). `+` `−` zoom, `[` `]` step and arrows still repeat.
 - Stamp / skip stay human. Opening the sheet never posts `{ type: "stamp" }`
   and never writes `.graphide/stamps/`.
 - Map altitude stays community LOD (`xy=0`). Keys is chrome, not a
@@ -66,6 +70,8 @@ Driver assertions:
   and change no desk mode (`K8`); Ctrl+Alt `/` still focuses Find (`K8b`)
 - focused `#egoHops` + `2` / `S` / `X`: workspace unchanged, no stamp /
   skip post (`K9`)
+- auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
+  / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
 ## Gotchas
 
