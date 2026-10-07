@@ -4379,7 +4379,7 @@ function graphNodePaint(id, extra) {
   const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
   const match =
     graphFilter.kinds[kind] !== false &&
-    matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+    (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
   return {
     file,
     hops,
@@ -8657,7 +8657,7 @@ function applyGraphFilter() {
     const kind = el.getAttribute("data-kind") || "";
     const match =
       graphFilter.kinds[kind] !== false &&
-      matchesExplorerQuery(
+      (matchesExplorerQuery(
         [
           el.getAttribute("data-fqn") || "",
           el.getAttribute("data-file") || "",
@@ -8665,22 +8665,22 @@ function applyGraphFilter() {
           el.getAttribute("data-kind") || "",
           el.getAttribute("data-hops") || "",
         ].join(" ")
-      );
+      ) || (el.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el.getAttribute("data-id"))));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
   });
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
-    const match = bubbleCardMatchesQuery(el);
+    const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
+    const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el.getAttribute("data-bubble"));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
   });
 }
 
-/** A Map card matches on its name or on a member's FQN / file, so Find does not dim the card that holds the hit. */
-function bubbleCardMatchesQuery(el) {
-  const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
-  if (matchesExplorerQuery(name)) return true;
-  const b = findBubble(el.getAttribute("data-bubble") || "");
+/** A community (Map card or Enter Type node) matches when a member's FQN / file does, so Find does not dim the one that holds the hit. */
+function bubbleMembersMatchQuery(id) {
+  if (!graphFilter.q || !id) return false;
+  const b = findBubble(id);
   return ((b && b.members) || []).some((m) => {
     const n = nodeById.get(idVal(m));
     if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
@@ -9193,7 +9193,7 @@ function enterCanvasProps(inner) {
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
       surface: "enter-node",
-      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
       shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
       sliceDist: n.distance == null ? undefined : n.distance,
     };

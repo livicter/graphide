@@ -23452,7 +23452,7 @@
       const kind = extra.kind != null ? extra.kind : node && node.kind || "";
       const flow = extra.flow || "";
       const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
-      const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+      const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
       return {
         file,
         hops,
@@ -26609,7 +26609,7 @@
     function applyGraphFilter() {
       canvas.querySelectorAll(".comm-node, .vnode, .ego-node").forEach((el2) => {
         const kind = el2.getAttribute("data-kind") || "";
-        const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery(
+        const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery(
           [
             el2.getAttribute("data-fqn") || "",
             el2.getAttribute("data-file") || "",
@@ -26617,20 +26617,20 @@
             el2.getAttribute("data-kind") || "",
             el2.getAttribute("data-hops") || ""
           ].join(" ")
-        );
+        ) || el2.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el2.getAttribute("data-id")));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
       canvas.querySelectorAll(".bubble-card").forEach((el2) => {
-        const match = bubbleCardMatchesQuery(el2);
+        const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
+        const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el2.getAttribute("data-bubble"));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
     }
-    function bubbleCardMatchesQuery(el2) {
-      const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
-      if (matchesExplorerQuery(name)) return true;
-      const b = findBubble(el2.getAttribute("data-bubble") || "");
+    function bubbleMembersMatchQuery(id2) {
+      if (!graphFilter.q || !id2) return false;
+      const b = findBubble(id2);
       return (b && b.members || []).some((m) => {
         const n = nodeById.get(idVal(m));
         if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
@@ -26988,7 +26988,7 @@
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
           surface: "enter-node",
-          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance
         };

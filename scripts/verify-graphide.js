@@ -5162,6 +5162,28 @@ async function main() {
       childCut.endpoint === 1 && childCut.ids.indexOf("n164") >= 0 && childCut.ids.indexOf("b-physics-c") < 0,
       JSON.stringify({ endpoint: childCut.endpoint, ids: childCut.ids })
     );
+    // n2000 sits in b-physics-b. Its FQN is not the child label; the child that holds it must stay lit.
+    await page.fill("#graphSearch", "ScreenshotFormat_2000");
+    await page.waitForTimeout(250);
+    const childFind = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return { hit: el.classList.contains("hit"), dim: el.classList.contains("dim"), op: Number(getComputedStyle(el).opacity) };
+      };
+      return { a: read("b-physics-a"), b: read("b-physics-b"), ep: read("n164") };
+    });
+    record(
+      "SG1d",
+      "Find on a member FQN keeps the holding Enter child community lit",
+      !!(childFind.b && childFind.b.hit && !childFind.b.dim && childFind.b.op >= 0.99) &&
+        !!(childFind.a && childFind.a.dim && !childFind.a.hit && childFind.a.op <= 0.18) &&
+        !!(childFind.ep && childFind.ep.dim && !childFind.ep.hit),
+      JSON.stringify(childFind)
+    );
+    await shot(page, "enter-find-member.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
     const childHops = await page.evaluate(() => {
       const shapeOf = (id) => {
         const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
