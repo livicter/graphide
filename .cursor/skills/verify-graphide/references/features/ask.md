@@ -14,6 +14,9 @@ workspace and not an agent stamp.
 - `#llmAsk` + `#llmSend` post `{ type: "llmAsk" }`. Without a configured
   host the harness stub does not reply; after a short wait `localAsk`
   writes a graph answer into `#llmLog`.
+- Enter sends (Shift+Enter is a newline). An Enter that commits an IME
+  candidate (`isComposing`, e.g. Cantonese / Japanese input) never sends;
+  same for the header `#prompt`, which never starts a review mid-compose.
 - Graph-only text names the start → features → end path, control-flow
   hops, and coverage counts when asked. It always says agents never stamp.
 - Host `llmReply` / `llmError` increment the in-flight token. Empty host
@@ -57,6 +60,8 @@ Driver assertions:
 - `#llmClose`, `#llmAsk`, `#llmSend`, `#llmLog` exist
 - graph-only answer matches `/Start → features → end/` and `/never stamp/`
 - hop or coverage questions still produce a non-empty `#llmLog`
+- IME-composing Enter in `#llmAsk` / `#prompt` keeps the text and posts
+  no `llmAsk` / `review` (`A3b`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame

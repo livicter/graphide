@@ -346,6 +346,8 @@ cancelBtn.onclick = () => {
 };
 backBtn.onclick = () => goBack();
 prompt.addEventListener("keydown", (e) => {
+  // Enter that commits an IME candidate is not a submit.
+  if (e.isComposing) return;
   if (e.key === "Enter") {
     e.preventDefault();
     startReview();
@@ -631,6 +633,7 @@ if (llmShowKey) llmShowKey.onclick = () => vscode.postMessage({ type: "llmShowKe
 if (llmSend) llmSend.onclick = () => sendLlmAsk();
 if (llmAsk)
   llmAsk.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendLlmAsk();
