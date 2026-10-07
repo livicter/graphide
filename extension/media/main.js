@@ -20000,6 +20000,7 @@
         applyPresent(false);
         return;
       }
+      if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (stack[stack.length - 1]?.kind === "programs") {
         if (e.key === "ArrowRight" || e.key === "ArrowDown") {
           e.preventDefault();

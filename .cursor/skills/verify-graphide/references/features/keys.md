@@ -12,6 +12,10 @@ second command palette and not an agent stamp.
   sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH, `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
   back. Assert the text. Do not invent shortcuts.
+- Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
+  VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
+  stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
+  still types `/` `[` `]` `?`.
 - Stamp / skip stay human. Opening the sheet never posts `{ type: "stamp" }`
   and never writes `.graphide/stamps/`.
 - Map altitude stays community LOD (`xy=0`). Keys is chrome, not a
@@ -54,6 +58,9 @@ Driver assertions:
 - screenshot `verification/keys.png` is not a black frame
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
+- Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
+  `Ctrl+D`, `Cmd+E`, `Ctrl+R`, `Cmd+L`, `Ctrl+2`) post no stamp / skip
+  and change no desk mode (`K8`); Ctrl+Alt `/` still focuses Find (`K8b`)
 
 ## Gotchas
 
