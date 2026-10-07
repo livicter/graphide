@@ -16,6 +16,9 @@ second command palette and not an agent stamp.
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
   still types `/` `[` `]` `?`.
+- A focused `<select>` (`#egoHops`, `#llmPreset`) owns its typeahead:
+  `2` picks 2-hop instead of switching workspace, `S` / `X` never stamp
+  or skip. Escape still backs out of the desk layers.
 - Stamp / skip stay human. Opening the sheet never posts `{ type: "stamp" }`
   and never writes `.graphide/stamps/`.
 - Map altitude stays community LOD (`xy=0`). Keys is chrome, not a
@@ -61,6 +64,8 @@ Driver assertions:
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
   `Ctrl+D`, `Cmd+E`, `Ctrl+R`, `Cmd+L`, `Ctrl+2`) post no stamp / skip
   and change no desk mode (`K8`); Ctrl+Alt `/` still focuses Find (`K8b`)
+- focused `#egoHops` + `2` / `S` / `X`: workspace unchanged, no stamp /
+  skip post (`K9`)
 
 ## Gotchas
 

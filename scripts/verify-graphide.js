@@ -6634,6 +6634,64 @@ async function main() {
     );
     record("K8b", "Ctrl+Alt (AltGr) / still opens Find", chordKeys.altGrFind, JSON.stringify({ altGrFind: chordKeys.altGrFind }));
 
+    // A focused <select> (Ego hops, Ask host) owns its typeahead keys: "2" picks 2-hop, it does not switch workspace; "s" never stamps.
+    const selPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const selWs0 = await page.evaluate(() =>
+      (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws")
+    );
+    // Ego hops only shows while Ego is on.
+    const egoWasOn = await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      const on = !!(btn && btn.classList.contains("on"));
+      if (btn && !on) btn.click();
+      return on;
+    });
+    await page.waitForFunction(() => {
+      const s = document.getElementById("egoHops");
+      return !!(s && s.getBoundingClientRect().width > 0 && !s.disabled);
+    }, null, { timeout: 5000 });
+    await page.focus("#egoHops");
+    await page.keyboard.press("2");
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const selectKeys = await page.evaluate(
+      ({ before, ws0, egoWasOn }) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const sel = document.getElementById("egoHops");
+        const out = {
+          focused: document.activeElement === sel,
+          ws0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+          stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+          skipPosts: posts.filter((m) => m && m.type === "skip").length,
+          hops: sel ? sel.value : "",
+        };
+        if (sel) {
+          sel.value = "1";
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+          sel.blur();
+        }
+        const btn = document.getElementById("egoBtn");
+        if (!egoWasOn && btn && btn.classList.contains("on")) btn.click();
+        return out;
+      },
+      { before: selPosts0, ws0: selWs0, egoWasOn }
+    );
+    record(
+      "K9",
+      "A focused <select> keeps its keys: 2 / S / X do not switch workspace, stamp or skip",
+      selectKeys.focused &&
+        selectKeys.hops === "2" &&
+        selectKeys.ws === selectKeys.ws0 &&
+        selectKeys.stampPosts === 0 &&
+        selectKeys.skipPosts === 0,
+      JSON.stringify(selectKeys)
+    );
+    if (selectKeys.ws !== selectKeys.ws0) {
+      await page.click('#workspaces [data-ws="' + selectKeys.ws0 + '"]');
+      await page.waitForTimeout(300);
+    }
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

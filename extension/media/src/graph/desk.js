@@ -395,6 +395,8 @@ document.addEventListener("keydown", (e) => {
   }
   // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
   if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
+  // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.
+  if (e.target && e.target.closest && e.target.closest("select")) return;
   if (stack[stack.length - 1]?.kind === "programs") {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
