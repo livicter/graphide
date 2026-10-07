@@ -6854,7 +6854,7 @@ async function main() {
     );
     const stripProbe = await page.evaluate(() => {
       const box = document.createElement("div");
-      box.innerHTML = '<i class="dim on focus selected ego-dim" data-delta-review-current="1"></i>';
+      box.innerHTML = '<i class="dim hit on focus selected ego-dim" data-delta-review-current="1"></i>';
       if (typeof stripExportViewerState === "function") stripExportViewerState(box);
       const i = box.querySelector("i");
       return {
@@ -6873,6 +6873,54 @@ async function main() {
     );
     record("X7", "Export posts exportFile to the host stub (not stamp)", exportPosts.length >= 1, exportPosts.join(","));
     assertNoStampDir("X8", "Export step did not write .graphide/stamps/");
+
+    // Find is viewer state. A live .hit must not reach the exported diagram.
+    await page.fill("#graphSearch", "physics");
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportFind = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const cards = [...text.matchAll(/class="(bubble-card[^"]*)"[^>]*data-bubble="([^"]+)"/g)].map((m) => ({ id: m[2], cls: m[1] }));
+      const physics = cards.find((c) => c.id === "b-physics");
+      return {
+        liveHit: [...document.querySelectorAll(".bubble-card.hit")].map((el) => el.getAttribute("data-bubble")),
+        cards: cards.length,
+        physics: physics ? physics.cls : "",
+        hit: cards.filter((c) => /\bhit\b/.test(c.cls)).map((c) => c.id),
+        dim: cards.filter((c) => /\bdim\b/.test(c.cls)).map((c) => c.id),
+      };
+    });
+    record(
+      "X6b",
+      "Export SVG after Find carries no .hit / .dim on Map cards",
+      exportFind.liveHit.indexOf("b-physics") >= 0 &&
+        exportFind.cards >= 8 &&
+        /\bbubble-card\b/.test(exportFind.physics) &&
+        exportFind.hit.length === 0 &&
+        exportFind.dim.length === 0,
+      JSON.stringify(exportFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
 
     const topoBefore = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".bubble-card")];

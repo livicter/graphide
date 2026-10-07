@@ -16,8 +16,8 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
   resolved.
 - Canonical clone of `#seqCanvas` / `#dfCanvas` / `#lcCanvas` /
   `#deltaCanvas` / `#canvas .stage` / `#canvas`. `stripExportViewerState`
-  removes focus, play head, search dim (`.on` `.dim` `.focus` `.selected`
-  `.ego-dim`). Camera transform is reset so the full diagram is contain-
+  removes focus, play head, search dim / hit (`.on` `.dim` `.hit` `.focus`
+  `.selected` `.ego-dim`). Camera transform is reset so the full diagram is contain-
   fitted, not cropped.
 - Filenames `graphide-<flow>.png` / `.svg` / `-share.png`. No
   valid / verified / checked claim.
@@ -61,6 +61,8 @@ Driver assertions:
 - `verification/export-share.png` is 1200×630
 - filenames do not contain valid / verified / checked
 - `.graphide/stamps/` is still empty
+- Find `physics` on Map, then Export SVG: no Map card in the SVG keeps
+  `.hit` or `.dim` (`X6b`)
 
 ## Gotchas
 
@@ -73,3 +75,5 @@ Driver assertions:
 - Do not vendor Archify's Node renderer. The clone is Graphide DOM.
 - Theme stays. The current visual preset (`data-preset`) stays. Play head,
   search query, focus, and Presentation Stage do not.
+- `.hit` is viewer state too. Since a hit paints at opacity 1 over path /
+  distance grey, a leftover `.hit` lifts that card or node in the export.

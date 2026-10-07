@@ -525,6 +525,7 @@ assert(chrome.includes("function bubbleMembersMatchQuery") && chrome.includes('b
 assert(chrome.includes('el.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el.getAttribute("data-id"))') && chrome.includes("extra.community && bubbleMembersMatchQuery(nid)") && chrome.includes("community: !leaf"), "Enter child communities must match Find on a member FQN / file");
 assert(driver.includes("SG1d") && driver.includes("enter-find-member.png") && driver.includes("ScreenshotFormat_2000"), "verify driver must prove a member-FQN Find keeps the holding Enter child community lit");
 assert(driver.includes("SG1c") && driver.includes("map-find-member.png") && driver.includes("b-render"), "verify driver must prove a member-FQN Find keeps the holding Map card lit");
+assert(chrome.includes('const EXPORT_STRIP = ["on", "dim", "hit",') && driver.includes("X6b") && driver.includes('class="dim hit on focus selected ego-dim"'), "Export must strip Find .hit as well as .dim");
 assert(!css.includes('.vnode[data-dist="2"] { opacity'), "selecting a node must not fade the 2-hop ring");
 assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim)') && css.includes('#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim)'), "Slice distance grey must not override Ego");
 assert(

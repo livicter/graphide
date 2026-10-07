@@ -1172,7 +1172,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
 
 function exportDiagramRoot() {
   return (
