@@ -6345,6 +6345,38 @@ async function main() {
       askAns.log.slice(0, 220)
     );
     record("A3", "Ask does not post a stamp", askAns.stampPosts === 0, "stampPosts=" + askAns.stampPosts);
+    // Enter that commits an IME candidate (Cantonese / Japanese / Korean input) is not a send.
+    const askIme = await page.evaluate(() => {
+      const before = (window.__vscodePosts || []).length;
+      const ask = document.getElementById("llmAsk");
+      const prompt = document.getElementById("prompt");
+      const enter = (el) =>
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true }));
+      const promptWas = prompt ? prompt.value : "";
+      if (ask) {
+        ask.value = "這條路徑";
+        enter(ask);
+      }
+      if (prompt) {
+        prompt.value = "boot=SimulationData";
+        enter(prompt);
+      }
+      const posts = (window.__vscodePosts || []).slice(before);
+      const out = {
+        askValue: ask ? ask.value : null,
+        askPosts: posts.filter((m) => m && m.type === "llmAsk").length,
+        reviewPosts: posts.filter((m) => m && m.type === "review").length,
+      };
+      if (ask) ask.value = "";
+      if (prompt) prompt.value = promptWas;
+      return out;
+    });
+    record(
+      "A3b",
+      "IME-composing Enter in Ask / #prompt does not send the question or start a review",
+      askIme.askValue === "這條路徑" && askIme.askPosts === 0 && askIme.reviewPosts === 0,
+      JSON.stringify(askIme)
+    );
 
     await shot(page, "ask.png");
 

@@ -19953,6 +19953,7 @@
     };
     backBtn.onclick = () => goBack();
     prompt.addEventListener("keydown", (e) => {
+      if (e.isComposing) return;
       if (e.key === "Enter") {
         e.preventDefault();
         startReview();
@@ -20236,6 +20237,7 @@
     if (llmSend) llmSend.onclick = () => sendLlmAsk();
     if (llmAsk)
       llmAsk.addEventListener("keydown", (e) => {
+        if (e.isComposing) return;
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           sendLlmAsk();
