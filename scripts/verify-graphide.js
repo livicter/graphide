@@ -5539,6 +5539,24 @@ async function main() {
       null,
       { timeout: 4000 }
     );
+    // The fit eases the camera and #zoomPct tracks every frame, so the check above can pass mid-ease.
+    // Wait for the end state E1j reads: every enter node inside the stage.
+    await page
+      .waitForFunction(
+        () => {
+          const stage = document.querySelector("#canvas .stage");
+          const sr = stage ? stage.getBoundingClientRect() : null;
+          const nodes = [...document.querySelectorAll("#enterCanvas .react-flow__node")];
+          if (!sr || !nodes.length) return false;
+          return nodes.every((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 8 && r.height > 8 && r.left >= sr.left - 2 && r.top >= sr.top - 2 && r.right <= sr.right + 2 && r.bottom <= sr.bottom + 2;
+          });
+        },
+        null,
+        { timeout: 4000 }
+      )
+      .catch(() => {});
     const sinkSeen = await page.evaluate(() => {
       const stage = document.querySelector("#canvas .stage");
       const vp = document.querySelector("#canvas .viewport");
