@@ -209,7 +209,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      (`SG1b`, `verification/map-find-hit.png`). A member FQN
      (`SimulationData`) keeps the card that holds it lit (`b-render`
      `.hit`); cards without it dim (`SG1c`,
-     `verification/map-find-member.png`)
+     `verification/map-find-member.png`). One level down, Enter
+     `b-physics` and Find `ScreenshotFormat_2000` (n2000): child
+     community `b-physics-b` stays `.hit` at opacity 1, `b-physics-a`
+     dims (`SG1d`, `verification/enter-find-member.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

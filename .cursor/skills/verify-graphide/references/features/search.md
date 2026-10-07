@@ -11,7 +11,8 @@ the desk.
   `graphFilter.q` and calls `refreshExplorer`.
 - Map altitude: non-matching `.bubble-card` get `.dim`; matches get `.hit`.
   A card matches on its name or on a member's FQN / file
-  (`bubbleCardMatchesQuery`). Hidden kinds do not count.
+  (`bubbleMembersMatchQuery`). Hidden kinds do not count. Enter child
+  communities (`.vnode[data-leaf="0"]`) match the same way.
 - Derived XYFlow: `#enterCanvas` / `#sliceCanvas` / `#lineageCanvas`
   `.vnode` dim the same way (`data-fqn`, `data-file`, `data-flow`,
   `data-kind`, `data-hops`). Kind pills still hide Function / Type /
@@ -58,6 +59,8 @@ Driver assertions:
 - Map: `.bubble-card.dim` ≥ 1 for a partial community name
 - Map: a member FQN (`SimulationData`) keeps `b-render` `.hit`; `b-assets`
   dims (`SG1c`)
+- Enter `b-physics`: `ScreenshotFormat_2000` keeps child `b-physics-b`
+  `.hit`; `b-physics-a` dims (`SG1d`)
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
 - Lineage: query filters `#lineageHops .expl-card.hop` and dims
   off-query `.vnode`

@@ -5162,6 +5162,28 @@ async function main() {
       childCut.endpoint === 1 && childCut.ids.indexOf("n164") >= 0 && childCut.ids.indexOf("b-physics-c") < 0,
       JSON.stringify({ endpoint: childCut.endpoint, ids: childCut.ids })
     );
+    // n2000 sits in b-physics-b. Its FQN is not the child label; the child that holds it must stay lit.
+    await page.fill("#graphSearch", "ScreenshotFormat_2000");
+    await page.waitForTimeout(250);
+    const childFind = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return { hit: el.classList.contains("hit"), dim: el.classList.contains("dim"), op: Number(getComputedStyle(el).opacity) };
+      };
+      return { a: read("b-physics-a"), b: read("b-physics-b"), ep: read("n164") };
+    });
+    record(
+      "SG1d",
+      "Find on a member FQN keeps the holding Enter child community lit",
+      !!(childFind.b && childFind.b.hit && !childFind.b.dim && childFind.b.op >= 0.99) &&
+        !!(childFind.a && childFind.a.dim && !childFind.a.hit && childFind.a.op <= 0.18) &&
+        !!(childFind.ep && childFind.ep.dim && !childFind.ep.hit),
+      JSON.stringify(childFind)
+    );
+    await shot(page, "enter-find-member.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
     const childHops = await page.evaluate(() => {
       const shapeOf = (id) => {
         const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
@@ -5517,6 +5539,24 @@ async function main() {
       null,
       { timeout: 4000 }
     );
+    // The fit eases the camera and #zoomPct tracks every frame, so the check above can pass mid-ease.
+    // Wait for the end state E1j reads: every enter node inside the stage.
+    await page
+      .waitForFunction(
+        () => {
+          const stage = document.querySelector("#canvas .stage");
+          const sr = stage ? stage.getBoundingClientRect() : null;
+          const nodes = [...document.querySelectorAll("#enterCanvas .react-flow__node")];
+          if (!sr || !nodes.length) return false;
+          return nodes.every((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 8 && r.height > 8 && r.left >= sr.left - 2 && r.top >= sr.top - 2 && r.right <= sr.right + 2 && r.bottom <= sr.bottom + 2;
+          });
+        },
+        null,
+        { timeout: 4000 }
+      )
+      .catch(() => {});
     const sinkSeen = await page.evaluate(() => {
       const stage = document.querySelector("#canvas .stage");
       const vp = document.querySelector("#canvas .viewport");
