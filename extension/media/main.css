@@ -2348,17 +2348,17 @@ html.bright .route-hop {
 #lineageCanvas .vnode .fqn,
 #enterCanvas .vnode .fqn { display: none; }
 #enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
-#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim),
-#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim) { opacity: 0.48; }
+#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
+#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
 #enterCanvas .vnode.ego,
 #sliceCanvas .vnode.ego { opacity: 1; }
 #enterCanvas .vnode.ego-dim:not(.hit),
 #sliceCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
-/* Distance grey must not cover Ego, Find misses, Find hits, or Route dim (an off-route ring node is not brighter than the off-route walk). */
-#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim) { opacity: 0.48; }
-#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim) { opacity: 0.36; }
+/* Distance grey must not cover Ego, Find misses, Find hits, Route dim, or Lens dim (a dimmed ring node is not brighter than a dimmed walk node). */
+#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
+#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.36; }
 /* Enter greys by graph distance. Ego and Find still win. */
 #enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }
 #enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.56; }
