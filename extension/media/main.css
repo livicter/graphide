@@ -2364,6 +2364,8 @@ html.bright .route-hop {
 #enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.56; }
 #enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.40; }
 #enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.28; }
+/* Route / Lens dim beat Enter distance grey: an off-route or off-lens ring node sits at the far-ring floor, never above the dimmed walk. */
+#enterCanvas .vnode.grey[data-slice-dist]:is(.route-dim, .lens-dim):not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }
 /* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker than a miss. A .hit stays lit. */
 #enterCanvas .vnode.dim:not(.ego-dim),
 #sliceCanvas .vnode.dim:not(.ego-dim),
