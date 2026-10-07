@@ -237,7 +237,8 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `Cmd+F`…) post no stamp / skip and toggle nothing (`K8`), Ctrl+Alt
      `/` still opens Find (`K8b`); a focused `<select>` keeps `2` / `S` /
      `X` (`K9`); auto-repeat of toggle / action keys is ignored while `+`
-     still repeats (`K10`)
+     still repeats (`K10`); desk keys still work after clicking a kind
+     pill (`K11`)
    - Path walk: `P` / `#pathWalkBtn` walks Map start → features → end;
      `[` `]` step; `.walk` / `.here` on community chips/cards; not Route
      `#routePlay`

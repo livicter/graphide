@@ -19975,7 +19975,7 @@
         setKeysPane(false);
         return;
       }
-      if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
+      if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) return;
       if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
         e.preventDefault();
         closeSourcePane();

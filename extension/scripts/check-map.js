@@ -552,6 +552,7 @@ assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")'), "veri
 assert(driver.includes("A3b") && driver.includes("isComposing: true"), "verify driver must prove IME-composing Enter does not send");
 assert(/function sendLlmAsk\(\) \{\s*if \(!llmAsk\) return;\s*llmAsk\.focus\(\);/.test(js) && driver.includes("A3c"), "Ask must return focus to #llmAsk so the next question does not fire desk keys");
 assert(driver.includes("K10") && driver.includes("repeat: true"), "verify driver must prove auto-repeat does not flip toggles or stamp");
+assert(js.includes('e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")') && driver.includes("K11"), "a focused kind-pill checkbox must not swallow desk keys");
 assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && driver.includes("PW1") && driver.includes(".feat-chip.walk"), "verify driver must drive Map path walk on the Review desk");
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("apple-chrome.png") && driver.includes("AC0") && driver.includes("#reviewBtn") && /007aff/i.test(driver), "verify driver must drive Sequoia Day chrome on the explorer Map");

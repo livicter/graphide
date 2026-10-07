@@ -16,6 +16,8 @@ second command palette and not an agent stamp.
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
   still types `/` `[` `]` `?`.
+- Text fields own their keys; a focused kind-pill checkbox does not, so
+  after clicking `Function` / `Type` / `Endpoint` the desk keys still work.
 - A focused `<select>` (`#egoHops`, `#llmPreset`) owns its typeahead:
   `2` picks 2-hop instead of switching workspace, `S` / `X` never stamp
   or skip. Escape still backs out of the desk layers.
@@ -68,6 +70,8 @@ Driver assertions:
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
   `Ctrl+D`, `Cmd+E`, `Ctrl+R`, `Cmd+L`, `Ctrl+2`) post no stamp / skip
   and change no desk mode (`K8`); Ctrl+Alt `/` still focuses Find (`K8b`)
+- click a kind pill twice (filter restored, checkbox focused), `R`
+  still toggles PATH (`K11`)
 - focused `#egoHops` + `2` / `S` / `X`: workspace unchanged, no stamp /
   skip post (`K9`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
