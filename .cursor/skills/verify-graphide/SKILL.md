@@ -168,7 +168,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      dims the off-route grey ring to the off-route walk (≤ 0.22,
      `RT8`, `verification/slice-route-dim.png`); `L` dims off-tree
      non-matches to the lit non-matches (≤ 0.28, `LN6`,
-     `verification/slice-lens-dim.png`)
+     `verification/slice-lens-dim.png`). On Enter `b-render`, `R`
+     drops the off-route grey ring to 0.18 instead of 0.56 / 0.40 /
+     0.28 (`RT8b`, `verification/enter-route-dim.png`)
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`

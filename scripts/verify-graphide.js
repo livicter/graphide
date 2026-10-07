@@ -4901,6 +4901,34 @@ async function main() {
       JSON.stringify(enterDist)
     );
     await shot(page, "enter-distance.png");
+    // Route dim must beat Enter distance grey: off-route ring members do not sit above .route-dim (0.22).
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterRoute = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const ring = [...document.querySelectorAll("#enterCanvas .vnode.grey[data-slice-dist].route-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      return {
+        ok: !!rec.ok,
+        ring: ring.length,
+        near: ring.filter((el) => el.getAttribute("data-slice-dist") === "1").length,
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "RT8b",
+      "Enter Route dims the off-route grey ring to the far-ring floor",
+      enterRoute.ok && enterRoute.ring >= 1 && enterRoute.near >= 1 && enterRoute.ringMax <= 0.221,
+      JSON.stringify(enterRoute)
+    );
+    await shot(page, "enter-route-dim.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
 
     await shot(page, "enter-bubble.png");
 
