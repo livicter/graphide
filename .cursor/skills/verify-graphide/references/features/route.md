@@ -61,6 +61,8 @@ Driver assertions:
   nodes ≤ the off-route walk (≤ 0.22, `RT8`)
 - explorer Enter `b-render`: off-route grey members sit at 0.18, not
   distance grey 0.56 / 0.40 / 0.28 (`RT8b`)
+- explorer Slice with `away=1`: `.route-dim` beats the off-program
+  `.away` fade (0.38) — off-route walk ≤ 0.22 < on-route walk (`RT8c`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
