@@ -5875,6 +5875,42 @@ async function main() {
     await shot(page, "slice-find-hit.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
+    // Route dim must beat distance grey too: an off-route ring node is not brighter than the off-route walk.
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const sliceRoute = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const dimmed = [...document.querySelectorAll("#sliceCanvas .vnode[data-id].route-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const walk = dimmed.filter((el) => el.getAttribute("data-lit") === "1");
+      const ring = dimmed.filter((el) => /^[12]$/.test(el.getAttribute("data-slice-dist") || ""));
+      return {
+        ok: !!rec.ok,
+        walk: walk.length,
+        ring: ring.length,
+        walkMax: Math.max(0, ...walk.map(op)),
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "RT8",
+      "Slice Route dims the off-route grey ring as far as the off-route walk",
+      sliceRoute.ok &&
+        sliceRoute.walk >= 1 &&
+        sliceRoute.ring >= 1 &&
+        sliceRoute.walkMax <= 0.221 &&
+        sliceRoute.ringMax <= sliceRoute.walkMax + 0.001,
+      JSON.stringify(sliceRoute)
+    );
+    await shot(page, "slice-route-dim.png");
+    // R toggles the probe off. Escape would first close the source pane left open by the earlier selection.
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
