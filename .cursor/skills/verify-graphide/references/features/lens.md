@@ -55,6 +55,8 @@ Driver assertions:
   ≤ the lit non-matches (≤ 0.28, `LN6`)
 - explorer Slice with `away=1`: `.lens-dim` beats the off-program
   `.away` fade (0.38) — non-match walk ≤ 0.28 < matches (`LN6b`)
+- explorer Slice with Ego on `n1`: `.lens-dim` `.ego` neighbors ≤ 0.28 <
+  matches (`LN6c`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

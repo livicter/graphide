@@ -63,6 +63,9 @@ Driver assertions:
   distance grey 0.56 / 0.40 / 0.28 (`RT8b`)
 - explorer Slice with `away=1`: `.route-dim` beats the off-program
   `.away` fade (0.38) — off-route walk ≤ 0.22 < on-route walk (`RT8c`)
+- explorer Slice with Ego on `n1`: off-route `.ego` neighbors ≤ 0.22 <
+  on-route ones (`RT8d`); same on Enter `b-render` with Ego on `n0`
+  (`RT8e`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
