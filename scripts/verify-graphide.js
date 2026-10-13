@@ -6945,6 +6945,26 @@ async function main() {
       findEscEvidence.q === "render" && !findEscEvidence.focused && !findEscEvidence.evidenceOpen,
       JSON.stringify(findEscEvidence)
     );
+    // Escape on Find while Lens is open: blur Find and close Lens in one key.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscLens = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K13e",
+      "Escape on focused Find also closes an open Lens",
+      findEscLens.q === "render" && !findEscLens.focused && !findEscLens.lens,
+      JSON.stringify(findEscLens)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(80);
 
