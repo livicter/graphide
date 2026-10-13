@@ -8054,6 +8054,82 @@ async function main() {
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     await page.waitForTimeout(120);
+    // Zoom parks off-stage cards with data-offview; export must strip it so camera-reset clone shows them.
+    for (let i = 0; i < 8; i++) {
+      const off = await page.evaluate(() => document.querySelectorAll('.bubble-card[data-offview="1"]').length);
+      if (off >= 1) break;
+      await page.evaluate(() => {
+        const btn = document.getElementById("zoomIn");
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(220);
+    }
+    let liveOff = await page.evaluate(() => {
+      const parked = [...document.querySelectorAll('.bubble-card[data-offview="1"]')].map((el) => el.getAttribute("data-bubble"));
+      return { off: parked.length, ids: parked, cards: document.querySelectorAll(".bubble-card").length };
+    });
+    if (liveOff.off < 1) {
+      const box = await page.locator("#canvas .stage").boundingBox();
+      if (box) {
+        await page.mouse.move(box.x + 18, box.y + 10);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 18 + 520, box.y + 10 + 300, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForTimeout(350);
+      }
+      liveOff = await page.evaluate(() => {
+        const parked = [...document.querySelectorAll('.bubble-card[data-offview="1"]')].map((el) => el.getAttribute("data-bubble"));
+        return { off: parked.length, ids: parked, cards: document.querySelectorAll(".bubble-card").length };
+      });
+    }
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportOff = await page.evaluate((live) => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      // Style may still mention [data-offview] as a selector; only element attrs matter.
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const cards = [...markup.matchAll(/data-bubble="([^"]+)"/g)].map((m) => m[1]);
+      const offAttrs = (markup.match(/\sdata-offview=/g) || []).length;
+      return {
+        liveOff: live.off,
+        liveIds: live.ids,
+        exportCards: cards.length,
+        offAttrs,
+        parkedStillInExport: live.ids.filter((id) => cards.indexOf(id) >= 0).length,
+      };
+    }, liveOff);
+    record(
+      "X6f",
+      "Export SVG strips data-offview so parked Map cards stay in the clone",
+      liveOff.off >= 1 &&
+        exportOff.offAttrs === 0 &&
+        exportOff.exportCards >= 8 &&
+        exportOff.parkedStillInExport === liveOff.off,
+      JSON.stringify({ liveOff, exportOff })
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomFit");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape"); // close export menu if still open
+    await page.waitForTimeout(80);
 
     const topoBefore = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".bubble-card")];

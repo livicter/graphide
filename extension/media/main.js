@@ -20790,6 +20790,7 @@
       nodes.forEach((el2) => {
         EXPORT_STRIP.forEach((c) => el2.classList.remove(c));
         el2.removeAttribute("data-delta-review-current");
+        el2.removeAttribute("data-offview");
         if (el2.getAttribute && el2.getAttribute("aria-pressed") === "true") el2.setAttribute("aria-pressed", "false");
       });
       const vp = root3.querySelector && root3.querySelector(".viewport");

@@ -1258,6 +1258,8 @@ function stripExportViewerState(root) {
   nodes.forEach((el) => {
     EXPORT_STRIP.forEach((c) => el.classList.remove(c));
     el.removeAttribute("data-delta-review-current");
+    // Pan/zoom parks off-stage Map cards; camera reset must un-hide them in the clone.
+    el.removeAttribute("data-offview");
     if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
   });
   const vp = root.querySelector && root.querySelector(".viewport");
