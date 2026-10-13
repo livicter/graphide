@@ -6903,6 +6903,24 @@ async function main() {
     record("K13b", "After Find Escape blur, desk R still toggles PATH", findEscRoute, "route=" + findEscRoute);
     await page.keyboard.press("r");
     await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Escape on Find while Route is open: blur Find and close Route in one key.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscRouteClose = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K13c",
+      "Escape on focused Find also closes an open Route",
+      findEscRouteClose.q === "render" && !findEscRouteClose.focused && !findEscRouteClose.route,
+      JSON.stringify(findEscRouteClose)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(80);
 
