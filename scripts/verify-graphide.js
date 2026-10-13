@@ -7938,6 +7938,18 @@ async function main() {
       JSON.stringify(enterEgoRoute)
     );
     await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterEgoLens = await readEgo("lens-on", "lens-dim", "#enterCanvas");
+    record(
+      "LN6d",
+      "Enter Lens dims non-matches inside the Ego neighborhood",
+      enterEgoLens.on >= 1 && enterEgoLens.off >= 1 && enterEgoLens.offMax <= 0.281 && enterEgoLens.onMin > enterEgoLens.offMax,
+      JSON.stringify(enterEgoLens)
+    );
+    await page.keyboard.press("l");
     await page.keyboard.press("e");
     await page.waitForTimeout(150);
 

@@ -84,7 +84,7 @@ Driver assertions:
   `.dim` / `.route-dim` / `.lens-dim`: Find misses stay dim inside the
   neighborhood (`SG5`), and with `R` / `L` on, off-route / non-match
   neighbors still dim (Slice `RT8d`, `LN6c`,
-  `verification/slice-ego-route.png`; Enter `b-render` `RT8e`).
+  `verification/slice-ego-route.png`; Enter `b-render` `RT8e`, `LN6d`).
 - Selecting a Slice node with Ego off still stamps `data-dist`, but
   that must not fade the lit walk. `n2` and `n4` stay at opacity 1
   (`EG3d`, `verification/slice-select.png`). The same selection must

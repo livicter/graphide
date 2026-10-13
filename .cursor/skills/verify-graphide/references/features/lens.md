@@ -57,6 +57,7 @@ Driver assertions:
   `.away` fade (0.38) — non-match walk ≤ 0.28 < matches (`LN6b`)
 - explorer Slice with Ego on `n1`: `.lens-dim` `.ego` neighbors ≤ 0.28 <
   matches (`LN6c`)
+- explorer Enter `b-render` with Ego on `n0`: same for Lens (`LN6d`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
