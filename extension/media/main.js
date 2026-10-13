@@ -20052,6 +20052,10 @@
       }
       if (e.key === "Backspace") {
         e.preventDefault();
+        if (busy) {
+          vscode.postMessage({ type: "cancel" });
+          return;
+        }
         if (llmPane && !llmPane.hidden) {
           setLlmPane(false);
           return;

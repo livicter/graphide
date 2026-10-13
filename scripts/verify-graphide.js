@@ -4565,6 +4565,59 @@ async function main() {
       cancelReady.on && cancelReady.cancelShown && cancelReady.reviewHidden && cancelReady.ws === "map",
       JSON.stringify(cancelReady)
     );
+    // Backspace while busy cancels (same as Escape), does not navigate.
+    const busyBackPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    await page.waitForFunction(
+      (before) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "");
+        return posts.some((m) => m && m.type === "cancel") || /Cancell/i.test(label);
+      },
+      busyBackPosts,
+      { timeout: 5000 }
+    );
+    const afterBusyBack = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cancelPosts: posts.filter((m) => m && m.type === "cancel").length,
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        on: !!(document.getElementById("progress") && document.getElementById("progress").classList.contains("on")),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    }, busyBackPosts);
+    record(
+      "CR1b",
+      "Backspace while busy posts cancel (does not leave Map)",
+      afterBusyBack.cancelPosts >= 1 && afterBusyBack.on && afterBusyBack.cards >= 8 && afterBusyBack.xy === 0,
+      JSON.stringify(afterBusyBack)
+    );
+    // Restore busy strip for the click path (host may have flipped Cancelling…).
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const cancel = document.getElementById("cancelBtn");
+        const progress = document.getElementById("progress");
+        return !!(progress && progress.classList.contains("on") && cancel && !cancel.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
     await page.click("#cancelBtn");
     await page.waitForFunction(
       () => {

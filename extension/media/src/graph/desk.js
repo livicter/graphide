@@ -454,8 +454,13 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   // Backspace is navigate-back, but open chrome wins first (same stack as Escape).
+  // While Review is busy, Backspace cancels (Escape already does).
   if (e.key === "Backspace") {
     e.preventDefault();
+    if (busy) {
+      vscode.postMessage({ type: "cancel" });
+      return;
+    }
     if (llmPane && !llmPane.hidden) {
       setLlmPane(false);
       return;

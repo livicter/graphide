@@ -21,6 +21,7 @@ second command palette and not an agent stamp.
 - A focused `<select>` (`#egoHops`, `#llmPreset`) owns its typeahead:
   `2` picks 2-hop instead of switching workspace, `S` / `X` never stamp
   or skip. Escape still backs out of the desk layers.
+- Backspace while Review is busy cancels (`CR1b`).
 - Backspace closes open chrome first (Ask / Keys / Evidence / Export /
   Route / Lens / Present), then navigates back — it does not leave a
   bubble with Export still open.
