@@ -8406,6 +8406,28 @@ async function main() {
         presentStyle.preset !== presentStyle.before,
       JSON.stringify(presentStyle)
     );
+    const nightBefore = await page.evaluate(() => document.documentElement.classList.contains("night"));
+    await page.keyboard.press("d");
+    const presentTheme = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        night: document.documentElement.classList.contains("night"),
+      };
+    }, nightBefore);
+    record(
+      "P6e",
+      "Present + Export: desk D still toggles Day/Night",
+      presentTheme.present && presentTheme.exportOpen && presentTheme.night !== presentTheme.before,
+      JSON.stringify(presentTheme)
+    );
+    // Restore day so later suites stay day-safe.
+    if (presentTheme.night) {
+      await page.keyboard.press("d");
+      await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
+    }
     await page.keyboard.press("Escape"); // close Export
     await page.waitForFunction(
       () => {

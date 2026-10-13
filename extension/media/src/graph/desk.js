@@ -413,10 +413,10 @@ document.addEventListener("keydown", (e) => {
   // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
   if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
   // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
-  // On Presentation Stage, S is Style (stamp chrome is hidden) — let it through so Export/Keys do not steal Style.
+  // On Presentation Stage, S is Style and D is Day/Night — let them through so Export/Keys do not steal stage chrome.
   if (
     e.key !== "Backspace" &&
-    !(isPresenting() && (e.key === "s" || e.key === "S")) &&
+    !(isPresenting() && (e.key === "s" || e.key === "S" || e.key === "d" || e.key === "D")) &&
     ((exportMenu && !exportMenu.hidden) || (keysPane && !keysPane.hidden) || (llmPane && !llmPane.hidden))
   ) {
     return;

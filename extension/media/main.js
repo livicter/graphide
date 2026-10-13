@@ -20013,7 +20013,7 @@
       if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (e.target && e.target.closest && e.target.closest("select")) return;
       if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
-      if (e.key !== "Backspace" && !(isPresenting() && (e.key === "s" || e.key === "S")) && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
+      if (e.key !== "Backspace" && !(isPresenting() && (e.key === "s" || e.key === "S" || e.key === "d" || e.key === "D")) && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
         return;
       }
       if (stack[stack.length - 1]?.kind === "programs") {
