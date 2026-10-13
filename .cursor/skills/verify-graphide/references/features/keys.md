@@ -82,7 +82,7 @@ Driver assertions:
 - Escape on focused `#graphSearch` blurs Find (query stays) so desk keys
   work again (`K13`, `K13b`); if Route was open it closes too (`K13c`); Evidence closes too (`K13d`); Lens closes too (`K13e`); Export closes too (`K13f`)
 - Backspace with Export / Route open closes that layer and keeps Map
-  community LOD (`K14`, `K14b`)
+  community LOD (`K14`, `K14b`); inside Enter, Export closes without popping (`K14c`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
