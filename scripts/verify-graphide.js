@@ -6992,6 +6992,61 @@ async function main() {
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(80);
 
+    // Backspace with Export open must close Export, not leave the Map altitude / Enter bubble.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const backBefore = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+      ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+    }));
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backExport = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        exportOpen: !!(menu && !menu.hidden),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+        before,
+      };
+    }, backBefore);
+    record(
+      "K14",
+      "Backspace closes Export without leaving Map community LOD",
+      !backExport.exportOpen &&
+        backExport.ws === backBefore.ws &&
+        backExport.cards === backBefore.cards &&
+        backExport.xy === 0,
+      JSON.stringify(backExport)
+    );
+    // Same for Route: Backspace closes PATH, stack stays.
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backRoute = await page.evaluate(() => ({
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14b",
+      "Backspace closes Route without leaving Map community LOD",
+      !backRoute.route && backRoute.cards >= 8 && backRoute.xy === 0,
+      JSON.stringify(backRoute)
+    );
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");
