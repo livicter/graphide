@@ -175,8 +175,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      so every Slice node is `.away`), `R` / `L` still drop off-route /
      non-match walk nodes below the 0.38 off-program fade (`RT8c`,
      `LN6b`, `verification/slice-away-route.png`), and inside the Slice
-     Ego neighborhood (`RT8d`, `LN6c`, `verification/slice-ego-route.png`)
-     and the Enter Ego neighborhood (`RT8e`)
+     Ego neighborhood (`RT8d`, `LN6c`, Find `SG5`,
+     `verification/slice-ego-route.png`) and the Enter Ego neighborhood
+     (`RT8e`)
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
