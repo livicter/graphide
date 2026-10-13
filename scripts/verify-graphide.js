@@ -6875,6 +6875,55 @@ async function main() {
       return !pane || pane.hidden;
     }, null, { timeout: 5000 });
 
+    // Escape on focused Find blurs so desk keys work again; the query stays.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.fill("#graphSearch", "render");
+    await page.waitForTimeout(120);
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEsc = await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      return {
+        q: box ? box.value : "",
+        focused: document.activeElement === box,
+        active: document.activeElement ? document.activeElement.id || document.activeElement.tagName : "",
+      };
+    });
+    record(
+      "K13",
+      "Escape on focused Find blurs the field and keeps the query",
+      findEsc.q === "render" && !findEsc.focused,
+      JSON.stringify(findEsc)
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const findEscRoute = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+    record("K13b", "After Find Escape blur, desk R still toggles PATH", findEscRoute, "route=" + findEscRoute);
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Escape on Find while Route is open: blur Find and close Route in one key.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscRouteClose = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K13c",
+      "Escape on focused Find also closes an open Route",
+      findEscRouteClose.q === "render" && !findEscRouteClose.focused && !findEscRouteClose.route,
+      JSON.stringify(findEscRouteClose)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(80);
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

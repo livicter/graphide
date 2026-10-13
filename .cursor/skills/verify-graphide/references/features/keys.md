@@ -76,6 +76,8 @@ Driver assertions:
   skip post (`K9`)
 - focused Ask `#llmPreset` + `2` / `S` / `X`: same — no stamp / skip /
   workspace switch (`K12`)
+- Escape on focused `#graphSearch` blurs Find (query stays) so desk keys
+  work again (`K13`, `K13b`); if Route was open it closes too (`K13c`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
