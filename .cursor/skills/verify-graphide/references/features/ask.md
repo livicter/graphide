@@ -26,6 +26,7 @@ workspace and not an agent stamp.
   text falls back to `localAsk`. `askReview` in `extension/src/llm.ts`
   uses `groundedFallback` when `llmConfigured` is false.
 - Stamp / skip stay human. Ask never writes `.graphide/stamps/`.
+- While Ask is open, desk S / X are ignored even if `#llmAsk` is blurred (`K15c`).
 
 ## How to get to it (user POV)
 
