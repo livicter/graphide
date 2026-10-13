@@ -7248,6 +7248,39 @@ async function main() {
       { timeout: 5000 }
     );
 
+    // Escape on focused #prompt blurs so desk keys work; value stays.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const promptEl = await page.$("#prompt");
+    if (promptEl) {
+      await page.fill("#prompt", "name=hit,hit");
+      await page.focus("#prompt");
+      await page.keyboard.press("Escape");
+      const promptEsc = await page.evaluate(() => {
+        const box = document.getElementById("prompt");
+        return {
+          q: box ? box.value : "",
+          focused: document.activeElement === box,
+        };
+      });
+      record(
+        "K16",
+        "Escape on focused #prompt blurs the field and keeps the value",
+        promptEsc.q === "name=hit,hit" && !promptEsc.focused,
+        JSON.stringify(promptEsc)
+      );
+      await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+      await page.keyboard.press("r");
+      await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+      const promptEscRoute = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+      record("K16b", "After #prompt Escape blur, desk R still toggles PATH", promptEscRoute, "route=" + promptEscRoute);
+      await page.keyboard.press("r");
+      await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    } else {
+      record("K16", "Escape on focused #prompt blurs the field and keeps the value", false, "no #prompt");
+      record("K16b", "After #prompt Escape blur, desk R still toggles PATH", false, "no #prompt");
+    }
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

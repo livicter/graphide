@@ -369,12 +369,14 @@ document.addEventListener("keydown", (e) => {
     setKeysPane(false);
     return;
   }
-  // Find owns typing, but Escape must release focus so desk keys (S/X/…) work again. Query stays.
+  // Find / prompt own typing, but Escape must release focus so desk keys (S/X/…) work again. Query stays.
   // Do not return: if Evidence / Export / Route / Lens / Present is open, the handlers below still run.
   const findEsc = e.key === "Escape" && graphSearch && e.target === graphSearch;
-  if (findEsc) {
+  const promptEsc = e.key === "Escape" && prompt && e.target === prompt;
+  if (findEsc || promptEsc) {
     e.preventDefault();
-    graphSearch.blur();
+    if (findEsc) graphSearch.blur();
+    if (promptEsc) prompt.blur();
   } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
     return;
   }
