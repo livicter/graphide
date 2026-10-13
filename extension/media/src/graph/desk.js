@@ -409,6 +409,13 @@ document.addEventListener("keydown", (e) => {
   if (e.target && e.target.closest && e.target.closest("select")) return;
   // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
   if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+  // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
+  if (
+    e.key !== "Backspace" &&
+    ((exportMenu && !exportMenu.hidden) || (keysPane && !keysPane.hidden) || (llmPane && !llmPane.hidden))
+  ) {
+    return;
+  }
   if (stack[stack.length - 1]?.kind === "programs") {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       e.preventDefault();
