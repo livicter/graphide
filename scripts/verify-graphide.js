@@ -7231,6 +7231,63 @@ async function main() {
       !backAsk.askOpen && backAsk.cards >= 8 && backAsk.xy === 0,
       JSON.stringify(backAsk)
     );
+    // Evidence open on Slice: Backspace closes Evidence, stays on Slice (does not goBack).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    await page.locator("#sliceCanvas .vnode[data-id]").first().click();
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 8000 }
+    );
+    const evBefore = await page.evaluate(() => document.querySelectorAll("#sliceCanvas .vnode[data-id]").length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backEv = await page.evaluate((n) => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      nodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      before: n,
+      cards: document.querySelectorAll(".bubble-card").length,
+    }), evBefore);
+    record(
+      "K14f",
+      "Backspace closes Evidence without leaving Slice",
+      !backEv.evidenceOpen && backEv.nodes === backEv.before && backEv.cards === 0,
+      JSON.stringify(backEv)
+    );
+    // Lens + Present on Map
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backLens = await page.evaluate(() => ({
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14g",
+      "Backspace closes Lens without leaving Map community LOD",
+      !backLens.lens && backLens.cards >= 8 && backLens.xy === 0,
+      JSON.stringify(backLens)
+    );
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.body.classList.contains("present"), null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backPresent = await page.evaluate(() => ({
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14h",
+      "Backspace exits Present without leaving Map community LOD",
+      !backPresent.present && backPresent.cards >= 8 && backPresent.xy === 0,
+      JSON.stringify(backPresent)
+    );
 
     // Export open: S / X / R must not stamp, skip, or open PATH.
     await page.click('#workspaces [data-ws="map"]');
