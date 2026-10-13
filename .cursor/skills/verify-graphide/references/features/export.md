@@ -19,7 +19,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
   removes focus, play head, search dim / hit, Ego, Route, Lens, and away
   (`.on` `.dim` `.hit` `.focus` `.selected` `.ego` `.ego-dim` `.route-dim`
   `.on-route` `.on-route-hot` `.lens-dim` `.lens-on` `.away` `.hot`
-  `.flowing` `.on-path` `.now` `.past` `.ahead` `.here`). Camera
+  `.flowing` `.on-path` `.now` `.past` `.ahead` `.here` `.walk` `.dragging` `.panning`). Camera
   transform is reset so the full diagram is contain-fitted, not cropped.
 - Filenames `graphide-<flow>.png` / `.svg` / `-share.png`. No
   valid / verified / checked claim.
