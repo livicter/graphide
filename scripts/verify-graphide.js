@@ -6921,6 +6921,30 @@ async function main() {
       findEscRouteClose.q === "render" && !findEscRouteClose.focused && !findEscRouteClose.route,
       JSON.stringify(findEscRouteClose)
     );
+    // Escape on Find while Evidence is open: blur Find and close Evidence in one key.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    await page.locator("#sliceCanvas .vnode[data-id]").first().click();
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 8000 }
+    );
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscEvidence = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+    }));
+    record(
+      "K13d",
+      "Escape on focused Find also closes Evidence",
+      findEscEvidence.q === "render" && !findEscEvidence.focused && !findEscEvidence.evidenceOpen,
+      JSON.stringify(findEscEvidence)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(80);
 
