@@ -7185,7 +7185,8 @@ async function main() {
     );
     const stripProbe = await page.evaluate(() => {
       const box = document.createElement("div");
-      box.innerHTML = '<i class="dim hit on focus selected ego-dim" data-delta-review-current="1"></i>';
+      box.innerHTML =
+        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away" data-delta-review-current="1"></i>';
       if (typeof stripExportViewerState === "function") stripExportViewerState(box);
       const i = box.querySelector("i");
       return {
@@ -7195,7 +7196,7 @@ async function main() {
     });
     record(
       "X6",
-      "Canonical export strips focus / play / search classes",
+      "Canonical export strips focus / play / search / Route / Lens / away classes",
       stripProbe.cls === "" && !stripProbe.review,
       JSON.stringify(stripProbe)
     );
@@ -7251,6 +7252,116 @@ async function main() {
       JSON.stringify(exportFind)
     );
     await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+
+    // Route / Lens are viewer state too. A live .route-dim / .lens-on must not reach the exported diagram.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportRoute = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      // Stylesheet rules mention route-dim; only element class attrs are viewer state.
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      const live = {
+        routeDim: document.querySelectorAll("#sliceCanvas .vnode.route-dim").length,
+        onRoute: document.querySelectorAll("#sliceCanvas .vnode.on-route").length,
+      };
+      return {
+        live,
+        routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
+        onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
+        lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
+        lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6c",
+      "Export SVG after Route carries no .route-dim / .on-route on Slice nodes",
+      exportRoute.live.routeDim >= 1 &&
+        exportRoute.live.onRoute >= 1 &&
+        exportRoute.routeDim === 0 &&
+        exportRoute.onRoute === 0 &&
+        exportRoute.lensDim === 0 &&
+        exportRoute.lensOn === 0,
+      JSON.stringify(exportRoute)
+    );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportLens = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      const live = {
+        lensDim: document.querySelectorAll("#sliceCanvas .vnode.lens-dim").length,
+        lensOn: document.querySelectorAll("#sliceCanvas .vnode.lens-on").length,
+      };
+      return {
+        live,
+        lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
+        lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
+        routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
+        onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6d",
+      "Export SVG after Lens carries no .lens-dim / .lens-on on Slice nodes",
+      exportLens.live.lensDim >= 1 &&
+        exportLens.live.lensOn >= 1 &&
+        exportLens.lensDim === 0 &&
+        exportLens.lensOn === 0 &&
+        exportLens.routeDim === 0 &&
+        exportLens.onRoute === 0,
+      JSON.stringify(exportLens)
+    );
+    await page.keyboard.press("l");
+    await page.waitForTimeout(120);
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
     await page.waitForTimeout(120);
 
     const topoBefore = await page.evaluate(() => {
