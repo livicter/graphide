@@ -20103,7 +20103,7 @@
       }
       if (e.key === "x" || e.key === "X") {
         e.preventDefault();
-        requestSkip();
+        if (!isPresenting()) requestSkip();
         return;
       }
       if (e.key === "e" || e.key === "E") {

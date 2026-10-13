@@ -8193,6 +8193,25 @@ async function main() {
       stageStyle.preset + " cards=" + stageStyle.n
     );
 
+    // Present hides Skip — X must not skip; exit the stage first (S remaps to Style).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const presentSkip0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.keyboard.press("x");
+    const presentSkip = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        present: document.body.classList.contains("present"),
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+      };
+    }, presentSkip0);
+    record(
+      "P6b",
+      "Present blocks desk X (no skip while stage hides Skip)",
+      presentSkip.present && presentSkip.skipPosts === 0 && presentSkip.stampPosts === 0,
+      JSON.stringify(presentSkip)
+    );
+
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });
     const restored = await page.evaluate(() => {

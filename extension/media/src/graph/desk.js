@@ -508,7 +508,8 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "x" || e.key === "X") {
     e.preventDefault();
-    requestSkip();
+    // Present hides Skip — exit the stage first (same rule as Stamp; S remaps to Style).
+    if (!isPresenting()) requestSkip();
     return;
   }
   if (e.key === "e" || e.key === "E") {
