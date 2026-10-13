@@ -8428,6 +8428,30 @@ async function main() {
       await page.keyboard.press("d");
       await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
     }
+    const zoomBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("=");
+    await page.waitForTimeout(80);
+    const presentZoom = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, zoomBefore);
+    record(
+      "P6f",
+      "Present + Export: desk zoom (+/=) still scales the stage",
+      presentZoom.present &&
+        presentZoom.exportOpen &&
+        presentZoom.transform !== presentZoom.before,
+      JSON.stringify(presentZoom)
+    );
     await page.keyboard.press("Escape"); // close Export
     await page.waitForFunction(
       () => {
