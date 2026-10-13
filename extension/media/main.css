@@ -1230,8 +1230,8 @@ svg.steiner .edge-hit {
   z-index: 3;
 }
 .steiner-wrap .vnode.dim,
-#enterCanvas .vnode.dim,
-#lineageCanvas .vnode.dim { opacity: 0.18; }
+#enterCanvas .vnode.dim:not(.ego-dim),
+#lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
 .steiner-wrap.play .vnode {
   animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
@@ -2355,7 +2355,8 @@ html.bright .route-hop {
 #enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }
 #enterCanvas .vnode.ego-dim:not(.hit),
-#sliceCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
+#sliceCanvas .vnode.ego-dim:not(.hit),
+#lineageCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
 /* Distance grey must not cover Ego, Find misses, Find hits, Route dim, or Lens dim (a dimmed ring node is not brighter than a dimmed walk node). */

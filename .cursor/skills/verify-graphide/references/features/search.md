@@ -82,7 +82,7 @@ Driver assertions:
 - Distance grey (`data-slice-dist`) must skip `.dim`. A Find miss on an
   off-tree node is opacity 0.18, same as a miss on the lit walk.
 - With Ego on, a Find hit outside the neighborhood stays lit and Ego
-  misses stay Find-dim (Slice `SG5`, Enter `SG5b`; Lineage Find-dim inside Ego walk `SG5c`). Ego lift skips `.dim`.
+  misses stay Find-dim (Slice `SG5`, Enter `SG5b`; Lineage Find-dim inside Ego walk `SG5c` / `SG5d`). Ego lift skips `.dim`.
 - Off-program `.away` (0.38) must skip `.dim` / `.hit` so Find still
   separates hits from misses on an all-away Slice (`SG6`).
 - Off-path Map cards (`.bubble-card.off`) stay at 0.72. A `.hit` paints
