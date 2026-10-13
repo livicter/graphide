@@ -5939,6 +5939,36 @@ async function main() {
     await shot(page, "map-route-cards.png");
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Lens paints Map cards; lens-on / on-route beat .off grey.
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const mapLensOff = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+      const painted = cards.filter((el) => el.classList.contains("lens-on") || el.classList.contains("lens-dim"));
+      const offOn = cards.filter((el) => el.classList.contains("off") && el.classList.contains("lens-on"));
+      const offOnOp = offOn.map((el) => Number(getComputedStyle(el).opacity));
+      return {
+        cards: cards.length,
+        painted: painted.length,
+        offOn: offOn.length,
+        offOnMin: offOnOp.length ? Math.min(...offOnOp) : 1,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "LN7",
+      "Map Lens paints community cards; lens-on beats off-path grey",
+      mapLensOff.cards >= 8 &&
+        mapLensOff.painted === mapLensOff.cards &&
+        mapLensOff.offOn >= 1 &&
+        mapLensOff.offOnMin >= 0.99 &&
+        mapLensOff.xy === 0,
+      JSON.stringify(mapLensOff)
+    );
+    await shot(page, "map-lens-cards.png");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });

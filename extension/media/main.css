@@ -958,6 +958,8 @@ svg.steiner .edge-hit {
 .bubble-card.dim { opacity: 0.22; }
 /* Off-path grey must not cover a Find hit. */
 .bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); opacity: 1; }
+/* Route / Lens on a community card beat off-path grey (same as Find .hit). */
+.bubble-card.on-route, .bubble-card.lens-on { opacity: 1; }
 .bubble-card .members {
   display: none;
   flex-wrap: wrap;

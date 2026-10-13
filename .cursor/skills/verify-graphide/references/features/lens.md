@@ -58,6 +58,7 @@ Driver assertions:
 - explorer Slice with Ego on `n1`: `.lens-dim` `.ego` neighbors ≤ 0.28 <
   matches (`LN6c`)
 - explorer Enter `b-render` with Ego on `n0`: same for Lens (`LN6d`)
+- explorer Map community LOD: every card gets `.lens-on` / `.lens-dim`; `.lens-on` beats `.off` grey (`LN7`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
