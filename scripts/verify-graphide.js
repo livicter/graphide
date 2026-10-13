@@ -8376,6 +8376,45 @@ async function main() {
       presentFind.present && presentFind.barHidden && !presentFind.findFocused,
       JSON.stringify(presentFind)
     );
+    // Present + Export: S still cycles Style (not blocked as desk stamp).
+    const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    const presentStyle = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+      };
+    }, presetBefore);
+    record(
+      "P6d",
+      "Present + Export: desk S still cycles Style",
+      presentStyle.present &&
+        presentStyle.exportOpen &&
+        presentStyle.preset !== presentStyle.before,
+      JSON.stringify(presentStyle)
+    );
+    await page.keyboard.press("Escape"); // close Export
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
 
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });
