@@ -59,6 +59,15 @@
         "title": "Graphide: Rotate Bridge API Key"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "graphide.review",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

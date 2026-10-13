@@ -1,0 +1,14 @@
+---
+description: Prefer the Review herd and report over raw grep when a graph is present
+alwaysApply: true
+---
+
+When a Graphide Review graph is present, read the herd and the report before grepping the tree.
+
+A graph is present when `extension/scripts/live-snap.json` exists, a `graphide review --root <folder> --json` snapshot is on hand, or the Review desk herd (`#herd`) is open.
+
+Read `programs`, `flows`, `findings`, `coverage`, and `bubbles` from that snapshot. Grep only a span the report already names.
+
+Agents never stamp. Do not write `.graphide/stamps/` and do not run `graphide stamp`.
+
+Map stays community LOD. This is not a terminal and not a worktree list.

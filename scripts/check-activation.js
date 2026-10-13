@@ -63,4 +63,75 @@ console.log("ok   activate does not require an LLM");
 
 if (pkg.main !== "./out/extension.js") fail("main is " + pkg.main);
 
-console.log("PASS check-activation · " + commands.length + " commands · CSP nonce · Review view");
+if (commands.includes("graphide.reviewFolder")) {
+  fail("graphide.reviewFolder is a second command; reuse graphide.review");
+}
+if (!src.includes("async reviewFolder(")) fail("reviewFolder is missing");
+if (!src.includes("provider.reviewFolder(target)")) {
+  fail("graphide.review does not call reviewFolder");
+}
+if (!src.includes("this.reviewRoot || packageRoot()")) {
+  fail("runReview does not fall back to packageRoot()");
+}
+if (!src.includes("function resolveReviewFolder(")) fail("resolveReviewFolder is missing");
+if (!src.includes("function packageRoot(")) fail("packageRoot is missing");
+const reviewBody = src.slice(src.indexOf("async reviewFolder("), src.indexOf("async runReview("));
+if (reviewBody.includes("writeStamp")) fail("reviewFolder calls writeStamp");
+console.log("ok   graphide.review → reviewFolder → packageRoot");
+
+const menus = ((((pkg.contributes || {}).menus || {})["explorer/context"]) || []);
+const folderMenu = menus.find(
+  (m) => m.command === "graphide.review" && m.when === "explorerResourceIsFolder"
+);
+if (!folderMenu) fail("explorer/context does not reuse graphide.review for folders");
+console.log("ok   explorer folder menu reuses graphide.review");
+
+const rulePath = path.join(ROOT, ".cursor", "rules", "prefer-herd.mdc");
+const skillPath = path.join(ROOT, ".cursor", "skills", "prefer-herd", "SKILL.md");
+const agentsPath = path.join(ROOT, "AGENTS.md");
+if (!fs.existsSync(rulePath)) fail("missing .cursor/rules/prefer-herd.mdc");
+if (!fs.existsSync(skillPath)) fail("missing prefer-herd skill");
+const rule = fs.readFileSync(rulePath, "utf8");
+const skill = fs.readFileSync(skillPath, "utf8");
+const agents = fs.readFileSync(agentsPath, "utf8");
+if (!/alwaysApply:\s*true/.test(rule)) fail("prefer-herd rule is not alwaysApply");
+for (const needle of ["herd", "report", "grep"]) {
+  if (!rule.toLowerCase().includes(needle)) fail("prefer-herd rule missing " + needle);
+}
+if (!/never stamp/i.test(rule) || !rule.includes(".graphide/stamps/")) {
+  fail("prefer-herd rule does not forbid stamps");
+}
+if (!/never stamp/i.test(skill)) fail("prefer-herd skill does not forbid stamps");
+if (!skill.includes("programs") || !skill.includes("findings")) {
+  fail("prefer-herd skill does not name the report fields");
+}
+if (!agents.includes("prefer-herd") || !/never stamp/i.test(agents)) {
+  fail("AGENTS.md does not point at prefer-herd");
+}
+console.log("ok   always-on prefer-herd rule + skill");
+
+const vsixDir = fs.readdirSync(path.join(ROOT, "extension")).filter((n) => /^graphide-.*\.vsix$/.test(n));
+const vsixLine = vsixDir.length
+  ? vsixDir.sort().map((n) => "`extension/" + n + "`").join(", ")
+  : "(no VSIX in tree yet — `npm run package` writes it and `check:package` gates it)";
+
+const proof = [
+  "# Plugins packaging",
+  "",
+  "PASS check-activation · graphide.review → reviewFolder → packageRoot()",
+  "",
+  "- Command `graphide.review` calls `reviewFolder`. No `graphide.reviewFolder` command.",
+  "- Explorer context `explorerResourceIsFolder` reuses `graphide.review`.",
+  "- `runReview` root is `this.reviewRoot || packageRoot()`.",
+  "- `reviewFolder` does not call `writeStamp`. Agents never stamp.",
+  "- `.cursor/rules/prefer-herd.mdc` is `alwaysApply: true` and prefers the herd and report over grep.",
+  "- `.cursor/skills/prefer-herd/SKILL.md` names `programs` / `findings` and forbids stamps.",
+  "- VSIX: " + vsixLine,
+  "",
+].join("\n");
+const proofPath = path.join(ROOT, "verification", "plugins-packaging.md");
+fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+fs.writeFileSync(proofPath, proof);
+console.log("ok   wrote", path.relative(ROOT, proofPath));
+
+console.log("PASS check-activation · " + commands.length + " commands · CSP nonce · Review view · reviewFolder · prefer-herd");
