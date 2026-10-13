@@ -10022,6 +10022,32 @@ async function main() {
       lineageSearch.q === lineageSearchQ && (lineageSearch.hops < lineageHopsBefore || lineageSearch.dim >= 1 || lineageSearch.hit >= 1),
       JSON.stringify({ q: lineageSearchQ, before: lineageHopsBefore, ...lineageSearch })
     );
+    // Lineage is an Ego walk of the focus: Find hits stay lit; Ego neighbors that miss stay Find-dim (not full opacity).
+    const lineageEgoFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-id], #lineageCanvas .ego-node[data-id]")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hits = nodes.filter((el) => el.classList.contains("hit"));
+      const missInside = nodes.filter(
+        (el) => el.classList.contains("ego") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      return {
+        ego: nodes.filter((el) => el.classList.contains("ego")).length,
+        hits: hits.length,
+        hitMin: hits.length ? Math.min(...hits.map(op)) : 0,
+        missInside: missInside.length,
+        missInsideMax: missInside.length ? Math.max(...missInside.map(op)) : 1,
+      };
+    });
+    record(
+      "SG5c",
+      "Lineage Find hits stay lit; Ego misses stay Find-dim",
+      lineageEgoFind.ego >= 1 &&
+        lineageEgoFind.hits >= 1 &&
+        lineageEgoFind.hitMin >= 0.99 &&
+        lineageEgoFind.missInside >= 1 &&
+        lineageEgoFind.missInsideMax <= 0.18,
+      JSON.stringify(lineageEgoFind)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(150);
     await page.evaluate(() => {
