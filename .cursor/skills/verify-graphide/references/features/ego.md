@@ -82,7 +82,7 @@ Driver assertions:
   `verification/slice-ego.png`).
 - Ego's lift (`#sliceCanvas` / `#enterCanvas .vnode.ego`, 1) skips
   `.dim` / `.route-dim` / `.lens-dim`: Find misses stay dim inside the
-  neighborhood (`SG5`), and with `R` / `L` on, off-route / non-match
+  neighborhood (Slice `SG5`, Enter `SG5b`), and with `R` / `L` on, off-route / non-match
   neighbors still dim (Slice `RT8d`, `LN6c`,
   `verification/slice-ego-route.png`; Enter `b-render` `RT8e`, `LN6d`).
 - Selecting a Slice node with Ego off still stamps `data-dist`, but
