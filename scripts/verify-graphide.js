@@ -10092,6 +10092,23 @@ async function main() {
         lineageEgoFind.missInsideMax <= 0.18,
       JSON.stringify(lineageEgoFind)
     );
+    const lineageEgoDimFloor = await page.evaluate(() => {
+      const el =
+        document.querySelector("#lineageCanvas .vnode[data-id]") ||
+        document.querySelector("#lineageCanvas .ego-node[data-id]");
+      if (!el) return { ok: false };
+      el.classList.add("ego-dim", "dim");
+      el.classList.remove("hit", "ego");
+      const op = Number(getComputedStyle(el).opacity);
+      el.classList.remove("ego-dim", "dim");
+      return { ok: true, op };
+    });
+    record(
+      "SG5d",
+      "Lineage ego-dim Find miss sits at the 0.12 floor (not Find-dim 0.18)",
+      lineageEgoDimFloor.ok && lineageEgoDimFloor.op <= 0.12,
+      JSON.stringify(lineageEgoDimFloor)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(150);
     await page.evaluate(() => {
