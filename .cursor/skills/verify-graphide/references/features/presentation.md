@@ -26,6 +26,7 @@ stay human — present and preset never write `.graphide/stamps/`.
   viewer state and does not enter the canonical clone.
 - Stamp / skip stay human. Present / preset never write `.graphide/stamps/`.
 - While `body.present`, desk `X` does not skip (`P6b`) — Skip chrome is hidden; exit first. `S` still cycles Style.
+- While `body.present`, desk `/` does not focus Find (`P6c`) — `#graphBar` is hidden; exit first.
 
 ## How to get to it (user POV)
 
@@ -64,7 +65,7 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
-- on stage, `X` posts no skip (`P6b`)
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -72,6 +73,7 @@ Driver assertions:
 - `S` on the desk is still stamp. Do not steal it for Style except while
   `body.present` is on.
 - `X` on the stage must not skip. Exit Present before Skip.
+- `/` on the stage must not focus Find. Exit Present before Find.
 - `E` stays Ego. `D` stays Day / Night. Preset is independent of theme.
 - Do not add `data-component` / `data-testid`. `#presentBtn`, `#presetBtn`,
   `data-preset`, `body.present` are the product hooks.

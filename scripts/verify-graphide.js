@@ -8211,6 +8211,25 @@ async function main() {
       presentSkip.present && presentSkip.skipPosts === 0 && presentSkip.stampPosts === 0,
       JSON.stringify(presentSkip)
     );
+    // Present hides Find (#graphBar) — / must not focus #graphSearch.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("/");
+    const presentFind = await page.evaluate(() => {
+      const bar = document.getElementById("graphBar");
+      const gs = document.getElementById("graphSearch");
+      return {
+        present: document.body.classList.contains("present"),
+        barHidden: !bar || getComputedStyle(bar).display === "none",
+        findFocused: !!(gs && document.activeElement === gs),
+        active: document.activeElement && (document.activeElement.id || document.activeElement.tagName),
+      };
+    });
+    record(
+      "P6c",
+      "Present blocks desk / (Find stays unfocused while graph bar is hidden)",
+      presentFind.present && presentFind.barHidden && !presentFind.findFocused,
+      JSON.stringify(presentFind)
+    );
 
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });

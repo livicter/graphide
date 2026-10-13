@@ -534,6 +534,8 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "/" && graphSearch) {
     e.preventDefault();
+    // Present hides #graphBar / Find — exit the stage first.
+    if (isPresenting()) return;
     graphSearch.focus();
     graphSearch.select();
     return;

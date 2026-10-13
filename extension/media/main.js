@@ -20128,6 +20128,7 @@
       }
       if (e.key === "/" && graphSearch) {
         e.preventDefault();
+        if (isPresenting()) return;
         graphSearch.focus();
         graphSearch.select();
         return;
