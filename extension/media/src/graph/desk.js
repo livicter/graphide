@@ -446,8 +446,37 @@ document.addEventListener("keydown", (e) => {
     fitChart();
     return;
   }
+  // Backspace is navigate-back, but open chrome wins first (same stack as Escape).
   if (e.key === "Backspace") {
     e.preventDefault();
+    if (llmPane && !llmPane.hidden) {
+      setLlmPane(false);
+      return;
+    }
+    if (keysPane && !keysPane.hidden) {
+      setKeysPane(false);
+      return;
+    }
+    if (sourcePane && !sourcePane.hidden) {
+      closeSourcePane();
+      return;
+    }
+    if (exportMenu && !exportMenu.hidden) {
+      setExportMenu(false);
+      return;
+    }
+    if (routeOpen) {
+      setRouteOpen(false);
+      return;
+    }
+    if (lensOpen) {
+      setLensOpen(false);
+      return;
+    }
+    if (isPresenting()) {
+      applyPresent(false);
+      return;
+    }
     goBack();
     return;
   }
