@@ -7046,6 +7046,36 @@ async function main() {
       !backRoute.route && backRoute.cards >= 8 && backRoute.xy === 0,
       JSON.stringify(backRoute)
     );
+    // Enter bubble + Export: Backspace closes Export and stays inside the bubble (does not pop to Map).
+    await page.click('.bubble-card[data-bubble="b-render"]');
+    await page.waitForSelector("#enterCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backEnter = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      enter: document.querySelectorAll("#enterCanvas .vnode[data-id]").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll("#enterCanvas .react-flow__node, #enterCanvas .vnode").length,
+    }));
+    record(
+      "K14c",
+      "Backspace closes Export inside Enter without popping to Map",
+      !backEnter.exportOpen && backEnter.enter >= 2 && backEnter.cards === 0,
+      JSON.stringify(backEnter)
+    );
+    await page.keyboard.press("Backspace");
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
