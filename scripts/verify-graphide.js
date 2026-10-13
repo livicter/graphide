@@ -7973,6 +7973,49 @@ async function main() {
     await page.keyboard.press("l");
     await page.waitForTimeout(150);
 
+    // Find on an all-away Slice: a hit stays lit; a miss stays Find-dim (not the 0.38 away floor).
+    const awayFindQ = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+        (el) => el.getAttribute("data-slice-dist") === "0"
+      );
+      const pick = nodes[0];
+      const fqn = (pick && (pick.getAttribute("data-fqn") || "")) || "";
+      const name = ((pick && pick.querySelector(".name")) || {}).textContent || "";
+      const tok = (fqn.split("::").pop() || name.trim() || "").trim();
+      return tok.length >= 3 ? tok : "zzzz-no-such-symbol";
+    });
+    await page.fill("#graphSearch", awayFindQ);
+    await page.waitForTimeout(220);
+    const awayFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+        (el) => el.getAttribute("data-slice-dist") === "0"
+      );
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hits = nodes.filter((el) => el.classList.contains("hit"));
+      const misses = nodes.filter((el) => el.classList.contains("dim") && !el.classList.contains("hit"));
+      return {
+        away: nodes.filter((el) => el.classList.contains("away")).length,
+        lit: nodes.length,
+        hits: hits.length,
+        misses: misses.length,
+        hitMin: hits.length ? Math.min(...hits.map(op)) : 0,
+        missMax: misses.length ? Math.max(...misses.map(op)) : 1,
+      };
+    });
+    record(
+      "SG6",
+      "Slice Find hit on an off-program walk stays lit; Find misses stay below the away floor",
+      awayFind.lit >= 2 &&
+        awayFind.away === awayFind.lit &&
+        awayFind.hits >= 1 &&
+        awayFind.misses >= 1 &&
+        awayFind.hitMin >= 0.99 &&
+        awayFind.missMax <= 0.18,
+      JSON.stringify(awayFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+
     // Ego on Slice lifts its neighborhood to 1 (#sliceCanvas .vnode.ego). Route / Lens must still dim inside it.
     await page.goto(origin + HARNESS, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForSelector('#workspaces [data-ws="slice"]', { timeout: 15000 });
