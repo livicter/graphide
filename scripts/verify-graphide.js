@@ -7208,6 +7208,29 @@ async function main() {
       !backKeys.keysOpen && backKeys.cards >= 8 && backKeys.xy === 0,
       JSON.stringify(backKeys)
     );
+    // Ask open: Backspace closes Ask, stays on Map.
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backAsk = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14e",
+      "Backspace closes Ask without leaving Map community LOD",
+      !backAsk.askOpen && backAsk.cards >= 8 && backAsk.xy === 0,
+      JSON.stringify(backAsk)
+    );
 
     // Export open: S / X / R must not stamp, skip, or open PATH.
     await page.click('#workspaces [data-ws="map"]');
