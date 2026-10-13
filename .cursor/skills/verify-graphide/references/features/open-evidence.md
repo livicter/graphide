@@ -13,6 +13,7 @@ Inspect a node or hop without covering the object rail.
   Click `.edge-hit` / `text.ekind` / `#inspEdges .row` to open a hop.
 - **Editor** `#srcEditor` posts `{ type: "enterNode" }` to the host (open the span in the editor).
 - **Close** `#srcClose` or `Escape` hides the pane (`sourcePane.hidden = true`, `#workspace` drops `has-source`).
+  Escape on focused Find still closes Evidence after blurring Find (`K13d`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →

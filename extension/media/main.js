@@ -19946,13 +19946,15 @@
     if (presetBtn) presetBtn.onclick = () => cyclePreset();
     if (presentBtn) presentBtn.onclick = () => togglePresent();
     reviewBtn.onclick = () => startReview();
-    cancelBtn.onclick = () => {
+    function requestCancel() {
       setBusy(true);
-      progressLabel.textContent = "Cancelling…";
+      if (progressLabel) progressLabel.textContent = "Cancelling…";
       vscode.postMessage({ type: "cancel" });
-    };
+    }
+    cancelBtn.onclick = () => requestCancel();
     backBtn.onclick = () => goBack();
     prompt.addEventListener("keydown", (e) => {
+      if (e.isComposing) return;
       if (e.key === "Enter") {
         e.preventDefault();
         startReview();
@@ -19961,7 +19963,7 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && busy) {
         e.preventDefault();
-        vscode.postMessage({ type: "cancel" });
+        requestCancel();
         return;
       }
       if (e.key === "Escape" && llmPane && !llmPane.hidden) {
@@ -19974,7 +19976,15 @@
         setKeysPane(false);
         return;
       }
-      if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
+      const findEsc = e.key === "Escape" && graphSearch && e.target === graphSearch;
+      const promptEsc = e.key === "Escape" && prompt && e.target === prompt;
+      if (findEsc || promptEsc) {
+        e.preventDefault();
+        if (findEsc) graphSearch.blur();
+        if (promptEsc) prompt.blur();
+      } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
+        return;
+      }
       if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
         e.preventDefault();
         closeSourcePane();
@@ -19998,6 +20008,12 @@
       if (e.key === "Escape" && isPresenting()) {
         e.preventDefault();
         applyPresent(false);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey && !e.altKey) return;
+      if (e.target && e.target.closest && e.target.closest("select")) return;
+      if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+      if (e.key !== "Backspace" && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
         return;
       }
       if (stack[stack.length - 1]?.kind === "programs") {
@@ -20039,6 +20055,38 @@
       }
       if (e.key === "Backspace") {
         e.preventDefault();
+        if (busy) {
+          requestCancel();
+          return;
+        }
+        if (llmPane && !llmPane.hidden) {
+          setLlmPane(false);
+          return;
+        }
+        if (keysPane && !keysPane.hidden) {
+          setKeysPane(false);
+          return;
+        }
+        if (sourcePane && !sourcePane.hidden) {
+          closeSourcePane();
+          return;
+        }
+        if (exportMenu && !exportMenu.hidden) {
+          setExportMenu(false);
+          return;
+        }
+        if (routeOpen) {
+          setRouteOpen(false);
+          return;
+        }
+        if (lensOpen) {
+          setLensOpen(false);
+          return;
+        }
+        if (isPresenting()) {
+          applyPresent(false);
+          return;
+        }
         goBack();
         return;
       }
@@ -20055,7 +20103,7 @@
       }
       if (e.key === "x" || e.key === "X") {
         e.preventDefault();
-        requestSkip();
+        if (!isPresenting()) requestSkip();
         return;
       }
       if (e.key === "e" || e.key === "E") {
@@ -20234,6 +20282,7 @@
     if (llmSend) llmSend.onclick = () => sendLlmAsk();
     if (llmAsk)
       llmAsk.addEventListener("keydown", (e) => {
+        if (e.isComposing) return;
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           sendLlmAsk();
@@ -20729,7 +20778,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
@@ -23452,7 +23501,7 @@
       const kind = extra.kind != null ? extra.kind : node && node.kind || "";
       const flow = extra.flow || "";
       const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
-      const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+      const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
       return {
         file,
         hops,
@@ -26609,7 +26658,7 @@
     function applyGraphFilter() {
       canvas.querySelectorAll(".comm-node, .vnode, .ego-node").forEach((el2) => {
         const kind = el2.getAttribute("data-kind") || "";
-        const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery(
+        const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery(
           [
             el2.getAttribute("data-fqn") || "",
             el2.getAttribute("data-file") || "",
@@ -26617,15 +26666,24 @@
             el2.getAttribute("data-kind") || "",
             el2.getAttribute("data-hops") || ""
           ].join(" ")
-        );
+        ) || el2.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el2.getAttribute("data-id")));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
       canvas.querySelectorAll(".bubble-card").forEach((el2) => {
         const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
-        const match = matchesExplorerQuery(name);
+        const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el2.getAttribute("data-bubble"));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
+      });
+    }
+    function bubbleMembersMatchQuery(id2) {
+      if (!graphFilter.q || !id2) return false;
+      const b = findBubble(id2);
+      return (b && b.members || []).some((m) => {
+        const n = nodeById.get(idVal(m));
+        if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+        return matchesExplorerQuery((n.fqn || "") + " " + (n.span && n.span.file || ""));
       });
     }
     function isProposedFlow(f) {
@@ -26979,7 +27037,7 @@
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
           surface: "enter-node",
-          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance
         };
@@ -27267,6 +27325,7 @@
     }
     function sendLlmAsk() {
       if (!llmAsk) return;
+      llmAsk.focus();
       const q2 = llmAsk.value.trim();
       if (!q2) return;
       appendLlmLog(q2, "user");
