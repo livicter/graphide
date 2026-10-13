@@ -550,7 +550,7 @@ assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includ
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
 assert(driver.includes("K8") && driver.includes("K8b") && driver.includes("metaKey: true"), "verify driver must prove Cmd / Ctrl chords do not stamp or toggle desk keys");
 assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")') && driver.includes("K12") && driver.includes('page.focus("#llmPreset")'), "verify driver must prove focused Ego hops and Ask host <select> keep 2 / S / X");
-assert(js.includes("e.target === graphSearch") && driver.includes("K13") && driver.includes("K13b") && driver.includes("K13c") && driver.includes("K13d"), "Escape on focused Find must blur (and still close Route)");
+assert(js.includes("e.target === graphSearch") && driver.includes("K13") && driver.includes("K13b") && driver.includes("K13c") && driver.includes("K13d") && driver.includes("K13e"), "Escape on focused Find must blur (and still close Route)");
 assert(driver.includes("A3b") && driver.includes("isComposing: true"), "verify driver must prove IME-composing Enter does not send");
 assert(/function sendLlmAsk\(\) \{\s*if \(!llmAsk\) return;\s*llmAsk\.focus\(\);/.test(js) && driver.includes("A3c"), "Ask must return focus to #llmAsk so the next question does not fire desk keys");
 assert(driver.includes("K10") && driver.includes("repeat: true"), "verify driver must prove auto-repeat does not flip toggles or stamp");
