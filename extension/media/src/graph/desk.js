@@ -339,11 +339,12 @@ if (presetBtn) presetBtn.onclick = () => cyclePreset();
 if (presentBtn) presentBtn.onclick = () => togglePresent();
 
 reviewBtn.onclick = () => startReview();
-cancelBtn.onclick = () => {
+function requestCancel() {
   setBusy(true);
-  progressLabel.textContent = "Cancelling…";
+  if (progressLabel) progressLabel.textContent = "Cancelling…";
   vscode.postMessage({ type: "cancel" });
-};
+}
+cancelBtn.onclick = () => requestCancel();
 backBtn.onclick = () => goBack();
 prompt.addEventListener("keydown", (e) => {
   // Enter that commits an IME candidate is not a submit.
@@ -356,7 +357,7 @@ prompt.addEventListener("keydown", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && busy) {
     e.preventDefault();
-    vscode.postMessage({ type: "cancel" });
+    requestCancel();
     return;
   }
   if (e.key === "Escape" && llmPane && !llmPane.hidden) {
@@ -460,7 +461,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Backspace") {
     e.preventDefault();
     if (busy) {
-      vscode.postMessage({ type: "cancel" });
+      requestCancel();
       return;
     }
     if (llmPane && !llmPane.hidden) {
