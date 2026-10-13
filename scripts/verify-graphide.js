@@ -6965,6 +6965,30 @@ async function main() {
       findEscLens.q === "render" && !findEscLens.focused && !findEscLens.lens,
       JSON.stringify(findEscLens)
     );
+    // Escape on Find while Export menu is open: blur Find and close Export in one key.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscExport = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K13f",
+      "Escape on focused Find also closes Export",
+      findEscExport.q === "render" && !findEscExport.focused && !findEscExport.exportOpen,
+      JSON.stringify(findEscExport)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(80);
 
