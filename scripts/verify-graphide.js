@@ -7185,6 +7185,30 @@ async function main() {
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     await page.waitForTimeout(150);
 
+    // Keys open: Backspace closes Keys, stays on Map.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backKeys = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14d",
+      "Backspace closes Keys without leaving Map community LOD",
+      !backKeys.keysOpen && backKeys.cards >= 8 && backKeys.xy === 0,
+      JSON.stringify(backKeys)
+    );
+
     // Export open: S / X / R must not stamp, skip, or open PATH.
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
