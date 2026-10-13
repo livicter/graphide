@@ -24,6 +24,8 @@ second command palette and not an agent stamp.
 - Backspace closes open chrome first (Ask / Keys / Evidence / Export /
   Route / Lens / Present), then navigates back — it does not leave a
   bubble with Export still open.
+- While Export, Keys, or Ask is open, desk action keys are ignored
+  (S must not stamp under the Export menu).
 - Holding a key fires its toggle / action once: auto-repeat (`e.repeat`)
   of `S` `X` `D` `F` `E` `R` `L` `P` Backspace is ignored (no stamp
   spam, no theme flicker writing the global `graphide.appearance`, no
@@ -83,6 +85,7 @@ Driver assertions:
   work again (`K13`, `K13b`); if Route was open it closes too (`K13c`); Evidence closes too (`K13d`); Lens closes too (`K13e`); Export closes too (`K13f`)
 - Backspace with Export / Route open closes that layer and keeps Map
   community LOD (`K14`, `K14b`); inside Enter, Export closes without popping (`K14c`)
+- open Export / Keys: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 

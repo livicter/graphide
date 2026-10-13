@@ -7077,6 +7077,87 @@ async function main() {
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     await page.waitForTimeout(150);
 
+    // Export open: S / X / R must not stamp, skip, or open PATH.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const chromePosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    await page.keyboard.press("r");
+    const chromeKeys = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      };
+    }, chromePosts0);
+    record(
+      "K15",
+      "Open Export blocks desk S / X / R (no stamp, skip, or PATH)",
+      chromeKeys.exportOpen &&
+        chromeKeys.stampPosts === 0 &&
+        chromeKeys.skipPosts === 0 &&
+        !chromeKeys.route,
+      JSON.stringify(chromeKeys)
+    );
+    await page.keyboard.press("Backspace");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Keys sheet open: same — S must not stamp.
+    const keysPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const keysBlock = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, keysPosts0);
+    record(
+      "K15b",
+      "Open Keys sheet blocks desk S / X (no stamp or skip)",
+      keysBlock.keysOpen && keysBlock.stampPosts === 0 && keysBlock.skipPosts === 0,
+      JSON.stringify(keysBlock)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

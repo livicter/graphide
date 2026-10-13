@@ -20010,6 +20010,9 @@
       if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (e.target && e.target.closest && e.target.closest("select")) return;
       if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+      if (e.key !== "Backspace" && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
+        return;
+      }
       if (stack[stack.length - 1]?.kind === "programs") {
         if (e.key === "ArrowRight" || e.key === "ArrowDown") {
           e.preventDefault();
