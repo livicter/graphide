@@ -6819,6 +6819,62 @@ async function main() {
       await page.waitForTimeout(300);
     }
 
+    // Ask host <select> (#llmPreset) is the other typed select: same guard, no stamp / skip / workspace switch.
+    const askPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const askWs0 = await page.evaluate(() =>
+      (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws")
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("llmBtn");
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(() => {
+      const pane = document.getElementById("llmPane");
+      const sel = document.getElementById("llmPreset");
+      return !!(pane && !pane.hidden && sel);
+    }, null, { timeout: 5000 });
+    await page.focus("#llmPreset");
+    await page.keyboard.press("2");
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const askSelectKeys = await page.evaluate(
+      ({ before, ws0 }) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const sel = document.getElementById("llmPreset");
+        const out = {
+          focused: document.activeElement === sel,
+          ws0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+          stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+          skipPosts: posts.filter((m) => m && m.type === "skip").length,
+          askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        };
+        if (sel) sel.blur();
+        const close = document.getElementById("llmClose");
+        if (close) close.click();
+        return out;
+      },
+      { before: askPosts0, ws0: askWs0 }
+    );
+    record(
+      "K12",
+      "Focused Ask host <select> keeps 2 / S / X — no workspace switch, stamp or skip",
+      askSelectKeys.focused &&
+        askSelectKeys.askOpen &&
+        askSelectKeys.ws === askSelectKeys.ws0 &&
+        askSelectKeys.stampPosts === 0 &&
+        askSelectKeys.skipPosts === 0,
+      JSON.stringify(askSelectKeys)
+    );
+    if (askSelectKeys.ws !== askSelectKeys.ws0) {
+      await page.click('#workspaces [data-ws="' + askSelectKeys.ws0 + '"]');
+      await page.waitForTimeout(300);
+    }
+    await page.waitForFunction(() => {
+      const pane = document.getElementById("llmPane");
+      return !pane || pane.hidden;
+    }, null, { timeout: 5000 });
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     const srcCloseWalk = await page.$("#srcClose");

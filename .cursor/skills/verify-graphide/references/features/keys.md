@@ -74,6 +74,8 @@ Driver assertions:
   still toggles PATH (`K11`)
 - focused `#egoHops` + `2` / `S` / `X`: workspace unchanged, no stamp /
   skip post (`K9`)
+- focused Ask `#llmPreset` + `2` / `S` / `X`: same — no stamp / skip /
+  workspace switch (`K12`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
