@@ -71,6 +71,8 @@ Driver assertions:
 ## Gotchas
 
 - `/` is Find. Do not steal it for Ask. Search stays one field.
+- Escape on a focused `#graphSearch` blurs Find (keeps the query) so
+  desk keys work again (`K13`).
 - Do not add `data-component` / `data-testid`. `#graphSearch`,
   `graphFilter.q`, `.dim`, `.hit`, `matchesExplorerQuery` are the hooks.
 - Enter / Lineage nodes must carry `data-fqn` / `data-file` so file Find
