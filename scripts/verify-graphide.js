@@ -7291,7 +7291,7 @@ async function main() {
     const stripProbe = await page.evaluate(() => {
       const box = document.createElement("div");
       box.innerHTML =
-        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away hot flowing on-path now past ahead here" data-delta-review-current="1"></i>';
+        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away hot flowing on-path now past ahead here walk dragging panning" data-delta-review-current="1"></i>';
       if (typeof stripExportViewerState === "function") stripExportViewerState(box);
       const i = box.querySelector("i");
       return {
