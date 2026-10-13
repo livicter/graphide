@@ -649,9 +649,12 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 #ledgerPane[hidden] { display: none; }
 #herd {
-  width: 188px;
-  min-width: 168px;
-  flex: 0 0 auto;
+  /* ponytail: 64px keeps fitted Map tiles >= 16px (AI1). A wider rail
+     scales the community map down. Upgrade: overlay the rail. */
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  flex: 0 0 64px;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -683,9 +686,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .herd-cut {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
   width: 100%;
   text-align: left;
   background: transparent;
