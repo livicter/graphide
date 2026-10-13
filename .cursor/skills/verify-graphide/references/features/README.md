@@ -47,6 +47,7 @@ owns this folder.
 | [panel-timeout.md](panel-timeout.md) | Time-box BEST_EFFORT coverage/findings flush | explorer Map · fat panel `patch` · `panel-timeout.png` |
 | [program-chips.md](program-chips.md) | Program chip switch | self-review Map · `#legend [data-prog]` · `program-chips.png` |
 | [herd-rail.md](herd-rail.md) | Herd / fleet cuts | explorer Map · `#herd` · `herd-rail.png` |
+| [agent-herd.md](agent-herd.md) | Agent wait on a cut | `scripts/agent-herd.mjs` · `verification/agent-herd.md` |
 | [layout-resume.md](layout-resume.md) | Desk layout resume | explorer Map · reload · `layout-resume.png` |
 | [all-programs.md](all-programs.md) | All programs union | self-review Map · `#legend [data-prog="-1"]` · `all-programs.png` |
 | [progress.md](progress.md) | Review derive strip | explorer · `#progress` · `progress.png` |

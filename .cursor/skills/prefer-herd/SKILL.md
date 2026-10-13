@@ -23,6 +23,8 @@ From the snapshot: `programs`, `flows`, `findings`, `coverage`, `bubbles`. That 
 
 `graphide.review` opens Review on a folder (`reviewFolder` → `packageRoot()` when no folder is passed). It does not stamp.
 
+`node scripts/agent-herd.mjs --root <folder> --wait` starts that same review, prints herd rows, and exits 0 when the focused cut is blocked or 2 when it settled otherwise. No stamp flag.
+
 ## Never
 
 - Write `.graphide/stamps/` or run `graphide stamp`. Agents never stamp.

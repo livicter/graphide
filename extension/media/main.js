@@ -16998,6 +16998,151 @@
     ] });
   }
 
+  // extension/media/src/graph/herd.js
+  function programKeyOf(p) {
+    return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+  }
+  function cutShort(fqn) {
+    return String(fqn || "").split(/::|\./).pop();
+  }
+  function cutFile(file) {
+    const f = String(file || "").replace(/\\/g, "/");
+    const parts = f.split("/");
+    return parts.length > 2 ? parts.slice(-2).join("/") : f;
+  }
+  function findingKindOf(f) {
+    if (!f) return "";
+    if (typeof f.kind === "string") return f.kind;
+    return f.kind && f.kind.kind || "";
+  }
+  function findingTitle(f) {
+    const k = findingKindOf(f);
+    if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
+    if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + cutShort(f.fqn || "");
+    if (k === "UncoveredNode") return "UncoveredNode · " + cutShort(f.fqn || "");
+    if (k === "DuplicateFqn") return "DuplicateFqn · " + cutShort(f.fqn || "");
+    if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
+    if (k === "SpanlessDrop") return "SpanlessDrop · " + cutFile(f.file || "");
+    if (k === "PluginBug") return "PluginBug";
+    return k || "finding";
+  }
+  function flowMark(name, session) {
+    const skipped = session && session.skipped || [];
+    const stamps = session && session.stamps || [];
+    if (skipped.indexOf(name) >= 0) return "skipped";
+    const row = stamps.find((s) => s.name === name);
+    if (!row) return "";
+    return row.holds ? "holds" : "broken";
+  }
+  function decisionRecords(snapshot, session) {
+    const skipped = session && session.skipped || [];
+    const stamps = session && session.stamps || [];
+    const rows = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const s of stamps.concat(snapshot && snapshot.stamps || [])) {
+      const name = s.name || s.flow;
+      if (!name || seen.has("stamp:" + name)) continue;
+      seen.add("stamp:" + name);
+      rows.push({
+        kind: "stamp",
+        flow: name,
+        verdict: s.holds ? "holds" : "broken",
+        title: name,
+        body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
+        outcome: s.holds ? "approved" : "rejected"
+      });
+    }
+    for (const name of skipped.concat(snapshot && snapshot.skipped || [])) {
+      if (!name || seen.has("skip:" + name)) continue;
+      seen.add("skip:" + name);
+      rows.push({
+        kind: "skip",
+        flow: name,
+        verdict: "skipped",
+        title: name,
+        body: "Skipped this session — no stamp written.",
+        outcome: "deferred"
+      });
+    }
+    for (const f of snapshot && snapshot.findings || []) {
+      const k = findingKindOf(f);
+      if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
+      rows.push({
+        kind: "finding",
+        flow: f.flow || "",
+        verdict: k === "StampBroken" ? "broken" : "hint",
+        title: findingTitle(f),
+        body: k === "StampBroken" ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops" : String(f.fqn || "unmatched hit"),
+        outcome: k === "StampBroken" ? "rejected" : "pending",
+        added: f.added || [],
+        removed: f.removed || []
+      });
+    }
+    return rows;
+  }
+  function flowNeedsHuman(name, snapshot, session) {
+    const mark = flowMark(name, session);
+    const blocked = decisionRecords(snapshot, session).some(
+      (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
+    );
+    return blocked || mark === "broken";
+  }
+  function herdActiveFlowName(snapshot, session, flowName, defaultRunName) {
+    const open = (name) => !!name && flowMark(name, session) !== "holds" && flowMark(name, session) !== "skipped" && !flowNeedsHuman(name, snapshot, session);
+    if (open(flowName)) return flowName;
+    if (open(defaultRunName)) return defaultRunName;
+    return "";
+  }
+  function herdFlowState(name, active, snapshot, session) {
+    const mark = flowMark(name, session);
+    if (flowNeedsHuman(name, snapshot, session)) return "blocked";
+    if (mark === "holds") return "done";
+    if (mark === "skipped") return "idle";
+    if (active && name === active) return "working";
+    return "idle";
+  }
+  function herdCuts(input) {
+    const snapshot = input && input.snapshot;
+    if (!snapshot) return [];
+    const session = {
+      skipped: input.skipped || [],
+      stamps: input.stamps || []
+    };
+    const programs = snapshot.programs || [];
+    const seen = /* @__PURE__ */ new Set();
+    const names = [];
+    for (const f of snapshot.flows || []) {
+      if (!f.name || seen.has(f.name)) continue;
+      seen.add(f.name);
+      names.push(f.name);
+    }
+    for (const n of session.skipped.concat(snapshot.skipped || [])) {
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      names.push(n);
+    }
+    const active = herdActiveFlowName(snapshot, session, input.flowName || "", input.defaultRunName || "");
+    const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
+    const cuts = names.map((name) => ({
+      kind: "flow",
+      flow: name,
+      label: name,
+      state: herdFlowState(name, active, snapshot, session)
+    }));
+    const program = input.program || null;
+    programs.forEach((p, i) => {
+      const on2 = program ? programKeyOf(program) === programKeyOf(p) : programs.length === 1;
+      cuts.push({
+        kind: "program",
+        index: i,
+        label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
+        state: on2 ? "working" : "idle"
+      });
+    });
+    cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
+    return cuts;
+  }
+
   // extension/media/src/graph/sequence-canvas.jsx
   var import_react4 = __toESM(require_react());
   var import_client = __toESM(require_client());
@@ -21148,7 +21293,7 @@
       const names = (snapshot && snapshot.flows ? snapshot.flows : []).map((f) => f.name);
       let holds = 0, broken = 0, skipped = 0, pending = 0;
       for (const name of names) {
-        const mark = flowMark(name);
+        const mark = flowMark2(name);
         if (mark === "holds") holds++;
         else if (mark === "broken") broken++;
         else if (mark === "skipped") skipped++;
@@ -21276,7 +21421,7 @@
         snap: deskSnapKey(),
         ws: explorerWs,
         flow: flow && flow.name || flowName || "",
-        program: prog ? programKeyOf(prog) : "",
+        program: prog ? programKeyOf2(prog) : "",
         q: graphFilter.q || "",
         focus: selectedNodeId ? idVal(selectedNodeId) : "",
         pins
@@ -21323,7 +21468,7 @@
       }
       const programs = snapshot && snapshot.programs || [];
       if (desk.program && programs.length) {
-        const hit = programs.find((p) => programKeyOf(p) === desk.program);
+        const hit = programs.find((p) => programKeyOf2(p) === desk.program);
         if (hit) {
           graphFilter.program = hit;
           const i = programs.indexOf(hit);
@@ -22577,11 +22722,11 @@
     function esc(s) {
       return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-    function flowMark(name) {
-      if (skippedFlows.indexOf(name) >= 0) return "skipped";
-      const row = stampRows.find((s) => s.name === name);
-      if (!row) return "";
-      return row.holds ? "holds" : "broken";
+    function herdSession() {
+      return { skipped: skippedFlows, stamps: stampRows };
+    }
+    function flowMark2(name) {
+      return flowMark(name, herdSession());
     }
     function requestStamp(name) {
       const flow = name || currentFlow() && currentFlow().name;
@@ -22594,7 +22739,7 @@
         snapshot.skipped = (snapshot.skipped || []).filter((n) => n !== flow);
         snapshot.stamps = stampRows.slice();
         snapshot.findings = (snapshot.findings || []).filter(
-          (f) => !(findingKindOf(f) === "StampBroken" && f.flow === flow)
+          (f) => !(findingKindOf2(f) === "StampBroken" && f.flow === flow)
         );
       }
       vscode.postMessage({ type: "stamp", flow });
@@ -22614,8 +22759,8 @@
       flashBtn(skipBtn, "flash-skip");
       paint({ animate: "none" });
     }
-    function programKeyOf(p) {
-      return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
+    function programKeyOf2(p) {
+      return programKeyOf(p);
     }
     function detectHint(file) {
       const f = String(file || "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -22686,13 +22831,13 @@
       return { kind: "pkg", name: "root", root: "" };
     }
     function flowTouchesProgram(flow, program) {
-      const want = programKeyOf(program);
+      const want = programKeyOf2(program);
       const graph = snapshot && snapshot.graph;
       const programs = snapshot && snapshot.programs || [];
       for (const id2 of flow?.tree?.nodes || []) {
         const n = nodeById.get(idVal(id2)) || (graph?.nodes || []).find((x) => sameId(x.id, id2));
         const file = n?.span?.file;
-        if (file && programKeyOf(assignProgram(file, programs)) === want) return true;
+        if (file && programKeyOf2(assignProgram(file, programs)) === want) return true;
       }
       return false;
     }
@@ -22732,7 +22877,7 @@
       const n = nodeById.get(idVal(id2));
       const file = n?.span?.file;
       if (!file) return false;
-      return programKeyOf(assignProgram(file, snapshot.programs || [])) !== programKeyOf(prog);
+      return programKeyOf2(assignProgram(file, snapshot.programs || [])) !== programKeyOf2(prog);
     }
     function peekSource(id2) {
       if (!id2) return;
@@ -23233,12 +23378,12 @@
       return true;
     }
     function programMarks(p) {
-      const key = programKeyOf(p);
+      const key = programKeyOf2(p);
       const programs = snapshot && snapshot.programs || [];
       let uncovered = 0;
       for (const id2 of snapshot && snapshot.coverage && snapshot.coverage.uncovered || []) {
         const n = nodeById.get(idVal(id2));
-        if (n?.span?.file && programKeyOf(assignProgram(n.span.file, programs)) === key) uncovered++;
+        if (n?.span?.file && programKeyOf2(assignProgram(n.span.file, programs)) === key) uncovered++;
       }
       const flows = (snapshot && snapshot.flows || []).filter((f) => flowTouchesProgram(f, p)).length;
       return { uncovered, flows };
@@ -23251,8 +23396,8 @@
         const a = nodeById.get(idVal(e.from));
         const b = nodeById.get(idVal(e.to));
         if (!a?.span?.file || !b?.span?.file) continue;
-        const ka = programKeyOf(assignProgram(a.span.file, programs));
-        const kb = programKeyOf(assignProgram(b.span.file, programs));
+        const ka = programKeyOf2(assignProgram(a.span.file, programs));
+        const kb = programKeyOf2(assignProgram(b.span.file, programs));
         if (!ka || ka === kb) continue;
         const kind = e.kind || "Imports";
         const k = ka + "	" + kb + "	" + kind;
@@ -24028,65 +24173,14 @@
       if (!q2) return true;
       return String(text || "").toLowerCase().includes(q2);
     }
-    function findingKindOf(f) {
-      if (!f) return "";
-      if (typeof f.kind === "string") return f.kind;
-      return f.kind && f.kind.kind || "";
+    function findingKindOf2(f) {
+      return findingKindOf(f);
     }
-    function findingTitle(f) {
-      const k = findingKindOf(f);
-      if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
-      if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
-      if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
-      if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
-      if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
-      if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
-      if (k === "PluginBug") return "PluginBug";
-      return k || "finding";
+    function findingTitle2(f) {
+      return findingTitle(f);
     }
-    function decisionRecords() {
-      const rows = [];
-      const seen = /* @__PURE__ */ new Set();
-      for (const s of stampRows.concat(snapshot && snapshot.stamps || [])) {
-        const name = s.name || s.flow;
-        if (!name || seen.has("stamp:" + name)) continue;
-        seen.add("stamp:" + name);
-        rows.push({
-          kind: "stamp",
-          flow: name,
-          verdict: s.holds ? "holds" : "broken",
-          title: name,
-          body: s.holds ? "Human stamp still holds on this graph." : "Stamp no longer matches the derived tree.",
-          outcome: s.holds ? "approved" : "rejected"
-        });
-      }
-      for (const name of skippedFlows.concat(snapshot && snapshot.skipped || [])) {
-        if (!name || seen.has("skip:" + name)) continue;
-        seen.add("skip:" + name);
-        rows.push({
-          kind: "skip",
-          flow: name,
-          verdict: "skipped",
-          title: name,
-          body: "Skipped this session — no stamp written.",
-          outcome: "deferred"
-        });
-      }
-      for (const f of snapshot && snapshot.findings || []) {
-        const k = findingKindOf(f);
-        if (k !== "StampBroken" && k !== "UnmatchedHint") continue;
-        rows.push({
-          kind: "finding",
-          flow: f.flow || "",
-          verdict: k === "StampBroken" ? "broken" : "hint",
-          title: findingTitle(f),
-          body: k === "StampBroken" ? (f.added || []).length + " added · " + (f.removed || []).length + " removed hops" : String(f.fqn || "unmatched hit"),
-          outcome: k === "StampBroken" ? "rejected" : "pending",
-          added: f.added || [],
-          removed: f.removed || []
-        });
-      }
-      return rows;
+    function decisionRecords2() {
+      return decisionRecords(snapshot, herdSession());
     }
     function registryEvents() {
       const ev = [];
@@ -24096,16 +24190,16 @@
         title: "Review snapshot",
         body: (snapshot.graph && snapshot.graph.nodes || []).length + " nodes · " + (snapshot.graph && snapshot.graph.edges || []).length + " edges · " + (s.files || 0) + " files" + (snapshot.plugin ? " · " + snapshot.plugin : "") + (s.elapsed_ms != null ? " · " + s.elapsed_ms + "ms" : "")
       });
-      decisionRecords().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
+      decisionRecords2().forEach((d) => ev.push({ kind: d.kind, title: d.title, body: d.body, flow: d.flow, verdict: d.verdict }));
       const findings = (snapshot && snapshot.findings || []).filter((f) => {
-        const k = findingKindOf(f);
+        const k = findingKindOf2(f);
         return k && k !== "UncoveredNode" && k !== "StampBroken" && k !== "UnmatchedHint";
       });
       findings.forEach((f) => {
         const hop = f.from && f.to ? shortOf(f.from) + " → " + shortOf(f.to) : "";
         ev.push({
           kind: "finding",
-          title: findingTitle(f),
+          title: findingTitle2(f),
           body: f.message || f.fqn || hop || f.plugin || f.span && f.span.file || "",
           flow: f.flow || ""
         });
@@ -24158,7 +24252,7 @@
           sample: uncovered.slice(0, 8).map((id2) => idVal(id2))
         }
       ];
-      decisionRecords().forEach((d) => ev.push({ kind: d.verdict || d.kind, title: d.title, body: d.body, flow: d.flow }));
+      decisionRecords2().forEach((d) => ev.push({ kind: d.verdict || d.kind, title: d.title, body: d.body, flow: d.flow }));
       return ev;
     }
     function decisionKey(r) {
@@ -24196,7 +24290,7 @@
         });
       }
       const scars = (snapshot.findings || []).filter(
-        (f) => findingKindOf(f) === "StampBroken" && (!rec.flow || f.flow === rec.flow)
+        (f) => findingKindOf2(f) === "StampBroken" && (!rec.flow || f.flow === rec.flow)
       );
       scars.forEach((f) => {
         (f.added || []).forEach((e) => {
@@ -24229,7 +24323,7 @@
       }).join("") + "</div>";
     }
     function renderDecisionBody() {
-      const rows = decisionRecords().filter(
+      const rows = decisionRecords2().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
       );
       if (!rows.length) {
@@ -25506,7 +25600,7 @@
       return lifecycleOf(lifecycleFlow()).states;
     }
     function lcCurrentId(flow) {
-      const mark = flowMark(flow && flow.name);
+      const mark = flowMark2(flow && flow.name);
       if (mark === "holds") return "stamped";
       if (mark === "skipped") return "skipped";
       if (mark === "broken") return "broken";
@@ -26011,7 +26105,7 @@
       const kinds = countMap(nodes, (n) => n.kind);
       const hops = countMap(edges, (e) => e.kind);
       const marks = countMap(
-        flows.map((f) => ({ m: flowMark(f.name) || "open" })),
+        flows.map((f) => ({ m: flowMark2(f.name) || "open" })),
         (x) => x.m
       );
       const degrees2 = degreeMap();
@@ -26274,9 +26368,9 @@
       }
       let nodes = (snapshot.graph && snapshot.graph.nodes || []).slice();
       if (graphFilter.program) {
-        const want = programKeyOf(graphFilter.program);
+        const want = programKeyOf2(graphFilter.program);
         nodes = nodes.filter(
-          (n) => n.span?.file && programKeyOf(assignProgram(n.span.file, snapshot.programs || [])) === want
+          (n) => n.span?.file && programKeyOf2(assignProgram(n.span.file, snapshot.programs || [])) === want
         );
       }
       if (graphFilter.bubble) {
@@ -26331,7 +26425,7 @@
       const programs = snapshot.programs || [];
       let html = "";
       programs.forEach((p, i) => {
-        const on2 = graphFilter.program && programKeyOf(graphFilter.program) === programKeyOf(p);
+        const on2 = graphFilter.program && programKeyOf2(graphFilter.program) === programKeyOf2(p);
         html += '<button type="button" class="leg' + (on2 ? " on" : "") + '" data-prog="' + i + '">' + esc(p.kind) + " " + esc(p.name) + "</button>";
       });
       if (programs.length > 1) {
@@ -26741,7 +26835,7 @@
       const m = reviewMarks();
       const head = m.names.length ? '<span class="queue-left' + (m.pending ? "" : " done") + '">' + (m.pending ? m.pending + " left" : "queue clear") + "</span>" : "";
       tabs.innerHTML = head + (flows || []).map((f) => {
-        const mark = flowMark(f.name);
+        const mark = flowMark2(f.name);
         const proposed = isProposedFlow(f);
         return '<button class="tab' + (f.name === current ? " on" : "") + (mark ? " " + mark : "") + (proposed ? " proposed" : "") + '" data-flow="' + esc(f.name) + '"' + (proposed ? ' data-proposed="1"' : "") + ">" + esc(f.name) + (mark ? '<span class="mark">' + mark + "</span>" : "") + "</button>";
       }).join("");
@@ -26843,7 +26937,7 @@
       applyPathWalkPaint();
     }
     function stampBadge(name) {
-      const mark = flowMark(name);
+      const mark = flowMark2(name);
       if (!mark) return "";
       return ' <span class="live ' + mark + '">' + mark + "</span>";
     }
@@ -27210,65 +27304,29 @@
       markPanelShed(budgeted && shed);
       renderHerd();
     }
-    function flowNeedsHuman(name) {
-      const mark = flowMark(name);
-      const blocked = decisionRecords().some(
-        (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
-      );
-      return blocked || mark === "broken";
+    function flowNeedsHuman2(name) {
+      return flowNeedsHuman(name, snapshot, herdSession());
     }
-    function herdActiveFlowName() {
-      const open = (name) => !!name && flowMark(name) !== "holds" && flowMark(name) !== "skipped" && !flowNeedsHuman(name);
-      if (open(flowName)) return flowName;
+    function herdActiveFlowName2() {
       const run = defaultRunFlow();
-      if (run && open(run.name)) return run.name;
-      return "";
+      return herdActiveFlowName(snapshot, herdSession(), flowName, run && run.name);
     }
-    function herdFlowState(name, active) {
-      const mark = flowMark(name);
-      if (flowNeedsHuman(name)) return "blocked";
-      if (mark === "holds") return "done";
-      if (mark === "skipped") return "idle";
-      if (active && name === active) return "working";
-      return "idle";
+    function herdFlowState2(name, active) {
+      return herdFlowState(name, active, snapshot, herdSession());
     }
-    function herdCuts() {
-      if (!snapshot) return [];
-      const programs = snapshot.programs || [];
-      const seen = /* @__PURE__ */ new Set();
-      const names = [];
-      for (const f of snapshot.flows || []) {
-        if (!f.name || seen.has(f.name)) continue;
-        seen.add(f.name);
-        names.push(f.name);
-      }
-      for (const n of skippedFlows.concat(snapshot.skipped || [])) {
-        if (!n || seen.has(n)) continue;
-        seen.add(n);
-        names.push(n);
-      }
-      const active = herdActiveFlowName();
-      const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
-      const cuts = names.map((name) => ({
-        kind: "flow",
-        flow: name,
-        label: name,
-        state: herdFlowState(name, active)
-      }));
-      programs.forEach((p, i) => {
-        const on2 = graphFilter.program ? programKeyOf(graphFilter.program) === programKeyOf(p) : programs.length === 1;
-        cuts.push({
-          kind: "program",
-          index: i,
-          label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
-          state: on2 ? "working" : "idle"
-        });
+    function herdCuts2() {
+      const run = defaultRunFlow();
+      return herdCuts({
+        snapshot,
+        skipped: skippedFlows,
+        stamps: stampRows,
+        flowName,
+        defaultRunName: run && run.name,
+        program: graphFilter.program
       });
-      cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
-      return cuts;
     }
     function pendingDecisionFor(flow) {
-      const rows = decisionRecords().filter((r) => r.flow === flow);
+      const rows = decisionRecords2().filter((r) => r.flow === flow);
       return rows.find((r) => r.outcome === "pending") || rows.find((r) => r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint") || null;
     }
     function openHerdCut(cut) {
@@ -27304,7 +27362,7 @@
         list.innerHTML = "";
         return;
       }
-      const cuts = herdCuts();
+      const cuts = herdCuts2();
       const blocked = cuts.filter((c) => c.state === "blocked").length;
       if (count) count.textContent = cuts.length + (cuts.length === 1 ? " cut" : " cuts") + " · " + blocked + " blocked";
       list.innerHTML = cuts.map((c) => {
