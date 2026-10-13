@@ -339,13 +339,16 @@ if (presetBtn) presetBtn.onclick = () => cyclePreset();
 if (presentBtn) presentBtn.onclick = () => togglePresent();
 
 reviewBtn.onclick = () => startReview();
-cancelBtn.onclick = () => {
+function requestCancel() {
   setBusy(true);
-  progressLabel.textContent = "Cancelling…";
+  if (progressLabel) progressLabel.textContent = "Cancelling…";
   vscode.postMessage({ type: "cancel" });
-};
+}
+cancelBtn.onclick = () => requestCancel();
 backBtn.onclick = () => goBack();
 prompt.addEventListener("keydown", (e) => {
+  // Enter that commits an IME candidate is not a submit.
+  if (e.isComposing) return;
   if (e.key === "Enter") {
     e.preventDefault();
     startReview();
@@ -354,7 +357,7 @@ prompt.addEventListener("keydown", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && busy) {
     e.preventDefault();
-    vscode.postMessage({ type: "cancel" });
+    requestCancel();
     return;
   }
   if (e.key === "Escape" && llmPane && !llmPane.hidden) {
@@ -367,7 +370,17 @@ document.addEventListener("keydown", (e) => {
     setKeysPane(false);
     return;
   }
-  if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
+  // Find / prompt own typing, but Escape must release focus so desk keys (S/X/…) work again. Query stays.
+  // Do not return: if Evidence / Export / Route / Lens / Present is open, the handlers below still run.
+  const findEsc = e.key === "Escape" && graphSearch && e.target === graphSearch;
+  const promptEsc = e.key === "Escape" && prompt && e.target === prompt;
+  if (findEsc || promptEsc) {
+    e.preventDefault();
+    if (findEsc) graphSearch.blur();
+    if (promptEsc) prompt.blur();
+  } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
+    return;
+  }
   if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
     e.preventDefault();
     closeSourcePane();
@@ -391,6 +404,19 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
+  if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
+  // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.
+  if (e.target && e.target.closest && e.target.closest("select")) return;
+  // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
+  if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+  // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
+  if (
+    e.key !== "Backspace" &&
+    ((exportMenu && !exportMenu.hidden) || (keysPane && !keysPane.hidden) || (llmPane && !llmPane.hidden))
+  ) {
     return;
   }
   if (stack[stack.length - 1]?.kind === "programs") {
@@ -430,8 +456,42 @@ document.addEventListener("keydown", (e) => {
     fitChart();
     return;
   }
+  // Backspace is navigate-back, but open chrome wins first (same stack as Escape).
+  // While Review is busy, Backspace cancels (Escape already does).
   if (e.key === "Backspace") {
     e.preventDefault();
+    if (busy) {
+      requestCancel();
+      return;
+    }
+    if (llmPane && !llmPane.hidden) {
+      setLlmPane(false);
+      return;
+    }
+    if (keysPane && !keysPane.hidden) {
+      setKeysPane(false);
+      return;
+    }
+    if (sourcePane && !sourcePane.hidden) {
+      closeSourcePane();
+      return;
+    }
+    if (exportMenu && !exportMenu.hidden) {
+      setExportMenu(false);
+      return;
+    }
+    if (routeOpen) {
+      setRouteOpen(false);
+      return;
+    }
+    if (lensOpen) {
+      setLensOpen(false);
+      return;
+    }
+    if (isPresenting()) {
+      applyPresent(false);
+      return;
+    }
     goBack();
     return;
   }
@@ -627,6 +687,7 @@ if (llmShowKey) llmShowKey.onclick = () => vscode.postMessage({ type: "llmShowKe
 if (llmSend) llmSend.onclick = () => sendLlmAsk();
 if (llmAsk)
   llmAsk.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendLlmAsk();
@@ -1172,7 +1233,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning"];
 
 function exportDiagramRoot() {
   return (
@@ -4379,7 +4440,7 @@ function graphNodePaint(id, extra) {
   const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
   const match =
     graphFilter.kinds[kind] !== false &&
-    matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+    (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
   return {
     file,
     hops,
@@ -8657,7 +8718,7 @@ function applyGraphFilter() {
     const kind = el.getAttribute("data-kind") || "";
     const match =
       graphFilter.kinds[kind] !== false &&
-      matchesExplorerQuery(
+      (matchesExplorerQuery(
         [
           el.getAttribute("data-fqn") || "",
           el.getAttribute("data-file") || "",
@@ -8665,15 +8726,26 @@ function applyGraphFilter() {
           el.getAttribute("data-kind") || "",
           el.getAttribute("data-hops") || "",
         ].join(" ")
-      );
+      ) || (el.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el.getAttribute("data-id"))));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
   });
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
     const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
-    const match = matchesExplorerQuery(name);
+    const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el.getAttribute("data-bubble"));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
+  });
+}
+
+/** A community (Map card or Enter Type node) matches when a member's FQN / file does, so Find does not dim the one that holds the hit. */
+function bubbleMembersMatchQuery(id) {
+  if (!graphFilter.q || !id) return false;
+  const b = findBubble(id);
+  return ((b && b.members) || []).some((m) => {
+    const n = nodeById.get(idVal(m));
+    if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+    return matchesExplorerQuery((n.fqn || "") + " " + ((n.span && n.span.file) || ""));
   });
 }
 
@@ -9182,7 +9254,7 @@ function enterCanvasProps(inner) {
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
       surface: "enter-node",
-      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
       shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
       sliceDist: n.distance == null ? undefined : n.distance,
     };
@@ -9546,6 +9618,8 @@ function localAsk(q) {
 
 function sendLlmAsk() {
   if (!llmAsk) return;
+  // Keep the caret in the field: the next question must not land on the Send button and fire desk keys (s = stamp).
+  llmAsk.focus();
   const q = llmAsk.value.trim();
   if (!q) return;
   appendLlmLog(q, "user");

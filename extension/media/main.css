@@ -956,7 +956,8 @@ svg.steiner .edge-hit {
   pointer-events: none;
 }
 .bubble-card.dim { opacity: 0.22; }
-.bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); }
+/* Off-path grey must not cover a Find hit. */
+.bubble-card.hit { outline: 1px solid var(--c, var(--vscode-focusBorder)); opacity: 1; }
 .bubble-card .members {
   display: none;
   flex-wrap: wrap;
@@ -1218,7 +1219,8 @@ svg.steiner .edge-hit {
   width: calc(100% * var(--cam-k, 1));
 }
 .viewport[data-lod="3"] .vnode .snip { max-height: 110px; }
-.steiner-wrap .vnode.away { opacity: 0.38; }
+/* Route / Lens / Find beat the off-program fade, so an off-route or Find-miss .away node does not sit level with an on-route / hit one. */
+.steiner-wrap .vnode.away:not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.38; }
 .steiner-wrap .vnode.changed,
 #lineageCanvas .vnode.changed,
 #lineageCanvas .comm-node.changed { box-shadow: inset 3px 0 0 #d29922; }
@@ -1228,8 +1230,8 @@ svg.steiner .edge-hit {
   z-index: 3;
 }
 .steiner-wrap .vnode.dim,
-#enterCanvas .vnode.dim,
-#lineageCanvas .vnode.dim { opacity: 0.18; }
+#enterCanvas .vnode.dim:not(.ego-dim),
+#lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
 .steiner-wrap.play .vnode {
   animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
@@ -2346,27 +2348,34 @@ html.bright .route-hop {
 #sliceCanvas .vnode .fqn,
 #lineageCanvas .vnode .fqn,
 #enterCanvas .vnode .fqn { display: none; }
-#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
-#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim),
-#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.48; }
-#enterCanvas .vnode.ego,
-#sliceCanvas .vnode.ego { opacity: 1; }
-#enterCanvas .vnode.ego-dim,
-#sliceCanvas .vnode.ego-dim { opacity: 0.12; }
+#enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
+#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
+#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
+/* Ego lifts its neighborhood, but Find / Route / Lens dim still read inside it. */
+#enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
+#sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }
+#enterCanvas .vnode.ego-dim:not(.hit),
+#sliceCanvas .vnode.ego-dim:not(.hit),
+#lineageCanvas .vnode.ego-dim:not(.hit) { opacity: 0.12; }
 #enterCanvas .vnode.lit,
 #sliceCanvas .vnode.lit { box-shadow: inset 3px 0 0 #3fb950; }
-/* Distance grey must not cover Ego or Find. Off-query nodes stay at .dim. */
-#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.48; }
-#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.36; }
+/* Distance grey must not cover Ego, Find misses, Find hits, Route dim, or Lens dim (a dimmed ring node is not brighter than a dimmed walk node). */
+#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
+#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.36; }
 /* Enter greys by graph distance. Ego and Find still win. */
-#enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.18; }
-#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.56; }
-#enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.40; }
-#enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim) { opacity: 0.28; }
-/* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker. */
+#enterCanvas .vnode.grey[data-slice-dist]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }
+#enterCanvas .vnode.grey[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.56; }
+#enterCanvas .vnode.grey[data-slice-dist="2"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.40; }
+#enterCanvas .vnode.grey[data-slice-dist="3"]:not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.28; }
+/* Route / Lens dim beat Enter distance grey: an off-route or off-lens ring node sits at the far-ring floor, never above the dimmed walk. */
+#enterCanvas .vnode.grey[data-slice-dist]:is(.route-dim, .lens-dim):not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }
+/* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker than a miss. A .hit stays lit. */
 #enterCanvas .vnode.dim:not(.ego-dim),
 #sliceCanvas .vnode.dim:not(.ego-dim),
 #lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
+#enterCanvas .vnode.hit,
+#sliceCanvas .vnode.hit,
+#lineageCanvas .vnode.hit { opacity: 1; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }
