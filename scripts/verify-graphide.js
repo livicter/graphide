@@ -8061,6 +8061,51 @@ async function main() {
       JSON.stringify(enterEgoLens)
     );
     await page.keyboard.press("l");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
+    // Find hit outside Ego must stay lit; Ego neighbors that miss must stay Find-dim (Ego lift skips .dim).
+    const enterEgoFindQ = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const outside = nodes.find((el) => el.classList.contains("ego-dim"));
+      const fqn = (outside && (outside.getAttribute("data-fqn") || "")) || "";
+      const name = ((outside && outside.querySelector(".name")) || {}).textContent || "";
+      const tok = (fqn.split("::").pop() || name.trim() || "").trim();
+      return tok.length >= 3 ? tok : "zzzz-no-such-symbol";
+    });
+    await page.fill("#graphSearch", enterEgoFindQ);
+    await page.waitForTimeout(220);
+    const enterEgoFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hitOutside = nodes.filter((el) => el.classList.contains("hit") && el.classList.contains("ego-dim"));
+      const missInside = nodes.filter(
+        (el) => el.classList.contains("ego") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      const missOutside = nodes.filter(
+        (el) => el.classList.contains("ego-dim") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hitOutside: hitOutside.length,
+        hitOutsideMin: hitOutside.length ? Math.min(...hitOutside.map(op)) : 0,
+        missInside: missInside.length,
+        missInsideMax: missInside.length ? Math.max(...missInside.map(op)) : 1,
+        missOutside: missOutside.length,
+        missOutsideMax: missOutside.length ? Math.max(...missOutside.map(op)) : 1,
+      };
+    });
+    record(
+      "SG5b",
+      "Enter Find hit outside Ego stays lit; Ego misses stay Find-dim",
+      enterEgoFind.q === enterEgoFindQ &&
+        enterEgoFind.hitOutside >= 1 &&
+        enterEgoFind.hitOutsideMin >= 0.99 &&
+        enterEgoFind.missInside >= 1 &&
+        enterEgoFind.missInsideMax <= 0.18 &&
+        enterEgoFind.missOutsideMax <= 0.12,
+      JSON.stringify(enterEgoFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.keyboard.press("e");
     await page.waitForTimeout(150);
 
