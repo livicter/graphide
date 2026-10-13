@@ -4,13 +4,13 @@ export function programKeyOf(p) {
   return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
 }
 
-function shortOf(fqn) {
+function cutShort(fqn) {
   return String(fqn || "")
     .split(/::|\./)
     .pop();
 }
 
-function shortFile(file) {
+function cutFile(file) {
   const f = String(file || "").replace(/\\/g, "/");
   const parts = f.split("/");
   return parts.length > 2 ? parts.slice(-2).join("/") : f;
@@ -25,11 +25,11 @@ export function findingKindOf(f) {
 export function findingTitle(f) {
   const k = findingKindOf(f);
   if (k === "StampBroken") return "StampBroken · " + (f.flow || "");
-  if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + shortOf(f.fqn || "");
-  if (k === "UncoveredNode") return "UncoveredNode · " + shortOf(f.fqn || "");
-  if (k === "DuplicateFqn") return "DuplicateFqn · " + shortOf(f.fqn || "");
+  if (k === "UnmatchedHint") return "UnmatchedHint · " + (f.flow || "") + " · " + cutShort(f.fqn || "");
+  if (k === "UncoveredNode") return "UncoveredNode · " + cutShort(f.fqn || "");
+  if (k === "DuplicateFqn") return "DuplicateFqn · " + cutShort(f.fqn || "");
   if (k === "KindMismatch") return "KindMismatch · " + (f.edge || "");
-  if (k === "SpanlessDrop") return "SpanlessDrop · " + shortFile(f.file || "");
+  if (k === "SpanlessDrop") return "SpanlessDrop · " + cutFile(f.file || "");
   if (k === "PluginBug") return "PluginBug";
   return k || "finding";
 }
