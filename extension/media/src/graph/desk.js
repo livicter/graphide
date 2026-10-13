@@ -4811,6 +4811,20 @@ function nodeLensHit(id) {
   return false;
 }
 
+/** Map community card is on the PATH when any member node is. */
+function bubbleOnProbePath(bubbleId, pathSet) {
+  if (!bubbleId || !pathSet || !pathSet.size) return false;
+  const b = findBubble(bubbleId);
+  return ((b && b.members) || []).some((m) => pathSet.has(idVal(m)));
+}
+
+/** Map community card matches Lens when any member matches the roles. */
+function bubbleLensHit(bubbleId) {
+  if (!bubbleId || !lensRoles.length) return false;
+  const b = findBubble(bubbleId);
+  return ((b && b.members) || []).some((m) => nodeLensHit(idVal(m)));
+}
+
 function applyProbePaint() {
   const route = routeOpen ? resolveRoute() : { nodes: [], hops: [], ok: false };
   if (routeOpen) lastRoute = route;
@@ -4821,15 +4835,19 @@ function applyProbePaint() {
   let hits = 0;
   canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const onRoute = !!(id && pathSet.has(id));
+    const bub = el.getAttribute("data-bubble");
+    const onRoute = !!(id && pathSet.has(id)) || !!(bub && bubbleOnProbePath(bub, pathSet));
     el.classList.toggle("on-route", onRoute);
     if (el.classList.contains("on-route") && id && !pathSet.has(id)) extra++;
-    el.classList.toggle("on-route-hot", !!(hot && id && (id === hot.from || id === hot.to)));
-    el.classList.toggle("route-dim", !!(routeOpen && route.ok && id && !pathSet.has(id)));
-    const lensHit = !!(lensOpen && id && nodeLensHit(id));
+    el.classList.toggle(
+      "on-route-hot",
+      !!(hot && ((id && (id === hot.from || id === hot.to)) || (bub && bubbleOnProbePath(bub, new Set([hot.from, hot.to])))))
+    );
+    el.classList.toggle("route-dim", !!(routeOpen && route.ok && (id || bub) && !onRoute));
+    const lensHit = !!(lensOpen && ((id && nodeLensHit(id)) || (bub && bubbleLensHit(bub))));
     if (lensHit) hits++;
     el.classList.toggle("lens-on", lensHit);
-    el.classList.toggle("lens-dim", !!(lensOpen && id && !lensHit));
+    el.classList.toggle("lens-dim", !!(lensOpen && (id || bub) && !lensHit));
   });
   canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
     const a = el.getAttribute("data-from");

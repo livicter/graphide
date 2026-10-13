@@ -2113,17 +2113,17 @@ svg.steiner .edge.walk {
   padding: 4px 8px;
   font-size: 11px;
 }
-.route-hop.on, .vnode.on-route, .comm-node.on-route, .seq-part.on-route, .df-node.on-route, .seq-hop.on-route, .seq-row.on-route {
+.route-hop.on, .vnode.on-route, .comm-node.on-route, .seq-part.on-route, .df-node.on-route, .seq-hop.on-route, .seq-row.on-route, .bubble-card.on-route {
   outline: 1px solid var(--vscode-textLink-foreground);
   outline-offset: 1px;
 }
-.vnode.on-route-hot, .comm-node.on-route-hot, .seq-part.on-route-hot, .df-node.on-route-hot {
+.vnode.on-route-hot, .comm-node.on-route-hot, .seq-part.on-route-hot, .df-node.on-route-hot, .bubble-card.on-route-hot {
   outline-width: 2px;
 }
-.vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim {
+.vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim, .bubble-card.route-dim {
   opacity: 0.22;
 }
-.vnode.lens-on, .comm-node.lens-on, .seq-part.lens-on, .df-node.lens-on {
+.vnode.lens-on, .comm-node.lens-on, .seq-part.lens-on, .df-node.lens-on, .bubble-card.lens-on {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--c, var(--vscode-focusBorder)) 70%, transparent);
 }
 .vnode.lens-dim, .comm-node.lens-dim, .seq-part.lens-dim, .df-node.lens-dim, .bubble-card.lens-dim {

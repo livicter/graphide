@@ -23792,6 +23792,16 @@
       }
       return false;
     }
+    function bubbleOnProbePath(bubbleId, pathSet) {
+      if (!bubbleId || !pathSet || !pathSet.size) return false;
+      const b = findBubble(bubbleId);
+      return (b && b.members || []).some((m) => pathSet.has(idVal(m)));
+    }
+    function bubbleLensHit(bubbleId) {
+      if (!bubbleId || !lensRoles.length) return false;
+      const b = findBubble(bubbleId);
+      return (b && b.members || []).some((m) => nodeLensHit(idVal(m)));
+    }
     function applyProbePaint() {
       const route = routeOpen ? resolveRoute() : { nodes: [], hops: [], ok: false };
       if (routeOpen) lastRoute = route;
@@ -23802,15 +23812,19 @@
       let hits = 0;
       canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
-        const onRoute = !!(id2 && pathSet.has(id2));
+        const bub = el2.getAttribute("data-bubble");
+        const onRoute = !!(id2 && pathSet.has(id2)) || !!(bub && bubbleOnProbePath(bub, pathSet));
         el2.classList.toggle("on-route", onRoute);
         if (el2.classList.contains("on-route") && id2 && !pathSet.has(id2)) extra++;
-        el2.classList.toggle("on-route-hot", !!(hot && id2 && (id2 === hot.from || id2 === hot.to)));
-        el2.classList.toggle("route-dim", !!(routeOpen && route.ok && id2 && !pathSet.has(id2)));
-        const lensHit = !!(lensOpen && id2 && nodeLensHit(id2));
+        el2.classList.toggle(
+          "on-route-hot",
+          !!(hot && (id2 && (id2 === hot.from || id2 === hot.to) || bub && bubbleOnProbePath(bub, /* @__PURE__ */ new Set([hot.from, hot.to]))))
+        );
+        el2.classList.toggle("route-dim", !!(routeOpen && route.ok && (id2 || bub) && !onRoute));
+        const lensHit = !!(lensOpen && (id2 && nodeLensHit(id2) || bub && bubbleLensHit(bub)));
         if (lensHit) hits++;
         el2.classList.toggle("lens-on", lensHit);
-        el2.classList.toggle("lens-dim", !!(lensOpen && id2 && !lensHit));
+        el2.classList.toggle("lens-dim", !!(lensOpen && (id2 || bub) && !lensHit));
       });
       canvas.querySelectorAll("[data-from][data-to]").forEach((el2) => {
         const a = el2.getAttribute("data-from");

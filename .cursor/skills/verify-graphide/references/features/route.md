@@ -66,6 +66,7 @@ Driver assertions:
 - explorer Slice with Ego on `n1`: off-route `.ego` neighbors ≤ 0.22 <
   on-route ones (`RT8d`); same on Enter `b-render` with Ego on `n0`
   (`RT8e`)
+- explorer Map community LOD: on-path `.bubble-card.on-route` at full opacity; off-path `.bubble-card.route-dim` ≤ 0.22 (`RT9`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

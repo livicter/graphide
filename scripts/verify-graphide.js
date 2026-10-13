@@ -5899,6 +5899,46 @@ async function main() {
       const box = document.getElementById("graphSearch");
       if (box && box.blur) box.blur();
     });
+    // Map community cards use data-bubble; Route must paint them via member membership.
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => window.__graphideRoute && window.__graphideRoute.open && window.__graphideRoute.ok,
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const mapRoute = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+      const on = cards.filter((el) => el.classList.contains("on-route"));
+      const dim = cards.filter((el) => el.classList.contains("route-dim"));
+      const onOp = on.map((el) => Number(getComputedStyle(el).opacity));
+      const dimOp = dim.map((el) => Number(getComputedStyle(el).opacity));
+      return {
+        cards: cards.length,
+        on: on.length,
+        dim: dim.length,
+        onIds: on.map((el) => el.getAttribute("data-bubble")),
+        dimIds: dim.map((el) => el.getAttribute("data-bubble")),
+        onMin: onOp.length ? Math.min(...onOp) : 0,
+        dimMax: dimOp.length ? Math.max(...dimOp) : 1,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "RT9",
+      "Map Route lights on-path community cards and dims the rest",
+      mapRoute.cards >= 8 &&
+        mapRoute.on >= 1 &&
+        mapRoute.dim >= 1 &&
+        mapRoute.on + mapRoute.dim === mapRoute.cards &&
+        mapRoute.onMin >= 0.99 &&
+        mapRoute.dimMax <= 0.28 &&
+        mapRoute.xy === 0,
+      JSON.stringify(mapRoute)
+    );
+    await shot(page, "map-route-cards.png");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
