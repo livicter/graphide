@@ -4590,9 +4590,64 @@ async function main() {
     }, busyBackPosts);
     record(
       "CR1b",
-      "Backspace while busy posts cancel (does not leave Map)",
-      afterBusyBack.cancelPosts >= 1 && afterBusyBack.on && afterBusyBack.cards >= 8 && afterBusyBack.xy === 0,
+      "Backspace while busy posts cancel and labels Cancelling…",
+      afterBusyBack.cancelPosts >= 1 &&
+        /Cancell/i.test(afterBusyBack.label) &&
+        afterBusyBack.on &&
+        afterBusyBack.cards >= 8 &&
+        afterBusyBack.xy === 0,
       JSON.stringify(afterBusyBack)
+    );
+    // Escape while busy: same cancel + label parity with #cancelBtn.
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const cancel = document.getElementById("cancelBtn");
+        const progress = document.getElementById("progress");
+        return !!(progress && progress.classList.contains("on") && cancel && !cancel.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const busyEscPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      (before) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "");
+        return posts.some((m) => m && m.type === "cancel") && /Cancell/i.test(label);
+      },
+      busyEscPosts,
+      { timeout: 5000 }
+    );
+    const afterBusyEsc = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cancelPosts: posts.filter((m) => m && m.type === "cancel").length,
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    }, busyEscPosts);
+    record(
+      "CR1c",
+      "Escape while busy posts cancel and labels Cancelling…",
+      afterBusyEsc.cancelPosts >= 1 && /Cancell/i.test(afterBusyEsc.label) && afterBusyEsc.cards >= 8 && afterBusyEsc.xy === 0,
+      JSON.stringify(afterBusyEsc)
     );
     // Restore busy strip for the click path (host may have flipped Cancelling…).
     await page.evaluate(() => {
