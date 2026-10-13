@@ -7242,7 +7242,7 @@ async function main() {
     const stripProbe = await page.evaluate(() => {
       const box = document.createElement("div");
       box.innerHTML =
-        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away" data-delta-review-current="1"></i>';
+        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away hot flowing on-path now past ahead here" data-delta-review-current="1"></i>';
       if (typeof stripExportViewerState === "function") stripExportViewerState(box);
       const i = box.querySelector("i");
       return {
@@ -7416,6 +7416,76 @@ async function main() {
     );
     await page.keyboard.press("l");
     await page.waitForTimeout(120);
+
+    // Play-head / path highlight is viewer state: stamp .hot / .flowing / .on-path on the live canvas, then export must drop them.
+    await page.click('#workspaces [data-ws="sequence"]');
+    await page.waitForSelector("#seqCanvas .vnode[data-id], #seqCanvas .seq-part, .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const livePlay = await page.evaluate(() => {
+      const root = document.getElementById("seqCanvas") || document.querySelector(".steiner-wrap");
+      const node =
+        document.querySelector("#seqCanvas .vnode[data-id]") ||
+        document.querySelector("#seqCanvas .react-flow__node") ||
+        document.querySelector("#seqCanvas .seq-part");
+      if (root) root.classList.add("flowing");
+      if (node) {
+        node.classList.add("hot");
+        node.classList.add("on-path");
+      }
+      return {
+        hot: document.querySelectorAll("#seqCanvas .hot, .vnode.hot").length,
+        flowing: document.querySelectorAll(".flowing").length,
+        onPath: document.querySelectorAll("#seqCanvas .on-path, .vnode.on-path").length,
+      };
+    });
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportPlay = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      return {
+        liveHot: document.querySelectorAll("#seqCanvas .hot, .vnode.hot").length,
+        liveFlowing: document.querySelectorAll(".flowing").length,
+        liveOnPath: document.querySelectorAll("#seqCanvas .on-path, .vnode.on-path").length,
+        hot: classes.filter((c) => /\bhot\b/.test(c)).length,
+        flowing: classes.filter((c) => /\bflowing\b/.test(c)).length,
+        onPath: classes.filter((c) => /\bon-path\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6e",
+      "Export SVG strips stamped .hot / .flowing / .on-path play-head classes",
+      livePlay.hot >= 1 &&
+        livePlay.flowing >= 1 &&
+        livePlay.onPath >= 1 &&
+        exportPlay.liveHot >= 1 &&
+        exportPlay.hot === 0 &&
+        exportPlay.flowing === 0 &&
+        exportPlay.onPath === 0,
+      JSON.stringify({ livePlay, exportPlay })
+    );
+    await page.evaluate(() => {
+      document.querySelectorAll(".hot, .flowing, .on-path").forEach((el) => {
+        el.classList.remove("hot", "flowing", "on-path");
+      });
+    });
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     await page.waitForTimeout(120);
