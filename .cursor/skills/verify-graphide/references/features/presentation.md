@@ -25,6 +25,10 @@ stay human — present and preset never write `.graphide/stamps/`.
 - Export keeps the current theme **and** preset. Presentation chrome is
   viewer state and does not enter the canonical clone.
 - Stamp / skip stay human. Present / preset never write `.graphide/stamps/`.
+- While `body.present`, desk `X` does not skip (`P6b`) — Skip chrome is hidden; exit first. `S` still cycles Style.
+- While `body.present`, desk `/` does not focus Find (`P6c`) — `#graphBar` is hidden; exit first.
+- While `body.present` with Export open, desk `S` still cycles Style (`P6d`) — stamp is hidden; Export must not steal Style.
+- While `body.present` with Export open, desk `D` still toggles Day/Night (`P6e`).
 
 ## How to get to it (user POV)
 
@@ -63,12 +67,15 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); Export open + `S`/`D` still Style/theme (`P6d`, `P6e`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
 
 - `S` on the desk is still stamp. Do not steal it for Style except while
   `body.present` is on.
+- `X` on the stage must not skip. Exit Present before Skip.
+- `/` on the stage must not focus Find. Exit Present before Find.
 - `E` stays Ego. `D` stays Day / Night. Preset is independent of theme.
 - Do not add `data-component` / `data-testid`. `#presentBtn`, `#presetBtn`,
   `data-preset`, `body.present` are the product hooks.
