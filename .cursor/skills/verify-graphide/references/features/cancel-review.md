@@ -10,7 +10,7 @@ Map altitude, and not an agent stamp.
 - `#cancelBtn` lives in `extension/media/src/chrome/Header.jsx`
   (`title="Cancel review (Esc)"`, hidden until busy). `setBusy(true)`
   in `desk.js` shows Cancel and hides `#reviewBtn`.
-- Click (or Escape while busy) posts `{ type: "cancel" }` and sets the
+- Click (or Escape / Backspace while busy) posts `{ type: "cancel" }` and sets the
   label to **Cancelling…**. Host `cancelReview()` (`extension.ts`)
   kills the child; the webview then gets `{ type: "cancelled" }`.
 - `finishWork()` hides `#progress` and restores Review. Map stays
@@ -60,6 +60,7 @@ Driver assertions:
 
 - `#cancelBtn` is visible while `#progress` is `.on`; `#reviewBtn` is
   hidden
+- Backspace / Escape while busy post `{ type: "cancel" }`, label Cancelling…, keep Map LOD (`CR1b`, `CR1c`)
 - click posts `{ type: "cancel" }`; `#progressLabel` is Cancelling…
 - `{ type: "cancelled" }` hides the strip; Review is shown; Cancel is
   hidden
