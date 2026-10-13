@@ -7157,6 +7157,43 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Ask open (field not focused): S / X must not stamp / skip.
+    const askBlockPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const askBlock = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, askBlockPosts0);
+    record(
+      "K15c",
+      "Open Ask blocks desk S / X when the field is not focused",
+      askBlock.askOpen && askBlock.stampPosts === 0 && askBlock.skipPosts === 0,
+      JSON.stringify(askBlock)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
