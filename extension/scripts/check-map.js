@@ -549,7 +549,7 @@ assert(
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
 assert(driver.includes("K8") && driver.includes("K8b") && driver.includes("metaKey: true"), "verify driver must prove Cmd / Ctrl chords do not stamp or toggle desk keys");
-assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")'), "verify driver must prove a focused <select> keeps 2 / S / X");
+assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")') && driver.includes("K12") && driver.includes('page.focus("#llmPreset")'), "verify driver must prove focused Ego hops and Ask host <select> keep 2 / S / X");
 assert(driver.includes("A3b") && driver.includes("isComposing: true"), "verify driver must prove IME-composing Enter does not send");
 assert(/function sendLlmAsk\(\) \{\s*if \(!llmAsk\) return;\s*llmAsk\.focus\(\);/.test(js) && driver.includes("A3c"), "Ask must return focus to #llmAsk so the next question does not fire desk keys");
 assert(driver.includes("K10") && driver.includes("repeat: true"), "verify driver must prove auto-repeat does not flip toggles or stamp");
