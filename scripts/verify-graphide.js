@@ -6928,6 +6928,47 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Same tip hide under Ask.
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderAsk = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      };
+    });
+    record(
+      "K19c",
+      "Opening Ask hides the hover tip (no tip under chrome)",
+      tipUnderAsk.askOpen && tipUnderAsk.tipHidden,
+      JSON.stringify(tipUnderAsk)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
 

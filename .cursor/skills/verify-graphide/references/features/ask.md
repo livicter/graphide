@@ -9,6 +9,7 @@ workspace and not an agent stamp.
 
 - Header `#llmBtn` (LLM). Opens `#llmPane` (Ask). `#llmClose` and Escape
   hide it. `L` is Lens. `/` is Find. Do not steal either.
+- Opening Ask hides the hover tip (`K19c`).
 - Connect form (`#llmBaseUrl`, `#llmModel`, `#llmKey`, `#llmSave`) posts
   `{ type: "llmSave" }` to the host. CI never needs a real OpenAI key.
 - `#llmAsk` + `#llmSend` post `{ type: "llmAsk" }`. Without a configured
