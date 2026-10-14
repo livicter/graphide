@@ -26157,11 +26157,21 @@
       const up = meta.querySelector("[data-ws]");
       if (up) up.onclick = () => setWorkspace("map", true);
       if (lineageHopCursor >= hops.length) lineageHopCursor = hops.length ? hops.length - 1 : -1;
-      const hopCards = hops.map((e, i) => ({ e, i })).filter(
-        ({ e }) => matchesExplorerQuery(
-          [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
-        )
-      ).slice(0, 24).map(({ e, i }) => {
+      const hopCards = hops.map((e, i) => ({ e, i })).filter(({ e }) => {
+        const fromN = nodeById.get(idVal(e.from));
+        const toN = nodeById.get(idVal(e.to));
+        return matchesExplorerQuery(
+          [
+            e.kind,
+            e.from,
+            e.to,
+            fqnOf(snapshot.graph, e.from),
+            fqnOf(snapshot.graph, e.to),
+            fromN && fromN.span && fromN.span.file || "",
+            toN && toN.span && toN.span.file || ""
+          ].join(" ")
+        );
+      }).slice(0, 24).map(({ e, i }) => {
         return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
       });
       const pathRow = path.length > 1 ? '<div class="path-row">' + path.map((pid) => {

@@ -231,7 +231,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      community `b-physics-b` stays `.hit` at opacity 1, `b-physics-a`
      dims (`SG1d`, `verification/enter-find-member.png`). A member file
      (`screenshotformat.rs`) keeps both holding children lit; the
-     Endpoint leaf dims (`SG1f`, `verification/enter-find-file.png`)
+     Endpoint leaf dims (`SG1f`, `verification/enter-find-file.png`).
+     On Lineage events focus, a member file (`sub.rs`) keeps the
+     subscribe hit lit and dims bus.rs nodes; hops drop (`SG3b`,
+     `verification/lineage-find-file.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

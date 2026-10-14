@@ -11931,6 +11931,54 @@ async function main() {
       "fqn=" + lineageData.fqn + " kind=" + lineageData.kind + " kinds=" + lineageData.kinds.join(",")
     );
 
+    // Member file path is not an FQN token. Same Lineage Find filter as SG3 (file half of matchesExplorerQuery / data-file).
+    // events focus mixes bus.rs (publish / events) with sub.rs (subscribe) so a file query can hit and dim.
+    const lineageHopsBeforeFile = await page.evaluate(() => document.querySelectorAll("#lineageHops .expl-card.hop").length);
+    await page.fill("#graphSearch", "sub.rs");
+    await page.waitForTimeout(280);
+    const lineageFindFile = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-id], #lineageCanvas .ego-node[data-id]")];
+      const read = (el) => ({
+        id: el.getAttribute("data-id") || "",
+        file: el.getAttribute("data-file") || "",
+        hit: el.classList.contains("hit"),
+        dim: el.classList.contains("dim"),
+        op: Number(getComputedStyle(el).opacity),
+      });
+      const rows = nodes.map(read);
+      const hits = rows.filter((r) => r.hit);
+      const dims = rows.filter((r) => r.dim && !r.hit);
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hops: document.querySelectorAll("#lineageHops .expl-card.hop").length,
+        hits: hits.length,
+        dims: dims.length,
+        hitFiles: hits.map((r) => r.file),
+        dimFiles: dims.map((r) => r.file),
+        hitMin: hits.length ? Math.min(...hits.map((r) => r.op)) : 0,
+        dimMax: dims.length ? Math.max(...dims.map((r) => r.op)) : 1,
+      };
+    });
+    record(
+      "SG3b",
+      "Find on a member file filters Lineage hops / dims off-query nodes",
+      /sub\.rs/i.test(lineageFindFile.q) &&
+        lineageFindFile.hits >= 1 &&
+        lineageFindFile.hitMin >= 0.99 &&
+        lineageFindFile.hitFiles.some((f) => /sub\.rs/i.test(f)) &&
+        lineageFindFile.dims >= 1 &&
+        lineageFindFile.dimMax <= 0.18 &&
+        lineageFindFile.hops < lineageHopsBeforeFile,
+      JSON.stringify({ before: lineageHopsBeforeFile, ...lineageFindFile })
+    );
+    await shot(page, "lineage-find-file.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     const evClick = await page.evaluate(() => {
       const node = document.querySelector("#lineageCanvas .ego-node[data-id]");
       if (node) node.click();

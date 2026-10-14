@@ -8022,11 +8022,21 @@ function renderLineage() {
 
   const hopCards = hops
     .map((e, i) => ({ e, i }))
-    .filter(({ e }) =>
-      matchesExplorerQuery(
-        [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
-      )
-    )
+    .filter(({ e }) => {
+      const fromN = nodeById.get(idVal(e.from));
+      const toN = nodeById.get(idVal(e.to));
+      return matchesExplorerQuery(
+        [
+          e.kind,
+          e.from,
+          e.to,
+          fqnOf(snapshot.graph, e.from),
+          fqnOf(snapshot.graph, e.to),
+          (fromN && fromN.span && fromN.span.file) || "",
+          (toN && toN.span && toN.span.file) || "",
+        ].join(" ")
+      );
+    })
     .slice(0, 24)
     .map(({ e, i }) => {
     return (

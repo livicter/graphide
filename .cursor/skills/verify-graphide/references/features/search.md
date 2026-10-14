@@ -72,6 +72,8 @@ Driver assertions:
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
 - Lineage: query filters `#lineageHops .expl-card.hop` and dims
   off-query `.vnode`
+- Lineage (events focus): a member file (`sub.rs`) keeps subscribe `.hit`
+  and dims bus.rs nodes; hops drop (`SG3b`)
 - screenshot `verification/search.png` is not a black frame
 - Map altitude after Back is still `xy=0`
 - `.graphide/stamps/` is still empty
@@ -101,5 +103,7 @@ Driver assertions:
   need the same file half (`SG1f`) — community vnodes carry no
   `data-file` of their own. Slice leaves already carry `data-file`; a
   file Find must lift the same off-tree hit as the FQN half (`SG4c`).
+  Lineage hops must match `data-file` the same way nodes do — a member
+  file Find filters `#lineageHops` and dims off-query nodes (`SG3b`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
