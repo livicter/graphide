@@ -138,6 +138,7 @@ let skippedFlows = [];
 let stack = [{ kind: "flow" }];
 let nodeById = new Map();
 let busy = false;
+let cancelling = false;
 let previewTimer = 0;
 let lastTreeKey = "";
 let targetPct = 0;
@@ -320,6 +321,8 @@ function applyPresent(on) {
   if (typeof setExportMenu === "function") setExportMenu(false);
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
   if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+  if (typeof setLensOpen === "function") setLensOpen(false);
+  if (typeof setRouteOpen === "function") setRouteOpen(false);
   if (toastEl) {
     toastEl.classList.remove("on");
     toastEl.hidden = true;
@@ -339,13 +342,18 @@ if (presetBtn) presetBtn.onclick = () => cyclePreset();
 if (presentBtn) presentBtn.onclick = () => togglePresent();
 
 reviewBtn.onclick = () => startReview();
-cancelBtn.onclick = () => {
+function requestCancel() {
   setBusy(true);
-  progressLabel.textContent = "Cancelling…";
+  cancelling = true;
+  pendingProgress = null;
+  if (progressLabel) progressLabel.textContent = "Cancelling…";
   vscode.postMessage({ type: "cancel" });
-};
+}
+cancelBtn.onclick = () => requestCancel();
 backBtn.onclick = () => goBack();
 prompt.addEventListener("keydown", (e) => {
+  // Enter that commits an IME candidate is not a submit.
+  if (e.isComposing) return;
   if (e.key === "Enter") {
     e.preventDefault();
     startReview();
@@ -354,7 +362,7 @@ prompt.addEventListener("keydown", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && busy) {
     e.preventDefault();
-    vscode.postMessage({ type: "cancel" });
+    requestCancel();
     return;
   }
   if (e.key === "Escape" && llmPane && !llmPane.hidden) {
@@ -367,7 +375,17 @@ document.addEventListener("keydown", (e) => {
     setKeysPane(false);
     return;
   }
-  if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
+  // Find / prompt own typing, but Escape must release focus so desk keys (S/X/…) work again. Query stays.
+  // Do not return: if Evidence / Export / Route / Lens / Present is open, the handlers below still run.
+  const findEsc = e.key === "Escape" && graphSearch && e.target === graphSearch;
+  const promptEsc = e.key === "Escape" && prompt && e.target === prompt;
+  if (findEsc || promptEsc) {
+    e.preventDefault();
+    if (findEsc) graphSearch.blur();
+    if (promptEsc) prompt.blur();
+  } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
+    return;
+  }
   if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
     e.preventDefault();
     closeSourcePane();
@@ -391,6 +409,35 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
+  if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
+  // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.
+  if (e.target && e.target.closest && e.target.closest("select")) return;
+  // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
+  if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+  // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
+  // On Presentation Stage, Style / theme / zoom stay — let them through so Export/Keys do not steal stage chrome.
+  // ? / F1 always toggle Keys (documented), even when Keys (or other chrome) is already open.
+  if (
+    e.key !== "Backspace" &&
+    e.key !== "?" &&
+    e.key !== "F1" &&
+    !(
+      isPresenting() &&
+      (e.key === "s" ||
+        e.key === "S" ||
+        e.key === "d" ||
+        e.key === "D" ||
+        e.key === "+" ||
+        e.key === "=" ||
+        e.key === "-" ||
+        e.key === "_" ||
+        e.key === "0")
+    ) &&
+    ((exportMenu && !exportMenu.hidden) || (keysPane && !keysPane.hidden) || (llmPane && !llmPane.hidden))
+  ) {
     return;
   }
   if (stack[stack.length - 1]?.kind === "programs") {
@@ -430,8 +477,42 @@ document.addEventListener("keydown", (e) => {
     fitChart();
     return;
   }
+  // Backspace is navigate-back, but open chrome wins first (same stack as Escape).
+  // While Review is busy, Backspace cancels (Escape already does).
   if (e.key === "Backspace") {
     e.preventDefault();
+    if (busy) {
+      requestCancel();
+      return;
+    }
+    if (llmPane && !llmPane.hidden) {
+      setLlmPane(false);
+      return;
+    }
+    if (keysPane && !keysPane.hidden) {
+      setKeysPane(false);
+      return;
+    }
+    if (sourcePane && !sourcePane.hidden) {
+      closeSourcePane();
+      return;
+    }
+    if (exportMenu && !exportMenu.hidden) {
+      setExportMenu(false);
+      return;
+    }
+    if (routeOpen) {
+      setRouteOpen(false);
+      return;
+    }
+    if (lensOpen) {
+      setLensOpen(false);
+      return;
+    }
+    if (isPresenting()) {
+      applyPresent(false);
+      return;
+    }
     goBack();
     return;
   }
@@ -448,7 +529,8 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "x" || e.key === "X") {
     e.preventDefault();
-    requestSkip();
+    // Present hides Skip — exit the stage first (same rule as Stamp; S remaps to Style).
+    if (!isPresenting()) requestSkip();
     return;
   }
   if (e.key === "e" || e.key === "E") {
@@ -473,6 +555,13 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "/" && graphSearch) {
     e.preventDefault();
+    // Present hides #graphBar / Find — exit the stage first.
+    if (isPresenting()) return;
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
     graphSearch.focus();
     graphSearch.select();
     return;
@@ -547,11 +636,19 @@ if (srcEditor)
     const flow = currentFlow();
     vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
   };
-if (graphSearch)
+if (graphSearch) {
+  graphSearch.addEventListener("focus", () => {
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
+  });
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
     refreshExplorer();
   });
+}
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
@@ -627,6 +724,7 @@ if (llmShowKey) llmShowKey.onclick = () => vscode.postMessage({ type: "llmShowKe
 if (llmSend) llmSend.onclick = () => sendLlmAsk();
 if (llmAsk)
   llmAsk.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendLlmAsk();
@@ -635,6 +733,8 @@ if (llmAsk)
 if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
 
 function startReview() {
+  cancelling = false;
+  pendingProgress = null;
   targetPct = 0;
   shownPct = 0;
   lastTreeKey = "";
@@ -1155,7 +1255,15 @@ function flashCanvas() {
 
 function setKeysPane(on) {
   if (!keysPane) return;
-  if (on) setExportMenu(false);
+  if (on) {
+    setExportMenu(false);
+    if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
+  }
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
   if (keysBtn) keysBtn.classList.toggle("on", !!on);
@@ -1166,13 +1274,18 @@ function setExportMenu(on) {
   if (on) {
     setKeysPane(false);
     if (llmPane && !llmPane.hidden) setLlmPane(false);
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
   }
   exportMenu.hidden = !on;
   exportMenu.classList.toggle("open", !!on);
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning"];
 
 function exportDiagramRoot() {
   return (
@@ -1194,6 +1307,8 @@ function stripExportViewerState(root) {
   nodes.forEach((el) => {
     EXPORT_STRIP.forEach((c) => el.classList.remove(c));
     el.removeAttribute("data-delta-review-current");
+    // Pan/zoom parks off-stage Map cards; camera reset must un-hide them in the clone.
+    el.removeAttribute("data-offview");
     if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
   });
   const vp = root.querySelector && root.querySelector(".viewport");
@@ -2486,6 +2601,8 @@ function setBusy(on) {
 }
 
 function showProgress(msg) {
+  // Once cancel is requested, keep Cancelling… — queued progress must not flash the old phase.
+  if (cancelling) return;
   setBusy(true);
   progressEl.classList.add("on");
   const phase = PHASE_ALIAS[msg.phase] || msg.phase || "walk";
@@ -2543,6 +2660,7 @@ function hideProgress() {
 }
 
 function finishWork() {
+  cancelling = false;
   setBusy(false);
   hideProgress();
   canvas.classList.remove("stale");
@@ -3378,6 +3496,11 @@ function peekSource(id) {
 
 function revealSourcePane() {
   if (!sourcePane) return;
+  if (typeof hideTip === "function") hideTip();
+  if (toastEl) {
+    toastEl.classList.remove("on");
+    toastEl.hidden = true;
+  }
   sourcePane.hidden = false;
   if (workspace) workspace.classList.add("has-source");
   refitChartSoon();
@@ -4379,7 +4502,7 @@ function graphNodePaint(id, extra) {
   const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
   const match =
     graphFilter.kinds[kind] !== false &&
-    matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+    (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
   return {
     file,
     hops,
@@ -4691,6 +4814,11 @@ function setRouteOpen(on) {
     stopRouteWalk();
     routeCursor = -1;
   } else {
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
     resolveRoute();
     if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
   }
@@ -4701,7 +4829,14 @@ function setRouteOpen(on) {
 
 function setLensOpen(on) {
   lensOpen = !!on;
-  if (lensOpen && (!lensRoles.length || lensRoles.length > 2)) lensRoles = ["Function", "Endpoint"];
+  if (lensOpen) {
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
+    if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+  }
   syncProbeDock();
   if (lensOpen) fillLensReceipt();
   applyProbePaint();
@@ -4745,6 +4880,20 @@ function nodeLensHit(id) {
   return false;
 }
 
+/** Map community card is on the PATH when any member node is. */
+function bubbleOnProbePath(bubbleId, pathSet) {
+  if (!bubbleId || !pathSet || !pathSet.size) return false;
+  const b = findBubble(bubbleId);
+  return ((b && b.members) || []).some((m) => pathSet.has(idVal(m)));
+}
+
+/** Map community card matches Lens when any member matches the roles. */
+function bubbleLensHit(bubbleId) {
+  if (!bubbleId || !lensRoles.length) return false;
+  const b = findBubble(bubbleId);
+  return ((b && b.members) || []).some((m) => nodeLensHit(idVal(m)));
+}
+
 function applyProbePaint() {
   const route = routeOpen ? resolveRoute() : { nodes: [], hops: [], ok: false };
   if (routeOpen) lastRoute = route;
@@ -4755,15 +4904,19 @@ function applyProbePaint() {
   let hits = 0;
   canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const onRoute = !!(id && pathSet.has(id));
+    const bub = el.getAttribute("data-bubble");
+    const onRoute = !!(id && pathSet.has(id)) || !!(bub && bubbleOnProbePath(bub, pathSet));
     el.classList.toggle("on-route", onRoute);
     if (el.classList.contains("on-route") && id && !pathSet.has(id)) extra++;
-    el.classList.toggle("on-route-hot", !!(hot && id && (id === hot.from || id === hot.to)));
-    el.classList.toggle("route-dim", !!(routeOpen && route.ok && id && !pathSet.has(id)));
-    const lensHit = !!(lensOpen && id && nodeLensHit(id));
+    el.classList.toggle(
+      "on-route-hot",
+      !!(hot && ((id && (id === hot.from || id === hot.to)) || (bub && bubbleOnProbePath(bub, new Set([hot.from, hot.to])))))
+    );
+    el.classList.toggle("route-dim", !!(routeOpen && route.ok && (id || bub) && !onRoute));
+    const lensHit = !!(lensOpen && ((id && nodeLensHit(id)) || (bub && bubbleLensHit(bub))));
     if (lensHit) hits++;
     el.classList.toggle("lens-on", lensHit);
-    el.classList.toggle("lens-dim", !!(lensOpen && id && !lensHit));
+    el.classList.toggle("lens-dim", !!(lensOpen && (id || bub) && !lensHit));
   });
   canvas.querySelectorAll("[data-from][data-to]").forEach((el) => {
     const a = el.getAttribute("data-from");
@@ -5409,7 +5562,7 @@ function deltaFacts() {
   if (!graphFilter.q) return facts;
   return facts.filter((f) =>
     matchesExplorerQuery(
-      [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+      [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble, f.file, f.from_file, f.to_file].join(" ")
     )
   );
 }
@@ -5847,6 +6000,7 @@ function renderDeltaBody() {
         '" data-fqn="' +
         esc(f.fqn || "") +
         '"' +
+        (f.file ? ' data-file="' + esc(f.file) + '"' : "") +
         (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") +
         ' data-delta-i="' +
         i +
@@ -6108,11 +6262,26 @@ function renderSequenceBody() {
   const reading = sequenceOf(flow);
   const parts = reading.participants;
   const hops = reading.hops;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepP = parts.filter((p) => hit(p.fqn) || hit(p.kind) || hit(p.file));
-    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind) || hit(h.variant));
+  const seqQ = (graphFilter.q || "").toLowerCase();
+  const seqHit = (s) => String(s || "").toLowerCase().indexOf(seqQ) >= 0;
+  const seqPartMatch = (p) => !seqQ || seqHit(p.fqn) || seqHit(p.kind) || seqHit(p.file);
+  const seqHopMatch = (h) => {
+    if (!seqQ) return true;
+    const fromP = parts.find((p) => idVal(p.id) === idVal(h.from));
+    const toP = parts.find((p) => idVal(p.id) === idVal(h.to));
+    return (
+      seqHit(h.from_fqn) ||
+      seqHit(h.to_fqn) ||
+      seqHit(h.kind) ||
+      seqHit(h.variant) ||
+      seqHit(h.file) ||
+      seqHit(fromP && fromP.file) ||
+      seqHit(toP && toP.file)
+    );
+  };
+  if (seqQ) {
+    const keepP = parts.filter(seqPartMatch);
+    const keepH = hops.filter(seqHopMatch);
     if (!keepP.length && !keepH.length) {
       return '<div class="empty">No sequence hops match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -6122,6 +6291,7 @@ function renderSequenceBody() {
   }
   if (seqCursor >= hops.length) seqCursor = hops.length - 1;
   const hot = seqCursor >= 0 ? hops[seqCursor] : null;
+  const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
   const review =
     '<div class="review-strip" id="seqReview">' +
     '<button type="button" class="review-step" id="seqOverview">Overview</button>' +
@@ -6140,17 +6310,22 @@ function renderSequenceBody() {
   const heads = parts
     .map((p) => {
       const on = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
+      const match = seqPartMatch(p);
       return (
         '<button type="button" class="seq-part vnode kind-' +
         esc(p.kind || "Function") +
         (on ? " on" : "") +
+        (seqQ && match ? " hit" : "") +
+        (seqQ && !match ? " dim" : "") +
         '" data-id="' +
         esc(idVal(p.id)) +
         '" data-fqn="' +
         esc(p.fqn) +
         '" data-kind="' +
         esc(p.kind || "") +
-        '"><span class="name">' +
+        '"' +
+        (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
+        '><span class="name">' +
         esc(shortOf(p.fqn)) +
         '</span> <span class="meta">' +
         esc(p.kind || "") +
@@ -6158,8 +6333,8 @@ function renderSequenceBody() {
       );
     })
     .join("");
-  const list = hops
-    .map((h, i) => {
+  const list = hopCards
+    .map(({ h, i }) => {
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
@@ -6216,12 +6391,18 @@ function sequenceBodyKey() {
 function sequenceCanvasProps() {
   const reading = sequenceOf(sequenceFlow());
   return {
-    participants: reading.participants.map((p) => ({
-      id: idVal(p.id),
-      fqn: p.fqn,
-      kind: p.kind || "Function",
-      label: shortOf(p.fqn),
-    })),
+    participants: reading.participants.map((p) => {
+      const paint = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
+      return {
+        id: idVal(p.id),
+        fqn: p.fqn,
+        kind: p.kind || "Function",
+        label: shortOf(p.fqn),
+        file: paint.file || p.file || "",
+        dim: paint.dim,
+        hit: paint.hit,
+      };
+    }),
     hops: reading.hops.map((h, i) => ({
       i,
       from: idVal(h.from),
@@ -6293,6 +6474,7 @@ function paintSequenceWorkspace(title) {
   const host = document.getElementById("seqCanvas");
   if (host) renderSequenceCanvas(host, sequenceCanvasProps());
   else unmountSequenceCanvas();
+  applyGraphFilter();
 }
 
 function bindSequencePage() {
@@ -6643,11 +6825,26 @@ function renderDataflowBody() {
   const reading = dataflowOf(flow);
   const nodes = reading.nodes;
   const hops = reading.hops;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepN = nodes.filter((n) => hit(n.fqn) || hit(n.kind) || hit(n.role) || hit(n.end_role));
-    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind));
+  const dfQ = (graphFilter.q || "").toLowerCase();
+  const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
+  const dfNodeMatch = (n) =>
+    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
+  const dfHopMatch = (h) => {
+    if (!dfQ) return true;
+    const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+    const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+    return (
+      dfHit(h.from_fqn) ||
+      dfHit(h.to_fqn) ||
+      dfHit(h.kind) ||
+      dfHit(h.file) ||
+      dfHit(fromN && fromN.file) ||
+      dfHit(toN && toN.file)
+    );
+  };
+  if (dfQ) {
+    const keepN = nodes.filter(dfNodeMatch);
+    const keepH = hops.filter(dfHopMatch);
     if (!keepN.length && !keepH.length) {
       return '<div class="empty">No data-flow hops match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -6657,6 +6854,7 @@ function renderDataflowBody() {
   }
   if (dfCursor >= hops.length) dfCursor = hops.length - 1;
   const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+  const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => dfHopMatch(h));
   const review =
     '<div class="review-strip" id="dfReview">' +
     '<button type="button" class="review-step" id="dfOverview">Overview</button>' +
@@ -6680,10 +6878,13 @@ function renderDataflowBody() {
         .map((n) => {
           const on = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
           const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const match = dfNodeMatch(n);
           return (
             '<button type="button" class="df-node vnode kind-' +
             esc(n.kind || "Function") +
             (on ? " on" : "") +
+            (dfQ && match ? " hit" : "") +
+            (dfQ && !match ? " dim" : "") +
             '" data-id="' +
             esc(idVal(n.id)) +
             '" data-fqn="' +
@@ -6695,6 +6896,7 @@ function renderDataflowBody() {
             '"' +
             (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") +
             (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") +
+            (n.file ? ' data-file="' + esc(n.file) + '"' : "") +
             '><span class="name">' +
             esc(shortOf(n.fqn)) +
             '</span> <span class="meta">' +
@@ -6715,8 +6917,8 @@ function renderDataflowBody() {
       );
     })
     .join("");
-  const list = hops
-    .map((h, i) => {
+  const list = hopCards
+    .map(({ h, i }) => {
       return (
         '<article class="df-hop expl-card' +
         (i === dfCursor ? " on" : "") +
@@ -6771,6 +6973,7 @@ function dataflowCanvasProps() {
   return {
     nodes: reading.nodes.map((n) => {
       const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+      const paint = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
       return {
         id: idVal(n.id),
         fqn: n.fqn,
@@ -6779,6 +6982,9 @@ function dataflowCanvasProps() {
         role: n.role,
         endRole: n.end_role || "",
         channel: n.channel || "",
+        file: paint.file || n.file || "",
+        dim: paint.dim,
+        hit: paint.hit,
         ep,
       };
     }),
@@ -6850,6 +7056,7 @@ function paintDataflowWorkspace(title) {
   const host = document.getElementById("dfCanvas");
   if (host) renderDataflowCanvas(host, dataflowCanvasProps());
   else unmountReviewCanvas();
+  applyGraphFilter();
 }
 
 function bindDataflowPage() {
@@ -7067,12 +7274,15 @@ function renderLifecycleBody() {
   const hops = reading.transitions;
   const ends = reading.endpoints;
   const lanes = reading.lanes;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepS = states.filter((s) => hit(s.id) || hit(s.label) || hit(lcStateKind(s)) || hit(s.lane));
-    const keepT = hops.filter((h) => hit(h.from) || hit(h.to) || hit(h.label));
-    const keepE = ends.filter((e) => hit(e.fqn) || hit(e.kind));
+  const lcQ = (graphFilter.q || "").toLowerCase();
+  const lcHit = (s) => String(s || "").toLowerCase().indexOf(lcQ) >= 0;
+  const lcStateMatch = (s) => !lcQ || lcHit(s.id) || lcHit(s.label) || lcHit(lcStateKind(s)) || lcHit(s.lane);
+  const lcHopMatch = (h) => !lcQ || lcHit(h.from) || lcHit(h.to) || lcHit(h.label);
+  const lcEndMatch = (e) => !lcQ || lcHit(e.fqn) || lcHit(e.kind) || lcHit(e.file);
+  if (lcQ) {
+    const keepS = states.filter(lcStateMatch);
+    const keepT = hops.filter(lcHopMatch);
+    const keepE = ends.filter(lcEndMatch);
     if (!keepS.length && !keepT.length && !keepE.length) {
       return '<div class="empty">No lifecycle states match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -7108,9 +7318,12 @@ function renderLifecycleBody() {
         .map((s) => {
           const kind = lcStateKind(s);
           const on = now === s.id || (hot && (hot.from === s.id || hot.to === s.id));
+          const match = lcStateMatch(s);
           return (
             '<button type="button" class="lc-state vnode' +
             (on ? " on" : "") +
+            (lcQ && match ? " hit" : "") +
+            (lcQ && !match ? " dim" : "") +
             '" data-lc-id="' +
             esc(s.id) +
             '" data-lc-type="' +
@@ -7161,15 +7374,20 @@ function renderLifecycleBody() {
     .join("");
   const endCards = ends
     .map((e) => {
+      const match = lcEndMatch(e);
       return (
         '<button type="button" class="lc-end vnode kind-' +
         esc(e.kind || "Type") +
+        (lcQ && match ? " hit" : "") +
+        (lcQ && !match ? " dim" : "") +
         '" data-id="' +
         esc(idVal(e.id)) +
         '" data-fqn="' +
         esc(e.fqn) +
         '" data-kind="' +
         esc(e.kind || "") +
+        '"' +
+        (e.file ? ' data-file="' + esc(e.file) + '"' : "") +
         '"><span class="name">' +
         esc(shortOf(e.fqn)) +
         '</span> <span class="meta">' +
@@ -7298,6 +7516,7 @@ function paintLifecycleWorkspace(title) {
   const host = document.getElementById("lcCanvas");
   if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
   else unmountReviewCanvas();
+  applyGraphFilter();
 }
 
 function bindLifecyclePage() {
@@ -7871,11 +8090,21 @@ function renderLineage() {
 
   const hopCards = hops
     .map((e, i) => ({ e, i }))
-    .filter(({ e }) =>
-      matchesExplorerQuery(
-        [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
-      )
-    )
+    .filter(({ e }) => {
+      const fromN = nodeById.get(idVal(e.from));
+      const toN = nodeById.get(idVal(e.to));
+      return matchesExplorerQuery(
+        [
+          e.kind,
+          e.from,
+          e.to,
+          fqnOf(snapshot.graph, e.from),
+          fqnOf(snapshot.graph, e.to),
+          (fromN && fromN.span && fromN.span.file) || "",
+          (toN && toN.span && toN.span.file) || "",
+        ].join(" ")
+      );
+    })
     .slice(0, 24)
     .map(({ e, i }) => {
     return (
@@ -8657,7 +8886,7 @@ function applyGraphFilter() {
     const kind = el.getAttribute("data-kind") || "";
     const match =
       graphFilter.kinds[kind] !== false &&
-      matchesExplorerQuery(
+      (matchesExplorerQuery(
         [
           el.getAttribute("data-fqn") || "",
           el.getAttribute("data-file") || "",
@@ -8665,15 +8894,26 @@ function applyGraphFilter() {
           el.getAttribute("data-kind") || "",
           el.getAttribute("data-hops") || "",
         ].join(" ")
-      );
+      ) || (el.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el.getAttribute("data-id"))));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
   });
   canvas.querySelectorAll(".bubble-card").forEach((el) => {
     const name = (el.querySelector(".name") && el.querySelector(".name").textContent) || "";
-    const match = matchesExplorerQuery(name);
+    const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el.getAttribute("data-bubble"));
     el.classList.toggle("dim", !match);
     el.classList.toggle("hit", !!(graphFilter.q && match));
+  });
+}
+
+/** A community (Map card or Enter Type node) matches when a member's FQN / file does, so Find does not dim the one that holds the hit. */
+function bubbleMembersMatchQuery(id) {
+  if (!graphFilter.q || !id) return false;
+  const b = findBubble(id);
+  return ((b && b.members) || []).some((m) => {
+    const n = nodeById.get(idVal(m));
+    if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+    return matchesExplorerQuery((n.fqn || "") + " " + ((n.span && n.span.file) || ""));
   });
 }
 
@@ -9182,7 +9422,7 @@ function enterCanvasProps(inner) {
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
       surface: "enter-node",
-      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+      ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
       shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
       sliceDist: n.distance == null ? undefined : n.distance,
     };
@@ -9463,6 +9703,13 @@ function setLlmPane(on) {
   if (on) {
     setExportMenu(false);
     if (typeof setKeysPane === "function") setKeysPane(false);
+    if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+    if (typeof setLensOpen === "function") setLensOpen(false);
+    if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
   }
   llmPane.hidden = !on;
   llmPane.classList.toggle("open", !!on);
@@ -9546,6 +9793,8 @@ function localAsk(q) {
 
 function sendLlmAsk() {
   if (!llmAsk) return;
+  // Keep the caret in the field: the next question must not land on the Send button and fire desk keys (s = stamp).
+  llmAsk.focus();
   const q = llmAsk.value.trim();
   if (!q) return;
   appendLlmLog(q, "user");
