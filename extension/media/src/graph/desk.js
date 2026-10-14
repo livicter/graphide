@@ -414,8 +414,11 @@ document.addEventListener("keydown", (e) => {
   if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
   // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
   // On Presentation Stage, Style / theme / zoom stay — let them through so Export/Keys do not steal stage chrome.
+  // ? / F1 always toggle Keys (documented), even when Keys (or other chrome) is already open.
   if (
     e.key !== "Backspace" &&
+    e.key !== "?" &&
+    e.key !== "F1" &&
     !(
       isPresenting() &&
       (e.key === "s" ||

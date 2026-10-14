@@ -6755,6 +6755,31 @@ async function main() {
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
     record("K5", "Escape closes #keysPane", keysClosedEsc, "");
+    // ? toggles: open then close without Escape / #keysClose (chrome must not swallow the second ?).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysToggled = await page.evaluate(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
+    );
+    record("K17", "Second ? toggles #keysPane closed (chrome does not swallow ?)", keysToggled, "");
 
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");

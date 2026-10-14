@@ -6,8 +6,9 @@ second command palette and not an agent stamp.
 
 ## Sub-features
 
-- Header `#keysBtn` (`?`). `?` / F1 toggle `#keysPane`. `#keysClose` and
-  Escape hide it. `/` is Find. Do not steal it.
+- Header `#keysBtn` (`?`). `?` / F1 toggle `#keysPane` even when the sheet
+  is already open (`K17`) — modal chrome must not swallow the second `?`.
+  `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
   sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH, `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
