@@ -8,7 +8,7 @@ second command palette and not an agent stamp.
 
 - Header `#keysBtn` (`?`). `?` / F1 toggle `#keysPane` even when the sheet
   is already open (`K17`) — modal chrome must not swallow the second `?`.
-  Opening Keys closes Ask (`K18`), same exclusive chrome as Export. Opening Keys / Export / Ask hides the hover tip (`K19`, `K19b`, `K19c`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
+  Opening Keys closes Ask (`K18`), same exclusive chrome as Export. Opening Keys / Export / Ask / Evidence hides the hover tip (`K19`, `K19b`, `K19c`, Evidence `K19d`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
   sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH, `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
@@ -72,7 +72,7 @@ Driver assertions:
 - `?` (or `#keysBtn`) opens `#keysPane` (not hidden, `.open`)
 - `#keysClose` exists; sheet text lists `/` find, `?` this sheet,
   `S` stamp, `X` skip, `E` ego, `F` present, `D` day
-- `#keysClose` and Escape hide the pane; a second `?` also toggles closed (`K17`); opening Keys closes Ask (`K18`); opening Keys hides the tip (`K19`, Export `K19b`, Ask `K19c`); opening Keys clears the toast (`K20`, Export `K20b`, Ask `K20c`)
+- `#keysClose` and Escape hide the pane; a second `?` also toggles closed (`K17`); opening Keys closes Ask (`K18`); opening Keys hides the tip (`K19`, Export `K19b`, Ask `K19c`, Evidence `K19d`); opening Keys clears the toast (`K20`, Export `K20b`, Ask `K20c`)
 - Keys is not covered by Ask / export while open; close it before Evidence
   / ledger / Ask / Export suites so it does not stay on top of them
 - screenshot `verification/keys.png` is not a black frame

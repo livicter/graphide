@@ -22736,6 +22736,7 @@
     }
     function revealSourcePane() {
       if (!sourcePane) return;
+      if (typeof hideTip === "function") hideTip();
       sourcePane.hidden = false;
       if (workspace) workspace.classList.add("has-source");
       refitChartSoon();

@@ -7093,6 +7093,14 @@ async function main() {
     // already on map — Evidence suite continues
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
 
+    // Tip under Evidence must hide (same chrome exclusivity as Keys / Export / Ask).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+    });
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
       if (cell) cell.click();
@@ -7101,6 +7109,19 @@ async function main() {
       () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
       null,
       { timeout: 5000 }
+    );
+    const tipUnderEvidence = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "K19d",
+      "Opening Evidence hides the hover tip (no tip under chrome)",
+      tipUnderEvidence.evidenceOpen && tipUnderEvidence.tipHidden,
+      JSON.stringify(tipUnderEvidence)
     );
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
