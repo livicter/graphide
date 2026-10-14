@@ -6161,6 +6161,36 @@ async function main() {
       JSON.stringify(sliceFindHit)
     );
     await shot(page, "slice-find-hit.png");
+    // Member file path is not a vnode label either. Same lift-out-of-grey rule as SG4b (file half of matchesExplorerQuery).
+    await page.fill("#graphSearch", "simulationdata.rs");
+    await page.waitForTimeout(200);
+    const sliceFindFile = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          dim: el.classList.contains("dim"),
+          hit: el.classList.contains("hit"),
+          dist: el.getAttribute("data-slice-dist"),
+          file: el.getAttribute("data-file") || "",
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        n12: read("n12"),
+        n10: read("n10"),
+        q: (document.getElementById("graphSearch") || {}).value || "",
+      };
+    });
+    record(
+      "SG4c",
+      "Find on a member file lifts an off-tree Slice hit out of distance grey",
+      !!(sliceFindFile.n12 && sliceFindFile.n12.hit && !sliceFindFile.n12.dim && sliceFindFile.n12.dist === "1" && sliceFindFile.n12.op >= 0.99) &&
+        !!(sliceFindFile.n10 && sliceFindFile.n10.dim && !sliceFindFile.n10.hit && sliceFindFile.n10.op <= 0.18) &&
+        /simulationdata\.rs/i.test(sliceFindFile.q),
+      JSON.stringify(sliceFindFile)
+    );
+    await shot(page, "slice-find-file.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
     // Route dim must beat distance grey too: an off-route ring node is not brighter than the off-route walk.

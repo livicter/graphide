@@ -215,7 +215,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      (`data-slice-dist` 1) stays in distance grey at opacity 0.48
      (`EG3e`, `verification/slice-select-grey.png`).
      Find on off-tree `n12` (`SimulationData`) lifts that hit to
-     opacity 1 (`SG4b`, `verification/slice-find-hit.png`). With Ego
+     opacity 1 (`SG4b`, `verification/slice-find-hit.png`). A member
+     file (`simulationdata.rs`) lifts the same hit (`SG4c`,
+     `verification/slice-find-file.png`). With Ego
      on, a hit outside the neighborhood (`n10`, `ToastContainer`)
      stays at 1 instead of ego-dim 0.12 (`SG5`). On Map, an
      off-path Find hit (`b-physics`, `.off`) paints at opacity 1

@@ -67,6 +67,8 @@ Driver assertions:
   `.hit`; `b-physics-a` dims (`SG1d`)
 - Enter `b-physics`: `screenshotformat.rs` keeps both holding children
   `.hit`; Endpoint `n164` dims (`SG1f`)
+- Slice: a member file (`simulationdata.rs`) lifts off-tree `n12` `.hit`
+  out of distance grey; `n10` dims (`SG4c`)
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
 - Lineage: query filters `#lineageHops .expl-card.hop` and dims
   off-query `.vnode`
@@ -97,6 +99,7 @@ Driver assertions:
   even the one whose member chip shows the hit (`SG1c`). A member file
   path must keep that card lit the same way (`SG1e`). Enter children
   need the same file half (`SG1f`) — community vnodes carry no
-  `data-file` of their own.
+  `data-file` of their own. Slice leaves already carry `data-file`; a
+  file Find must lift the same off-tree hit as the FQN half (`SG4c`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
