@@ -7373,6 +7373,33 @@ async function main() {
         backKeysPresent.xy === 0,
       JSON.stringify(backKeysPresent)
     );
+    // Export on stage: Backspace closes Export first; Present stays.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backExportPresent = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14j",
+      "Backspace closes Export on Present without exiting the stage",
+      !backExportPresent.exportOpen &&
+        backExportPresent.present &&
+        backExportPresent.cards >= 8 &&
+        backExportPresent.xy === 0,
+      JSON.stringify(backExportPresent)
+    );
     await page.keyboard.press("Backspace");
     const backPresent = await page.evaluate(() => ({
       present: document.body.classList.contains("present"),
