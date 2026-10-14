@@ -6806,6 +6806,44 @@ async function main() {
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
     record("K17", "Second ? toggles #keysPane closed (chrome does not swallow ?)", keysToggled, "");
+    // Opening Keys must close Ask (same exclusive chrome as Export).
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysClosedAsk = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+    }));
+    record(
+      "K18",
+      "Opening Keys closes Ask (exclusive chrome)",
+      keysClosedAsk.keysOpen && !keysClosedAsk.askOpen,
+      JSON.stringify(keysClosedAsk)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
 
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");

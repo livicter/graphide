@@ -20769,7 +20769,10 @@
     }
     function setKeysPane(on2) {
       if (!keysPane) return;
-      if (on2) setExportMenu(false);
+      if (on2) {
+        setExportMenu(false);
+        if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+      }
       keysPane.hidden = !on2;
       keysPane.classList.toggle("open", !!on2);
       if (keysBtn) keysBtn.classList.toggle("on", !!on2);

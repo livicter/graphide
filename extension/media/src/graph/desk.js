@@ -1240,7 +1240,10 @@ function flashCanvas() {
 
 function setKeysPane(on) {
   if (!keysPane) return;
-  if (on) setExportMenu(false);
+  if (on) {
+    setExportMenu(false);
+    if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+  }
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
   if (keysBtn) keysBtn.classList.toggle("on", !!on);
