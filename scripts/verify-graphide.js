@@ -11687,12 +11687,18 @@ async function main() {
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
-    // Tip under Route must hide (parity with K19–K19f).
+    // Tip + toast under Route must clear (parity with K19–K19f / K20–K20f).
     await page.evaluate(() => {
       const tip = document.getElementById("tip");
       if (tip) {
         tip.hidden = false;
         tip.textContent = "forced tip";
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
       }
     });
     await page.keyboard.press("r");
@@ -11711,6 +11717,21 @@ async function main() {
       "Opening Route hides the hover tip (no tip under chrome)",
       tipUnderRoute.routeOpen && tipUnderRoute.tipHidden,
       JSON.stringify(tipUnderRoute)
+    );
+    const toastUnderRoute = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      const rec = window.__graphideRoute || {};
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        routeOpen: !!rec.open,
+        routeOk: !!rec.ok,
+      };
+    });
+    record(
+      "K20g",
+      "Opening Route clears the toast (no toast under chrome)",
+      toastUnderRoute.routeOpen && toastUnderRoute.toastGone,
+      JSON.stringify(toastUnderRoute)
     );
     const routeDesk = await page.evaluate(() => {
       const rec = window.__graphideRoute || {};

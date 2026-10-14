@@ -23770,6 +23770,10 @@
         routeCursor = -1;
       } else {
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
         resolveRoute();
         if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
       }
