@@ -7011,6 +7011,45 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderExport = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      };
+    });
+    record(
+      "K20b",
+      "Opening Export clears the toast (no toast under chrome)",
+      toastUnderExport.exportOpen && toastUnderExport.toastGone,
+      JSON.stringify(toastUnderExport)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // already on map — Evidence suite continues
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
 

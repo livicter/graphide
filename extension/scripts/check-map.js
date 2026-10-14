@@ -553,7 +553,7 @@ assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includ
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
 assert(js.includes('e.key !== "?"') && js.includes('e.key !== "F1"') && driver.includes("K17"), "Keys ? / F1 must toggle closed even when chrome is open");
 assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?setLlmPane\(false\)/.test(chrome) && driver.includes("K18"), "Opening Keys must close Ask (exclusive chrome with Export)");
-assert(js.includes("hideTip()") && driver.includes("K19") && driver.includes("K19b") && driver.includes("K19c") && driver.includes("K20"), "Opening Keys / Export / Ask must hideTip so the tip does not stick under chrome");
+assert(js.includes("hideTip()") && driver.includes("K19") && driver.includes("K19b") && driver.includes("K19c") && driver.includes("K20") && driver.includes("K20b"), "Opening Keys / Export / Ask must hideTip so the tip does not stick under chrome");
 assert(driver.includes("K8") && driver.includes("K8b") && driver.includes("metaKey: true"), "verify driver must prove Cmd / Ctrl chords do not stamp or toggle desk keys");
 assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")') && driver.includes("K12") && driver.includes('page.focus("#llmPreset")'), "verify driver must prove focused Ego hops and Ask host <select> keep 2 / S / X");
 assert(js.includes("e.target === graphSearch") && driver.includes("K13") && driver.includes("K13b") && driver.includes("K13c") && driver.includes("K13d") && driver.includes("K13e") && driver.includes("K13f"), "Escape on focused Find must blur (and still close Route)");
