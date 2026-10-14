@@ -530,6 +530,8 @@ assert(driver.includes("SG7") && driver.includes("dataflow-find-file.png") && dr
 assert(chrome.includes("dfHit(n.file)") && chrome.includes("dfHopMatch") && chrome.includes('data-file="'), "Data-flow Find must match member file / paint data-file (SG7)");
 assert(driver.includes("SG8") && driver.includes("sequence-find-file.png") && driver.includes("sub.rs") && driver.includes("SG8b"), "verify driver must prove a member-file Find filters Sequence hops / dims off-query participants");
 assert(chrome.includes("seqHit(p.file)") && chrome.includes("seqHopMatch") && chrome.includes("seqHit(h.file)"), "Sequence Find must match member file on parts / hops (SG8)");
+assert(driver.includes("SG9") && driver.includes("lifecycle-find-file.png") && driver.includes("bus.rs") && driver.includes("SG9b"), "verify driver must prove a member-file Find keeps Lifecycle end .hit / dims off-query states");
+assert(chrome.includes("lcHit(e.file)") && chrome.includes("lcEndMatch") && chrome.includes('data-file="'), "Lifecycle Find must match member file on ends / paint data-file (SG9)");
 assert(chrome.includes("(fromN && fromN.span && fromN.span.file)") && chrome.includes("(toN && toN.span && toN.span.file)"), "Lineage hop Find must match from/to span.file (file half of SG3)");
 assert(css.includes(":not(.hit)") && css.includes("#sliceCanvas .vnode.hit") && css.includes("#enterCanvas .vnode.hit") && css.includes("#sliceCanvas .vnode.ego-dim:not(.hit)"), "Find hits must beat distance grey and Ego dim");
 assert(/\.bubble-card\.hit\s*\{[^}]*opacity:\s*1/.test(css) && css.includes(".bubble-card.off { opacity: 0.72; }") && css.includes(".bubble-card.dim { opacity: 0.22; }"), "Map Find hits must beat off-path grey; misses stay dim");

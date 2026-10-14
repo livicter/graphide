@@ -11870,6 +11870,73 @@ async function main() {
 
     await shot(page, "lifecycle.png");
 
+    // Member file path is not an FQN token. Same Lifecycle Find filter as endpoint file match (file half of lcEndMatch).
+    // fixtures/demo data-subscription exposes crate::bus::events on src/bus.rs so a file query can hit the end and dim states.
+    const lcEndsBeforeFile = await page.evaluate(() => document.querySelectorAll("#lcEnds .lc-end").length);
+    await page.fill("#graphSearch", "bus.rs");
+    await page.waitForTimeout(280);
+    const lcFindFile = await page.evaluate(() => {
+      const ends = [...document.querySelectorAll("#lcEnds .lc-end")].map((el) => ({
+        id: el.getAttribute("data-id") || "",
+        file: el.getAttribute("data-file") || "",
+        fqn: el.getAttribute("data-fqn") || "",
+        hit: el.classList.contains("hit"),
+        dim: el.classList.contains("dim"),
+        op: Number(getComputedStyle(el).opacity),
+      }));
+      const lanes = [...document.querySelectorAll("#lcLanes .lc-state")].map((el) => ({
+        id: el.getAttribute("data-lc-id") || "",
+        hit: el.classList.contains("hit"),
+        dim: el.classList.contains("dim"),
+        op: Number(getComputedStyle(el).opacity),
+      }));
+      const hits = ends.filter((r) => r.hit);
+      const dims = lanes.filter((r) => r.dim && !r.hit);
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        ends: ends.length,
+        empty: !!document.querySelector(".lc-page .empty, .expl-wrap .empty"),
+        hits: hits.length,
+        dims: dims.length,
+        hitFiles: hits.map((r) => r.file),
+        hitMin: hits.length ? Math.min(...hits.map((r) => r.op)) : 0,
+        dimMax: dims.length ? Math.max(...dims.map((r) => r.op)) : 1,
+      };
+    });
+    record(
+      "SG9",
+      "Find on a member file keeps Lifecycle end .hit / dims off-query states",
+      /bus\.rs/i.test(lcFindFile.q) &&
+        !lcFindFile.empty &&
+        lcFindFile.hits >= 1 &&
+        lcFindFile.hitMin >= 0.99 &&
+        lcFindFile.hitFiles.some((f) => /bus\.rs/i.test(f)) &&
+        lcFindFile.dims >= 1 &&
+        lcFindFile.dimMax <= 0.18 &&
+        lcFindFile.ends >= 1 &&
+        lcFindFile.ends <= lcEndsBeforeFile,
+      JSON.stringify({ before: lcEndsBeforeFile, ...lcFindFile })
+    );
+    await shot(page, "lifecycle-find-file.png");
+    await page.fill("#graphSearch", "nomatch-file.rs");
+    await page.waitForTimeout(220);
+    const lcFindMiss = await page.evaluate(() => ({
+      ends: document.querySelectorAll("#lcEnds .lc-end").length,
+      empty: !!document.querySelector(".lc-page .empty, .expl-wrap .empty"),
+    }));
+    record(
+      "SG9b",
+      "Find on a non-matching member file empties Lifecycle",
+      lcFindMiss.empty || lcFindMiss.ends < lcEndsBeforeFile,
+      JSON.stringify({ before: lcEndsBeforeFile, ...lcFindMiss })
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     assertNoStampDir("L8", "Lifecycle step did not write .graphide/stamps/");
 
     const lineageUrl = origin + LINEAGE_HARNESS;

@@ -2380,14 +2380,18 @@ html.bright .route-hop {
 #dfCanvas .vnode.dim:not(.ego-dim),
 #seqCanvas .vnode.dim:not(.ego-dim),
 #dfStages .df-node.dim,
-#seqParts .seq-part.dim { opacity: 0.18; }
+#seqParts .seq-part.dim,
+#lcLanes .lc-state.dim,
+#lcEnds .lc-end.dim { opacity: 0.18; }
 #enterCanvas .vnode.hit,
 #sliceCanvas .vnode.hit,
 #lineageCanvas .vnode.hit,
 #dfCanvas .vnode.hit,
 #seqCanvas .vnode.hit,
 #dfStages .df-node.hit,
-#seqParts .seq-part.hit { opacity: 1; }
+#seqParts .seq-part.hit,
+#lcLanes .lc-state.hit,
+#lcEnds .lc-end.hit { opacity: 1; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }

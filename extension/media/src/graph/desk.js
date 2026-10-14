@@ -7271,12 +7271,15 @@ function renderLifecycleBody() {
   const hops = reading.transitions;
   const ends = reading.endpoints;
   const lanes = reading.lanes;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepS = states.filter((s) => hit(s.id) || hit(s.label) || hit(lcStateKind(s)) || hit(s.lane));
-    const keepT = hops.filter((h) => hit(h.from) || hit(h.to) || hit(h.label));
-    const keepE = ends.filter((e) => hit(e.fqn) || hit(e.kind));
+  const lcQ = (graphFilter.q || "").toLowerCase();
+  const lcHit = (s) => String(s || "").toLowerCase().indexOf(lcQ) >= 0;
+  const lcStateMatch = (s) => !lcQ || lcHit(s.id) || lcHit(s.label) || lcHit(lcStateKind(s)) || lcHit(s.lane);
+  const lcHopMatch = (h) => !lcQ || lcHit(h.from) || lcHit(h.to) || lcHit(h.label);
+  const lcEndMatch = (e) => !lcQ || lcHit(e.fqn) || lcHit(e.kind) || lcHit(e.file);
+  if (lcQ) {
+    const keepS = states.filter(lcStateMatch);
+    const keepT = hops.filter(lcHopMatch);
+    const keepE = ends.filter(lcEndMatch);
     if (!keepS.length && !keepT.length && !keepE.length) {
       return '<div class="empty">No lifecycle states match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -7312,9 +7315,12 @@ function renderLifecycleBody() {
         .map((s) => {
           const kind = lcStateKind(s);
           const on = now === s.id || (hot && (hot.from === s.id || hot.to === s.id));
+          const match = lcStateMatch(s);
           return (
             '<button type="button" class="lc-state vnode' +
             (on ? " on" : "") +
+            (lcQ && match ? " hit" : "") +
+            (lcQ && !match ? " dim" : "") +
             '" data-lc-id="' +
             esc(s.id) +
             '" data-lc-type="' +
@@ -7365,15 +7371,20 @@ function renderLifecycleBody() {
     .join("");
   const endCards = ends
     .map((e) => {
+      const match = lcEndMatch(e);
       return (
         '<button type="button" class="lc-end vnode kind-' +
         esc(e.kind || "Type") +
+        (lcQ && match ? " hit" : "") +
+        (lcQ && !match ? " dim" : "") +
         '" data-id="' +
         esc(idVal(e.id)) +
         '" data-fqn="' +
         esc(e.fqn) +
         '" data-kind="' +
         esc(e.kind || "") +
+        '"' +
+        (e.file ? ' data-file="' + esc(e.file) + '"' : "") +
         '"><span class="name">' +
         esc(shortOf(e.fqn)) +
         '</span> <span class="meta">' +
@@ -7502,6 +7513,7 @@ function paintLifecycleWorkspace(title) {
   const host = document.getElementById("lcCanvas");
   if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
   else unmountReviewCanvas();
+  applyGraphFilter();
 }
 
 function bindLifecyclePage() {

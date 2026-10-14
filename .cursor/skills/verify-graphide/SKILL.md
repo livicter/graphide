@@ -239,7 +239,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      hops drop (`SG7`, `verification/dataflow-find-file.png`). On Sequence,
      a member file (`sub.rs`) keeps subscribe `.hit` and dims bus.rs
      participants; a non-matching file drops hops (`SG8` / `SG8b`,
-     `verification/sequence-find-file.png`)
+     `verification/sequence-find-file.png`). On Lifecycle, a member
+     file (`bus.rs`) keeps the events Endpoint `.hit` and dims lane
+     states; a non-matching file empties (`SG9` / `SG9b`,
+     `verification/lifecycle-find-file.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
