@@ -322,6 +322,7 @@ function applyPresent(on) {
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
   if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
   if (typeof setLensOpen === "function") setLensOpen(false);
+  if (typeof setRouteOpen === "function") setRouteOpen(false);
   if (toastEl) {
     toastEl.classList.remove("on");
     toastEl.hidden = true;
