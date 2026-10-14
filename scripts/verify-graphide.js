@@ -6971,6 +6971,48 @@ async function main() {
     );
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    // Toast under Keys must clear.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderKeys = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    });
+    record(
+      "K20",
+      "Opening Keys clears the toast (no toast under chrome)",
+      toastUnderKeys.keysOpen && toastUnderKeys.toastGone,
+      JSON.stringify(toastUnderKeys)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // already on map — Evidence suite continues
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
 
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");

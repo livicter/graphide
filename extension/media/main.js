@@ -20773,6 +20773,10 @@
         setExportMenu(false);
         if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       }
       keysPane.hidden = !on2;
       keysPane.classList.toggle("open", !!on2);
@@ -20784,6 +20788,10 @@
         setKeysPane(false);
         if (llmPane && !llmPane.hidden) setLlmPane(false);
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       }
       exportMenu.hidden = !on2;
       exportMenu.classList.toggle("open", !!on2);
@@ -27281,6 +27289,10 @@
         setExportMenu(false);
         if (typeof setKeysPane === "function") setKeysPane(false);
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       }
       llmPane.hidden = !on2;
       llmPane.classList.toggle("open", !!on2);
