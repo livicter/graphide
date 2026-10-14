@@ -8506,6 +8506,30 @@ async function main() {
         presentZoom.transform !== presentZoom.before,
       JSON.stringify(presentZoom)
     );
+    const fitBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("0");
+    await page.waitForTimeout(120);
+    const presentFit = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, fitBefore);
+    record(
+      "P6j",
+      "Present + Export: desk Fit (0) still refits the stage",
+      presentFit.present &&
+        presentFit.exportOpen &&
+        presentFit.transform !== presentFit.before,
+      JSON.stringify(presentFit)
+    );
     await page.keyboard.press("Escape"); // close Export
     await page.waitForFunction(
       () => {
