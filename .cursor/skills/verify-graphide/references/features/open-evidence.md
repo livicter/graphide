@@ -13,6 +13,8 @@ Inspect a node or hop without covering the object rail.
   Click `.edge-hit` / `text.ekind` / `#inspEdges .row` to open a hop.
 - **Editor** `#srcEditor` posts `{ type: "enterNode" }` to the host (open the span in the editor).
 - **Close** `#srcClose` or `Escape` hides the pane (`sourcePane.hidden = true`, `#workspace` drops `has-source`).
+  Escape on focused Find still closes Evidence after blurring Find (`K13d`).
+- Opening Evidence hides the hover tip (`K19d`) and clears the toast (`K20d`), same chrome exclusivity as Keys / Export / Ask.
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
@@ -43,6 +45,8 @@ Driver assertions:
 - computed `max-width` ≤ 380px and used width ≤ 380px
 - `#sourcePane` and `#ledgerPane` bounding boxes do not overlap
 - `#srcTitle` or `#srcBody` has content (snippet text from `flowPayload()` looks like `fn hop_N()` / `evidence`)
+- opening Evidence hides `#tip` (`K19d`)
+- opening Evidence clears `#toast` (`K20d`)
 - screenshot of the desk with Evidence open is not black
 
 `peekSource` always `vscode.postMessage({ type: "peekSource", id })`. The stub does not reply with `{ type: "source" }`. The webview still calls `showSource` from the in-memory node and `snapshot.snippets` — so Evidence works without a live VS Code host.
