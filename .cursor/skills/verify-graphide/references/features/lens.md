@@ -18,6 +18,7 @@ slice. Not an agent-drawn lens JSON.
   when that kind is selected — they stay filters, not a second finder.
 - Search stays `/` + `#graphSearch`. Do not rebuild Find.
 - Stamp / skip stay human. Lens never writes `.graphide/stamps/`.
+- Opening Lens hides the hover tip (`K19f`) and clears the toast (`K20f`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present.
 
 ## How to get to it (user POV)
 
@@ -50,7 +51,16 @@ Driver assertions:
 - `#lensCompare` names Function · Endpoint
 - `.lens-on` length `>= 1` and `window.__graphideLens.hits >= 1`
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
+- opening Lens hides `#tip` (`K19f`) and clears `#toast` (`K20f`)
 - screenshot `verification/lens.png` is not a black frame
+- explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
+  ≤ the lit non-matches (≤ 0.28, `LN6`)
+- explorer Slice with `away=1`: `.lens-dim` beats the off-program
+  `.away` fade (0.38) — non-match walk ≤ 0.28 < matches (`LN6b`)
+- explorer Slice with Ego on `n1`: `.lens-dim` `.ego` neighbors ≤ 0.28 <
+  matches (`LN6c`)
+- explorer Enter `b-render` with Ego on `n0`: same for Lens (`LN6d`)
+- explorer Map community LOD: every card gets `.lens-on` / `.lens-dim`; `.lens-on` beats `.off` grey (`LN7`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
