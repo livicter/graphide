@@ -59,6 +59,8 @@ Driver assertions:
 - Map: `.bubble-card.dim` ≥ 1 for a partial community name
 - Map: a member FQN (`SimulationData`) keeps `b-render` `.hit`; `b-assets`
   dims (`SG1c`)
+- Map: a member file (`simulationdata.rs`) keeps `b-render` `.hit`; `b-assets`
+  dims (`SG1e`)
 - Enter `b-physics`: `ScreenshotFormat_2000` keeps child `b-physics-b`
   `.hit`; `b-physics-a` dims (`SG1d`)
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
@@ -88,6 +90,7 @@ Driver assertions:
 - Off-path Map cards (`.bubble-card.off`) stay at 0.72. A `.hit` paints
   at opacity 1 (`SG1b`).
 - Card name alone is not enough: an FQN Find used to dim every card,
-  even the one whose member chip shows the hit (`SG1c`).
+  even the one whose member chip shows the hit (`SG1c`). A member file
+  path must keep that card lit the same way (`SG1e`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.
