@@ -7160,6 +7160,50 @@ async function main() {
       toastUnderEvidence.evidenceOpen && toastUnderEvidence.toastGone,
       JSON.stringify(toastUnderEvidence)
     );
+    // Toast under Present must clear (parity with K20 / K20b / K20c / K20d).
+    // Present closes Evidence; reopen after exit so K5b still sees Evidence open.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderPresent = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    record(
+      "K20e",
+      "Opening Present clears the toast (no toast under chrome)",
+      toastUnderPresent.presenting && toastUnderPresent.toastGone,
+      JSON.stringify(toastUnderPresent)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
