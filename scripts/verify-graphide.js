@@ -4565,6 +4565,140 @@ async function main() {
       cancelReady.on && cancelReady.cancelShown && cancelReady.reviewHidden && cancelReady.ws === "map",
       JSON.stringify(cancelReady)
     );
+    // Backspace while busy cancels (same as Escape), does not navigate.
+    const busyBackPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    await page.waitForFunction(
+      (before) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "");
+        return posts.some((m) => m && m.type === "cancel") || /Cancell/i.test(label);
+      },
+      busyBackPosts,
+      { timeout: 5000 }
+    );
+    const afterBusyBack = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cancelPosts: posts.filter((m) => m && m.type === "cancel").length,
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        on: !!(document.getElementById("progress") && document.getElementById("progress").classList.contains("on")),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    }, busyBackPosts);
+    record(
+      "CR1b",
+      "Backspace while busy posts cancel and labels Cancelling…",
+      afterBusyBack.cancelPosts >= 1 &&
+        /Cancell/i.test(afterBusyBack.label) &&
+        afterBusyBack.on &&
+        afterBusyBack.cards >= 8 &&
+        afterBusyBack.xy === 0,
+      JSON.stringify(afterBusyBack)
+    );
+    // Escape while busy: same cancel + label parity with #cancelBtn.
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const cancel = document.getElementById("cancelBtn");
+        const progress = document.getElementById("progress");
+        return !!(progress && progress.classList.contains("on") && cancel && !cancel.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const busyEscPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      (before) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const label = ((document.getElementById("progressLabel") || {}).textContent || "");
+        return posts.some((m) => m && m.type === "cancel") && /Cancell/i.test(label);
+      },
+      busyEscPosts,
+      { timeout: 5000 }
+    );
+    const afterBusyEsc = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        cancelPosts: posts.filter((m) => m && m.type === "cancel").length,
+        label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    }, busyEscPosts);
+    record(
+      "CR1c",
+      "Escape while busy posts cancel and labels Cancelling…",
+      afterBusyEsc.cancelPosts >= 1 && /Cancell/i.test(afterBusyEsc.label) && afterBusyEsc.cards >= 8 && afterBusyEsc.xy === 0,
+      JSON.stringify(afterBusyEsc)
+    );
+    // Late progress must not flash the old phase over Cancelling….
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 4,
+          total: 5,
+          pct: 80,
+          elapsed_ms: 2100,
+        },
+        "*"
+      );
+    });
+    await page.waitForTimeout(80);
+    const afterLateProgress = await page.evaluate(() => ({
+      label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+      on: !!(document.getElementById("progress") && document.getElementById("progress").classList.contains("on")),
+    }));
+    record(
+      "CR1d",
+      "After cancel, late progress keeps Cancelling… (does not flash Clustering)",
+      /Cancell/i.test(afterLateProgress.label) && afterLateProgress.on,
+      JSON.stringify(afterLateProgress)
+    );
+    // Restore busy strip for the click path (host may have flipped Cancelling…).
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 3,
+          total: 5,
+          pct: 62,
+          elapsed_ms: 1840,
+        },
+        "*"
+      );
+    });
+    await page.waitForFunction(
+      () => {
+        const cancel = document.getElementById("cancelBtn");
+        const progress = document.getElementById("progress");
+        return !!(progress && progress.classList.contains("on") && cancel && !cancel.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
     await page.click("#cancelBtn");
     await page.waitForFunction(
       () => {
@@ -4901,6 +5035,34 @@ async function main() {
       JSON.stringify(enterDist)
     );
     await shot(page, "enter-distance.png");
+    // Route dim must beat Enter distance grey: off-route ring members do not sit above .route-dim (0.22).
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterRoute = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const ring = [...document.querySelectorAll("#enterCanvas .vnode.grey[data-slice-dist].route-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      return {
+        ok: !!rec.ok,
+        ring: ring.length,
+        near: ring.filter((el) => el.getAttribute("data-slice-dist") === "1").length,
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "RT8b",
+      "Enter Route dims the off-route grey ring to the far-ring floor",
+      enterRoute.ok && enterRoute.ring >= 1 && enterRoute.near >= 1 && enterRoute.ringMax <= 0.221,
+      JSON.stringify(enterRoute)
+    );
+    await shot(page, "enter-route-dim.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
 
     await shot(page, "enter-bubble.png");
 
@@ -5162,6 +5324,50 @@ async function main() {
       childCut.endpoint === 1 && childCut.ids.indexOf("n164") >= 0 && childCut.ids.indexOf("b-physics-c") < 0,
       JSON.stringify({ endpoint: childCut.endpoint, ids: childCut.ids })
     );
+    // n2000 sits in b-physics-b. Its FQN is not the child label; the child that holds it must stay lit.
+    await page.fill("#graphSearch", "ScreenshotFormat_2000");
+    await page.waitForTimeout(250);
+    const childFind = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return { hit: el.classList.contains("hit"), dim: el.classList.contains("dim"), op: Number(getComputedStyle(el).opacity) };
+      };
+      return { a: read("b-physics-a"), b: read("b-physics-b"), ep: read("n164") };
+    });
+    record(
+      "SG1d",
+      "Find on a member FQN keeps the holding Enter child community lit",
+      !!(childFind.b && childFind.b.hit && !childFind.b.dim && childFind.b.op >= 0.99) &&
+        !!(childFind.a && childFind.a.dim && !childFind.a.hit && childFind.a.op <= 0.18) &&
+        !!(childFind.ep && childFind.ep.dim && !childFind.ep.hit),
+      JSON.stringify(childFind)
+    );
+    await shot(page, "enter-find-member.png");
+    // Member file path is not a child label either. Same hold-community rule as SG1d (file half of bubbleMembersMatchQuery).
+    // screenshotformat.rs sits in both physics children; the Endpoint leaf (n164 / simulationscale.rs) must dim.
+    await page.fill("#graphSearch", "screenshotformat.rs");
+    await page.waitForTimeout(250);
+    const childFindFile = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return { hit: el.classList.contains("hit"), dim: el.classList.contains("dim"), op: Number(getComputedStyle(el).opacity) };
+      };
+      return { a: read("b-physics-a"), b: read("b-physics-b"), ep: read("n164"), q: (document.getElementById("graphSearch") || {}).value || "" };
+    });
+    record(
+      "SG1f",
+      "Find on a member file keeps the holding Enter child communities lit",
+      !!(childFindFile.b && childFindFile.b.hit && !childFindFile.b.dim && childFindFile.b.op >= 0.99) &&
+        !!(childFindFile.a && childFindFile.a.hit && !childFindFile.a.dim && childFindFile.a.op >= 0.99) &&
+        !!(childFindFile.ep && childFindFile.ep.dim && !childFindFile.ep.hit && childFindFile.ep.op <= 0.18) &&
+        /screenshotformat\.rs/i.test(childFindFile.q),
+      JSON.stringify(childFindFile)
+    );
+    await shot(page, "enter-find-file.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
     const childHops = await page.evaluate(() => {
       const shapeOf = (id) => {
         const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
@@ -5517,6 +5723,24 @@ async function main() {
       null,
       { timeout: 4000 }
     );
+    // The fit eases the camera and #zoomPct tracks every frame, so the check above can pass mid-ease.
+    // Wait for the end state E1j reads: every enter node inside the stage.
+    await page
+      .waitForFunction(
+        () => {
+          const stage = document.querySelector("#canvas .stage");
+          const sr = stage ? stage.getBoundingClientRect() : null;
+          const nodes = [...document.querySelectorAll("#enterCanvas .react-flow__node")];
+          if (!sr || !nodes.length) return false;
+          return nodes.every((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 8 && r.height > 8 && r.left >= sr.left - 2 && r.top >= sr.top - 2 && r.right <= sr.right + 2 && r.bottom <= sr.bottom + 2;
+          });
+        },
+        null,
+        { timeout: 4000 }
+      )
+      .catch(() => {});
     const sinkSeen = await page.evaluate(() => {
       const stage = document.querySelector("#canvas .stage");
       const vp = document.querySelector("#canvas .viewport");
@@ -5654,10 +5878,179 @@ async function main() {
     );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
+    await page.fill("#graphSearch", "physics");
+    await page.waitForTimeout(200);
+    const mapFindHit = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          off: el.classList.contains("off"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        physics: read("b-physics"),
+        assets: read("b-assets"),
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "SG1b",
+      "Find lifts an off-path Map card out of path grey",
+      !!(mapFindHit.physics && mapFindHit.physics.hit && mapFindHit.physics.off && !mapFindHit.physics.dim && mapFindHit.physics.op >= 0.99) &&
+        !!(mapFindHit.assets && mapFindHit.assets.dim && !mapFindHit.assets.hit && mapFindHit.assets.op <= 0.22) &&
+        mapFindHit.xy === 0,
+      JSON.stringify(mapFindHit)
+    );
+    await shot(page, "map-find-hit.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+    // A member FQN is not a card name. The card that holds it must stay lit.
+    await page.fill("#graphSearch", "SimulationData");
+    await page.waitForTimeout(200);
+    const mapFindMember = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          chip: /SimulationData/.test((el.querySelector(".members") || {}).textContent || ""),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        render: read("b-render"),
+        assets: read("b-assets"),
+        hits: document.querySelectorAll(".bubble-card.hit").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "SG1c",
+      "Find on a member FQN keeps the holding Map card lit",
+      !!(mapFindMember.render && mapFindMember.render.chip && mapFindMember.render.hit && !mapFindMember.render.dim && mapFindMember.render.op >= 0.99) &&
+        !!(mapFindMember.assets && mapFindMember.assets.dim && !mapFindMember.assets.hit) &&
+        mapFindMember.hits >= 1 &&
+        mapFindMember.hits < mapFindMember.cards &&
+        mapFindMember.xy === 0,
+      JSON.stringify(mapFindMember)
+    );
+    await shot(page, "map-find-member.png");
+    // Member file path is not a card name either. Same hold-card rule as SG1c.
+    await page.fill("#graphSearch", "simulationdata.rs");
+    await page.waitForTimeout(200);
+    const mapFindFile = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        render: read("b-render"),
+        assets: read("b-assets"),
+        hits: document.querySelectorAll(".bubble-card.hit").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        q: (document.getElementById("graphSearch") || {}).value || "",
+      };
+    });
+    record(
+      "SG1e",
+      "Find on a member file keeps the holding Map card lit",
+      !!(mapFindFile.render && mapFindFile.render.hit && !mapFindFile.render.dim && mapFindFile.render.op >= 0.99) &&
+        !!(mapFindFile.assets && mapFindFile.assets.dim && !mapFindFile.assets.hit) &&
+        mapFindFile.hits >= 1 &&
+        mapFindFile.hits < mapFindFile.cards &&
+        mapFindFile.xy === 0 &&
+        /simulationdata\.rs/i.test(mapFindFile.q),
+      JSON.stringify(mapFindFile)
+    );
+    await shot(page, "map-find-file.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const box = document.getElementById("graphSearch");
       if (box && box.blur) box.blur();
     });
+    // Map community cards use data-bubble; Route must paint them via member membership.
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => window.__graphideRoute && window.__graphideRoute.open && window.__graphideRoute.ok,
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const mapRoute = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+      const on = cards.filter((el) => el.classList.contains("on-route"));
+      const dim = cards.filter((el) => el.classList.contains("route-dim"));
+      const onOp = on.map((el) => Number(getComputedStyle(el).opacity));
+      const dimOp = dim.map((el) => Number(getComputedStyle(el).opacity));
+      return {
+        cards: cards.length,
+        on: on.length,
+        dim: dim.length,
+        onIds: on.map((el) => el.getAttribute("data-bubble")),
+        dimIds: dim.map((el) => el.getAttribute("data-bubble")),
+        onMin: onOp.length ? Math.min(...onOp) : 0,
+        dimMax: dimOp.length ? Math.max(...dimOp) : 1,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "RT9",
+      "Map Route lights on-path community cards and dims the rest",
+      mapRoute.cards >= 8 &&
+        mapRoute.on >= 1 &&
+        mapRoute.dim >= 1 &&
+        mapRoute.on + mapRoute.dim === mapRoute.cards &&
+        mapRoute.onMin >= 0.99 &&
+        mapRoute.dimMax <= 0.28 &&
+        mapRoute.xy === 0,
+      JSON.stringify(mapRoute)
+    );
+    await shot(page, "map-route-cards.png");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Lens paints Map cards; lens-on / on-route beat .off grey.
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const mapLensOff = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+      const painted = cards.filter((el) => el.classList.contains("lens-on") || el.classList.contains("lens-dim"));
+      const offOn = cards.filter((el) => el.classList.contains("off") && el.classList.contains("lens-on"));
+      const offOnOp = offOn.map((el) => Number(getComputedStyle(el).opacity));
+      return {
+        cards: cards.length,
+        painted: painted.length,
+        offOn: offOn.length,
+        offOnMin: offOnOp.length ? Math.min(...offOnOp) : 1,
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "LN7",
+      "Map Lens paints community cards; lens-on beats off-path grey",
+      mapLensOff.cards >= 8 &&
+        mapLensOff.painted === mapLensOff.cards &&
+        mapLensOff.offOn >= 1 &&
+        mapLensOff.offOnMin >= 0.99 &&
+        mapLensOff.xy === 0,
+      JSON.stringify(mapLensOff)
+    );
+    await shot(page, "map-lens-cards.png");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
 
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
@@ -5745,8 +6138,98 @@ async function main() {
       JSON.stringify(sliceFindDim)
     );
     await shot(page, "slice-find-dim.png");
+    await page.fill("#graphSearch", "SimulationData");
+    await page.waitForTimeout(200);
+    const sliceFindHit = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          dim: el.classList.contains("dim"),
+          hit: el.classList.contains("hit"),
+          dist: el.getAttribute("data-slice-dist"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n12: read("n12"), n10: read("n10") };
+    });
+    record(
+      "SG4b",
+      "Find lifts an off-tree Slice hit out of distance grey",
+      !!(sliceFindHit.n12 && sliceFindHit.n12.hit && !sliceFindHit.n12.dim && sliceFindHit.n12.dist === "1" && sliceFindHit.n12.op >= 0.99) &&
+        !!(sliceFindHit.n10 && sliceFindHit.n10.dim && !sliceFindHit.n10.hit && sliceFindHit.n10.op <= 0.18),
+      JSON.stringify(sliceFindHit)
+    );
+    await shot(page, "slice-find-hit.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
+    // Route dim must beat distance grey too: an off-route ring node is not brighter than the off-route walk.
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const sliceRoute = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const dimmed = [...document.querySelectorAll("#sliceCanvas .vnode[data-id].route-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const walk = dimmed.filter((el) => el.getAttribute("data-lit") === "1");
+      const ring = dimmed.filter((el) => /^[12]$/.test(el.getAttribute("data-slice-dist") || ""));
+      return {
+        ok: !!rec.ok,
+        walk: walk.length,
+        ring: ring.length,
+        walkMax: Math.max(0, ...walk.map(op)),
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "RT8",
+      "Slice Route dims the off-route grey ring as far as the off-route walk",
+      sliceRoute.ok &&
+        sliceRoute.walk >= 1 &&
+        sliceRoute.ring >= 1 &&
+        sliceRoute.walkMax <= 0.221 &&
+        sliceRoute.ringMax <= sliceRoute.walkMax + 0.001,
+      JSON.stringify(sliceRoute)
+    );
+    await shot(page, "slice-route-dim.png");
+    // R toggles the probe off. Escape would first close the source pane left open by the earlier selection.
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    // Same for Lens: a lens-dim ring node is not brighter than a lens-dim walk node.
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const sliceLens = await page.evaluate(() => {
+      const dimmed = [...document.querySelectorAll("#sliceCanvas .vnode[data-id].lens-dim")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const walk = dimmed.filter((el) => el.getAttribute("data-lit") === "1");
+      const ring = dimmed.filter((el) => /^[12]$/.test(el.getAttribute("data-slice-dist") || ""));
+      return {
+        open: !!(window.__graphideLens && window.__graphideLens.open),
+        walk: walk.length,
+        ring: ring.length,
+        walkMax: Math.max(0, ...walk.map(op)),
+        ringMax: Math.max(0, ...ring.map(op)),
+      };
+    });
+    record(
+      "LN6",
+      "Slice Lens dims the off-tree ring as far as the lit walk",
+      sliceLens.open &&
+        sliceLens.walk >= 1 &&
+        sliceLens.ring >= 1 &&
+        sliceLens.walkMax <= 0.281 &&
+        sliceLens.ringMax <= sliceLens.walkMax + 0.001,
+      JSON.stringify(sliceLens)
+    );
+    await shot(page, "slice-lens-dim.png");
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
@@ -5778,6 +6261,32 @@ async function main() {
       };
     });
     await shot(page, "slice-ego.png");
+    await page.fill("#graphSearch", "ToastContainer");
+    await page.waitForTimeout(200);
+    const sliceEgoFind = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#sliceCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          ego: el.classList.contains("ego"),
+          egoDim: el.classList.contains("ego-dim"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return { n10: read("n10"), n12: read("n12"), n13: read("n13") };
+    });
+    record(
+      "SG5",
+      "Find hit outside the Ego neighborhood stays lit; misses stay dim",
+      !!(sliceEgoFind.n10 && sliceEgoFind.n10.hit && sliceEgoFind.n10.egoDim && sliceEgoFind.n10.op >= 0.99) &&
+        !!(sliceEgoFind.n12 && sliceEgoFind.n12.dim && sliceEgoFind.n12.ego && !sliceEgoFind.n12.hit && sliceEgoFind.n12.op <= 0.18) &&
+        !!(sliceEgoFind.n13 && sliceEgoFind.n13.egoDim && sliceEgoFind.n13.dim && sliceEgoFind.n13.op <= 0.12),
+      JSON.stringify(sliceEgoFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
     await page.evaluate(() => {
       const hops = document.getElementById("egoHops");
       if (hops) {
@@ -6096,6 +6605,61 @@ async function main() {
       askAns.log.slice(0, 220)
     );
     record("A3", "Ask does not post a stamp", askAns.stampPosts === 0, "stampPosts=" + askAns.stampPosts);
+    // After clicking Ask, typing the next question goes into the field, not into desk shortcuts (s = stamp, x = skip…).
+    const beforeRetype = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.fill("#llmAsk", "What is the coverage?");
+    await page.click("#llmSend");
+    await page.keyboard.type("sx");
+    const askRetype = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      const ask = document.getElementById("llmAsk");
+      const out = {
+        value: ask ? ask.value : null,
+        focused: document.activeElement && document.activeElement.id,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+      if (ask) ask.value = "";
+      return out;
+    }, beforeRetype);
+    record(
+      "A3c",
+      "After Ask, focus returns to #llmAsk so the next question does not fire S / X",
+      askRetype.value === "sx" && askRetype.stampPosts === 0 && askRetype.skipPosts === 0,
+      JSON.stringify(askRetype)
+    );
+    // Enter that commits an IME candidate (Cantonese / Japanese / Korean input) is not a send.
+    const askIme = await page.evaluate(() => {
+      const before = (window.__vscodePosts || []).length;
+      const ask = document.getElementById("llmAsk");
+      const prompt = document.getElementById("prompt");
+      const enter = (el) =>
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true }));
+      const promptWas = prompt ? prompt.value : "";
+      if (ask) {
+        ask.value = "這條路徑";
+        enter(ask);
+      }
+      if (prompt) {
+        prompt.value = "boot=SimulationData";
+        enter(prompt);
+      }
+      const posts = (window.__vscodePosts || []).slice(before);
+      const out = {
+        askValue: ask ? ask.value : null,
+        askPosts: posts.filter((m) => m && m.type === "llmAsk").length,
+        reviewPosts: posts.filter((m) => m && m.type === "review").length,
+      };
+      if (ask) ask.value = "";
+      if (prompt) prompt.value = promptWas;
+      return out;
+    });
+    record(
+      "A3b",
+      "IME-composing Enter in Ask / #prompt does not send the question or start a review",
+      askIme.askValue === "這條路徑" && askIme.askPosts === 0 && askIme.reviewPosts === 0,
+      JSON.stringify(askIme)
+    );
 
     await shot(page, "ask.png");
 
@@ -6273,7 +6837,508 @@ async function main() {
       () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
     );
     record("K5", "Escape closes #keysPane", keysClosedEsc, "");
+    // ? toggles: open then close without Escape / #keysClose (chrome must not swallow the second ?).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysToggled = await page.evaluate(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden)
+    );
+    record("K17", "Second ? toggles #keysPane closed (chrome does not swallow ?)", keysToggled, "");
+    // Opening Keys must close Ask (same exclusive chrome as Export).
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysClosedAsk = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+    }));
+    record(
+      "K18",
+      "Opening Keys closes Ask (exclusive chrome)",
+      keysClosedAsk.keysOpen && !keysClosedAsk.askOpen,
+      JSON.stringify(keysClosedAsk)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderKeys = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    });
+    record(
+      "K19",
+      "Opening Keys hides the hover tip (no tip under chrome)",
+      tipUnderKeys.keysOpen && tipUnderKeys.tipHidden,
+      JSON.stringify(tipUnderKeys)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Same tip hide under Export.
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderExport = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      };
+    });
+    record(
+      "K19b",
+      "Opening Export hides the hover tip (no tip under chrome)",
+      tipUnderExport.exportOpen && tipUnderExport.tipHidden,
+      JSON.stringify(tipUnderExport)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Same tip hide under Ask.
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderAsk = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      };
+    });
+    record(
+      "K19c",
+      "Opening Ask hides the hover tip (no tip under chrome)",
+      tipUnderAsk.askOpen && tipUnderAsk.tipHidden,
+      JSON.stringify(tipUnderAsk)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Tip under Find must hide (parity with K19–K19g).
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("/");
+    await page.waitForFunction(
+      () => document.activeElement && document.activeElement.id === "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderFind = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        findFocused: !!(document.activeElement && document.activeElement.id === "graphSearch"),
+      };
+    });
+    record(
+      "K19h",
+      "Focusing Find hides the hover tip (no tip under Find)",
+      tipUnderFind.findFocused && tipUnderFind.tipHidden,
+      JSON.stringify(tipUnderFind)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.activeElement || document.activeElement.id !== "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
+    // Toast under Find must clear (parity with K20–K20g).
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.keyboard.press("/");
+    await page.waitForFunction(
+      () => document.activeElement && document.activeElement.id === "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderFind = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        findFocused: !!(document.activeElement && document.activeElement.id === "graphSearch"),
+      };
+    });
+    record(
+      "K20h",
+      "Focusing Find clears the toast (no toast under Find)",
+      toastUnderFind.findFocused && toastUnderFind.toastGone,
+      JSON.stringify(toastUnderFind)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.activeElement || document.activeElement.id !== "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    // Toast under Keys must clear.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderKeys = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    });
+    record(
+      "K20",
+      "Opening Keys clears the toast (no toast under chrome)",
+      toastUnderKeys.keysOpen && toastUnderKeys.toastGone,
+      JSON.stringify(toastUnderKeys)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderExport = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      };
+    });
+    record(
+      "K20b",
+      "Opening Export clears the toast (no toast under chrome)",
+      toastUnderExport.exportOpen && toastUnderExport.toastGone,
+      JSON.stringify(toastUnderExport)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Same toast clear under Ask.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderAsk = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      };
+    });
+    record(
+      "K20c",
+      "Opening Ask clears the toast (no toast under chrome)",
+      toastUnderAsk.askOpen && toastUnderAsk.toastGone,
+      JSON.stringify(toastUnderAsk)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // already on map — Evidence suite continues
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
 
+    // Tip under Evidence must hide (same chrome exclusivity as Keys / Export / Ask).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+    });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderEvidence = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "K19d",
+      "Opening Evidence hides the hover tip (no tip under chrome)",
+      tipUnderEvidence.evidenceOpen && tipUnderEvidence.tipHidden,
+      JSON.stringify(tipUnderEvidence)
+    );
+    await page.click("#srcClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    // Toast under Evidence must clear (parity with K20 / K20b / K20c).
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderEvidence = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "K20d",
+      "Opening Evidence clears the toast (no toast under chrome)",
+      toastUnderEvidence.evidenceOpen && toastUnderEvidence.toastGone,
+      JSON.stringify(toastUnderEvidence)
+    );
+    // Tip under Present must hide (parity with K19 / K19b / K19c / K19d).
+    // Toast under Present must clear (parity with K20 / K20b / K20c / K20d).
+    // Present closes Evidence; reopen after exit so K5b still sees Evidence open.
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderPresent = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    record(
+      "K19e",
+      "Opening Present hides the hover tip (no tip under chrome)",
+      tipUnderPresent.presenting && tipUnderPresent.tipHidden,
+      JSON.stringify(tipUnderPresent)
+    );
+    const toastUnderPresent = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    record(
+      "K20e",
+      "Opening Present clears the toast (no toast under chrome)",
+      toastUnderPresent.presenting && toastUnderPresent.toastGone,
+      JSON.stringify(toastUnderPresent)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
       if (cell) cell.click();
@@ -6333,6 +7398,794 @@ async function main() {
       "hidden=" + afterKeys.keysHidden
     );
     assertNoStampDir("K7", "Keys step did not write .graphide/stamps/");
+
+    // Cmd / Ctrl chords belong to VS Code (save, cut, find, quick open…). They must not fire desk keys:
+    // a reflex Cmd+S must not post a human stamp. Ctrl+Alt (AltGr) still types / [ ] ? on EU layouts.
+    const chordKeys = await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const posts0 = (window.__vscodePosts || []).length;
+      const state = () => ({
+        night: document.documentElement.classList.contains("night"),
+        present: document.body.classList.contains("present"),
+        ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+        lens: !!(window.__graphideLens && window.__graphideLens.open),
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+      });
+      const before = state();
+      const chords = [
+        ["s", { ctrlKey: true }],
+        ["s", { metaKey: true }],
+        ["x", { ctrlKey: true }],
+        ["x", { metaKey: true }],
+        ["f", { metaKey: true }],
+        ["d", { ctrlKey: true }],
+        ["e", { metaKey: true }],
+        ["r", { ctrlKey: true }],
+        ["l", { metaKey: true }],
+        ["2", { ctrlKey: true }],
+      ];
+      chords.forEach(([key, mods]) =>
+        document.dispatchEvent(new KeyboardEvent("keydown", Object.assign({ key, bubbles: true, cancelable: true }, mods)))
+      );
+      const after = state();
+      const posts = (window.__vscodePosts || []).slice(posts0);
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "/", ctrlKey: true, altKey: true, bubbles: true, cancelable: true })
+      );
+      const altGrFind = document.activeElement === document.getElementById("graphSearch");
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        changed: Object.keys(before).filter((k) => before[k] !== after[k]),
+        altGrFind,
+      };
+    });
+    record(
+      "K8",
+      "Cmd / Ctrl chords (Cmd+S, Ctrl+X, Cmd+F…) do not stamp, skip or toggle desk modes",
+      chordKeys.stampPosts === 0 && chordKeys.skipPosts === 0 && chordKeys.changed.length === 0,
+      JSON.stringify(chordKeys)
+    );
+    record("K8b", "Ctrl+Alt (AltGr) / still opens Find", chordKeys.altGrFind, JSON.stringify({ altGrFind: chordKeys.altGrFind }));
+
+    // Holding a key must not flip toggles or stack actions: auto-repeat S / X / D / F / E / R / L / P / Backspace is ignored,
+    // while + / − (zoom) and [ ] (step) keep repeating.
+    const repeatKeys = await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const posts0 = (window.__vscodePosts || []).length;
+      const state = () => ({
+        night: document.documentElement.classList.contains("night"),
+        present: document.body.classList.contains("present"),
+        ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+        lens: !!(window.__graphideLens && window.__graphideLens.open),
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+      });
+      const before = state();
+      const zoom0 = (document.getElementById("zoomPct") || {}).textContent || "";
+      ["s", "x", "d", "f", "e", "r", "l", "p", "Backspace"].forEach((key) =>
+        document.dispatchEvent(new KeyboardEvent("keydown", { key, repeat: true, bubbles: true, cancelable: true }))
+      );
+      const after = state();
+      const posts = (window.__vscodePosts || []).slice(posts0);
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "+", repeat: true, bubbles: true, cancelable: true }));
+      const zoom1 = (document.getElementById("zoomPct") || {}).textContent || "";
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "0", bubbles: true, cancelable: true }));
+      return {
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        appearancePosts: posts.filter((m) => m && m.type === "setAppearance").length,
+        changed: Object.keys(before).filter((k) => before[k] !== after[k]),
+        zoomRepeats: zoom1 !== zoom0,
+        zoom0,
+        zoom1,
+      };
+    });
+    record(
+      "K10",
+      "Auto-repeat of toggle / action keys (S X D F E R L P Backspace) does nothing; + still repeats",
+      repeatKeys.stampPosts === 0 &&
+        repeatKeys.skipPosts === 0 &&
+        repeatKeys.appearancePosts === 0 &&
+        repeatKeys.changed.length === 0 &&
+        repeatKeys.zoomRepeats,
+      JSON.stringify(repeatKeys)
+    );
+
+    // A kind pill is a checkbox, not a text field: after clicking one, desk keys (R = PATH) still work.
+    await page.click("#kindFilters label.kind-Type");
+    await page.waitForTimeout(120);
+    await page.click("#kindFilters label.kind-Type");
+    await page.waitForTimeout(120);
+    const pillFocus = await page.evaluate(() => {
+      const a = document.activeElement;
+      return {
+        focus: a ? a.tagName.toLowerCase() + ":" + (a.getAttribute("type") || "") : "",
+        typeOn: !!(document.querySelector('#kindFilters input[data-kind="Type"]') || {}).checked,
+        routeBefore: !!(window.__graphideRoute && window.__graphideRoute.open),
+      };
+    });
+    await page.keyboard.press("r");
+    await page.waitForTimeout(200);
+    pillFocus.routeAfter = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+    if (pillFocus.routeAfter !== pillFocus.routeBefore) {
+      await page.keyboard.press("r");
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    record(
+      "K11",
+      "After clicking a kind pill (checkbox focus), R still toggles PATH",
+      pillFocus.focus === "input:checkbox" && pillFocus.typeOn && pillFocus.routeAfter !== pillFocus.routeBefore,
+      JSON.stringify(pillFocus)
+    );
+
+    // A focused <select> (Ego hops, Ask host) owns its typeahead keys: "2" picks 2-hop, it does not switch workspace; "s" never stamps.
+    const selPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const selWs0 = await page.evaluate(() =>
+      (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws")
+    );
+    // Ego hops only shows while Ego is on.
+    const egoWasOn = await page.evaluate(() => {
+      const btn = document.getElementById("egoBtn");
+      const on = !!(btn && btn.classList.contains("on"));
+      if (btn && !on) btn.click();
+      return on;
+    });
+    await page.waitForFunction(() => {
+      const s = document.getElementById("egoHops");
+      return !!(s && s.getBoundingClientRect().width > 0 && !s.disabled);
+    }, null, { timeout: 5000 });
+    await page.focus("#egoHops");
+    await page.keyboard.press("2");
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const selectKeys = await page.evaluate(
+      ({ before, ws0, egoWasOn }) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const sel = document.getElementById("egoHops");
+        const out = {
+          focused: document.activeElement === sel,
+          ws0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+          stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+          skipPosts: posts.filter((m) => m && m.type === "skip").length,
+          hops: sel ? sel.value : "",
+        };
+        if (sel) {
+          sel.value = "1";
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+          sel.blur();
+        }
+        const btn = document.getElementById("egoBtn");
+        if (!egoWasOn && btn && btn.classList.contains("on")) btn.click();
+        return out;
+      },
+      { before: selPosts0, ws0: selWs0, egoWasOn }
+    );
+    record(
+      "K9",
+      "A focused <select> keeps its keys: 2 / S / X do not switch workspace, stamp or skip",
+      selectKeys.focused &&
+        selectKeys.hops === "2" &&
+        selectKeys.ws === selectKeys.ws0 &&
+        selectKeys.stampPosts === 0 &&
+        selectKeys.skipPosts === 0,
+      JSON.stringify(selectKeys)
+    );
+    if (selectKeys.ws !== selectKeys.ws0) {
+      await page.click('#workspaces [data-ws="' + selectKeys.ws0 + '"]');
+      await page.waitForTimeout(300);
+    }
+
+    // Ask host <select> (#llmPreset) is the other typed select: same guard, no stamp / skip / workspace switch.
+    const askPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const askWs0 = await page.evaluate(() =>
+      (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws")
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("llmBtn");
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(() => {
+      const pane = document.getElementById("llmPane");
+      const sel = document.getElementById("llmPreset");
+      return !!(pane && !pane.hidden && sel);
+    }, null, { timeout: 5000 });
+    await page.focus("#llmPreset");
+    await page.keyboard.press("2");
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const askSelectKeys = await page.evaluate(
+      ({ before, ws0 }) => {
+        const posts = (window.__vscodePosts || []).slice(before);
+        const sel = document.getElementById("llmPreset");
+        const out = {
+          focused: document.activeElement === sel,
+          ws0,
+          ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+          stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+          skipPosts: posts.filter((m) => m && m.type === "skip").length,
+          askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        };
+        if (sel) sel.blur();
+        const close = document.getElementById("llmClose");
+        if (close) close.click();
+        return out;
+      },
+      { before: askPosts0, ws0: askWs0 }
+    );
+    record(
+      "K12",
+      "Focused Ask host <select> keeps 2 / S / X — no workspace switch, stamp or skip",
+      askSelectKeys.focused &&
+        askSelectKeys.askOpen &&
+        askSelectKeys.ws === askSelectKeys.ws0 &&
+        askSelectKeys.stampPosts === 0 &&
+        askSelectKeys.skipPosts === 0,
+      JSON.stringify(askSelectKeys)
+    );
+    if (askSelectKeys.ws !== askSelectKeys.ws0) {
+      await page.click('#workspaces [data-ws="' + askSelectKeys.ws0 + '"]');
+      await page.waitForTimeout(300);
+    }
+    await page.waitForFunction(() => {
+      const pane = document.getElementById("llmPane");
+      return !pane || pane.hidden;
+    }, null, { timeout: 5000 });
+
+    // Escape on focused Find blurs so desk keys work again; the query stays.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.fill("#graphSearch", "render");
+    await page.waitForTimeout(120);
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEsc = await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      return {
+        q: box ? box.value : "",
+        focused: document.activeElement === box,
+        active: document.activeElement ? document.activeElement.id || document.activeElement.tagName : "",
+      };
+    });
+    record(
+      "K13",
+      "Escape on focused Find blurs the field and keeps the query",
+      findEsc.q === "render" && !findEsc.focused,
+      JSON.stringify(findEsc)
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const findEscRoute = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+    record("K13b", "After Find Escape blur, desk R still toggles PATH", findEscRoute, "route=" + findEscRoute);
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Escape on Find while Route is open: blur Find and close Route in one key.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscRouteClose = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K13c",
+      "Escape on focused Find also closes an open Route",
+      findEscRouteClose.q === "render" && !findEscRouteClose.focused && !findEscRouteClose.route,
+      JSON.stringify(findEscRouteClose)
+    );
+    // Escape on Find while Evidence is open: blur Find and close Evidence in one key.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    await page.locator("#sliceCanvas .vnode[data-id]").first().click();
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 8000 }
+    );
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscEvidence = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+    }));
+    record(
+      "K13d",
+      "Escape on focused Find also closes Evidence",
+      findEscEvidence.q === "render" && !findEscEvidence.focused && !findEscEvidence.evidenceOpen,
+      JSON.stringify(findEscEvidence)
+    );
+    // Escape on Find while Lens is open: blur Find and close Lens in one key.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscLens = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K13e",
+      "Escape on focused Find also closes an open Lens",
+      findEscLens.q === "render" && !findEscLens.focused && !findEscLens.lens,
+      JSON.stringify(findEscLens)
+    );
+    // Escape on Find while Export menu is open: blur Find and close Export in one key.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.fill("#graphSearch", "render");
+    await page.focus("#graphSearch");
+    await page.keyboard.press("Escape");
+    const findEscExport = await page.evaluate(() => ({
+      q: ((document.getElementById("graphSearch") || {}).value || ""),
+      focused: document.activeElement === document.getElementById("graphSearch"),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K13f",
+      "Escape on focused Find also closes Export",
+      findEscExport.q === "render" && !findEscExport.focused && !findEscExport.exportOpen,
+      JSON.stringify(findEscExport)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(80);
+
+    // Backspace with Export open must close Export, not leave the Map altitude / Enter bubble.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+    const backBefore = await page.evaluate(() => ({
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+      ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+    }));
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backExport = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        exportOpen: !!(menu && !menu.hidden),
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        ws: (document.querySelector("#workspaces [data-ws].on") || { getAttribute: () => "" }).getAttribute("data-ws"),
+        before,
+      };
+    }, backBefore);
+    record(
+      "K14",
+      "Backspace closes Export without leaving Map community LOD",
+      !backExport.exportOpen &&
+        backExport.ws === backBefore.ws &&
+        backExport.cards === backBefore.cards &&
+        backExport.xy === 0,
+      JSON.stringify(backExport)
+    );
+    // Same for Route: Backspace closes PATH, stack stays.
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backRoute = await page.evaluate(() => ({
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14b",
+      "Backspace closes Route without leaving Map community LOD",
+      !backRoute.route && backRoute.cards >= 8 && backRoute.xy === 0,
+      JSON.stringify(backRoute)
+    );
+    // Enter bubble + Export: Backspace closes Export and stays inside the bubble (does not pop to Map).
+    await page.click('.bubble-card[data-bubble="b-render"]');
+    await page.waitForSelector("#enterCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backEnter = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      enter: document.querySelectorAll("#enterCanvas .vnode[data-id]").length,
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll("#enterCanvas .react-flow__node, #enterCanvas .vnode").length,
+    }));
+    record(
+      "K14c",
+      "Backspace closes Export inside Enter without popping to Map",
+      !backEnter.exportOpen && backEnter.enter >= 2 && backEnter.cards === 0,
+      JSON.stringify(backEnter)
+    );
+    await page.keyboard.press("Backspace");
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(150);
+
+    // Keys open: Backspace closes Keys, stays on Map.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backKeys = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14d",
+      "Backspace closes Keys without leaving Map community LOD",
+      !backKeys.keysOpen && backKeys.cards >= 8 && backKeys.xy === 0,
+      JSON.stringify(backKeys)
+    );
+    // Ask open: Backspace closes Ask, stays on Map.
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backAsk = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14e",
+      "Backspace closes Ask without leaving Map community LOD",
+      !backAsk.askOpen && backAsk.cards >= 8 && backAsk.xy === 0,
+      JSON.stringify(backAsk)
+    );
+    // Evidence open on Slice: Backspace closes Evidence, stays on Slice (does not goBack).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    await page.locator("#sliceCanvas .vnode[data-id]").first().click();
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 8000 }
+    );
+    const evBefore = await page.evaluate(() => document.querySelectorAll("#sliceCanvas .vnode[data-id]").length);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backEv = await page.evaluate((n) => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      nodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      before: n,
+      cards: document.querySelectorAll(".bubble-card").length,
+    }), evBefore);
+    record(
+      "K14f",
+      "Backspace closes Evidence without leaving Slice",
+      !backEv.evidenceOpen && backEv.nodes === backEv.before && backEv.cards === 0,
+      JSON.stringify(backEv)
+    );
+    // Lens + Present on Map
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backLens = await page.evaluate(() => ({
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14g",
+      "Backspace closes Lens without leaving Map community LOD",
+      !backLens.lens && backLens.cards >= 8 && backLens.xy === 0,
+      JSON.stringify(backLens)
+    );
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.body.classList.contains("present"), null, { timeout: 5000 });
+    // Keys on stage: Backspace closes Keys first; Present stays (same stack as Escape).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backKeysPresent = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14i",
+      "Backspace closes Keys on Present without exiting the stage",
+      !backKeysPresent.keysOpen &&
+        backKeysPresent.present &&
+        backKeysPresent.cards >= 8 &&
+        backKeysPresent.xy === 0,
+      JSON.stringify(backKeysPresent)
+    );
+    // Export on stage: Backspace closes Export first; Present stays.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("Backspace");
+    const backExportPresent = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14j",
+      "Backspace closes Export on Present without exiting the stage",
+      !backExportPresent.exportOpen &&
+        backExportPresent.present &&
+        backExportPresent.cards >= 8 &&
+        backExportPresent.xy === 0,
+      JSON.stringify(backExportPresent)
+    );
+    // Lens on stage: Backspace closes Lens first; Present stays.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backLensPresent = await page.evaluate(() => ({
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14k",
+      "Backspace closes Lens on Present without exiting the stage",
+      !backLensPresent.lens &&
+        backLensPresent.present &&
+        backLensPresent.cards >= 8 &&
+        backLensPresent.xy === 0,
+      JSON.stringify(backLensPresent)
+    );
+    // Route on stage: Backspace closes Route first; Present stays.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backRoutePresent = await page.evaluate(() => ({
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14l",
+      "Backspace closes Route on Present without exiting the stage",
+      !backRoutePresent.route &&
+        backRoutePresent.present &&
+        backRoutePresent.cards >= 8 &&
+        backRoutePresent.xy === 0,
+      JSON.stringify(backRoutePresent)
+    );
+    await page.keyboard.press("Backspace");
+    const backPresent = await page.evaluate(() => ({
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14h",
+      "Backspace exits Present without leaving Map community LOD",
+      !backPresent.present && backPresent.cards >= 8 && backPresent.xy === 0,
+      JSON.stringify(backPresent)
+    );
+
+    // Export open: S / X / R must not stamp, skip, or open PATH.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const chromePosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    await page.keyboard.press("r");
+    const chromeKeys = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      };
+    }, chromePosts0);
+    record(
+      "K15",
+      "Open Export blocks desk S / X / R (no stamp, skip, or PATH)",
+      chromeKeys.exportOpen &&
+        chromeKeys.stampPosts === 0 &&
+        chromeKeys.skipPosts === 0 &&
+        !chromeKeys.route,
+      JSON.stringify(chromeKeys)
+    );
+    await page.keyboard.press("Backspace");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Keys sheet open: same — S must not stamp.
+    const keysPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const keysBlock = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, keysPosts0);
+    record(
+      "K15b",
+      "Open Keys sheet blocks desk S / X (no stamp or skip)",
+      keysBlock.keysOpen && keysBlock.stampPosts === 0 && keysBlock.skipPosts === 0,
+      JSON.stringify(keysBlock)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Ask open (field not focused): S / X must not stamp / skip.
+    const askBlockPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    await page.keyboard.press("x");
+    const askBlock = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+      };
+    }, askBlockPosts0);
+    record(
+      "K15c",
+      "Open Ask blocks desk S / X when the field is not focused",
+      askBlock.askOpen && askBlock.stampPosts === 0 && askBlock.skipPosts === 0,
+      JSON.stringify(askBlock)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+
+    // Escape on focused #prompt blurs so desk keys work; value stays.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    const promptEl = await page.$("#prompt");
+    if (promptEl) {
+      await page.fill("#prompt", "name=hit,hit");
+      await page.focus("#prompt");
+      await page.keyboard.press("Escape");
+      const promptEsc = await page.evaluate(() => {
+        const box = document.getElementById("prompt");
+        return {
+          q: box ? box.value : "",
+          focused: document.activeElement === box,
+        };
+      });
+      record(
+        "K16",
+        "Escape on focused #prompt blurs the field and keeps the value",
+        promptEsc.q === "name=hit,hit" && !promptEsc.focused,
+        JSON.stringify(promptEsc)
+      );
+      await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+      await page.keyboard.press("r");
+      await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+      const promptEscRoute = await page.evaluate(() => !!(window.__graphideRoute && window.__graphideRoute.open));
+      record("K16b", "After #prompt Escape blur, desk R still toggles PATH", promptEscRoute, "route=" + promptEscRoute);
+      await page.keyboard.press("r");
+      await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    } else {
+      record("K16", "Escape on focused #prompt blurs the field and keeps the value", false, "no #prompt");
+      record("K16b", "After #prompt Escape blur, desk R still toggles PATH", false, "no #prompt");
+    }
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
@@ -6700,7 +8553,8 @@ async function main() {
     );
     const stripProbe = await page.evaluate(() => {
       const box = document.createElement("div");
-      box.innerHTML = '<i class="dim on focus selected ego-dim" data-delta-review-current="1"></i>';
+      box.innerHTML =
+        '<i class="dim hit on focus selected ego-dim ego route-dim on-route on-route-hot lens-dim lens-on away hot flowing on-path now past ahead here walk dragging panning" data-delta-review-current="1"></i>';
       if (typeof stripExportViewerState === "function") stripExportViewerState(box);
       const i = box.querySelector("i");
       return {
@@ -6710,7 +8564,7 @@ async function main() {
     });
     record(
       "X6",
-      "Canonical export strips focus / play / search classes",
+      "Canonical export strips focus / play / search / Route / Lens / away classes",
       stripProbe.cls === "" && !stripProbe.review,
       JSON.stringify(stripProbe)
     );
@@ -6719,6 +8573,310 @@ async function main() {
     );
     record("X7", "Export posts exportFile to the host stub (not stamp)", exportPosts.length >= 1, exportPosts.join(","));
     assertNoStampDir("X8", "Export step did not write .graphide/stamps/");
+
+    // Find is viewer state. A live .hit must not reach the exported diagram.
+    await page.fill("#graphSearch", "physics");
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportFind = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const cards = [...text.matchAll(/class="(bubble-card[^"]*)"[^>]*data-bubble="([^"]+)"/g)].map((m) => ({ id: m[2], cls: m[1] }));
+      const physics = cards.find((c) => c.id === "b-physics");
+      return {
+        liveHit: [...document.querySelectorAll(".bubble-card.hit")].map((el) => el.getAttribute("data-bubble")),
+        cards: cards.length,
+        physics: physics ? physics.cls : "",
+        hit: cards.filter((c) => /\bhit\b/.test(c.cls)).map((c) => c.id),
+        dim: cards.filter((c) => /\bdim\b/.test(c.cls)).map((c) => c.id),
+      };
+    });
+    record(
+      "X6b",
+      "Export SVG after Find carries no .hit / .dim on Map cards",
+      exportFind.liveHit.indexOf("b-physics") >= 0 &&
+        exportFind.cards >= 8 &&
+        /\bbubble-card\b/.test(exportFind.physics) &&
+        exportFind.hit.length === 0 &&
+        exportFind.dim.length === 0,
+      JSON.stringify(exportFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+
+    // Route / Lens are viewer state too. A live .route-dim / .lens-on must not reach the exported diagram.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportRoute = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      // Stylesheet rules mention route-dim; only element class attrs are viewer state.
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      const live = {
+        routeDim: document.querySelectorAll("#sliceCanvas .vnode.route-dim").length,
+        onRoute: document.querySelectorAll("#sliceCanvas .vnode.on-route").length,
+      };
+      return {
+        live,
+        routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
+        onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
+        lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
+        lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6c",
+      "Export SVG after Route carries no .route-dim / .on-route on Slice nodes",
+      exportRoute.live.routeDim >= 1 &&
+        exportRoute.live.onRoute >= 1 &&
+        exportRoute.routeDim === 0 &&
+        exportRoute.onRoute === 0 &&
+        exportRoute.lensDim === 0 &&
+        exportRoute.lensOn === 0,
+      JSON.stringify(exportRoute)
+    );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportLens = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      const live = {
+        lensDim: document.querySelectorAll("#sliceCanvas .vnode.lens-dim").length,
+        lensOn: document.querySelectorAll("#sliceCanvas .vnode.lens-on").length,
+      };
+      return {
+        live,
+        lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
+        lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
+        routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
+        onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6d",
+      "Export SVG after Lens carries no .lens-dim / .lens-on on Slice nodes",
+      exportLens.live.lensDim >= 1 &&
+        exportLens.live.lensOn >= 1 &&
+        exportLens.lensDim === 0 &&
+        exportLens.lensOn === 0 &&
+        exportLens.routeDim === 0 &&
+        exportLens.onRoute === 0,
+      JSON.stringify(exportLens)
+    );
+    await page.keyboard.press("l");
+    await page.waitForTimeout(120);
+
+    // Play-head / path highlight is viewer state: stamp .hot / .flowing / .on-path on the live canvas, then export must drop them.
+    await page.click('#workspaces [data-ws="sequence"]');
+    await page.waitForSelector("#seqCanvas .vnode[data-id], #seqCanvas .seq-part, .react-flow__node", { timeout: 10000 });
+    await page.waitForTimeout(220);
+    const livePlay = await page.evaluate(() => {
+      const root = document.getElementById("seqCanvas") || document.querySelector(".steiner-wrap");
+      const node =
+        document.querySelector("#seqCanvas .vnode[data-id]") ||
+        document.querySelector("#seqCanvas .react-flow__node") ||
+        document.querySelector("#seqCanvas .seq-part");
+      if (root) root.classList.add("flowing");
+      if (node) {
+        node.classList.add("hot");
+        node.classList.add("on-path");
+      }
+      return {
+        hot: document.querySelectorAll("#seqCanvas .hot, .vnode.hot").length,
+        flowing: document.querySelectorAll(".flowing").length,
+        onPath: document.querySelectorAll("#seqCanvas .on-path, .vnode.on-path").length,
+      };
+    });
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportPlay = await page.evaluate(() => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
+      return {
+        liveHot: document.querySelectorAll("#seqCanvas .hot, .vnode.hot").length,
+        liveFlowing: document.querySelectorAll(".flowing").length,
+        liveOnPath: document.querySelectorAll("#seqCanvas .on-path, .vnode.on-path").length,
+        hot: classes.filter((c) => /\bhot\b/.test(c)).length,
+        flowing: classes.filter((c) => /\bflowing\b/.test(c)).length,
+        onPath: classes.filter((c) => /\bon-path\b/.test(c)).length,
+      };
+    });
+    record(
+      "X6e",
+      "Export SVG strips stamped .hot / .flowing / .on-path play-head classes",
+      livePlay.hot >= 1 &&
+        livePlay.flowing >= 1 &&
+        livePlay.onPath >= 1 &&
+        exportPlay.liveHot >= 1 &&
+        exportPlay.hot === 0 &&
+        exportPlay.flowing === 0 &&
+        exportPlay.onPath === 0,
+      JSON.stringify({ livePlay, exportPlay })
+    );
+    await page.evaluate(() => {
+      document.querySelectorAll(".hot, .flowing, .on-path").forEach((el) => {
+        el.classList.remove("hot", "flowing", "on-path");
+      });
+    });
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
+    await page.waitForTimeout(120);
+    // Zoom parks off-stage cards with data-offview; export must strip it so camera-reset clone shows them.
+    for (let i = 0; i < 8; i++) {
+      const off = await page.evaluate(() => document.querySelectorAll('.bubble-card[data-offview="1"]').length);
+      if (off >= 1) break;
+      await page.evaluate(() => {
+        const btn = document.getElementById("zoomIn");
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(220);
+    }
+    let liveOff = await page.evaluate(() => {
+      const parked = [...document.querySelectorAll('.bubble-card[data-offview="1"]')].map((el) => el.getAttribute("data-bubble"));
+      return { off: parked.length, ids: parked, cards: document.querySelectorAll(".bubble-card").length };
+    });
+    if (liveOff.off < 1) {
+      const box = await page.locator("#canvas .stage").boundingBox();
+      if (box) {
+        await page.mouse.move(box.x + 18, box.y + 10);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 18 + 520, box.y + 10 + 300, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForTimeout(350);
+      }
+      liveOff = await page.evaluate(() => {
+        const parked = [...document.querySelectorAll('.bubble-card[data-offview="1"]')].map((el) => el.getAttribute("data-bubble"));
+        return { off: parked.length, ids: parked, cards: document.querySelectorAll(".bubble-card").length };
+      });
+    }
+    await page.evaluate(() => {
+      if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
+    });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportSvg");
+    await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
+      timeout: 20000,
+    });
+    const exportOff = await page.evaluate((live) => {
+      const url = window.__graphideLastExport.svg.dataUrl || "";
+      const bin = atob(url.slice(url.indexOf(",") + 1));
+      const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      // Style may still mention [data-offview] as a selector; only element attrs matter.
+      const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+      const cards = [...markup.matchAll(/data-bubble="([^"]+)"/g)].map((m) => m[1]);
+      const offAttrs = (markup.match(/\sdata-offview=/g) || []).length;
+      return {
+        liveOff: live.off,
+        liveIds: live.ids,
+        exportCards: cards.length,
+        offAttrs,
+        parkedStillInExport: live.ids.filter((id) => cards.indexOf(id) >= 0).length,
+      };
+    }, liveOff);
+    record(
+      "X6f",
+      "Export SVG strips data-offview so parked Map cards stay in the clone",
+      liveOff.off >= 1 &&
+        exportOff.offAttrs === 0 &&
+        exportOff.exportCards >= 8 &&
+        exportOff.parkedStillInExport === liveOff.off,
+      JSON.stringify({ liveOff, exportOff })
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("zoomFit");
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape"); // close export menu if still open
+    await page.waitForTimeout(80);
 
     const topoBefore = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".bubble-card")];
@@ -6856,6 +9014,265 @@ async function main() {
         stageStyle.n === topoBefore.n &&
         stageStyle.ids === topoBefore.ids,
       stageStyle.preset + " cards=" + stageStyle.n
+    );
+
+    // Present hides Skip — X must not skip; exit the stage first (S remaps to Style).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const presentSkip0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    await page.keyboard.press("x");
+    const presentSkip = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        present: document.body.classList.contains("present"),
+        skipPosts: posts.filter((m) => m && m.type === "skip").length,
+        stampPosts: posts.filter((m) => m && m.type === "stamp").length,
+      };
+    }, presentSkip0);
+    record(
+      "P6b",
+      "Present blocks desk X (no skip while stage hides Skip)",
+      presentSkip.present && presentSkip.skipPosts === 0 && presentSkip.stampPosts === 0,
+      JSON.stringify(presentSkip)
+    );
+    // Present hides Find (#graphBar) — / must not focus #graphSearch.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("/");
+    const presentFind = await page.evaluate(() => {
+      const bar = document.getElementById("graphBar");
+      const gs = document.getElementById("graphSearch");
+      return {
+        present: document.body.classList.contains("present"),
+        barHidden: !bar || getComputedStyle(bar).display === "none",
+        findFocused: !!(gs && document.activeElement === gs),
+        active: document.activeElement && (document.activeElement.id || document.activeElement.tagName),
+      };
+    });
+    record(
+      "P6c",
+      "Present blocks desk / (Find stays unfocused while graph bar is hidden)",
+      presentFind.present && presentFind.barHidden && !presentFind.findFocused,
+      JSON.stringify(presentFind)
+    );
+    // Present + Export: S still cycles Style (not blocked as desk stamp).
+    const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    const presentStyle = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+      };
+    }, presetBefore);
+    record(
+      "P6d",
+      "Present + Export: desk S still cycles Style",
+      presentStyle.present &&
+        presentStyle.exportOpen &&
+        presentStyle.preset !== presentStyle.before,
+      JSON.stringify(presentStyle)
+    );
+    const nightBefore = await page.evaluate(() => document.documentElement.classList.contains("night"));
+    await page.keyboard.press("d");
+    const presentTheme = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        night: document.documentElement.classList.contains("night"),
+      };
+    }, nightBefore);
+    record(
+      "P6e",
+      "Present + Export: desk D still toggles Day/Night",
+      presentTheme.present && presentTheme.exportOpen && presentTheme.night !== presentTheme.before,
+      JSON.stringify(presentTheme)
+    );
+    // Restore day so later suites stay day-safe.
+    if (presentTheme.night) {
+      await page.keyboard.press("d");
+      await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
+    }
+    const zoomBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("=");
+    await page.waitForTimeout(80);
+    const presentZoom = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, zoomBefore);
+    record(
+      "P6f",
+      "Present + Export: desk zoom (+/=) still scales the stage",
+      presentZoom.present &&
+        presentZoom.exportOpen &&
+        presentZoom.transform !== presentZoom.before,
+      JSON.stringify(presentZoom)
+    );
+    const fitBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("0");
+    await page.waitForTimeout(120);
+    const presentFit = await page.evaluate((before) => {
+      const menu = document.getElementById("exportMenu");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(menu && !menu.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, fitBefore);
+    record(
+      "P6j",
+      "Present + Export: desk Fit (0) still refits the stage",
+      presentFit.present &&
+        presentFit.exportOpen &&
+        presentFit.transform !== presentFit.before,
+      JSON.stringify(presentFit)
+    );
+    await page.keyboard.press("Escape"); // close Export
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Present + Keys: S still cycles Style (Keys must not steal stage Style).
+    const keysPresetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    const presentKeysStyle = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+      };
+    }, keysPresetBefore);
+    record(
+      "P6g",
+      "Present + Keys: desk S still cycles Style",
+      presentKeysStyle.present &&
+        presentKeysStyle.keysOpen &&
+        presentKeysStyle.preset !== presentKeysStyle.before,
+      JSON.stringify(presentKeysStyle)
+    );
+    const keysNightBefore = await page.evaluate(() => document.documentElement.classList.contains("night"));
+    await page.keyboard.press("d");
+    const presentKeysTheme = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        night: document.documentElement.classList.contains("night"),
+      };
+    }, keysNightBefore);
+    record(
+      "P6h",
+      "Present + Keys: desk D still toggles Day/Night",
+      presentKeysTheme.present &&
+        presentKeysTheme.keysOpen &&
+        presentKeysTheme.night !== presentKeysTheme.before,
+      JSON.stringify(presentKeysTheme)
+    );
+    // Restore day so later suites stay day-safe.
+    if (presentKeysTheme.night) {
+      await page.keyboard.press("d");
+      await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
+    }
+    const keysZoomBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("=");
+    await page.waitForTimeout(80);
+    const presentKeysZoom = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, keysZoomBefore);
+    record(
+      "P6i",
+      "Present + Keys: desk zoom (+/=) still scales the stage",
+      presentKeysZoom.present &&
+        presentKeysZoom.keysOpen &&
+        presentKeysZoom.transform !== presentKeysZoom.before,
+      JSON.stringify(presentKeysZoom)
+    );
+    const keysFitBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("0");
+    await page.waitForTimeout(120);
+    const presentKeysFit = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, keysFitBefore);
+    record(
+      "P6k",
+      "Present + Keys: desk Fit (0) still refits the stage",
+      presentKeysFit.present &&
+        presentKeysFit.keysOpen &&
+        presentKeysFit.transform !== presentKeysFit.before,
+      JSON.stringify(presentKeysFit)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
     );
 
     await page.keyboard.press("Escape");
@@ -7263,6 +9680,250 @@ async function main() {
     record("H3", "Editor button posts enterNode to the host stub", editor.posted, JSON.stringify(editor.posts.slice(-2)));
 
     await shot(page, "stamp-host.png");
+
+    // Off-program (.away) Slice nodes: Route / Lens dim must still separate them, not leave every node at 0.38.
+    const awayUrl = origin + HARNESS + "&away=1";
+    console.log("slice away " + awayUrl);
+    await page.goto(awayUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('#workspaces [data-ws="slice"]', { timeout: 15000 });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const readAway = (onCls, offCls) =>
+      page.evaluate(
+        ({ onCls, offCls }) => {
+          const lit = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+            (el) => el.getAttribute("data-slice-dist") === "0"
+          );
+          const op = (el) => Number(getComputedStyle(el).opacity);
+          const on = lit.filter((el) => el.classList.contains(onCls));
+          const off = lit.filter((el) => el.classList.contains(offCls));
+          return {
+            lit: lit.length,
+            away: lit.filter((el) => el.classList.contains("away")).length,
+            on: on.length,
+            off: off.length,
+            onMin: on.length ? Math.min(...on.map(op)) : 0,
+            offMax: Math.max(0, ...off.map(op)),
+          };
+        },
+        { onCls, offCls }
+      );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const awayRoute = await readAway("on-route", "route-dim");
+    record(
+      "RT8c",
+      "Slice Route dims an off-route off-program walk node below the on-route ones",
+      awayRoute.lit >= 2 &&
+        awayRoute.away === awayRoute.lit &&
+        awayRoute.on >= 1 &&
+        awayRoute.off >= 1 &&
+        awayRoute.offMax <= 0.221 &&
+        awayRoute.onMin > awayRoute.offMax,
+      JSON.stringify(awayRoute)
+    );
+    await shot(page, "slice-away-route.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.waitForTimeout(150);
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const awayLens = await readAway("lens-on", "lens-dim");
+    record(
+      "LN6b",
+      "Slice Lens dims an off-program non-match below the off-program matches",
+      awayLens.lit >= 2 &&
+        awayLens.away === awayLens.lit &&
+        awayLens.on >= 1 &&
+        awayLens.off >= 1 &&
+        awayLens.offMax <= 0.281 &&
+        awayLens.onMin > awayLens.offMax,
+      JSON.stringify(awayLens)
+    );
+    await page.keyboard.press("l");
+    await page.waitForTimeout(150);
+
+    // Find on an all-away Slice: a hit stays lit; a miss stays Find-dim (not the 0.38 away floor).
+    const awayFindQ = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+        (el) => el.getAttribute("data-slice-dist") === "0"
+      );
+      const pick = nodes[0];
+      const fqn = (pick && (pick.getAttribute("data-fqn") || "")) || "";
+      const name = ((pick && pick.querySelector(".name")) || {}).textContent || "";
+      const tok = (fqn.split("::").pop() || name.trim() || "").trim();
+      return tok.length >= 3 ? tok : "zzzz-no-such-symbol";
+    });
+    await page.fill("#graphSearch", awayFindQ);
+    await page.waitForTimeout(220);
+    const awayFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")].filter(
+        (el) => el.getAttribute("data-slice-dist") === "0"
+      );
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hits = nodes.filter((el) => el.classList.contains("hit"));
+      const misses = nodes.filter((el) => el.classList.contains("dim") && !el.classList.contains("hit"));
+      return {
+        away: nodes.filter((el) => el.classList.contains("away")).length,
+        lit: nodes.length,
+        hits: hits.length,
+        misses: misses.length,
+        hitMin: hits.length ? Math.min(...hits.map(op)) : 0,
+        missMax: misses.length ? Math.max(...misses.map(op)) : 1,
+      };
+    });
+    record(
+      "SG6",
+      "Slice Find hit on an off-program walk stays lit; Find misses stay below the away floor",
+      awayFind.lit >= 2 &&
+        awayFind.away === awayFind.lit &&
+        awayFind.hits >= 1 &&
+        awayFind.misses >= 1 &&
+        awayFind.hitMin >= 0.99 &&
+        awayFind.missMax <= 0.18,
+      JSON.stringify(awayFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+
+    // Ego on Slice lifts its neighborhood to 1 (#sliceCanvas .vnode.ego). Route / Lens must still dim inside it.
+    await page.goto(origin + HARNESS, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('#workspaces [data-ws="slice"]', { timeout: 15000 });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    await page.click('#sliceCanvas .vnode[data-id="n1"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("e");
+    await page.waitForFunction(() => document.querySelectorAll("#sliceCanvas .vnode.ego").length >= 2, null, { timeout: 5000 });
+    const readEgo = (onCls, offCls, host = "#sliceCanvas") =>
+      page.evaluate(
+        ({ onCls, offCls, host }) => {
+          const ego = [...document.querySelectorAll(host + " .vnode[data-id].ego")];
+          const op = (el) => Number(getComputedStyle(el).opacity);
+          const on = ego.filter((el) => el.classList.contains(onCls));
+          const off = ego.filter((el) => el.classList.contains(offCls));
+          return {
+            ego: ego.length,
+            on: on.length,
+            off: off.length,
+            onMin: on.length ? Math.min(...on.map(op)) : 0,
+            offMax: Math.max(0, ...off.map(op)),
+          };
+        },
+        { onCls, offCls, host }
+      );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const egoRoute = await readEgo("on-route", "route-dim");
+    record(
+      "RT8d",
+      "Slice Route dims off-route nodes inside the Ego neighborhood",
+      egoRoute.on >= 1 && egoRoute.off >= 1 && egoRoute.offMax <= 0.221 && egoRoute.onMin > egoRoute.offMax,
+      JSON.stringify(egoRoute)
+    );
+    await shot(page, "slice-ego-route.png");
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const egoLens = await readEgo("lens-on", "lens-dim");
+    record(
+      "LN6c",
+      "Slice Lens dims non-matches inside the Ego neighborhood",
+      egoLens.on >= 1 && egoLens.off >= 1 && egoLens.offMax <= 0.281 && egoLens.onMin > egoLens.offMax,
+      JSON.stringify(egoLens)
+    );
+    await page.keyboard.press("l");
+    await page.keyboard.press("e");
+    await page.waitForTimeout(150);
+    // Same lift on Enter b-render: Ego on n0 lights n12; Route must still dim the off-route neighbor.
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('.bubble-card[data-bubble="b-render"]', { timeout: 8000 });
+    await page.click('.bubble-card[data-bubble="b-render"]');
+    await page.waitForSelector('#enterCanvas .vnode[data-id="n0"]', { timeout: 8000 });
+    await page.waitForTimeout(400);
+    await page.click('#enterCanvas .vnode[data-id="n0"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("e");
+    await page.waitForFunction(() => document.querySelectorAll("#enterCanvas .vnode.ego").length >= 2, null, { timeout: 5000 });
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterEgoRoute = await readEgo("on-route", "route-dim", "#enterCanvas");
+    record(
+      "RT8e",
+      "Enter Route dims off-route nodes inside the Ego neighborhood",
+      enterEgoRoute.on >= 1 && enterEgoRoute.off >= 1 && enterEgoRoute.offMax <= 0.221 && enterEgoRoute.onMin > enterEgoRoute.offMax,
+      JSON.stringify(enterEgoRoute)
+    );
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.waitForTimeout(200);
+    const enterEgoLens = await readEgo("lens-on", "lens-dim", "#enterCanvas");
+    record(
+      "LN6d",
+      "Enter Lens dims non-matches inside the Ego neighborhood",
+      enterEgoLens.on >= 1 && enterEgoLens.off >= 1 && enterEgoLens.offMax <= 0.281 && enterEgoLens.onMin > enterEgoLens.offMax,
+      JSON.stringify(enterEgoLens)
+    );
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
+    // Find hit outside Ego must stay lit; Ego neighbors that miss must stay Find-dim (Ego lift skips .dim).
+    const enterEgoFindQ = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const outside = nodes.find((el) => el.classList.contains("ego-dim"));
+      const fqn = (outside && (outside.getAttribute("data-fqn") || "")) || "";
+      const name = ((outside && outside.querySelector(".name")) || {}).textContent || "";
+      const tok = (fqn.split("::").pop() || name.trim() || "").trim();
+      return tok.length >= 3 ? tok : "zzzz-no-such-symbol";
+    });
+    await page.fill("#graphSearch", enterEgoFindQ);
+    await page.waitForTimeout(220);
+    const enterEgoFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hitOutside = nodes.filter((el) => el.classList.contains("hit") && el.classList.contains("ego-dim"));
+      const missInside = nodes.filter(
+        (el) => el.classList.contains("ego") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      const missOutside = nodes.filter(
+        (el) => el.classList.contains("ego-dim") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hitOutside: hitOutside.length,
+        hitOutsideMin: hitOutside.length ? Math.min(...hitOutside.map(op)) : 0,
+        missInside: missInside.length,
+        missInsideMax: missInside.length ? Math.max(...missInside.map(op)) : 1,
+        missOutside: missOutside.length,
+        missOutsideMax: missOutside.length ? Math.max(...missOutside.map(op)) : 1,
+      };
+    });
+    record(
+      "SG5b",
+      "Enter Find hit outside Ego stays lit; Ego misses stay Find-dim",
+      enterEgoFind.q === enterEgoFindQ &&
+        enterEgoFind.hitOutside >= 1 &&
+        enterEgoFind.hitOutsideMin >= 0.99 &&
+        enterEgoFind.missInside >= 1 &&
+        enterEgoFind.missInsideMax <= 0.18 &&
+        enterEgoFind.missOutsideMax <= 0.12,
+      JSON.stringify(enterEgoFind)
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(120);
+    await page.keyboard.press("e");
+    await page.waitForTimeout(150);
 
     const liveUrl = origin + LIVE_HARNESS;
     console.log("self-review " + liveUrl);
@@ -8959,6 +11620,49 @@ async function main() {
       lineageSearch.q === lineageSearchQ && (lineageSearch.hops < lineageHopsBefore || lineageSearch.dim >= 1 || lineageSearch.hit >= 1),
       JSON.stringify({ q: lineageSearchQ, before: lineageHopsBefore, ...lineageSearch })
     );
+    // Lineage is an Ego walk of the focus: Find hits stay lit; Ego neighbors that miss stay Find-dim (not full opacity).
+    const lineageEgoFind = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-id], #lineageCanvas .ego-node[data-id]")];
+      const op = (el) => Number(getComputedStyle(el).opacity);
+      const hits = nodes.filter((el) => el.classList.contains("hit"));
+      const missInside = nodes.filter(
+        (el) => el.classList.contains("ego") && el.classList.contains("dim") && !el.classList.contains("hit")
+      );
+      return {
+        ego: nodes.filter((el) => el.classList.contains("ego")).length,
+        hits: hits.length,
+        hitMin: hits.length ? Math.min(...hits.map(op)) : 0,
+        missInside: missInside.length,
+        missInsideMax: missInside.length ? Math.max(...missInside.map(op)) : 1,
+      };
+    });
+    record(
+      "SG5c",
+      "Lineage Find hits stay lit; Ego misses stay Find-dim",
+      lineageEgoFind.ego >= 1 &&
+        lineageEgoFind.hits >= 1 &&
+        lineageEgoFind.hitMin >= 0.99 &&
+        lineageEgoFind.missInside >= 1 &&
+        lineageEgoFind.missInsideMax <= 0.18,
+      JSON.stringify(lineageEgoFind)
+    );
+    const lineageEgoDimFloor = await page.evaluate(() => {
+      const el =
+        document.querySelector("#lineageCanvas .vnode[data-id]") ||
+        document.querySelector("#lineageCanvas .ego-node[data-id]");
+      if (!el) return { ok: false };
+      el.classList.add("ego-dim", "dim");
+      el.classList.remove("hit", "ego");
+      const op = Number(getComputedStyle(el).opacity);
+      el.classList.remove("ego-dim", "dim");
+      return { ok: true, op };
+    });
+    record(
+      "SG5d",
+      "Lineage ego-dim Find miss sits at the 0.12 floor (not Find-dim 0.18)",
+      lineageEgoDimFloor.ok && lineageEgoDimFloor.op <= 0.12,
+      JSON.stringify(lineageEgoDimFloor)
+    );
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(150);
     await page.evaluate(() => {
@@ -9108,9 +11812,52 @@ async function main() {
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
+    // Tip + toast under Route must clear (parity with K19–K19f / K20–K20f).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
     await page.keyboard.press("r");
     await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
     await page.waitForTimeout(200);
+    const tipUnderRoute = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      const rec = window.__graphideRoute || {};
+      return {
+        tipHidden: !tip || tip.hidden,
+        routeOpen: !!rec.open,
+      };
+    });
+    record(
+      "K19g",
+      "Opening Route hides the hover tip (no tip under chrome)",
+      tipUnderRoute.routeOpen && tipUnderRoute.tipHidden,
+      JSON.stringify(tipUnderRoute)
+    );
+    const toastUnderRoute = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      const rec = window.__graphideRoute || {};
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        routeOpen: !!rec.open,
+        routeOk: !!rec.ok,
+      };
+    });
+    record(
+      "K20g",
+      "Opening Route clears the toast (no toast under chrome)",
+      toastUnderRoute.routeOpen && toastUnderRoute.toastGone,
+      JSON.stringify(toastUnderRoute)
+    );
     const routeDesk = await page.evaluate(() => {
       const rec = window.__graphideRoute || {};
       const hops = rec.hops || [];
@@ -9181,9 +11928,51 @@ async function main() {
     await shot(page, "route.png");
     assertNoStampDir("RT7", "Route step did not write .graphide/stamps/");
 
+    // Tip + toast under Lens must clear (parity with K19–K19e / K20–K20e).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
     await page.keyboard.press("l");
     await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
     await page.waitForTimeout(200);
+    const tipUnderLens = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      const rec = window.__graphideLens || {};
+      return {
+        tipHidden: !tip || tip.hidden,
+        lensOpen: !!rec.open,
+      };
+    });
+    record(
+      "K19f",
+      "Opening Lens hides the hover tip (no tip under chrome)",
+      tipUnderLens.lensOpen && tipUnderLens.tipHidden,
+      JSON.stringify(tipUnderLens)
+    );
+    const toastUnderLens = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      const rec = window.__graphideLens || {};
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        lensOpen: !!rec.open,
+      };
+    });
+    record(
+      "K20f",
+      "Opening Lens clears the toast (no toast under chrome)",
+      toastUnderLens.lensOpen && toastUnderLens.toastGone,
+      JSON.stringify(toastUnderLens)
+    );
     const lensDesk = await page.evaluate(() => {
       const rec = window.__graphideLens || {};
       const roles = rec.roles || [];
