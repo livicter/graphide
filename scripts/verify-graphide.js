@@ -6844,6 +6844,51 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderKeys = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    });
+    record(
+      "K19",
+      "Opening Keys hides the hover tip (no tip under chrome)",
+      tipUnderKeys.keysOpen && tipUnderKeys.tipHidden,
+      JSON.stringify(tipUnderKeys)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 8000 });
 
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");

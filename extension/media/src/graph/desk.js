@@ -1243,6 +1243,7 @@ function setKeysPane(on) {
   if (on) {
     setExportMenu(false);
     if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+    if (typeof hideTip === "function") hideTip();
   }
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
@@ -1254,6 +1255,7 @@ function setExportMenu(on) {
   if (on) {
     setKeysPane(false);
     if (llmPane && !llmPane.hidden) setLlmPane(false);
+    if (typeof hideTip === "function") hideTip();
   }
   exportMenu.hidden = !on;
   exportMenu.classList.toggle("open", !!on);
@@ -9585,6 +9587,7 @@ function setLlmPane(on) {
   if (on) {
     setExportMenu(false);
     if (typeof setKeysPane === "function") setKeysPane(false);
+    if (typeof hideTip === "function") hideTip();
   }
   llmPane.hidden = !on;
   llmPane.classList.toggle("open", !!on);
