@@ -11,7 +11,7 @@ workspace and not an agent stamp.
   hide it. `L` is Lens. `/` is Find. Do not steal either.
 - Opening Ask hides the hover tip (`K19c`).
 - Opening Ask clears the toast (`K20c`).
-- Keys / Export close Ask when they open (`K18` / `K18b`) — exclusive chrome.
+- Keys / Export / Present close Ask when they open (`K18` / `K18b` / `K18g`) — exclusive chrome.
 - Opening Ask closes Keys (`K18c`), same exclusive chrome as Keys closing Ask (`K18`).
 - Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
 - Connect form (`#llmBaseUrl`, `#llmModel`, `#llmKey`, `#llmSave`) posts
@@ -73,6 +73,7 @@ Driver assertions:
   no `llmAsk` / `review` (`A3b`)
 - click `#llmSend`, type `sx`: text lands in `#llmAsk`, no stamp / skip
   post (`A3c`)
+- opening Present closes Ask (`K18g`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame
