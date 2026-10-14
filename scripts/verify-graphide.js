@@ -7436,6 +7436,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Keys must close Lens (setKeysPane exclusivity — Keys clears Lens chrome).
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysClosedLens = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K18q",
+      "Opening Keys closes Lens (exclusive chrome)",
+      keysClosedLens.keysOpen && !keysClosedLens.lensOpen,
+      JSON.stringify(keysClosedLens)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
