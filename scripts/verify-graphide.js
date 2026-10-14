@@ -11760,12 +11760,18 @@ async function main() {
     await shot(page, "route.png");
     assertNoStampDir("RT7", "Route step did not write .graphide/stamps/");
 
-    // Tip under Lens must hide (parity with K19–K19e).
+    // Tip + toast under Lens must clear (parity with K19–K19e / K20–K20e).
     await page.evaluate(() => {
       const tip = document.getElementById("tip");
       if (tip) {
         tip.hidden = false;
         tip.textContent = "forced tip";
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
       }
     });
     await page.keyboard.press("l");
@@ -11784,6 +11790,20 @@ async function main() {
       "Opening Lens hides the hover tip (no tip under chrome)",
       tipUnderLens.lensOpen && tipUnderLens.tipHidden,
       JSON.stringify(tipUnderLens)
+    );
+    const toastUnderLens = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      const rec = window.__graphideLens || {};
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        lensOpen: !!rec.open,
+      };
+    });
+    record(
+      "K20f",
+      "Opening Lens clears the toast (no toast under chrome)",
+      toastUnderLens.lensOpen && toastUnderLens.toastGone,
+      JSON.stringify(toastUnderLens)
     );
     const lensDesk = await page.evaluate(() => {
       const rec = window.__graphideLens || {};

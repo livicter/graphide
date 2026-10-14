@@ -23780,6 +23780,10 @@
       lensOpen = !!on2;
       if (lensOpen) {
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
         if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
       }
       syncProbeDock();
