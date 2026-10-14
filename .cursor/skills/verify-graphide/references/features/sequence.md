@@ -63,6 +63,7 @@ Driver assertions:
 - `#workspaces [data-ws="sequence"]` is on
 - `#seqParts .seq-part` length `> 1`
 - `#seqHops .seq-hop` length `>= 1` and hops are ordered (`data-seq-i`)
+- Find on a member file (`sub.rs`) dims bus.rs participants; a non-matching file drops hops (`SG8` / `SG8b`, `verification/sequence-find-file.png`)
 - `#seqCanvas .react-flow__node` length `> 1` (XYFlow participants, not raw IR)
 - some hop or participant text matches `subscribe` / `events` / `Subscribes`
 - `#seqPlay` / `#seqPrev` / `#seqNext` / `#seqOverview` / `#seqCanvas` exist

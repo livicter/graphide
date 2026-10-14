@@ -74,6 +74,7 @@ Driver assertions:
 - `#dfHops .df-hop` length `>= 1` and hops are ordered (`data-df-i`)
 - data-subscription hop 0 is Publishes `publish → events`; hop 1 is
   Subscribes `events → subscribe` (`verification/dataflow-order.png`)
+- Find on a member file (`sub.rs`) filters `#dfHops` and dims bus.rs nodes (`SG7`, `verification/dataflow-find-file.png`)
 - some hop or node text matches `subscribe` / `publish` / `events`
 - `#dfPlay` / `#dfPrev` / `#dfNext` / `#dfOverview` / `#dfCanvas` exist
 - `#dfCanvas .react-flow__node` length `> 1` and `<= 48`
