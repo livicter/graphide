@@ -20,6 +20,7 @@ slice. Not an agent-drawn lens JSON.
 - Stamp / skip stay human. Lens never writes `.graphide/stamps/`.
 - Opening Lens hides the hover tip (`K19f`) and clears the toast (`K20f`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present.
 - Opening Present closes Lens (`K18k`), same exclusive chrome as Present closing Ask / Keys / Export / Evidence.
+- Opening Ask closes Lens (`K18n`), same exclusive chrome as Present closing Lens (`K18k`).
 
 ## How to get to it (user POV)
 
@@ -54,6 +55,7 @@ Driver assertions:
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
 - opening Lens hides `#tip` (`K19f`) and clears `#toast` (`K20f`)
 - opening Present closes Lens (`K18k`)
+- opening Ask closes Lens (`K18n`)
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)
