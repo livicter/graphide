@@ -65,6 +65,9 @@ Driver assertions:
 
 ## Gotchas
 
+- Export strips `data-offview` (`X6f`) so the canonical clone keeps parked cards after camera reset.
+
+
 - Do not React-mount Map community LOD. Cards stay vanilla.
   `xy=0`. Off-view is park, not Enter.
 - Do not add `data-testid`. `.bubble-card`, `[data-bubble]`,
