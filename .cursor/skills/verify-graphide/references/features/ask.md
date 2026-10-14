@@ -14,6 +14,7 @@ workspace and not an agent stamp.
 - Keys / Export / Present close Ask when they open (`K18` / `K18b` / `K18g`) — exclusive chrome.
 - Opening Ask closes Keys (`K18c`), same exclusive chrome as Keys closing Ask (`K18`).
 - Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
+- Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Connect form (`#llmBaseUrl`, `#llmModel`, `#llmKey`, `#llmSave`) posts
   `{ type: "llmSave" }` to the host. CI never needs a real OpenAI key.
 - `#llmAsk` + `#llmSend` post `{ type: "llmAsk" }`. Without a configured
@@ -74,6 +75,7 @@ Driver assertions:
 - click `#llmSend`, type `sx`: text lands in `#llmAsk`, no stamp / skip
   post (`A3c`)
 - opening Present closes Ask (`K18g`)
+- opening Ask closes Evidence (`K18m`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame

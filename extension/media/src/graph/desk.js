@@ -9703,6 +9703,7 @@ function setLlmPane(on) {
   if (on) {
     setExportMenu(false);
     if (typeof setKeysPane === "function") setKeysPane(false);
+    if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
     if (typeof hideTip === "function") hideTip();
     if (toastEl) {
       toastEl.classList.remove("on");

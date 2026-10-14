@@ -16,6 +16,7 @@ Inspect a node or hop without covering the object rail.
   Escape on focused Find still closes Evidence after blurring Find (`K13d`).
 - Opening Evidence hides the hover tip (`K19d`) and clears the toast (`K20d`), same chrome exclusivity as Keys / Export / Ask.
 - Opening Present closes Evidence (`K18j`), same exclusive chrome as Present closing Ask / Keys / Export.
+- Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
@@ -49,6 +50,7 @@ Driver assertions:
 - opening Evidence hides `#tip` (`K19d`)
 - opening Evidence clears `#toast` (`K20d`)
 - opening Present closes Evidence (`K18j`)
+- opening Ask closes Evidence (`K18m`)
 - screenshot of the desk with Evidence open is not black
 
 `peekSource` always `vscode.postMessage({ type: "peekSource", id })`. The stub does not reply with `{ type: "source" }`. The webview still calls `showSource` from the in-memory node and `snapshot.snippets` — so Evidence works without a live VS Code host.
