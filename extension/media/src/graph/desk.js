@@ -4799,6 +4799,7 @@ function setRouteOpen(on) {
     stopRouteWalk();
     routeCursor = -1;
   } else {
+    if (typeof hideTip === "function") hideTip();
     resolveRoute();
     if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
   }

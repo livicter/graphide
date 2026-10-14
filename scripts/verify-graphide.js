@@ -11687,9 +11687,31 @@ async function main() {
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
+    // Tip under Route must hide (parity with K19–K19f).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+    });
     await page.keyboard.press("r");
     await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
     await page.waitForTimeout(200);
+    const tipUnderRoute = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      const rec = window.__graphideRoute || {};
+      return {
+        tipHidden: !tip || tip.hidden,
+        routeOpen: !!rec.open,
+      };
+    });
+    record(
+      "K19g",
+      "Opening Route hides the hover tip (no tip under chrome)",
+      tipUnderRoute.routeOpen && tipUnderRoute.tipHidden,
+      JSON.stringify(tipUnderRoute)
+    );
     const routeDesk = await page.evaluate(() => {
       const rec = window.__graphideRoute || {};
       const hops = rec.hops || [];

@@ -22,6 +22,7 @@ journey is finite.
 - Export may offer `#exportRouteShare` after a real route. Fail closed
   when unreachable. Canonical PNG/SVG still strip viewer state.
 - Stamp / skip stay human. Route never writes `.graphide/stamps/`.
+- Opening Route hides the hover tip (`K19g`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present / Lens.
 
 ## How to get to it (user POV)
 
@@ -52,6 +53,7 @@ Press `R` (or `?route=1`). `window.__graphideRoute` holds the path.
 Driver assertions:
 
 - `#pathBtn` is on and `#routeReceipt` is visible
+- opening Route hides `#tip` (`K19g`)
 - `window.__graphideRoute.ok` and `hops.length >= 1`
 - some hop is Subscribes subscribe → events
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)
