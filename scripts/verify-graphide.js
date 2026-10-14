@@ -6938,6 +6938,44 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Ask must close Keys (setLlmPane exclusivity — reverse of K18).
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const askClosedKeys = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18c",
+      "Opening Ask closes Keys (exclusive chrome)",
+      askClosedKeys.askOpen && !askClosedKeys.keysOpen,
+      JSON.stringify(askClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // close Ask
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
