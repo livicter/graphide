@@ -8516,6 +8516,30 @@ async function main() {
       await page.keyboard.press("d");
       await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
     }
+    const keysZoomBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("=");
+    await page.waitForTimeout(80);
+    const presentKeysZoom = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, keysZoomBefore);
+    record(
+      "P6i",
+      "Present + Keys: desk zoom (+/=) still scales the stage",
+      presentKeysZoom.present &&
+        presentKeysZoom.keysOpen &&
+        presentKeysZoom.transform !== presentKeysZoom.before,
+      JSON.stringify(presentKeysZoom)
+    );
     await page.keyboard.press("Escape"); // close Keys
     await page.waitForFunction(
       () => {

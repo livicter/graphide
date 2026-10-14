@@ -32,6 +32,7 @@ stay human — present and preset never write `.graphide/stamps/`.
 - While `body.present` with Export open, desk `+`/`=`/`-`/`0` still zoom (`P6f`).
 - While `body.present` with Keys open, desk `S` still cycles Style (`P6g`) — Keys must not steal Style.
 - While `body.present` with Keys open, desk `D` still toggles Day/Night (`P6h`).
+- While `body.present` with Keys open, desk `+`/`=`/`-`/`0` still zoom (`P6i`).
 
 ## How to get to it (user POV)
 
@@ -70,7 +71,7 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
-- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); Export open + `S`/`D`/zoom still work (`P6d`–`P6f`); Keys open + `S`/`D` still work (`P6g`–`P6h`)
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); Export/Keys open + `S`/`D`/zoom still work (`P6d`–`P6i`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
