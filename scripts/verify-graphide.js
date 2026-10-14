@@ -5919,6 +5919,40 @@ async function main() {
       JSON.stringify(mapFindMember)
     );
     await shot(page, "map-find-member.png");
+    // Member file path is not a card name either. Same hold-card rule as SG1c.
+    await page.fill("#graphSearch", "simulationdata.rs");
+    await page.waitForTimeout(200);
+    const mapFindFile = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector(".bubble-card[data-bubble='" + id + "']");
+        if (!el) return null;
+        return {
+          hit: el.classList.contains("hit"),
+          dim: el.classList.contains("dim"),
+          op: Number(getComputedStyle(el).opacity),
+        };
+      };
+      return {
+        render: read("b-render"),
+        assets: read("b-assets"),
+        hits: document.querySelectorAll(".bubble-card.hit").length,
+        cards: document.querySelectorAll(".bubble-card").length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        q: (document.getElementById("graphSearch") || {}).value || "",
+      };
+    });
+    record(
+      "SG1e",
+      "Find on a member file keeps the holding Map card lit",
+      !!(mapFindFile.render && mapFindFile.render.hit && !mapFindFile.render.dim && mapFindFile.render.op >= 0.99) &&
+        !!(mapFindFile.assets && mapFindFile.assets.dim && !mapFindFile.assets.hit) &&
+        mapFindFile.hits >= 1 &&
+        mapFindFile.hits < mapFindFile.cards &&
+        mapFindFile.xy === 0 &&
+        /simulationdata\.rs/i.test(mapFindFile.q),
+      JSON.stringify(mapFindFile)
+    );
+    await shot(page, "map-find-file.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(120);
     await page.evaluate(() => {
