@@ -7160,9 +7160,15 @@ async function main() {
       toastUnderEvidence.evidenceOpen && toastUnderEvidence.toastGone,
       JSON.stringify(toastUnderEvidence)
     );
+    // Tip under Present must hide (parity with K19 / K19b / K19c / K19d).
     // Toast under Present must clear (parity with K20 / K20b / K20c / K20d).
     // Present closes Evidence; reopen after exit so K5b still sees Evidence open.
     await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
       const toast = document.getElementById("toast");
       if (toast) {
         toast.hidden = false;
@@ -7175,6 +7181,19 @@ async function main() {
       () => !!(document.body && document.body.classList.contains("present")),
       null,
       { timeout: 5000 }
+    );
+    const tipUnderPresent = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    record(
+      "K19e",
+      "Opening Present hides the hover tip (no tip under chrome)",
+      tipUnderPresent.presenting && tipUnderPresent.tipHidden,
+      JSON.stringify(tipUnderPresent)
     );
     const toastUnderPresent = await page.evaluate(() => {
       const toast = document.getElementById("toast");
