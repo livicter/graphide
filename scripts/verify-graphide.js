@@ -11760,9 +11760,31 @@ async function main() {
     await shot(page, "route.png");
     assertNoStampDir("RT7", "Route step did not write .graphide/stamps/");
 
+    // Tip under Lens must hide (parity with K19–K19e).
+    await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      if (tip) {
+        tip.hidden = false;
+        tip.textContent = "forced tip";
+      }
+    });
     await page.keyboard.press("l");
     await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
     await page.waitForTimeout(200);
+    const tipUnderLens = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      const rec = window.__graphideLens || {};
+      return {
+        tipHidden: !tip || tip.hidden,
+        lensOpen: !!rec.open,
+      };
+    });
+    record(
+      "K19f",
+      "Opening Lens hides the hover tip (no tip under chrome)",
+      tipUnderLens.lensOpen && tipUnderLens.tipHidden,
+      JSON.stringify(tipUnderLens)
+    );
     const lensDesk = await page.evaluate(() => {
       const rec = window.__graphideLens || {};
       const roles = rec.roles || [];

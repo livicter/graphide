@@ -18,6 +18,7 @@ slice. Not an agent-drawn lens JSON.
   when that kind is selected — they stay filters, not a second finder.
 - Search stays `/` + `#graphSearch`. Do not rebuild Find.
 - Stamp / skip stay human. Lens never writes `.graphide/stamps/`.
+- Opening Lens hides the hover tip (`K19f`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present.
 
 ## How to get to it (user POV)
 
@@ -50,6 +51,7 @@ Driver assertions:
 - `#lensCompare` names Function · Endpoint
 - `.lens-on` length `>= 1` and `window.__graphideLens.hits >= 1`
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
+- opening Lens hides `#tip` (`K19f`)
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)
