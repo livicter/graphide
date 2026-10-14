@@ -4809,7 +4809,10 @@ function setRouteOpen(on) {
 
 function setLensOpen(on) {
   lensOpen = !!on;
-  if (lensOpen && (!lensRoles.length || lensRoles.length > 2)) lensRoles = ["Function", "Endpoint"];
+  if (lensOpen) {
+    if (typeof hideTip === "function") hideTip();
+    if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+  }
   syncProbeDock();
   if (lensOpen) fillLensReceipt();
   applyProbePaint();

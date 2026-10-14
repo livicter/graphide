@@ -23778,7 +23778,10 @@
     }
     function setLensOpen(on2) {
       lensOpen = !!on2;
-      if (lensOpen && (!lensRoles.length || lensRoles.length > 2)) lensRoles = ["Function", "Endpoint"];
+      if (lensOpen) {
+        if (typeof hideTip === "function") hideTip();
+        if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+      }
       syncProbeDock();
       if (lensOpen) fillLensReceipt();
       applyProbePaint();
