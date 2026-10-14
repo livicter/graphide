@@ -7400,6 +7400,26 @@ async function main() {
         backExportPresent.xy === 0,
       JSON.stringify(backExportPresent)
     );
+    // Lens on stage: Backspace closes Lens first; Present stays.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backLensPresent = await page.evaluate(() => ({
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14k",
+      "Backspace closes Lens on Present without exiting the stage",
+      !backLensPresent.lens &&
+        backLensPresent.present &&
+        backLensPresent.cards >= 8 &&
+        backLensPresent.xy === 0,
+      JSON.stringify(backLensPresent)
+    );
     await page.keyboard.press("Backspace");
     const backPresent = await page.evaluate(() => ({
       present: document.body.classList.contains("present"),
