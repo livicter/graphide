@@ -11451,6 +11451,63 @@ async function main() {
 
     await shot(page, "dataflow.png");
 
+    // Member file path is not an FQN token. Same Data-flow Find filter as FQN hits (file half of hop/node match).
+    // data-subscription mixes bus.rs (publish / events) with sub.rs (subscribe) so a file query can hit and dim.
+    const dfHopsBeforeFile = await page.evaluate(() => document.querySelectorAll("#dfHops .df-hop").length);
+    await page.fill("#graphSearch", "sub.rs");
+    await page.waitForTimeout(280);
+    const dfFindFile = await page.evaluate(() => {
+      const stage = [...document.querySelectorAll("#dfStages .df-node, #dfCanvas .vnode[data-id], #dfCanvas .df-node[data-id]")];
+      const read = (el) => ({
+        id: el.getAttribute("data-id") || "",
+        file: el.getAttribute("data-file") || "",
+        fqn: el.getAttribute("data-fqn") || "",
+        hit: el.classList.contains("hit"),
+        dim: el.classList.contains("dim"),
+        op: Number(getComputedStyle(el).opacity),
+      });
+      const rows = stage.map(read);
+      // Prefer canvas nodes when both stage + canvas are present (same ids).
+      const byId = new Map();
+      for (const r of rows) {
+        if (!r.id) continue;
+        const prev = byId.get(r.id);
+        if (!prev || (r.file && !prev.file)) byId.set(r.id, r);
+      }
+      const uniq = [...byId.values()];
+      const hits = uniq.filter((r) => r.hit);
+      const dims = uniq.filter((r) => r.dim && !r.hit);
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hops: document.querySelectorAll("#dfHops .df-hop").length,
+        hits: hits.length,
+        dims: dims.length,
+        hitFiles: hits.map((r) => r.file),
+        dimFiles: dims.map((r) => r.file),
+        hitMin: hits.length ? Math.min(...hits.map((r) => r.op)) : 0,
+        dimMax: dims.length ? Math.max(...dims.map((r) => r.op)) : 1,
+      };
+    });
+    record(
+      "SG7",
+      "Find on a member file filters Data-flow hops / dims off-query nodes",
+      /sub\.rs/i.test(dfFindFile.q) &&
+        dfFindFile.hits >= 1 &&
+        dfFindFile.hitMin >= 0.99 &&
+        dfFindFile.hitFiles.some((f) => /sub\.rs/i.test(f)) &&
+        dfFindFile.dims >= 1 &&
+        dfFindFile.dimMax <= 0.18 &&
+        dfFindFile.hops < dfHopsBeforeFile,
+      JSON.stringify({ before: dfHopsBeforeFile, ...dfFindFile })
+    );
+    await shot(page, "dataflow-find-file.png");
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     assertNoStampDir("F8", "Data-flow step did not write .graphide/stamps/");
 
     const lifecycleSnap = loadLifecycleSnap();

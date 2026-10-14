@@ -74,6 +74,8 @@ Driver assertions:
   off-query `.vnode`
 - Lineage (events focus): a member file (`sub.rs`) keeps subscribe `.hit`
   and dims bus.rs nodes; hops drop (`SG3b`)
+- Data-flow: a member file (`sub.rs`) keeps subscribe `.hit` and dims bus.rs
+  nodes; hops drop (`SG7`)
 - screenshot `verification/search.png` is not a black frame
 - Map altitude after Back is still `xy=0`
 - `.graphide/stamps/` is still empty
@@ -105,5 +107,7 @@ Driver assertions:
   file Find must lift the same off-tree hit as the FQN half (`SG4c`).
   Lineage hops must match `data-file` the same way nodes do — a member
   file Find filters `#lineageHops` and dims off-query nodes (`SG3b`).
+  Data-flow hops / stage nodes must match `file` / `data-file` the same
+  way — a member file Find filters `#dfHops` and dims off-query nodes (`SG7`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.

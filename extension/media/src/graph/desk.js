@@ -6794,11 +6794,26 @@ function renderDataflowBody() {
   const reading = dataflowOf(flow);
   const nodes = reading.nodes;
   const hops = reading.hops;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepN = nodes.filter((n) => hit(n.fqn) || hit(n.kind) || hit(n.role) || hit(n.end_role));
-    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind));
+  const dfQ = (graphFilter.q || "").toLowerCase();
+  const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
+  const dfNodeMatch = (n) =>
+    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
+  const dfHopMatch = (h) => {
+    if (!dfQ) return true;
+    const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+    const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+    return (
+      dfHit(h.from_fqn) ||
+      dfHit(h.to_fqn) ||
+      dfHit(h.kind) ||
+      dfHit(h.file) ||
+      dfHit(fromN && fromN.file) ||
+      dfHit(toN && toN.file)
+    );
+  };
+  if (dfQ) {
+    const keepN = nodes.filter(dfNodeMatch);
+    const keepH = hops.filter(dfHopMatch);
     if (!keepN.length && !keepH.length) {
       return '<div class="empty">No data-flow hops match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -6808,6 +6823,7 @@ function renderDataflowBody() {
   }
   if (dfCursor >= hops.length) dfCursor = hops.length - 1;
   const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+  const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => dfHopMatch(h));
   const review =
     '<div class="review-strip" id="dfReview">' +
     '<button type="button" class="review-step" id="dfOverview">Overview</button>' +
@@ -6831,10 +6847,13 @@ function renderDataflowBody() {
         .map((n) => {
           const on = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
           const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const match = dfNodeMatch(n);
           return (
             '<button type="button" class="df-node vnode kind-' +
             esc(n.kind || "Function") +
             (on ? " on" : "") +
+            (dfQ && match ? " hit" : "") +
+            (dfQ && !match ? " dim" : "") +
             '" data-id="' +
             esc(idVal(n.id)) +
             '" data-fqn="' +
@@ -6846,6 +6865,7 @@ function renderDataflowBody() {
             '"' +
             (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") +
             (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") +
+            (n.file ? ' data-file="' + esc(n.file) + '"' : "") +
             '><span class="name">' +
             esc(shortOf(n.fqn)) +
             '</span> <span class="meta">' +
@@ -6866,8 +6886,8 @@ function renderDataflowBody() {
       );
     })
     .join("");
-  const list = hops
-    .map((h, i) => {
+  const list = hopCards
+    .map(({ h, i }) => {
       return (
         '<article class="df-hop expl-card' +
         (i === dfCursor ? " on" : "") +
@@ -6922,6 +6942,7 @@ function dataflowCanvasProps() {
   return {
     nodes: reading.nodes.map((n) => {
       const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+      const paint = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
       return {
         id: idVal(n.id),
         fqn: n.fqn,
@@ -6930,6 +6951,9 @@ function dataflowCanvasProps() {
         role: n.role,
         endRole: n.end_role || "",
         channel: n.channel || "",
+        file: paint.file || n.file || "",
+        dim: paint.dim,
+        hit: paint.hit,
         ep,
       };
     }),
@@ -7001,6 +7025,7 @@ function paintDataflowWorkspace(title) {
   const host = document.getElementById("dfCanvas");
   if (host) renderDataflowCanvas(host, dataflowCanvasProps());
   else unmountReviewCanvas();
+  applyGraphFilter();
 }
 
 function bindDataflowPage() {

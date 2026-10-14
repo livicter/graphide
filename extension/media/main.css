@@ -1233,7 +1233,8 @@ svg.steiner .edge-hit {
 }
 .steiner-wrap .vnode.dim,
 #enterCanvas .vnode.dim:not(.ego-dim),
-#lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
+#lineageCanvas .vnode.dim:not(.ego-dim),
+#dfCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
 .steiner-wrap.play .vnode {
   animation: popIn 280ms ease-out forwards;
   animation-delay: calc(var(--d, 0) * 45ms + 80ms);
@@ -2374,10 +2375,14 @@ html.bright .route-hop {
 /* Find .dim beats distance grey. .ego is Ego-on only, so a selection does not lift the ring. Ego-dim stays darker than a miss. A .hit stays lit. */
 #enterCanvas .vnode.dim:not(.ego-dim),
 #sliceCanvas .vnode.dim:not(.ego-dim),
-#lineageCanvas .vnode.dim:not(.ego-dim) { opacity: 0.18; }
+#lineageCanvas .vnode.dim:not(.ego-dim),
+#dfCanvas .vnode.dim:not(.ego-dim),
+#dfStages .df-node.dim { opacity: 0.18; }
 #enterCanvas .vnode.hit,
 #sliceCanvas .vnode.hit,
-#lineageCanvas .vnode.hit { opacity: 1; }
+#lineageCanvas .vnode.hit,
+#dfCanvas .vnode.hit,
+#dfStages .df-node.hit { opacity: 1; }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Function { --c: var(--g-fn); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Type { --c: var(--g-ty); }
 :is(#seqCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #sliceCanvas, #lineageCanvas, #enterCanvas) .vnode.kind-Endpoint { --c: var(--g-ep); }

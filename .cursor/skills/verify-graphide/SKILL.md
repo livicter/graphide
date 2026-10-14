@@ -234,7 +234,9 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      Endpoint leaf dims (`SG1f`, `verification/enter-find-file.png`).
      On Lineage events focus, a member file (`sub.rs`) keeps the
      subscribe hit lit and dims bus.rs nodes; hops drop (`SG3b`,
-     `verification/lineage-find-file.png`)
+     `verification/lineage-find-file.png`). On Data-flow, a member
+     file (`sub.rs`) keeps subscribe `.hit` and dims bus.rs nodes;
+     hops drop (`SG7`, `verification/dataflow-find-file.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
