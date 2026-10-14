@@ -6887,6 +6887,47 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Same tip hide under Export.
+    await page.locator("#sliceCanvas .vnode[data-id]").first().hover();
+    await page.waitForFunction(
+      () => {
+        const tip = document.getElementById("tip");
+        return !!(tip && !tip.hidden && (tip.textContent || "").trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const tipUnderExport = await page.evaluate(() => {
+      const tip = document.getElementById("tip");
+      return {
+        tipHidden: !tip || tip.hidden,
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      };
+    });
+    record(
+      "K19b",
+      "Opening Export hides the hover tip (no tip under chrome)",
+      tipUnderExport.exportOpen && tipUnderExport.tipHidden,
+      JSON.stringify(tipUnderExport)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
 

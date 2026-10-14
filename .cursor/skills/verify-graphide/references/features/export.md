@@ -10,6 +10,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 
 - Header control `#exportBtn`. Opens `#exportMenu` (same popover chrome as
   `#keysPane`). `E` stays Ego (`#egoBtn`).
+- Opening Export hides the hover tip (`K19b`).
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
