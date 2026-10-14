@@ -7216,6 +7216,38 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Present must close Evidence (applyPresent exclusivity — stage clears Evidence chrome).
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    const presentClosedEvidence = await page.evaluate(() => ({
+      presenting: !!(document.body && document.body.classList.contains("present")),
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+    }));
+    record(
+      "K18j",
+      "Opening Present closes Evidence (exclusive chrome)",
+      presentClosedEvidence.presenting && !presentClosedEvidence.evidenceOpen,
+      JSON.stringify(presentClosedEvidence)
+    );
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
