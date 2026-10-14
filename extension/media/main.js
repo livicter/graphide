@@ -20133,6 +20133,10 @@
         e.preventDefault();
         if (isPresenting()) return;
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
         graphSearch.focus();
         graphSearch.select();
         return;
@@ -20210,6 +20214,10 @@
     if (graphSearch) {
       graphSearch.addEventListener("focus", () => {
         if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       });
       graphSearch.addEventListener("input", () => {
         graphFilter.q = graphSearch.value.trim();

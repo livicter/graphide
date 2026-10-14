@@ -7038,6 +7038,40 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Toast under Find must clear (parity with K20–K20g).
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.keyboard.press("/");
+    await page.waitForFunction(
+      () => document.activeElement && document.activeElement.id === "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderFind = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        findFocused: !!(document.activeElement && document.activeElement.id === "graphSearch"),
+      };
+    });
+    record(
+      "K20h",
+      "Focusing Find clears the toast (no toast under Find)",
+      toastUnderFind.findFocused && toastUnderFind.toastGone,
+      JSON.stringify(toastUnderFind)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.activeElement || document.activeElement.id !== "graphSearch",
+      null,
+      { timeout: 5000 }
+    );
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
     // Toast under Keys must clear.

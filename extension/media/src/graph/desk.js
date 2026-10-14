@@ -556,6 +556,10 @@ document.addEventListener("keydown", (e) => {
     // Present hides #graphBar / Find — exit the stage first.
     if (isPresenting()) return;
     if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
     graphSearch.focus();
     graphSearch.select();
     return;
@@ -633,6 +637,10 @@ if (srcEditor)
 if (graphSearch) {
   graphSearch.addEventListener("focus", () => {
     if (typeof hideTip === "function") hideTip();
+    if (toastEl) {
+      toastEl.classList.remove("on");
+      toastEl.hidden = true;
+    }
   });
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();

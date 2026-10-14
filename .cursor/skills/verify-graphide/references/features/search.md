@@ -9,7 +9,7 @@ the desk.
 
 - Header `#graphSearch`. `/` focuses and selects. Input writes
   `graphFilter.q` and calls `refreshExplorer`. Focusing Find hides the
-  hover tip (`K19h`), same chrome exclusivity as Keys / Export / Ask.
+  hover tip (`K19h`) and clears the toast (`K20h`), same chrome exclusivity as Keys / Export / Ask.
 - Map altitude: non-matching `.bubble-card` get `.dim`; matches get `.hit`.
   A card matches on its name or on a member's FQN / file
   (`bubbleMembersMatchQuery`). Hidden kinds do not count. Enter child
@@ -57,7 +57,7 @@ Type a token that hits one Lineage node or hop; others dim / drop from
 Driver assertions:
 
 - `#graphSearch` is present; `/` focuses it
-- focusing Find hides `#tip` (`K19h`)
+- focusing Find hides `#tip` (`K19h`) and clears `#toast` (`K20h`)
 - Map: `.bubble-card.dim` ≥ 1 for a partial community name
 - Map: a member FQN (`SimulationData`) keeps `b-render` `.hit`; `b-assets`
   dims (`SG1c`)
