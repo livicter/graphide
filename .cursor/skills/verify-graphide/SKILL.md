@@ -164,7 +164,20 @@ Run from the repo root. Every line must succeed before you claim the desk works.
    - Presentation / Style on the explorer Map: `#presetBtn` cycles, `F` /
      Escape enter and exit the stage
    - Route / Lens on the Sequence demo snap: `R` lights a derived path,
-     `L` highlights Function / Endpoint
+     `L` highlights Function / Endpoint. On the explorer Slice, `R`
+     dims the off-route grey ring to the off-route walk (≤ 0.22,
+     `RT8`, `verification/slice-route-dim.png`); `L` dims off-tree
+     non-matches to the lit non-matches (≤ 0.28, `LN6`,
+     `verification/slice-lens-dim.png`). On Enter `b-render`, `R`
+     drops the off-route grey ring to 0.18 instead of 0.56 / 0.40 /
+     0.28 (`RT8b`, `verification/enter-route-dim.png`). On
+     `?mode=explorer&away=1` (host-picked program owns no fixture file,
+     so every Slice node is `.away`), `R` / `L` still drop off-route /
+     non-match walk nodes below the 0.38 off-program fade (`RT8c`,
+     `LN6b`, `verification/slice-away-route.png`), and inside the Slice
+     Ego neighborhood (`RT8d`, `LN6c`, Find `SG5`,
+     `verification/slice-ego-route.png`) and the Enter Ego neighborhood
+     (`RT8e`, `LN6d`)
    - Enter-bubble on the explorer Map: click `.bubble-card` →
      `#enterCanvas .react-flow__node` (> 1, ≤24); the `b-render` community
      shows one lit `[data-shape="start"]` on `n0` and no `[data-shape="end"]`
@@ -200,16 +213,49 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      lit `n2` / `n4` (`data-dist` 2) at full opacity (`EG3d`,
      `verification/slice-select.png`). Off-tree neighbor `n12`
      (`data-slice-dist` 1) stays in distance grey at opacity 0.48
-     (`EG3e`, `verification/slice-select-grey.png`)
+     (`EG3e`, `verification/slice-select-grey.png`).
+     Find on off-tree `n12` (`SimulationData`) lifts that hit to
+     opacity 1 (`SG4b`, `verification/slice-find-hit.png`). A member
+     file (`simulationdata.rs`) lifts the same hit (`SG4c`,
+     `verification/slice-find-file.png`). With Ego
+     on, a hit outside the neighborhood (`n10`, `ToastContainer`)
+     stays at 1 instead of ego-dim 0.12 (`SG5`). On Map, an
+     off-path Find hit (`b-physics`, `.off`) paints at opacity 1
+     (`SG1b`, `verification/map-find-hit.png`). A member FQN
+     (`SimulationData`) keeps the card that holds it lit (`b-render`
+     `.hit`); cards without it dim (`SG1c`,
+     `verification/map-find-member.png`). A member file
+     (`simulationdata.rs`) keeps the same hold-card lit (`SG1e`,
+     `verification/map-find-file.png`). One level down, Enter
+     `b-physics` and Find `ScreenshotFormat_2000` (n2000): child
+     community `b-physics-b` stays `.hit` at opacity 1, `b-physics-a`
+     dims (`SG1d`, `verification/enter-find-member.png`). A member file
+     (`screenshotformat.rs`) keeps both holding children lit; the
+     Endpoint leaf dims (`SG1f`, `verification/enter-find-file.png`).
+     On Lineage events focus, a member file (`sub.rs`) keeps the
+     subscribe hit lit and dims bus.rs nodes; hops drop (`SG3b`,
+     `verification/lineage-find-file.png`). On Data-flow, a member
+     file (`sub.rs`) keeps subscribe `.hit` and dims bus.rs nodes;
+     hops drop (`SG7`, `verification/dataflow-find-file.png`). On Sequence,
+     a member file (`sub.rs`) keeps subscribe `.hit` and dims bus.rs
+     participants; a non-matching file drops hops (`SG8` / `SG8b`,
+     `verification/sequence-find-file.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;
      Type-only; restore; Map `xy=0`; `verification/kind-filters.png`
    - Ask: `#llmBtn` opens `#llmPane`; graph-only `localAsk` answers a
-     flow / hop / coverage without an LLM key; `#llmClose` / Escape close
+     flow / hop / coverage without an LLM key; `#llmClose` / Escape close;
+     IME-composing Enter sends nothing (`A3b`); after Ask, typing goes
+     back into `#llmAsk`, not desk keys (`A3c`)
    - Keys: `?` / `#keysBtn` opens `#keysPane`; sheet lists `/` find, `?`
      sheet, `S`/`X` stamp/skip, `E` ego, `F` present, `D` day/night;
-     `#keysClose` / Escape close
+     `#keysClose` / Escape close; Cmd / Ctrl chords (`Cmd+S`, `Ctrl+X`,
+     `Cmd+F`…) post no stamp / skip and toggle nothing (`K8`), Ctrl+Alt
+     `/` still opens Find (`K8b`); a focused `<select>` keeps `2` / `S` /
+     `X` (`K9`); auto-repeat of toggle / action keys is ignored while `+`
+     still repeats (`K10`); desk keys still work after clicking a kind
+     pill (`K11`)
    - Path walk: `P` / `#pathWalkBtn` walks Map start → features → end;
      `[` `]` step; `.walk` / `.here` on community chips/cards; not Route
      `#routePlay`
