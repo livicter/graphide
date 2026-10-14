@@ -8618,6 +8618,30 @@ async function main() {
         presentKeysZoom.transform !== presentKeysZoom.before,
       JSON.stringify(presentKeysZoom)
     );
+    const keysFitBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.keyboard.press("0");
+    await page.waitForTimeout(120);
+    const presentKeysFit = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+      };
+    }, keysFitBefore);
+    record(
+      "P6k",
+      "Present + Keys: desk Fit (0) still refits the stage",
+      presentKeysFit.present &&
+        presentKeysFit.keysOpen &&
+        presentKeysFit.transform !== presentKeysFit.before,
+      JSON.stringify(presentKeysFit)
+    );
     await page.keyboard.press("Escape"); // close Keys
     await page.waitForFunction(
       () => {
