@@ -51,6 +51,14 @@ Driver assertions:
 - `.lens-on` length `>= 1` and `window.__graphideLens.hits >= 1`
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
 - screenshot `verification/lens.png` is not a black frame
+- explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
+  ≤ the lit non-matches (≤ 0.28, `LN6`)
+- explorer Slice with `away=1`: `.lens-dim` beats the off-program
+  `.away` fade (0.38) — non-match walk ≤ 0.28 < matches (`LN6b`)
+- explorer Slice with Ego on `n1`: `.lens-dim` `.ego` neighbors ≤ 0.28 <
+  matches (`LN6c`)
+- explorer Enter `b-render` with Ego on `n0`: same for Lens (`LN6d`)
+- explorer Map community LOD: every card gets `.lens-on` / `.lens-dim`; `.lens-on` beats `.off` grey (`LN7`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
