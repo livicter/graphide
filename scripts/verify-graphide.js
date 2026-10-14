@@ -8461,6 +8461,46 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Present + Keys: S still cycles Style (Keys must not steal stage Style).
+    const keysPresetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("s");
+    const presentKeysStyle = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        preset: document.documentElement.getAttribute("data-preset") || "classic",
+      };
+    }, keysPresetBefore);
+    record(
+      "P6g",
+      "Present + Keys: desk S still cycles Style",
+      presentKeysStyle.present &&
+        presentKeysStyle.keysOpen &&
+        presentKeysStyle.preset !== presentKeysStyle.before,
+      JSON.stringify(presentKeysStyle)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
 
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });
