@@ -19937,6 +19937,7 @@
       if (typeof setExportMenu === "function") setExportMenu(false);
       if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
       if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+      if (typeof setLensOpen === "function") setLensOpen(false);
       if (toastEl) {
         toastEl.classList.remove("on");
         toastEl.hidden = true;

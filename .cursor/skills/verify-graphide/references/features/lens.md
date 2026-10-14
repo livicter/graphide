@@ -19,6 +19,7 @@ slice. Not an agent-drawn lens JSON.
 - Search stays `/` + `#graphSearch`. Do not rebuild Find.
 - Stamp / skip stay human. Lens never writes `.graphide/stamps/`.
 - Opening Lens hides the hover tip (`K19f`) and clears the toast (`K20f`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present.
+- Opening Present closes Lens (`K18k`), same exclusive chrome as Present closing Ask / Keys / Export / Evidence.
 
 ## How to get to it (user POV)
 
@@ -52,6 +53,7 @@ Driver assertions:
 - `.lens-on` length `>= 1` and `window.__graphideLens.hits >= 1`
 - every `.lens-on[data-kind]` is Function or Endpoint (no third kind)
 - opening Lens hides `#tip` (`K19f`) and clears `#toast` (`K20f`)
+- opening Present closes Lens (`K18k`)
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)
