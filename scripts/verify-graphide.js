@@ -7346,6 +7346,33 @@ async function main() {
     );
     await page.keyboard.press("f");
     await page.waitForFunction(() => document.body.classList.contains("present"), null, { timeout: 5000 });
+    // Keys on stage: Backspace closes Keys first; Present stays (same stack as Escape).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("Backspace");
+    const backKeysPresent = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14i",
+      "Backspace closes Keys on Present without exiting the stage",
+      !backKeysPresent.keysOpen &&
+        backKeysPresent.present &&
+        backKeysPresent.cards >= 8 &&
+        backKeysPresent.xy === 0,
+      JSON.stringify(backKeysPresent)
+    );
     await page.keyboard.press("Backspace");
     const backPresent = await page.evaluate(() => ({
       present: document.body.classList.contains("present"),
