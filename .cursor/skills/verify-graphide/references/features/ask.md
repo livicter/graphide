@@ -11,6 +11,7 @@ workspace and not an agent stamp.
   hide it. `L` is Lens. `/` is Find. Do not steal either.
 - Opening Ask hides the hover tip (`K19c`).
 - Opening Ask clears the toast (`K20c`).
+- Keys / Export close Ask when they open (`K18` / `K18b`) — exclusive chrome.
 - Connect form (`#llmBaseUrl`, `#llmModel`, `#llmKey`, `#llmSave`) posts
   `{ type: "llmSave" }` to the host. CI never needs a real OpenAI key.
 - `#llmAsk` + `#llmSend` post `{ type: "llmAsk" }`. Without a configured
