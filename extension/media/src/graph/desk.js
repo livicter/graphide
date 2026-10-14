@@ -3482,6 +3482,10 @@ function peekSource(id) {
 function revealSourcePane() {
   if (!sourcePane) return;
   if (typeof hideTip === "function") hideTip();
+  if (toastEl) {
+    toastEl.classList.remove("on");
+    toastEl.hidden = true;
+  }
   sourcePane.hidden = false;
   if (workspace) workspace.classList.add("has-source");
   refitChartSoon();

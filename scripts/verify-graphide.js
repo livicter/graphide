@@ -7123,6 +7123,43 @@ async function main() {
       tipUnderEvidence.evidenceOpen && tipUnderEvidence.tipHidden,
       JSON.stringify(tipUnderEvidence)
     );
+    await page.click("#srcClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    // Toast under Evidence must clear (parity with K20 / K20b / K20c).
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderEvidence = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "K20d",
+      "Opening Evidence clears the toast (no toast under chrome)",
+      toastUnderEvidence.evidenceOpen && toastUnderEvidence.toastGone,
+      JSON.stringify(toastUnderEvidence)
+    );
     await page.evaluate(() => {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
