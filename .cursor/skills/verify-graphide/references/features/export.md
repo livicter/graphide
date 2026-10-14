@@ -16,9 +16,11 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
   resolved.
 - Canonical clone of `#seqCanvas` / `#dfCanvas` / `#lcCanvas` /
   `#deltaCanvas` / `#canvas .stage` / `#canvas`. `stripExportViewerState`
-  removes focus, play head, search dim (`.on` `.dim` `.focus` `.selected`
-  `.ego-dim`). Camera transform is reset so the full diagram is contain-
-  fitted, not cropped.
+  removes focus, play head, search dim / hit, Ego, Route, Lens, and away
+  (`.on` `.dim` `.hit` `.focus` `.selected` `.ego` `.ego-dim` `.route-dim`
+  `.on-route` `.on-route-hot` `.lens-dim` `.lens-on` `.away` `.hot`
+  `.flowing` `.on-path` `.now` `.past` `.ahead` `.here` `.walk` `.dragging` `.panning`, and `data-offview`). Camera
+  transform is reset so the full diagram is contain-fitted, not cropped.
 - Filenames `graphide-<flow>.png` / `.svg` / `-share.png`. No
   valid / verified / checked claim.
 - Share Card is 1200×630, title `Graphide · <flow>`, diagram contain-fitted.
@@ -61,6 +63,10 @@ Driver assertions:
 - `verification/export-share.png` is 1200×630
 - filenames do not contain valid / verified / checked
 - `.graphide/stamps/` is still empty
+- Find `physics` on Map, then Export SVG: no Map card in the SVG keeps
+  `.hit` or `.dim` (`X6b`); after Route / Lens, no `.route-dim` /
+  `.on-route` / `.lens-dim` / `.lens-on` (`X6c`, `X6d`); after Play, no
+  `.hot` / `.flowing` / `.on-path` (`X6e`); after zoom/pan parks, no `data-offview` and parked cards remain (`X6f`)
 
 ## Gotchas
 
@@ -73,3 +79,6 @@ Driver assertions:
 - Do not vendor Archify's Node renderer. The clone is Graphide DOM.
 - Theme stays. The current visual preset (`data-preset`) stays. Play head,
   search query, focus, and Presentation Stage do not.
+- `data-offview` is viewer pan state too. Parked Map cards are `visibility: hidden`; leaving the attribute on the clone would drop them after camera reset (`X6f`).
+- `.hit` is viewer state too. Since a hit paints at opacity 1 over path /
+  distance grey, a leftover `.hit` lifts that card or node in the export.
