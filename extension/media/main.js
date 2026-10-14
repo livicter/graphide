@@ -19747,6 +19747,7 @@
     let stack = [{ kind: "flow" }];
     let nodeById = /* @__PURE__ */ new Map();
     let busy = false;
+    let cancelling = false;
     let previewTimer = 0;
     let lastTreeKey = "";
     let targetPct = 0;
@@ -19948,6 +19949,8 @@
     reviewBtn.onclick = () => startReview();
     function requestCancel() {
       setBusy(true);
+      cancelling = true;
+      pendingProgress = null;
       if (progressLabel) progressLabel.textContent = "Cancelling…";
       vscode.postMessage({ type: "cancel" });
     }
@@ -20291,6 +20294,8 @@
       });
     if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
     function startReview() {
+      cancelling = false;
+      pendingProgress = null;
       targetPct = 0;
       shownPct = 0;
       lastTreeKey = "";
@@ -21942,6 +21947,7 @@
       reviewBtn.disabled = on2;
     }
     function showProgress(msg) {
+      if (cancelling) return;
       setBusy(true);
       progressEl.classList.add("on");
       const phase = PHASE_ALIAS[msg.phase] || msg.phase || "walk";
@@ -21992,6 +21998,7 @@
       progressFill.style.width = "0%";
     }
     function finishWork() {
+      cancelling = false;
       setBusy(false);
       hideProgress();
       canvas.classList.remove("stale");

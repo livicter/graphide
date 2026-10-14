@@ -4649,6 +4649,32 @@ async function main() {
       afterBusyEsc.cancelPosts >= 1 && /Cancell/i.test(afterBusyEsc.label) && afterBusyEsc.cards >= 8 && afterBusyEsc.xy === 0,
       JSON.stringify(afterBusyEsc)
     );
+    // Late progress must not flash the old phase over Cancelling….
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          type: "progress",
+          phase: "cluster",
+          label: "Clustering communities…",
+          done: 4,
+          total: 5,
+          pct: 80,
+          elapsed_ms: 2100,
+        },
+        "*"
+      );
+    });
+    await page.waitForTimeout(80);
+    const afterLateProgress = await page.evaluate(() => ({
+      label: ((document.getElementById("progressLabel") || {}).textContent || "").trim(),
+      on: !!(document.getElementById("progress") && document.getElementById("progress").classList.contains("on")),
+    }));
+    record(
+      "CR1d",
+      "After cancel, late progress keeps Cancelling… (does not flash Clustering)",
+      /Cancell/i.test(afterLateProgress.label) && afterLateProgress.on,
+      JSON.stringify(afterLateProgress)
+    );
     // Restore busy strip for the click path (host may have flipped Cancelling…).
     await page.evaluate(() => {
       window.postMessage(

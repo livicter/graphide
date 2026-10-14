@@ -61,6 +61,7 @@ Driver assertions:
 - `#cancelBtn` is visible while `#progress` is `.on`; `#reviewBtn` is
   hidden
 - Backspace / Escape while busy post `{ type: "cancel" }`, label Cancelling…, keep Map LOD (`CR1b`, `CR1c`)
+- After cancel is requested, late `progress` must not overwrite `Cancelling…` (`CR1d`).
 - click posts `{ type: "cancel" }`; `#progressLabel` is Cancelling…
 - `{ type: "cancelled" }` hides the strip; Review is shown; Cancel is
   hidden

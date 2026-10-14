@@ -138,6 +138,7 @@ let skippedFlows = [];
 let stack = [{ kind: "flow" }];
 let nodeById = new Map();
 let busy = false;
+let cancelling = false;
 let previewTimer = 0;
 let lastTreeKey = "";
 let targetPct = 0;
@@ -341,6 +342,8 @@ if (presentBtn) presentBtn.onclick = () => togglePresent();
 reviewBtn.onclick = () => startReview();
 function requestCancel() {
   setBusy(true);
+  cancelling = true;
+  pendingProgress = null;
   if (progressLabel) progressLabel.textContent = "Cancelling…";
   vscode.postMessage({ type: "cancel" });
 }
@@ -715,6 +718,8 @@ if (llmAsk)
 if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
 
 function startReview() {
+  cancelling = false;
+  pendingProgress = null;
   targetPct = 0;
   shownPct = 0;
   lastTreeKey = "";
@@ -2568,6 +2573,8 @@ function setBusy(on) {
 }
 
 function showProgress(msg) {
+  // Once cancel is requested, keep Cancelling… — queued progress must not flash the old phase.
+  if (cancelling) return;
   setBusy(true);
   progressEl.classList.add("on");
   const phase = PHASE_ALIAS[msg.phase] || msg.phase || "walk";
@@ -2625,6 +2632,7 @@ function hideProgress() {
 }
 
 function finishWork() {
+  cancelling = false;
   setBusy(false);
   hideProgress();
   canvas.classList.remove("stale");
