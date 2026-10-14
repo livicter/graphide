@@ -24,6 +24,7 @@ journey is finite.
 - Stamp / skip stay human. Route never writes `.graphide/stamps/`.
 - Opening Route hides the hover tip (`K19g`) and clears the toast (`K20g`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present / Lens.
 - Opening Present closes Route (`K18l`), same exclusive chrome as Present closing Ask / Keys / Export / Evidence / Lens.
+- Opening Ask closes Route (`K18o`), same exclusive chrome as Present closing Route (`K18l`).
 
 ## How to get to it (user POV)
 
@@ -56,6 +57,7 @@ Driver assertions:
 - `#pathBtn` is on and `#routeReceipt` is visible
 - opening Route hides `#tip` (`K19g`) and clears `#toast` (`K20g`)
 - opening Present closes Route (`K18l`)
+- opening Ask closes Route (`K18o`)
 - `window.__graphideRoute.ok` and `hops.length >= 1`
 - some hop is Subscribes subscribe → events
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)

@@ -7367,6 +7367,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Ask must close Route (setLlmPane exclusivity — Ask clears Route chrome).
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const askClosedRoute = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18o",
+      "Opening Ask closes Route (exclusive chrome)",
+      askClosedRoute.askOpen && !askClosedRoute.routeOpen,
+      JSON.stringify(askClosedRoute)
+    );
+    await page.keyboard.press("Escape"); // close Ask
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
