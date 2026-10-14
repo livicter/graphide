@@ -57,6 +57,16 @@ Driver assertions:
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)
 - `#routeNext` past the end stays on the last hop (no loop)
 - screenshot `verification/route.png` is not a black frame
+- explorer Slice: `.route-dim` beats distance grey — off-route ring
+  nodes ≤ the off-route walk (≤ 0.22, `RT8`)
+- explorer Enter `b-render`: off-route grey members sit at 0.18, not
+  distance grey 0.56 / 0.40 / 0.28 (`RT8b`)
+- explorer Slice with `away=1`: `.route-dim` beats the off-program
+  `.away` fade (0.38) — off-route walk ≤ 0.22 < on-route walk (`RT8c`)
+- explorer Slice with Ego on `n1`: off-route `.ego` neighbors ≤ 0.22 <
+  on-route ones (`RT8d`); same on Enter `b-render` with Ego on `n0`
+  (`RT8e`)
+- explorer Map community LOD: on-path `.bubble-card.on-route` at full opacity; off-path `.bubble-card.route-dim` ≤ 0.22 (`RT9`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
