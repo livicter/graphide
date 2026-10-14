@@ -12,6 +12,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
   `#keysPane`). `E` stays Ego (`#egoBtn`).
 - Opening Export hides the hover tip (`K19b`).
 - Opening Export closes Ask (`K18b`), same exclusive chrome as Keys (`K18`).
+- Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
@@ -61,6 +62,7 @@ Driver assertions:
 
 - `#exportBtn` opens `#exportMenu`
 - opening Export closes Ask (`K18b`)
+- opening Ask closes Export (`K18d`)
 - saved `verification/export-desk.png` (or `.svg`) exists
 - PNG is not a black frame
 - `verification/export-share.png` is 1200×630

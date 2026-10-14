@@ -13,6 +13,7 @@ workspace and not an agent stamp.
 - Opening Ask clears the toast (`K20c`).
 - Keys / Export close Ask when they open (`K18` / `K18b`) — exclusive chrome.
 - Opening Ask closes Keys (`K18c`), same exclusive chrome as Keys closing Ask (`K18`).
+- Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
 - Connect form (`#llmBaseUrl`, `#llmModel`, `#llmKey`, `#llmSave`) posts
   `{ type: "llmSave" }` to the host. CI never needs a real OpenAI key.
 - `#llmAsk` + `#llmSend` post `{ type: "llmAsk" }`. Without a configured
