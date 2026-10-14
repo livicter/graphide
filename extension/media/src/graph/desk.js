@@ -6259,11 +6259,26 @@ function renderSequenceBody() {
   const reading = sequenceOf(flow);
   const parts = reading.participants;
   const hops = reading.hops;
-  if (graphFilter.q) {
-    const q = graphFilter.q.toLowerCase();
-    const hit = (s) => String(s || "").toLowerCase().indexOf(q) >= 0;
-    const keepP = parts.filter((p) => hit(p.fqn) || hit(p.kind) || hit(p.file));
-    const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind) || hit(h.variant));
+  const seqQ = (graphFilter.q || "").toLowerCase();
+  const seqHit = (s) => String(s || "").toLowerCase().indexOf(seqQ) >= 0;
+  const seqPartMatch = (p) => !seqQ || seqHit(p.fqn) || seqHit(p.kind) || seqHit(p.file);
+  const seqHopMatch = (h) => {
+    if (!seqQ) return true;
+    const fromP = parts.find((p) => idVal(p.id) === idVal(h.from));
+    const toP = parts.find((p) => idVal(p.id) === idVal(h.to));
+    return (
+      seqHit(h.from_fqn) ||
+      seqHit(h.to_fqn) ||
+      seqHit(h.kind) ||
+      seqHit(h.variant) ||
+      seqHit(h.file) ||
+      seqHit(fromP && fromP.file) ||
+      seqHit(toP && toP.file)
+    );
+  };
+  if (seqQ) {
+    const keepP = parts.filter(seqPartMatch);
+    const keepH = hops.filter(seqHopMatch);
     if (!keepP.length && !keepH.length) {
       return '<div class="empty">No sequence hops match “' + esc(graphFilter.q) + '”.</div>';
     }
@@ -6273,6 +6288,7 @@ function renderSequenceBody() {
   }
   if (seqCursor >= hops.length) seqCursor = hops.length - 1;
   const hot = seqCursor >= 0 ? hops[seqCursor] : null;
+  const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
   const review =
     '<div class="review-strip" id="seqReview">' +
     '<button type="button" class="review-step" id="seqOverview">Overview</button>' +
@@ -6291,17 +6307,22 @@ function renderSequenceBody() {
   const heads = parts
     .map((p) => {
       const on = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
+      const match = seqPartMatch(p);
       return (
         '<button type="button" class="seq-part vnode kind-' +
         esc(p.kind || "Function") +
         (on ? " on" : "") +
+        (seqQ && match ? " hit" : "") +
+        (seqQ && !match ? " dim" : "") +
         '" data-id="' +
         esc(idVal(p.id)) +
         '" data-fqn="' +
         esc(p.fqn) +
         '" data-kind="' +
         esc(p.kind || "") +
-        '"><span class="name">' +
+        '"' +
+        (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
+        '><span class="name">' +
         esc(shortOf(p.fqn)) +
         '</span> <span class="meta">' +
         esc(p.kind || "") +
@@ -6309,8 +6330,8 @@ function renderSequenceBody() {
       );
     })
     .join("");
-  const list = hops
-    .map((h, i) => {
+  const list = hopCards
+    .map(({ h, i }) => {
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
@@ -6367,12 +6388,18 @@ function sequenceBodyKey() {
 function sequenceCanvasProps() {
   const reading = sequenceOf(sequenceFlow());
   return {
-    participants: reading.participants.map((p) => ({
-      id: idVal(p.id),
-      fqn: p.fqn,
-      kind: p.kind || "Function",
-      label: shortOf(p.fqn),
-    })),
+    participants: reading.participants.map((p) => {
+      const paint = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
+      return {
+        id: idVal(p.id),
+        fqn: p.fqn,
+        kind: p.kind || "Function",
+        label: shortOf(p.fqn),
+        file: paint.file || p.file || "",
+        dim: paint.dim,
+        hit: paint.hit,
+      };
+    }),
     hops: reading.hops.map((h, i) => ({
       i,
       from: idVal(h.from),
@@ -6444,6 +6471,7 @@ function paintSequenceWorkspace(title) {
   const host = document.getElementById("seqCanvas");
   if (host) renderSequenceCanvas(host, sequenceCanvasProps());
   else unmountSequenceCanvas();
+  applyGraphFilter();
 }
 
 function bindSequencePage() {

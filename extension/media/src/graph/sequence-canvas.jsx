@@ -294,6 +294,9 @@ export function renderSequenceCanvas(host, props) {
       fqn: p.fqn || "",
       kind: p.kind || "Function",
       label: p.label || String(p.id),
+      file: p.file || "",
+      dim: !!p.dim,
+      hit: !!p.hit,
       surface: "seq-part",
     })),
     hops

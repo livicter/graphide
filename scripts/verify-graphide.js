@@ -11204,6 +11204,75 @@ async function main() {
 
     await shot(page, "sequence.png");
 
+    // Member file path is not an FQN token. Same Sequence Find filter as participant file match (file half of hop/part match).
+    // data-subscription mixes bus.rs (events) with sub.rs (subscribe) so a file query can hit and dim; a miss drops hops.
+    const seqHopsBeforeFile = await page.evaluate(() => document.querySelectorAll("#seqHops .seq-hop").length);
+    await page.fill("#graphSearch", "sub.rs");
+    await page.waitForTimeout(280);
+    const seqFindFile = await page.evaluate(() => {
+      const stage = [...document.querySelectorAll("#seqParts .seq-part, #seqCanvas .vnode[data-id], #seqCanvas .seq-part[data-id]")];
+      const read = (el) => ({
+        id: el.getAttribute("data-id") || "",
+        file: el.getAttribute("data-file") || "",
+        fqn: el.getAttribute("data-fqn") || "",
+        hit: el.classList.contains("hit"),
+        dim: el.classList.contains("dim"),
+        op: Number(getComputedStyle(el).opacity),
+      });
+      const rows = stage.map(read);
+      const byId = new Map();
+      for (const r of rows) {
+        if (!r.id) continue;
+        const prev = byId.get(r.id);
+        if (!prev || (r.file && !prev.file)) byId.set(r.id, r);
+      }
+      const uniq = [...byId.values()];
+      const hits = uniq.filter((r) => r.hit);
+      const dims = uniq.filter((r) => r.dim && !r.hit);
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        hops: document.querySelectorAll("#seqHops .seq-hop").length,
+        hits: hits.length,
+        dims: dims.length,
+        hitFiles: hits.map((r) => r.file),
+        dimFiles: dims.map((r) => r.file),
+        hitMin: hits.length ? Math.min(...hits.map((r) => r.op)) : 0,
+        dimMax: dims.length ? Math.max(...dims.map((r) => r.op)) : 1,
+      };
+    });
+    record(
+      "SG8",
+      "Find on a member file filters Sequence hops / dims off-query participants",
+      /sub\.rs/i.test(seqFindFile.q) &&
+        seqFindFile.hits >= 1 &&
+        seqFindFile.hitMin >= 0.99 &&
+        seqFindFile.hitFiles.some((f) => /sub\.rs/i.test(f)) &&
+        seqFindFile.dims >= 1 &&
+        seqFindFile.dimMax <= 0.18 &&
+        seqFindFile.hops >= 1 &&
+        seqFindFile.hops <= seqHopsBeforeFile,
+      JSON.stringify({ before: seqHopsBeforeFile, ...seqFindFile })
+    );
+    await shot(page, "sequence-find-file.png");
+    await page.fill("#graphSearch", "nomatch-file.rs");
+    await page.waitForTimeout(220);
+    const seqFindMiss = await page.evaluate(() => ({
+      hops: document.querySelectorAll("#seqHops .seq-hop").length,
+      empty: !!document.querySelector(".seq-page .empty, .expl-wrap .empty"),
+    }));
+    record(
+      "SG8b",
+      "Find on a non-matching member file drops Sequence hops",
+      seqFindMiss.hops < seqHopsBeforeFile || seqFindMiss.empty,
+      JSON.stringify({ before: seqHopsBeforeFile, ...seqFindMiss })
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
     const dataflowSnap = loadDataflowSnap();
