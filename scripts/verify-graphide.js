@@ -7050,6 +7050,46 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Same toast clear under Ask.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.hidden = false;
+        toast.className = "on ok";
+        toast.textContent = "Copied PNG";
+      }
+    });
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const toastUnderAsk = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        toastGone: !toast || toast.hidden || !toast.classList.contains("on"),
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      };
+    });
+    record(
+      "K20c",
+      "Opening Ask clears the toast (no toast under chrome)",
+      toastUnderAsk.askOpen && toastUnderAsk.toastGone,
+      JSON.stringify(toastUnderAsk)
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // already on map — Evidence suite continues
     await page.waitForSelector(".bubble-card", { timeout: 8000 });
 
