@@ -8492,6 +8492,30 @@ async function main() {
         presentKeysStyle.preset !== presentKeysStyle.before,
       JSON.stringify(presentKeysStyle)
     );
+    const keysNightBefore = await page.evaluate(() => document.documentElement.classList.contains("night"));
+    await page.keyboard.press("d");
+    const presentKeysTheme = await page.evaluate((before) => {
+      const pane = document.getElementById("keysPane");
+      return {
+        present: document.body.classList.contains("present"),
+        keysOpen: !!(pane && !pane.hidden),
+        before,
+        night: document.documentElement.classList.contains("night"),
+      };
+    }, keysNightBefore);
+    record(
+      "P6h",
+      "Present + Keys: desk D still toggles Day/Night",
+      presentKeysTheme.present &&
+        presentKeysTheme.keysOpen &&
+        presentKeysTheme.night !== presentKeysTheme.before,
+      JSON.stringify(presentKeysTheme)
+    );
+    // Restore day so later suites stay day-safe.
+    if (presentKeysTheme.night) {
+      await page.keyboard.press("d");
+      await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
+    }
     await page.keyboard.press("Escape"); // close Keys
     await page.waitForFunction(
       () => {
