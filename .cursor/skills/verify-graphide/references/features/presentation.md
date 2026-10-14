@@ -33,7 +33,7 @@ stay human — present and preset never write `.graphide/stamps/`.
 - While `body.present` with Keys open, desk `S` still cycles Style (`P6g`) — Keys must not steal Style.
 - While `body.present` with Keys open, desk `D` still toggles Day/Night (`P6h`).
 - While `body.present` with Keys open, desk `+`/`=`/`-` still zoom (`P6i`); Fit (`0`) still refits (`P6k`).
-- Opening Present closes Ask (`K18g`), Keys (`K18h`), and Export (`K18i`), same exclusive chrome as Keys / Export closing Ask.
+- Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), and Evidence (`K18j`), same exclusive chrome as Keys / Export closing Ask.
 - Opening Present hides the hover tip (`K19e`) and clears the toast (`K20e`), same chrome exclusivity as Keys / Export / Ask / Evidence.
 
 ## How to get to it (user POV)
@@ -74,7 +74,7 @@ Driver assertions:
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
 - on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
-- opening Present closes Ask (`K18g`), Keys (`K18h`), and Export (`K18i`)
+- opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), and Evidence (`K18j`)
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
 
