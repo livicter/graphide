@@ -5560,7 +5560,7 @@ function deltaFacts() {
   if (!graphFilter.q) return facts;
   return facts.filter((f) =>
     matchesExplorerQuery(
-      [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+      [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble, f.file, f.from_file, f.to_file].join(" ")
     )
   );
 }
@@ -5998,6 +5998,7 @@ function renderDeltaBody() {
         '" data-fqn="' +
         esc(f.fqn || "") +
         '"' +
+        (f.file ? ' data-file="' + esc(f.file) + '"' : "") +
         (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") +
         ' data-delta-i="' +
         i +

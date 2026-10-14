@@ -242,7 +242,10 @@ Run from the repo root. Every line must succeed before you claim the desk works.
      `verification/sequence-find-file.png`). On Lifecycle, a member
      file (`bus.rs`) keeps the events Endpoint `.hit` and dims lane
      states; a non-matching file empties (`SG9` / `SG9b`,
-     `verification/lifecycle-find-file.png`)
+     `verification/lifecycle-find-file.png`). On Delta, a member file
+     (`bus.rs`) keeps the added sneaky_helper fact with `data-file`; a
+     non-matching file drops it (`SG10` / `SG10b`,
+     `verification/delta-find-file.png`)
    - Kind filters: explorer Slice `#kindFilters input[data-kind]`
      Function / Type / Endpoint; uncheck Type (+ Endpoint) leaves
      Function only on `.vnode:not(.dim)` / `#ledgerGrid .cell`;

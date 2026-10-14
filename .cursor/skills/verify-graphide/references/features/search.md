@@ -80,6 +80,8 @@ Driver assertions:
   participants; a non-matching file drops hops (`SG8` / `SG8b`)
 - Lifecycle: a member file (`bus.rs`) keeps the events Endpoint `.hit` and
   dims off-query lane states; a non-matching file empties (`SG9` / `SG9b`)
+- Delta: a member file (`bus.rs`) keeps the added sneaky_helper fact with
+  `data-file`; a non-matching file drops it (`SG10` / `SG10b`)
 - screenshot `verification/search.png` is not a black frame
 - Map altitude after Back is still `xy=0`
 - `.graphide/stamps/` is still empty
@@ -117,5 +119,7 @@ Driver assertions:
   way — a member file Find filters `#seqHops` and dims off-query participants (`SG8`).
   Lifecycle plugin ends must match `file` / `data-file` the same way —
   a member file Find keeps `#lcEnds` `.hit` and dims off-query lane states (`SG9`).
+  Delta facts must match `file` / `from_file` / `to_file` the same way —
+  a member file Find keeps `#deltaFacts` with `data-file` (`SG10`).
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.

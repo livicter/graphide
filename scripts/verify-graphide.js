@@ -10994,6 +10994,62 @@ async function main() {
     );
     assertNoStampDir("SV5", "Delta sticky views did not write .graphide/stamps/");
 
+    // Member file path is not an FQN token. Same Delta fact filter as semantic file match (file half of deltaFacts).
+    // fixtures/demo vs demo-parent exposes added crate::bus::sneaky_helper on src/bus.rs so a file query can keep the fact.
+    const deltaFactsBeforeFile = await page.evaluate(() => document.querySelectorAll("#deltaFacts .delta-fact").length);
+    await page.fill("#graphSearch", "bus.rs");
+    await page.waitForTimeout(280);
+    const deltaFindFile = await page.evaluate(() => {
+      const facts = [...document.querySelectorAll("#deltaFacts .delta-fact")].map((el) => ({
+        fqn: el.getAttribute("data-fqn") || "",
+        file: el.getAttribute("data-file") || "",
+        kind: el.getAttribute("data-delta-kind") || "",
+        text: (el.textContent || "").replace(/\s+/g, " ").trim(),
+      }));
+      const sneaky = facts.filter((f) => /sneaky_helper/.test(f.fqn || f.text));
+      return {
+        q: ((document.getElementById("graphSearch") || {}).value || "").trim(),
+        facts: facts.length,
+        empty: !!document.querySelector(".delta-page .empty, .expl-wrap .empty"),
+        sneaky: sneaky.length,
+        sneakyFiles: sneaky.map((f) => f.file),
+        kinds: facts.map((f) => f.kind),
+      };
+    });
+    record(
+      "SG10",
+      "Find on a member file keeps Delta fact with data-file",
+      /bus\.rs/i.test(deltaFindFile.q) &&
+        !deltaFindFile.empty &&
+        deltaFindFile.sneaky >= 1 &&
+        deltaFindFile.sneakyFiles.some((f) => /bus\.rs/i.test(f)) &&
+        deltaFindFile.facts >= 1 &&
+        deltaFindFile.facts <= deltaFactsBeforeFile,
+      JSON.stringify({ before: deltaFactsBeforeFile, ...deltaFindFile })
+    );
+    await shot(page, "delta-find-file.png");
+    await page.fill("#graphSearch", "nomatch-file.rs");
+    await page.waitForTimeout(220);
+    const deltaFindMiss = await page.evaluate(() => ({
+      facts: document.querySelectorAll("#deltaFacts .delta-fact").length,
+      sneaky: [...document.querySelectorAll("#deltaFacts .delta-fact")].some((el) =>
+        /sneaky_helper/.test(el.textContent || "")
+      ),
+      empty: !!document.querySelector(".delta-page .empty, .expl-wrap .empty"),
+    }));
+    record(
+      "SG10b",
+      "Find on a non-matching member file drops Delta sneaky fact",
+      deltaFindMiss.empty || (!deltaFindMiss.sneaky && deltaFindMiss.facts < deltaFactsBeforeFile),
+      JSON.stringify({ before: deltaFactsBeforeFile, ...deltaFindMiss })
+    );
+    await page.fill("#graphSearch", "");
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const box = document.getElementById("graphSearch");
+      if (box && box.blur) box.blur();
+    });
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
     if (await page.$("#zoomFit")) {

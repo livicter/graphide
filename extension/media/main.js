@@ -24325,7 +24325,7 @@
       if (!graphFilter.q) return facts;
       return facts.filter(
         (f) => matchesExplorerQuery(
-          [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+          [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble, f.file, f.from_file, f.to_file].join(" ")
         )
       );
     }
@@ -24652,7 +24652,7 @@
       const list = facts.map((f, i) => {
         const community = f.class === "community";
         const title = community ? "community · bubble " + (f.bubble || "?") + (f.fqn ? " · " + f.fqn : "") : (f.subject || "") + " · " + (f.fqn || "");
-        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (community ? " community" : "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '"' + (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") + ' data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc(title) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
+        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (community ? " community" : "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '"' + (f.file ? ' data-file="' + esc(f.file) + '"' : "") + (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") + ' data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc(title) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
       }).join("");
       return '<div class="delta-page">' + switcher + review + '<div class="ws-split"><div class="ws-list" id="deltaFacts">' + (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') + '</div><div class="ws-detail"><div class="k">' + esc(deltaView) + " · derived</div>" + renderDeltaCanvas2(deltaView, hot) + "</div></div></div>";
     }

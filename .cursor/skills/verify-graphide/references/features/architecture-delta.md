@@ -76,6 +76,7 @@ Driver assertions:
 - `#deltaCanvas .react-flow__node` length `> 1` and `<= 24`
 - stepping Next past the end stays on the last `data-delta-i` (no loop)
 - screenshot `verification/delta.png` is not a black frame
+- Find on a member file (`bus.rs`) keeps `#deltaFacts` sneaky_helper with `data-file` (`SG10`, `verification/delta-find-file.png`); a non-matching file drops it (`SG10b`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
