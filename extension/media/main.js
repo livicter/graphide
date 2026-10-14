@@ -20132,6 +20132,7 @@
       if (e.key === "/" && graphSearch) {
         e.preventDefault();
         if (isPresenting()) return;
+        if (typeof hideTip === "function") hideTip();
         graphSearch.focus();
         graphSearch.select();
         return;
@@ -20206,11 +20207,15 @@
         const flow = currentFlow();
         vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
       };
-    if (graphSearch)
+    if (graphSearch) {
+      graphSearch.addEventListener("focus", () => {
+        if (typeof hideTip === "function") hideTip();
+      });
       graphSearch.addEventListener("input", () => {
         graphFilter.q = graphSearch.value.trim();
         refreshExplorer();
       });
+    }
     if (kindFilters)
       kindFilters.querySelectorAll("input").forEach((el2) => {
         el2.addEventListener("change", () => {

@@ -555,6 +555,7 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     // Present hides #graphBar / Find — exit the stage first.
     if (isPresenting()) return;
+    if (typeof hideTip === "function") hideTip();
     graphSearch.focus();
     graphSearch.select();
     return;
@@ -629,11 +630,15 @@ if (srcEditor)
     const flow = currentFlow();
     vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
   };
-if (graphSearch)
+if (graphSearch) {
+  graphSearch.addEventListener("focus", () => {
+    if (typeof hideTip === "function") hideTip();
+  });
   graphSearch.addEventListener("input", () => {
     graphFilter.q = graphSearch.value.trim();
     refreshExplorer();
   });
+}
 if (kindFilters)
   kindFilters.querySelectorAll("input").forEach((el) => {
     el.addEventListener("change", () => {
