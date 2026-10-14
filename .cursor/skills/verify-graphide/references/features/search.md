@@ -65,6 +65,8 @@ Driver assertions:
   dims (`SG1e`)
 - Enter `b-physics`: `ScreenshotFormat_2000` keeps child `b-physics-b`
   `.hit`; `b-physics-a` dims (`SG1d`)
+- Enter `b-physics`: `screenshotformat.rs` keeps both holding children
+  `.hit`; Endpoint `n164` dims (`SG1f`)
 - Enter / Slice: matching `.vnode` stay undimmed; others get `.dim`
 - Lineage: query filters `#lineageHops .expl-card.hop` and dims
   off-query `.vnode`
@@ -93,6 +95,8 @@ Driver assertions:
   at opacity 1 (`SG1b`).
 - Card name alone is not enough: an FQN Find used to dim every card,
   even the one whose member chip shows the hit (`SG1c`). A member file
-  path must keep that card lit the same way (`SG1e`).
+  path must keep that card lit the same way (`SG1e`). Enter children
+  need the same file half (`SG1f`) — community vnodes carry no
+  `data-file` of their own.
 - Do not rebuild Find as a command palette or LLM box.
 - Do not React-mount Map community LOD. Cards stay vanilla.

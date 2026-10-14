@@ -5344,6 +5344,28 @@ async function main() {
       JSON.stringify(childFind)
     );
     await shot(page, "enter-find-member.png");
+    // Member file path is not a child label either. Same hold-community rule as SG1d (file half of bubbleMembersMatchQuery).
+    // screenshotformat.rs sits in both physics children; the Endpoint leaf (n164 / simulationscale.rs) must dim.
+    await page.fill("#graphSearch", "screenshotformat.rs");
+    await page.waitForTimeout(250);
+    const childFindFile = await page.evaluate(() => {
+      const read = (id) => {
+        const el = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+        if (!el) return null;
+        return { hit: el.classList.contains("hit"), dim: el.classList.contains("dim"), op: Number(getComputedStyle(el).opacity) };
+      };
+      return { a: read("b-physics-a"), b: read("b-physics-b"), ep: read("n164"), q: (document.getElementById("graphSearch") || {}).value || "" };
+    });
+    record(
+      "SG1f",
+      "Find on a member file keeps the holding Enter child communities lit",
+      !!(childFindFile.b && childFindFile.b.hit && !childFindFile.b.dim && childFindFile.b.op >= 0.99) &&
+        !!(childFindFile.a && childFindFile.a.hit && !childFindFile.a.dim && childFindFile.a.op >= 0.99) &&
+        !!(childFindFile.ep && childFindFile.ep.dim && !childFindFile.ep.hit && childFindFile.ep.op <= 0.18) &&
+        /screenshotformat\.rs/i.test(childFindFile.q),
+      JSON.stringify(childFindFile)
+    );
+    await shot(page, "enter-find-file.png");
     await page.fill("#graphSearch", "");
     await page.waitForTimeout(150);
     const childHops = await page.evaluate(() => {
