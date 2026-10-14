@@ -7152,6 +7152,38 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Present must close Keys (applyPresent exclusivity — stage clears Keys chrome).
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    const presentClosedKeys = await page.evaluate(() => ({
+      presenting: !!(document.body && document.body.classList.contains("present")),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18h",
+      "Opening Present closes Keys (exclusive chrome)",
+      presentClosedKeys.presenting && !presentClosedKeys.keysOpen,
+      JSON.stringify(presentClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
