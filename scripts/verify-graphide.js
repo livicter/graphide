@@ -7420,6 +7420,26 @@ async function main() {
         backLensPresent.xy === 0,
       JSON.stringify(backLensPresent)
     );
+    // Route on stage: Backspace closes Route first; Present stays.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.keyboard.press("Backspace");
+    const backRoutePresent = await page.evaluate(() => ({
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      present: document.body.classList.contains("present"),
+      cards: document.querySelectorAll(".bubble-card").length,
+      xy: document.querySelectorAll(".react-flow__node").length,
+    }));
+    record(
+      "K14l",
+      "Backspace closes Route on Present without exiting the stage",
+      !backRoutePresent.route &&
+        backRoutePresent.present &&
+        backRoutePresent.cards >= 8 &&
+        backRoutePresent.xy === 0,
+      JSON.stringify(backRoutePresent)
+    );
     await page.keyboard.press("Backspace");
     const backPresent = await page.evaluate(() => ({
       present: document.body.classList.contains("present"),
