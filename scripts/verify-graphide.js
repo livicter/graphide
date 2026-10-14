@@ -7398,6 +7398,44 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Keys must close Evidence (setKeysPane exclusivity — Keys clears Evidence chrome).
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysClosedEvidence = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+    }));
+    record(
+      "K18p",
+      "Opening Keys closes Evidence (exclusive chrome)",
+      keysClosedEvidence.keysOpen && !keysClosedEvidence.evidenceOpen,
+      JSON.stringify(keysClosedEvidence)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
@@ -7785,7 +7823,7 @@ async function main() {
     );
     // Tip under Present must hide (parity with K19 / K19b / K19c / K19d).
     // Toast under Present must clear (parity with K20 / K20b / K20c / K20d).
-    // Present closes Evidence; reopen after exit so K5b still sees Evidence open.
+    // Present closes Evidence; reopen after exit so K5b can open Keys over Evidence (Keys exclusivity closes it).
     await page.evaluate(() => {
       const tip = document.getElementById("tip");
       if (tip) {
@@ -7867,15 +7905,9 @@ async function main() {
     }));
     record(
       "K5b",
-      "Escape closes Keys without closing Evidence",
-      keysOverEvidence.keysHidden && keysOverEvidence.evidenceOpen,
+      "Escape closes Keys; Evidence stays closed (Keys exclusivity)",
+      keysOverEvidence.keysHidden && !keysOverEvidence.evidenceOpen,
       JSON.stringify(keysOverEvidence)
-    );
-    await page.click("#srcClose");
-    await page.waitForFunction(
-      () => !!(document.getElementById("sourcePane") && document.getElementById("sourcePane").hidden),
-      null,
-      { timeout: 5000 }
     );
 
     const afterKeys = await page.evaluate(() => ({
