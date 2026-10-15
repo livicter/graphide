@@ -8848,6 +8848,18 @@ async function main() {
       askBlock.askOpen && askBlock.stampPosts === 0 && askBlock.skipPosts === 0,
       JSON.stringify(askBlock)
     );
+    // Ask open (field not focused): R must not open PATH (parity with Export K15 / Keys K15d).
+    await page.keyboard.press("r");
+    const askBlockRoute = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K15e",
+      "Open Ask blocks desk R (no PATH)",
+      askBlockRoute.askOpen && !askBlockRoute.route,
+      JSON.stringify(askBlockRoute)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {

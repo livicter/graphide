@@ -35,6 +35,7 @@ workspace and not an agent stamp.
   uses `groundedFallback` when `llmConfigured` is false.
 - Stamp / skip stay human. Ask never writes `.graphide/stamps/`.
 - While Ask is open, desk S / X are ignored even if `#llmAsk` is blurred (`K15c`).
+- Open Ask blocks desk R so PATH stays closed (`K15e`), same as Export (`K15`) / Keys (`K15d`).
 
 ## How to get to it (user POV)
 
@@ -80,6 +81,7 @@ Driver assertions:
 - opening Ask closes Evidence (`K18m`)
 - opening Ask closes Lens (`K18n`)
 - opening Ask closes Route (`K18o`)
+- open Ask (field blurred): R does not open PATH (`K15e`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame

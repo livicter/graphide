@@ -93,7 +93,7 @@ Driver assertions:
 - Escape on focused `#prompt` blurs (value stays) so desk keys work (`K16`, `K16b`)
 - Backspace with Export / Route open closes that layer and keeps Map
   community LOD (`K14`, `K14b`); inside Enter, Export closes without popping (`K14c`); Keys closes too (`K14d`); Ask closes too (`K14e`); Evidence (`K14f`); Lens (`K14g`); Present (`K14h`); Keys on Present closes without exiting (`K14i`); Export on Present too (`K14j`); Lens on Present too (`K14k`); Route on Present too (`K14l`)
-- open Export / Keys: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`)
+- open Export / Keys / Ask: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`, `K15e`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
