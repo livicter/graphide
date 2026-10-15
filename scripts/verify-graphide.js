@@ -8821,6 +8821,19 @@ async function main() {
         exportBlockDay.appearancePosts === 0,
       JSON.stringify({ ...exportBlockDay, nightBefore: exportNightBefore })
     );
+    // Export open: P must not start Map path walk (residual desk-key parity after S/X/R/L/F/E/D).
+    await page.keyboard.press("p");
+    const exportBlockPlay = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+      walk: document.querySelectorAll(".walk, .here").length,
+    }));
+    record(
+      "K15r",
+      "Open Export blocks desk P (no Play)",
+      exportBlockPlay.exportOpen && !exportBlockPlay.playOn && exportBlockPlay.walk === 0,
+      JSON.stringify(exportBlockPlay)
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
