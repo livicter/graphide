@@ -8874,6 +8874,28 @@ async function main() {
       exportBlockZoom.exportOpen && exportBlockZoom.pct === exportZoomBefore,
       JSON.stringify({ ...exportBlockZoom, pctBefore: exportZoomBefore })
     );
+    // Export open: 0 must not Fit (residual desk-key parity after S/X/R/L/F/E/D/P/[ ]/+/−).
+    // Zoom via chrome button first so Fit would move camTo if the desk key leaked.
+    // Compare zoomPct (camTo), not live transform — cam still lerps under Export.
+    await page.click("#zoomIn");
+    const exportFitBefore = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return Number((m && m[1]) || 0);
+    });
+    await page.keyboard.press("0");
+    const exportBlockFit = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return {
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        pct: Number((m && m[1]) || 0),
+      };
+    });
+    record(
+      "K15aa",
+      "Open Export blocks desk 0 (no Fit)",
+      exportBlockFit.exportOpen && exportBlockFit.pct === exportFitBefore,
+      JSON.stringify({ ...exportBlockFit, pctBefore: exportFitBefore })
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
