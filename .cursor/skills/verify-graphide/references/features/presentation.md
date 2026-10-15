@@ -32,6 +32,7 @@ stay human — present and preset never write `.graphide/stamps/`.
 - While `body.present`, desk Fit (`0`) still refits (`P6n`) — Fit stays on stage; residual after zoom (`P6m`).
 - While `body.present`, desk `E` still toggles Ego (`P6o`) — Ego stays on stage; residual after Fit (`P6n`).
 - While `body.present`, desk `P` still starts path Play (`P6p`) — Play stays on stage; residual after Ego (`P6o`).
+- While `body.present`, desk `[`/`]` still steps path (`P6q`) — path step stays on stage; residual after Play (`P6p`).
 - While `body.present` with Export open, desk `S` still cycles Style (`P6d`) — stamp is hidden; Export must not steal Style.
 - While `body.present` with Export open, desk `D` still toggles Day/Night (`P6e`).
 - While `body.present` with Export open, desk `+`/`=`/`-` still zoom (`P6f`); Fit (`0`) still refits (`P6j`).
@@ -78,7 +79,7 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
-- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); `D` still toggles Day/Night (`P6l`); zoom still scales (`P6m`); Fit still refits (`P6n`); `E` still toggles Ego (`P6o`); `P` still starts path Play (`P6p`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); `D` still toggles Day/Night (`P6l`); zoom still scales (`P6m`); Fit still refits (`P6n`); `E` still toggles Ego (`P6o`); `P` still starts path Play (`P6p`); `[`/`]` still steps path (`P6q`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
 - opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`)
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
