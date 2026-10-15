@@ -10396,6 +10396,74 @@ async function main() {
       await page.keyboard.press("p");
       await page.waitForTimeout(80);
     }
+    // Present alone: [ ] still steps path (stage keeps path step; residual after Play=P6p).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const presentStepBefore = await page.evaluate(() => {
+      const play = document.getElementById("pathWalkBtn");
+      if (play && play.classList.contains("on")) play.click();
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      return {
+        chipId: chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "",
+        cardId: card ? card.getAttribute("data-bubble") || "" : "",
+        chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+        cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+      };
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("]");
+    await page.waitForFunction(
+      (before) => {
+        const chip = document.querySelector(".feat-chip.walk");
+        const card = document.querySelector(".bubble-card.walk");
+        const chipId = chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "";
+        const cardId = card ? card.getAttribute("data-bubble") || "" : "";
+        const walkedNow =
+          document.querySelectorAll(".feat-chip.walk, .bubble-card.walk").length >= 1;
+        const moved =
+          (chipId && chipId !== before.chipId) ||
+          (cardId && cardId !== before.cardId) ||
+          (walkedNow && !(before.chipWalk || before.cardWalk));
+        return document.body.classList.contains("present") && moved;
+      },
+      presentStepBefore,
+      { timeout: 5000 }
+    );
+    const presentDeskStep = await page.evaluate((before) => {
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      const chipId = chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "";
+      const cardId = card ? card.getAttribute("data-bubble") || "" : "";
+      const chipWalk = document.querySelectorAll(".feat-chip.walk").length;
+      const cardWalk = document.querySelectorAll(".bubble-card.walk").length;
+      const walkedNow = chipWalk >= 1 || cardWalk >= 1;
+      const moved =
+        (chipId && chipId !== before.chipId) ||
+        (cardId && cardId !== before.cardId) ||
+        (walkedNow && !(before.chipWalk || before.cardWalk));
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        chipWalk,
+        cardWalk,
+        chipId,
+        cardId,
+        before,
+        moved,
+        ok: moved,
+      };
+    }, presentStepBefore);
+    record(
+      "P6q",
+      "Present: desk [ ] still steps path",
+      presentDeskStep.present &&
+        !presentDeskStep.exportOpen &&
+        !presentDeskStep.keysOpen &&
+        presentDeskStep.ok,
+      JSON.stringify(presentDeskStep)
+    );
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
