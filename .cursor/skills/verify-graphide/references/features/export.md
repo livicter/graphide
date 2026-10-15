@@ -18,6 +18,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Opening Present closes Export (`K18i`), same exclusive chrome as Present closing Ask / Keys.
 - Opening Export closes Evidence (`K18s`), same exclusive chrome as Keys closing Evidence (`K18p`).
 - Opening Export closes Lens (`K18t`), same exclusive chrome as Keys closing Lens (`K18q`).
+- Opening Export closes Route (`K18u`), same exclusive chrome as Keys closing Route (`K18r`).
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
@@ -73,6 +74,7 @@ Driver assertions:
 - opening Present closes Export (`K18i`)
 - opening Export closes Evidence (`K18s`)
 - opening Export closes Lens (`K18t`)
+- opening Export closes Route (`K18u`)
 - saved `verification/export-desk.png` (or `.svg`) exists
 - PNG is not a black frame
 - `verification/export-share.png` is 1200×630
