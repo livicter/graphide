@@ -10302,6 +10302,100 @@ async function main() {
         { timeout: 5000 }
       );
     }
+    // Present alone: P still starts path Play (stage keeps Play; residual after Ego=P6o).
+    // Walk paint may linger from PW — record before chip, press P, expect advance / play / toast.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const presentPlayBefore = await page.evaluate(() => {
+      const play = document.getElementById("pathWalkBtn");
+      if (play && play.classList.contains("on")) play.click();
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      const play2 = document.getElementById("pathWalkBtn");
+      return {
+        chipId: chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "",
+        cardId: card ? card.getAttribute("data-bubble") || "" : "",
+        chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+        cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+        playOn: !!(play2 && play2.classList.contains("on")),
+      };
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("p");
+    await page.waitForFunction(
+      (before) => {
+        const chip = document.querySelector(".feat-chip.walk");
+        const card = document.querySelector(".bubble-card.walk");
+        const play = document.getElementById("pathWalkBtn");
+        const toast = (document.getElementById("toast") || {}).textContent || "";
+        const chipId = chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "";
+        const cardId = card ? card.getAttribute("data-bubble") || "" : "";
+        const playOn = !!(play && play.classList.contains("on"));
+        const walkedNow =
+          document.querySelectorAll(".feat-chip.walk, .bubble-card.walk").length >= 1;
+        const moved =
+          (chipId && chipId !== before.chipId) ||
+          (cardId && cardId !== before.cardId) ||
+          (walkedNow && !(before.chipWalk || before.cardWalk));
+        return (
+          document.body.classList.contains("present") &&
+          (playOn || /Walking|Replaying|Paused/.test(toast) || moved)
+        );
+      },
+      presentPlayBefore,
+      { timeout: 5000 }
+    );
+    const presentDeskPlay = await page.evaluate((before) => {
+      const chip = document.querySelector(".feat-chip.walk");
+      const card = document.querySelector(".bubble-card.walk");
+      const play = document.getElementById("pathWalkBtn");
+      const toast = (document.getElementById("toast") || {}).textContent || "";
+      const chipId = chip ? chip.getAttribute("data-feature") || chip.getAttribute("data-hop") || "" : "";
+      const cardId = card ? card.getAttribute("data-bubble") || "" : "";
+      const playOn = !!(play && play.classList.contains("on"));
+      const chipWalk = document.querySelectorAll(".feat-chip.walk").length;
+      const cardWalk = document.querySelectorAll(".bubble-card.walk").length;
+      const walkedNow = chipWalk >= 1 || cardWalk >= 1;
+      const moved =
+        (chipId && chipId !== before.chipId) ||
+        (cardId && cardId !== before.cardId) ||
+        (walkedNow && !(before.chipWalk || before.cardWalk));
+      return {
+        present: document.body.classList.contains("present"),
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        playOn,
+        toast,
+        chipWalk,
+        cardWalk,
+        chipId,
+        cardId,
+        before,
+        moved,
+        ok: playOn || /Walking|Replaying|Paused/.test(toast) || moved,
+      };
+    }, presentPlayBefore);
+    record(
+      "P6p",
+      "Present: desk P still starts path Play",
+      presentDeskPlay.present &&
+        !presentDeskPlay.exportOpen &&
+        !presentDeskPlay.keysOpen &&
+        presentDeskPlay.ok,
+      JSON.stringify(presentDeskPlay)
+    );
+    // Stop Play timer so Export/Keys Present suites stay quiet.
+    const presentPlayStillOn = await page.evaluate(() => {
+      const play = document.getElementById("pathWalkBtn");
+      if (play && play.classList.contains("on")) return true;
+      const t = (document.getElementById("toast") || {}).textContent || "";
+      return /Walking|Replaying/.test(t);
+    });
+    if (presentPlayStillOn) {
+      await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+      await page.keyboard.press("p");
+      await page.waitForTimeout(80);
+    }
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
