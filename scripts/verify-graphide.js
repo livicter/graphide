@@ -8920,6 +8920,18 @@ async function main() {
       askBlockLens.askOpen && !askBlockLens.lens,
       JSON.stringify(askBlockLens)
     );
+    // Ask open (field not focused): F must not enter Present (parity with Export K15i / Keys K15j).
+    await page.keyboard.press("f");
+    const askBlockPresent = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K15k",
+      "Open Ask blocks desk F (no Present)",
+      askBlockPresent.askOpen && !askBlockPresent.presenting,
+      JSON.stringify(askBlockPresent)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {

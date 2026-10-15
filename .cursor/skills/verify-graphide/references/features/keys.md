@@ -36,6 +36,7 @@ second command palette and not an agent stamp.
 - Open Keys sheet blocks desk L so LENS stays closed (`K15f`), same as Export (`K15h`) / Ask (`K15g`).
 - Open Export blocks desk F so Present stays off (`K15i`), residual chrome key lock after S / X / R / L.
 - Open Keys sheet blocks desk F so Present stays off (`K15j`), same as Export (`K15i`).
+- Open Ask blocks desk F so Present stays off (`K15k`), same as Export (`K15i`) / Keys (`K15j`).
 - Holding a key fires its toggle / action once: auto-repeat (`e.repeat`)
   of `S` `X` `D` `F` `E` `R` `L` `P` Backspace is ignored (no stamp
   spam, no theme flicker writing the global `graphide.appearance`, no
@@ -96,7 +97,7 @@ Driver assertions:
 - Escape on focused `#prompt` blurs (value stays) so desk keys work (`K16`, `K16b`)
 - Backspace with Export / Route open closes that layer and keeps Map
   community LOD (`K14`, `K14b`); inside Enter, Export closes without popping (`K14c`); Keys closes too (`K14d`); Ask closes too (`K14e`); Evidence (`K14f`); Lens (`K14g`); Present (`K14h`); Keys on Present closes without exiting (`K14i`); Export on Present too (`K14j`); Lens on Present too (`K14k`); Route on Present too (`K14l`)
-- open Export / Keys / Ask: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`, `K15e`); Export / Keys / Ask also block L (`K15h`, `K15f`, `K15g`); Export / Keys also block F (`K15i`, `K15j`)
+- open Export / Keys / Ask: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`, `K15e`); Export / Keys / Ask also block L (`K15h`, `K15f`, `K15g`); Export / Keys / Ask also block F (`K15i`, `K15j`, `K15k`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
