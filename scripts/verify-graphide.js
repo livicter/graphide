@@ -8799,6 +8799,28 @@ async function main() {
       exportBlockEgo.exportOpen && !exportBlockEgo.ego,
       JSON.stringify(exportBlockEgo)
     );
+    // Export open: D must not flip day/night (residual desk-key parity after S/X/R/L/F/E).
+    const exportDayPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const exportNightBefore = await page.evaluate(() =>
+      document.documentElement.classList.contains("night")
+    );
+    await page.keyboard.press("d");
+    const exportBlockDay = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        night: document.documentElement.classList.contains("night"),
+        appearancePosts: posts.filter((m) => m && m.type === "setAppearance").length,
+      };
+    }, exportDayPosts0);
+    record(
+      "K15o",
+      "Open Export blocks desk D (no day/night)",
+      exportBlockDay.exportOpen &&
+        exportBlockDay.night === exportNightBefore &&
+        exportBlockDay.appearancePosts === 0,
+      JSON.stringify({ ...exportBlockDay, nightBefore: exportNightBefore })
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
