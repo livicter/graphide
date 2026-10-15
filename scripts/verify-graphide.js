@@ -10234,6 +10234,34 @@ async function main() {
         presentDeskZoom.transform !== presentDeskZoom.before,
       JSON.stringify(presentDeskZoom)
     );
+    // Present alone: 0 still Fits (stage keeps Fit; residual after zoom=P6m).
+    // Zoom already applied by P6m so Fit would move transform if the desk key works.
+    const presentFitAloneBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("0");
+    await page.waitForTimeout(120);
+    const presentDeskFit = await page.evaluate((before) => {
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    }, presentFitAloneBefore);
+    record(
+      "P6n",
+      "Present: desk Fit (0) still refits the stage",
+      presentDeskFit.present &&
+        !presentDeskFit.exportOpen &&
+        !presentDeskFit.keysOpen &&
+        presentDeskFit.transform !== presentDeskFit.before,
+      JSON.stringify(presentDeskFit)
+    );
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
