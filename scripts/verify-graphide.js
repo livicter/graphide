@@ -8775,6 +8775,18 @@ async function main() {
       exportBlockLens.exportOpen && !exportBlockLens.lens,
       JSON.stringify(exportBlockLens)
     );
+    // Export open: F must not enter Present (residual desk-key parity after S/X/R/L).
+    await page.keyboard.press("f");
+    const exportBlockPresent = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K15i",
+      "Open Export blocks desk F (no Present)",
+      exportBlockPresent.exportOpen && !exportBlockPresent.presenting,
+      JSON.stringify(exportBlockPresent)
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
