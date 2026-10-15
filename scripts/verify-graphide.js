@@ -8872,6 +8872,18 @@ async function main() {
       askBlockRoute.askOpen && !askBlockRoute.route,
       JSON.stringify(askBlockRoute)
     );
+    // Ask open (field not focused): L must not open LENS (parity with Keys K15f).
+    await page.keyboard.press("l");
+    const askBlockLens = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K15g",
+      "Open Ask blocks desk L (no LENS)",
+      askBlockLens.askOpen && !askBlockLens.lens,
+      JSON.stringify(askBlockLens)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
