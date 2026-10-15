@@ -8871,6 +8871,18 @@ async function main() {
       keysBlockPresent.keysOpen && !keysBlockPresent.presenting,
       JSON.stringify(keysBlockPresent)
     );
+    // Keys sheet open: E must not turn Ego on (parity with Export K15l).
+    await page.keyboard.press("e");
+    const keysBlockEgo = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+    }));
+    record(
+      "K15m",
+      "Open Keys sheet blocks desk E (no Ego)",
+      keysBlockEgo.keysOpen && !keysBlockEgo.ego,
+      JSON.stringify(keysBlockEgo)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
