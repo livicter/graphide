@@ -10262,6 +10262,46 @@ async function main() {
         presentDeskFit.transform !== presentDeskFit.before,
       JSON.stringify(presentDeskFit)
     );
+    // Present alone: E still toggles Ego (stage keeps Ego; residual after Fit=P6n).
+    // Ego may still be on from earlier suites — force off, then prove desk E turns it on.
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    const presentEgoWasOn = await page.evaluate(
+      () => !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on"))
+    );
+    if (presentEgoWasOn) {
+      await page.keyboard.press("e");
+      await page.waitForFunction(
+        () => !(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        null,
+        { timeout: 5000 }
+      );
+    }
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("e");
+    const presentDeskEgo = await page.evaluate(() => ({
+      present: document.body.classList.contains("present"),
+      ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "P6o",
+      "Present: desk E still toggles Ego",
+      presentDeskEgo.present &&
+        !presentDeskEgo.exportOpen &&
+        !presentDeskEgo.keysOpen &&
+        presentDeskEgo.ego,
+      JSON.stringify(presentDeskEgo)
+    );
+    // Restore Ego off so later suites stay ego-safe.
+    if (presentDeskEgo.ego) {
+      await page.keyboard.press("e");
+      await page.waitForFunction(
+        () => !(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        null,
+        { timeout: 5000 }
+      );
+    }
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
