@@ -36,7 +36,7 @@ workspace and not an agent stamp.
 - Stamp / skip stay human. Ask never writes `.graphide/stamps/`.
 - While Ask is open, desk S / X are ignored even if `#llmAsk` is blurred (`K15c`).
 - Open Ask blocks desk R so PATH stays closed (`K15e`), same as Export (`K15`) / Keys (`K15d`).
-- Open Ask blocks desk L so LENS stays closed (`K15g`), same as Keys (`K15f`).
+- Open Ask blocks desk L so LENS stays closed (`K15g`), same as Keys (`K15f`) / Export (`K15h`).
 
 ## How to get to it (user POV)
 

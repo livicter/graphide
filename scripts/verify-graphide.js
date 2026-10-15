@@ -8763,6 +8763,18 @@ async function main() {
         !chromeKeys.route,
       JSON.stringify(chromeKeys)
     );
+    // Export open: L must not open LENS (parity with Keys K15f / Ask K15g).
+    await page.keyboard.press("l");
+    const exportBlockLens = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K15h",
+      "Open Export blocks desk L (no LENS)",
+      exportBlockLens.exportOpen && !exportBlockLens.lens,
+      JSON.stringify(exportBlockLens)
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
