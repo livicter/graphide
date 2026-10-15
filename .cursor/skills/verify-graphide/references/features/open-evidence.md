@@ -18,6 +18,7 @@ Inspect a node or hop without covering the object rail.
 - Opening Present closes Evidence (`K18j`), same exclusive chrome as Present closing Ask / Keys / Export.
 - Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Keys closes Evidence (`K18p`), same exclusive chrome as Present closing Evidence (`K18j`).
+- Opening Export closes Evidence (`K18s`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
@@ -53,6 +54,7 @@ Driver assertions:
 - opening Present closes Evidence (`K18j`)
 - opening Ask closes Evidence (`K18m`)
 - opening Keys closes Evidence (`K18p`)
+- opening Export closes Evidence (`K18s`)
 - screenshot of the desk with Evidence open is not black
 
 `peekSource` always `vscode.postMessage({ type: "peekSource", id })`. The stub does not reply with `{ type: "source" }`. The webview still calls `showSource` from the in-memory node and `snapshot.snippets` — so Evidence works without a live VS Code host.

@@ -20811,6 +20811,7 @@
       if (on2) {
         setKeysPane(false);
         if (llmPane && !llmPane.hidden) setLlmPane(false);
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
         if (typeof hideTip === "function") hideTip();
         if (toastEl) {
           toastEl.classList.remove("on");
