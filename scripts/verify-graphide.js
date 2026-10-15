@@ -8905,6 +8905,28 @@ async function main() {
       keysBlockEgo.keysOpen && !keysBlockEgo.ego,
       JSON.stringify(keysBlockEgo)
     );
+    // Keys sheet open: D must not flip day/night (parity with Export K15o).
+    const keysChromeDayPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const keysChromeNightBefore = await page.evaluate(() =>
+      document.documentElement.classList.contains("night")
+    );
+    await page.keyboard.press("d");
+    const keysChromeBlockDay = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        night: document.documentElement.classList.contains("night"),
+        appearancePosts: posts.filter((m) => m && m.type === "setAppearance").length,
+      };
+    }, keysChromeDayPosts0);
+    record(
+      "K15p",
+      "Open Keys sheet blocks desk D (no day/night)",
+      keysChromeBlockDay.keysOpen &&
+        keysChromeBlockDay.night === keysChromeNightBefore &&
+        keysChromeBlockDay.appearancePosts === 0,
+      JSON.stringify({ ...keysChromeBlockDay, nightBefore: keysChromeNightBefore })
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
