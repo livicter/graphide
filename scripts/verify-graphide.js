@@ -8971,6 +8971,24 @@ async function main() {
       keysBlockPlay.keysOpen && !keysBlockPlay.playOn && keysBlockPlay.walk === 0,
       JSON.stringify(keysBlockPlay)
     );
+    // Keys sheet open: [ ] must not step Map path walk (parity with Export K15u).
+    await page.keyboard.press("]");
+    await page.keyboard.press("[");
+    const keysBlockStep = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      walk: document.querySelectorAll(".walk, .here").length,
+      chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+      cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+    }));
+    record(
+      "K15v",
+      "Open Keys sheet blocks desk [ ] (no path step)",
+      keysBlockStep.keysOpen &&
+        keysBlockStep.walk === 0 &&
+        keysBlockStep.chipWalk === 0 &&
+        keysBlockStep.cardWalk === 0,
+      JSON.stringify(keysBlockStep)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
