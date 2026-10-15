@@ -10464,6 +10464,32 @@ async function main() {
         presentDeskStep.ok,
       JSON.stringify(presentDeskStep)
     );
+    // Present alone: R still opens PATH (stage keeps Route; residual after path step=P6q; K14l Backspace stack).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.evaluate(() => {
+      if (window.__graphideRoute && window.__graphideRoute.open && typeof setRouteOpen === "function") setRouteOpen(false);
+    });
+    await page.waitForTimeout(40);
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const presentDeskRoute = await page.evaluate(() => ({
+      present: document.body.classList.contains("present"),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "P6r",
+      "Present: desk R still opens PATH",
+      presentDeskRoute.present &&
+        presentDeskRoute.route &&
+        !presentDeskRoute.exportOpen &&
+        !presentDeskRoute.keysOpen,
+      JSON.stringify(presentDeskRoute)
+    );
+    // Close Route so Export/Keys Present suites stay probe-clean.
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
