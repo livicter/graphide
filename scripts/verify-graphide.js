@@ -9012,6 +9012,28 @@ async function main() {
       askBlockEgo.askOpen && !askBlockEgo.ego,
       JSON.stringify(askBlockEgo)
     );
+    // Ask open (field not focused): D must not flip day/night (parity with Export K15o / Keys K15p).
+    const askChromeDayPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const askChromeNightBefore = await page.evaluate(() =>
+      document.documentElement.classList.contains("night")
+    );
+    await page.keyboard.press("d");
+    const askChromeBlockDay = await page.evaluate((before) => {
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        night: document.documentElement.classList.contains("night"),
+        appearancePosts: posts.filter((m) => m && m.type === "setAppearance").length,
+      };
+    }, askChromeDayPosts0);
+    record(
+      "K15q",
+      "Open Ask blocks desk D (no day/night)",
+      askChromeBlockDay.askOpen &&
+        askChromeBlockDay.night === askChromeNightBefore &&
+        askChromeBlockDay.appearancePosts === 0,
+      JSON.stringify({ ...askChromeBlockDay, nightBefore: askChromeNightBefore })
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
