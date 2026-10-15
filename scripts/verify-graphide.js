@@ -8811,6 +8811,18 @@ async function main() {
       keysBlockRoute.keysOpen && !keysBlockRoute.route,
       JSON.stringify(keysBlockRoute)
     );
+    // Keys sheet open: L must not open LENS (parity with Export/Ask chrome key lock).
+    await page.keyboard.press("l");
+    const keysBlockLens = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K15f",
+      "Open Keys sheet blocks desk L (no LENS)",
+      keysBlockLens.keysOpen && !keysBlockLens.lens,
+      JSON.stringify(keysBlockLens)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
