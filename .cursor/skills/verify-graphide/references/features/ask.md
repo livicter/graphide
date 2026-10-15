@@ -38,6 +38,7 @@ workspace and not an agent stamp.
 - Open Ask blocks desk R so PATH stays closed (`K15e`), same as Export (`K15`) / Keys (`K15d`).
 - Open Ask blocks desk L so LENS stays closed (`K15g`), same as Keys (`K15f`) / Export (`K15h`).
 - Open Ask blocks desk F so Present stays off (`K15k`), same as Export (`K15i`) / Keys (`K15j`).
+- Open Ask blocks desk E so Ego stays off (`K15n`), same as Export (`K15l`) / Keys (`K15m`).
 
 ## How to get to it (user POV)
 
@@ -86,6 +87,7 @@ Driver assertions:
 - open Ask (field blurred): R does not open PATH (`K15e`)
 - open Ask (field blurred): L does not open LENS (`K15g`)
 - open Ask (field blurred): F does not enter Present (`K15k`)
+- open Ask (field blurred): E does not turn Ego on (`K15n`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame
