@@ -10207,6 +10207,33 @@ async function main() {
       await page.keyboard.press("d");
       await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
     }
+    // Present alone: +/= still zooms (stage keeps zoom; residual after D=P6l).
+    const presentZoomAloneBefore = await page.evaluate(() => {
+      const vp = document.querySelector("#canvas .viewport");
+      return vp ? vp.style.transform || "" : "";
+    });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("=");
+    await page.waitForTimeout(80);
+    const presentDeskZoom = await page.evaluate((before) => {
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        present: document.body.classList.contains("present"),
+        before,
+        transform: vp ? vp.style.transform || "" : "",
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    }, presentZoomAloneBefore);
+    record(
+      "P6m",
+      "Present: desk zoom (+/=) still scales the stage",
+      presentDeskZoom.present &&
+        !presentDeskZoom.exportOpen &&
+        !presentDeskZoom.keysOpen &&
+        presentDeskZoom.transform !== presentDeskZoom.before,
+      JSON.stringify(presentDeskZoom)
+    );
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
