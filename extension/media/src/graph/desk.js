@@ -4837,6 +4837,7 @@ function setRouteOpen(on) {
 function setLensOpen(on) {
   lensOpen = !!on;
   if (lensOpen) {
+    if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
     if (typeof hideTip === "function") hideTip();
     if (toastEl) {
       toastEl.classList.remove("on");

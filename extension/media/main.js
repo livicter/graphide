@@ -23812,6 +23812,7 @@
     function setLensOpen(on2) {
       lensOpen = !!on2;
       if (lensOpen) {
+        if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
         if (typeof hideTip === "function") hideTip();
         if (toastEl) {
           toastEl.classList.remove("on");
