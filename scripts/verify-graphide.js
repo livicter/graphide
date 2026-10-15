@@ -7467,6 +7467,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Keys must close Route (setKeysPane exclusivity — Keys clears Route chrome).
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const keysClosedRoute = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18r",
+      "Opening Keys closes Route (exclusive chrome)",
+      keysClosedRoute.keysOpen && !keysClosedRoute.routeOpen,
+      JSON.stringify(keysClosedRoute)
+    );
+    await page.keyboard.press("Escape"); // close Keys
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
