@@ -26,6 +26,7 @@ journey is finite.
 - Opening Present closes Route (`K18l`), same exclusive chrome as Present closing Ask / Keys / Export / Evidence / Lens.
 - Opening Ask closes Route (`K18o`), same exclusive chrome as Present closing Route (`K18l`).
 - Opening Keys closes Route (`K18r`), same exclusive chrome as Present closing Route (`K18l`).
+- Opening Export closes Route (`K18u`), same exclusive chrome as Present closing Route (`K18l`).
 
 ## How to get to it (user POV)
 
@@ -60,6 +61,7 @@ Driver assertions:
 - opening Present closes Route (`K18l`)
 - opening Ask closes Route (`K18o`)
 - opening Keys closes Route (`K18r`)
+- opening Export closes Route (`K18u`)
 - `window.__graphideRoute.ok` and `hops.length >= 1`
 - some hop is Subscribes subscribe → events
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)

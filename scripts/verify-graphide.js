@@ -7567,6 +7567,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Export must close Route (setExportMenu exclusivity — Export clears Route chrome).
+    await page.keyboard.press("r");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const exportClosedRoute = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18u",
+      "Opening Export closes Route (exclusive chrome)",
+      exportClosedRoute.exportOpen && !exportClosedRoute.routeOpen,
+      JSON.stringify(exportClosedRoute)
+    );
+    await page.keyboard.press("Escape"); // close Export
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
@@ -9291,6 +9322,11 @@ async function main() {
     await page.keyboard.press("r");
     await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
     await page.waitForTimeout(150);
+    // Snapshot live Route paint before Export — opening Export closes Route (K18u).
+    const liveRouteBefore = await page.evaluate(() => ({
+      routeDim: document.querySelectorAll("#sliceCanvas .vnode.route-dim").length,
+      onRoute: document.querySelectorAll("#sliceCanvas .vnode.on-route").length,
+    }));
     await page.evaluate(() => {
       if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
     });
@@ -9303,29 +9339,31 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Re-stamp route viewer classes so EXPORT_STRIP is still exercised after exclusivity cleared Route.
+    await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+      if (nodes[0]) nodes[0].classList.add("on-route");
+      for (let i = 1; i < Math.min(nodes.length, 5); i++) nodes[i].classList.add("route-dim");
+    });
     await page.click("#exportSvg");
     await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
       timeout: 20000,
     });
-    const exportRoute = await page.evaluate(() => {
+    const exportRoute = await page.evaluate((liveBefore) => {
       const url = window.__graphideLastExport.svg.dataUrl || "";
       const bin = atob(url.slice(url.indexOf(",") + 1));
       const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
       // Stylesheet rules mention route-dim; only element class attrs are viewer state.
       const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
       const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
-      const live = {
-        routeDim: document.querySelectorAll("#sliceCanvas .vnode.route-dim").length,
-        onRoute: document.querySelectorAll("#sliceCanvas .vnode.on-route").length,
-      };
       return {
-        live,
+        live: liveBefore,
         routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
         onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
         lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
         lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
       };
-    });
+    }, liveRouteBefore);
     record(
       "X6c",
       "Export SVG after Route carries no .route-dim / .on-route on Slice nodes",
@@ -9337,7 +9375,7 @@ async function main() {
         exportRoute.lensOn === 0,
       JSON.stringify(exportRoute)
     );
-    await page.keyboard.press("r");
+    // Export already closed Route (K18u); ensure dock is shut before Lens export strip.
     await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
     await page.keyboard.press("l");
     await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
