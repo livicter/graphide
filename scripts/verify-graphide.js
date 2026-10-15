@@ -10516,6 +10516,35 @@ async function main() {
     // Close Lens so Export/Keys Present suites stay probe-clean.
     await page.keyboard.press("l");
     await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
+    // Present alone: F still exits the stage (toggle off; residual after Lens=P6s).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => !document.body.classList.contains("present"), null, { timeout: 5000 });
+    const presentDeskExit = await page.evaluate(() => {
+      const bar = document.getElementById("graphBar");
+      return {
+        present: document.body.classList.contains("present"),
+        barShown: !!(bar && getComputedStyle(bar).display !== "none"),
+        aria: (document.getElementById("presentBtn") || {}).getAttribute
+          ? document.getElementById("presentBtn").getAttribute("aria-pressed")
+          : "",
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      };
+    });
+    record(
+      "P6t",
+      "Present: desk F still exits the stage",
+      !presentDeskExit.present &&
+        presentDeskExit.barShown &&
+        presentDeskExit.aria === "false" &&
+        !presentDeskExit.exportOpen &&
+        !presentDeskExit.keysOpen,
+      JSON.stringify(presentDeskExit)
+    );
+    // Re-enter Present so Export/Keys Present suites and Escape-exit (P7) stay probe-clean.
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.body.classList.contains("present"), null, { timeout: 5000 });
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
