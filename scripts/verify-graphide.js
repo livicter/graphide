@@ -9011,6 +9011,28 @@ async function main() {
         keysBlockStep.cardWalk === 0,
       JSON.stringify(keysBlockStep)
     );
+    // Keys sheet open: + / = / - / _ must not zoom (parity with Export K15x).
+    const keysChromeZoomBefore = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return Number((m && m[1]) || 0);
+    });
+    await page.keyboard.press("=");
+    await page.keyboard.press("+");
+    await page.keyboard.press("-");
+    await page.keyboard.press("_");
+    const keysChromeBlockZoom = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return {
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        pct: Number((m && m[1]) || 0),
+      };
+    });
+    record(
+      "K15y",
+      "Open Keys sheet blocks desk + − (no zoom)",
+      keysChromeBlockZoom.keysOpen && keysChromeBlockZoom.pct === keysChromeZoomBefore,
+      JSON.stringify({ ...keysChromeBlockZoom, pctBefore: keysChromeZoomBefore })
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
