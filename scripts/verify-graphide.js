@@ -9109,6 +9109,24 @@ async function main() {
       askBlockPlay.askOpen && !askBlockPlay.playOn && askBlockPlay.walk === 0,
       JSON.stringify(askBlockPlay)
     );
+    // Ask open (field not focused): [ ] must not step Map path walk (parity with Export K15u / Keys K15v).
+    await page.keyboard.press("]");
+    await page.keyboard.press("[");
+    const askBlockStep = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      walk: document.querySelectorAll(".walk, .here").length,
+      chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+      cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+    }));
+    record(
+      "K15w",
+      "Open Ask blocks desk [ ] (no path step)",
+      askBlockStep.askOpen &&
+        askBlockStep.walk === 0 &&
+        askBlockStep.chipWalk === 0 &&
+        askBlockStep.cardWalk === 0,
+      JSON.stringify(askBlockStep)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
