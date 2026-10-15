@@ -7636,6 +7636,35 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Lens must close Ask (setLensOpen exclusivity — Lens clears Ask chrome).
+    // Use #lensBtn: desk L is blocked while Ask is open (K15g).
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedAsk = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+    }));
+    record(
+      "K18w",
+      "Opening Lens closes Ask (exclusive chrome)",
+      lensClosedAsk.lensOpen && !lensClosedAsk.askOpen,
+      JSON.stringify(lensClosedAsk)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
