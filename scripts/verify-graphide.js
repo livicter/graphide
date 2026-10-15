@@ -10490,6 +10490,32 @@ async function main() {
     // Close Route so Export/Keys Present suites stay probe-clean.
     await page.keyboard.press("r");
     await page.waitForFunction(() => !(window.__graphideRoute && window.__graphideRoute.open), null, { timeout: 5000 });
+    // Present alone: L still opens LENS (stage keeps Lens; residual after Route=P6r; K14k Backspace stack).
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.evaluate(() => {
+      if (window.__graphideLens && window.__graphideLens.open && typeof setLensOpen === "function") setLensOpen(false);
+    });
+    await page.waitForTimeout(40);
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const presentDeskLens = await page.evaluate(() => ({
+      present: document.body.classList.contains("present"),
+      lens: !!(window.__graphideLens && window.__graphideLens.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "P6s",
+      "Present: desk L still opens LENS",
+      presentDeskLens.present &&
+        presentDeskLens.lens &&
+        !presentDeskLens.exportOpen &&
+        !presentDeskLens.keysOpen,
+      JSON.stringify(presentDeskLens)
+    );
+    // Close Lens so Export/Keys Present suites stay probe-clean.
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
