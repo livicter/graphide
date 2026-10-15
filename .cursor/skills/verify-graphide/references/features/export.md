@@ -25,6 +25,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Open Export blocks desk D so day/night stays put (`K15o`), residual chrome key lock after S / X / R / L / F / E.
 - Open Export blocks desk P so Play stays off (`K15r`), residual chrome key lock after S / X / R / L / F / E / D.
 - Open Export blocks desk `[` `]` so path step stays put (`K15u`), residual chrome key lock after S / X / R / L / F / E / D / P.
+- Open Export blocks desk `+` `−` so zoom stays put (`K15x`), residual chrome key lock after S / X / R / L / F / E / D / P / `[` `]`.
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
@@ -87,6 +88,7 @@ Driver assertions:
 - open Export: D does not flip day/night (`K15o`)
 - open Export: P does not start Play (`K15r`)
 - open Export: `[` `]` do not step path walk (`K15u`)
+- open Export: `+` `−` do not zoom (`K15x`)
 - saved `verification/export-desk.png` (or `.svg`) exists
 - PNG is not a black frame
 - `verification/export-share.png` is 1200×630
