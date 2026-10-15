@@ -8799,6 +8799,18 @@ async function main() {
       keysBlock.keysOpen && keysBlock.stampPosts === 0 && keysBlock.skipPosts === 0,
       JSON.stringify(keysBlock)
     );
+    // Keys sheet open: R must not open PATH (parity with Export K15 — feature-ref S/X/R).
+    await page.keyboard.press("r");
+    const keysBlockRoute = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      route: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K15d",
+      "Open Keys sheet blocks desk R (no PATH)",
+      keysBlockRoute.keysOpen && !keysBlockRoute.route,
+      JSON.stringify(keysBlockRoute)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
