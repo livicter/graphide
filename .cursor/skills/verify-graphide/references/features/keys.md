@@ -8,7 +8,7 @@ second command palette and not an agent stamp.
 
 - Header `#keysBtn` (`?`). `?` / F1 toggle `#keysPane` even when the sheet
   is already open (`K17`) — modal chrome must not swallow the second `?`.
-  Opening Keys closes Ask (`K18`), same exclusive chrome as Export (`K18b`). Opening Ask closes Keys (`K18c`) and Export (`K18d`). Opening Export closes Keys (`K18e`). Opening Keys closes Export (`K18f`). Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`). Opening Ask closes Evidence (`K18m`). Opening Ask closes Lens (`K18n`). Opening Ask closes Route (`K18o`). Opening Keys closes Evidence (`K18p`). Opening Keys closes Lens (`K18q`). Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find hides the hover tip (`K19`, `K19b`, `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
+  Opening Keys closes Ask (`K18`), same exclusive chrome as Export (`K18b`). Opening Ask closes Keys (`K18c`) and Export (`K18d`). Opening Export closes Keys (`K18e`). Opening Keys closes Export (`K18f`). Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`). Opening Ask closes Evidence (`K18m`). Opening Ask closes Lens (`K18n`). Opening Ask closes Route (`K18o`). Opening Keys closes Evidence (`K18p`). Opening Keys closes Lens (`K18q`). Opening Keys closes Route (`K18r`). Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find hides the hover tip (`K19`, `K19b`, `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
   sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH, `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
@@ -72,7 +72,7 @@ Driver assertions:
 - `?` (or `#keysBtn`) opens `#keysPane` (not hidden, `.open`)
 - `#keysClose` exists; sheet text lists `/` find, `?` this sheet,
   `S` stamp, `X` skip, `E` ego, `F` present, `D` day
-- `#keysClose` and Escape hide the pane; a second `?` also toggles closed (`K17`); opening Keys closes Ask (`K18`); opening Export closes Ask (`K18b`); opening Ask closes Keys (`K18c`); opening Ask closes Export (`K18d`); opening Export closes Keys (`K18e`); opening Keys closes Export (`K18f`); opening Present closes Ask (`K18g`); opening Present closes Keys (`K18h`); opening Present closes Export (`K18i`); opening Present closes Evidence (`K18j`); opening Present closes Lens (`K18k`); opening Present closes Route (`K18l`); opening Ask closes Evidence (`K18m`); opening Ask closes Lens (`K18n`); opening Ask closes Route (`K18o`); opening Keys closes Evidence (`K18p`); opening Keys closes Lens (`K18q`); opening Keys hides the tip (`K19`, Export `K19b`, Ask `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`); opening Keys clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`)
+- `#keysClose` and Escape hide the pane; a second `?` also toggles closed (`K17`); opening Keys closes Ask (`K18`); opening Export closes Ask (`K18b`); opening Ask closes Keys (`K18c`); opening Ask closes Export (`K18d`); opening Export closes Keys (`K18e`); opening Keys closes Export (`K18f`); opening Present closes Ask (`K18g`); opening Present closes Keys (`K18h`); opening Present closes Export (`K18i`); opening Present closes Evidence (`K18j`); opening Present closes Lens (`K18k`); opening Present closes Route (`K18l`); opening Ask closes Evidence (`K18m`); opening Ask closes Lens (`K18n`); opening Ask closes Route (`K18o`); opening Keys closes Evidence (`K18p`); opening Keys closes Lens (`K18q`); opening Keys closes Route (`K18r`); opening Keys hides the tip (`K19`, Export `K19b`, Ask `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`); opening Keys clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`)
 - Keys is not covered by Ask / export while open; close it before Evidence
   / ledger / Ask / Export suites so it does not stay on top of them
 - screenshot `verification/keys.png` is not a black frame
@@ -102,6 +102,8 @@ Driver assertions:
   the product hooks.
 - Opening Keys closes Evidence (`K18p`). Escape then closes Keys; Evidence
   stays closed. Do not steal Evidence Escape when Keys is hidden.
+- Opening Keys closes Route (`K18r`). Escape then closes Keys; Route
+  stays closed.
 - Do not add `data-component` / `data-testid`. `#keysBtn`, `#keysPane`,
   `#keysClose` are the hooks.
 - Do not invent a second drawing tool or a Mermaid cheatsheet.
