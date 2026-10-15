@@ -9171,6 +9171,28 @@ async function main() {
         askBlockStep.cardWalk === 0,
       JSON.stringify(askBlockStep)
     );
+    // Ask open (field not focused): + / = / - / _ must not zoom (parity with Export K15x / Keys K15y).
+    const askChromeZoomBefore = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return Number((m && m[1]) || 0);
+    });
+    await page.keyboard.press("=");
+    await page.keyboard.press("+");
+    await page.keyboard.press("-");
+    await page.keyboard.press("_");
+    const askChromeBlockZoom = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return {
+        askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+        pct: Number((m && m[1]) || 0),
+      };
+    });
+    record(
+      "K15z",
+      "Open Ask blocks desk + − (no zoom)",
+      askChromeBlockZoom.askOpen && askChromeBlockZoom.pct === askChromeZoomBefore,
+      JSON.stringify({ ...askChromeBlockZoom, pctBefore: askChromeZoomBefore })
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
