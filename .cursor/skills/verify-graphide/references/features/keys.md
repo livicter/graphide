@@ -48,6 +48,7 @@ second command palette and not an agent stamp.
 - Open Ask blocks desk P so Play stays off (`K15t`), same as Export (`K15r`) / Keys (`K15s`).
 - Open Export blocks desk `[` `]` so path step stays put (`K15u`), residual chrome key lock after S / X / R / L / F / E / D / P.
 - Open Keys sheet blocks desk `[` `]` so path step stays put (`K15v`), same as Export (`K15u`).
+- Open Ask blocks desk `[` `]` so path step stays put (`K15w`), same as Export (`K15u`) / Keys (`K15v`).
 - Holding a key fires its toggle / action once: auto-repeat (`e.repeat`)
   of `S` `X` `D` `F` `E` `R` `L` `P` Backspace is ignored (no stamp
   spam, no theme flicker writing the global `graphide.appearance`, no
@@ -108,7 +109,7 @@ Driver assertions:
 - Escape on focused `#prompt` blurs (value stays) so desk keys work (`K16`, `K16b`)
 - Backspace with Export / Route open closes that layer and keeps Map
   community LOD (`K14`, `K14b`); inside Enter, Export closes without popping (`K14c`); Keys closes too (`K14d`); Ask closes too (`K14e`); Evidence (`K14f`); Lens (`K14g`); Present (`K14h`); Keys on Present closes without exiting (`K14i`); Export on Present too (`K14j`); Lens on Present too (`K14k`); Route on Present too (`K14l`)
-- open Export / Keys / Ask: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`, `K15e`); Export / Keys / Ask also block L (`K15h`, `K15f`, `K15g`); Export / Keys / Ask also block F (`K15i`, `K15j`, `K15k`); Export / Keys / Ask also block E (`K15l`, `K15m`, `K15n`); Export / Keys / Ask also block D (`K15o`, `K15p`, `K15q`); Export / Keys / Ask also block P (`K15r`, `K15s`, `K15t`); Export / Keys also block `[` `]` (`K15u`, `K15v`)
+- open Export / Keys / Ask: S / X / R do not stamp, skip, or PATH (`K15`, `K15b`, `K15c`, `K15d`, `K15e`); Export / Keys / Ask also block L (`K15h`, `K15f`, `K15g`); Export / Keys / Ask also block F (`K15i`, `K15j`, `K15k`); Export / Keys / Ask also block E (`K15l`, `K15m`, `K15n`); Export / Keys / Ask also block D (`K15o`, `K15p`, `K15q`); Export / Keys / Ask also block P (`K15r`, `K15s`, `K15t`); Export / Keys / Ask also block `[` `]` (`K15u`, `K15v`, `K15w`)
 - auto-repeat `S` `X` `D` `F` `E` `R` `L` `P` Backspace: no stamp / skip
   / `setAppearance` post, no mode change; repeat `+` still zooms (`K10`)
 
