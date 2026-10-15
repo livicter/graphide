@@ -8956,6 +8956,18 @@ async function main() {
       askBlockPresent.askOpen && !askBlockPresent.presenting,
       JSON.stringify(askBlockPresent)
     );
+    // Ask open (field not focused): E must not turn Ego on (parity with Export K15l / Keys K15m).
+    await page.keyboard.press("e");
+    const askBlockEgo = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+    }));
+    record(
+      "K15n",
+      "Open Ask blocks desk E (no Ego)",
+      askBlockEgo.askOpen && !askBlockEgo.ego,
+      JSON.stringify(askBlockEgo)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
