@@ -8787,6 +8787,18 @@ async function main() {
       exportBlockPresent.exportOpen && !exportBlockPresent.presenting,
       JSON.stringify(exportBlockPresent)
     );
+    // Export open: E must not turn Ego on (residual desk-key parity after S/X/R/L/F).
+    await page.keyboard.press("e");
+    const exportBlockEgo = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      ego: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+    }));
+    record(
+      "K15l",
+      "Open Export blocks desk E (no Ego)",
+      exportBlockEgo.exportOpen && !exportBlockEgo.ego,
+      JSON.stringify(exportBlockEgo)
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
