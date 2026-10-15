@@ -8847,6 +8847,18 @@ async function main() {
       keysBlockLens.keysOpen && !keysBlockLens.lens,
       JSON.stringify(keysBlockLens)
     );
+    // Keys sheet open: F must not enter Present (parity with Export K15i).
+    await page.keyboard.press("f");
+    const keysBlockPresent = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K15j",
+      "Open Keys sheet blocks desk F (no Present)",
+      keysBlockPresent.keysOpen && !keysBlockPresent.presenting,
+      JSON.stringify(keysBlockPresent)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
