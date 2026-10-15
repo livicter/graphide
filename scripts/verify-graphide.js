@@ -8834,6 +8834,24 @@ async function main() {
       exportBlockPlay.exportOpen && !exportBlockPlay.playOn && exportBlockPlay.walk === 0,
       JSON.stringify(exportBlockPlay)
     );
+    // Export open: [ ] must not step Map path walk (residual desk-key parity after S/X/R/L/F/E/D/P).
+    await page.keyboard.press("]");
+    await page.keyboard.press("[");
+    const exportBlockStep = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      walk: document.querySelectorAll(".walk, .here").length,
+      chipWalk: document.querySelectorAll(".feat-chip.walk").length,
+      cardWalk: document.querySelectorAll(".bubble-card.walk").length,
+    }));
+    record(
+      "K15u",
+      "Open Export blocks desk [ ] (no path step)",
+      exportBlockStep.exportOpen &&
+        exportBlockStep.walk === 0 &&
+        exportBlockStep.chipWalk === 0 &&
+        exportBlockStep.cardWalk === 0,
+      JSON.stringify(exportBlockStep)
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
