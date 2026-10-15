@@ -7536,6 +7536,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Export must close Lens (setExportMenu exclusivity — Export clears Lens chrome).
+    await page.keyboard.press("l");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const exportClosedLens = await page.evaluate(() => ({
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K18t",
+      "Opening Export closes Lens (exclusive chrome)",
+      exportClosedLens.exportOpen && !exportClosedLens.lensOpen,
+      JSON.stringify(exportClosedLens)
+    );
+    await page.keyboard.press("Escape"); // close Export
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !menu || menu.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
@@ -9311,6 +9342,11 @@ async function main() {
     await page.keyboard.press("l");
     await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
     await page.waitForTimeout(150);
+    // Snapshot live Lens paint before Export — opening Export closes Lens (K18t).
+    const liveLensBefore = await page.evaluate(() => ({
+      lensDim: document.querySelectorAll("#sliceCanvas .vnode.lens-dim").length,
+      lensOn: document.querySelectorAll("#sliceCanvas .vnode.lens-on").length,
+    }));
     await page.evaluate(() => {
       if (window.__graphideLastExport) window.__graphideLastExport.svg = null;
     });
@@ -9323,28 +9359,30 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Re-stamp lens viewer classes so EXPORT_STRIP is still exercised after exclusivity cleared Lens.
+    await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+      if (nodes[0]) nodes[0].classList.add("lens-on");
+      for (let i = 1; i < Math.min(nodes.length, 5); i++) nodes[i].classList.add("lens-dim");
+    });
     await page.click("#exportSvg");
     await page.waitForFunction(() => window.__graphideLastExport && window.__graphideLastExport.svg, null, {
       timeout: 20000,
     });
-    const exportLens = await page.evaluate(() => {
+    const exportLens = await page.evaluate((liveBefore) => {
       const url = window.__graphideLastExport.svg.dataUrl || "";
       const bin = atob(url.slice(url.indexOf(",") + 1));
       const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
       const markup = text.replace(/<style[\s\S]*?<\/style>/gi, "");
       const classes = [...markup.matchAll(/\bclass="([^"]*)"/g)].map((m) => m[1]);
-      const live = {
-        lensDim: document.querySelectorAll("#sliceCanvas .vnode.lens-dim").length,
-        lensOn: document.querySelectorAll("#sliceCanvas .vnode.lens-on").length,
-      };
       return {
-        live,
+        live: liveBefore,
         lensDim: classes.filter((c) => /\blens-dim\b/.test(c)).length,
         lensOn: classes.filter((c) => /\blens-on\b/.test(c)).length,
         routeDim: classes.filter((c) => /\broute-dim\b/.test(c)).length,
         onRoute: classes.filter((c) => /\bon-route\b/.test(c)).length,
       };
-    });
+    }, liveLensBefore);
     record(
       "X6d",
       "Export SVG after Lens carries no .lens-dim / .lens-on on Slice nodes",
@@ -9356,8 +9394,8 @@ async function main() {
         exportLens.onRoute === 0,
       JSON.stringify(exportLens)
     );
-    await page.keyboard.press("l");
-    await page.waitForTimeout(120);
+    // Export already closed Lens (K18t); ensure dock is shut before Sequence export strip.
+    await page.waitForFunction(() => !(window.__graphideLens && window.__graphideLens.open), null, { timeout: 5000 });
 
     // Play-head / path highlight is viewer state: stamp .hot / .flowing / .on-path on the live canvas, then export must drop them.
     await page.click('#workspaces [data-ws="sequence"]');
