@@ -42,6 +42,7 @@ workspace and not an agent stamp.
 - Open Ask blocks desk D so day/night stays put (`K15q`), same as Export (`K15o`) / Keys (`K15p`).
 - Open Ask blocks desk P so Play stays off (`K15t`), same as Export (`K15r`) / Keys (`K15s`).
 - Open Ask blocks desk `[` `]` so path step stays put (`K15w`), same as Export (`K15u`) / Keys (`K15v`).
+- Open Ask blocks desk `+` `−` so zoom stays put (`K15z`), same as Export (`K15x`) / Keys (`K15y`).
 
 ## How to get to it (user POV)
 
@@ -94,6 +95,7 @@ Driver assertions:
 - open Ask (field blurred): D does not flip day/night (`K15q`)
 - open Ask (field blurred): P does not start Play (`K15t`)
 - open Ask (field blurred): `[` `]` do not step path walk (`K15w`)
+- open Ask (field blurred): `+` `−` do not zoom (`K15z`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame
