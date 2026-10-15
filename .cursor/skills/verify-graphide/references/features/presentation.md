@@ -27,6 +27,7 @@ stay human — present and preset never write `.graphide/stamps/`.
 - Stamp / skip stay human. Present / preset never write `.graphide/stamps/`.
 - While `body.present`, desk `X` does not skip (`P6b`) — Skip chrome is hidden; exit first. `S` still cycles Style.
 - While `body.present`, desk `/` does not focus Find (`P6c`) — `#graphBar` is hidden; exit first.
+- While `body.present`, desk `D` still toggles Day/Night (`P6l`) — Theme stays on stage; residual after Style (`P6`).
 - While `body.present` with Export open, desk `S` still cycles Style (`P6d`) — stamp is hidden; Export must not steal Style.
 - While `body.present` with Export open, desk `D` still toggles Day/Night (`P6e`).
 - While `body.present` with Export open, desk `+`/`=`/`-` still zoom (`P6f`); Fit (`0`) still refits (`P6j`).
@@ -73,7 +74,7 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
-- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); `D` still toggles Day/Night (`P6l`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
 - opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`)
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
