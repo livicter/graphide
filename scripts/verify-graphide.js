@@ -10182,6 +10182,31 @@ async function main() {
       presentFind.present && presentFind.barHidden && !presentFind.findFocused,
       JSON.stringify(presentFind)
     );
+    // Present alone: D still toggles Day/Night (stage keeps Theme; residual after S=P6).
+    const presentDayBefore = await page.evaluate(() => document.documentElement.classList.contains("night"));
+    await page.evaluate(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
+    await page.keyboard.press("d");
+    const presentDeskDay = await page.evaluate((before) => ({
+      present: document.body.classList.contains("present"),
+      before,
+      night: document.documentElement.classList.contains("night"),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }), presentDayBefore);
+    record(
+      "P6l",
+      "Present: desk D still toggles Day/Night",
+      presentDeskDay.present &&
+        !presentDeskDay.exportOpen &&
+        !presentDeskDay.keysOpen &&
+        presentDeskDay.night !== presentDeskDay.before,
+      JSON.stringify(presentDeskDay)
+    );
+    // Restore day so Export/Keys Present suites stay day-safe.
+    if (presentDeskDay.night) {
+      await page.keyboard.press("d");
+      await page.waitForFunction(() => !document.documentElement.classList.contains("night"), null, { timeout: 5000 });
+    }
     // Present + Export: S still cycles Style (not blocked as desk stamp).
     const presetBefore = await page.evaluate(() => document.documentElement.getAttribute("data-preset") || "classic");
     await page.click("#exportBtn");
