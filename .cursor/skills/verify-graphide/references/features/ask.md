@@ -40,6 +40,7 @@ workspace and not an agent stamp.
 - Open Ask blocks desk F so Present stays off (`K15k`), same as Export (`K15i`) / Keys (`K15j`).
 - Open Ask blocks desk E so Ego stays off (`K15n`), same as Export (`K15l`) / Keys (`K15m`).
 - Open Ask blocks desk D so day/night stays put (`K15q`), same as Export (`K15o`) / Keys (`K15p`).
+- Open Ask blocks desk P so Play stays off (`K15t`), same as Export (`K15r`) / Keys (`K15s`).
 
 ## How to get to it (user POV)
 
@@ -90,6 +91,7 @@ Driver assertions:
 - open Ask (field blurred): F does not enter Present (`K15k`)
 - open Ask (field blurred): E does not turn Ego on (`K15n`)
 - open Ask (field blurred): D does not flip day/night (`K15q`)
+- open Ask (field blurred): P does not start Play (`K15t`)
 - `#llmClose` and Escape hide the pane
 - Ask pane is not covered by Evidence / ledger / keys / export
 - screenshot `verification/ask.png` is not a black frame

@@ -9060,6 +9060,19 @@ async function main() {
         askChromeBlockDay.appearancePosts === 0,
       JSON.stringify({ ...askChromeBlockDay, nightBefore: askChromeNightBefore })
     );
+    // Ask open (field not focused): P must not start Map path walk (parity with Export K15r / Keys K15s).
+    await page.keyboard.press("p");
+    const askBlockPlay = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+      walk: document.querySelectorAll(".walk, .here").length,
+    }));
+    record(
+      "K15t",
+      "Open Ask blocks desk P (no Play)",
+      askBlockPlay.askOpen && !askBlockPlay.playOn && askBlockPlay.walk === 0,
+      JSON.stringify(askBlockPlay)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
