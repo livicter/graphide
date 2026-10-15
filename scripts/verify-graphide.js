@@ -7598,6 +7598,44 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Evidence must close Ask (revealSourcePane exclusivity — Evidence clears Ask chrome).
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedAsk = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+    }));
+    record(
+      "K18v",
+      "Opening Evidence closes Ask (exclusive chrome)",
+      evidenceClosedAsk.evidenceOpen && !evidenceClosedAsk.askOpen,
+      JSON.stringify(evidenceClosedAsk)
+    );
+    await page.keyboard.press("Escape"); // close Evidence
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });

@@ -12,6 +12,7 @@ workspace and not an agent stamp.
 - Opening Ask hides the hover tip (`K19c`).
 - Opening Ask clears the toast (`K20c`).
 - Keys / Export / Present close Ask when they open (`K18` / `K18b` / `K18g`) — exclusive chrome.
+- Opening Evidence closes Ask (`K18v`), same exclusive chrome as Keys / Export / Present closing Ask.
 - Opening Ask closes Keys (`K18c`), same exclusive chrome as Keys closing Ask (`K18`).
 - Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
 - Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
@@ -86,6 +87,7 @@ Driver assertions:
 - click `#llmSend`, type `sx`: text lands in `#llmAsk`, no stamp / skip
   post (`A3c`)
 - opening Present closes Ask (`K18g`)
+- opening Evidence closes Ask (`K18v`)
 - opening Ask closes Evidence (`K18m`)
 - opening Ask closes Lens (`K18n`)
 - opening Ask closes Route (`K18o`)
