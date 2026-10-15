@@ -9055,6 +9055,28 @@ async function main() {
       keysChromeBlockZoom.keysOpen && keysChromeBlockZoom.pct === keysChromeZoomBefore,
       JSON.stringify({ ...keysChromeBlockZoom, pctBefore: keysChromeZoomBefore })
     );
+    // Keys sheet open: 0 must not Fit (parity with Export K15aa).
+    // Zoom via chrome button first so Fit would move camTo if the desk key leaked.
+    // Compare zoomPct (camTo), not live transform — cam still lerps under Keys.
+    await page.click("#zoomIn");
+    const keysChromeFitBefore = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return Number((m && m[1]) || 0);
+    });
+    await page.keyboard.press("0");
+    const keysChromeBlockFit = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return {
+        keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+        pct: Number((m && m[1]) || 0),
+      };
+    });
+    record(
+      "K15ab",
+      "Open Keys sheet blocks desk 0 (no Fit)",
+      keysChromeBlockFit.keysOpen && keysChromeBlockFit.pct === keysChromeFitBefore,
+      JSON.stringify({ ...keysChromeBlockFit, pctBefore: keysChromeFitBefore })
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
