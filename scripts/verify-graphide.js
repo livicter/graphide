@@ -8852,6 +8852,28 @@ async function main() {
         exportBlockStep.cardWalk === 0,
       JSON.stringify(exportBlockStep)
     );
+    // Export open: + / = / - / _ must not zoom (residual desk-key parity after S/X/R/L/F/E/D/P/[ ]).
+    const exportZoomBefore = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return Number((m && m[1]) || 0);
+    });
+    await page.keyboard.press("=");
+    await page.keyboard.press("+");
+    await page.keyboard.press("-");
+    await page.keyboard.press("_");
+    const exportBlockZoom = await page.evaluate(() => {
+      const m = /(\d+)%/.exec(((document.getElementById("zoomPct") || {}).textContent || ""));
+      return {
+        exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+        pct: Number((m && m[1]) || 0),
+      };
+    });
+    record(
+      "K15x",
+      "Open Export blocks desk + − (no zoom)",
+      exportBlockZoom.exportOpen && exportBlockZoom.pct === exportZoomBefore,
+      JSON.stringify({ ...exportBlockZoom, pctBefore: exportZoomBefore })
+    );
     await page.keyboard.press("Backspace");
     await page.waitForFunction(
       () => {
