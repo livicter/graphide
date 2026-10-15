@@ -8940,6 +8940,19 @@ async function main() {
         keysChromeBlockDay.appearancePosts === 0,
       JSON.stringify({ ...keysChromeBlockDay, nightBefore: keysChromeNightBefore })
     );
+    // Keys sheet open: P must not start Map path walk (parity with Export K15r).
+    await page.keyboard.press("p");
+    const keysBlockPlay = await page.evaluate(() => ({
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+      playOn: !!(document.getElementById("pathWalkBtn") && document.getElementById("pathWalkBtn").classList.contains("on")),
+      walk: document.querySelectorAll(".walk, .here").length,
+    }));
+    record(
+      "K15s",
+      "Open Keys sheet blocks desk P (no Play)",
+      keysBlockPlay.keysOpen && !keysBlockPlay.playOn && keysBlockPlay.walk === 0,
+      JSON.stringify(keysBlockPlay)
+    );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
       () => {
