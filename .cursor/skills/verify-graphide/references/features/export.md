@@ -21,6 +21,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Opening Export closes Route (`K18u`), same exclusive chrome as Keys closing Route (`K18r`).
 - Open Export blocks desk L so LENS stays closed (`K15h`), same as Keys (`K15f`) / Ask (`K15g`).
 - Open Export blocks desk F so Present stays off (`K15i`), same chrome key lock as S / X / R / L under Export.
+- Open Export blocks desk E so Ego stays off (`K15l`), residual chrome key lock after S / X / R / L / F.
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
@@ -79,6 +80,7 @@ Driver assertions:
 - opening Export closes Route (`K18u`)
 - open Export: L does not open LENS (`K15h`)
 - open Export: F does not enter Present (`K15i`)
+- open Export: E does not turn Ego on (`K15l`)
 - saved `verification/export-desk.png` (or `.svg`) exists
 - PNG is not a black frame
 - `verification/export-share.png` is 1200×630
