@@ -14,6 +14,7 @@ workspace and not an agent stamp.
 - Keys / Export / Present close Ask when they open (`K18` / `K18b` / `K18g`) — exclusive chrome.
 - Opening Evidence closes Ask (`K18v`), same exclusive chrome as Keys / Export / Present closing Ask.
 - Opening Lens closes Ask (`K18w`), same exclusive chrome as Evidence closing Ask (`K18v`).
+- Opening Route closes Ask (`K18x`), same exclusive chrome as Lens closing Ask (`K18w`).
 - Opening Ask closes Keys (`K18c`), same exclusive chrome as Keys closing Ask (`K18`).
 - Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
 - Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
@@ -90,6 +91,7 @@ Driver assertions:
 - opening Present closes Ask (`K18g`)
 - opening Evidence closes Ask (`K18v`)
 - opening Lens closes Ask (`K18w`)
+- opening Route closes Ask (`K18x`)
 - opening Ask closes Evidence (`K18m`)
 - opening Ask closes Lens (`K18n`)
 - opening Ask closes Route (`K18o`)
