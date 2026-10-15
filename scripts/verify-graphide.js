@@ -7665,6 +7665,35 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Route must close Ask (setRouteOpen exclusivity — Route clears Ask chrome).
+    // Use #pathBtn: desk R is blocked while Ask is open (K15e).
+    await page.click("#llmBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedAsk = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+    }));
+    record(
+      "K18x",
+      "Opening Route closes Ask (exclusive chrome)",
+      routeClosedAsk.routeOpen && !routeClosedAsk.askOpen,
+      JSON.stringify(routeClosedAsk)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
     // Hover tip on Slice, then open Keys — tip must hide (not stick under chrome).
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
