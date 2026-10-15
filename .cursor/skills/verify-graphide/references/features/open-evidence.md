@@ -18,6 +18,7 @@ Inspect a node or hop without covering the object rail.
 - Opening Present closes Evidence (`K18j`), same exclusive chrome as Present closing Ask / Keys / Export.
 - Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Evidence closes Ask (`K18v`), same exclusive chrome as Keys / Export / Present closing Ask.
+- Opening Evidence closes Keys (`K18y`), same exclusive chrome as Keys closing Evidence (`K18p`).
 - Opening Keys closes Evidence (`K18p`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Export closes Evidence (`K18s`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
@@ -55,6 +56,7 @@ Driver assertions:
 - opening Present closes Evidence (`K18j`)
 - opening Ask closes Evidence (`K18m`)
 - opening Evidence closes Ask (`K18v`)
+- opening Evidence closes Keys (`K18y`)
 - opening Keys closes Evidence (`K18p`)
 - opening Export closes Evidence (`K18s`)
 - screenshot of the desk with Evidence open is not black
