@@ -24,6 +24,7 @@ slice. Not an agent-drawn lens JSON.
 - Opening Keys closes Lens (`K18q`), same exclusive chrome as Present closing Lens (`K18k`).
 - Opening Export closes Lens (`K18t`), same exclusive chrome as Present closing Lens (`K18k`).
 - Opening Lens closes Ask (`K18w`), same exclusive chrome as Evidence closing Ask (`K18v`).
+- Opening Lens closes Keys (`K18aa`), same exclusive chrome as Keys closing Lens (`K18q`).
 
 ## How to get to it (user POV)
 
@@ -62,6 +63,7 @@ Driver assertions:
 - opening Keys closes Lens (`K18q`)
 - opening Export closes Lens (`K18t`)
 - opening Lens closes Ask (`K18w`)
+- opening Lens closes Keys (`K18aa`)
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)

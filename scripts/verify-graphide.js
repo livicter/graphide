@@ -7753,6 +7753,55 @@ async function main() {
       evidenceClosedExport.evidenceOpen && !evidenceClosedExport.exportOpen,
       JSON.stringify(evidenceClosedExport)
     );
+    // Opening Lens must close Keys (setLensOpen exclusivity — Lens clears Keys chrome).
+    // Evidence is open from K18z; close it first so Keys can open cleanly. Reopen after for S1a.
+    await page.keyboard.press("Escape"); // close Evidence
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Use #lensBtn: desk L is blocked while Keys is open (modal chrome early-return).
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedKeys = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18aa",
+      "Opening Lens closes Keys (exclusive chrome)",
+      lensClosedKeys.lensOpen && !lensClosedKeys.keysOpen,
+      JSON.stringify(lensClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Reopen Evidence for S1a scroll-drive suite.
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
     // S1a — Evidence #srcBody scroll publishes ScrollDrive and moves camTo (lerp via setCamTarget).
     const beforeScrollDrive = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
