@@ -882,6 +882,63 @@ function scrollDriveLastStayMatches(nextSourceId) {
   return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
 }
 
+/** S1x — desk/Slice remount while Evidence stays open (same sourceId, no Present):
+ *  re-seed ScrollDrive from live camTo + warm S1w last-stay; clear settle flags;
+ *  drop paint on destroyed DOM and schedule flush so lineMap / active-line rebuild
+ *  (S1l). No wipe-then-zoomToEl. Returns true when soft stay / restore applied. */
+function softStayScrollDriveAcrossDeskRemount() {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (!sourcePane || sourcePane.hidden || !srcBody) return false;
+  const sid = sourceId ? String(sourceId) : "";
+  if (!sid) return false;
+  // Keep last-stay warm before any remount wipe (recycle or full rebuild).
+  if (scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+    stashScrollDriveLastStay();
+  }
+  if (scrollDriveBase) {
+    scrollDriveBase = {
+      x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+      y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
+    };
+    // Clear lock so next flush soft-remaps to the newly painted vnode (S1t style).
+    scrollDriveTargetLocked = "";
+    scrollDriveCamXSettled = false;
+    scrollDriveCamYSettled = false;
+    scrollDriveWasMacro = false;
+    // Keep restored/seeded base — applyScrollDriveCamera soft-stays without zoomToEl.
+    scrollDriveJustRestored = true;
+    clearScrollDriveCfgPaint();
+    clearScrollDriveLineMapPaint();
+    clearScrollDriveActiveLinePaint();
+    clearScrollDriveMacroPaint();
+    // Skip flush while Lens/Route own dim paint — a late rAF must not override probe opacity.
+    if (lensOpen || routeOpen) {
+      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+      return true;
+    }
+    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+    return true;
+  }
+  // Base wiped mid-remount but same-source last-stay is warm — soft restore (S1w).
+  if (
+    typeof softRestoreScrollDriveFromLastStay === "function" &&
+    softRestoreScrollDriveFromLastStay(sid)
+  ) {
+    if (lensOpen || routeOpen) {
+      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+      return true;
+    }
+    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+    return true;
+  }
+  return false;
+}
+// Harness / desk glue — Slice remount soft stay (S1x).
+if (typeof window !== "undefined") {
+  window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
+}
+
 /** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
 function pauseScrollDriveForPresent() {
   // S1w — remember stay before wipe (closeSourcePane may already have stashed).
@@ -6534,6 +6591,11 @@ function setRouteOpen(on) {
     }
     resolveRoute();
     if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
+    // S1x — drop pending ScrollDrive graph paint so lineMap/CFG opacity cannot beat route-dim.
+    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+    if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+    if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+    if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
   }
   syncProbeDock();
   if (routeOpen) fillRouteReceipt();
@@ -6553,6 +6615,11 @@ function setLensOpen(on) {
       toastEl.hidden = true;
     }
     if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+    // S1x — drop pending ScrollDrive graph paint so lineMap/CFG opacity cannot beat lens-dim.
+    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+    if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+    if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+    if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
   }
   syncProbeDock();
   if (lensOpen) fillLensReceipt();
@@ -10807,6 +10874,11 @@ function renderFlowchart(msg, opts) {
   applyEgoPaint();
   bindStoryRail();
   applyPathWalkPaint();
+  // S1x — Slice remount / recycle rebuilds vnodes while Evidence may stay open.
+  // Re-seed soft stay + settle honesty; next flush repaints lineMap / active-line.
+  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+    softStayScrollDriveAcrossDeskRemount();
+  }
 }
 
 function stampBadge(name) {

@@ -11177,7 +11177,7 @@ async function main() {
           d &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.15)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
@@ -11217,7 +11217,8 @@ async function main() {
         s1wDk <= 0.45 &&
         !s1wResettle.presentPaused &&
         !!s1wResettle.targetNodeId &&
-        Number(s1wResettle.ratio) > 0.15,
+        Number(s1wResettle.ratio) > 0.15 &&
+        (s1wResettle.camXSettled === true || s1wResettle.camYSettled === true),
       "setup=" +
         JSON.stringify(s1wSetup) +
         " before=" +
@@ -11234,6 +11235,162 @@ async function main() {
         s1wDy +
         " dk=" +
         s1wDk
+    );
+
+
+
+    // S1x — desk/Slice remount while Evidence stays open soft-stays cam (no wipe-then-zoomToEl).
+    // Re-click Slice recycles stage + remounts XYFlow vnodes; Evidence pane stays open (same sourceId).
+    const s1xBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        paneOpen: !!(pane && !pane.hidden),
+        sourceId: "n1",
+      };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id]', { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(120);
+    const s1xAfterRemount = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        activeLineMarked: !!d.activeLineMarked,
+        lineMapHit: !!d.lineMapHit,
+        paneOpen: !!(pane && !pane.hidden),
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+        vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      };
+    });
+    const s1xDx = Math.abs((Number(s1xAfterRemount.camX) || 0) - (Number(s1xBefore.camX) || 0));
+    const s1xDy = Math.abs((Number(s1xAfterRemount.camY) || 0) - (Number(s1xBefore.camY) || 0));
+    const s1xDk = Math.abs((Number(s1xAfterRemount.camK) || 0) - (Number(s1xBefore.camK) || 0));
+    // Nudge scroll so settle flags re-absorb after remount clear (S1r/S1s).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1x-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4200 + i) + '</span><span class="tx">s1x remount pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.42);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1xResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const active =
+        document.querySelector(".src-line.scroll-drive-active") ||
+        document.querySelector('.src-line[data-scroll-active="1"]');
+      const hit =
+        document.querySelector(".vnode.scroll-linemap-hit") ||
+        document.querySelector('.vnode[data-scroll-linemap="hit"]') ||
+        document.querySelector(".vnode.scroll-linemap-miss") ||
+        document.querySelector('.vnode[data-scroll-linemap="miss"]');
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLineMarked: !!d.activeLineMarked,
+        activeDom: !!active,
+        lineMapDom: !!hit,
+      };
+    });
+    record(
+      "S1x",
+      "desk remount soft-stays cam while Evidence open (settle clear→reabsorb; no hard zoomToEl)",
+      s1xBefore.paneOpen &&
+        !s1xBefore.macroLod &&
+        !s1xBefore.presentPaused &&
+        Number.isFinite(s1xBefore.camX) &&
+        Number.isFinite(s1xBefore.camY) &&
+        (s1xBefore.camXSettled === true || s1xBefore.camYSettled === true) &&
+        s1xAfterRemount.paneOpen &&
+        !s1xAfterRemount.presentPaused &&
+        !!s1xAfterRemount.targetNodeId &&
+        s1xAfterRemount.vnodeCount > 0 &&
+        s1xAfterRemount.lineCount > 0 &&
+        s1xDx <= 96 + 24 &&
+        s1xDy <= 200 &&
+        s1xDk <= 0.45 &&
+        !s1xResettle.presentPaused &&
+        !!s1xResettle.targetNodeId &&
+        Number(s1xResettle.ratio) > 0.1 &&
+        (s1xResettle.camXSettled === true || s1xResettle.camYSettled === true) &&
+        (s1xResettle.activeDom || s1xResettle.activeLineMarked || s1xResettle.lineMapDom),
+      "before=" +
+        JSON.stringify(s1xBefore) +
+        " afterRemount=" +
+        JSON.stringify(s1xAfterRemount) +
+        " resettle=" +
+        JSON.stringify(s1xResettle) +
+        " dx=" +
+        s1xDx +
+        " dy=" +
+        s1xDy +
+        " dk=" +
+        s1xDk
     );
 
 

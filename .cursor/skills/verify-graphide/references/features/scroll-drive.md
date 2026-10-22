@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX + idle-settle camY + nest-focus remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore (S1a–S1w)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX + idle-settle camY + nest-focus remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay (S1a–S1x)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,7 +17,7 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open), and when Slice/desk remounts (canvas rebuild) **without** closing Evidence / changing `sourceId`, re-seeds ScrollDrive from live `camTo` + warm S1w snapshot so soft stay and settle flags stay honest across remount (S1x — next flush repaints active-line / lineMap; no wipe-then-`zoomToEl`).
 
 ## Sub-features
 
@@ -211,6 +211,16 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   matches, even if the pane is still hidden mid-peek. Settle flags clear
   for S1r/S1s re-absorb. Still one camera path; respects S1k/S1m/S1c/S1l/
   S1r/S1s refresh settle flags.
+- **S1x desk remount soft stay:** when Slice/desk remounts (recycle or
+  full canvas rebuild via `mountSliceCanvas` / `paint`) **without** closing
+  Evidence or changing `sourceId`, `softStayScrollDriveAcrossDeskRemount`
+  re-seeds `scrollDriveBase` from live `camTo` (and keeps S1w last-stay
+  warm). If the live base was wiped mid-remount, same-source last-stay
+  soft-restores. Clears `camXSettled` / `camYSettled` + target lock, drops
+  paint on destroyed DOM, marks `scrollDriveJustRestored`, and schedules a
+  flush so active-line / lineMap / CFG rebuild (S1l) — **no** wipe-then-
+  `zoomToEl`. Skips flush while Lens/Route are open (probe dims win);
+  Present (S1m) no-ops. Still one camera path.
 - Closing Evidence (`closeSourcePane`) stashes last-stay (S1w) then resets
   the drive and clears CFG + macro + kind-anchor + detail-gate + blend +
   lineMap + active-line paint.
@@ -231,7 +241,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again.
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again. Re-selecting Slice (or any desk remount that rebuilds the graph) while Evidence stays open keeps that soft stay — settle flags clear then re-absorb, and the dual-pane cues repaint on the next flush.
 
 ## Driving it with the harness
 
@@ -349,8 +359,15 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   (Evidence closes, `presentPaused`) then Present off, reopen the **same**
   Evidence source. Camera soft-restores toward the pre-Present stay within
   soft-follow caps (no hard `zoomToEl` leap); `__graphideScrollDrive`
-  publishes again (`!presentPaused`, `targetNodeId`); settle flags can
-  re-absorb. Different `sourceId` drops the snapshot. One cam path.
+  publishes again (`!presentPaused`, `targetNodeId`); settle flags
+  (`camXSettled` / `camYSettled`) clear→re-absorb after idle. Different
+  `sourceId` drops the snapshot. One cam path.
+- **S1x** — mid-file Evidence scroll (micro soft-stay settled, not Present),
+  then remount Slice (re-click workspace / `paint` recycle) **without**
+  closing Evidence. Camera soft-stays within soft-follow caps (no wipe-
+  then-`zoomToEl`); settle flags clear on remount and re-absorb on idle;
+  active-line / lineMap paint refresh on the next flush; pane stays open
+  with the same `sourceId`. One cam path.
 
 ## Gotchas
 
@@ -387,7 +404,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `stashScrollDriveLastStay`, `softRestoreScrollDriveFromLastStay`,
   `scrollDriveLastStayMatches`, `scrollDriveLastStay`,
   `SCROLL_DRIVE_LAST_STAY_MS`, soft restore in `showSource` /
-  `selectNode` (S1w).
+  `selectNode` (S1w),
+  `softStayScrollDriveAcrossDeskRemount`, remount soft stay in
+  `renderFlowchart` / Slice paint (S1x).
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
@@ -422,10 +441,15 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `sourceId` Present→Evidence reopen / Evidence close→reopen / remount wipe
   — never a parallel tween; no reload persistence; different sourceId drops
   the snapshot; first-ever open may still `zoomToEl`.
+  S1x only soft-stays across desk/Slice remount while Evidence stays open
+  (seed from `camTo` + warm last-stay; clear settle; flush repaint) — never
+  a parallel tween; Present pause no-ops; skip flush while Lens/Route open
+  so lineMap/CFG opacity cannot beat probe dims; first-ever open may still
+  `zoomToEl`.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
 - **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
   here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
-  side-effect at this map. Index Live proof stays `S1a`–`S1w`.
+  side-effect at this map. Index Live proof stays `S1a`–`S1x`.
 - **S1p active-line cue:** Evidence editor tint pairs with S1n graph glow;
   `open-evidence.md` / index deferral extends to `S1a`–`S1p`. Clear on
   Present pause / close — do not leave a stale `.scroll-drive-active`.
@@ -449,3 +473,7 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   Evidence close; `showSource` / `selectNode` soft-restore same `sourceId`
   (skip hard `zoomToEl`); different sourceId drops snapshot; remount with
   warm stash prefers soft restore. Deferral extends to `S1a`–`S1w`.
+- **S1x desk remount soft stay:** Slice/desk remount while Evidence open
+  re-seeds from `camTo` + warm last-stay; settle flags clear→re-absorb;
+  active-line / lineMap refresh on next flush; no wipe-then-`zoomToEl`.
+  Deferral extends to `S1a`–`S1x`.

@@ -2551,6 +2551,15 @@ html.bright .route-hop {
     box-shadow var(--scroll-blend-ms, 180ms) ease;
 }
 
+/* S1x — Probe dims beat ScrollDrive paint opacity (Lens/Route exclusive chrome).
+   Remount flush may re-apply lineMap/CFG while a probe is open; dim must stay dim. */
+.vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim, .bubble-card.route-dim {
+  opacity: 0.22;
+}
+.vnode.lens-dim, .comm-node.lens-dim, .seq-part.lens-dim, .df-node.lens-dim, .bubble-card.lens-dim {
+  opacity: 0.28;
+}
+
 /* S1p — Evidence mid-viewport active-line dual-pane cue (pairs with S1n graph glow).
    Static left gutter + tint via link token; no pulse (prefers-reduced-motion safe). */
 .src-line.scroll-drive-active {

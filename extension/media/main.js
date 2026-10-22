@@ -20411,6 +20411,49 @@
       const age = Date.now() - (Number(snap.t) || 0);
       return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
     }
+    function softStayScrollDriveAcrossDeskRemount() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!sourcePane || sourcePane.hidden || !srcBody) return false;
+      const sid = sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      if (scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (scrollDriveBase) {
+        scrollDriveBase = {
+          x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+          y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+        };
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveWasMacro = false;
+        scrollDriveJustRestored = true;
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+      if (typeof softRestoreScrollDriveFromLastStay === "function" && softRestoreScrollDriveFromLastStay(sid)) {
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+      return false;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
+    }
     function pauseScrollDriveForPresent() {
       if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
@@ -25196,6 +25239,10 @@
         }
         resolveRoute();
         if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
+        if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+        if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+        if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+        if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
       }
       syncProbeDock();
       if (routeOpen) fillRouteReceipt();
@@ -25214,6 +25261,10 @@
           toastEl.hidden = true;
         }
         if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+        if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+        if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+        if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+        if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
       }
       syncProbeDock();
       if (lensOpen) fillLensReceipt();
@@ -28316,6 +28367,9 @@
       applyEgoPaint();
       bindStoryRail();
       applyPathWalkPaint();
+      if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function stampBadge(name) {
       const mark = flowMark(name);
