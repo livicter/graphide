@@ -28,7 +28,7 @@ Inspect a node or hop without covering the object rail.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
   `selectNode` → `peekSource`.
-- Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + camEase + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX / camY + nest remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore (`S1a`–`S1ab`) is owned by [scroll-drive.md](scroll-drive.md). This map stays pane open / clip.
+- Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + camEase + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX / camY + nest remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore + Review-restart clear (`S1a`–`S1ac`) is owned by [scroll-drive.md](scroll-drive.md). This map stays pane open / clip.
 - Clip rules (PR #45 / `main.css`): `#sourcePane` has `overflow: hidden` and `max-width: 380px` (flex basis ~360px). Long source lines must not cover `#ledgerPane`.
 
 ## How to get to it (user POV)
@@ -64,7 +64,7 @@ Driver assertions:
 - opening Evidence closes Export (`K18z`)
 - opening Evidence closes Lens (`K18ae`)
 - opening Evidence closes Route (`K18af`)
-- Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam / CFG / macro / anchors / detail / camEase / line→node / nest / blend / reduced-motion / rAF / Present pause / lineMapHit glow / active-line cue / soft camX follow / idle-settle camX / camY / nest remap soft-cam stay / macro-path soft remap / file-hop soft stay / Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore (`S1a`–`S1ab`) — see [scroll-drive.md](scroll-drive.md)
+- Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam / CFG / macro / anchors / detail / camEase / line→node / nest / blend / reduced-motion / rAF / Present pause / lineMapHit glow / active-line cue / soft camX follow / idle-settle camX / camY / nest remap soft-cam stay / macro-path soft remap / file-hop soft stay / Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore + Review-restart clear (`S1a`–`S1ac`) — see [scroll-drive.md](scroll-drive.md)
 - opening Keys closes Evidence (`K18p`)
 - opening Export closes Evidence (`K18s`)
 - screenshot of the desk with Evidence open is not black

@@ -1024,6 +1024,25 @@ function clearScrollDriveLastStay() {
   clearPersistedScrollDriveLastStay();
 }
 
+/** S1ac — Review restart / desk clear: wipe in-memory last-stay + current workspace
+ *  scoped sessionStorage blob, and drop live base so closeSourcePane cannot re-stash
+ *  the prior review cam. Soft-restore then finds nothing until the user builds a new
+ *  stay. Leaves other folders' scoped keys alone (multi-folder polish). */
+function clearScrollDriveLastStayOnReviewRestart() {
+  scrollDriveLastStay = null;
+  scrollDriveJustRestored = false;
+  // Kill live base so a subsequent closeSourcePane stash cannot revive prior cam.
+  scrollDriveBase = null;
+  scrollDriveTargetLocked = "";
+  scrollDriveCamXSettled = false;
+  scrollDriveCamYSettled = false;
+  scrollDriveYNudgeOrigin = 0;
+  scrollDriveWasMacro = false;
+  scrollDriveLastShownSourceId = "";
+  clearPersistedScrollDriveLastStay();
+  return true;
+}
+
 /** S1ab — same-source host re-post of `source` after reload / peek reply:
  *  soft-restore from storage when base was wiped; else soft-stay without clearing last-stay
  *  (unlike S1v file-hop which drops the blob). Returns true when soft stay / restore applied. */
@@ -1061,6 +1080,7 @@ function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
 // S1ab: workspace key + scoped storage key published for harness.
 if (typeof window !== "undefined") {
   window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+  window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
   window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
   window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
   window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
@@ -1146,6 +1166,10 @@ function softRestoreScrollDriveFromLastStay(nextSourceId) {
 
 /** S1w/S1aa — true when a same-source last-stay snapshot is still fresh (selectNode soft skip).
  *  Checks memory then sessionStorage so reload soft-restore also skips hard zoomEl. */
+if (typeof window !== "undefined") {
+  window.__graphideSoftRestoreScrollDriveFromLastStay = softRestoreScrollDriveFromLastStay;
+}
+
 function scrollDriveLastStayMatches(nextSourceId) {
   const sid = nextSourceId ? String(nextSourceId) : "";
   if (!sid) return false;
@@ -2836,6 +2860,11 @@ if (llmAsk)
 if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
 
 function startReview() {
+  // S1ac — new Review drops stale last-stay (memory + scoped storage) so the next
+  // Evidence open does not soft-restore a previous review's cam.
+  if (typeof clearScrollDriveLastStayOnReviewRestart === "function") {
+    clearScrollDriveLastStayOnReviewRestart();
+  }
   cancelling = false;
   pendingProgress = null;
   targetPct = 0;
@@ -2863,9 +2892,13 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "empty") {
-    // S1ab — leaving analysis / no folder: drop scoped last-stay so a later folder cannot revive it.
-    if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
+    // S1ac — desk clear: close Evidence first (may attempt stash), then wipe stay so
+    // a prior review cam cannot soft-restore. Leaves other folders' scoped keys alone.
+    if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+    if (typeof clearScrollDriveLastStayOnReviewRestart === "function") clearScrollDriveLastStayOnReviewRestart();
     else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+    // S1ab — leaving analysis / no folder: drop workspace scope after stay wipe.
+    if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
     stopPathWalk();
     snapshot = null;
     finishWork();

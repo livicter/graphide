@@ -12518,6 +12518,146 @@ async function main() {
         s1abDkSnap
     );
 
+    // S1ac — Review restart clear / multi-folder stay polish.
+    // Stash under workspace A, seed an isolated B blob, clear via Review-restart helper:
+    // A storage empty + soft-restore skipped; B key untouched.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1acSeed = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      const keyA =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let rawA = null;
+      try {
+        rawA = sessionStorage.getItem(keyA);
+      } catch (_) {}
+      if (!rawA) {
+        try {
+          rawA = localStorage.getItem(keyA);
+        } catch (_) {}
+      }
+      // If close did not stash (base wiped by S1ab host path), plant a tiny A blob.
+      if (!rawA) {
+        const planted = JSON.stringify({
+          sourceId: "n1",
+          x: 12,
+          y: 34,
+          k: 1.1,
+          t: Date.now(),
+          ws: "ws-a://folder",
+        });
+        try {
+          sessionStorage.setItem(keyA, planted);
+          rawA = planted;
+        } catch (_) {
+          try {
+            localStorage.setItem(keyA, planted);
+            rawA = planted;
+          } catch (__) {}
+        }
+      }
+      const keyB =
+        "graphide.scrollDrive.lastStay.v1::" + encodeURIComponent("ws-b://other");
+      const rawB = JSON.stringify({
+        sourceId: "n1",
+        x: 99,
+        y: 88,
+        k: 1.2,
+        t: Date.now(),
+        ws: "ws-b://other",
+      });
+      try {
+        sessionStorage.setItem(keyB, rawB);
+      } catch (_) {
+        try {
+          localStorage.setItem(keyB, rawB);
+        } catch (__) {}
+      }
+      return {
+        keyA,
+        keyB,
+        hasRawA: !!rawA,
+        hasHook: typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+      };
+    });
+    const s1acCleared = await page.evaluate(() => {
+      const cleared =
+        typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function"
+          ? window.__graphideClearScrollDriveLastStayOnReviewRestart()
+          : false;
+      const keyA = window.__graphideScrollDriveLastStayKey || "";
+      let rawA = null;
+      try {
+        rawA = sessionStorage.getItem(keyA);
+      } catch (_) {}
+      if (!rawA) {
+        try {
+          rawA = localStorage.getItem(keyA);
+        } catch (_) {}
+      }
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const keyB =
+        "graphide.scrollDrive.lastStay.v1::" + encodeURIComponent("ws-b://other");
+      let rawB = null;
+      try {
+        rawB = sessionStorage.getItem(keyB);
+      } catch (_) {}
+      if (!rawB) {
+        try {
+          rawB = localStorage.getItem(keyB);
+        } catch (_) {}
+      }
+      // Host re-post after clear must not soft-restore prior cam.
+      let hostRestored = false;
+      if (typeof window.__graphideSoftStayScrollDriveAcrossHostSourceRepost === "function") {
+        hostRestored = !!window.__graphideSoftStayScrollDriveAcrossHostSourceRepost("n1");
+      }
+      return {
+        cleared: !!cleared,
+        keyA,
+        hasRawA: !!rawA,
+        probed,
+        restored: !!restored,
+        hostRestored: !!hostRestored,
+        hasRawB: !!rawB,
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    record(
+      "S1ac",
+      "Review restart clears current last-stay; soft-restore skipped; other folder key isolated",
+      s1acSeed.hasHook &&
+        s1acSeed.hasRawA &&
+        s1acCleared.cleared &&
+        !s1acCleared.hasRawA &&
+        (s1acCleared.probed == null || s1acCleared.probed === false) &&
+        !s1acCleared.restored &&
+        !s1acCleared.hostRestored &&
+        s1acCleared.hasRawB,
+      "seed=" +
+        JSON.stringify(s1acSeed) +
+        " cleared=" +
+        JSON.stringify(s1acCleared)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

@@ -20531,6 +20531,19 @@
       scrollDriveJustRestored = false;
       clearPersistedScrollDriveLastStay();
     }
+    function clearScrollDriveLastStayOnReviewRestart() {
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+      scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      scrollDriveLastShownSourceId = "";
+      clearPersistedScrollDriveLastStay();
+      return true;
+    }
     function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
       if (typeof isPresenting === "function" && isPresenting()) return false;
       const sid = nextSourceId ? String(nextSourceId) : sourceId ? String(sourceId) : "";
@@ -20559,6 +20572,7 @@
     }
     if (typeof window !== "undefined") {
       window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+      window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
       window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
       window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
       window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
@@ -20622,6 +20636,9 @@
         setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
       }
       return true;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSoftRestoreScrollDriveFromLastStay = softRestoreScrollDriveFromLastStay;
     }
     function scrollDriveLastStayMatches(nextSourceId) {
       const sid = nextSourceId ? String(nextSourceId) : "";
@@ -22030,6 +22047,9 @@
       });
     if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
     function startReview() {
+      if (typeof clearScrollDriveLastStayOnReviewRestart === "function") {
+        clearScrollDriveLastStayOnReviewRestart();
+      }
       cancelling = false;
       pendingProgress = null;
       targetPct = 0;
@@ -22053,8 +22073,10 @@
         return;
       }
       if (msg.type === "empty") {
-        if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+        if (typeof clearScrollDriveLastStayOnReviewRestart === "function") clearScrollDriveLastStayOnReviewRestart();
         else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+        if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
         stopPathWalk();
         snapshot = null;
         finishWork();
