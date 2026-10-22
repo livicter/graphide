@@ -7901,6 +7901,28 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Lens must close Route (setLensOpen exclusivity — Lens clears Route chrome).
+    // Reverse of Route closing Lens (K18ag). Open Route first, then Lens via #lensBtn.
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedRoute = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18ah",
+      "Opening Lens closes Route (exclusive chrome)",
+      lensClosedRoute.lensOpen && !lensClosedRoute.routeOpen,
+      JSON.stringify(lensClosedRoute)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
     // Opening Evidence must close Lens (revealSourcePane exclusivity — Evidence clears Lens chrome).
     // Reverse of Ask/Keys/Export closing Lens; open Lens first, then reopen Evidence via ledger cell.
     await page.click("#lensBtn");
