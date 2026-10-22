@@ -20426,18 +20426,39 @@
       marked.setAttribute("data-scroll-active", "1");
       return { activeLineMarked: true };
     }
+    const SCROLL_CAMX_FOLLOW_CAP = 80;
+    function scrollDriveSoftCamX(el2, baseX, k, cap) {
+      const stage = canvas && canvas.querySelector(".stage");
+      if (!stage || !el2) return baseX;
+      const vr2 = stage.getBoundingClientRect();
+      if (vr2.width < 24) return baseX;
+      const r = el2.getBoundingClientRect();
+      const cx = r.left + r.width / 2 - vr2.left;
+      const liveK = cam && cam.k ? cam.k : k;
+      if (!Number.isFinite(liveK) || Math.abs(liveK) < 1e-6) return baseX;
+      const contentX = (cx - cam.x) / liveK;
+      const nk = Number.isFinite(k) && k > 0 ? k : liveK;
+      const idealX = vr2.width / 2 - contentX * nk;
+      let dx = idealX - baseX;
+      const lim = Math.max(0, Number(cap));
+      if (!Number.isFinite(lim)) return baseX;
+      if (dx > lim) dx = lim;
+      if (dx < -lim) dx = -lim;
+      return baseX + dx;
+    }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (typeof isPresenting === "function" && isPresenting()) return;
       if (!canvas) return;
       const lock = targetNodeId ? String(targetNodeId) : "";
+      const el2 = findScrollDriveTargetEl(targetNodeId);
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
         scrollDriveTargetLocked = lock;
-        const el2 = findScrollDriveTargetEl(targetNodeId);
         if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
         scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
       }
       const nudge = scrollRatio * 48;
-      setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
+      const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
+      setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
     }
     let scrollDriveVel = { t: 0, top: 0, vel: 0 };
     const SCROLL_MACRO_RATIO = 0.18;

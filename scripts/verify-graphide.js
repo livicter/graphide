@@ -9634,6 +9634,137 @@ async function main() {
         JSON.stringify(s1pPresent)
     );
 
+    // S1q — soft camX follow toward off-center mapped target (micro path; not macro).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1qSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Ensure mid-file scrollable (avoid S1c macro at file-top).
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1q", "1");
+          row.innerHTML =
+            '<span class="ln">' + (400 + i) + '</span><span class="tx">s1q pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(300);
+    const s1qBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: id,
+        hasEl: !!el,
+      };
+    });
+    const s1qOffset = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      if (!el) return { ok: false, why: "no-vnode" };
+      // Deliberately park mapped target left of viewport center.
+      el.style.transform = "translateX(-220px)";
+      el.setAttribute("data-s1q-offcenter", "1");
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = body.scrollTop + 12;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, id: id };
+    });
+    await page.waitForFunction(
+      (beforeX) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused)) return false;
+        const x = Number(d.camX);
+        return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
+      },
+      s1qBefore.camX,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(200);
+    const s1qAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-s1q-offcenter="1"]');
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+        stillOff: !!(el && el.getAttribute("data-s1q-offcenter") === "1"),
+      };
+    });
+    // Cleanup offset so later suites are not skewed.
+    await page.evaluate(() => {
+      document.querySelectorAll("#sliceCanvas .vnode[data-s1q-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1q-offcenter");
+      });
+    });
+    const s1qDx = Math.abs((Number(s1qAfter.camX) || 0) - (Number(s1qBefore.camX) || 0));
+    record(
+      "S1q",
+      "soft camX follow toward off-center mapped target (micro; Present not paused)",
+      s1qSetup.ok &&
+        s1qOffset.ok &&
+        s1qBefore.hasEl &&
+        !s1qBefore.macroLod &&
+        !s1qAfter.macroLod &&
+        !s1qAfter.presentPaused &&
+        Number.isFinite(s1qBefore.camX) &&
+        Number.isFinite(s1qAfter.camX) &&
+        s1qDx > 8 &&
+        s1qDx <= 96 + 1,
+      "setup=" +
+        JSON.stringify(s1qSetup) +
+        " before=" +
+        JSON.stringify(s1qBefore) +
+        " offset=" +
+        JSON.stringify(s1qOffset) +
+        " after=" +
+        JSON.stringify(s1qAfter) +
+        " dx=" +
+        s1qDx
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

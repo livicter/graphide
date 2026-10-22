@@ -892,20 +892,50 @@ function applyScrollDriveActiveLine(activeLine) {
   return { activeLineMarked: true };
 }
 
+/** S1q — soft ±px camX follow toward centering the mapped vnode (never yank). */
+const SCROLL_CAMX_FOLLOW_CAP = 80;
+
+/** Content→screen math (same as zoomToEl): ideal camX to center el at scale k.
+ *  Soft-clamped delta from baseX so dual-pane morph is not vertical-only. */
+function scrollDriveSoftCamX(el, baseX, k, cap) {
+  const stage = canvas && canvas.querySelector(".stage");
+  if (!stage || !el) return baseX;
+  const vr = stage.getBoundingClientRect();
+  if (vr.width < 24) return baseX;
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2 - vr.left;
+  const liveK = cam && cam.k ? cam.k : k;
+  if (!Number.isFinite(liveK) || Math.abs(liveK) < 1e-6) return baseX;
+  const contentX = (cx - cam.x) / liveK;
+  const nk = Number.isFinite(k) && k > 0 ? k : liveK;
+  const idealX = vr.width / 2 - contentX * nk;
+  let dx = idealX - baseX;
+  const lim = Math.max(0, Number(cap));
+  if (!Number.isFinite(lim)) return baseX;
+  if (dx > lim) dx = lim;
+  if (dx < -lim) dx = -lim;
+  return baseX + dx;
+}
+
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // S1m — Present owns cam; never nudge while stage is on.
   if (typeof isPresenting === "function" && isPresenting()) return;
   if (!canvas) return;
   const lock = targetNodeId ? String(targetNodeId) : "";
+  const el = findScrollDriveTargetEl(targetNodeId);
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
     scrollDriveTargetLocked = lock;
-    const el = findScrollDriveTargetEl(targetNodeId);
     if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
     scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
   const nudge = scrollRatio * 48;
-  setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
+  // S1q — soft camX follow toward mapped target (prefer lineMapHit el / sourceId vnode).
+  // Cap so it eases, never yanks. Macro LOD keeps its own path (no fight).
+  const camX = el
+    ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
+    : scrollDriveBase.x;
+  setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
 }
 
 /** Scroll velocity (px/ms EMA) + age decay — fast flick → macro Map LOD (S1c). */
