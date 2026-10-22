@@ -20249,7 +20249,8 @@
         macroLod: false,
         anchorFocus: "",
         anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
-        detailNear: false
+        detailNear: false,
+        reducedMotion: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20338,6 +20339,7 @@
       camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
     }
     function scrollDriveBlendMsFromEase(ease) {
+      if (typeof reduceMotion === "function" && reduceMotion()) return 0;
       const a = Number(ease);
       const e = Number.isFinite(a) ? Math.max(0.08, Math.min(0.45, a)) : CAM_EASE_BASE;
       const span = CAM_EASE_SNAP - CAM_EASE_LOOSE;
@@ -20967,16 +20969,20 @@
         return camEase;
       }
       const v = readScrollDriveVelocity();
-      setCamEase(scrollDriveEaseFromVel(v));
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (reduced) setCamEase(CAM_EASE_SNAP);
+      else setCamEase(scrollDriveEaseFromVel(v));
       const blend = applyScrollDriveBlendPaint(camEase);
       if (window.__graphideScrollDrive) {
         window.__graphideScrollDrive.camEase = camEase;
         window.__graphideScrollDrive.scrollVel = v;
         window.__graphideScrollDrive.blendMs = blend.blendMs;
+        window.__graphideScrollDrive.reducedMotion = !!reduced;
       }
       return camEase;
     }
     function scheduleScrollDriveEaseSettle() {
+      if (typeof reduceMotion === "function" && reduceMotion()) return;
       if (scrollDriveEaseTimer) clearTimeout(scrollDriveEaseTimer);
       scrollDriveEaseTimer = setTimeout(() => {
         scrollDriveEaseTimer = 0;
@@ -21008,8 +21014,13 @@
       const lineMapHit = !!lineMap.lineMapHit;
       noteScrollDriveVelocity(srcBody.scrollTop);
       const scrollVel = readScrollDriveVelocity();
-      setCamEase(scrollDriveEaseFromVel(scrollVel));
-      if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (reduced) {
+        setCamEase(CAM_EASE_SNAP);
+      } else {
+        setCamEase(scrollDriveEaseFromVel(scrollVel));
+        if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+      }
       const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
       let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
       if (macro) {
@@ -21056,7 +21067,8 @@
         macroLod: !!macro,
         anchorFocus: anchors.anchorFocus || "",
         anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
-        detailNear: !!detail.detailNear
+        detailNear: !!detail.detailNear,
+        reducedMotion: !!reduced
       });
     }
     if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });

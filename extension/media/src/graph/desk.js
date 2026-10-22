@@ -672,6 +672,7 @@ function emptyScrollDrive() {
     anchorFocus: "",
     anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
     detailNear: false,
+    reducedMotion: false,
   };
 }
 
@@ -784,13 +785,15 @@ function setCamEase(e) {
   camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
 }
 
-/** S1j — map camEase → CSS blend duration (loose → longer; snappy → shorter). */
+/** S1j — map camEase → CSS blend duration (loose → longer; snappy → shorter).
+ * S1k — prefers-reduced-motion → 0ms (snap; setCamTarget already jumps). */
 function scrollDriveBlendMsFromEase(ease) {
+  if (typeof reduceMotion === "function" && reduceMotion()) return 0;
   const a = Number(ease);
   const e = Number.isFinite(a) ? Math.max(0.08, Math.min(0.45, a)) : CAM_EASE_BASE;
   const span = CAM_EASE_SNAP - CAM_EASE_LOOSE;
   const t = span > 0 ? Math.max(0, Math.min(1, (e - CAM_EASE_LOOSE) / span)) : 0.5;
-  // 0.12 → 280ms, 0.36 → 120ms (still eases; never 0).
+  // 0.12 → 280ms, 0.36 → 120ms (still eases; never 0 unless reduced-motion).
   return Math.round(280 + (120 - 280) * t);
 }
 
@@ -1516,17 +1519,22 @@ function refreshScrollDriveCamEase() {
     return camEase;
   }
   const v = readScrollDriveVelocity();
-  setCamEase(scrollDriveEaseFromVel(v));
+  const reduced = typeof reduceMotion === "function" && reduceMotion();
+  if (reduced) setCamEase(CAM_EASE_SNAP);
+  else setCamEase(scrollDriveEaseFromVel(v));
   const blend = applyScrollDriveBlendPaint(camEase);
   if (window.__graphideScrollDrive) {
     window.__graphideScrollDrive.camEase = camEase;
     window.__graphideScrollDrive.scrollVel = v;
     window.__graphideScrollDrive.blendMs = blend.blendMs;
+    window.__graphideScrollDrive.reducedMotion = !!reduced;
   }
   return camEase;
 }
 
 function scheduleScrollDriveEaseSettle() {
+  // S1k — no velocity settle loop when the user asked for reduced motion.
+  if (typeof reduceMotion === "function" && reduceMotion()) return;
   if (scrollDriveEaseTimer) clearTimeout(scrollDriveEaseTimer);
   scrollDriveEaseTimer = setTimeout(() => {
     scrollDriveEaseTimer = 0;
@@ -1561,8 +1569,14 @@ function onSrcBodyScroll() {
   const lineMapHit = !!lineMap.lineMapHit;
   noteScrollDriveVelocity(srcBody.scrollTop);
   const scrollVel = readScrollDriveVelocity();
-  setCamEase(scrollDriveEaseFromVel(scrollVel));
-  if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+  const reduced = typeof reduceMotion === "function" && reduceMotion();
+  // S1k — reduced-motion: snap camEase; skip velocity settle timers (setCamTarget already jumps).
+  if (reduced) {
+    setCamEase(CAM_EASE_SNAP);
+  } else {
+    setCamEase(scrollDriveEaseFromVel(scrollVel));
+    if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+  }
   const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
   let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
   if (macro) {
@@ -1612,6 +1626,7 @@ function onSrcBodyScroll() {
     anchorFocus: anchors.anchorFocus || "",
     anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
     detailNear: !!detail.detailNear,
+    reducedMotion: !!reduced,
   });
 }
 

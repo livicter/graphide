@@ -9039,6 +9039,84 @@ async function main() {
       "nest=" + JSON.stringify(s1jNest) + " macroPad=" + JSON.stringify(s1jMacro) + " macro=" + JSON.stringify(s1jMacroAfter)
     );
 
+    // S1k — prefers-reduced-motion: snap blendMs to 0, camEase snappy, no settle timers.
+    const s1kMock = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      if (!pane || pane.hidden || !body) return { ok: false, why: "evidence-closed" };
+      window.__graphideMatchMediaOrig = window.matchMedia;
+      window.matchMedia = function (query) {
+        const q = String(query || "");
+        if (/prefers-reduced-motion/i.test(q)) {
+          return {
+            matches: /reduce/i.test(q),
+            media: q,
+            onchange: null,
+            addListener: function () {},
+            removeListener: function () {},
+            addEventListener: function () {},
+            removeEventListener: function () {},
+            dispatchEvent: function () {
+              return false;
+            },
+          };
+        }
+        return window.__graphideMatchMediaOrig.apply(window, arguments);
+      };
+      // Mid-file scroll so paint + blend republish under the mock.
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        if (!(d && d.reducedMotion === true && Number(d.blendMs) === 0)) return false;
+        if (!(Number(d.camEase) >= 0.3)) return false; // CAM_EASE_SNAP ≈ 0.36
+        const ms = (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "";
+        return ms.trim() === "0ms" || ms.trim() === "0";
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1kAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      return {
+        reducedMotion: !!d.reducedMotion,
+        blendMs: Number(d.blendMs),
+        camEase: Number(d.camEase),
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Restore matchMedia so later desk chrome / Present tests keep normal motion.
+    await page.evaluate(() => {
+      if (window.__graphideMatchMediaOrig) {
+        window.matchMedia = window.__graphideMatchMediaOrig;
+        delete window.__graphideMatchMediaOrig;
+      }
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    record(
+      "S1k",
+      "Evidence scroll respects prefers-reduced-motion (blendMs 0 / snappy camEase / reducedMotion flag)",
+      s1kMock.ok &&
+        s1kAfter.evidenceOpen &&
+        s1kAfter.reducedMotion === true &&
+        s1kAfter.blendMs === 0 &&
+        Number.isFinite(s1kAfter.camEase) &&
+        s1kAfter.camEase >= 0.3 &&
+        (/^0(ms)?$/.test(String(s1kAfter.blendVar).trim()) || s1kAfter.blendVar.trim() === "0ms"),
+      "mock=" + JSON.stringify(s1kMock) + " after=" + JSON.stringify(s1kAfter)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
 
 

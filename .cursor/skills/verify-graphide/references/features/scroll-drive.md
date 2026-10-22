@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish (S1a–S1j)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion (S1a–S1k)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -13,7 +13,9 @@ by scroll velocity so fast flicks glide and idle settles snappy (S1g),
 and expands nested control-flow blocks by brace/IR depth as `activeLine`
 enters them (S1i — ancestors stay visible; siblings stay collapsed),
 and eases nest-glow / macro↔micro LOD class changes with a camEase-tied
-CSS blend so opacity and glow morph instead of snapping (S1j).
+CSS blend so opacity and glow morph instead of snapping (S1j), and under
+`prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
+timers (S1k — `setCamTarget` already jumps).
 
 ## Sub-features
 
@@ -87,6 +89,12 @@ CSS blend so opacity and glow morph instead of snapping (S1j).
   box-shadow; S1f clutter gate reuses the same var (180ms fallback).
   `blendMs` publishes on ScrollDrive. No second animation loop — still
   class toggles + CSS ease + existing cam lerp.
+- **S1k reduced-motion:** when `reduceMotion()` / `prefers-reduced-motion:
+  reduce` is on, ScrollDrive publishes `reducedMotion: true`, forces
+  `camEase` to `CAM_EASE_SNAP`, returns `blendMs: 0` / `--scroll-blend-ms:
+  0ms`, and skips `scheduleScrollDriveEaseSettle`. Camera still snaps via
+  existing `setCamTarget` reduceMotion path — no second animation loop.
+  Motion preference off keeps S1g/S1j ease behavior.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
   + macro + kind-anchor + detail-gate + blend paint.
 
@@ -104,7 +112,8 @@ CSS blend so opacity and glow morph instead of snapping (S1j).
    packets / labels stay hidden until you scroll into the focused block.
    Fast flick loosens camera follow; when you stop, the camera settles
    snappier on the target. Nest glow and macro↔micro LOD fade with the
-   same ease instead of popping.
+   same ease instead of popping. With reduced motion, camera and
+   nest/macro paint snap with no settle timers.
 
 ## Driving it with the harness
 
@@ -163,6 +172,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   and `--scroll-blend-ms` track `camEase`; `blendMs` is finite
   (120–280). Nest / macro vnode `transition-property` includes
   opacity. S1f `detailNear` / `data-scroll-detail` still gate clutter.
+- **S1k** — mock `matchMedia('(prefers-reduced-motion: reduce)')` →
+  `reducedMotion === true`, `blendMs === 0`, `--scroll-blend-ms: 0ms`,
+  `camEase` snappy (`CAM_EASE_SNAP`). Restore matchMedia after.
 
 ## Gotchas
 
@@ -178,9 +190,11 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `.viewport[data-scroll-detail]`, `detailNear`, `camEase`,
   `lineMapHit`, `resolveScrollDriveTargetNode`, `cfgNestDepth`,
   `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`,
-  `blendMs`, `.viewport[data-scroll-blend]`, `--scroll-blend-ms`.
+  `blendMs`, `.viewport[data-scroll-blend]`, `--scroll-blend-ms`,
+  `reducedMotion`, `reduceMotion()`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
-  duration from `camEase` — never a parallel tween.
+  duration from `camEase` — never a parallel tween. S1k only zeros
+  blend + skips settle timers under `reduceMotion` — still one cam path.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
