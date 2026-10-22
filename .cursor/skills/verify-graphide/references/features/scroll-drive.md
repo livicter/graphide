@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX + idle-settle camY + nest-focus remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload (S1a–S1aa)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX + idle-settle camY + nest-focus remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore (S1a–S1ab)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,7 +17,7 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open), and when Slice/desk remounts (canvas rebuild) **without** closing Evidence / changing `sourceId`, re-seeds ScrollDrive from live `camTo` + warm S1w snapshot so soft stay and settle flags stay honest across remount (S1x — next flush repaints active-line / lineMap; no wipe-then-`zoomToEl`). Map↔Slice workspace hops remount the canvas the same way while Evidence stays open — stash last-stay, `keepCam`, and soft-restore from `camTo` / snapshot instead of wipe-then-`zoomToEl` (S1y). Lineage / Overview (and peer desk hops among map/slice/lineage/overview) remount canvas the same way — reuse the S1y soft-stay helper, seed from `camTo` / S1w snapshot, soft-follow, no wipe-then-`zoomToEl` (S1z). Soft restore also survives webview reload / extension-host restart for the same workspace `sourceId` via a tiny sessionStorage last-stay blob (S1aa — key `graphide.scrollDrive.lastStay.v1`; no file contents / secrets; stale / mismatched / corrupt → ignore + clear).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open), and when Slice/desk remounts (canvas rebuild) **without** closing Evidence / changing `sourceId`, re-seeds ScrollDrive from live `camTo` + warm S1w snapshot so soft stay and settle flags stay honest across remount (S1x — next flush repaints active-line / lineMap; no wipe-then-`zoomToEl`). Map↔Slice workspace hops remount the canvas the same way while Evidence stays open — stash last-stay, `keepCam`, and soft-restore from `camTo` / snapshot instead of wipe-then-`zoomToEl` (S1y). Lineage / Overview (and peer desk hops among map/slice/lineage/overview) remount canvas the same way — reuse the S1y soft-stay helper, seed from `camTo` / S1w snapshot, soft-follow, no wipe-then-`zoomToEl` (S1z). Soft restore also survives webview reload / extension-host restart for the same workspace `sourceId` via a tiny sessionStorage last-stay blob (S1aa — key `graphide.scrollDrive.lastStay.v1`; no file contents / secrets; stale / mismatched / corrupt → ignore + clear). S1ab scopes that blob by workspace folder id (`workspaceFolder` from the host; key suffix `::` + encodeURIComponent(ws); blob field `ws`) so the same `sourceId` in a different folder cannot soft-restore, clears in-memory stay on workspace change, and soft-restores on host re-post of `source` for the same scoped source even when in-memory snap is empty (post-reload peek reply path) without treating it as an S1v file hop.
 
 ## Sub-features
 
@@ -254,7 +254,22 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   stash; `__graphideClearScrollDriveLastStay` clears memory + storage
   (harness cold-frame). Does not break S1m Present pause. Still one camera
   path; respects S1k/S1c/S1l.
-- Closing Evidence (`closeSourcePane`) stashes last-stay (S1w/S1aa) then resets
+- **S1ab workspace-scoped last-stay + host re-post restore:** scope the
+  S1aa sessionStorage blob by workspace folder id / URI already published
+  on flowchart / programs / source / inner posts as `workspaceFolder`
+  (`scrollDriveWorkspaceKey`; storage key
+  `graphide.scrollDrive.lastStay.v1` + optional `::` + encodeURIComponent(ws);
+  blob field `ws`). Same `sourceId` under a different folder key must not
+  soft-restore. On workspace key change, clear **in-memory** stay (prior
+  folder's scoped blob stays so returning can restore). When the extension
+  host re-posts `type: "source"` for the same scoped `sourceId` after
+  reload (or peek reply) with empty in-memory snap, soft-restore from
+  storage via `softStayScrollDriveAcrossHostSourceRepost` / S1w restore —
+  **no** wipe-then-`zoomToEl` and **not** an S1v file hop (keeps last-stay
+  warm). `empty` clears the workspace key. No secrets in storage. Still one
+  camera path; respects S1k/S1m/S1c/S1l. Harness may set
+  `__graphideSetScrollDriveWorkspaceKey` when the stub host omits the field.
+- Closing Evidence (`closeSourcePane`) stashes last-stay (S1w/S1aa/S1ab) then resets
   the drive and clears CFG + macro + kind-anchor + detail-gate + blend +
   lineMap + active-line paint.
 
@@ -274,7 +289,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again. Re-selecting Slice (or any desk remount that rebuilds the graph) while Evidence stays open keeps that soft stay — settle flags clear then re-absorb, and the dual-pane cues repaint on the next flush. Hopping Map↔Slice (workspace remount) while Evidence stays open likewise soft-stays — no wipe-then-zoom yank. Hopping Lineage or Overview (same Evidence / sourceId) likewise soft-stays via the same helper. After a webview reload, reopening the **same** source soft-restores from the sessionStorage last-stay blob instead of hard-zooming (S1aa).
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again. Re-selecting Slice (or any desk remount that rebuilds the graph) while Evidence stays open keeps that soft stay — settle flags clear then re-absorb, and the dual-pane cues repaint on the next flush. Hopping Map↔Slice (workspace remount) while Evidence stays open likewise soft-stays — no wipe-then-zoom yank. Hopping Lineage or Overview (same Evidence / sourceId) likewise soft-stays via the same helper. After a webview reload, reopening the **same** source soft-restores from the sessionStorage last-stay blob instead of hard-zooming (S1aa). That blob is workspace-scoped (S1ab) — opening another folder cannot revive a foreign stay; a host re-post of the same source after reload still soft-restores.
 
 ## Driving it with the harness
 
@@ -423,6 +438,15 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   Camera soft-restores from storage within soft-follow caps (no hard
   `zoomToEl`); settle flags clear→re-absorb. Corrupt / mismatched /
   stale blob ignored. One cam path; Present pause still stashes.
+- **S1ab** — under workspace key A, mid-file settle + stash (Evidence
+  close). Switch to workspace key B via
+  `__graphideSetScrollDriveWorkspaceKey` — same `sourceId` must **not**
+  soft-restore (probe storage null / no soft base from A's blob). Switch
+  back to A, clear in-memory only, simulate host re-post
+  (`message` `{ type: "source", id, … }` or
+  `__graphideSoftStayScrollDriveAcrossHostSourceRepost`) — soft-restores
+  from scoped storage within soft-follow caps (no hard `zoomToEl`). One
+  cam path; Present pause still stashes.
 
 ## Gotchas
 
@@ -469,7 +493,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `keepCam` `bindStage` (S1z),
   `SCROLL_DRIVE_LAST_STAY_KEY`, `persistScrollDriveLastStay`,
   `loadScrollDriveLastStayFromStorage`, `resolveScrollDriveLastStay`,
-  `__graphideScrollDriveLastStayKey`, sessionStorage last-stay blob (S1aa).
+  `__graphideScrollDriveLastStayKey`, sessionStorage last-stay blob (S1aa),
+  `__graphideSetScrollDriveWorkspaceKey`, `__graphideScrollDriveWorkspaceKey`,
+  `softStayScrollDriveAcrossHostSourceRepost`, workspace-scoped key / `ws` (S1ab).
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
@@ -520,16 +546,21 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   (no third stay path); Overview/Lineage `bindStage` honors `keepCam` —
   never a parallel tween; Evidence closed / sourceId change falls to
   S1v/S1w; Present pause no-ops; first-ever open may still `zoomToEl`.
-  Reload persistence is S1aa (not a third stay path).
+  Reload persistence is S1aa; workspace scope + host re-post restore is S1ab (not a third stay path).
   S1aa only persists a tiny last-stay cam blob to sessionStorage (preferred;
   localStorage fallback with versioned key) so soft restore survives
   webview reload for the same `sourceId` — never a parallel tween; no file
   contents / secrets; mismatched / stale / corrupt → ignore + clear;
   Present pause still stashes; cold-frame harness clears memory + storage.
+  S1ab scopes that blob by workspace folder (`workspaceFolder` from host;
+  key suffix / `ws` field) and soft-restores on host re-post of the same
+  scoped source when memory is empty — never a parallel tween; different
+  workspace key → no cross-restore; workspace change clears memory only;
+  not an S1v file hop (keeps last-stay warm). Still one camera path.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
 - **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
   here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
-  side-effect at this map. Index Live proof stays `S1a`–`S1aa`.
+  side-effect at this map. Index Live proof stays `S1a`–`S1ab`.
 - **S1p active-line cue:** Evidence editor tint pairs with S1n graph glow;
   `open-evidence.md` / index deferral extends to `S1a`–`S1p`. Clear on
   Present pause / close — do not leave a stale `.scroll-drive-active`.
@@ -569,3 +600,7 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   blob to sessionStorage; soft-restore seeds from storage when memory
   missing (same `sourceId`, fresh); no secrets; session-scoped preferred.
   Deferral extends to `S1a`–`S1aa`.
+- **S1ab workspace-scoped last-stay + host re-post restore:** scope blob by
+  `workspaceFolder`; no cross-folder restore; host re-post same source
+  soft-restores from storage when memory empty. Deferral extends to
+  `S1a`–`S1ab`.

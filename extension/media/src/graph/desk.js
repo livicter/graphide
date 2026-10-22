@@ -662,14 +662,22 @@ let scrollDriveYNudgeOrigin = 0;
 /** S1u — prior-flush macroLod edge (enter/exit soft remap). */
 let scrollDriveWasMacro = false;
 /** S1w — in-memory last soft-stay snapshot for Present→Evidence reopen / pane close / Slice remount.
- *  S1aa also mirrors a tiny blob to sessionStorage so soft restore survives webview reload. */
+ *  S1aa also mirrors a tiny blob to sessionStorage so soft restore survives webview reload.
+ *  S1ab scopes that blob by workspace folder key so a foreign folder cannot soft-restore. */
 let scrollDriveLastStay = null;
 /** S1w — soft-restore window after Present exit / Evidence close (ms) for in-memory snap. */
 const SCROLL_DRIVE_LAST_STAY_MS = 60000;
-/** S1aa — sessionStorage key for last-stay blob (no file contents / secrets). */
+/** S1aa/S1ab — sessionStorage key prefix for last-stay blob (no file contents / secrets).
+ *  Scoped key = prefix + (ws ? "::" + encodeURIComponent(ws) : "") so folders do not share. */
 const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
 /** S1aa — stored-blob freshness (ms). sessionStorage is already session-scoped; 24h caps stale tabs. */
 const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1000;
+/** S1ab — workspace folder id / root hint for last-stay scope (from host workspaceFolder; harness may set).
+ *  Empty when host has not published a folder yet — document gap; restore still works unscoped. */
+let scrollDriveWorkspaceKey = "";
+/** S1ab — last sourceId showSource actually rendered (not peekSource pre-assign).
+ *  Distinguishes host re-post of the same Evidence from an S1v file hop. */
+let scrollDriveLastShownSourceId = "";
 /** S1w — next applyScrollDriveCamera soft-stays keeping restored base (no camTo reseed). */
 let scrollDriveJustRestored = false;
 
@@ -795,7 +803,45 @@ function scrollDriveLastStayStorage() {
   return null;
 }
 
-/** S1aa — validate tiny last-stay shape (no file contents / secrets). */
+/** S1ab — storage key scoped by workspace folder (empty ws → unscoped S1aa key for harness/gap). */
+function scrollDriveLastStayStorageKey(ws) {
+  const scope = ws != null ? String(ws) : scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+  if (!scope) return SCROLL_DRIVE_LAST_STAY_KEY;
+  return SCROLL_DRIVE_LAST_STAY_KEY + "::" + encodeURIComponent(scope);
+}
+
+/** S1ab — normalize workspace folder hint from host (uri / fsPath / name). No secrets. */
+function normalizeScrollDriveWorkspaceKey(raw) {
+  if (raw == null) return "";
+  const s = String(raw).trim();
+  if (!s || s === "undefined" || s === "null") return "";
+  // Cap length so storage keys stay small (folder URIs can be long).
+  return s.length > 240 ? s.slice(0, 240) : s;
+}
+
+/** S1ab — set workspace scope. Clears in-memory stay on folder change so a foreign
+ *  soft-restore cannot apply; leaves the prior folder's scoped sessionStorage blob
+ *  intact (returning to that folder can still restore). Current folder cannot read it. */
+function setScrollDriveWorkspaceKey(next) {
+  const key = normalizeScrollDriveWorkspaceKey(next);
+  if (key === scrollDriveWorkspaceKey) {
+    if (typeof window !== "undefined") {
+      window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+      window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+    }
+    return false;
+  }
+  scrollDriveLastStay = null;
+  scrollDriveJustRestored = false;
+  scrollDriveWorkspaceKey = key;
+  if (typeof window !== "undefined") {
+    window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+    window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+  }
+  return true;
+}
+
+/** S1aa/S1ab — validate tiny last-stay shape (no file contents / secrets). */
 function normalizeScrollDriveLastStaySnap(raw) {
   if (!raw || typeof raw !== "object") return null;
   const sid = raw.sourceId != null ? String(raw.sourceId) : "";
@@ -813,6 +859,8 @@ function normalizeScrollDriveLastStaySnap(raw) {
     k,
     t,
   };
+  const ws = normalizeScrollDriveWorkspaceKey(raw.ws != null ? raw.ws : raw.workspaceKey);
+  if (ws) out.ws = ws;
   if (raw.targetNodeId != null && String(raw.targetNodeId)) {
     out.targetNodeId = String(raw.targetNodeId);
   }
@@ -822,38 +870,56 @@ function normalizeScrollDriveLastStaySnap(raw) {
   return out;
 }
 
-/** S1aa — write last-stay blob to sessionStorage (or localStorage fallback). */
+/** S1aa/S1ab — write last-stay blob to sessionStorage (or localStorage fallback), workspace-scoped. */
 function persistScrollDriveLastStay(snap) {
   const clean = normalizeScrollDriveLastStaySnap(snap);
   if (!clean) return false;
+  const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+  if (ws) clean.ws = ws;
+  else delete clean.ws;
   const store = scrollDriveLastStayStorage();
   if (!store) return false;
   try {
-    store.setItem(SCROLL_DRIVE_LAST_STAY_KEY, JSON.stringify(clean));
+    store.setItem(scrollDriveLastStayStorageKey(ws), JSON.stringify(clean));
     return true;
   } catch (_) {
     return false;
   }
 }
 
-/** S1aa — drop stored last-stay blob (corrupt / mismatched / harness cold-frame). */
+/** S1aa/S1ab — drop stored last-stay blob for the current workspace scope (corrupt / harness cold-frame). */
 function clearPersistedScrollDriveLastStay() {
   const store = scrollDriveLastStayStorage();
   if (!store) return;
   try {
-    store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+    store.removeItem(scrollDriveLastStayStorageKey());
   } catch (_) {}
+  // Also drop legacy unscoped S1aa key when scoped, so a foreign reopen cannot revive it.
+  if (scrollDriveWorkspaceKey) {
+    try {
+      store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+    } catch (_) {}
+  }
 }
 
-/** S1aa — load + validate stored last-stay; clear on stale / corrupt / mismatch. */
+/** S1aa/S1ab — load + validate stored last-stay; clear on stale / corrupt / workspace mismatch. */
 function loadScrollDriveLastStayFromStorage(nextSourceId) {
   const store = scrollDriveLastStayStorage();
   if (!store) return null;
+  const key = scrollDriveLastStayStorageKey();
   let raw = null;
   try {
-    raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+    raw = store.getItem(key);
   } catch (_) {
     return null;
+  }
+  // Migrate: unscoped S1aa blob only when current workspace key is empty.
+  if (!raw && !scrollDriveWorkspaceKey) {
+    try {
+      raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+    } catch (_) {
+      raw = null;
+    }
   }
   if (!raw) return null;
   let parsed = null;
@@ -873,6 +939,14 @@ function loadScrollDriveLastStayFromStorage(nextSourceId) {
     clearPersistedScrollDriveLastStay();
     return null;
   }
+  // S1ab — blob ws must match current workspace key (both empty OK for unscoped gap path).
+  const snapWs = snap.ws ? String(snap.ws) : "";
+  const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+  if (snapWs !== curWs) {
+    // Foreign workspace blob under this key — ignore + clear so it cannot leak.
+    clearPersistedScrollDriveLastStay();
+    return null;
+  }
   if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
     // Mismatched source — leave blob for a later matching reopen; caller decides clear.
     return null;
@@ -880,13 +954,19 @@ function loadScrollDriveLastStayFromStorage(nextSourceId) {
   return snap;
 }
 
-/** S1w/S1aa — resolve fresh last-stay: memory (60s) first, else sessionStorage (24h / same session). */
+/** S1w/S1aa/S1ab — resolve fresh last-stay: memory (60s) first, else sessionStorage (24h / same session).
+ *  Memory must also match current workspace key (S1ab). */
 function resolveScrollDriveLastStay(nextSourceId, opts) {
   const allowStorage = !opts || opts.allowStorage !== false;
   const sid = nextSourceId != null ? String(nextSourceId) : "";
+  const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
   const mem = scrollDriveLastStay;
   if (mem && mem.sourceId) {
-    if (sid && String(mem.sourceId) !== sid) {
+    const memWs = mem.ws ? String(mem.ws) : "";
+    if (memWs !== curWs) {
+      // Foreign workspace memory — drop; try scoped storage.
+      scrollDriveLastStay = null;
+    } else if (sid && String(mem.sourceId) !== sid) {
       // Different source — drop memory; try storage for the requested id.
       scrollDriveLastStay = null;
     } else {
@@ -906,8 +986,9 @@ function resolveScrollDriveLastStay(nextSourceId, opts) {
   return { snap: stored, fromStorage: true };
 }
 
-/** S1w/S1aa — stash lightweight last-stay before Present pause / Evidence close / hop.
- *  Memory + sessionStorage mirror (tiny cam blob only — no file contents / secrets). */
+/** S1w/S1aa/S1ab — stash lightweight last-stay before Present pause / Evidence close / hop.
+ *  Memory + sessionStorage mirror (tiny cam blob only — no file contents / secrets).
+ *  Includes workspace key so a different folder cannot soft-restore the same sourceId. */
 function stashScrollDriveLastStay() {
   if (!scrollDriveBase) return false;
   const sid = sourceId ? String(sourceId) : "";
@@ -921,6 +1002,7 @@ function stashScrollDriveLastStay() {
       : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0
         ? scrollDriveBase.k
         : 1;
+  const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
   scrollDriveLastStay = {
     sourceId: sid,
     x: Number.isFinite(x) ? x : 0,
@@ -930,25 +1012,63 @@ function stashScrollDriveLastStay() {
     targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
     t: Date.now(),
   };
+  if (ws) scrollDriveLastStay.ws = ws;
   persistScrollDriveLastStay(scrollDriveLastStay);
   return true;
 }
 
-/** S1w/S1aa — drop stale Present/close snapshot (different sourceId / TTL / harness cold-frame). */
+/** S1w/S1aa/S1ab — drop stale Present/close snapshot (different sourceId / TTL / harness cold-frame / workspace change). */
 function clearScrollDriveLastStay() {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
   clearPersistedScrollDriveLastStay();
 }
+
+/** S1ab — same-source host re-post of `source` after reload / peek reply:
+ *  soft-restore from storage when base was wiped; else soft-stay without clearing last-stay
+ *  (unlike S1v file-hop which drops the blob). Returns true when soft stay / restore applied. */
+function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  const sid = nextSourceId ? String(nextSourceId) : sourceId ? String(sourceId) : "";
+  if (!sid) return false;
+  if (scrollDriveBase) {
+    scrollDriveBase = {
+      x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+      y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
+    };
+    scrollDriveTargetLocked = "";
+    scrollDriveCamXSettled = false;
+    scrollDriveCamYSettled = false;
+    scrollDriveWasMacro = false;
+    scrollDriveJustRestored = true;
+    // Keep last-stay warm — host re-post is not a file hop.
+    clearScrollDriveCfgPaint();
+    clearScrollDriveLineMapPaint();
+    clearScrollDriveActiveLinePaint();
+    clearScrollDriveMacroPaint();
+    return true;
+  }
+  // Base empty (post-reload host message) — soft-restore from S1aa/S1ab storage.
+  if (typeof softRestoreScrollDriveFromLastStay === "function") {
+    return softRestoreScrollDriveFromLastStay(sid);
+  }
+  return false;
+}
+
 // Harness hook — S1q cold-frames after S1p Present without consuming S1w restore.
 // S1aa: also clears sessionStorage so cold zoomToEl stays honest.
+// S1ab: workspace key + scoped storage key published for harness.
 if (typeof window !== "undefined") {
   window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
-  window.__graphideScrollDriveLastStayKey = SCROLL_DRIVE_LAST_STAY_KEY;
-  // Harness — S1aa probe: load/validate storage blob (null + clear on corrupt/stale).
+  window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+  window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+  window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
+  // Harness — S1aa/S1ab probe: load/validate storage blob (null + clear on corrupt/stale / ws mismatch).
   window.__graphideProbeScrollDriveLastStayStorage = function (sid) {
     return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
   };
+  window.__graphideSoftStayScrollDriveAcrossHostSourceRepost = softStayScrollDriveAcrossHostSourceRepost;
 }
 
 /** S1w/S1aa — soft-restore scrollDriveBase from last-stay when reopening the same sourceId
@@ -2743,6 +2863,9 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "empty") {
+    // S1ab — leaving analysis / no folder: drop scoped last-stay so a later folder cannot revive it.
+    if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
+    else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
     stopPathWalk();
     snapshot = null;
     finishWork();
@@ -2830,15 +2953,29 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "source") {
-    showSource(msg);
+    showSource(msg, { fromHost: true });
     return;
   }
   if (msg.type === "programs") {
+    if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+      if (typeof setScrollDriveWorkspaceKey === "function") {
+        setScrollDriveWorkspaceKey(
+          msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+        );
+      }
+    }
     clearTimeout(previewTimer);
     applyPrograms(msg);
     return;
   }
   if (msg.type === "flowchart" || msg.type === "inner") {
+    if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+      if (typeof setScrollDriveWorkspaceKey === "function") {
+        setScrollDriveWorkspaceKey(
+          msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+        );
+      }
+    }
     clearTimeout(previewTimer);
     applySnapshot(msg, msg.type === "inner");
   }
@@ -5534,15 +5671,29 @@ function revealSourcePane() {
   refitChartSoon();
 }
 
-function showSource(msg) {
+function showSource(msg, opts) {
   if (!sourcePane) return;
+  // S1ab — host may stamp workspaceFolder on source / flowchart posts.
+  if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
+    if (typeof setScrollDriveWorkspaceKey === "function") {
+      setScrollDriveWorkspaceKey(msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws);
+    }
+  }
   if (msg.missing) {
     revealSourcePane();
     if (srcTitle) srcTitle.textContent = "No span for this node";
     if (srcBody) srcBody.textContent = "";
     return;
   }
-  sourceId = msg.id || sourceId;
+  // peekSource assigns sourceId before calling showSource — track last *rendered*
+  // id separately so local file hops stay on the S1v path.
+  const nextSid = msg.id != null && String(msg.id) ? String(msg.id) : sourceId ? String(sourceId) : "";
+  const prevShown = scrollDriveLastShownSourceId ? String(scrollDriveLastShownSourceId) : "";
+  const sameSourceRepost = !!(prevShown && nextSid && prevShown === nextSid);
+  // Only the extension-host message path uses the S1ab host-repost helper; peekSource
+  // local opens keep S1v/S1w behavior unchanged.
+  const fromHost = !!(opts && opts.fromHost);
+  sourceId = nextSid || sourceId;
   revealSourcePane();
   const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
   if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
@@ -5550,18 +5701,25 @@ function showSource(msg) {
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
   if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
-  // S1v — soft stay across Evidence file switch / workspace hop when a prior
-  // ScrollDrive session was active; S1w — same-source soft restore after Present
-  // pause / Evidence close / Slice remount when last-stay snapshot matches.
+  // S1v — soft stay across Evidence file switch when a prior ScrollDrive session
+  // was active; S1w/S1aa — same-source soft restore after Present/close/reload;
+  // S1ab — host re-post of `source` (post-reload peek reply) soft-restores from
+  // scoped storage even when in-memory snap is empty, without an S1v file-hop clear.
   // First-ever open (no base / no snapshot) still clears so flush may zoomToEl.
   // Present is already exited by revealSourcePane.
   let softStayed = false;
-  // Prefer S1w same-source restore when no live base (Present/close reopen).
-  // Only then S1v live file-hop soft-stay (base already open on Slice).
+  // Prefer S1w/S1aa/S1ab same-source restore when no live base (Present/close/reload).
   if (
     !scrollDriveBase &&
     typeof softRestoreScrollDriveFromLastStay === "function" &&
     softRestoreScrollDriveFromLastStay(sourceId)
+  ) {
+    softStayed = true;
+  } else if (
+    fromHost &&
+    sameSourceRepost &&
+    typeof softStayScrollDriveAcrossHostSourceRepost === "function" &&
+    softStayScrollDriveAcrossHostSourceRepost(nextSid)
   ) {
     softStayed = true;
   } else if (
@@ -5579,6 +5737,8 @@ function showSource(msg) {
     scrollDriveCamYSettled = false;
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   }
+  // S1ab — record what we rendered so a later host re-post of the same id is detected.
+  if (nextSid) scrollDriveLastShownSourceId = nextSid;
 }
 
 function showHop(from, to, kind, opts) {
@@ -6197,6 +6357,7 @@ function closeSourcePane() {
   // S1w — stash last soft-stay before wipe so Present→Evidence / reopen can restore.
   if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   sourceId = null;
+  scrollDriveLastShownSourceId = "";
   if (typeof resetScrollDrive === "function") resetScrollDrive();
   return true;
 }

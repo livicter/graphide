@@ -12199,7 +12199,324 @@ async function main() {
         JSON.stringify(s1aaCorruptOk)
     );
 
-
+    // S1ab — workspace-scoped last-stay + host re-post restore.
+    // Different workspace key → no cross-restore; same key + host re-post → soft stay.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    // Seed workspace key A before opening Evidence / stashing.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1abSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.querySelectorAll("[data-s1ab],[data-s1ab-pad],[data-s1aa],[data-s1aa-pad]").forEach((el) => el.remove());
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ab", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(9100 + i, "s1ab lead " + i);
+      const ownRow = addLine(11, "s1ab own span n1");
+      for (let k = 0; k < 36; k++) addLine(9200 + k, "s1ab far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        key: window.__graphideScrollDriveLastStayKey || "",
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(160);
+    const s1abBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        key: window.__graphideScrollDriveLastStayKey || "",
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Close Evidence — stashes last-stay under workspace A.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1abStashedA = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      let parsed = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        parsed = null;
+      }
+      return {
+        key,
+        hasRaw: !!raw,
+        sourceId: parsed && parsed.sourceId ? String(parsed.sourceId) : "",
+        ws: parsed && parsed.ws ? String(parsed.ws) : "",
+        x: parsed ? Number(parsed.x) : NaN,
+        y: parsed ? Number(parsed.y) : NaN,
+        k: parsed ? Number(parsed.k) : NaN,
+        t: parsed ? Number(parsed.t) : NaN,
+        raw,
+        workspaceKey: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    // Switch to workspace B — A's scoped blob must not soft-restore.
+    const s1abCross = await page.evaluate((blobA) => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-b://other");
+      }
+      // Memory already cleared by set; ensure cold memory.
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        // clear only wipes CURRENT (B) key — re-seed A's raw under A's key if clear touched wrong key
+      }
+      // Re-assert A's blob still under A's key (set clears memory only).
+      const keyA = blobA && blobA.key;
+      if (keyA && blobA.raw) {
+        try {
+          sessionStorage.setItem(keyA, blobA.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(keyA, blobA.raw);
+          } catch (__) {}
+        }
+      }
+      const probedB =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const keyB = window.__graphideScrollDriveLastStayKey || "";
+      let rawB = null;
+      try {
+        rawB = sessionStorage.getItem(keyB);
+      } catch (_) {}
+      return {
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        keyB,
+        probedB,
+        hasRawB: !!rawB,
+        crossBlocked: probedB == null || probedB === false,
+      };
+    }, s1abStashedA);
+    // Switch back to A; clear memory; keep A's storage; host re-post source → soft restore.
+    await page.evaluate((blobA) => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        (blobA && blobA.key) ||
+        "graphide.scrollDrive.lastStay.v1";
+      if (blobA && blobA.raw) {
+        try {
+          sessionStorage.setItem(key, blobA.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(key, blobA.raw);
+          } catch (__) {}
+        }
+      }
+    }, s1abStashedA);
+    // Host re-post path: dispatch source message (simulates extension host after reload).
+    const s1abHostRepost = await page.evaluate(() => {
+      const beforeCam = window.__graphideScrollDrive || {};
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: "source",
+            id: "n1",
+            fqn: "n1",
+            kind: "Function",
+            file: "src/a.rs",
+            line: 11,
+            text: "fn hop_1() {\n  // s1ab host repost\n}\n",
+            preview: "fn hop_1()",
+            workspaceFolder: "ws-a://folder",
+          },
+        })
+      );
+      return {
+        beforePresent: !!beforeCam.presentPaused,
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(140);
+    const s1abAfterRepost = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        key: window.__graphideScrollDriveLastStayKey || "",
+      };
+    });
+    const s1abDxSnap = Math.abs((Number(s1abAfterRepost.camX) || 0) - (Number(s1abStashedA.x) || 0));
+    const s1abDySnap = Math.abs((Number(s1abAfterRepost.camY) || 0) - (Number(s1abStashedA.y) || 0));
+    const s1abDkSnap = Math.abs((Number(s1abAfterRepost.camK) || 0) - (Number(s1abStashedA.k) || 0));
+    const s1abDx = Math.abs((Number(s1abAfterRepost.camX) || 0) - (Number(s1abBefore.camX) || 0));
+    const s1abDy = Math.abs((Number(s1abAfterRepost.camY) || 0) - (Number(s1abBefore.camY) || 0));
+    const s1abDk = Math.abs((Number(s1abAfterRepost.camK) || 0) - (Number(s1abBefore.camK) || 0));
+    record(
+      "S1ab",
+      "workspace-scoped last-stay blocks cross-folder restore; same key + host re-post soft-restores",
+      s1abSetup.ok &&
+        s1abBefore.ws === "ws-a://folder" &&
+        !s1abBefore.macroLod &&
+        !s1abBefore.presentPaused &&
+        s1abStashedA.hasRaw &&
+        s1abStashedA.sourceId === "n1" &&
+        (s1abStashedA.ws === "ws-a://folder" || s1abStashedA.ws === "") &&
+        Number.isFinite(s1abStashedA.x) &&
+        Number.isFinite(s1abStashedA.y) &&
+        Number.isFinite(s1abStashedA.k) &&
+        s1abStashedA.k > 0 &&
+        s1abCross.ws === "ws-b://other" &&
+        s1abCross.crossBlocked &&
+        !s1abCross.hasRawB &&
+        !s1abAfterRepost.presentPaused &&
+        !!s1abAfterRepost.targetNodeId &&
+        s1abAfterRepost.ws === "ws-a://folder" &&
+        (s1abDx <= 96 + 40 || s1abDxSnap <= 96 + 40) &&
+        (s1abDy <= 240 || s1abDySnap <= 240) &&
+        (s1abDk <= 0.55 || s1abDkSnap <= 0.55),
+      "setup=" +
+        JSON.stringify(s1abSetup) +
+        " before=" +
+        JSON.stringify(s1abBefore) +
+        " stashedA=" +
+        JSON.stringify({
+          key: s1abStashedA.key,
+          sourceId: s1abStashedA.sourceId,
+          ws: s1abStashedA.ws,
+          x: s1abStashedA.x,
+          y: s1abStashedA.y,
+          k: s1abStashedA.k,
+        }) +
+        " cross=" +
+        JSON.stringify(s1abCross) +
+        " hostRepost=" +
+        JSON.stringify(s1abHostRepost) +
+        " after=" +
+        JSON.stringify(s1abAfterRepost) +
+        " dx=" +
+        s1abDx +
+        " dy=" +
+        s1abDy +
+        " dk=" +
+        s1abDk +
+        " dxSnap=" +
+        s1abDxSnap +
+        " dySnap=" +
+        s1abDySnap +
+        " dkSnap=" +
+        s1abDkSnap
+    );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 

@@ -20238,6 +20238,8 @@
     const SCROLL_DRIVE_LAST_STAY_MS = 6e4;
     const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
     const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1e3;
+    let scrollDriveWorkspaceKey = "";
+    let scrollDriveLastShownSourceId = "";
     let scrollDriveJustRestored = false;
     function emptyScrollDrive() {
       return {
@@ -20346,6 +20348,35 @@
       }
       return null;
     }
+    function scrollDriveLastStayStorageKey(ws) {
+      const scope = ws != null ? String(ws) : scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (!scope) return SCROLL_DRIVE_LAST_STAY_KEY;
+      return SCROLL_DRIVE_LAST_STAY_KEY + "::" + encodeURIComponent(scope);
+    }
+    function normalizeScrollDriveWorkspaceKey(raw) {
+      if (raw == null) return "";
+      const s = String(raw).trim();
+      if (!s || s === "undefined" || s === "null") return "";
+      return s.length > 240 ? s.slice(0, 240) : s;
+    }
+    function setScrollDriveWorkspaceKey(next) {
+      const key = normalizeScrollDriveWorkspaceKey(next);
+      if (key === scrollDriveWorkspaceKey) {
+        if (typeof window !== "undefined") {
+          window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+          window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+        }
+        return false;
+      }
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+      scrollDriveWorkspaceKey = key;
+      if (typeof window !== "undefined") {
+        window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+        window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+      }
+      return true;
+    }
     function normalizeScrollDriveLastStaySnap(raw) {
       if (!raw || typeof raw !== "object") return null;
       const sid = raw.sourceId != null ? String(raw.sourceId) : "";
@@ -20363,6 +20394,8 @@
         k,
         t
       };
+      const ws = normalizeScrollDriveWorkspaceKey(raw.ws != null ? raw.ws : raw.workspaceKey);
+      if (ws) out.ws = ws;
       if (raw.targetNodeId != null && String(raw.targetNodeId)) {
         out.targetNodeId = String(raw.targetNodeId);
       }
@@ -20374,10 +20407,13 @@
     function persistScrollDriveLastStay(snap) {
       const clean = normalizeScrollDriveLastStaySnap(snap);
       if (!clean) return false;
+      const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (ws) clean.ws = ws;
+      else delete clean.ws;
       const store = scrollDriveLastStayStorage();
       if (!store) return false;
       try {
-        store.setItem(SCROLL_DRIVE_LAST_STAY_KEY, JSON.stringify(clean));
+        store.setItem(scrollDriveLastStayStorageKey(ws), JSON.stringify(clean));
         return true;
       } catch (_) {
         return false;
@@ -20387,18 +20423,32 @@
       const store = scrollDriveLastStayStorage();
       if (!store) return;
       try {
-        store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        store.removeItem(scrollDriveLastStayStorageKey());
       } catch (_) {
+      }
+      if (scrollDriveWorkspaceKey) {
+        try {
+          store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        } catch (_) {
+        }
       }
     }
     function loadScrollDriveLastStayFromStorage(nextSourceId) {
       const store = scrollDriveLastStayStorage();
       if (!store) return null;
+      const key = scrollDriveLastStayStorageKey();
       let raw = null;
       try {
-        raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        raw = store.getItem(key);
       } catch (_) {
         return null;
+      }
+      if (!raw && !scrollDriveWorkspaceKey) {
+        try {
+          raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        } catch (_) {
+          raw = null;
+        }
       }
       if (!raw) return null;
       let parsed = null;
@@ -20418,6 +20468,12 @@
         clearPersistedScrollDriveLastStay();
         return null;
       }
+      const snapWs = snap.ws ? String(snap.ws) : "";
+      const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (snapWs !== curWs) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
       if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
         return null;
       }
@@ -20426,9 +20482,13 @@
     function resolveScrollDriveLastStay(nextSourceId, opts) {
       const allowStorage = !opts || opts.allowStorage !== false;
       const sid = nextSourceId != null ? String(nextSourceId) : "";
+      const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
       const mem = scrollDriveLastStay;
       if (mem && mem.sourceId) {
-        if (sid && String(mem.sourceId) !== sid) {
+        const memWs = mem.ws ? String(mem.ws) : "";
+        if (memWs !== curWs) {
+          scrollDriveLastStay = null;
+        } else if (sid && String(mem.sourceId) !== sid) {
           scrollDriveLastStay = null;
         } else {
           const age = Date.now() - (Number(mem.t) || 0);
@@ -20452,6 +20512,7 @@
       const x = Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x;
       const y = Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y;
       const k = Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0 ? scrollDriveBase.k : 1;
+      const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
       scrollDriveLastStay = {
         sourceId: sid,
         x: Number.isFinite(x) ? x : 0,
@@ -20461,6 +20522,7 @@
         targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
         t: Date.now()
       };
+      if (ws) scrollDriveLastStay.ws = ws;
       persistScrollDriveLastStay(scrollDriveLastStay);
       return true;
     }
@@ -20469,12 +20531,41 @@
       scrollDriveJustRestored = false;
       clearPersistedScrollDriveLastStay();
     }
+    function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      const sid = nextSourceId ? String(nextSourceId) : sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      if (scrollDriveBase) {
+        scrollDriveBase = {
+          x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+          y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+        };
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveWasMacro = false;
+        scrollDriveJustRestored = true;
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        return true;
+      }
+      if (typeof softRestoreScrollDriveFromLastStay === "function") {
+        return softRestoreScrollDriveFromLastStay(sid);
+      }
+      return false;
+    }
     if (typeof window !== "undefined") {
       window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
-      window.__graphideScrollDriveLastStayKey = SCROLL_DRIVE_LAST_STAY_KEY;
+      window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+      window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+      window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
       window.__graphideProbeScrollDriveLastStayStorage = function(sid) {
         return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
       };
+      window.__graphideSoftStayScrollDriveAcrossHostSourceRepost = softStayScrollDriveAcrossHostSourceRepost;
     }
     function softRestoreScrollDriveFromLastStay(nextSourceId) {
       if (typeof isPresenting === "function" && isPresenting()) return false;
@@ -21962,6 +22053,8 @@
         return;
       }
       if (msg.type === "empty") {
+        if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
+        else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
         stopPathWalk();
         snapshot = null;
         finishWork();
@@ -22045,15 +22138,29 @@
         return;
       }
       if (msg.type === "source") {
-        showSource(msg);
+        showSource(msg, { fromHost: true });
         return;
       }
       if (msg.type === "programs") {
+        if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+          if (typeof setScrollDriveWorkspaceKey === "function") {
+            setScrollDriveWorkspaceKey(
+              msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+            );
+          }
+        }
         clearTimeout(previewTimer);
         applyPrograms(msg);
         return;
       }
       if (msg.type === "flowchart" || msg.type === "inner") {
+        if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+          if (typeof setScrollDriveWorkspaceKey === "function") {
+            setScrollDriveWorkspaceKey(
+              msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+            );
+          }
+        }
         clearTimeout(previewTimer);
         applySnapshot(msg, msg.type === "inner");
       }
@@ -24420,15 +24527,24 @@
       if (workspace) workspace.classList.add("has-source");
       refitChartSoon();
     }
-    function showSource(msg) {
+    function showSource(msg, opts) {
       if (!sourcePane) return;
+      if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
+        if (typeof setScrollDriveWorkspaceKey === "function") {
+          setScrollDriveWorkspaceKey(msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws);
+        }
+      }
       if (msg.missing) {
         revealSourcePane();
         if (srcTitle) srcTitle.textContent = "No span for this node";
         if (srcBody) srcBody.textContent = "";
         return;
       }
-      sourceId = msg.id || sourceId;
+      const nextSid = msg.id != null && String(msg.id) ? String(msg.id) : sourceId ? String(sourceId) : "";
+      const prevShown = scrollDriveLastShownSourceId ? String(scrollDriveLastShownSourceId) : "";
+      const sameSourceRepost = !!(prevShown && nextSid && prevShown === nextSid);
+      const fromHost = !!(opts && opts.fromHost);
+      sourceId = nextSid || sourceId;
       revealSourcePane();
       const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
       if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
@@ -24438,6 +24554,8 @@
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
       let softStayed = false;
       if (!scrollDriveBase && typeof softRestoreScrollDriveFromLastStay === "function" && softRestoreScrollDriveFromLastStay(sourceId)) {
+        softStayed = true;
+      } else if (fromHost && sameSourceRepost && typeof softStayScrollDriveAcrossHostSourceRepost === "function" && softStayScrollDriveAcrossHostSourceRepost(nextSid)) {
         softStayed = true;
       } else if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
         softStayed = true;
@@ -24451,6 +24569,7 @@
         scrollDriveCamYSettled = false;
         if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
       }
+      if (nextSid) scrollDriveLastShownSourceId = nextSid;
     }
     function showHop(from, to, kind, opts) {
       const a = idVal(from), b = idVal(to);
@@ -24893,6 +25012,7 @@
       }
       if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       sourceId = null;
+      scrollDriveLastShownSourceId = "";
       if (typeof resetScrollDrive === "function") resetScrollDrive();
       return true;
     }
