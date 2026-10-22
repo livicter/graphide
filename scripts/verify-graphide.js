@@ -13768,6 +13768,180 @@ async function main() {
         JSON.stringify(s1agHopped)
     );
 
+    // S1ai — Present enter clears lingering Review-clear cue; mutually exclusive with presentStayStashed.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ai://folder");
+      }
+    });
+    // Path A: Review-clear cue alone → Present enter drops cue (even with no stash).
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+    });
+    const s1aiLingering = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayStashed: !!d.presentStayStashed,
+      };
+    });
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiAfterPresentClear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    // Path B: warm stash + forced lingering Review-clear cue → Present stashes and clears cue (mutual exclusion).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.querySelectorAll(".src-line").length < 40) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1ai", "1");
+          row.innerHTML =
+            '<span class="ln">' + (8200 + i) + '</span><span class="tx">s1ai pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.45);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.2);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiForced = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        hasRaw: hasRaw,
+        hasSetter: typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function",
+      };
+    });
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiMutEx = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    record(
+      "S1ai",
+      "Present enter clears Review-clear cue; mutually exclusive with presentStayStashed",
+      s1aiLingering.reviewStayCleared === true &&
+        s1aiLingering.cueAttr === true &&
+        !s1aiLingering.presentStayStashed &&
+        s1aiAfterPresentClear.presentPaused &&
+        s1aiAfterPresentClear.reviewStayCleared === false &&
+        s1aiAfterPresentClear.cueAttr === false &&
+        s1aiForced.hasSetter &&
+        s1aiForced.reviewStayCleared === true &&
+        s1aiForced.cueAttr === true &&
+        s1aiForced.hasRaw &&
+        s1aiMutEx.presentPaused &&
+        s1aiMutEx.presentStayStashed === true &&
+        s1aiMutEx.presentStayAttr === true &&
+        s1aiMutEx.reviewStayCleared === false &&
+        s1aiMutEx.cueAttr === false,
+      "lingering=" +
+        JSON.stringify(s1aiLingering) +
+        " afterPresentClear=" +
+        JSON.stringify(s1aiAfterPresentClear) +
+        " forced=" +
+        JSON.stringify(s1aiForced) +
+        " mutEx=" +
+        JSON.stringify(s1aiMutEx)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

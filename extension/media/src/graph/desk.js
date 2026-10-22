@@ -1049,7 +1049,8 @@ function stashScrollDriveLastStay() {
   };
   if (ws) scrollDriveLastStay.ws = ws;
   persistScrollDriveLastStay(scrollDriveLastStay);
-  // S1af — building a new stay ends the Review-clear honesty cue.
+  // S1af/S1ai — building a new stay ends the Review-clear honesty cue
+  // (Present pause also clears even when stash no-ops).
   if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
   return true;
 }
@@ -1161,6 +1162,8 @@ function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
 if (typeof window !== "undefined") {
   window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
   window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
+  // S1ai harness — plant/clear Review-clear cue without wiping last-stay (mutual-exclusion probes).
+  window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
   window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
   window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
   window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
@@ -1451,6 +1454,13 @@ if (typeof window !== "undefined") {
 function pauseScrollDriveForPresent() {
   // S1w/S1ad — remember stay before wipe (applyPresent / closeSourcePane may already have stashed).
   if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+  // S1ai — Present-stash / Present-enter and Review-clear cues are mutually exclusive.
+  // Clear lingering reviewStayCleared even when stash no-ops (no live base).
+  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+    clearScrollDriveReviewStayClearedCue();
+  } else {
+    scrollDriveReviewStayCleared = false;
+  }
   const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
@@ -1488,7 +1498,8 @@ function pauseScrollDriveForPresent() {
   const d = emptyScrollDrive();
   d.presentPaused = true;
   d.presentStayStashed = !!stayStashed;
-  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
+  // S1ai — never publish Review-clear alongside Present-stash honesty.
+  d.reviewStayCleared = false;
   publishScrollDrive(d);
 }
 
@@ -2707,6 +2718,12 @@ function flushScrollDrive() {
     cancelScrollDriveRaf();
     // S1w/S1ad — stash before Present flush wipe when Evidence stay was still live.
     if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+    // S1ai — Present-stash and Review-clear cues mutually exclusive.
+    if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+      clearScrollDriveReviewStayClearedCue();
+    } else {
+      scrollDriveReviewStayCleared = false;
+    }
     const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
     scrollDriveBase = null;
     scrollDriveTargetLocked = "";
@@ -2734,7 +2751,8 @@ function flushScrollDrive() {
     const paused = emptyScrollDrive();
     paused.presentPaused = true;
     paused.presentStayStashed = !!stayStashed;
-    paused.reviewStayCleared = !!scrollDriveReviewStayCleared;
+    // S1ai — never publish Review-clear alongside Present-stash honesty.
+    paused.reviewStayCleared = false;
     publishScrollDrive(paused);
     return;
   }

@@ -20626,6 +20626,7 @@
     if (typeof window !== "undefined") {
       window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
       window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
+      window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
       window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
       window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
       window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
@@ -20842,6 +20843,11 @@
     }
     function pauseScrollDriveForPresent() {
       if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+      }
       const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20878,7 +20884,7 @@
       const d = emptyScrollDrive();
       d.presentPaused = true;
       d.presentStayStashed = !!stayStashed;
-      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
+      d.reviewStayCleared = false;
       publishScrollDrive(d);
     }
     function resumeScrollDriveAfterPresent() {
@@ -21873,6 +21879,11 @@
         }
         cancelScrollDriveRaf();
         if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+        if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+          clearScrollDriveReviewStayClearedCue();
+        } else {
+          scrollDriveReviewStayCleared = false;
+        }
         const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
@@ -21900,7 +21911,7 @@
         const paused = emptyScrollDrive();
         paused.presentPaused = true;
         paused.presentStayStashed = !!stayStashed;
-        paused.reviewStayCleared = !!scrollDriveReviewStayCleared;
+        paused.reviewStayCleared = false;
         publishScrollDrive(paused);
         return;
       }
