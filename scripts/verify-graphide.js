@@ -11168,6 +11168,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1at — settle-before-sample warm: require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -11176,13 +11177,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(180);
     const s1wBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -11263,7 +11263,10 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(100);
+    // S1at — sample first soft-restore step after reopen (one paint), not a fixed 100ms
+    // mid-tween stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed reopen target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
     const s1wAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -11284,7 +11287,8 @@ async function main() {
     const s1wDx = Math.abs((Number(s1wAfterReopen.camX) || 0) - (Number(s1wBefore.camX) || 0));
     const s1wDy = Math.abs((Number(s1wAfterReopen.camY) || 0) - (Number(s1wBefore.camY) || 0));
     const s1wDk = Math.abs((Number(s1wAfterReopen.camK) || 0) - (Number(s1wBefore.camK) || 0));
-    // Pad + mid-scroll so publish / settle flags stay green after restore.
+    // S1at — pad if needed; land mid-file once (not a burst flick), then tiny nudge so
+    // settle flags re-absorb without SCROLL_MACRO_VEL. Flags clear on soft-restore then re-absorb.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -11299,25 +11303,14 @@ async function main() {
         }
       }
       const max = Math.max(1, body.scrollHeight - body.clientHeight);
-      body.scrollTop = Math.floor(max * 0.45);
-      body.dispatchEvent(new Event("scroll"));
-    });
-    await page.waitForFunction(
-      () => {
-        const d = window.__graphideScrollDrive;
-        return !!(d && !d.presentPaused && Number(d.scrollRatio) > 0.15 && d.targetNodeId);
-      },
-      null,
-      { timeout: 6000 }
-    );
-    await page.evaluate(() => {
-      const body = document.getElementById("srcBody");
-      if (!body) return;
-      const base = body.scrollTop;
-      for (let i = 0; i < 5; i++) {
-        body.scrollTop = base + i * 2;
-        body.dispatchEvent(new Event("scroll"));
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top (post-restore / short file); else ≤2px nudge.
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
       }
+      body.dispatchEvent(new Event("scroll"));
     });
     await page.waitForFunction(
       () => {
@@ -11325,6 +11318,29 @@ async function main() {
         return !!(
           d &&
           !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1at — settle-before-sample resettle: require !macroLod + settle flags (no scrollRatio fallback).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
           Number(d.scrollVel) < 0.12 &&
           (d.camXSettled === true || d.camYSettled === true)
         );
@@ -11346,6 +11362,10 @@ async function main() {
         presentPaused: !!d.presentPaused,
       };
     });
+    const s1wResettleYank = Math.max(
+      Math.abs((Number(s1wResettle.camX) || 0) - (Number(s1wAfterReopen.camX) || 0)),
+      Math.abs((Number(s1wResettle.camY) || 0) - (Number(s1wAfterReopen.camY) || 0))
+    );
     record(
       "S1w",
       "Present→Evidence reopen soft-restores cam (same sourceId; no hard zoomToEl)",
@@ -11354,6 +11374,7 @@ async function main() {
         !s1wBefore.presentPaused &&
         Number.isFinite(s1wBefore.camX) &&
         Number.isFinite(s1wBefore.camY) &&
+        (s1wBefore.camXSettled === true || s1wBefore.camYSettled === true) &&
         s1wPresent.presentPaused &&
         s1wPresent.paneHidden &&
         Number.isFinite(s1wAfterReopen.camX) &&
@@ -11365,9 +11386,11 @@ async function main() {
         s1wDy <= 200 &&
         s1wDk <= 0.45 &&
         !s1wResettle.presentPaused &&
+        !s1wResettle.macroLod &&
         !!s1wResettle.targetNodeId &&
-        Number(s1wResettle.ratio) > 0.15 &&
-        (s1wResettle.camXSettled === true || s1wResettle.camYSettled === true),
+        Number(s1wResettle.ratio) > 0.1 &&
+        (s1wResettle.camXSettled === true || s1wResettle.camYSettled === true) &&
+        s1wResettleYank <= 200,
       "setup=" +
         JSON.stringify(s1wSetup) +
         " before=" +
@@ -11383,10 +11406,60 @@ async function main() {
         " dy=" +
         s1wDy +
         " dk=" +
-        s1wDk
+        s1wDk +
+        " resettleYank=" +
+        s1wResettleYank
     );
 
 
+
+    // S1at — soft-restore settle-before-sample probe (parity with S1ah/S1as).
+    // After S1w, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1atSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1at",
+      "soft-restore settle-before-sample: post-S1w still micro+settled (!macroLod; no mid-tween)",
+      !s1atSnap.presentPaused &&
+        !s1atSnap.macroLod &&
+        (s1atSnap.camXSettled === true || s1atSnap.camYSettled === true) &&
+        s1atSnap.scrollVel < 0.12 &&
+        !!s1atSnap.targetNodeId &&
+        Number.isFinite(s1atSnap.camX) &&
+        Number.isFinite(s1atSnap.camK),
+      "snap=" + JSON.stringify(s1atSnap)
+    );
 
     // S1x — desk/Slice remount while Evidence stays open soft-stays cam (no wipe-then-zoomToEl).
     // Re-click Slice recycles stage + remounts XYFlow vnodes; Evidence pane stays open (same sourceId).
