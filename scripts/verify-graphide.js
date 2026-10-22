@@ -7723,6 +7723,86 @@ async function main() {
       evidenceClosedKeys.evidenceOpen && !evidenceClosedKeys.keysOpen,
       JSON.stringify(evidenceClosedKeys)
     );
+    // S1a — Evidence #srcBody scroll publishes ScrollDrive and moves camTo (lerp via setCamTarget).
+    const beforeScrollDrive = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      const t = (vp && vp.style.transform) || "";
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        camY: Number(d.camY),
+        targetNodeId: d.targetNodeId || "",
+        transform: t,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    const scrolled = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Explorer snippets are short — pad so scroll can move, then drive scrollTop.
+      for (let i = 0; i < 40; i++) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.innerHTML = '<span class="ln">' + (100 + i) + '</span><span class="tx">scroll-drive pad ' + i + "</span>";
+        body.appendChild(row);
+      }
+      body.scrollTop = body.scrollHeight;
+      body.dispatchEvent(new Event("scroll"));
+      return {
+        ok: true,
+        scrollTop: body.scrollTop,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && Number(d.scrollRatio) > 0.5);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Allow one lerp tick so camY lands on camTo.
+    await page.waitForTimeout(350);
+    const afterScrollDrive = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      const t = (vp && vp.style.transform) || "";
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        activeLine: Number(d.activeLine) || 0,
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        targetNodeId: d.targetNodeId || "",
+        transform: t,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    const camMoved =
+      (Number.isFinite(beforeScrollDrive.camY) &&
+        Number.isFinite(afterScrollDrive.camY) &&
+        Math.abs(afterScrollDrive.camY - beforeScrollDrive.camY) > 0.5) ||
+      (beforeScrollDrive.transform &&
+        afterScrollDrive.transform &&
+        beforeScrollDrive.transform !== afterScrollDrive.transform);
+    record(
+      "S1a",
+      "Evidence #srcBody scroll publishes ScrollDrive and moves the camera",
+      scrolled.ok &&
+        beforeScrollDrive.evidenceOpen &&
+        afterScrollDrive.evidenceOpen &&
+        afterScrollDrive.ratio > 0.5 &&
+        !!afterScrollDrive.targetNodeId &&
+        camMoved,
+      "scrolled=" +
+        JSON.stringify(scrolled) +
+        " before=" +
+        JSON.stringify(beforeScrollDrive) +
+        " after=" +
+        JSON.stringify(afterScrollDrive)
+    );
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

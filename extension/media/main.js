@@ -20219,6 +20219,69 @@
         const flow = currentFlow();
         vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
       };
+    let scrollDriveBase = null;
+    function emptyScrollDrive() {
+      return { scrollRatio: 0, activeLine: 0, targetNodeId: "", camX: 0, camY: 0, camK: 1 };
+    }
+    function publishScrollDrive(drive) {
+      window.__graphideScrollDrive = drive || emptyScrollDrive();
+    }
+    function resetScrollDrive() {
+      scrollDriveBase = null;
+      publishScrollDrive(emptyScrollDrive());
+    }
+    function readSrcActiveLine() {
+      if (!srcBody) return 0;
+      const mid = srcBody.scrollTop + srcBody.clientHeight / 2;
+      const lines = srcBody.querySelectorAll(".src-line");
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const top = el2.offsetTop;
+        const bottom = top + el2.offsetHeight;
+        if (top <= mid && mid < bottom + 0.5) {
+          const ln2 = el2.querySelector(".ln");
+          const n = parseInt(ln2 && ln2.textContent, 10);
+          return Number.isFinite(n) ? n : 0;
+        }
+      }
+      return 0;
+    }
+    function findScrollDriveTargetEl(id2) {
+      if (!id2 || !canvas) return null;
+      const esc2 = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(String(id2)) : String(id2).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      return canvas.querySelector('.vnode[data-id="' + esc2 + '"]') || canvas.querySelector('.ego-node[data-id="' + esc2 + '"]') || canvas.querySelector('.comm-node[data-id="' + esc2 + '"]') || canvas.querySelector('.bubble-card[data-bubble="' + esc2 + '"]') || canvas.querySelector('[data-id="' + esc2 + '"]');
+    }
+    function applyScrollDriveCamera(scrollRatio, targetNodeId) {
+      if (!canvas) return;
+      if (!scrollDriveBase) {
+        const el2 = findScrollDriveTargetEl(targetNodeId);
+        if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+        scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+      }
+      const nudge = scrollRatio * 48;
+      setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
+    }
+    function onSrcBodyScroll() {
+      if (!srcBody || !sourcePane || sourcePane.hidden) {
+        resetScrollDrive();
+        return;
+      }
+      const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
+      const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
+      const activeLine = readSrcActiveLine();
+      const targetNodeId = sourceId ? String(sourceId) : "";
+      applyScrollDriveCamera(scrollRatio, targetNodeId);
+      publishScrollDrive({
+        scrollRatio,
+        activeLine,
+        targetNodeId,
+        camX: camTo.x,
+        camY: camTo.y,
+        camK: camTo.k
+      });
+    }
+    if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
+    publishScrollDrive(emptyScrollDrive());
     if (graphSearch) {
       graphSearch.addEventListener("focus", () => {
         if (typeof hideTip === "function") hideTip();
@@ -22790,6 +22853,10 @@
       if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
+      if (typeof resetScrollDrive === "function") {
+        scrollDriveBase = null;
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+      }
     }
     function showHop(from, to, kind, opts) {
       const a = idVal(from), b = idVal(to);
@@ -23231,6 +23298,7 @@
         hopCard.innerHTML = "";
       }
       sourceId = null;
+      if (typeof resetScrollDrive === "function") resetScrollDrive();
       return true;
     }
     function programMarks(p) {

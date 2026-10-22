@@ -25,6 +25,7 @@ Inspect a node or hop without covering the object rail.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
   `selectNode` → `peekSource`.
+- Scroll-drive camera (`S1a`) is owned by [scroll-drive.md](scroll-drive.md). This map stays pane open / clip.
 - Clip rules (PR #45 / `main.css`): `#sourcePane` has `overflow: hidden` and `max-width: 380px` (flex basis ~360px). Long source lines must not cover `#ledgerPane`.
 
 ## How to get to it (user POV)
@@ -57,6 +58,7 @@ Driver assertions:
 - opening Ask closes Evidence (`K18m`)
 - opening Evidence closes Ask (`K18v`)
 - opening Evidence closes Keys (`K18y`)
+- Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam (`S1a`) — see [scroll-drive.md](scroll-drive.md)
 - opening Keys closes Evidence (`K18p`)
 - opening Export closes Evidence (`K18s`)
 - screenshot of the desk with Evidence open is not black
