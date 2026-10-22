@@ -4492,6 +4492,7 @@ function revealSourcePane() {
   if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
   if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
   if (routeOpen && typeof setRouteOpen === "function") setRouteOpen(false);
+  if (typeof applyPresent === "function") applyPresent(false);
   if (typeof hideTip === "function") hideTip();
   if (toastEl) {
     toastEl.classList.remove("on");
@@ -4943,12 +4944,13 @@ function focusWalkStop(stop) {
   if (!stop) return;
   if (stop.kind === "hop") {
     selectedNodeId = idVal(stop.id);
-    peekSource(stop.id);
+    // Stage hides #sourcePane — walk peeks must not exit Present via revealSourcePane (K18aj).
+    if (!isPresenting()) peekSource(stop.id);
     return;
   }
   const bub = findBubble(stop.id);
   const mem = bub && (bub.members || [])[0];
-  if (mem) peekSource(mem);
+  if (mem && !isPresenting()) peekSource(mem);
 }
 
 function stopPathWalk() {

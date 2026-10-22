@@ -7962,6 +7962,37 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Evidence must close Present (revealSourcePane exclusivity — Evidence clears Presentation Stage).
+    // Reverse of Present closing Evidence (K18j). #ledgerPane/#sourcePane are display:none on stage — cell click via evaluate.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden) && !(document.body && document.body.classList.contains("present"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedPresent = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K18aj",
+      "Opening Evidence closes Present (exclusive chrome)",
+      evidenceClosedPresent.evidenceOpen && !evidenceClosedPresent.presenting,
+      JSON.stringify(evidenceClosedPresent)
+    );
+    // Evidence stays open for K18ae/K18af / S1a (Present already exited).
     // Opening Evidence must close Lens (revealSourcePane exclusivity — Evidence clears Lens chrome).
     // Reverse of Ask/Keys/Export closing Lens; open Lens first, then reopen Evidence via ledger cell.
     await page.click("#lensBtn");
