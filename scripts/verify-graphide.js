@@ -7879,11 +7879,30 @@ async function main() {
       null,
       { timeout: 5000 }
     );
-    // Reopen Evidence for S1a scroll-drive suite.
+    // Opening Evidence must close Lens (revealSourcePane exclusivity — Evidence clears Lens chrome).
+    // Reverse of Ask/Keys/Export closing Lens; open Lens first, then reopen Evidence via ledger cell.
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
       if (cell) cell.click();
     });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedLens = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K18ae",
+      "Opening Evidence closes Lens (exclusive chrome)",
+      evidenceClosedLens.evidenceOpen && !evidenceClosedLens.lensOpen,
+      JSON.stringify(evidenceClosedLens)
+    );
+    // Evidence is open for S1a scroll-drive suite (opened above for K18ae).
     await page.waitForFunction(
       () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
       null,
