@@ -2512,6 +2512,11 @@ html.bright .route-hop {
 #enterCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit),
 #sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
+
+/* S1m — Present stage pauses ScrollDrive camera (Evidence exclusive with stage).
+   Harness hooks: data-scroll-present-paused on .viewport + presentPaused on ScrollDrive.
+   No extra paint — Present stage CSS owns the desk. */
+
 /* Ego lifts its neighborhood, but Find / Route / Lens dim still read inside it. */
 #enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }

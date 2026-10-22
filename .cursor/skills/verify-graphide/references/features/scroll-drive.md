@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce (S1a–S1l)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause (S1a–S1m)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,7 +17,7 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit).
 
 ## Sub-features
 
@@ -106,6 +106,17 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive).
   Evidence still resets sync (cancel pending rAF). Not a second cam
   loop — still `tickCam` / `setCamTarget`. Lens stays a Present stage
   overlay (`P6s` / `K14k`); this batch does not make Lens exit Present.
+- **S1m Present pause:** `applyPresent(true)` closes Evidence (exclusive
+  chrome) then `pauseScrollDriveForPresent` — cancels macro / ease / rAF
+  timers, clears CFG / macro / anchor / detail / blend paint, forces
+  `camEase` to `CAM_EASE_BASE`, stamps `.viewport[data-scroll-present-paused="1"]`,
+  and publishes `presentPaused: true`. `flushScrollDrive` /
+  `applyScrollDriveCamera` / `applyScrollDriveMacro` no-op camera while
+  `isPresenting()`. `applyPresent(false)` calls
+  `resumeScrollDriveAfterPresent` (drop pause flag + attribute; idle
+  camEase). Does **not** change Lens/Route Present-overlay rules
+  (`P6s` / `K14k`). `resetScrollDrive` also clears the residual macro
+  timer and keeps `presentPaused` when stage is on.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
   + macro + kind-anchor + detail-gate + blend paint.
 
@@ -125,7 +136,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive).
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises).
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes.
 
 ## Driving it with the harness
 
@@ -190,6 +201,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
 - **S1l** — fire many `#srcBody` scroll events in one turn → after one
   frame, `rafCoalesce === true`, `rafFlushes` rose by 1 (or small N),
   `rafMerged` rose by ≥ the surplus events. Still one cam path.
+- **S1m** — with Evidence scrolled (ScrollDrive active), open Present →
+  Evidence closes, `presentPaused === true`,
+  `.viewport[data-scroll-present-paused="1"]`, `camEase === CAM_EASE_BASE`,
+  no `.scroll-cfg-hot` / `data-scroll-macro`. Exit Present →
+  `presentPaused === false` and the attribute clears. Lens/Route stay
+  Present overlays (`P6s` / `K14k`) — unchanged.
 
 ## Gotchas
 
@@ -207,11 +224,15 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`,
   `blendMs`, `.viewport[data-scroll-blend]`, `--scroll-blend-ms`,
   `reducedMotion`, `reduceMotion()`, `rafCoalesce`, `rafFlushes`,
-  `rafMerged`, `scheduleScrollDriveFlush`, `flushScrollDrive`.
+  `rafMerged`, `scheduleScrollDriveFlush`, `flushScrollDrive`,
+  `presentPaused`, `pauseScrollDriveForPresent`,
+  `resumeScrollDriveAfterPresent`, `data-scroll-present-paused`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
   duration from `camEase` — never a parallel tween. S1k only zeros
   blend + skips settle timers under `reduceMotion` — still one cam path.
   S1l only coalesces scroll → flush via rAF — never a parallel tween.
+  S1m only pauses / resumes on Present — never a parallel tween; does
+  not change Lens/Route Present-overlay rules.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

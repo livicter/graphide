@@ -19937,7 +19937,10 @@
         presentBtn.textContent = next ? "Exit" : "Present";
         presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
       }
-      if (!next) return;
+      if (!next) {
+        if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
+        return;
+      }
       if (typeof setKeysPane === "function") setKeysPane(false);
       if (typeof setExportMenu === "function") setExportMenu(false);
       if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
@@ -19949,6 +19952,7 @@
         toastEl.hidden = true;
       }
       if (tip) tip.hidden = true;
+      if (typeof pauseScrollDriveForPresent === "function") pauseScrollDriveForPresent();
     }
     function togglePresent() {
       applyPresent(!isPresenting());
@@ -20253,7 +20257,8 @@
         reducedMotion: false,
         rafCoalesce: true,
         rafFlushes: 0,
-        rafMerged: 0
+        rafMerged: 0,
+        presentPaused: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20263,6 +20268,10 @@
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+        clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = 0;
+      }
       if (scrollDriveRaf) {
         cancelAnimationFrame(scrollDriveRaf);
         scrollDriveRaf = 0;
@@ -20280,7 +20289,42 @@
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
       clearScrollDriveBlendPaint();
-      publishScrollDrive(emptyScrollDrive());
+      const d = emptyScrollDrive();
+      if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
+      publishScrollDrive(d);
+    }
+    function pauseScrollDriveForPresent() {
+      if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+        clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = 0;
+      }
+      if (scrollDriveEaseTimer) {
+        clearTimeout(scrollDriveEaseTimer);
+        scrollDriveEaseTimer = 0;
+      }
+      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+      scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
+      scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      setCamEase(CAM_EASE_BASE);
+      clearScrollDriveCfgPaint();
+      clearScrollDriveMacroPaint();
+      clearScrollDriveAnchorPaint();
+      clearScrollDriveDetailPaint();
+      clearScrollDriveBlendPaint();
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+      const d = emptyScrollDrive();
+      d.presentPaused = true;
+      publishScrollDrive(d);
+    }
+    function resumeScrollDriveAfterPresent() {
+      setCamEase(CAM_EASE_BASE);
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) vp.removeAttribute("data-scroll-present-paused");
+      const d = emptyScrollDrive();
+      d.presentPaused = false;
+      publishScrollDrive(d);
     }
     function readSrcActiveLine() {
       if (!srcBody) return 0;
@@ -20304,6 +20348,7 @@
       return canvas.querySelector('.vnode[data-id="' + esc2 + '"]') || canvas.querySelector('.ego-node[data-id="' + esc2 + '"]') || canvas.querySelector('.comm-node[data-id="' + esc2 + '"]') || canvas.querySelector('.bubble-card[data-bubble="' + esc2 + '"]') || canvas.querySelector('[data-id="' + esc2 + '"]');
     }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
+      if (typeof isPresenting === "function" && isPresenting()) return;
       if (!canvas) return;
       const lock = targetNodeId ? String(targetNodeId) : "";
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
@@ -20397,6 +20442,7 @@
       }
     }
     function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+      if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
       if (!canvas) return { macroLod: false };
       const lock = targetNodeId ? String(targetNodeId) : "";
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
@@ -21026,6 +21072,32 @@
       });
     }
     function flushScrollDrive() {
+      if (typeof isPresenting === "function" && isPresenting()) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        if (scrollDriveEaseTimer) {
+          clearTimeout(scrollDriveEaseTimer);
+          scrollDriveEaseTimer = 0;
+        }
+        cancelScrollDriveRaf();
+        scrollDriveBase = null;
+        scrollDriveTargetLocked = "";
+        scrollDriveVel = { t: 0, top: 0, vel: 0 };
+        setCamEase(CAM_EASE_BASE);
+        clearScrollDriveCfgPaint();
+        clearScrollDriveMacroPaint();
+        clearScrollDriveAnchorPaint();
+        clearScrollDriveDetailPaint();
+        clearScrollDriveBlendPaint();
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+        const paused = emptyScrollDrive();
+        paused.presentPaused = true;
+        publishScrollDrive(paused);
+        return;
+      }
       if (!srcBody || !sourcePane || sourcePane.hidden) {
         if (scrollDriveMacroTimer) {
           clearTimeout(scrollDriveMacroTimer);
@@ -21106,7 +21178,8 @@
         reducedMotion: !!reduced,
         rafCoalesce: true,
         rafFlushes: scrollDriveRafFlushes,
-        rafMerged: scrollDriveRafMerged
+        rafMerged: scrollDriveRafMerged,
+        presentPaused: false
       });
     }
     function onSrcBodyScroll() {

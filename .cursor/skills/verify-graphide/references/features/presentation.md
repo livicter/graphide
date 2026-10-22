@@ -90,6 +90,10 @@ Driver assertions:
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
 
+- **S1m / ScrollDrive:** entering Present pauses Evidence ScrollDrive
+  (`presentPaused`, no residual cam nudge). Exit resumes. Does not
+  change Lens/Route stage-overlay rules (`P6s` / `K14k`).
+
 ## Gotchas
 
 - `S` on the desk is still stamp. Do not steal it for Style except while

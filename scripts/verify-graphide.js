@@ -9172,7 +9172,107 @@ async function main() {
       "before=" + JSON.stringify(s1lBefore) + " after=" + JSON.stringify(s1lAfter)
     );
 
-    await page.keyboard.press("Escape"); // close Evidence
+    // S1m — Present stage pauses ScrollDrive camera; exit resumes (Lens/Route overlays unchanged).
+    const s1mBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const vp = document.querySelector(".viewport");
+      return {
+        evidenceOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        camEase: Number(d.camEase),
+        camY: Number(d.camY),
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macro: !!(vp && vp.getAttribute("data-scroll-macro") === "1"),
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Residual scroll events / macro timer must not revive CFG/macro paint or clear presentPaused.
+    // Present stage may still ease its own camera — do not assert viewport transform equality.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.dispatchEvent(new Event("scroll"));
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForTimeout(280);
+    const s1mPaused = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        presenting: !!(document.body && document.body.classList.contains("present")),
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        presentPaused: !!d.presentPaused,
+        camEase: Number(d.camEase),
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macro: !!(vp && vp.getAttribute("data-scroll-macro") === "1"),
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1mResumed = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        presenting: !!(document.body && document.body.classList.contains("present")),
+        presentPaused: !!d.presentPaused,
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        camEase: Number(d.camEase),
+      };
+    });
+    record(
+      "S1m",
+      "Present pauses ScrollDrive camera; exit resumes (presentPaused / no residual cam nudge)",
+      s1mBefore.evidenceOpen &&
+        s1mBefore.presentPaused === false &&
+        s1mBefore.presenting === false &&
+        s1mPaused.presenting &&
+        !s1mPaused.evidenceOpen &&
+        s1mPaused.presentPaused === true &&
+        s1mPaused.attr === true &&
+        s1mPaused.cfgHot === false &&
+        s1mPaused.macro === false &&
+        Number.isFinite(s1mPaused.camEase) &&
+        s1mPaused.camEase >= 0.2 &&
+        s1mPaused.camEase <= 0.28 &&
+        s1mResumed.presenting === false &&
+        s1mResumed.presentPaused === false &&
+        s1mResumed.attr === false,
+      "before=" +
+        JSON.stringify(s1mBefore) +
+        " paused=" +
+        JSON.stringify(s1mPaused) +
+        " resumed=" +
+        JSON.stringify(s1mResumed)
+    );
+
+    await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
 

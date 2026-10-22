@@ -322,7 +322,11 @@ function applyPresent(on) {
     presentBtn.textContent = next ? "Exit" : "Present";
     presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
   }
-  if (!next) return;
+  // S1m — exit: resume ScrollDrive cleanly (camEase base, presentPaused false).
+  if (!next) {
+    if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
+    return;
+  }
   if (typeof setKeysPane === "function") setKeysPane(false);
   if (typeof setExportMenu === "function") setExportMenu(false);
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
@@ -334,6 +338,8 @@ function applyPresent(on) {
     toastEl.hidden = true;
   }
   if (tip) tip.hidden = true;
+  // S1m — stage owns the camera; pause ScrollDrive (clears residual macro timer / paint).
+  if (typeof pauseScrollDriveForPresent === "function") pauseScrollDriveForPresent();
 }
 
 function togglePresent() {
@@ -676,6 +682,7 @@ function emptyScrollDrive() {
     rafCoalesce: true,
     rafFlushes: 0,
     rafMerged: 0,
+    presentPaused: false,
   };
 }
 
@@ -687,6 +694,10 @@ function resetScrollDrive() {
   scrollDriveBase = null;
   scrollDriveTargetLocked = "";
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
+  if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+    clearTimeout(scrollDriveMacroTimer);
+    scrollDriveMacroTimer = 0;
+  }
   if (scrollDriveRaf) {
     cancelAnimationFrame(scrollDriveRaf);
     scrollDriveRaf = 0;
@@ -704,7 +715,47 @@ function resetScrollDrive() {
   clearScrollDriveAnchorPaint();
   clearScrollDriveDetailPaint();
   clearScrollDriveBlendPaint();
-  publishScrollDrive(emptyScrollDrive());
+  const d = emptyScrollDrive();
+  // S1m — closing Evidence under Present must keep presentPaused published.
+  if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
+  publishScrollDrive(d);
+}
+
+/** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
+function pauseScrollDriveForPresent() {
+  if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+    clearTimeout(scrollDriveMacroTimer);
+    scrollDriveMacroTimer = 0;
+  }
+  if (scrollDriveEaseTimer) {
+    clearTimeout(scrollDriveEaseTimer);
+    scrollDriveEaseTimer = 0;
+  }
+  if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+  scrollDriveBase = null;
+  scrollDriveTargetLocked = "";
+  scrollDriveVel = { t: 0, top: 0, vel: 0 };
+  setCamEase(CAM_EASE_BASE);
+  clearScrollDriveCfgPaint();
+  clearScrollDriveMacroPaint();
+  clearScrollDriveAnchorPaint();
+  clearScrollDriveDetailPaint();
+  clearScrollDriveBlendPaint();
+  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+  const d = emptyScrollDrive();
+  d.presentPaused = true;
+  publishScrollDrive(d);
+}
+
+/** S1m — Present exit: drop pause flag, restore idle camEase; Evidence may reopen later. */
+function resumeScrollDriveAfterPresent() {
+  setCamEase(CAM_EASE_BASE);
+  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (vp) vp.removeAttribute("data-scroll-present-paused");
+  const d = emptyScrollDrive();
+  d.presentPaused = false;
+  publishScrollDrive(d);
 }
 
 function readSrcActiveLine() {
@@ -742,6 +793,8 @@ function findScrollDriveTargetEl(id) {
 }
 
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
+  // S1m — Present owns cam; never nudge while stage is on.
+  if (typeof isPresenting === "function" && isPresenting()) return;
   if (!canvas) return;
   const lock = targetNodeId ? String(targetNodeId) : "";
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
@@ -857,6 +910,8 @@ function clearScrollDriveMacroPaint() {
 
 /** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest. */
 function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+  // S1m — Present owns cam; skip macro LOD camera/paint on stage.
+  if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
   if (!canvas) return { macroLod: false };
   const lock = targetNodeId ? String(targetNodeId) : "";
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
@@ -1584,6 +1639,33 @@ function scheduleScrollDriveFlush() {
 }
 
 function flushScrollDrive() {
+  // S1m — Presentation Stage owns the camera; do not paint or setCamTarget.
+  if (typeof isPresenting === "function" && isPresenting()) {
+    if (scrollDriveMacroTimer) {
+      clearTimeout(scrollDriveMacroTimer);
+      scrollDriveMacroTimer = 0;
+    }
+    if (scrollDriveEaseTimer) {
+      clearTimeout(scrollDriveEaseTimer);
+      scrollDriveEaseTimer = 0;
+    }
+    cancelScrollDriveRaf();
+    scrollDriveBase = null;
+    scrollDriveTargetLocked = "";
+    scrollDriveVel = { t: 0, top: 0, vel: 0 };
+    setCamEase(CAM_EASE_BASE);
+    clearScrollDriveCfgPaint();
+    clearScrollDriveMacroPaint();
+    clearScrollDriveAnchorPaint();
+    clearScrollDriveDetailPaint();
+    clearScrollDriveBlendPaint();
+    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+    if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+    const paused = emptyScrollDrive();
+    paused.presentPaused = true;
+    publishScrollDrive(paused);
+    return;
+  }
   if (!srcBody || !sourcePane || sourcePane.hidden) {
     if (scrollDriveMacroTimer) {
       clearTimeout(scrollDriveMacroTimer);
@@ -1669,6 +1751,7 @@ function flushScrollDrive() {
     rafCoalesce: true,
     rafFlushes: scrollDriveRafFlushes,
     rafMerged: scrollDriveRafMerged,
+    presentPaused: false,
   });
 }
 
