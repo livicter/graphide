@@ -9,6 +9,11 @@ html, body {
   --g-fn: #6ea8fe;
   --g-ty: #d4784a;
   --g-ep: #3ecf7a;
+  /* S1e scroll-drive kind anchors — sci-fi blueprint palette */
+  --g-anchor-api: #58a6ff;
+  --g-anchor-db: #d2a8ff;
+  --g-anchor-svc: #3fb950;
+  --g-anchor-util: #8b949e;
   --g-line: color-mix(in srgb, var(--vscode-foreground) 28%, transparent);
   --g-radius: 10px;
   --g-radius-sm: 7px;
@@ -2178,6 +2183,24 @@ svg.steiner .edge.walk {
 }
 .viewport[data-scroll-macro="1"] .vnode.scroll-macro-dim {
   opacity: 0.22;
+}
+
+/* S1e — color-coded API / Database / Service / Utility anchors (hairline only; no labels) */
+.vnode[data-scroll-anchor="api"], .vnode.scroll-anchor-api {
+  --c: var(--g-anchor-api);
+  box-shadow: inset 3px 0 0 0 var(--g-anchor-api);
+}
+.vnode[data-scroll-anchor="db"], .vnode.scroll-anchor-db {
+  --c: var(--g-anchor-db);
+  box-shadow: inset 3px 0 0 0 var(--g-anchor-db);
+}
+.vnode[data-scroll-anchor="svc"], .vnode.scroll-anchor-svc {
+  --c: var(--g-anchor-svc);
+  box-shadow: inset 3px 0 0 0 var(--g-anchor-svc);
+}
+.vnode[data-scroll-anchor="util"], .vnode.scroll-anchor-util {
+  --c: var(--g-anchor-util);
+  box-shadow: inset 3px 0 0 0 var(--g-anchor-util);
 }
 
 .vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim, .bubble-card.route-dim {

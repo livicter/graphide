@@ -8079,6 +8079,100 @@ async function main() {
         afterSpans.tryN >= 1,
       "pad=" + JSON.stringify(s1dPad) + " after=" + JSON.stringify(afterSpans)
     );
+
+    // S1e — IR kind + EndpointMeta → API / Database / Service / Utility color anchors.
+    const s1ePad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      // Ensure mid-file micro mode (not macro) so CFG + anchors both paint.
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (500 + i) + '</span><span class="tx">kind-anchor pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      // Force a spread of IR kinds on painted Slice nodes so all four buckets appear.
+      const nodes = Array.from(document.querySelectorAll("#sliceCanvas .vnode[data-id]"));
+      const kinds = ["Function", "Type", "Endpoint", "Endpoint"];
+      nodes.forEach((el, i) => {
+        el.setAttribute("data-kind", kinds[i % kinds.length]);
+      });
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, vnodes: nodes.length, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35)) return false;
+        const counts = d.anchorCounts || {};
+        const stamped = document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").length;
+        const buckets = new Set();
+        document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
+          buckets.add(el.getAttribute("data-scroll-anchor"));
+        });
+        return (
+          stamped >= 2 &&
+          buckets.has("util") &&
+          buckets.has("svc") &&
+          (buckets.has("api") || buckets.has("db")) &&
+          !!d.anchorFocus &&
+          (Number(counts.util) || 0) + (Number(counts.svc) || 0) + (Number(counts.api) || 0) + (Number(counts.db) || 0) >= 2
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(120);
+    const afterAnchors = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const buckets = [];
+      document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
+        buckets.push(el.getAttribute("data-scroll-anchor"));
+      });
+      const uniq = Array.from(new Set(buckets));
+      const counts = d.anchorCounts || {};
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        anchorFocus: d.anchorFocus || "",
+        counts: counts,
+        uniq: uniq,
+        stamped: buckets.length,
+        apiCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-api, #sliceCanvas .vnode[data-scroll-anchor='api']").length,
+        dbCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-db, #sliceCanvas .vnode[data-scroll-anchor='db']").length,
+        svcCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-svc, #sliceCanvas .vnode[data-scroll-anchor='svc']").length,
+        utilCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-util, #sliceCanvas .vnode[data-scroll-anchor='util']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1e",
+      "Evidence scroll stamps API/DB/Service/Utility kind anchors from IR kinds",
+      s1ePad.ok &&
+        afterAnchors.evidenceOpen &&
+        !afterAnchors.macroLod &&
+        afterAnchors.stamped >= 2 &&
+        afterAnchors.uniq.includes("util") &&
+        afterAnchors.uniq.includes("svc") &&
+        (afterAnchors.uniq.includes("api") || afterAnchors.uniq.includes("db")) &&
+        !!afterAnchors.anchorFocus &&
+        afterAnchors.utilCls >= 1 &&
+        afterAnchors.svcCls >= 1 &&
+        afterAnchors.apiCls + afterAnchors.dbCls >= 1,
+      "pad=" + JSON.stringify(s1ePad) + " after=" + JSON.stringify(afterAnchors)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

@@ -1,16 +1,17 @@
-# Scroll-drive camera + micro CFG + macro LOD (S1a / S1b / S1c / S1d)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors (S1a / S1b / S1c / S1d / S1e)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), unrolls a localized Steiner CFG on Slice with a
 glow on the active block (S1b), annotates `if` / loop / `try` spans as
 distinct visual groups (S1d), and at file-top or high scroll velocity
 transitions to a macro Map overview LOD focused on the Evidence module
-(S1c).
+(S1c), and stamps color-coded API / Database / Service / Utility anchors
+from IR kind + EndpointMeta (S1e).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, macroLod }`.
+  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, macroLod, anchorFocus, anchorCounts }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
 - `targetNodeId` is the inspected Evidence node (`sourceId`). No AST
@@ -38,8 +39,14 @@ transitions to a macro Map overview LOD focused on the Evidence module
   camera `k` toward overview, focus the Evidence node
   (`.scroll-macro-hot`) and dim siblings (`.scroll-macro-dim`). When the
   flick ages out mid-file, a short recheck returns to S1a/S1b/S1d.
+- **S1e kind anchors:** map IR `Function` / `Type` / `Endpoint` (+
+  `EndpointMeta.channel` Http→API, Table|File→Database, Queue|Channel→Service,
+  Source→API, Sink→Database; Type→Service; Function→Utility with light FQN
+  heuristics) onto `data-scroll-anchor` / `.scroll-anchor-*`. Hairline tint
+  only — no labels. Deep CFG detail stays gated by S1b/S1d. `anchorFocus` /
+  `anchorCounts` publish on ScrollDrive for the harness.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
-  + macro paint.
+  + macro + kind-anchor paint.
 
 ## How to get to it (user POV)
 
@@ -49,7 +56,8 @@ transitions to a macro Map overview LOD focused on the Evidence module
    related node; the CFG unrolls and the active block glows; `if` /
    loop / `try` regions tint distinctly while sibling kinds stay dim.
    Jump to the top of the file (or flick fast) and the canvas eases to
-   Map overview LOD with the module focused.
+   Map overview LOD with the module focused. Nodes keep a hairline
+   kind-anchor tint (API / DB / Service / Utility).
 
 ## Driving it with the harness
 
@@ -69,7 +77,8 @@ extension/scripts/webview-harness.html?mode=explorer&probe=0
 
 Driver assertions: **S1a** (camera) · **S1b** (CFG unroll + glow) ·
 **S1c** (macro LOD on file top / fast scroll) · **S1d** (if/loop/try
-span kinds + sibling collapse).
+span kinds + sibling collapse) · **S1e** (API/DB/Service/Utility
+kind anchors).
 
 ## Gotchas
 
@@ -79,7 +88,8 @@ span kinds + sibling collapse).
 - Do not add `data-testid`. Hooks are `#srcBody`,
   `window.__graphideScrollDrive`, `.vnode.scroll-cfg-hot`,
   `[data-cfg-active]`, `[data-cfg-span]`, `.vnode.scroll-cfg-sib`,
-  `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`.
+  `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`,
+  `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

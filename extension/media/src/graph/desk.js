@@ -655,6 +655,8 @@ function emptyScrollDrive() {
     cfgSpanCount: 0,
     scrollVel: 0,
     macroLod: false,
+    anchorFocus: "",
+    anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
   };
 }
 
@@ -667,6 +669,7 @@ function resetScrollDrive() {
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   clearScrollDriveCfgPaint();
   clearScrollDriveMacroPaint();
+  clearScrollDriveAnchorPaint();
   publishScrollDrive(emptyScrollDrive());
 }
 
@@ -1009,6 +1012,76 @@ function applyScrollDriveCfg(scrollRatio, activeLine) {
   };
 }
 
+
+/** S1e — map IR kind + EndpointMeta onto API / Database / Service / Utility anchors. */
+function scrollDriveAnchorFromMeta(kind, ep, fqn) {
+  const k = String(kind || "");
+  const ch = ep && ep.channel ? String(ep.channel) : "";
+  const role = ep && ep.role ? String(ep.role) : "";
+  const name = String(fqn || "");
+  // Endpoint channel is the richest signal (Http/Table/Queue/Channel/File).
+  if (k === "Endpoint" || ep) {
+    if (ch === "Http") return "api";
+    if (ch === "Table" || ch === "File") return "db";
+    if (ch === "Queue" || ch === "Channel") return "svc";
+    if (role === "Source") return "api";
+    if (role === "Sink") return "db";
+    return "api";
+  }
+  if (k === "Type") return "svc";
+  // Function (default Utility) — light FQN heuristics only when names are obvious.
+  if (/\b(db|store|repo|sql|persist|cache)\b/i.test(name)) return "db";
+  if (/\b(api|http|rpc|handler|route)\b/i.test(name)) return "api";
+  if (/\b(service|svc|client|adapter)\b/i.test(name)) return "svc";
+  return "util";
+}
+
+function scrollDriveAnchorOf(id, el) {
+  const nid = idVal(id);
+  const kind =
+    (el && el.getAttribute && el.getAttribute("data-kind")) ||
+    (typeof kindOf === "function" ? kindOf(snapshot && snapshot.graph, nid) : "") ||
+    "Function";
+  const ep = typeof endpointOf === "function" ? endpointOf(nid) : null;
+  const fqn = typeof fqnOf === "function" ? fqnOf(snapshot && snapshot.graph, nid) : "";
+  return scrollDriveAnchorFromMeta(kind, ep, fqn);
+}
+
+function clearScrollDriveAnchorPaint() {
+  if (!canvas) return;
+  canvas
+    .querySelectorAll(
+      ".vnode[data-scroll-anchor], .vnode.scroll-anchor-api, .vnode.scroll-anchor-db, .vnode.scroll-anchor-svc, .vnode.scroll-anchor-util"
+    )
+    .forEach((el) => {
+      el.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
+      el.removeAttribute("data-scroll-anchor");
+    });
+}
+
+/** S1e — stamp color-coded kind anchors on painted nodes (no extra labels / clutter). */
+function applyScrollDriveAnchors(targetNodeId) {
+  const counts = { api: 0, db: 0, svc: 0, util: 0 };
+  let focus = "";
+  if (!canvas) return { anchorFocus: "", anchorCounts: counts };
+  canvas.querySelectorAll(".vnode[data-id]").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    if (!id) return;
+    const bucket = scrollDriveAnchorOf(id, el);
+    el.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
+    if (bucket && counts[bucket] != null) {
+      counts[bucket] += 1;
+      el.setAttribute("data-scroll-anchor", bucket);
+      el.classList.add("scroll-anchor-" + bucket);
+      if (targetNodeId && id === String(targetNodeId)) focus = bucket;
+    } else {
+      el.removeAttribute("data-scroll-anchor");
+    }
+  });
+  if (!focus && targetNodeId) focus = scrollDriveAnchorOf(targetNodeId, findScrollDriveTargetEl(targetNodeId)) || "";
+  return { anchorFocus: focus || "", anchorCounts: counts };
+}
+
 let scrollDriveMacroTimer = 0;
 
 function onSrcBodyScroll() {
@@ -1052,6 +1125,7 @@ function onSrcBodyScroll() {
     applyScrollDriveCamera(scrollRatio, targetNodeId);
     cfg = applyScrollDriveCfg(scrollRatio, activeLine);
   }
+  const anchors = applyScrollDriveAnchors(targetNodeId);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
@@ -1066,6 +1140,8 @@ function onSrcBodyScroll() {
     cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
     scrollVel: scrollVel,
     macroLod: !!macro,
+    anchorFocus: anchors.anchorFocus || "",
+    anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
   });
 }
 
@@ -1726,7 +1802,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util"];
 
 function exportDiagramRoot() {
   return (
@@ -1750,6 +1826,7 @@ function stripExportViewerState(root) {
     el.removeAttribute("data-delta-review-current");
     // Pan/zoom parks off-stage Map cards; camera reset must un-hide them in the clone.
     el.removeAttribute("data-offview");
+    el.removeAttribute("data-scroll-anchor");
     if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
   });
   const vp = root.querySelector && root.querySelector(".viewport");
