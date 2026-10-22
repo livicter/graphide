@@ -21,6 +21,7 @@ Inspect a node or hop without covering the object rail.
 - Opening Evidence closes Keys (`K18y`), same exclusive chrome as Keys closing Evidence (`K18p`).
 - Opening Evidence closes Export (`K18z`), same exclusive chrome as Export closing Evidence (`K18s`).
 - Opening Evidence closes Lens (`K18ae`), same exclusive chrome as Ask / Keys / Export closing Lens.
+- Opening Evidence closes Route (`K18af`), same exclusive chrome as Ask / Keys / Export / Present closing Route.
 - Opening Keys closes Evidence (`K18p`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Export closes Evidence (`K18s`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
@@ -62,6 +63,7 @@ Driver assertions:
 - opening Evidence closes Keys (`K18y`)
 - opening Evidence closes Export (`K18z`)
 - opening Evidence closes Lens (`K18ae`)
+- opening Evidence closes Route (`K18af`)
 - Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam / CFG / macro / anchors / detail / camEase (`S1a`–`S1g`) — see [scroll-drive.md](scroll-drive.md)
 - opening Keys closes Evidence (`K18p`)
 - opening Export closes Evidence (`K18s`)

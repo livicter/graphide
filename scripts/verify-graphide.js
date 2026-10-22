@@ -7902,7 +7902,30 @@ async function main() {
       evidenceClosedLens.evidenceOpen && !evidenceClosedLens.lensOpen,
       JSON.stringify(evidenceClosedLens)
     );
-    // Evidence is open for S1a scroll-drive suite (opened above for K18ae).
+    // Opening Evidence must close Route (revealSourcePane exclusivity — Evidence clears Route chrome).
+    // Reverse of Ask/Keys/Export/Present closing Route; open Route via #pathBtn, then reopen Evidence via ledger cell.
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedRoute = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18af",
+      "Opening Evidence closes Route (exclusive chrome)",
+      evidenceClosedRoute.evidenceOpen && !evidenceClosedRoute.routeOpen,
+      JSON.stringify(evidenceClosedRoute)
+    );
+    // Evidence is open for S1a scroll-drive suite (opened above for K18ae/K18af).
     await page.waitForFunction(
       () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
       null,
