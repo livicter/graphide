@@ -323,10 +323,14 @@ function applyPresent(on) {
     presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
   }
   // S1m — exit: resume ScrollDrive cleanly (camEase base, presentPaused false).
+  // S1ad — Present exit alone must not soft-restore / yank cam (resume clears justRestored only).
   if (!next) {
     if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
     return;
   }
+  // S1ad — stash last-stay BEFORE exclusive chrome closes Evidence / pause wipes base
+  // (same shape as Evidence close; sourceId + scrollDriveBase must still be live).
+  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   if (typeof setKeysPane === "function") setKeysPane(false);
   if (typeof setExportMenu === "function") setExportMenu(false);
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
@@ -339,6 +343,7 @@ function applyPresent(on) {
   }
   if (tip) tip.hidden = true;
   // S1m — stage owns the camera; pause ScrollDrive (clears residual macro timer / paint).
+  // S1ad — pause publishes presentStayStashed / data-scroll-present-stay honesty cue.
   if (typeof pauseScrollDriveForPresent === "function") pauseScrollDriveForPresent();
 }
 
@@ -712,6 +717,7 @@ function emptyScrollDrive() {
     rafFlushes: 0,
     rafMerged: 0,
     presentPaused: false,
+    presentStayStashed: false,
     camXSettled: false,
     camYSettled: false,
   };
@@ -756,7 +762,11 @@ function resetScrollDrive() {
   clearScrollDriveBlendPaint();
   const d = emptyScrollDrive();
   // S1m — closing Evidence under Present must keep presentPaused published.
-  if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
+  // S1ad — presentStayStashed honesty: warm last-stay still available for Evidence reopen.
+  if (typeof isPresenting === "function" && isPresenting()) {
+    d.presentPaused = true;
+    d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+  }
   publishScrollDrive(d);
 }
 
@@ -1363,10 +1373,13 @@ if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop = softStayScrollDriveAcrossMapSliceHop;
 }
 
-/** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
+/** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint.
+ *  S1ad — stash before wipe (parity with Evidence close); publish presentStayStashed /
+ *  data-scroll-present-stay so the restore path is honest when no prior stay exists. */
 function pauseScrollDriveForPresent() {
-  // S1w — remember stay before wipe (closeSourcePane may already have stashed).
+  // S1w/S1ad — remember stay before wipe (applyPresent / closeSourcePane may already have stashed).
   if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+  const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
     scrollDriveMacroTimer = 0;
@@ -1383,6 +1396,8 @@ function pauseScrollDriveForPresent() {
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
+  // S1ad — do not mark justRestored on pause; Present exit must not half-apply restore.
+  scrollDriveJustRestored = false;
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
@@ -1392,19 +1407,32 @@ function pauseScrollDriveForPresent() {
   clearScrollDriveDetailPaint();
   clearScrollDriveBlendPaint();
   const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+  if (vp) {
+    vp.setAttribute("data-scroll-present-paused", "1");
+    if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+    else vp.removeAttribute("data-scroll-present-stay");
+  }
   const d = emptyScrollDrive();
   d.presentPaused = true;
+  d.presentStayStashed = !!stayStashed;
   publishScrollDrive(d);
 }
 
-/** S1m — Present exit: drop pause flag, restore idle camEase; Evidence may reopen later. */
+/** S1m — Present exit: drop pause flag, restore idle camEase; Evidence may reopen later.
+ *  S1ad — exit alone must not soft-restore / yank cam; clear present-stay cue; keep
+ *  lastStay warm in memory for showSource reopen (S1w). */
 function resumeScrollDriveAfterPresent() {
   setCamEase(CAM_EASE_BASE);
+  // S1ad — never half-apply restore on Present exit (wait for Evidence reopen).
+  scrollDriveJustRestored = false;
   const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) vp.removeAttribute("data-scroll-present-paused");
+  if (vp) {
+    vp.removeAttribute("data-scroll-present-paused");
+    vp.removeAttribute("data-scroll-present-stay");
+  }
   const d = emptyScrollDrive();
   d.presentPaused = false;
+  d.presentStayStashed = false;
   publishScrollDrive(d);
 }
 
@@ -2601,8 +2629,9 @@ function flushScrollDrive() {
       scrollDriveEaseTimer = 0;
     }
     cancelScrollDriveRaf();
-    // S1w — stash before Present flush wipe when Evidence stay was still live.
+    // S1w/S1ad — stash before Present flush wipe when Evidence stay was still live.
     if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+    const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
     scrollDriveBase = null;
     scrollDriveTargetLocked = "";
     scrollDriveCamXSettled = false;
@@ -2610,6 +2639,7 @@ function flushScrollDrive() {
     scrollDriveYNudgeOrigin = 0;
     scrollDriveWasMacro = false;
     scrollDriveVel = { t: 0, top: 0, vel: 0 };
+    scrollDriveJustRestored = false;
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
     clearScrollDriveLineMapPaint();
@@ -2619,9 +2649,14 @@ function flushScrollDrive() {
     clearScrollDriveDetailPaint();
     clearScrollDriveBlendPaint();
     const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-    if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+    if (vp) {
+      vp.setAttribute("data-scroll-present-paused", "1");
+      if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+      else vp.removeAttribute("data-scroll-present-stay");
+    }
     const paused = emptyScrollDrive();
     paused.presentPaused = true;
+    paused.presentStayStashed = !!stayStashed;
     publishScrollDrive(paused);
     return;
   }
@@ -2738,6 +2773,7 @@ function flushScrollDrive() {
     rafFlushes: scrollDriveRafFlushes,
     rafMerged: scrollDriveRafMerged,
     presentPaused: false,
+    presentStayStashed: false,
     camXSettled: !!scrollDriveCamXSettled,
     camYSettled: !!scrollDriveCamYSettled,
   });

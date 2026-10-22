@@ -12658,6 +12658,362 @@ async function main() {
         JSON.stringify(s1acCleared)
     );
 
+    // S1ad — Present-stage soft-stay stash parity / clear cue.
+    // With prior stay: Present on stashes before wipe + presentStayStashed cue;
+    // Present exit alone does not yank cam; reopen same Evidence soft-stays.
+    // Without prior stay: Present on → presentStayStashed false; soft-restore skipped.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    if (typeof page.evaluate === "function") {
+      await page.evaluate(() => {
+        if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+          window.__graphideClearScrollDriveLastStay();
+        }
+        if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+          window.__graphideSetScrollDriveWorkspaceKey("ws-s1ad://folder");
+        }
+      });
+    }
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1adSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ad", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(4100 + i, "s1ad lead " + i);
+      const ownRow = addLine(11, "s1ad own span n1");
+      for (let k = 0; k < 36; k++) addLine(5100 + k, "s1ad far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(180);
+    const s1adBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+      };
+    });
+    // Present on — stash-before-wipe + presentStayStashed cue (S1ad).
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp =
+        document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+        document.querySelector('[data-scroll-present-paused="1"]');
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        pausedAttr: !!vp,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+        // Pause publishes empty drive — target/ratio must stay idle (no half-applied restore).
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    // Present off alone — cues clear; must not half-apply soft restore (no ScrollDrive base yet).
+    // Present stage may ease its own camera — do not assert viewport transform equality (S1m).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    const s1adAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      // Exit alone must leave ScrollDrive idle (no soft-restore seed) while last-stay stays warm.
+      let lastStayWarm = false;
+      try {
+        const key = window.__graphideScrollDriveLastStayKey || "graphide.scrollDrive.lastStay.v1";
+        const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          lastStayWarm = !!(parsed && parsed.sourceId === "n1");
+        }
+      } catch (_) {}
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        pausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+        lastStayWarm,
+      };
+    });
+    // S1ad stash fidelity — storage blob matches pre-Present cam (stash-before-wipe).
+    // Reopen soft-stay cam caps remain S1w's job (refit/overview may ease k after Present).
+    const s1adStashProbe = await page.evaluate((before) => {
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      if (!probed || typeof probed !== "object") return { ok: false, probed };
+      return {
+        ok: true,
+        sourceId: probed.sourceId || "",
+        x: Number(probed.x),
+        y: Number(probed.y),
+        k: Number(probed.k),
+        dx: Math.abs(Number(probed.x) - (Number(before.camX) || 0)),
+        dy: Math.abs(Number(probed.y) - (Number(before.camY) || 0)),
+        dk: Math.abs(Number(probed.k) - (Number(before.camK) || 0)),
+        ws: probed.ws || "",
+      };
+    }, s1adBefore);
+    // Reopen same Evidence — soft restore path still available (targetNodeId publishes).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(100);
+    const s1adAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Cold path: clear last-stay, Present on without prior stay → no stash cue / no bogus restore.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1adCold = await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      // Present via product toggle if available; else synthesize pause for cue check.
+      const btn = document.getElementById("presentBtn");
+      if (btn) btn.click();
+      else if (typeof window.__graphideApplyPresent === "function") window.__graphideApplyPresent(true);
+      return { cleared: true };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adColdPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adColdRestore = await page.evaluate(() => {
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? !!window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      return { restored, probed };
+    });
+    record(
+      "S1ad",
+      "Present enter stashes before wipe + stay cue; exit alone no cam yank; no prior stay → no bogus restore",
+      s1adSetup.ok &&
+        !s1adBefore.presentPaused &&
+        Number.isFinite(s1adBefore.camX) &&
+        s1adPresent.presentPaused &&
+        s1adPresent.presentStayStashed &&
+        s1adPresent.stayAttr &&
+        s1adPresent.paneHidden &&
+        !s1adPresent.targetNodeId &&
+        Number(s1adPresent.ratio) === 0 &&
+        !s1adAfterExit.presentPaused &&
+        !s1adAfterExit.presentStayStashed &&
+        !s1adAfterExit.stayAttr &&
+        !s1adAfterExit.pausedAttr &&
+        !s1adAfterExit.targetNodeId &&
+        Number(s1adAfterExit.ratio) === 0 &&
+        s1adAfterExit.lastStayWarm &&
+        s1adStashProbe.ok &&
+        s1adStashProbe.sourceId === "n1" &&
+        Number.isFinite(s1adStashProbe.x) &&
+        s1adStashProbe.dx <= 8 &&
+        s1adStashProbe.dy <= 8 &&
+        s1adStashProbe.dk <= 0.05 &&
+        !!s1adAfterReopen.targetNodeId &&
+        s1adAfterReopen.paneOpen &&
+        !s1adAfterReopen.presentPaused &&
+        s1adColdPresent.presentPaused &&
+        !s1adColdPresent.presentStayStashed &&
+        !s1adColdPresent.stayAttr &&
+        !s1adColdRestore.restored &&
+        (s1adColdRestore.probed == null || s1adColdRestore.probed === false),
+      "setup=" +
+        JSON.stringify(s1adSetup) +
+        " before=" +
+        JSON.stringify(s1adBefore) +
+        " present=" +
+        JSON.stringify(s1adPresent) +
+        " afterExit=" +
+        JSON.stringify(s1adAfterExit) +
+        " stashProbe=" +
+        JSON.stringify(s1adStashProbe) +
+        " afterReopen=" +
+        JSON.stringify(s1adAfterReopen) +
+        " coldPresent=" +
+        JSON.stringify(s1adColdPresent) +
+        " coldRestore=" +
+        JSON.stringify(s1adColdRestore)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

@@ -19941,6 +19941,7 @@
         if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
         return;
       }
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       if (typeof setKeysPane === "function") setKeysPane(false);
       if (typeof setExportMenu === "function") setExportMenu(false);
       if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
@@ -20272,6 +20273,7 @@
         rafFlushes: 0,
         rafMerged: 0,
         presentPaused: false,
+        presentStayStashed: false,
         camXSettled: false,
         camYSettled: false
       };
@@ -20312,7 +20314,10 @@
       clearScrollDriveDetailPaint();
       clearScrollDriveBlendPaint();
       const d = emptyScrollDrive();
-      if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
+      if (typeof isPresenting === "function" && isPresenting()) {
+        d.presentPaused = true;
+        d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+      }
       publishScrollDrive(d);
     }
     function softStayScrollDriveAcrossSourceHop() {
@@ -20788,6 +20793,7 @@
     }
     function pauseScrollDriveForPresent() {
       if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+      const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
         scrollDriveMacroTimer = 0;
@@ -20804,6 +20810,7 @@
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      scrollDriveJustRestored = false;
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
@@ -20813,17 +20820,27 @@
       clearScrollDriveDetailPaint();
       clearScrollDriveBlendPaint();
       const vp = viewportEl || canvas && canvas.querySelector(".viewport");
-      if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+      if (vp) {
+        vp.setAttribute("data-scroll-present-paused", "1");
+        if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+        else vp.removeAttribute("data-scroll-present-stay");
+      }
       const d = emptyScrollDrive();
       d.presentPaused = true;
+      d.presentStayStashed = !!stayStashed;
       publishScrollDrive(d);
     }
     function resumeScrollDriveAfterPresent() {
       setCamEase(CAM_EASE_BASE);
+      scrollDriveJustRestored = false;
       const vp = viewportEl || canvas && canvas.querySelector(".viewport");
-      if (vp) vp.removeAttribute("data-scroll-present-paused");
+      if (vp) {
+        vp.removeAttribute("data-scroll-present-paused");
+        vp.removeAttribute("data-scroll-present-stay");
+      }
       const d = emptyScrollDrive();
       d.presentPaused = false;
+      d.presentStayStashed = false;
       publishScrollDrive(d);
     }
     function readSrcActiveLine() {
@@ -21803,6 +21820,7 @@
         }
         cancelScrollDriveRaf();
         if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+        const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
         scrollDriveCamXSettled = false;
@@ -21810,6 +21828,7 @@
         scrollDriveYNudgeOrigin = 0;
         scrollDriveWasMacro = false;
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
+        scrollDriveJustRestored = false;
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
         clearScrollDriveLineMapPaint();
@@ -21819,9 +21838,14 @@
         clearScrollDriveDetailPaint();
         clearScrollDriveBlendPaint();
         const vp = viewportEl || canvas && canvas.querySelector(".viewport");
-        if (vp) vp.setAttribute("data-scroll-present-paused", "1");
+        if (vp) {
+          vp.setAttribute("data-scroll-present-paused", "1");
+          if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+          else vp.removeAttribute("data-scroll-present-stay");
+        }
         const paused = emptyScrollDrive();
         paused.presentPaused = true;
+        paused.presentStayStashed = !!stayStashed;
         publishScrollDrive(paused);
         return;
       }
@@ -21929,6 +21953,7 @@
         rafFlushes: scrollDriveRafFlushes,
         rafMerged: scrollDriveRafMerged,
         presentPaused: false,
+        presentStayStashed: false,
         camXSettled: !!scrollDriveCamXSettled,
         camYSettled: !!scrollDriveCamYSettled
       });
