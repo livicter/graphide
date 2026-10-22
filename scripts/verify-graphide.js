@@ -10654,6 +10654,257 @@ async function main() {
         s1uExitDk
     );
 
+
+    // S1v — Evidence file / sourceId hop soft-stays cam (no wipe-then-zoomToEl).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1vSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const hopEl = document.querySelector('#sliceCanvas .vnode[data-id="n2"]');
+      if (!hopEl) return { ok: false, why: "no-n2" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1v", "1");
+        row.setAttribute("data-s1v-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(2000 + i, "s1v lead " + i);
+      const ownRow = addLine(11, "s1v own span n1");
+      for (let k = 0; k < 36; k++) addLine(9000 + k, "s1v far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        hopId: "n2",
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Burst + idle so soft stay / settle flags warm before file hop.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(180);
+    const s1vBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        sourceTitle: (document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "",
+      };
+    });
+    // Hop Evidence source: click another painted vnode (reloads #srcBody via showSource).
+    await page.locator('#sliceCanvas .vnode[data-id="n2"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(
+          pane &&
+          !pane.hidden &&
+          body &&
+          d &&
+          !d.presentPaused &&
+          // New file / target published (n2 or its lineMap) — not stuck silent.
+          (String(d.targetNodeId || "") === "n2" || (body.querySelectorAll(".src-line").length > 0 && d.targetNodeId))
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Sample immediately after hop — soft stay must keep cam within caps (no zoomToEl leap).
+    await page.waitForTimeout(80);
+    const s1vAfterHop = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+        sourceTitle: (document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "",
+      };
+    });
+    const s1vDx = Math.abs((Number(s1vAfterHop.camX) || 0) - (Number(s1vBefore.camX) || 0));
+    const s1vDy = Math.abs((Number(s1vAfterHop.camY) || 0) - (Number(s1vBefore.camY) || 0));
+    const s1vDk = Math.abs((Number(s1vAfterHop.camK) || 0) - (Number(s1vBefore.camK) || 0));
+    // Pad + mid-scroll the new Evidence body so ScrollDrive publishes for the new file.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1v-hop", "1");
+          row.innerHTML =
+            '<span class="ln">' + (3000 + i) + '</span><span class="tx">s1v hop pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.45);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.presentPaused && Number(d.scrollRatio) > 0.15 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Idle settle — flags clear on hop then can re-absorb (S1r/S1s).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.15)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1vResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1vResettleYank = Math.max(
+      Math.abs((Number(s1vResettle.camX) || 0) - (Number(s1vAfterHop.camX) || 0)),
+      Math.abs((Number(s1vResettle.camY) || 0) - (Number(s1vAfterHop.camY) || 0))
+    );
+    record(
+      "S1v",
+      "Evidence file hop soft-stays cam (no wipe-then-zoomToEl; ScrollDrive publishes)",
+      s1vSetup.ok &&
+        !s1vBefore.macroLod &&
+        !s1vBefore.presentPaused &&
+        Number.isFinite(s1vBefore.camX) &&
+        Number.isFinite(s1vBefore.camY) &&
+        Number.isFinite(s1vAfterHop.camX) &&
+        Number.isFinite(s1vAfterHop.camY) &&
+        !s1vAfterHop.presentPaused &&
+        s1vAfterHop.lineCount > 0 &&
+        !!s1vAfterHop.targetNodeId &&
+        s1vDx <= 96 + 1 &&
+        s1vDy <= 160 &&
+        s1vDk <= 0.35 + 0.05 &&
+        !s1vResettle.presentPaused &&
+        !!s1vResettle.targetNodeId &&
+        Number(s1vResettle.ratio) > 0.15 &&
+        s1vResettleYank <= 160,
+      "setup=" +
+        JSON.stringify(s1vSetup) +
+        " before=" +
+        JSON.stringify(s1vBefore) +
+        " afterHop=" +
+        JSON.stringify(s1vAfterHop) +
+        " resettle=" +
+        JSON.stringify(s1vResettle) +
+        " dx=" +
+        s1vDx +
+        " dy=" +
+        s1vDy +
+        " dk=" +
+        s1vDk +
+        " resettleYank=" +
+        s1vResettleYank
+    );
+
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

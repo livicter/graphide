@@ -651,7 +651,7 @@ if (srcEditor)
 
 /** ScrollDrive — Evidence #srcBody scroll → camera lerp toward related node (S1a). */
 let scrollDriveBase = null;
-/** Last camera-lock target — soft-stay remap mid-scroll (S1t); first lock still zoomToEl (S1h). */
+/** Last camera-lock target — soft-stay remap mid-scroll (S1t) / file hop (S1v); first lock still zoomToEl (S1h). */
 let scrollDriveTargetLocked = "";
 /** S1r — idle-settle absorbed soft camX into scrollDriveBase (harness flag). */
 let scrollDriveCamXSettled = false;
@@ -737,6 +737,34 @@ function resetScrollDrive() {
   // S1m — closing Evidence under Present must keep presentPaused published.
   if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
   publishScrollDrive(d);
+}
+
+
+/** S1v — Evidence file / sourceId hop while Slice soft-stay is live:
+ *  seed scrollDriveBase from camTo (S1t/S1u style), clear CFG/lineMap/active-line
+ *  paint for the old file, refresh settle flags, and let the next flush soft-follow
+ *  the new vnode. First-ever open (no prior base) / Present: hard-reset path.
+ *  Returns true when soft-stay applied. */
+function softStayScrollDriveAcrossSourceHop() {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (!scrollDriveBase) return false;
+  scrollDriveBase = {
+    x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+    y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+    k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
+  };
+  // Clear lock so applyScrollDriveCamera treats the new sourceId as a soft remap.
+  scrollDriveTargetLocked = "";
+  scrollDriveCamXSettled = false;
+  scrollDriveCamYSettled = false;
+  scrollDriveYNudgeOrigin = 0;
+  scrollDriveWasMacro = false;
+  // Drop old-file paint; next flush rebuilds for the new #srcBody (S1l coalesce ok).
+  clearScrollDriveCfgPaint();
+  clearScrollDriveLineMapPaint();
+  clearScrollDriveActiveLinePaint();
+  clearScrollDriveMacroPaint();
+  return true;
 }
 
 /** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
@@ -5027,8 +5055,16 @@ function showSource(msg) {
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
   if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
-  if (typeof resetScrollDrive === "function") {
+  // S1v — soft stay across Evidence file switch / workspace hop when a prior
+  // ScrollDrive session was active; first-ever open (no base) still clears so
+  // the next flush may zoomToEl. Present is already exited by revealSourcePane.
+  if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+  } else if (typeof resetScrollDrive === "function") {
     scrollDriveBase = null;
+    scrollDriveTargetLocked = "";
+    scrollDriveCamXSettled = false;
+    scrollDriveCamYSettled = false;
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   }
 }
@@ -5749,7 +5785,16 @@ function selectNode(id, opts) {
   selectedNodeId = sid;
   highlightCommunity(sid);
   applyEgoPaint();
-  if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+  // S1v — while Evidence ScrollDrive has a live base on Slice, skip hard zoomToEl
+  // so peekSource → showSource can soft-follow the new vnode (one camera path).
+  if (opts && opts.zoomEl) {
+    const softHop =
+      !!scrollDriveBase &&
+      sourcePane &&
+      !sourcePane.hidden &&
+      !(typeof isPresenting === "function" && isPresenting());
+    if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+  }
   if (!opts || opts.peek !== false) peekSource(sid);
 }
 

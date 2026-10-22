@@ -20307,6 +20307,25 @@
       if (typeof isPresenting === "function" && isPresenting()) d.presentPaused = true;
       publishScrollDrive(d);
     }
+    function softStayScrollDriveAcrossSourceHop() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase) return false;
+      scrollDriveBase = {
+        x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+        y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+        k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+      };
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      return true;
+    }
     function pauseScrollDriveForPresent() {
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -24043,8 +24062,13 @@
       if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
-      if (typeof resetScrollDrive === "function") {
+      if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+      } else if (typeof resetScrollDrive === "function") {
         scrollDriveBase = null;
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
         if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
       }
     }
@@ -24581,7 +24605,10 @@
       selectedNodeId = sid;
       highlightCommunity(sid);
       applyEgoPaint();
-      if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+      if (opts && opts.zoomEl) {
+        const softHop = !!scrollDriveBase && sourcePane && !sourcePane.hidden && !(typeof isPresenting === "function" && isPresenting());
+        if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+      }
       if (!opts || opts.peek !== false) peekSource(sid);
     }
     function shortestPath(from, to) {
