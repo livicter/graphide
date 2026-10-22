@@ -7821,6 +7821,35 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Route must close Keys (setRouteOpen exclusivity — Route clears Keys chrome).
+    // Reverse of Keys closing Route (K18r). Use #pathBtn: desk R is blocked while Keys is open.
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedKeys = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18ac",
+      "Opening Route closes Keys (exclusive chrome)",
+      routeClosedKeys.routeOpen && !routeClosedKeys.keysOpen,
+      JSON.stringify(routeClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
     // Reopen Evidence for S1a scroll-drive suite.
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
