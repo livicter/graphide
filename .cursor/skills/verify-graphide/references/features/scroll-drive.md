@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX (S1a–S1r)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX + idle-settle camY (S1a–S1s)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,12 +17,12 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path; nest/lock remap still re-bases as today).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, lineMapPulse, activeLineMarked, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged, camXSettled }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, lineMapPulse, activeLineMarked, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged, camXSettled, camYSettled }`.
 - `#srcBody` `scroll` listener schedules `scheduleScrollDriveFlush`
   (S1l); one rAF runs `flushScrollDrive`, which publishes the shape and
   calls `setCamTarget` (existing lerp via `tickCam`).
@@ -157,6 +157,14 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   S1k reduced-motion snap-absorbs inside `applyScrollDriveCamera` (settle
   timers skipped). S1m Present pause / S1c macro no-op. Publishes
   `camXSettled` on ScrollDrive for the harness.
+- **S1s idle-settle soft camY into base:** Y still used a live
+  `scrollRatio * 48` nudge off the lock-time `scrollDriveBase.y`. After
+  idle settle, `absorbScrollDriveSoftCamY` folds `camTo.y` (post-nudge)
+  into `scrollDriveBase.y` and rebases the Y-nudge origin to the live
+  ratio so subsequent small scrolls apply only a delta — no full-ratio
+  yank. Same settle path as S1r (no second RAF). Nest/lock remap clears
+  settle + origin and re-bases as today (S1i). S1k snap-absorbs; S1m /
+  S1c no-op. Publishes `camYSettled`.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
   + macro + kind-anchor + detail-gate + blend + lineMap + active-line paint.
 
@@ -176,7 +184,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed.
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy.
 
 ## Driving it with the harness
 
@@ -268,6 +276,11 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `camXSettled === true`). Then a further tiny scroll must not spring
   `camX` back toward the pre-follow X (distance to pre-follow must not
   shrink by > 8px). One cam path; Present pause / macro no-op.
+- **S1s** — after mid-file Evidence scroll moves `camY`, wait for idle
+  settle (`scrollVel` low / `camYSettled === true`). Then a further tiny
+  scroll must keep `camY` near the settled value (yank ≤ ~8px) — not
+  spring back toward the pre-nudge / lock Y. One cam path; Present pause
+  / macro no-op; nest remap still re-bases.
 
 ## Gotchas
 
@@ -293,7 +306,8 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `activeLineMarked`, `applyScrollDriveActiveLine`,
   `.src-line.scroll-drive-active`, `data-scroll-active`,
   `scrollDriveSoftCamX`, `SCROLL_CAMX_FOLLOW_CAP`,
-  `absorbScrollDriveSoftCamX`, `camXSettled`.
+  `absorbScrollDriveSoftCamX`, `camXSettled`,
+  `absorbScrollDriveSoftCamY`, `camYSettled`, `scrollDriveYNudgeOrigin`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
@@ -312,10 +326,14 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   S1r only folds soft camX into `scrollDriveBase` on idle settle / low
   `scrollVel` (reuses S1g settle timer) — never a parallel tween; S1k
   snap-absorbs; Present pause / macro no-op.
+  S1s only folds soft camY into `scrollDriveBase` on the same settle /
+  low-`scrollVel` path (rebases Y-nudge origin) — never a parallel tween;
+  nest/lock remap re-bases as today; S1k snap-absorbs; Present pause /
+  macro no-op.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
 - **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
   here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
-  side-effect at this map. Index Live proof stays `S1a`–`S1n`.
+  side-effect at this map. Index Live proof stays `S1a`–`S1s`.
 - **S1p active-line cue:** Evidence editor tint pairs with S1n graph glow;
   `open-evidence.md` / index deferral extends to `S1a`–`S1p`. Clear on
   Present pause / close — do not leave a stale `.scroll-drive-active`.
@@ -323,3 +341,5 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `open-evidence.md` / index / presentation deferral extends to `S1a`–`S1q`.
 - **S1r idle-settle camX into base:** absorb on S1g settle / low vel; no
   second RAF; don't fight macro. Deferral extends to `S1a`–`S1r`.
+- **S1s idle-settle camY into base:** absorb on same settle path; rebase
+  Y-nudge origin; nest remap re-bases. Deferral extends to `S1a`–`S1s`.

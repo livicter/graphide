@@ -9948,6 +9948,160 @@ async function main() {
         s1rSpringBack
     );
 
+
+    // S1s — idle-settle soft camY into scrollDriveBase (no Y spring-back on tiny nudge).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1sBaseline = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1s", "1");
+          row.innerHTML =
+            '<span class="ln">' + (600 + i) + '</span><span class="tx">s1s pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true };
+    });
+    await page.waitForTimeout(250);
+    const s1sBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1sSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      (beforeY) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId)) return false;
+        const y = Number(d.camY);
+        return Number.isFinite(y) && Number.isFinite(beforeY) && Math.abs(y - beforeY) > 4;
+      },
+      s1sBefore.camY,
+      { timeout: 6000 }
+    );
+    // Burst then idle so S1g settle timer fires and S1s absorbs into base.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          d.camYSettled === true &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const s1sSettled = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        camYSettled: !!d.camYSettled,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Tiny further scroll — must not yank camY back toward pre-nudge / lock Y.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 4;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(350);
+    const s1sAfterNudge = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        camYSettled: !!d.camYSettled,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1sSoftDy = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    const s1sDistBefore = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    const s1sDistSettled = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    // Spring-back = after tiny nudge camY moved back toward pre-nudge Y by > 8px.
+    const s1sSpringBack = s1sDistBefore < s1sDistSettled - 8;
+    const s1sYank = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sSettled.camY) || 0));
+    record(
+      "S1s",
+      "idle-settle soft camY into scrollDriveBase (no spring-back on tiny nudge)",
+      s1sBaseline.ok &&
+        s1sSetup.ok &&
+        // File-top baseline may be macro (S1c); settled path must be micro.
+        !s1sSettled.macroLod &&
+        !s1sSettled.presentPaused &&
+        !s1sAfterNudge.macroLod &&
+        s1sSettled.camYSettled === true &&
+        Number.isFinite(s1sBefore.camY) &&
+        Number.isFinite(s1sSettled.camY) &&
+        Number.isFinite(s1sAfterNudge.camY) &&
+        s1sSoftDy > 4 &&
+        !s1sSpringBack &&
+        s1sYank <= 8 + 1,
+      "baseline=" +
+        JSON.stringify(s1sBaseline) +
+        " before=" +
+        JSON.stringify(s1sBefore) +
+        " setup=" +
+        JSON.stringify(s1sSetup) +
+        " settled=" +
+        JSON.stringify(s1sSettled) +
+        " afterNudge=" +
+        JSON.stringify(s1sAfterNudge) +
+        " softDy=" +
+        s1sSoftDy +
+        " yank=" +
+        s1sYank +
+        " springBack=" +
+        s1sSpringBack
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

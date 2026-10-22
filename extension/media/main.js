@@ -20231,6 +20231,8 @@
     let scrollDriveBase = null;
     let scrollDriveTargetLocked = "";
     let scrollDriveCamXSettled = false;
+    let scrollDriveCamYSettled = false;
+    let scrollDriveYNudgeOrigin = 0;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20262,7 +20264,8 @@
         rafFlushes: 0,
         rafMerged: 0,
         presentPaused: false,
-        camXSettled: false
+        camXSettled: false,
+        camYSettled: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20272,6 +20275,8 @@
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
       scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20313,6 +20318,8 @@
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
       scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
@@ -20464,6 +20471,27 @@
       scrollDriveCamXSettled = true;
       return true;
     }
+    function absorbScrollDriveSoftCamY() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase || !canvas) return false;
+      const d = window.__graphideScrollDrive;
+      if (d && d.macroLod) return false;
+      if (!Number.isFinite(camTo.y)) return false;
+      let ratio = 0;
+      if (srcBody) {
+        const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
+        ratio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
+      } else if (d && Number.isFinite(d.scrollRatio)) {
+        ratio = Number(d.scrollRatio);
+      }
+      if (scrollDriveCamYSettled && Math.abs(ratio - scrollDriveYNudgeOrigin) < 2e-3 && Math.abs(camTo.y - scrollDriveBase.y) < 0.5) {
+        return false;
+      }
+      scrollDriveBase.y = camTo.y;
+      scrollDriveYNudgeOrigin = ratio;
+      scrollDriveCamYSettled = true;
+      return true;
+    }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (typeof isPresenting === "function" && isPresenting()) return;
       if (!canvas) return;
@@ -20474,8 +20502,10 @@
         if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
         scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
         scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveYNudgeOrigin = 0;
       }
-      const nudge = scrollRatio * 48;
+      const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
       const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
       setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
       if (typeof reduceMotion === "function" && reduceMotion()) {
@@ -20483,6 +20513,11 @@
           scrollDriveBase.x = camX;
         }
         scrollDriveCamXSettled = true;
+        if (Number.isFinite(camTo.y)) {
+          scrollDriveBase.y = camTo.y;
+          scrollDriveYNudgeOrigin = scrollRatio;
+        }
+        scrollDriveCamYSettled = true;
       }
     }
     let scrollDriveVel = { t: 0, top: 0, vel: 0 };
@@ -21177,9 +21212,12 @@
           scheduleScrollDriveEaseSettle();
         } else {
           absorbScrollDriveSoftCamX();
+          absorbScrollDriveSoftCamY();
           if (window.__graphideScrollDrive) {
             window.__graphideScrollDrive.camXSettled = !!scrollDriveCamXSettled;
+            window.__graphideScrollDrive.camYSettled = !!scrollDriveCamYSettled;
             window.__graphideScrollDrive.camX = camTo.x;
+            window.__graphideScrollDrive.camY = camTo.y;
           }
         }
       }, 160);
@@ -21218,6 +21256,8 @@
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
         scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveYNudgeOrigin = 0;
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
@@ -21264,6 +21304,7 @@
         setCamEase(scrollDriveEaseFromVel(scrollVel));
         if (scrollVel > 0.05) {
           scrollDriveCamXSettled = false;
+          scrollDriveCamYSettled = false;
           scheduleScrollDriveEaseSettle();
         }
       }
@@ -21287,7 +21328,10 @@
         clearScrollDriveMacroPaint();
         applyScrollDriveCamera(scrollRatio, targetNodeId);
         cfg = applyScrollDriveCfg(scrollRatio, activeLine);
-        if (!reduced && scrollVel <= 0.05) absorbScrollDriveSoftCamX();
+        if (!reduced && scrollVel <= 0.05) {
+          absorbScrollDriveSoftCamX();
+          absorbScrollDriveSoftCamY();
+        }
       }
       const anchors = applyScrollDriveAnchors(targetNodeId);
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
@@ -21324,7 +21368,8 @@
         rafFlushes: scrollDriveRafFlushes,
         rafMerged: scrollDriveRafMerged,
         presentPaused: false,
-        camXSettled: !!scrollDriveCamXSettled
+        camXSettled: !!scrollDriveCamXSettled,
+        camYSettled: !!scrollDriveCamYSettled
       });
     }
     function onSrcBodyScroll() {
