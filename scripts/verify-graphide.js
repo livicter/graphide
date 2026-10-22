@@ -10102,6 +10102,250 @@ async function main() {
         s1sSpringBack
     );
 
+    // S1t — nest/line remap mid-scroll soft-cam stay (no zoomToEl yank; settle flags refresh).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1tSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const siblingId = "n21";
+      const siblingLine = 31;
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1t", "1");
+        row.setAttribute("data-s1t-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 28; i++) addLine(200 + i, "s1t lead " + i);
+      const ownRow = addLine(ownLine, "s1t own span " + sourceId);
+      // Gap so settle-burst on own cannot mid-viewport the sibling span.
+      for (let g = 0; g < 16; g++) addLine(400 + g, "s1t gap " + g);
+      const sibRow = addLine(siblingLine, "s1t sibling span " + siblingId);
+      for (let k = 0; k < 28; k++) addLine(900 + k, "s1t far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: sourceId,
+        siblingId: siblingId,
+        ownLine: ownLine,
+        siblingLine: siblingLine,
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+        sibRowOk: !!sibRow,
+      };
+    });
+    await page.waitForFunction(
+      (own) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          String(d.targetNodeId || "") === String(own)
+        );
+      },
+      s1tSetup.sourceId,
+      { timeout: 6000 }
+    );
+    // Burst then idle so S1r/S1s absorb into base before remap.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (own) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          String(d.targetNodeId || "") === String(own) &&
+          (d.camXSettled === true || d.camYSettled === true) &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      s1tSetup.sourceId,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const s1tBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Remap: gently center the adjacent sibling span (small delta — avoid S1c macro
+    // vel yank). Soft-stay must keep cam within S1q caps (no zoomToEl leap).
+    const s1tRemap = await page.evaluate((sibLn) => {
+      const body = document.getElementById("srcBody");
+      const row = body && body.querySelector('.src-line[data-s1t-ln="' + sibLn + '"]');
+      if (!body || !row) return { ok: false, why: "no-sib-row" };
+      const br = body.getBoundingClientRect();
+      let steps = 0;
+      let lastDelta = 0;
+      // Walk toward sibling in capped steps so scrollVel stays under macro threshold.
+      for (let n = 0; n < 12; n++) {
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        lastDelta = delta;
+        if (Math.abs(delta) <= 4) break;
+        const step = Math.max(-40, Math.min(40, delta));
+        body.scrollTop = Math.max(0, body.scrollTop + step);
+        body.dispatchEvent(new Event("scroll"));
+        steps += 1;
+      }
+      return { ok: true, scrollTop: body.scrollTop, delta: lastDelta, steps: steps };
+    }, s1tSetup.siblingLine);
+    await page.waitForFunction(
+      (sib) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          String(d.targetNodeId || "") === String(sib)
+        );
+      },
+      s1tSetup.siblingId,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    const s1tAfterRemap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        scrollVel: Number(d.scrollVel) || 0,
+      };
+    });
+    // Soft stay: no hard zoomToEl leap (cap ~80 soft X + modest Y from scroll delta).
+    const s1tDx = Math.abs((Number(s1tAfterRemap.camX) || 0) - (Number(s1tBefore.camX) || 0));
+    const s1tDy = Math.abs((Number(s1tAfterRemap.camY) || 0) - (Number(s1tBefore.camY) || 0));
+    const s1tDk = Math.abs((Number(s1tAfterRemap.camK) || 0) - (Number(s1tBefore.camK) || 0));
+    // Idle again — settle flags may clear then re-absorb after remap.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          (d.camXSettled === true || d.camYSettled === true) &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1tResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        targetNodeId: d.targetNodeId || "",
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1tResettleYank = Math.max(
+      Math.abs((Number(s1tResettle.camX) || 0) - (Number(s1tAfterRemap.camX) || 0)),
+      Math.abs((Number(s1tResettle.camY) || 0) - (Number(s1tAfterRemap.camY) || 0))
+    );
+    record(
+      "S1t",
+      "nest/line remap mid-scroll soft-cam stay (no zoomToEl yank; settle flags refresh)",
+      s1tSetup.ok &&
+        s1tRemap.ok &&
+        !s1tBefore.macroLod &&
+        !s1tBefore.presentPaused &&
+        s1tBefore.targetNodeId === s1tSetup.sourceId &&
+        s1tAfterRemap.targetNodeId === s1tSetup.siblingId &&
+        Number.isFinite(s1tBefore.camX) &&
+        Number.isFinite(s1tAfterRemap.camX) &&
+        Number.isFinite(s1tBefore.camY) &&
+        Number.isFinite(s1tAfterRemap.camY) &&
+        s1tDx <= 96 + 1 &&
+        s1tDy <= 120 &&
+        s1tDk <= 0.15 &&
+        (s1tResettle.camXSettled === true || s1tResettle.camYSettled === true) &&
+        s1tResettleYank <= 96 + 1 &&
+        !s1tResettle.macroLod &&
+        !s1tResettle.presentPaused,
+      "setup=" +
+        JSON.stringify(s1tSetup) +
+        " before=" +
+        JSON.stringify(s1tBefore) +
+        " remap=" +
+        JSON.stringify(s1tRemap) +
+        " afterRemap=" +
+        JSON.stringify(s1tAfterRemap) +
+        " resettle=" +
+        JSON.stringify(s1tResettle) +
+        " dx=" +
+        s1tDx +
+        " dy=" +
+        s1tDy +
+        " dk=" +
+        s1tDk +
+        " resettleYank=" +
+        s1tResettleYank
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

@@ -20498,12 +20498,23 @@
       const lock = targetNodeId ? String(targetNodeId) : "";
       const el2 = findScrollDriveTargetEl(targetNodeId);
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+        const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+        const softStay = remapping;
         scrollDriveTargetLocked = lock;
-        if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-        scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+        if (softStay) {
+          scrollDriveBase = {
+            x: Number.isFinite(camTo.x) ? camTo.x : 0,
+            y: Number.isFinite(camTo.y) ? camTo.y : 0,
+            k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1
+          };
+          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+        } else {
+          if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+          scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+          scrollDriveYNudgeOrigin = 0;
+        }
         scrollDriveCamXSettled = false;
         scrollDriveCamYSettled = false;
-        scrollDriveYNudgeOrigin = 0;
       }
       const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
       const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;

@@ -651,7 +651,7 @@ if (srcEditor)
 
 /** ScrollDrive — Evidence #srcBody scroll → camera lerp toward related node (S1a). */
 let scrollDriveBase = null;
-/** Last camera-lock target — re-zoom when S1h line→node remaps (S1h). */
+/** Last camera-lock target — soft-stay remap mid-scroll (S1t); first lock still zoomToEl (S1h). */
 let scrollDriveTargetLocked = "";
 /** S1r — idle-settle absorbed soft camX into scrollDriveBase (harness flag). */
 let scrollDriveCamXSettled = false;
@@ -987,13 +987,30 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   const lock = targetNodeId ? String(targetNodeId) : "";
   const el = findScrollDriveTargetEl(targetNodeId);
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+    // S1t — mid-scroll nest/line remap: seed base from current camTo and soft-follow
+    // the new vnode (S1q cap). Avoid zoomToEl yank that discards S1r/S1s settle.
+    // First lock (no prior base) still uses zoomToEl as today.
+    // S1t — any mid-session lock change with an existing base soft-stays.
+    // First lock (!scrollDriveBase) still zoomToEl below.
+    const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+    const softStay = remapping;
     scrollDriveTargetLocked = lock;
-    if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-    scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+    if (softStay) {
+      scrollDriveBase = {
+        x: Number.isFinite(camTo.x) ? camTo.x : 0,
+        y: Number.isFinite(camTo.y) ? camTo.y : 0,
+        k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1,
+      };
+      // Rebase Y-nudge origin so seeding from live camTo does not re-apply absolute nudge.
+      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+    } else {
+      if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+      scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+      scrollDriveYNudgeOrigin = 0;
+    }
+    // Remap / first lock — idle settle may re-absorb soft cam into the new base.
     scrollDriveCamXSettled = false;
-    // S1s — nest/lock remap re-bases as today; clear Y settle + nudge origin.
     scrollDriveCamYSettled = false;
-    scrollDriveYNudgeOrigin = 0;
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
   // S1s — after idle absorb, nudge is relative to settled origin so Y does not re-yank.
