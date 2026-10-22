@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow (S1a–S1n)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue (S1a–S1p)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,12 +17,12 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, lineMapPulse, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, lineMapPulse, activeLineMarked, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged }`.
 - `#srcBody` `scroll` listener schedules `scheduleScrollDriveFlush`
   (S1l); one rAF runs `flushScrollDrive`, which publishes the shape and
   calls `setCamTarget` (existing lerp via `tickCam`).
@@ -128,8 +128,17 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   Present pause / reset clears via `clearScrollDriveLineMapPaint`.
   `lineMapPulse` publishes on ScrollDrive. Still one cam path — class
   toggles + CSS only.
+- **S1p Evidence active-line cue:** `applyScrollDriveActiveLine(activeLine)`
+  marks the mid-viewport Evidence `.src-line` that owns `activeLine` with
+  `.scroll-drive-active` / `data-scroll-active="1"` (siblings cleared) so
+  the editor side shows which line drives the canvas — pairs with S1n
+  lineMapHit glow on the graph. Static left gutter + link-token tint
+  (no pulse; prefers-reduced-motion safe). Present pause / Evidence close
+  / `resetScrollDrive` clear via `clearScrollDriveActiveLinePaint`.
+  `activeLineMarked` publishes on ScrollDrive; harness prefers the DOM
+  hooks. Still one cam path — class toggles + CSS only.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
-  + macro + kind-anchor + detail-gate + blend + lineMap paint.
+  + macro + kind-anchor + detail-gate + blend + lineMap + active-line paint.
 
 ## How to get to it (user POV)
 
@@ -147,7 +156,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline.
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line.
 
 ## Driving it with the harness
 
@@ -224,6 +233,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   Unmatched pad → `lineMapHit === false`, `.scroll-linemap-miss` on
   fallback `sourceId`, `lineMapPulse === false`. Present pause clears
   both classes. Not the same as `.scroll-cfg-hot`.
+- **S1p** — mid-viewport Evidence scroll marks exactly one
+  `.src-line.scroll-drive-active` / `[data-scroll-active="1"]` matching
+  `activeLine`; siblings lack the class. `activeLineMarked === true`
+  while marked. Present pause / Evidence close clears the class/attr.
+  Static tint only (no pulse). Does not change Lens/Route/Keys/Export
+  Present-overlay rules.
 
 ## Gotchas
 
@@ -245,7 +260,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `presentPaused`, `pauseScrollDriveForPresent`,
   `resumeScrollDriveAfterPresent`, `data-scroll-present-paused`,
   `lineMapPulse`, `applyScrollDriveLineMapGlow`,
-  `.scroll-linemap-hit`, `.scroll-linemap-miss`, `data-scroll-linemap`.
+  `.scroll-linemap-hit`, `.scroll-linemap-miss`, `data-scroll-linemap`,
+  `activeLineMarked`, `applyScrollDriveActiveLine`,
+  `.src-line.scroll-drive-active`, `data-scroll-active`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
@@ -256,7 +273,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   not change Lens/Route Present-overlay rules.
   S1n only toggles lineMap glow classes + CSS pulse — never a parallel
   tween; respects S1k reduced-motion and S1m Present pause.
+  S1p only toggles Evidence `.src-line` active-line cue classes — never
+  a parallel tween; clears on Present pause / Evidence close / reset.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
 - **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
   here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
   side-effect at this map. Index Live proof stays `S1a`–`S1n`.
+- **S1p active-line cue:** Evidence editor tint pairs with S1n graph glow;
+  `open-evidence.md` / index deferral extends to `S1a`–`S1p`. Clear on
+  Present pause / close — do not leave a stale `.scroll-drive-active`.

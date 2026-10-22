@@ -2551,6 +2551,20 @@ html.bright .route-hop {
     box-shadow var(--scroll-blend-ms, 180ms) ease;
 }
 
+/* S1p — Evidence mid-viewport active-line dual-pane cue (pairs with S1n graph glow).
+   Static left gutter + tint via link token; no pulse (prefers-reduced-motion safe). */
+.src-line.scroll-drive-active {
+  background: color-mix(in srgb, var(--vscode-textLink-foreground, #3794ff) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--vscode-textLink-foreground, #3794ff);
+}
+.src-line.scroll-drive-active .ln {
+  opacity: 0.85;
+  color: var(--vscode-textLink-foreground, #3794ff);
+}
+html.bright .src-line.scroll-drive-active {
+  background: color-mix(in srgb, var(--vscode-textLink-foreground, #007aff) 10%, transparent);
+}
+
 /* Ego lifts its neighborhood, but Find / Route / Lens dim still read inside it. */
 #enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }

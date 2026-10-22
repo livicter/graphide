@@ -93,7 +93,7 @@ Driver assertions:
 - **S1m / ScrollDrive:** entering Present pauses Evidence ScrollDrive
   (`presentPaused`, no residual cam nudge). Exit resumes. Does not
   change Lens/Route stage-overlay rules (`P6s` / `K14k`). Owned by
-  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1n`); this map only notes
+  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1p`); this map only notes
   the Present exclusive side-effect.
 
 ## Gotchas

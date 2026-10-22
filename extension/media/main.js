@@ -20237,6 +20237,7 @@
         targetNodeId: "",
         lineMapHit: false,
         lineMapPulse: false,
+        activeLineMarked: false,
         camX: 0,
         camY: 0,
         camK: 1,
@@ -20287,6 +20288,7 @@
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
@@ -20311,6 +20313,7 @@
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
@@ -20382,6 +20385,46 @@
       el2.classList.add("scroll-linemap-miss");
       el2.setAttribute("data-scroll-linemap", "miss");
       return { lineMapPulse: false };
+    }
+    function clearScrollDriveActiveLinePaint() {
+      if (!srcBody) return;
+      srcBody.querySelectorAll(".src-line.scroll-drive-active, .src-line[data-scroll-active]").forEach((el2) => {
+        el2.classList.remove("scroll-drive-active");
+        el2.removeAttribute("data-scroll-active");
+      });
+    }
+    function applyScrollDriveActiveLine(activeLine) {
+      clearScrollDriveActiveLinePaint();
+      if (!srcBody) return { activeLineMarked: false };
+      if (typeof isPresenting === "function" && isPresenting()) return { activeLineMarked: false };
+      const line = Number(activeLine) || 0;
+      if (line <= 0) return { activeLineMarked: false };
+      const bodyRect = srcBody.getBoundingClientRect();
+      const midY = bodyRect.top + srcBody.clientHeight / 2;
+      const lines = srcBody.querySelectorAll(".src-line");
+      let marked = null;
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const r = el2.getBoundingClientRect();
+        if (r.top <= midY && midY < r.bottom + 0.5) {
+          marked = el2;
+          break;
+        }
+      }
+      if (!marked) {
+        for (let i = 0; i < lines.length; i++) {
+          const ln2 = lines[i].querySelector(".ln");
+          const n = parseInt(ln2 && ln2.textContent, 10);
+          if (n === line) {
+            marked = lines[i];
+            break;
+          }
+        }
+      }
+      if (!marked) return { activeLineMarked: false };
+      marked.classList.add("scroll-drive-active");
+      marked.setAttribute("data-scroll-active", "1");
+      return { activeLineMarked: true };
     }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (typeof isPresenting === "function" && isPresenting()) return;
@@ -21124,6 +21167,7 @@
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
         clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
         clearScrollDriveMacroPaint();
         clearScrollDriveAnchorPaint();
         clearScrollDriveDetailPaint();
@@ -21190,12 +21234,14 @@
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
       const blend = applyScrollDriveBlendPaint(camEase);
       const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
+      const lineCue = applyScrollDriveActiveLine(activeLine);
       publishScrollDrive({
         scrollRatio,
         activeLine,
         targetNodeId,
         lineMapHit,
         lineMapPulse: !!lineGlow.lineMapPulse,
+        activeLineMarked: !!lineCue.activeLineMarked,
         camX: camTo.x,
         camY: camTo.y,
         camK: camTo.k,

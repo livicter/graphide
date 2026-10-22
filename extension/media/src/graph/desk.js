@@ -661,6 +661,7 @@ function emptyScrollDrive() {
     targetNodeId: "",
     lineMapHit: false,
     lineMapPulse: false,
+    activeLineMarked: false,
     camX: 0,
     camY: 0,
     camK: 1,
@@ -713,6 +714,7 @@ function resetScrollDrive() {
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
+  clearScrollDriveActiveLinePaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
   clearScrollDriveDetailPaint();
@@ -740,6 +742,7 @@ function pauseScrollDriveForPresent() {
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
+  clearScrollDriveActiveLinePaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
   clearScrollDriveDetailPaint();
@@ -839,6 +842,55 @@ function applyScrollDriveLineMapGlow(lineMapHit, targetNodeId) {
   return { lineMapPulse: false };
 }
 
+
+
+/** S1p — clear Evidence mid-viewport active-line cue (dual-pane with S1n glow). */
+function clearScrollDriveActiveLinePaint() {
+  if (!srcBody) return;
+  srcBody
+    .querySelectorAll(".src-line.scroll-drive-active, .src-line[data-scroll-active]")
+    .forEach((el) => {
+      el.classList.remove("scroll-drive-active");
+      el.removeAttribute("data-scroll-active");
+    });
+}
+
+/** S1p — mark the mid-viewport Evidence `.src-line` that owns activeLine so the
+ *  editor side shows which line drives the canvas (pairs with S1n lineMapHit glow).
+ *  Present pause / Evidence close / reset clear via clearScrollDriveActiveLinePaint. */
+function applyScrollDriveActiveLine(activeLine) {
+  clearScrollDriveActiveLinePaint();
+  if (!srcBody) return { activeLineMarked: false };
+  if (typeof isPresenting === "function" && isPresenting()) return { activeLineMarked: false };
+  const line = Number(activeLine) || 0;
+  if (line <= 0) return { activeLineMarked: false };
+  const bodyRect = srcBody.getBoundingClientRect();
+  const midY = bodyRect.top + srcBody.clientHeight / 2;
+  const lines = srcBody.querySelectorAll(".src-line");
+  let marked = null;
+  for (let i = 0; i < lines.length; i++) {
+    const el = lines[i];
+    const r = el.getBoundingClientRect();
+    if (r.top <= midY && midY < r.bottom + 0.5) {
+      marked = el;
+      break;
+    }
+  }
+  if (!marked) {
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i].querySelector(".ln");
+      const n = parseInt(ln && ln.textContent, 10);
+      if (n === line) {
+        marked = lines[i];
+        break;
+      }
+    }
+  }
+  if (!marked) return { activeLineMarked: false };
+  marked.classList.add("scroll-drive-active");
+  marked.setAttribute("data-scroll-active", "1");
+  return { activeLineMarked: true };
+}
 
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // S1m — Present owns cam; never nudge while stage is on.
@@ -1704,6 +1756,7 @@ function flushScrollDrive() {
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
     clearScrollDriveLineMapPaint();
+    clearScrollDriveActiveLinePaint();
     clearScrollDriveMacroPaint();
     clearScrollDriveAnchorPaint();
     clearScrollDriveDetailPaint();
@@ -1774,12 +1827,14 @@ function flushScrollDrive() {
   const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
   const blend = applyScrollDriveBlendPaint(camEase);
   const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
+  const lineCue = applyScrollDriveActiveLine(activeLine);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
     targetNodeId: targetNodeId,
     lineMapHit: lineMapHit,
     lineMapPulse: !!lineGlow.lineMapPulse,
+    activeLineMarked: !!lineCue.activeLineMarked,
     camX: camTo.x,
     camY: camTo.y,
     camK: camTo.k,

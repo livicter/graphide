@@ -9512,6 +9512,128 @@ async function main() {
         JSON.stringify(s1nPresent)
     );
 
+    // S1p — Evidence mid-viewport active-line dual-pane cue (pairs with S1n graph glow).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1pSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1p", "1");
+        row.setAttribute("data-s1p-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 20; i++) addLine(100 + i, "s1p lead " + i);
+      const mid = addLine(42, "s1p active mid");
+      for (let k = 0; k < 20; k++) addLine(300 + k, "s1p trail " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(mid);
+      return { ok: true, line: 42 };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const active = document.querySelector("#srcBody .src-line.scroll-drive-active");
+        const attr = document.querySelector('#srcBody .src-line[data-scroll-active="1"]');
+        const count = document.querySelectorAll("#srcBody .src-line.scroll-drive-active").length;
+        return !!(
+          d &&
+          Number(d.activeLine) === 42 &&
+          d.activeLineMarked === true &&
+          active &&
+          attr &&
+          active === attr &&
+          count === 1 &&
+          active.getAttribute("data-s1p-ln") === "42"
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1pMarked = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const active = document.querySelector("#srcBody .src-line.scroll-drive-active");
+      const all = document.querySelectorAll("#srcBody .src-line.scroll-drive-active");
+      return {
+        activeLine: Number(d.activeLine) || 0,
+        activeLineMarked: !!d.activeLineMarked,
+        count: all.length,
+        ln: active ? (active.getAttribute("data-s1p-ln") || "") : "",
+        attr: active ? active.getAttribute("data-scroll-active") : "",
+      };
+    });
+    // Present pause must clear Evidence active-line cue.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !document.querySelector(".src-line.scroll-drive-active, .src-line[data-scroll-active]")
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1pPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        active: !!document.querySelector(".src-line.scroll-drive-active"),
+        attr: !!document.querySelector(".src-line[data-scroll-active]"),
+        activeLineMarked: !!d.activeLineMarked,
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 6000 }
+    );
+    record(
+      "S1p",
+      "Evidence mid-viewport active-line dual-pane cue; Present pause clears",
+      s1pSetup.ok &&
+        s1pMarked.activeLine === 42 &&
+        s1pMarked.activeLineMarked === true &&
+        s1pMarked.count === 1 &&
+        s1pMarked.ln === "42" &&
+        s1pMarked.attr === "1" &&
+        s1pPresent.presentPaused === true &&
+        s1pPresent.active === false &&
+        s1pPresent.attr === false &&
+        s1pPresent.activeLineMarked === false,
+      "setup=" +
+        JSON.stringify(s1pSetup) +
+        " marked=" +
+        JSON.stringify(s1pMarked) +
+        " present=" +
+        JSON.stringify(s1pPresent)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
