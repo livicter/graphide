@@ -94,9 +94,9 @@ Driver assertions:
   (`presentPaused`, no residual cam nudge) and stashes last-stay before the
   wipe (`presentStayStashed` / `data-scroll-present-stay` when warm — S1ad).
   Exit resumes without yanking cam; soft restore waits for Evidence reopen;
-  desk auto-refit one-shot-skips hard fit after soft stay reopen (S1ae). Review-clear stay wipe publishes a short-lived cue (S1af); workspace-folder change clears that cue (S1ag); soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion (S1ah) owned by scroll-drive.
+  desk auto-refit one-shot-skips hard fit after soft stay reopen (S1ae). Review-clear stay wipe publishes a short-lived cue (S1af); workspace-folder change clears that cue (S1ag); soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion + macro enter/exit settle-before-sample (S1ah) owned by scroll-drive.
   Does not change Lens/Route stage-overlay rules (`P6s` / `K14k`). Owned by
-  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1ai`); this map only notes
+  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1aj`); this map only notes
   the Present exclusive side-effect.
 
 ## Gotchas

@@ -10473,11 +10473,12 @@ async function main() {
       const body = document.getElementById("srcBody");
       if (!body) return;
       const base = body.scrollTop;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 4; i++) {
         body.scrollTop = base + i * 2;
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1aj — settle-before-sample: require settle flags (not scrollRatio fallback) before baselining.
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -10486,13 +10487,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(180);
     const s1uBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const vp = document.querySelector("#canvas .viewport");
@@ -10509,7 +10509,8 @@ async function main() {
       };
     });
     // Enter macro via file-top (low ratio) — soft stay must keep cam within caps.
-    // Match S1c: ensure scrollable, jump to top, re-tick after a frame so rAF flush lands.
+    // S1aj — one scroll-to-top stimulus, then sample the first soft k step (not a
+    // 50ms + second-scroll stack that can double the ±0.35 cap).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -10525,32 +10526,31 @@ async function main() {
       body.scrollTop = 0;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForTimeout(50);
-    await page.evaluate(() => {
-      const body = document.getElementById("srcBody");
-      if (!body) return;
-      body.scrollTop = 0;
-      body.dispatchEvent(new Event("scroll"));
-    });
     await page.waitForFunction(
-      () => {
+      (beforeK) => {
         const d = window.__graphideScrollDrive;
+        if (!(d && !d.presentPaused)) return false;
+        const k = Number(d.camK);
+        if (!Number.isFinite(k) || !Number.isFinite(beforeK)) return false;
+        const dk = Math.abs(k - beforeK);
         const vp =
           document.querySelector("#canvas .viewport") ||
           document.querySelector(".viewport[data-scroll-macro]");
+        // First soft-capped macro step: macroLod on, moved, still within one-cap band.
         return !!(
-          d &&
           d.macroLod &&
-          !d.presentPaused &&
           Number(d.scrollRatio) <= 0.18 &&
           vp &&
-          vp.getAttribute("data-scroll-macro") === "1"
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          dk > 0.05 &&
+          dk <= 0.35 + 0.06
         );
       },
-      null,
+      s1uBefore.camK,
       { timeout: 8000 }
     );
-    // Sample immediately — enterDk must show soft-capped step (not full overview yank).
+    // S1aj — one paint after first soft step (not full ease toward overview).
+    await page.waitForTimeout(32);
     const s1uMacroEnter = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10609,6 +10609,7 @@ async function main() {
     const s1uEnterDy = Math.abs((Number(s1uMacroEnter.camY) || 0) - (Number(s1uBefore.camY) || 0));
     const s1uEnterDk = Math.abs((Number(s1uMacroEnter.camK) || 0) - (Number(s1uBefore.camK) || 0));
     // Exit macro → mid-file micro; soft re-seed from camTo (no zoomToEl yank).
+    // S1aj — fewer mid-scroll chunks + sample first soft exit step (no 280ms stack).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -10616,7 +10617,7 @@ async function main() {
       // Step toward mid in capped chunks so vel does not re-trigger macro.
       const goal = Math.floor(max * 0.55);
       let top = body.scrollTop;
-      for (let n = 0; n < 20; n++) {
+      for (let n = 0; n < 8; n++) {
         const delta = goal - top;
         if (Math.abs(delta) <= 4) break;
         const step = Math.max(-48, Math.min(48, delta));
@@ -10625,20 +10626,21 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
-    await page.waitForTimeout(280);
-    await page.evaluate(() => {
-      const body = document.getElementById("srcBody");
-      if (body) body.dispatchEvent(new Event("scroll"));
-    });
     await page.waitForFunction(
-      () => {
+      (macroK) => {
         const d = window.__graphideScrollDrive;
-        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.35);
+        if (!(d && !d.presentPaused && !d.macroLod && Number(d.scrollRatio) > 0.35)) return false;
+        const k = Number(d.camK);
+        if (!Number.isFinite(k) || !Number.isFinite(macroK)) return false;
+        const dk = Math.abs(k - macroK);
+        // First soft-capped exit step toward micro k.
+        return dk > 0.05 && dk <= 0.45 + 0.06;
       },
-      null,
-      { timeout: 6000 }
+      s1uMacro.camK,
+      { timeout: 8000 }
     );
-    // Sample exit cam immediately — exitDk is one soft-capped step back toward micro k.
+    // S1aj — sample first soft exit step (one paint), not after multi-step ease.
+    await page.waitForTimeout(32);
     const s1uExitSnap = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10650,7 +10652,21 @@ async function main() {
         presentPaused: !!d.presentPaused,
       };
     });
-    await page.waitForTimeout(80);
+    // Final micro state after first-step sample (exitDk already measured vs exitSnap).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.35 &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1uExit = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const vp = document.querySelector("#canvas .viewport");
@@ -10717,6 +10733,87 @@ async function main() {
         s1uExitDk
     );
 
+    // S1aj — macro enter/exit settle-before-sample probe (parity with S1ah).
+    // After S1u exit, nudge once, wait settle flags + low vel, sample twice; camK
+    // must stay within a tiny epsilon (no mid-tween inflate). Product caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 3; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1ajFirst = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    await page.waitForTimeout(80);
+    const s1ajSecond = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+      };
+    });
+    const s1ajDx = Math.abs((Number(s1ajSecond.camX) || 0) - (Number(s1ajFirst.camX) || 0));
+    const s1ajDy = Math.abs((Number(s1ajSecond.camY) || 0) - (Number(s1ajFirst.camY) || 0));
+    const s1ajDk = Math.abs((Number(s1ajSecond.camK) || 0) - (Number(s1ajFirst.camK) || 0));
+    record(
+      "S1aj",
+      "macro settle-before-sample: post-S1u cam stable after settle flags (no mid-tween inflate)",
+      !s1ajFirst.presentPaused &&
+        !s1ajFirst.macroLod &&
+        (s1ajFirst.camXSettled === true || s1ajFirst.camYSettled === true) &&
+        s1ajFirst.scrollVel < 0.12 &&
+        Number.isFinite(s1ajFirst.camK) &&
+        Number.isFinite(s1ajSecond.camK) &&
+        s1ajDx <= 2.5 &&
+        s1ajDy <= 2.5 &&
+        s1ajDk <= 0.05,
+      "first=" +
+        JSON.stringify(s1ajFirst) +
+        " second=" +
+        JSON.stringify(s1ajSecond) +
+        " dx=" +
+        s1ajDx +
+        " dy=" +
+        s1ajDy +
+        " dk=" +
+        s1ajDk
+    );
 
     // S1v — Evidence file / sourceId hop soft-stays cam (no wipe-then-zoomToEl).
     await page.click('#workspaces [data-ws="slice"]');
