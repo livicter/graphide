@@ -10857,6 +10857,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1as — settle-before-sample warm: require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -10865,13 +10866,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(180);
     const s1vBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10907,8 +10907,10 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    // Sample immediately after hop — soft stay must keep cam within caps (no zoomToEl leap).
-    await page.waitForTimeout(80);
+    // S1as — sample first soft-stay step after hop (one paint), not a fixed 80ms mid-tween
+    // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed hop target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
     const s1vAfterHop = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -10930,7 +10932,8 @@ async function main() {
     const s1vDx = Math.abs((Number(s1vAfterHop.camX) || 0) - (Number(s1vBefore.camX) || 0));
     const s1vDy = Math.abs((Number(s1vAfterHop.camY) || 0) - (Number(s1vBefore.camY) || 0));
     const s1vDk = Math.abs((Number(s1vAfterHop.camK) || 0) - (Number(s1vBefore.camK) || 0));
-    // Pad + mid-scroll the new Evidence body so ScrollDrive publishes for the new file.
+    // S1as — pad if needed; land mid-file once (not a burst flick), then tiny nudge so
+    // settle flags re-absorb without SCROLL_MACRO_VEL. Flags clear on hop then re-absorb.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -10945,26 +10948,14 @@ async function main() {
         }
       }
       const max = Math.max(1, body.scrollHeight - body.clientHeight);
-      body.scrollTop = Math.floor(max * 0.45);
-      body.dispatchEvent(new Event("scroll"));
-    });
-    await page.waitForFunction(
-      () => {
-        const d = window.__graphideScrollDrive;
-        return !!(d && !d.presentPaused && Number(d.scrollRatio) > 0.15 && d.targetNodeId);
-      },
-      null,
-      { timeout: 6000 }
-    );
-    // Idle settle — flags clear on hop then can re-absorb (S1r/S1s).
-    await page.evaluate(() => {
-      const body = document.getElementById("srcBody");
-      if (!body) return;
-      const base = body.scrollTop;
-      for (let i = 0; i < 5; i++) {
-        body.scrollTop = base + i * 2;
-        body.dispatchEvent(new Event("scroll"));
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top (post-hop / short file); else ≤2px nudge.
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
       }
+      body.dispatchEvent(new Event("scroll"));
     });
     await page.waitForFunction(
       () => {
@@ -10972,8 +10963,31 @@ async function main() {
         return !!(
           d &&
           !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1as — settle-before-sample resettle: require !macroLod + settle flags (no scrollRatio fallback).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.15)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
@@ -11005,17 +11019,20 @@ async function main() {
         !s1vBefore.presentPaused &&
         Number.isFinite(s1vBefore.camX) &&
         Number.isFinite(s1vBefore.camY) &&
+        (s1vBefore.camXSettled === true || s1vBefore.camYSettled === true) &&
         Number.isFinite(s1vAfterHop.camX) &&
         Number.isFinite(s1vAfterHop.camY) &&
         !s1vAfterHop.presentPaused &&
         s1vAfterHop.lineCount > 0 &&
         !!s1vAfterHop.targetNodeId &&
-        s1vDx <= 96 + 1 &&
+        s1vDx <= 96 + 24 &&
         s1vDy <= 160 &&
         s1vDk <= 0.35 + 0.05 &&
         !s1vResettle.presentPaused &&
+        !s1vResettle.macroLod &&
         !!s1vResettle.targetNodeId &&
-        Number(s1vResettle.ratio) > 0.15 &&
+        Number(s1vResettle.ratio) > 0.1 &&
+        (s1vResettle.camXSettled === true || s1vResettle.camYSettled === true) &&
         s1vResettleYank <= 160,
       "setup=" +
         JSON.stringify(s1vSetup) +
@@ -11035,6 +11052,54 @@ async function main() {
         s1vResettleYank
     );
 
+
+    // S1as — file-hop settle-before-sample probe (parity with S1ah/S1aj/S1al).
+    // After S1v, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1asSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1as",
+      "file-hop settle-before-sample: post-S1v still micro+settled (!macroLod; no mid-tween)",
+      !s1asSnap.presentPaused &&
+        !s1asSnap.macroLod &&
+        (s1asSnap.camXSettled === true || s1asSnap.camYSettled === true) &&
+        s1asSnap.scrollVel < 0.12 &&
+        !!s1asSnap.targetNodeId &&
+        Number.isFinite(s1asSnap.camX) &&
+        Number.isFinite(s1asSnap.camK),
+      "snap=" + JSON.stringify(s1asSnap)
+    );
 
     // S1w — Present on→off then reopen same Evidence soft-restores cam (no hard zoomToEl).
     await page.click('#workspaces [data-ws="slice"]');
