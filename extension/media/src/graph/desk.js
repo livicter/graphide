@@ -657,6 +657,7 @@ function emptyScrollDrive() {
     macroLod: false,
     anchorFocus: "",
     anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
+    detailNear: false,
   };
 }
 
@@ -670,6 +671,7 @@ function resetScrollDrive() {
   clearScrollDriveCfgPaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
+  clearScrollDriveDetailPaint();
   publishScrollDrive(emptyScrollDrive());
 }
 
@@ -1082,6 +1084,39 @@ function applyScrollDriveAnchors(targetNodeId) {
   return { anchorFocus: focus || "", anchorCounts: counts };
 }
 
+
+/** S1f — hide deep clutter until scroll/mouse focus approaches the block.
+ *  Macro LOD or far from focus → detailNear false (overview clean).
+ *  Near focus (cfg unroll / activeLine / anchorFocus) → reveal with CSS opacity. */
+function wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors) {
+  if (macro) return false;
+  const unroll = Number(cfg && cfg.cfgUnroll) || 0;
+  const visible = Number(cfg && cfg.cfgVisible) || 0;
+  const ratio = Number(scrollRatio) || 0;
+  const line = Number(activeLine) || 0;
+  const focus = !!(anchors && anchors.anchorFocus);
+  // Mid-file micro focus — unroll / visible CFG / active line / kind-anchor focus.
+  if (visible >= 2 || unroll > 0.35) return true;
+  if (ratio > 0.25 && (line > 0 || focus)) return true;
+  return false;
+}
+
+function clearScrollDriveDetailPaint() {
+  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (vp) vp.removeAttribute("data-scroll-detail");
+}
+
+/** S1f — gate viewport data-scroll-detail from ScrollDrive proximity. */
+function applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors) {
+  const near = wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors);
+  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (vp) {
+    const v = near ? "1" : "0";
+    if (vp.getAttribute("data-scroll-detail") !== v) vp.setAttribute("data-scroll-detail", v);
+  }
+  return { detailNear: near };
+}
+
 let scrollDriveMacroTimer = 0;
 
 function onSrcBodyScroll() {
@@ -1126,6 +1161,7 @@ function onSrcBodyScroll() {
     cfg = applyScrollDriveCfg(scrollRatio, activeLine);
   }
   const anchors = applyScrollDriveAnchors(targetNodeId);
+  const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
@@ -1142,6 +1178,7 @@ function onSrcBodyScroll() {
     macroLod: !!macro,
     anchorFocus: anchors.anchorFocus || "",
     anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
+    detailNear: !!detail.detailNear,
   });
 }
 
@@ -1827,6 +1864,7 @@ function stripExportViewerState(root) {
     // Pan/zoom parks off-stage Map cards; camera reset must un-hide them in the clone.
     el.removeAttribute("data-offview");
     el.removeAttribute("data-scroll-anchor");
+    el.removeAttribute("data-scroll-detail");
     if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
   });
   const vp = root.querySelector && root.querySelector(".viewport");

@@ -20236,7 +20236,8 @@
         scrollVel: 0,
         macroLod: false,
         anchorFocus: "",
-        anchorCounts: { api: 0, db: 0, svc: 0, util: 0 }
+        anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
+        detailNear: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20248,6 +20249,7 @@
       clearScrollDriveCfgPaint();
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
+      clearScrollDriveDetailPaint();
       publishScrollDrive(emptyScrollDrive());
     }
     function readSrcActiveLine() {
@@ -20601,6 +20603,30 @@
       if (!focus && targetNodeId) focus = scrollDriveAnchorOf(targetNodeId, findScrollDriveTargetEl(targetNodeId)) || "";
       return { anchorFocus: focus || "", anchorCounts: counts };
     }
+    function wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors) {
+      if (macro) return false;
+      const unroll = Number(cfg && cfg.cfgUnroll) || 0;
+      const visible = Number(cfg && cfg.cfgVisible) || 0;
+      const ratio = Number(scrollRatio) || 0;
+      const line = Number(activeLine) || 0;
+      const focus = !!(anchors && anchors.anchorFocus);
+      if (visible >= 2 || unroll > 0.35) return true;
+      if (ratio > 0.25 && (line > 0 || focus)) return true;
+      return false;
+    }
+    function clearScrollDriveDetailPaint() {
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) vp.removeAttribute("data-scroll-detail");
+    }
+    function applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors) {
+      const near = wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors);
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        const v = near ? "1" : "0";
+        if (vp.getAttribute("data-scroll-detail") !== v) vp.setAttribute("data-scroll-detail", v);
+      }
+      return { detailNear: near };
+    }
     let scrollDriveMacroTimer = 0;
     function onSrcBodyScroll() {
       if (!srcBody || !sourcePane || sourcePane.hidden) {
@@ -20641,6 +20667,7 @@
         cfg = applyScrollDriveCfg(scrollRatio, activeLine);
       }
       const anchors = applyScrollDriveAnchors(targetNodeId);
+      const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
       publishScrollDrive({
         scrollRatio,
         activeLine,
@@ -20656,7 +20683,8 @@
         scrollVel,
         macroLod: !!macro,
         anchorFocus: anchors.anchorFocus || "",
-        anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 }
+        anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
+        detailNear: !!detail.detailNear
       });
     }
     if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
@@ -21279,6 +21307,7 @@
         el2.removeAttribute("data-delta-review-current");
         el2.removeAttribute("data-offview");
         el2.removeAttribute("data-scroll-anchor");
+        el2.removeAttribute("data-scroll-detail");
         if (el2.getAttribute && el2.getAttribute("aria-pressed") === "true") el2.setAttribute("aria-pressed", "false");
       });
       const vp = root3.querySelector && root3.querySelector(".viewport");

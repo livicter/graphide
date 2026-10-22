@@ -8173,6 +8173,116 @@ async function main() {
       "pad=" + JSON.stringify(s1ePad) + " after=" + JSON.stringify(afterAnchors)
     );
 
+    // S1f — hide-until-focus clutter gate: macro/far → detailNear false; mid focus → true.
+    const s1fNear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        ok: true,
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        cfgVisible: Number(d.cfgVisible) || 0,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        ratio: Number(d.scrollRatio) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Mid-file from S1e should already be near — assert detail gate open.
+    // Then jump to file top → macro → detail closed.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector(".viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          !d.detailNear &&
+          vp &&
+          vp.getAttribute("data-scroll-detail") === "0"
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(100);
+    const s1fFar = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    // Scroll mid again — detail must reopen with focus.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector(".viewport");
+        return !!(
+          d &&
+          !d.macroLod &&
+          d.detailNear &&
+          vp &&
+          vp.getAttribute("data-scroll-detail") === "1" &&
+          (Number(d.cfgVisible) >= 2 || Number(d.cfgUnroll) > 0.35 || Number(d.scrollRatio) > 0.25)
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(100);
+    const s1fReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        cfgVisible: Number(d.cfgVisible) || 0,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        ratio: Number(d.scrollRatio) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1f",
+      "Evidence scroll gates deep clutter until focus approaches (detailNear / data-scroll-detail)",
+      s1fNear.ok &&
+        s1fNear.evidenceOpen &&
+        s1fNear.detailNear &&
+        s1fNear.attr === "1" &&
+        !s1fNear.macroLod &&
+        s1fFar.macroLod &&
+        !s1fFar.detailNear &&
+        s1fFar.attr === "0" &&
+        s1fReopen.evidenceOpen &&
+        !s1fReopen.macroLod &&
+        s1fReopen.detailNear &&
+        s1fReopen.attr === "1",
+      "near=" +
+        JSON.stringify(s1fNear) +
+        " far=" +
+        JSON.stringify(s1fFar) +
+        " reopen=" +
+        JSON.stringify(s1fReopen)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

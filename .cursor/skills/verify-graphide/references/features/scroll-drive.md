@@ -1,17 +1,18 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors (S1a / S1b / S1c / S1d / S1e)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate (S1a–S1f)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), unrolls a localized Steiner CFG on Slice with a
 glow on the active block (S1b), annotates `if` / loop / `try` spans as
 distinct visual groups (S1d), and at file-top or high scroll velocity
 transitions to a macro Map overview LOD focused on the Evidence module
-(S1c), and stamps color-coded API / Database / Service / Utility anchors
-from IR kind + EndpointMeta (S1e).
+(S1c), stamps color-coded API / Database / Service / Utility anchors
+from IR kind + EndpointMeta (S1e), and hides deep implementation clutter
+until scroll focus approaches the block (S1f).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, macroLod, anchorFocus, anchorCounts }`.
+  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, macroLod, anchorFocus, anchorCounts, detailNear }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
 - `targetNodeId` is the inspected Evidence node (`sourceId`). No AST
@@ -45,8 +46,16 @@ from IR kind + EndpointMeta (S1e).
   heuristics) onto `data-scroll-anchor` / `.scroll-anchor-*`. Hairline tint
   only — no labels. Deep CFG detail stays gated by S1b/S1d. `anchorFocus` /
   `anchorCounts` publish on ScrollDrive for the harness.
+- **S1f clutter gate:** `applyScrollDriveDetailGate` sets
+  `.viewport` `data-scroll-detail="0|1"` from ScrollDrive proximity.
+  Macro LOD or far from focus → `detailNear` false (members, hop packets,
+  edge kinds, dense labels stay opacity 0). As focus approaches
+  (`cfgVisible` / `cfgUnroll` / `activeLine` / `anchorFocus` mid-file) →
+  `detailNear` true and CSS reveals those layers with a 180ms opacity
+  ease (no pop-in). Reuses `data-lod` / scroll-macro / scroll-cfg; does
+  not invent a second LOD system.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
-  + macro + kind-anchor paint.
+  + macro + kind-anchor + detail-gate paint.
 
 ## How to get to it (user POV)
 
@@ -57,7 +66,8 @@ from IR kind + EndpointMeta (S1e).
    loop / `try` regions tint distinctly while sibling kinds stay dim.
    Jump to the top of the file (or flick fast) and the canvas eases to
    Map overview LOD with the module focused. Nodes keep a hairline
-   kind-anchor tint (API / DB / Service / Utility).
+   kind-anchor tint (API / DB / Service / Utility). Deep member lists /
+   packets / labels stay hidden until you scroll into the focused block.
 
 ## Driving it with the harness
 
@@ -71,25 +81,28 @@ extension/scripts/webview-harness.html?mode=explorer&probe=0
    include `if` / `for` / `try` lines for S1d.
 3. Set `scrollTop` high and wait for `__graphideScrollDrive.scrollRatio`
    / `cfgUnroll` to rise, `camY` to move, a `.vnode.scroll-cfg-hot`
-   (or `[data-cfg-active="1"]`), and `cfgSpanKind` / `[data-cfg-span]`.
+   (or `[data-cfg-active="1"]`), `cfgSpanKind` / `[data-cfg-span]`, and
+   `detailNear` / `data-scroll-detail="1"`.
 4. Set `scrollTop` to 0 and wait for `macroLod` / `data-lod="0"` /
-   `.vnode.scroll-macro-hot`.
+   `.vnode.scroll-macro-hot` and `detailNear === false` /
+   `data-scroll-detail="0"`.
 
 Driver assertions: **S1a** (camera) · **S1b** (CFG unroll + glow) ·
 **S1c** (macro LOD on file top / fast scroll) · **S1d** (if/loop/try
 span kinds + sibling collapse) · **S1e** (API/DB/Service/Utility
-kind anchors).
+kind anchors) · **S1f** (hide-until-focus clutter gate).
 
 ## Gotchas
 
 - Do not invent multi-PR Tree-sitter CFG rewrite here — fixture Steiner
   walk + Evidence line keyword scan is enough for S1b/S1d; S1c reuses
-  `data-lod` / camera lerp.
+  `data-lod` / camera lerp; S1f reuses those proximity signals.
 - Do not add `data-testid`. Hooks are `#srcBody`,
   `window.__graphideScrollDrive`, `.vnode.scroll-cfg-hot`,
   `[data-cfg-active]`, `[data-cfg-span]`, `.vnode.scroll-cfg-sib`,
   `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`,
-  `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`.
+  `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`,
+  `.viewport[data-scroll-detail]`, `detailNear`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

@@ -2203,6 +2203,45 @@ svg.steiner .edge.walk {
   box-shadow: inset 3px 0 0 0 var(--g-anchor-util);
 }
 
+/* S1f — hide-until-focus clutter gate (smooth opacity, not pop-in) */
+.viewport[data-scroll-detail] .bubble-card .members,
+.viewport[data-scroll-detail] .pkt,
+.viewport[data-scroll-detail] text.ekind,
+.viewport[data-scroll-detail] .steiner-wrap .vnode .kind,
+.viewport[data-scroll-detail] .expl-list.hops,
+.viewport[data-scroll-detail] .vnode .snip,
+.viewport[data-scroll-detail] .vnode .fqn,
+.viewport[data-scroll-detail] .vnode .where,
+.viewport[data-scroll-detail] .comm-node .meta,
+.viewport[data-scroll-detail] .ego-node .meta {
+  transition: opacity 180ms ease;
+}
+.viewport[data-scroll-detail="0"] .bubble-card .members,
+.viewport[data-scroll-detail="0"] .pkt,
+.viewport[data-scroll-detail="0"] text.ekind,
+.viewport[data-scroll-detail="0"] .steiner-wrap .vnode .kind,
+.viewport[data-scroll-detail="0"] .expl-list.hops,
+.viewport[data-scroll-detail="0"] .vnode .snip,
+.viewport[data-scroll-detail="0"] .vnode .fqn,
+.viewport[data-scroll-detail="0"] .vnode .where,
+.viewport[data-scroll-detail="0"] .comm-node .meta,
+.viewport[data-scroll-detail="0"] .ego-node .meta {
+  opacity: 0;
+  pointer-events: none;
+}
+.viewport[data-scroll-detail="1"] .bubble-card .members,
+.viewport[data-scroll-detail="1"] .pkt,
+.viewport[data-scroll-detail="1"] text.ekind,
+.viewport[data-scroll-detail="1"] .steiner-wrap .vnode .kind,
+.viewport[data-scroll-detail="1"] .expl-list.hops,
+.viewport[data-scroll-detail="1"] .vnode .snip,
+.viewport[data-scroll-detail="1"] .vnode .fqn,
+.viewport[data-scroll-detail="1"] .vnode .where,
+.viewport[data-scroll-detail="1"] .comm-node .meta,
+.viewport[data-scroll-detail="1"] .ego-node .meta {
+  opacity: 1;
+}
+
 .vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim, .bubble-card.route-dim {
   opacity: 0.22;
 }
