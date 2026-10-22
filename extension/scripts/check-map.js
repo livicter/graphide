@@ -354,6 +354,7 @@ assert(featReadme.includes("slice-runs.md") && featReadme.includes("slice-runs.p
 assert(featReadme.includes("slice-enter-recycle.md") && featReadme.includes("slice-enter-recycle.png"), "feature README must list slice-enter-recycle.md");
 assert(featReadme.includes("stamp-recheck.md") && featReadme.includes("stamp-recheck.png"), "feature README must list stamp-recheck.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
+assert(featReadme.includes("scroll-drive.md") && featReadme.includes("S1a") && featReadme.includes("S1g") && featReadme.includes("__graphideScrollDrive"), "feature README must list scroll-drive.md with S1a–S1g");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -601,6 +602,13 @@ assert(js.includes("function applyScrollDriveCfg") && js.includes("cfgActiveId")
 assert(js.includes("function applyScrollDriveMacro") && js.includes("macroLod") && js.includes("scrollVel") && js.includes("scroll-macro-hot") && js.includes("data-scroll-macro") && driver.includes("S1c"), "Evidence scroll must enter macro Map LOD on file top / fast flick (S1c)");
 assert(js.includes("function scanScrollDriveCfgSpans") && js.includes("cfgSpanKind") && js.includes("data-cfg-span") && js.includes("scroll-cfg-sib") && js.includes("scroll-cfg-if") && js.includes("scroll-cfg-loop") && js.includes("scroll-cfg-try") && driver.includes("S1d"), "Evidence scroll must annotate if/loop/try CFG spans (S1d)");
 const scrollDriveMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/scroll-drive.md"), "utf8");
+assert(
+  scrollDriveMap.includes("## Sub-features") &&
+    scrollDriveMap.includes("## How to get to it (user POV)") &&
+    scrollDriveMap.includes("## Driving it with the harness") &&
+    scrollDriveMap.includes("## Gotchas"),
+  "scroll-drive feature map must use the four headings"
+);
 assert(scrollDriveMap.includes("S1a") && scrollDriveMap.includes("__graphideScrollDrive") && scrollDriveMap.includes("#srcBody"), "scroll-drive feature map must name S1a / ScrollDrive / #srcBody");
 assert(scrollDriveMap.includes("S1b") && scrollDriveMap.includes("cfgActiveId") && scrollDriveMap.includes("scroll-cfg-hot"), "scroll-drive feature map must name S1b CFG unroll");
 assert(scrollDriveMap.includes("S1c") && scrollDriveMap.includes("macroLod") && scrollDriveMap.includes("data-lod"), "scroll-drive feature map must name S1c macro LOD");

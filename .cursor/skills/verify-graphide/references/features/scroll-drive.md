@@ -95,12 +95,33 @@ extension/scripts/webview-harness.html?mode=explorer&probe=0
 4. Set `scrollTop` to 0 and wait for `macroLod` / `data-lod="0"` /
    `.vnode.scroll-macro-hot` and `detailNear === false` /
    `data-scroll-detail="0"`.
+5. Burst-scroll then idle: wait for `scrollVel` high + `camEase` loose
+   (< 0.24), then `scrollVel` low + `camEase` snappy (> 0.28).
 
-Driver assertions: **S1a** (camera) · **S1b** (CFG unroll + glow) ·
-**S1c** (macro LOD on file top / fast scroll) · **S1d** (if/loop/try
-span kinds + sibling collapse) · **S1e** (API/DB/Service/Utility
-kind anchors) · **S1f** (hide-until-focus clutter gate) · **S1g**
-(scrollVel → camEase loose/snappy).
+Driver assertions (ids in `scripts/verify-graphide.js`):
+
+- **S1a** — `#srcBody` scroll publishes `__graphideScrollDrive`
+  (`scrollRatio`, `targetNodeId`, `camX`/`camY`/`camK`); camera moves
+  (`camY` delta or `.viewport` transform change).
+- **S1b** — mid-file scroll raises `cfgUnroll` / `cfgVisible`; a
+  `.vnode.scroll-cfg-hot` or `[data-cfg-active="1"]` matches
+  `cfgActiveId`; scroll-up collapses ahead (`.scroll-cfg-ahead`).
+- **S1c** — file-top (`scrollRatio` low) or fast flick sets `macroLod`,
+  `.viewport[data-lod="0"][data-scroll-macro="1"]`,
+  `.vnode.scroll-macro-hot`; mid-file clears macro and restores CFG.
+- **S1d** — Evidence lines with `if` / `for` / `try` yield
+  `cfgSpanCount >= 3`, `cfgSpanKind`, `[data-cfg-span]`,
+  `.scroll-cfg-if` / `.scroll-cfg-loop` / `.scroll-cfg-try`; inactive
+  sibling kinds stay `.scroll-cfg-sib`.
+- **S1e** — mid-file stamps `[data-scroll-anchor]` /
+  `.scroll-anchor-api` (and db/svc/util); `anchorFocus` /
+  `anchorCounts` publish on ScrollDrive.
+- **S1f** — macro/far → `detailNear === false` /
+  `.viewport[data-scroll-detail="0"]`; mid focus → `detailNear === true`
+  / `data-scroll-detail="1"` (180ms opacity ease).
+- **S1g** — burst scroll → `scrollVel` high and `camEase` < 0.24
+  (loose); idle settle → `scrollVel` low and `camEase` > 0.28
+  (snappy). Still one `tickCam` loop via `scrollDriveEaseFromVel`.
 
 ## Gotchas
 
