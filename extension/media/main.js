@@ -20236,6 +20236,7 @@
         activeLine: 0,
         targetNodeId: "",
         lineMapHit: false,
+        lineMapPulse: false,
         camX: 0,
         camY: 0,
         camK: 1,
@@ -20285,6 +20286,7 @@
       }
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
@@ -20308,6 +20310,7 @@
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
@@ -20346,6 +20349,39 @@
       if (!id2 || !canvas) return null;
       const esc2 = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(String(id2)) : String(id2).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       return canvas.querySelector('.vnode[data-id="' + esc2 + '"]') || canvas.querySelector('.ego-node[data-id="' + esc2 + '"]') || canvas.querySelector('.comm-node[data-id="' + esc2 + '"]') || canvas.querySelector('.bubble-card[data-bubble="' + esc2 + '"]') || canvas.querySelector('[data-id="' + esc2 + '"]');
+    }
+    function clearScrollDriveLineMapPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(
+        ".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss, .vnode[data-scroll-linemap]"
+      ).forEach((el2) => {
+        el2.classList.remove("scroll-linemap-hit", "scroll-linemap-miss");
+        el2.removeAttribute("data-scroll-linemap");
+      });
+    }
+    function applyScrollDriveLineMapGlow(lineMapHit, targetNodeId) {
+      clearScrollDriveLineMapPaint();
+      if (!canvas) return { lineMapPulse: false };
+      if (typeof isPresenting === "function" && isPresenting()) return { lineMapPulse: false };
+      function vnodeFor(id2) {
+        if (!id2) return null;
+        const found = findScrollDriveTargetEl(id2);
+        if (!found) return null;
+        if (found.classList && found.classList.contains("vnode")) return found;
+        return found.closest ? found.closest(".vnode") : null;
+      }
+      let el2 = vnodeFor(targetNodeId);
+      if (!el2 && sourceId) el2 = vnodeFor(sourceId);
+      if (!el2) return { lineMapPulse: false };
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (lineMapHit) {
+        el2.classList.add("scroll-linemap-hit");
+        el2.setAttribute("data-scroll-linemap", "hit");
+        return { lineMapPulse: !reduced };
+      }
+      el2.classList.add("scroll-linemap-miss");
+      el2.setAttribute("data-scroll-linemap", "miss");
+      return { lineMapPulse: false };
     }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (typeof isPresenting === "function" && isPresenting()) return;
@@ -21087,6 +21123,7 @@
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
         clearScrollDriveMacroPaint();
         clearScrollDriveAnchorPaint();
         clearScrollDriveDetailPaint();
@@ -21152,11 +21189,13 @@
       const anchors = applyScrollDriveAnchors(targetNodeId);
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
       const blend = applyScrollDriveBlendPaint(camEase);
+      const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
       publishScrollDrive({
         scrollRatio,
         activeLine,
         targetNodeId,
         lineMapHit,
+        lineMapPulse: !!lineGlow.lineMapPulse,
         camX: camTo.x,
         camY: camTo.y,
         camK: camTo.k,
@@ -21805,7 +21844,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }

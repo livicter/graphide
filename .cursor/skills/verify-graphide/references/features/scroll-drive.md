@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause (S1a–S1m)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow (S1a–S1n)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -17,12 +17,12 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit).
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, lineMapPulse, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged }`.
 - `#srcBody` `scroll` listener schedules `scheduleScrollDriveFlush`
   (S1l); one rAF runs `flushScrollDrive`, which publishes the shape and
   calls `setCamTarget` (existing lerp via `tickCam`).
@@ -117,8 +117,19 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   camEase). Does **not** change Lens/Route Present-overlay rules
   (`P6s` / `K14k`). `resetScrollDrive` also clears the residual macro
   timer and keeps `presentPaused` when stage is on.
+- **S1n lineMapHit glow:** `applyScrollDriveLineMapGlow(lineMapHit, targetNodeId)`
+  paints the mapped `.vnode` — `.scroll-linemap-hit` / `data-scroll-linemap="hit"`
+  with a CSS pulse when `lineMapHit` is true (link-color glow, distinct from
+  `.scroll-cfg-hot`); miss/fallback gets `.scroll-linemap-miss` (quieter
+  focusBorder outline, no pulse). If the mapped IR id is not painted on this
+  Steiner canvas, fall back to the open Evidence `sourceId` vnode so the cue
+  stays visible. Under `reduceMotion()` / S1k, `lineMapPulse` stays false
+  (global reduced-motion kills animation; hit still gets the static outline).
+  Present pause / reset clears via `clearScrollDriveLineMapPaint`.
+  `lineMapPulse` publishes on ScrollDrive. Still one cam path — class
+  toggles + CSS only.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
-  + macro + kind-anchor + detail-gate + blend paint.
+  + macro + kind-anchor + detail-gate + blend + lineMap paint.
 
 ## How to get to it (user POV)
 
@@ -136,7 +147,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes.
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline.
 
 ## Driving it with the harness
 
@@ -207,6 +218,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   no `.scroll-cfg-hot` / `data-scroll-macro`. Exit Present →
   `presentPaused === false` and the attribute clears. Lens/Route stay
   Present overlays (`P6s` / `K14k`) — unchanged.
+- **S1n** — painted own-span hit (e.g. `n1` line 11) → `lineMapHit === true`,
+  `.vnode.scroll-linemap-hit` / `[data-scroll-linemap="hit"]` on the
+  mapped painted node, `lineMapPulse === true` (unless reduced-motion).
+  Unmatched pad → `lineMapHit === false`, `.scroll-linemap-miss` on
+  fallback `sourceId`, `lineMapPulse === false`. Present pause clears
+  both classes. Not the same as `.scroll-cfg-hot`.
 
 ## Gotchas
 
@@ -226,7 +243,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `reducedMotion`, `reduceMotion()`, `rafCoalesce`, `rafFlushes`,
   `rafMerged`, `scheduleScrollDriveFlush`, `flushScrollDrive`,
   `presentPaused`, `pauseScrollDriveForPresent`,
-  `resumeScrollDriveAfterPresent`, `data-scroll-present-paused`.
+  `resumeScrollDriveAfterPresent`, `data-scroll-present-paused`,
+  `lineMapPulse`, `applyScrollDriveLineMapGlow`,
+  `.scroll-linemap-hit`, `.scroll-linemap-miss`, `data-scroll-linemap`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
@@ -235,4 +254,6 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   S1l only coalesces scroll → flush via rAF — never a parallel tween.
   S1m only pauses / resumes on Present — never a parallel tween; does
   not change Lens/Route Present-overlay rules.
+  S1n only toggles lineMap glow classes + CSS pulse — never a parallel
+  tween; respects S1k reduced-motion and S1m Present pause.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

@@ -660,6 +660,7 @@ function emptyScrollDrive() {
     activeLine: 0,
     targetNodeId: "",
     lineMapHit: false,
+    lineMapPulse: false,
     camX: 0,
     camY: 0,
     camK: 1,
@@ -711,6 +712,7 @@ function resetScrollDrive() {
   }
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
+  clearScrollDriveLineMapPaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
   clearScrollDriveDetailPaint();
@@ -737,6 +739,7 @@ function pauseScrollDriveForPresent() {
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
+  clearScrollDriveLineMapPaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
   clearScrollDriveDetailPaint();
@@ -791,6 +794,51 @@ function findScrollDriveTargetEl(id) {
     canvas.querySelector('[data-id="' + esc + '"]')
   );
 }
+
+/** S1n — clear lineMapHit glow/pulse paint (hit pulse vs quieter miss). */
+function clearScrollDriveLineMapPaint() {
+  if (!canvas) return;
+  canvas
+    .querySelectorAll(
+      ".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss, .vnode[data-scroll-linemap]"
+    )
+    .forEach((el) => {
+      el.classList.remove("scroll-linemap-hit", "scroll-linemap-miss");
+      el.removeAttribute("data-scroll-linemap");
+    });
+}
+
+/** S1n — when lineMapHit, pulse the mapped node (distinct from scroll-cfg-hot);
+ *  miss/fallback keeps a quieter outline. Reduced-motion (S1k) → static glow,
+ *  no pulse (`lineMapPulse` false). Present pause clears via reset/pause. */
+function applyScrollDriveLineMapGlow(lineMapHit, targetNodeId) {
+  clearScrollDriveLineMapPaint();
+  if (!canvas) return { lineMapPulse: false };
+  // Present owns the desk — never revive glow while stage is on.
+  if (typeof isPresenting === "function" && isPresenting()) return { lineMapPulse: false };
+  function vnodeFor(id) {
+    if (!id) return null;
+    const found = findScrollDriveTargetEl(id);
+    if (!found) return null;
+    if (found.classList && found.classList.contains("vnode")) return found;
+    return found.closest ? found.closest(".vnode") : null;
+  }
+  // Prefer the mapped target; if that Steiner/IR node is not painted on this
+  // canvas, fall back to the open Evidence sourceId so the focus cue stays visible.
+  let el = vnodeFor(targetNodeId);
+  if (!el && sourceId) el = vnodeFor(sourceId);
+  if (!el) return { lineMapPulse: false };
+  const reduced = typeof reduceMotion === "function" && reduceMotion();
+  if (lineMapHit) {
+    el.classList.add("scroll-linemap-hit");
+    el.setAttribute("data-scroll-linemap", "hit");
+    return { lineMapPulse: !reduced };
+  }
+  el.classList.add("scroll-linemap-miss");
+  el.setAttribute("data-scroll-linemap", "miss");
+  return { lineMapPulse: false };
+}
+
 
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // S1m — Present owns cam; never nudge while stage is on.
@@ -1655,6 +1703,7 @@ function flushScrollDrive() {
     scrollDriveVel = { t: 0, top: 0, vel: 0 };
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
+    clearScrollDriveLineMapPaint();
     clearScrollDriveMacroPaint();
     clearScrollDriveAnchorPaint();
     clearScrollDriveDetailPaint();
@@ -1724,11 +1773,13 @@ function flushScrollDrive() {
   const anchors = applyScrollDriveAnchors(targetNodeId);
   const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
   const blend = applyScrollDriveBlendPaint(camEase);
+  const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
     targetNodeId: targetNodeId,
     lineMapHit: lineMapHit,
+    lineMapPulse: !!lineGlow.lineMapPulse,
     camX: camTo.x,
     camY: camTo.y,
     camK: camTo.k,
@@ -2430,7 +2481,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
 
 function exportDiagramRoot() {
   return (

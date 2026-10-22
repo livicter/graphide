@@ -9272,6 +9272,246 @@ async function main() {
         JSON.stringify(s1mResumed)
     );
 
+    // S1n — lineMapHit pulses mapped node (distinct from scroll-cfg-hot); miss quieter; Present clears; reduced-motion no pulse.
+    // Use painted Slice vnode n1 (own span) — n21 is IR-mapped in S1h but not painted on this Steiner slice.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1nSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const painted = !!document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      if (!painted) return { ok: false, why: "n1-not-painted" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1n", "1");
+        row.setAttribute("data-s1n-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 24; i++) addLine(200 + i, "s1n lead " + i);
+      const ownRow = addLine(ownLine, "s1n own span " + sourceId);
+      for (let k = 0; k < 24; k++) addLine(900 + k, "s1n far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, sourceId: sourceId, ownLine: ownLine };
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.lineMapHit === true &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          el &&
+          el.classList.contains("scroll-linemap-hit") &&
+          el.getAttribute("data-scroll-linemap") === "hit" &&
+          d.lineMapPulse === true &&
+          !el.classList.contains("scroll-linemap-miss") &&
+          // Distinct from generic CFG hot class name (may coexist on same node).
+          el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nHit = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      return {
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        targetNodeId: d.targetNodeId || "",
+        hitClass: !!(el && el.classList.contains("scroll-linemap-hit")),
+        missClass: !!(el && el.classList.contains("scroll-linemap-miss")),
+        attr: el ? el.getAttribute("data-scroll-linemap") : "",
+        hasCfgHotName: !!(el && el.classList.contains("scroll-cfg-hot")),
+      };
+    }, s1nSetup.sourceId);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      const far = body && body.querySelector('.src-line[data-s1n-ln="900"]');
+      if (!body || !far) return;
+      const br = body.getBoundingClientRect();
+      const rr = far.getBoundingClientRect();
+      const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+      body.scrollTop = Math.max(0, body.scrollTop + delta);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.lineMapHit === false &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          d.lineMapPulse === false &&
+          el &&
+          el.classList.contains("scroll-linemap-miss") &&
+          el.getAttribute("data-scroll-linemap") === "miss" &&
+          !el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nMiss = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      return {
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        targetNodeId: d.targetNodeId || "",
+        missClass: !!(el && el.classList.contains("scroll-linemap-miss")),
+        hitLeft: !!(el && el.classList.contains("scroll-linemap-hit")),
+      };
+    }, s1nSetup.sourceId);
+    // Reduced-motion: remount hit under mock matchMedia → lineMapPulse false, hit class stays.
+    await page.evaluate((sourceId) => {
+      const body = document.getElementById("srcBody");
+      const row = body && body.querySelector('.src-line[data-s1n-ln="11"]');
+      if (!body || !row) return;
+      window.__s1nPrevMatchMedia = window.matchMedia;
+      window.matchMedia = (q) => {
+        if (String(q).includes("prefers-reduced-motion")) {
+          return {
+            matches: true,
+            media: q,
+            addListener() {},
+            removeListener() {},
+            addEventListener() {},
+            removeEventListener() {},
+            dispatchEvent() {
+              return false;
+            },
+          };
+        }
+        return window.__s1nPrevMatchMedia.call(window, q);
+      };
+      const br = body.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      body.scrollTop = Math.max(0, body.scrollTop + (rr.top + rr.height / 2 - (br.top + body.clientHeight / 2)));
+      body.dispatchEvent(new Event("scroll"));
+    }, s1nSetup.sourceId);
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.reducedMotion === true &&
+          d.lineMapHit === true &&
+          d.lineMapPulse === false &&
+          el &&
+          el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nReduced = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      const out = {
+        ok: true,
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        hitClass: !!(el && el.classList.contains("scroll-linemap-hit")),
+        reducedMotion: !!d.reducedMotion,
+      };
+      if (window.__s1nPrevMatchMedia) {
+        window.matchMedia = window.__s1nPrevMatchMedia;
+        delete window.__s1nPrevMatchMedia;
+      }
+      const body = document.getElementById("srcBody");
+      if (body) body.dispatchEvent(new Event("scroll"));
+      return out;
+    }, s1nSetup.sourceId);
+    // Present pause must clear linemap paint.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !document.querySelector(".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss")
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1nPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        hit: !!document.querySelector(".vnode.scroll-linemap-hit"),
+        miss: !!document.querySelector(".vnode.scroll-linemap-miss"),
+        lineMapPulse: !!d.lineMapPulse,
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 6000 }
+    );
+    record(
+      "S1n",
+      "lineMapHit pulses mapped node glow; miss quieter; reduced-motion / Present clear pulse",
+      s1nSetup.ok &&
+        s1nHit.lineMapHit === true &&
+        s1nHit.lineMapPulse === true &&
+        s1nHit.hitClass === true &&
+        s1nHit.missClass === false &&
+        s1nHit.attr === "hit" &&
+        s1nMiss.lineMapHit === false &&
+        s1nMiss.lineMapPulse === false &&
+        s1nMiss.missClass === true &&
+        s1nMiss.hitLeft === false &&
+        s1nReduced.ok &&
+        s1nReduced.lineMapHit === true &&
+        s1nReduced.hitClass === true &&
+        s1nReduced.lineMapPulse === false &&
+        s1nPresent.presentPaused === true &&
+        s1nPresent.hit === false &&
+        s1nPresent.miss === false &&
+        s1nPresent.lineMapPulse === false,
+      "setup=" +
+        JSON.stringify(s1nSetup) +
+        " hit=" +
+        JSON.stringify(s1nHit) +
+        " miss=" +
+        JSON.stringify(s1nMiss) +
+        " reduced=" +
+        JSON.stringify(s1nReduced) +
+        " present=" +
+        JSON.stringify(s1nPresent)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

@@ -2517,6 +2517,40 @@ html.bright .route-hop {
    Harness hooks: data-scroll-present-paused on .viewport + presentPaused on ScrollDrive.
    No extra paint — Present stage CSS owns the desk. */
 
+/* S1n — lineMapHit glow pulse (distinct from scroll-cfg-hot); miss stays quieter.
+   prefers-reduced-motion (global) kills the animation; lineMapPulse stays false under S1k. */
+@keyframes scroll-linemap-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--vscode-textLink-foreground) 65%, transparent),
+      0 0 12px color-mix(in srgb, var(--vscode-textLink-foreground) 30%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--vscode-textLink-foreground) 90%, transparent),
+      0 0 26px color-mix(in srgb, var(--vscode-textLink-foreground) 55%, transparent);
+  }
+}
+.vnode.scroll-linemap-hit {
+  outline: 2px solid var(--vscode-textLink-foreground);
+  outline-offset: 2px;
+  animation: scroll-linemap-pulse 1.35s ease-in-out infinite;
+  opacity: 1;
+}
+.vnode.scroll-linemap-miss {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 50%, transparent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+  opacity: 0.9;
+}
+.viewport[data-scroll-blend="1"] .vnode.scroll-linemap-hit,
+.viewport[data-scroll-blend="1"] .vnode.scroll-linemap-miss {
+  transition:
+    opacity var(--scroll-blend-ms, 180ms) ease,
+    outline-color var(--scroll-blend-ms, 180ms) ease,
+    box-shadow var(--scroll-blend-ms, 180ms) ease;
+}
+
 /* Ego lifts its neighborhood, but Find / Route / Lens dim still read inside it. */
 #enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }
