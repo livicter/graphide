@@ -7723,6 +7723,36 @@ async function main() {
       evidenceClosedKeys.evidenceOpen && !evidenceClosedKeys.keysOpen,
       JSON.stringify(evidenceClosedKeys)
     );
+    // Opening Evidence must close Export (revealSourcePane exclusivity — Evidence clears Export chrome).
+    // Open Export first (closes Evidence via K18s), then reopen Evidence via ledger cell.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedExport = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18z",
+      "Opening Evidence closes Export (exclusive chrome)",
+      evidenceClosedExport.evidenceOpen && !evidenceClosedExport.exportOpen,
+      JSON.stringify(evidenceClosedExport)
+    );
     // S1a — Evidence #srcBody scroll publishes ScrollDrive and moves camTo (lerp via setCamTarget).
     const beforeScrollDrive = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
