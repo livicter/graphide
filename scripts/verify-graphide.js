@@ -11844,6 +11844,363 @@ async function main() {
     );
 
 
+
+    // S1aa — persist last-stay across reload: stash → clear memory → restore from sessionStorage.
+    // Soft-restore same sourceId without hard zoomToEl; storage key graphide.scrollDrive.lastStay.v1.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aaSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.querySelectorAll("[data-s1aa],[data-s1aa-pad],[data-s1z-pad],[data-s1w],[data-s1w-pad]").forEach((el) => el.remove());
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1aa", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(6100 + i, "s1aa lead " + i);
+      const ownRow = addLine(11, "s1aa own span n1");
+      for (let k = 0; k < 36; k++) addLine(7100 + k, "s1aa far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, sourceId: "n1", scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(160);
+    const s1aaBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        storageKey: key,
+      };
+    });
+    // Close Evidence — stashes last-stay to memory + sessionStorage (S1w/S1aa).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aaStashed = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      let store = "none";
+      try {
+        raw = sessionStorage.getItem(key);
+        if (raw) store = "session";
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+          if (raw) store = "local";
+        } catch (_) {}
+      }
+      let parsed = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        parsed = null;
+      }
+      return {
+        key,
+        store,
+        hasRaw: !!raw,
+        sourceId: parsed && parsed.sourceId ? String(parsed.sourceId) : "",
+        x: parsed ? Number(parsed.x) : NaN,
+        y: parsed ? Number(parsed.y) : NaN,
+        k: parsed ? Number(parsed.k) : NaN,
+        t: parsed ? Number(parsed.t) : NaN,
+        raw,
+      };
+    });
+    // Simulate webview reload: drop in-memory snap (and storage via clear), then re-seed storage only.
+    await page.evaluate((blob) => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      if (blob && blob.raw) {
+        try {
+          sessionStorage.setItem(key, blob.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(key, blob.raw);
+          } catch (__) {}
+        }
+      }
+    }, s1aaStashed);
+    const s1aaMemoryCleared = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      return { hasStorage: !!raw, key };
+    });
+    // Reopen same Evidence source — soft restore from storage (no hard zoomToEl).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(120);
+    const s1aaAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+      };
+    });
+    const s1aaDx = Math.abs((Number(s1aaAfterReopen.camX) || 0) - (Number(s1aaBefore.camX) || 0));
+    const s1aaDy = Math.abs((Number(s1aaAfterReopen.camY) || 0) - (Number(s1aaBefore.camY) || 0));
+    const s1aaDk = Math.abs((Number(s1aaAfterReopen.camK) || 0) - (Number(s1aaBefore.camK) || 0));
+    // Also vs stashed blob coords (reload path seeds from storage, not live cam).
+    const s1aaDxSnap = Math.abs((Number(s1aaAfterReopen.camX) || 0) - (Number(s1aaStashed.x) || 0));
+    const s1aaDySnap = Math.abs((Number(s1aaAfterReopen.camY) || 0) - (Number(s1aaStashed.y) || 0));
+    const s1aaDkSnap = Math.abs((Number(s1aaAfterReopen.camK) || 0) - (Number(s1aaStashed.k) || 0));
+    // Pad + mid-scroll so settle flags re-absorb after restore.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1aa-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (8200 + i) + '</span><span class="tx">s1aa reopen pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.45);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1aaResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Corrupt blob must be ignored (and cleared) via product load path — does not throw.
+    const s1aaCorruptOk = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      try {
+        sessionStorage.setItem(key, "{not-json");
+      } catch (_) {
+        try {
+          localStorage.setItem(key, "{not-json");
+        } catch (__) {
+          return { wrote: false, cleared: true, probed: false };
+        }
+      }
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage(null)
+          : "no-probe";
+      let after = null;
+      try {
+        after = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!after) {
+        try {
+          after = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      return { wrote: true, cleared: !after, probed: probed };
+    });
+    record(
+      "S1aa",
+      "persist last-stay across reload soft-restores from sessionStorage (same sourceId; no hard zoomToEl)",
+      s1aaSetup.ok &&
+        !s1aaBefore.macroLod &&
+        !s1aaBefore.presentPaused &&
+        Number.isFinite(s1aaBefore.camX) &&
+        Number.isFinite(s1aaBefore.camY) &&
+        s1aaStashed.hasRaw &&
+        s1aaStashed.sourceId === "n1" &&
+        Number.isFinite(s1aaStashed.x) &&
+        Number.isFinite(s1aaStashed.y) &&
+        Number.isFinite(s1aaStashed.k) &&
+        s1aaStashed.k > 0 &&
+        Number.isFinite(s1aaStashed.t) &&
+        s1aaMemoryCleared.hasStorage &&
+        !s1aaAfterReopen.presentPaused &&
+        !!s1aaAfterReopen.targetNodeId &&
+        s1aaAfterReopen.lineCount > 0 &&
+        // Soft caps vs pre-close cam and vs stored snap (reload seeds from storage).
+        (s1aaDx <= 96 + 40 || s1aaDxSnap <= 96 + 40) &&
+        (s1aaDy <= 240 || s1aaDySnap <= 240) &&
+        (s1aaDk <= 0.55 || s1aaDkSnap <= 0.55) &&
+        !s1aaResettle.presentPaused &&
+        !!s1aaResettle.targetNodeId &&
+        Number(s1aaResettle.ratio) > 0.1 &&
+        (s1aaResettle.camXSettled === true || s1aaResettle.camYSettled === true) &&
+        s1aaCorruptOk.cleared,
+      "before=" +
+        JSON.stringify(s1aaBefore) +
+        " stashed=" +
+        JSON.stringify({
+          store: s1aaStashed.store,
+          sourceId: s1aaStashed.sourceId,
+          x: s1aaStashed.x,
+          y: s1aaStashed.y,
+          k: s1aaStashed.k,
+          t: s1aaStashed.t,
+        }) +
+        " memoryCleared=" +
+        JSON.stringify(s1aaMemoryCleared) +
+        " after=" +
+        JSON.stringify(s1aaAfterReopen) +
+        " resettle=" +
+        JSON.stringify(s1aaResettle) +
+        " dx=" +
+        s1aaDx +
+        " dy=" +
+        s1aaDy +
+        " dk=" +
+        s1aaDk +
+        " dxSnap=" +
+        s1aaDxSnap +
+        " dySnap=" +
+        s1aaDySnap +
+        " dkSnap=" +
+        s1aaDkSnap +
+        " corrupt=" +
+        JSON.stringify(s1aaCorruptOk)
+    );
+
+
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

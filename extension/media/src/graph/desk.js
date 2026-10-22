@@ -661,10 +661,15 @@ let scrollDriveCamYSettled = false;
 let scrollDriveYNudgeOrigin = 0;
 /** S1u — prior-flush macroLod edge (enter/exit soft remap). */
 let scrollDriveWasMacro = false;
-/** S1w — memory-only last soft-stay snapshot for Present→Evidence reopen / pane close / Slice remount (no reload persistence). */
+/** S1w — in-memory last soft-stay snapshot for Present→Evidence reopen / pane close / Slice remount.
+ *  S1aa also mirrors a tiny blob to sessionStorage so soft restore survives webview reload. */
 let scrollDriveLastStay = null;
-/** S1w — soft-restore window after Present exit / Evidence close (ms). */
+/** S1w — soft-restore window after Present exit / Evidence close (ms) for in-memory snap. */
 const SCROLL_DRIVE_LAST_STAY_MS = 60000;
+/** S1aa — sessionStorage key for last-stay blob (no file contents / secrets). */
+const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
+/** S1aa — stored-blob freshness (ms). sessionStorage is already session-scoped; 24h caps stale tabs. */
+const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1000;
 /** S1w — next applyScrollDriveCamera soft-stays keeping restored base (no camTo reseed). */
 let scrollDriveJustRestored = false;
 
@@ -768,8 +773,9 @@ function softStayScrollDriveAcrossSourceHop() {
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
   scrollDriveJustRestored = false;
-  // S1w — live file hop replaces any Present/close snapshot.
-  scrollDriveLastStay = null;
+  // S1w/S1aa — live file hop replaces any Present/close snapshot (memory + storage).
+  if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+  else scrollDriveLastStay = null;
   // Drop old-file paint; next flush rebuilds for the new #srcBody (S1l coalesce ok).
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
@@ -778,7 +784,130 @@ function softStayScrollDriveAcrossSourceHop() {
   return true;
 }
 
-/** S1w — stash lightweight last-stay before Present pause / Evidence close (memory only). */
+/** S1aa — pick sessionStorage (preferred) or localStorage fallback for last-stay blob. */
+function scrollDriveLastStayStorage() {
+  try {
+    if (typeof sessionStorage !== "undefined" && sessionStorage) return sessionStorage;
+  } catch (_) {}
+  try {
+    if (typeof localStorage !== "undefined" && localStorage) return localStorage;
+  } catch (_) {}
+  return null;
+}
+
+/** S1aa — validate tiny last-stay shape (no file contents / secrets). */
+function normalizeScrollDriveLastStaySnap(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const sid = raw.sourceId != null ? String(raw.sourceId) : "";
+  if (!sid) return null;
+  const x = Number(raw.x);
+  const y = Number(raw.y);
+  const k = Number(raw.k);
+  const t = Number(raw.t);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(k) || k <= 0) return null;
+  if (!Number.isFinite(t) || t <= 0) return null;
+  const out = {
+    sourceId: sid,
+    x,
+    y,
+    k,
+    t,
+  };
+  if (raw.targetNodeId != null && String(raw.targetNodeId)) {
+    out.targetNodeId = String(raw.targetNodeId);
+  }
+  if (raw.scrollRatio != null && Number.isFinite(Number(raw.scrollRatio))) {
+    out.scrollRatio = Number(raw.scrollRatio);
+  }
+  return out;
+}
+
+/** S1aa — write last-stay blob to sessionStorage (or localStorage fallback). */
+function persistScrollDriveLastStay(snap) {
+  const clean = normalizeScrollDriveLastStaySnap(snap);
+  if (!clean) return false;
+  const store = scrollDriveLastStayStorage();
+  if (!store) return false;
+  try {
+    store.setItem(SCROLL_DRIVE_LAST_STAY_KEY, JSON.stringify(clean));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/** S1aa — drop stored last-stay blob (corrupt / mismatched / harness cold-frame). */
+function clearPersistedScrollDriveLastStay() {
+  const store = scrollDriveLastStayStorage();
+  if (!store) return;
+  try {
+    store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+  } catch (_) {}
+}
+
+/** S1aa — load + validate stored last-stay; clear on stale / corrupt / mismatch. */
+function loadScrollDriveLastStayFromStorage(nextSourceId) {
+  const store = scrollDriveLastStayStorage();
+  if (!store) return null;
+  let raw = null;
+  try {
+    raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+  } catch (_) {
+    return null;
+  }
+  if (!raw) return null;
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_) {
+    clearPersistedScrollDriveLastStay();
+    return null;
+  }
+  const snap = normalizeScrollDriveLastStaySnap(parsed);
+  if (!snap) {
+    clearPersistedScrollDriveLastStay();
+    return null;
+  }
+  const age = Date.now() - snap.t;
+  if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_STORAGE_MS) {
+    clearPersistedScrollDriveLastStay();
+    return null;
+  }
+  if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
+    // Mismatched source — leave blob for a later matching reopen; caller decides clear.
+    return null;
+  }
+  return snap;
+}
+
+/** S1w/S1aa — resolve fresh last-stay: memory (60s) first, else sessionStorage (24h / same session). */
+function resolveScrollDriveLastStay(nextSourceId, opts) {
+  const allowStorage = !opts || opts.allowStorage !== false;
+  const sid = nextSourceId != null ? String(nextSourceId) : "";
+  const mem = scrollDriveLastStay;
+  if (mem && mem.sourceId) {
+    if (sid && String(mem.sourceId) !== sid) {
+      // Different source — drop memory; try storage for the requested id.
+      scrollDriveLastStay = null;
+    } else {
+      const age = Date.now() - (Number(mem.t) || 0);
+      if (Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS) {
+        return { snap: mem, fromStorage: false };
+      }
+      // Memory stale — fall through to storage (S1aa reload path).
+      scrollDriveLastStay = null;
+    }
+  }
+  if (!allowStorage) return null;
+  const stored = loadScrollDriveLastStayFromStorage(sid || null);
+  if (!stored) return null;
+  // Hydrate memory so subsequent remount / hop helpers see the same snap.
+  scrollDriveLastStay = stored;
+  return { snap: stored, fromStorage: true };
+}
+
+/** S1w/S1aa — stash lightweight last-stay before Present pause / Evidence close / hop.
+ *  Memory + sessionStorage mirror (tiny cam blob only — no file contents / secrets). */
 function stashScrollDriveLastStay() {
   if (!scrollDriveBase) return false;
   const sid = sourceId ? String(sourceId) : "";
@@ -801,35 +930,58 @@ function stashScrollDriveLastStay() {
     targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
     t: Date.now(),
   };
+  persistScrollDriveLastStay(scrollDriveLastStay);
   return true;
 }
 
-/** S1w — drop stale Present/close snapshot (different sourceId / TTL). */
+/** S1w/S1aa — drop stale Present/close snapshot (different sourceId / TTL / harness cold-frame). */
 function clearScrollDriveLastStay() {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
+  clearPersistedScrollDriveLastStay();
 }
 // Harness hook — S1q cold-frames after S1p Present without consuming S1w restore.
+// S1aa: also clears sessionStorage so cold zoomToEl stays honest.
 if (typeof window !== "undefined") {
   window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+  window.__graphideScrollDriveLastStayKey = SCROLL_DRIVE_LAST_STAY_KEY;
+  // Harness — S1aa probe: load/validate storage blob (null + clear on corrupt/stale).
+  window.__graphideProbeScrollDriveLastStayStorage = function (sid) {
+    return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
+  };
 }
 
-/** S1w — soft-restore scrollDriveBase from last-stay when reopening the same sourceId
- *  shortly after Present exit / Evidence close / Slice remount wipe. Skip hard zoomToEl.
+/** S1w/S1aa — soft-restore scrollDriveBase from last-stay when reopening the same sourceId
+ *  shortly after Present exit / Evidence close / Slice remount wipe / webview reload.
+ *  Prefer in-memory snap; else seed from sessionStorage blob (S1aa). Skip hard zoomToEl.
  *  Returns true when restore applied. */
 function softRestoreScrollDriveFromLastStay(nextSourceId) {
   if (typeof isPresenting === "function" && isPresenting()) return false;
   if (scrollDriveBase) return false;
-  const snap = scrollDriveLastStay;
-  if (!snap || !snap.sourceId) return false;
   const sid = nextSourceId ? String(nextSourceId) : "";
   if (!sid) return false;
+  const resolved = resolveScrollDriveLastStay(sid);
+  if (!resolved || !resolved.snap) {
+    // Mismatched stored blob for another source — leave it; memory already cleared.
+    const other = loadScrollDriveLastStayFromStorage(null);
+    if (other && String(other.sourceId) !== sid) {
+      // Keep other-source blob; do not soft-restore.
+      return false;
+    }
+    if (scrollDriveLastStay && String(scrollDriveLastStay.sourceId) !== sid) {
+      clearScrollDriveLastStay();
+    }
+    return false;
+  }
+  const snap = resolved.snap;
   if (String(snap.sourceId) !== sid) {
     clearScrollDriveLastStay();
     return false;
   }
+  // Storage snaps use 24h TTL (already checked); memory used 60s. Both OK here.
   const age = Date.now() - (Number(snap.t) || 0);
-  if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_MS) {
+  const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+  if (!Number.isFinite(age) || age < 0 || age > maxAge) {
     clearScrollDriveLastStay();
     return false;
   }
@@ -872,14 +1024,18 @@ function softRestoreScrollDriveFromLastStay(nextSourceId) {
   return true;
 }
 
-/** S1w — true when a same-source last-stay snapshot is still fresh (selectNode soft skip). */
+/** S1w/S1aa — true when a same-source last-stay snapshot is still fresh (selectNode soft skip).
+ *  Checks memory then sessionStorage so reload soft-restore also skips hard zoomEl. */
 function scrollDriveLastStayMatches(nextSourceId) {
-  const snap = scrollDriveLastStay;
-  if (!snap || !snap.sourceId) return false;
   const sid = nextSourceId ? String(nextSourceId) : "";
-  if (!sid || String(snap.sourceId) !== sid) return false;
+  if (!sid) return false;
+  const resolved = resolveScrollDriveLastStay(sid);
+  if (!resolved || !resolved.snap) return false;
+  const snap = resolved.snap;
+  if (String(snap.sourceId) !== sid) return false;
   const age = Date.now() - (Number(snap.t) || 0);
-  return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+  const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+  return Number.isFinite(age) && age >= 0 && age <= maxAge;
 }
 
 /** S1x — desk/Slice remount while Evidence stays open (same sourceId, no Present):
@@ -958,13 +1114,20 @@ function softStayScrollDriveAcrossMapSliceHop() {
     stageFitRo.disconnect();
     stageFitRo = null;
   }
-  const snap = scrollDriveLastStay;
+  // S1aa — prefer warm memory; else hydrate from sessionStorage last-stay blob.
+  const resolvedHop =
+    typeof resolveScrollDriveLastStay === "function" ? resolveScrollDriveLastStay(sid) : null;
+  const snap = (resolvedHop && resolvedHop.snap) || scrollDriveLastStay;
   const snapOk =
     snap &&
     String(snap.sourceId) === sid &&
     (() => {
       const age = Date.now() - (Number(snap.t) || 0);
-      return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+      const maxAge =
+        resolvedHop && resolvedHop.fromStorage
+          ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS
+          : SCROLL_DRIVE_LAST_STAY_MS;
+      return Number.isFinite(age) && age >= 0 && age <= maxAge;
     })();
   const seedFromSnap = () => {
     if (!snapOk) return false;

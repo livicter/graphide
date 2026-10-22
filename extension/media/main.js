@@ -20236,6 +20236,8 @@
     let scrollDriveWasMacro = false;
     let scrollDriveLastStay = null;
     const SCROLL_DRIVE_LAST_STAY_MS = 6e4;
+    const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
+    const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1e3;
     let scrollDriveJustRestored = false;
     function emptyScrollDrive() {
       return {
@@ -20325,12 +20327,122 @@
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
       scrollDriveJustRestored = false;
-      scrollDriveLastStay = null;
+      if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+      else scrollDriveLastStay = null;
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
       clearScrollDriveActiveLinePaint();
       clearScrollDriveMacroPaint();
       return true;
+    }
+    function scrollDriveLastStayStorage() {
+      try {
+        if (typeof sessionStorage !== "undefined" && sessionStorage) return sessionStorage;
+      } catch (_) {
+      }
+      try {
+        if (typeof localStorage !== "undefined" && localStorage) return localStorage;
+      } catch (_) {
+      }
+      return null;
+    }
+    function normalizeScrollDriveLastStaySnap(raw) {
+      if (!raw || typeof raw !== "object") return null;
+      const sid = raw.sourceId != null ? String(raw.sourceId) : "";
+      if (!sid) return null;
+      const x = Number(raw.x);
+      const y = Number(raw.y);
+      const k = Number(raw.k);
+      const t = Number(raw.t);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(k) || k <= 0) return null;
+      if (!Number.isFinite(t) || t <= 0) return null;
+      const out = {
+        sourceId: sid,
+        x,
+        y,
+        k,
+        t
+      };
+      if (raw.targetNodeId != null && String(raw.targetNodeId)) {
+        out.targetNodeId = String(raw.targetNodeId);
+      }
+      if (raw.scrollRatio != null && Number.isFinite(Number(raw.scrollRatio))) {
+        out.scrollRatio = Number(raw.scrollRatio);
+      }
+      return out;
+    }
+    function persistScrollDriveLastStay(snap) {
+      const clean = normalizeScrollDriveLastStaySnap(snap);
+      if (!clean) return false;
+      const store = scrollDriveLastStayStorage();
+      if (!store) return false;
+      try {
+        store.setItem(SCROLL_DRIVE_LAST_STAY_KEY, JSON.stringify(clean));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    function clearPersistedScrollDriveLastStay() {
+      const store = scrollDriveLastStayStorage();
+      if (!store) return;
+      try {
+        store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+      } catch (_) {
+      }
+    }
+    function loadScrollDriveLastStayFromStorage(nextSourceId) {
+      const store = scrollDriveLastStayStorage();
+      if (!store) return null;
+      let raw = null;
+      try {
+        raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+      } catch (_) {
+        return null;
+      }
+      if (!raw) return null;
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      const snap = normalizeScrollDriveLastStaySnap(parsed);
+      if (!snap) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      const age = Date.now() - snap.t;
+      if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_STORAGE_MS) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
+        return null;
+      }
+      return snap;
+    }
+    function resolveScrollDriveLastStay(nextSourceId, opts) {
+      const allowStorage = !opts || opts.allowStorage !== false;
+      const sid = nextSourceId != null ? String(nextSourceId) : "";
+      const mem = scrollDriveLastStay;
+      if (mem && mem.sourceId) {
+        if (sid && String(mem.sourceId) !== sid) {
+          scrollDriveLastStay = null;
+        } else {
+          const age = Date.now() - (Number(mem.t) || 0);
+          if (Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS) {
+            return { snap: mem, fromStorage: false };
+          }
+          scrollDriveLastStay = null;
+        }
+      }
+      if (!allowStorage) return null;
+      const stored = loadScrollDriveLastStayFromStorage(sid || null);
+      if (!stored) return null;
+      scrollDriveLastStay = stored;
+      return { snap: stored, fromStorage: true };
     }
     function stashScrollDriveLastStay() {
       if (!scrollDriveBase) return false;
@@ -20349,28 +20461,45 @@
         targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
         t: Date.now()
       };
+      persistScrollDriveLastStay(scrollDriveLastStay);
       return true;
     }
     function clearScrollDriveLastStay() {
       scrollDriveLastStay = null;
       scrollDriveJustRestored = false;
+      clearPersistedScrollDriveLastStay();
     }
     if (typeof window !== "undefined") {
       window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+      window.__graphideScrollDriveLastStayKey = SCROLL_DRIVE_LAST_STAY_KEY;
+      window.__graphideProbeScrollDriveLastStayStorage = function(sid) {
+        return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
+      };
     }
     function softRestoreScrollDriveFromLastStay(nextSourceId) {
       if (typeof isPresenting === "function" && isPresenting()) return false;
       if (scrollDriveBase) return false;
-      const snap = scrollDriveLastStay;
-      if (!snap || !snap.sourceId) return false;
       const sid = nextSourceId ? String(nextSourceId) : "";
       if (!sid) return false;
+      const resolved = resolveScrollDriveLastStay(sid);
+      if (!resolved || !resolved.snap) {
+        const other = loadScrollDriveLastStayFromStorage(null);
+        if (other && String(other.sourceId) !== sid) {
+          return false;
+        }
+        if (scrollDriveLastStay && String(scrollDriveLastStay.sourceId) !== sid) {
+          clearScrollDriveLastStay();
+        }
+        return false;
+      }
+      const snap = resolved.snap;
       if (String(snap.sourceId) !== sid) {
         clearScrollDriveLastStay();
         return false;
       }
       const age = Date.now() - (Number(snap.t) || 0);
-      if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_MS) {
+      const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+      if (!Number.isFinite(age) || age < 0 || age > maxAge) {
         clearScrollDriveLastStay();
         return false;
       }
@@ -20404,12 +20533,15 @@
       return true;
     }
     function scrollDriveLastStayMatches(nextSourceId) {
-      const snap = scrollDriveLastStay;
-      if (!snap || !snap.sourceId) return false;
       const sid = nextSourceId ? String(nextSourceId) : "";
-      if (!sid || String(snap.sourceId) !== sid) return false;
+      if (!sid) return false;
+      const resolved = resolveScrollDriveLastStay(sid);
+      if (!resolved || !resolved.snap) return false;
+      const snap = resolved.snap;
+      if (String(snap.sourceId) !== sid) return false;
       const age = Date.now() - (Number(snap.t) || 0);
-      return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+      const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+      return Number.isFinite(age) && age >= 0 && age <= maxAge;
     }
     function softStayScrollDriveAcrossDeskRemount() {
       if (typeof isPresenting === "function" && isPresenting()) return false;
@@ -20463,10 +20595,12 @@
         stageFitRo.disconnect();
         stageFitRo = null;
       }
-      const snap = scrollDriveLastStay;
+      const resolvedHop = typeof resolveScrollDriveLastStay === "function" ? resolveScrollDriveLastStay(sid) : null;
+      const snap = resolvedHop && resolvedHop.snap || scrollDriveLastStay;
       const snapOk = snap && String(snap.sourceId) === sid && (() => {
         const age = Date.now() - (Number(snap.t) || 0);
-        return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+        const maxAge = resolvedHop && resolvedHop.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+        return Number.isFinite(age) && age >= 0 && age <= maxAge;
       })();
       const seedFromSnap = () => {
         if (!snapOk) return false;
