@@ -20891,15 +20891,21 @@
       setCamEase(CAM_EASE_BASE);
       scrollDriveJustRestored = false;
       scrollDriveSuppressNextRefit = false;
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+      }
       const vp = viewportEl || canvas && canvas.querySelector(".viewport");
       if (vp) {
         vp.removeAttribute("data-scroll-present-paused");
         vp.removeAttribute("data-scroll-present-stay");
+        vp.removeAttribute("data-scroll-review-clear");
       }
       const d = emptyScrollDrive();
       d.presentPaused = false;
       d.presentStayStashed = false;
-      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
+      d.reviewStayCleared = false;
       publishScrollDrive(d);
     }
     function readSrcActiveLine() {

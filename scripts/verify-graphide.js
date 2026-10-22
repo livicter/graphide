@@ -14122,6 +14122,80 @@ async function main() {
         JSON.stringify(s1aiMutEx)
     );
 
+    // S1am — Present exit never implies Review clear (parity with S1ad/S1ai).
+    // Re-enter Present (warm stay from S1ai path B), plant Review-clear cue mid-Present
+    // (half-set / Review-during-Present), exit → both cues scrubbed; no reviewStayCleared.
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1amDuringPresent = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        hasSetter: typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function",
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1amAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        presentPausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+      };
+    });
+    record(
+      "S1am",
+      "Present exit clears presentStayStashed without implying Review clear (scrubs reviewStayCleared)",
+      s1amDuringPresent.hasSetter &&
+        s1amDuringPresent.presentPaused &&
+        s1amDuringPresent.reviewStayCleared === true &&
+        s1amDuringPresent.cueAttr === true &&
+        !s1amAfterExit.presentPaused &&
+        !s1amAfterExit.presentPausedAttr &&
+        s1amAfterExit.presentStayStashed === false &&
+        s1amAfterExit.presentStayAttr === false &&
+        s1amAfterExit.reviewStayCleared === false &&
+        s1amAfterExit.cueAttr === false,
+      "duringPresent=" +
+        JSON.stringify(s1amDuringPresent) +
+        " afterExit=" +
+        JSON.stringify(s1amAfterExit)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

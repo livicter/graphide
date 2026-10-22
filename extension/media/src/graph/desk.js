@@ -1505,21 +1505,31 @@ function pauseScrollDriveForPresent() {
 
 /** S1m — Present exit: drop pause flag, restore idle camEase; Evidence may reopen later.
  *  S1ad — exit alone must not soft-restore / yank cam; clear present-stay cue; keep
- *  lastStay warm in memory for showSource reopen (S1w). */
+ *  lastStay warm in memory for showSource reopen (S1w).
+ *  S1am — exit alone never implies Review clear: scrub reviewStayCleared memory +
+ *  data-scroll-review-clear (do not re-publish a stale / mid-Present half-set cue). */
 function resumeScrollDriveAfterPresent() {
   setCamEase(CAM_EASE_BASE);
   // S1ad — never half-apply restore on Present exit (wait for Evidence reopen).
   scrollDriveJustRestored = false;
   scrollDriveSuppressNextRefit = false;
+  // S1am — Present exit ≠ Review clear; force-clear cue even if planted mid-Present.
+  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+    clearScrollDriveReviewStayClearedCue();
+  } else {
+    scrollDriveReviewStayCleared = false;
+  }
   const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
   if (vp) {
     vp.removeAttribute("data-scroll-present-paused");
     vp.removeAttribute("data-scroll-present-stay");
+    // Belt: cue clear may early-return when memory already false — still scrub DOM.
+    vp.removeAttribute("data-scroll-review-clear");
   }
   const d = emptyScrollDrive();
   d.presentPaused = false;
   d.presentStayStashed = false;
-  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
+  d.reviewStayCleared = false;
   publishScrollDrive(d);
 }
 
