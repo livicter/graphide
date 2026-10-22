@@ -687,6 +687,8 @@ let scrollDriveLastShownSourceId = "";
 let scrollDriveJustRestored = false;
 /** S1ae — one-shot: soft stay just applied; next refitChartSoon rAF must not wipe it. */
 let scrollDriveSuppressNextRefit = false;
+/** S1af — short-lived honesty: Review restart / desk empty just cleared stay (not a restore). */
+let scrollDriveReviewStayCleared = false;
 
 function emptyScrollDrive() {
   return {
@@ -720,6 +722,7 @@ function emptyScrollDrive() {
     rafMerged: 0,
     presentPaused: false,
     presentStayStashed: false,
+    reviewStayCleared: false,
     camXSettled: false,
     camYSettled: false,
   };
@@ -770,6 +773,8 @@ function resetScrollDrive() {
     d.presentPaused = true;
     d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
   }
+  // S1af — keep Review-clear cue published until soft-stash / cold open clears it.
+  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
   publishScrollDrive(d);
 }
 
@@ -1029,6 +1034,8 @@ function stashScrollDriveLastStay() {
   };
   if (ws) scrollDriveLastStay.ws = ws;
   persistScrollDriveLastStay(scrollDriveLastStay);
+  // S1af — building a new stay ends the Review-clear honesty cue.
+  if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
   return true;
 }
 
@@ -1038,6 +1045,41 @@ function clearScrollDriveLastStay() {
   scrollDriveJustRestored = false;
   scrollDriveSuppressNextRefit = false;
   clearPersistedScrollDriveLastStay();
+}
+
+
+/** S1af — publish / clear Review-restart stay-clear honesty cue (parity with S1ad
+ *  presentStayStashed). Cue means clear ran — never implies soft-restore.
+ *  Clear path mutates in place (no full republish) so mid-drive stash cannot
+ *  snapshot-stomp a live ScrollDrive publish. */
+function setScrollDriveReviewStayClearedCue(on) {
+  scrollDriveReviewStayCleared = !!on;
+  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+  if (vp) {
+    if (on) vp.setAttribute("data-scroll-review-clear", "1");
+    else vp.removeAttribute("data-scroll-review-clear");
+  }
+  const cur =
+    typeof window !== "undefined" && window.__graphideScrollDrive
+      ? window.__graphideScrollDrive
+      : null;
+  if (cur) {
+    cur.reviewStayCleared = !!on;
+  } else if (on) {
+    // No live publish yet — seed a tiny honesty publish for harness.
+    const d = emptyScrollDrive();
+    d.reviewStayCleared = true;
+    publishScrollDrive(d);
+  }
+}
+
+function clearScrollDriveReviewStayClearedCue() {
+  if (!scrollDriveReviewStayCleared) {
+    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+    if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+    return;
+  }
+  setScrollDriveReviewStayClearedCue(false);
 }
 
 /** S1ac — Review restart / desk clear: wipe in-memory last-stay + current workspace
@@ -1057,6 +1099,12 @@ function clearScrollDriveLastStayOnReviewRestart() {
   scrollDriveWasMacro = false;
   scrollDriveLastShownSourceId = "";
   clearPersistedScrollDriveLastStay();
+  // S1af — short-lived honesty cue (cleared on next soft-stash / cold open).
+  if (typeof setScrollDriveReviewStayClearedCue === "function") {
+    setScrollDriveReviewStayClearedCue(true);
+  } else {
+    scrollDriveReviewStayCleared = true;
+  }
   return true;
 }
 
@@ -1178,6 +1226,8 @@ function softRestoreScrollDriveFromLastStay(nextSourceId) {
   if (typeof setCamTarget === "function") {
     setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
   }
+  // S1af — soft-restore ends Review-clear cue (next open owns cam again).
+  if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
   return true;
 }
 
@@ -1423,6 +1473,7 @@ function pauseScrollDriveForPresent() {
   const d = emptyScrollDrive();
   d.presentPaused = true;
   d.presentStayStashed = !!stayStashed;
+  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
   publishScrollDrive(d);
 }
 
@@ -1442,6 +1493,7 @@ function resumeScrollDriveAfterPresent() {
   const d = emptyScrollDrive();
   d.presentPaused = false;
   d.presentStayStashed = false;
+  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
   publishScrollDrive(d);
 }
 
@@ -2667,6 +2719,7 @@ function flushScrollDrive() {
     const paused = emptyScrollDrive();
     paused.presentPaused = true;
     paused.presentStayStashed = !!stayStashed;
+    paused.reviewStayCleared = !!scrollDriveReviewStayCleared;
     publishScrollDrive(paused);
     return;
   }
@@ -2784,6 +2837,7 @@ function flushScrollDrive() {
     rafMerged: scrollDriveRafMerged,
     presentPaused: false,
     presentStayStashed: false,
+    reviewStayCleared: !!scrollDriveReviewStayCleared,
     camXSettled: !!scrollDriveCamXSettled,
     camYSettled: !!scrollDriveCamYSettled,
   });
@@ -5846,6 +5900,8 @@ function showSource(msg, opts) {
     }
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   } else if (typeof resetScrollDrive === "function") {
+    // S1af — cold open ends Review-clear honesty cue.
+    if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
     scrollDriveBase = null;
     scrollDriveTargetLocked = "";
     scrollDriveCamXSettled = false;

@@ -20243,6 +20243,7 @@
     let scrollDriveLastShownSourceId = "";
     let scrollDriveJustRestored = false;
     let scrollDriveSuppressNextRefit = false;
+    let scrollDriveReviewStayCleared = false;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20275,6 +20276,7 @@
         rafMerged: 0,
         presentPaused: false,
         presentStayStashed: false,
+        reviewStayCleared: false,
         camXSettled: false,
         camYSettled: false
       };
@@ -20320,6 +20322,7 @@
         d.presentPaused = true;
         d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
       }
+      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
       publishScrollDrive(d);
     }
     function softStayScrollDriveAcrossSourceHop() {
@@ -20533,6 +20536,7 @@
       };
       if (ws) scrollDriveLastStay.ws = ws;
       persistScrollDriveLastStay(scrollDriveLastStay);
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
       return true;
     }
     function clearScrollDriveLastStay() {
@@ -20540,6 +20544,30 @@
       scrollDriveJustRestored = false;
       scrollDriveSuppressNextRefit = false;
       clearPersistedScrollDriveLastStay();
+    }
+    function setScrollDriveReviewStayClearedCue(on2) {
+      scrollDriveReviewStayCleared = !!on2;
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        if (on2) vp.setAttribute("data-scroll-review-clear", "1");
+        else vp.removeAttribute("data-scroll-review-clear");
+      }
+      const cur = typeof window !== "undefined" && window.__graphideScrollDrive ? window.__graphideScrollDrive : null;
+      if (cur) {
+        cur.reviewStayCleared = !!on2;
+      } else if (on2) {
+        const d = emptyScrollDrive();
+        d.reviewStayCleared = true;
+        publishScrollDrive(d);
+      }
+    }
+    function clearScrollDriveReviewStayClearedCue() {
+      if (!scrollDriveReviewStayCleared) {
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+        return;
+      }
+      setScrollDriveReviewStayClearedCue(false);
     }
     function clearScrollDriveLastStayOnReviewRestart() {
       scrollDriveLastStay = null;
@@ -20553,6 +20581,11 @@
       scrollDriveWasMacro = false;
       scrollDriveLastShownSourceId = "";
       clearPersistedScrollDriveLastStay();
+      if (typeof setScrollDriveReviewStayClearedCue === "function") {
+        setScrollDriveReviewStayClearedCue(true);
+      } else {
+        scrollDriveReviewStayCleared = true;
+      }
       return true;
     }
     function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
@@ -20646,6 +20679,7 @@
       if (typeof setCamTarget === "function") {
         setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
       }
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
       return true;
     }
     if (typeof window !== "undefined") {
@@ -20835,6 +20869,7 @@
       const d = emptyScrollDrive();
       d.presentPaused = true;
       d.presentStayStashed = !!stayStashed;
+      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
       publishScrollDrive(d);
     }
     function resumeScrollDriveAfterPresent() {
@@ -20849,6 +20884,7 @@
       const d = emptyScrollDrive();
       d.presentPaused = false;
       d.presentStayStashed = false;
+      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
       publishScrollDrive(d);
     }
     function readSrcActiveLine() {
@@ -21855,6 +21891,7 @@
         const paused = emptyScrollDrive();
         paused.presentPaused = true;
         paused.presentStayStashed = !!stayStashed;
+        paused.reviewStayCleared = !!scrollDriveReviewStayCleared;
         publishScrollDrive(paused);
         return;
       }
@@ -21963,6 +22000,7 @@
         rafMerged: scrollDriveRafMerged,
         presentPaused: false,
         presentStayStashed: false,
+        reviewStayCleared: !!scrollDriveReviewStayCleared,
         camXSettled: !!scrollDriveCamXSettled,
         camYSettled: !!scrollDriveCamYSettled
       });
@@ -24641,6 +24679,7 @@
         }
         if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
       } else if (typeof resetScrollDrive === "function") {
+        if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
         scrollDriveCamXSettled = false;

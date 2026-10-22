@@ -13261,6 +13261,262 @@ async function main() {
         JSON.stringify({ dx: s1aeDx, dy: s1aeDy, dk: s1aeDk })
     );
 
+    // S1af — Review-clear UI cue (parity with S1ad presentStayStashed).
+    // After a warm stay, Review-restart clear publishes reviewStayCleared +
+    // data-scroll-review-clear (clear happened — not a restore). Soft-restore
+    // still skipped. Next soft-stash / cold open clears the cue.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1af://folder");
+      }
+    });
+    // Ensure Evidence open + mid-file stay so stash is warm before clear.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1af", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(8100 + i, "s1af lead " + i);
+      const ownRow = addLine(11, "s1af own span n1");
+      for (let k = 0; k < 36; k++) addLine(9100 + k, "s1af far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.2 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForTimeout(160);
+    // Close Evidence so stash lands (memory + storage), then Review-restart clear.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afBeforeClear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      // Ensure warm stay if close did not stash (base already wiped).
+      if (!raw && typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        const planted = JSON.stringify({
+          sourceId: "n1",
+          x: 11,
+          y: 22,
+          k: 1.15,
+          t: Date.now(),
+          ws: "ws-s1af://folder",
+        });
+        try {
+          sessionStorage.setItem(key, planted);
+          raw = planted;
+        } catch (_) {
+          try {
+            localStorage.setItem(key, planted);
+            raw = planted;
+          } catch (__) {}
+        }
+      }
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        hasRaw: !!raw,
+        hasHook: typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    const s1afCleared = await page.evaluate(() => {
+      const cleared =
+        typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function"
+          ? window.__graphideClearScrollDriveLastStayOnReviewRestart()
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      const cueAttr = !!(
+        document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+        document.querySelector('[data-scroll-review-clear="1"]')
+      );
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      return {
+        cleared: !!cleared,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: cueAttr,
+        restored: !!restored,
+        probed: probed,
+        presentStayStashed: !!d.presentStayStashed,
+      };
+    });
+    // Soft-stash a new stay → cue must clear (one-shot).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afAfterCold = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = Math.max(0, (body.scrollHeight - body.clientHeight) * 0.4);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return true;
+    });
+    await page.waitForTimeout(120);
+    // Stash via Evidence close.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afAfterStash = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const cueAttr = !!(
+        document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+        document.querySelector('[data-scroll-review-clear="1"]')
+      );
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: cueAttr,
+      };
+    });
+    // Cold-open clear path: clear again, then reopen without soft-restore material → cue drops on cold open.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+    });
+    const s1afRecleared = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(80);
+    const s1afAfterColdOpen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1af",
+      "Review-clear publishes short-lived stay-cleared cue (not a restore); soft-stash / cold open clears it",
+      s1afSetup.ok &&
+        s1afBeforeClear.hasHook &&
+        !s1afBeforeClear.reviewStayCleared &&
+        !s1afBeforeClear.cueAttr &&
+        s1afCleared.cleared &&
+        s1afCleared.reviewStayCleared === true &&
+        s1afCleared.cueAttr === true &&
+        !s1afCleared.restored &&
+        (s1afCleared.probed == null || s1afCleared.probed === false) &&
+        !s1afCleared.presentStayStashed &&
+        s1afAfterStash.reviewStayCleared === false &&
+        s1afAfterStash.cueAttr === false &&
+        s1afRecleared.reviewStayCleared === true &&
+        s1afRecleared.cueAttr === true &&
+        s1afAfterColdOpen.paneOpen &&
+        s1afAfterColdOpen.reviewStayCleared === false &&
+        s1afAfterColdOpen.cueAttr === false,
+      "setup=" +
+        JSON.stringify(s1afSetup) +
+        " beforeClear=" +
+        JSON.stringify(s1afBeforeClear) +
+        " cleared=" +
+        JSON.stringify(s1afCleared) +
+        " afterStash=" +
+        JSON.stringify(s1afAfterStash) +
+        " recleared=" +
+        JSON.stringify(s1afRecleared) +
+        " afterColdOpen=" +
+        JSON.stringify(s1afAfterColdOpen)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
