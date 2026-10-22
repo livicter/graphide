@@ -12456,6 +12456,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1av — settle-before-sample warm (S1aa): require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -12464,13 +12465,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(160);
     const s1aaBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const key =
@@ -12582,7 +12582,9 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(120);
+    // S1av — sample first soft-restore step after reload reopen (one paint), not a fixed 120ms
+    // mid-tween stack. Product soft-restore caps unchanged.
+    await page.waitForTimeout(16);
     const s1aaAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -12606,7 +12608,8 @@ async function main() {
     const s1aaDxSnap = Math.abs((Number(s1aaAfterReopen.camX) || 0) - (Number(s1aaStashed.x) || 0));
     const s1aaDySnap = Math.abs((Number(s1aaAfterReopen.camY) || 0) - (Number(s1aaStashed.y) || 0));
     const s1aaDkSnap = Math.abs((Number(s1aaAfterReopen.camK) || 0) - (Number(s1aaStashed.k) || 0));
-    // Pad + mid-scroll so settle flags re-absorb after restore.
+    // S1av — pad if needed; land mid-file once, then tiny nudge so settle flags re-absorb
+    // without SCROLL_MACRO_VEL (no multi-step burst).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -12621,13 +12624,13 @@ async function main() {
         }
       }
       const max = Math.max(1, body.scrollHeight - body.clientHeight);
-      body.scrollTop = Math.floor(max * 0.45);
-      body.dispatchEvent(new Event("scroll"));
-      const base = body.scrollTop;
-      for (let i = 0; i < 5; i++) {
-        body.scrollTop = base + i * 2;
-        body.dispatchEvent(new Event("scroll"));
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
       }
+      body.dispatchEvent(new Event("scroll"));
     });
     await page.waitForFunction(
       () => {
@@ -12635,7 +12638,28 @@ async function main() {
         return !!(
           d &&
           !d.presentPaused &&
-          Number(d.scrollRatio) > 0.15 &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1av — settle-before-sample resettle (S1aa): require !macroLod + settle flags.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
           Number(d.scrollVel) < 0.12 &&
           (d.camXSettled === true || d.camYSettled === true)
         );
@@ -12695,6 +12719,7 @@ async function main() {
         !s1aaBefore.presentPaused &&
         Number.isFinite(s1aaBefore.camX) &&
         Number.isFinite(s1aaBefore.camY) &&
+        (s1aaBefore.camXSettled === true || s1aaBefore.camYSettled === true) &&
         s1aaStashed.hasRaw &&
         s1aaStashed.sourceId === "n1" &&
         Number.isFinite(s1aaStashed.x) &&
@@ -12711,6 +12736,7 @@ async function main() {
         (s1aaDy <= 240 || s1aaDySnap <= 240) &&
         (s1aaDk <= 0.55 || s1aaDkSnap <= 0.55) &&
         !s1aaResettle.presentPaused &&
+        !s1aaResettle.macroLod &&
         !!s1aaResettle.targetNodeId &&
         Number(s1aaResettle.ratio) > 0.1 &&
         (s1aaResettle.camXSettled === true || s1aaResettle.camYSettled === true) &&
@@ -12824,6 +12850,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1av — settle-before-sample warm (S1ab): require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -12832,13 +12859,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(160);
     const s1abBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -12847,6 +12873,8 @@ async function main() {
         camK: Number(d.camK),
         ratio: Number(d.scrollRatio) || 0,
         targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
         ws: window.__graphideScrollDriveWorkspaceKey || "",
         key: window.__graphideScrollDriveLastStayKey || "",
         macroLod: !!d.macroLod,
@@ -12988,7 +13016,9 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(140);
+    // S1av — sample first soft-restore step after host re-post (one paint), not a fixed 140ms
+    // mid-tween stack. Product soft-restore caps unchanged.
+    await page.waitForTimeout(16);
     const s1abAfterRepost = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -13018,6 +13048,7 @@ async function main() {
         s1abBefore.ws === "ws-a://folder" &&
         !s1abBefore.macroLod &&
         !s1abBefore.presentPaused &&
+        (s1abBefore.camXSettled === true || s1abBefore.camYSettled === true) &&
         s1abStashedA.hasRaw &&
         s1abStashedA.sourceId === "n1" &&
         (s1abStashedA.ws === "ws-a://folder" || s1abStashedA.ws === "") &&
@@ -13029,6 +13060,7 @@ async function main() {
         s1abCross.crossBlocked &&
         !s1abCross.hasRawB &&
         !s1abAfterRepost.presentPaused &&
+        !s1abAfterRepost.macroLod &&
         !!s1abAfterRepost.targetNodeId &&
         s1abAfterRepost.ws === "ws-a://folder" &&
         (s1abDx <= 96 + 40 || s1abDxSnap <= 96 + 40) &&
@@ -13065,6 +13097,74 @@ async function main() {
         s1abDySnap +
         " dkSnap=" +
         s1abDkSnap
+    );
+
+    // S1av — reload / host re-post settle-before-sample probe (parity with S1ah/S1as/S1at/S1au).
+    // After S1aa/S1ab, confirm still !macroLod + settle + low vel (single sample).
+    // Tiny nudge so settle flags re-absorb after S1ab soft-restore (which clears them).
+    // Product soft-restore caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 24; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1av-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (9300 + i) + '</span><span class="tx">s1av pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.4);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1avSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1av",
+      "reload/host-repost settle-before-sample: post-S1aa/S1ab still micro+settled (!macroLod; no mid-tween)",
+      !s1avSnap.presentPaused &&
+        !s1avSnap.macroLod &&
+        (s1avSnap.camXSettled === true || s1avSnap.camYSettled === true) &&
+        s1avSnap.scrollVel < 0.12 &&
+        !!s1avSnap.targetNodeId &&
+        Number.isFinite(s1avSnap.camX) &&
+        Number.isFinite(s1avSnap.camK),
+      "snap=" + JSON.stringify(s1avSnap)
     );
 
     // S1ac — Review restart clear / multi-folder stay polish.
