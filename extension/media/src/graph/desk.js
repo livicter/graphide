@@ -1174,6 +1174,8 @@ function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
 if (typeof window !== "undefined") {
   window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
   window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
+  // S1aq harness — stash a fresh stay after cold open so Present→Evidence round-trip is explicit.
+  window.__graphideStashScrollDriveLastStay = stashScrollDriveLastStay;
   // S1ai harness — plant/clear Review-clear cue without wiping last-stay (mutual-exclusion probes).
   window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
   window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();

@@ -14378,6 +14378,208 @@ async function main() {
         JSON.stringify(s1aoAfterReopen)
     );
 
+    // S1aq — soft-restore round-trip after fresh stay post-S1ao wipe.
+    // Cold open left Evidence open with no wiped-stay restore; build a NEW stay
+    // (scroll + settle), Present stash, exit, reopen same source → softStayed true.
+    const s1aqSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Ensure scrollable body so ScrollDrive can seed a fresh base.
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1aq-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (9100 + i) + '</span><span class="tx">s1aq pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.42);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.15)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(120);
+    const s1aqBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      // Force a stash of the fresh stay so Present enter has warm material.
+      let stashOk = false;
+      if (typeof window.__graphideStashScrollDriveLastStay === "function") {
+        stashOk = !!window.__graphideStashScrollDriveLastStay();
+      }
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        hasRaw: hasRaw,
+        probedOk: !!(probed && probed.sourceId === "n1"),
+        hasStashHook: typeof window.__graphideStashScrollDriveLastStay === "function",
+        stashOk: stashOk,
+      };
+    });
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1aqPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    // Clear prior softStayed flag so reopen result is honest.
+    await page.evaluate(() => {
+      window.__graphideScrollDriveShowSourceSoftStayed = false;
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(200);
+    const s1aqAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        hasSoftFlag: typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean",
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        targetNodeId: d.targetNodeId || "",
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        skipRefit: skip,
+      };
+    });
+    const s1aqDx = Math.abs((Number(s1aqAfterReopen.camX) || 0) - (Number(s1aqBefore.camX) || 0));
+    const s1aqDy = Math.abs((Number(s1aqAfterReopen.camY) || 0) - (Number(s1aqBefore.camY) || 0));
+    record(
+      "S1aq",
+      "After S1ao wipe, fresh stay Present→Evidence soft-restores again (round-trip)",
+      s1aqSetup.ok &&
+        !!s1aqBefore.targetNodeId &&
+        s1aqBefore.hasStashHook &&
+        s1aqBefore.stashOk &&
+        (s1aqBefore.hasRaw || s1aqBefore.probedOk) &&
+        s1aqPresent.presentPaused &&
+        s1aqPresent.presentStayStashed === true &&
+        s1aqPresent.paneHidden &&
+        s1aqPresent.reviewStayCleared === false &&
+        s1aqAfterReopen.paneOpen &&
+        s1aqAfterReopen.hasSoftFlag &&
+        s1aqAfterReopen.softStayed === true &&
+        !s1aqAfterReopen.presentPaused &&
+        !s1aqAfterReopen.reviewStayCleared &&
+        !!s1aqAfterReopen.targetNodeId &&
+        Number.isFinite(s1aqAfterReopen.camX) &&
+        Number.isFinite(s1aqAfterReopen.camY) &&
+        s1aqDx <= 120 &&
+        s1aqDy <= 160,
+      "setup=" +
+        JSON.stringify(s1aqSetup) +
+        " before=" +
+        JSON.stringify(s1aqBefore) +
+        " present=" +
+        JSON.stringify(s1aqPresent) +
+        " afterReopen=" +
+        JSON.stringify(s1aqAfterReopen) +
+        " dx=" +
+        s1aqDx +
+        " dy=" +
+        s1aqDy
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

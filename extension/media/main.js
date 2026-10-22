@@ -20632,6 +20632,7 @@
     if (typeof window !== "undefined") {
       window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
       window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
+      window.__graphideStashScrollDriveLastStay = stashScrollDriveLastStay;
       window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
       window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
       window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
