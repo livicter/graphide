@@ -939,6 +939,118 @@ if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
 }
 
+/** S1y — Map↔Slice workspace hop remounts the canvas mid ScrollDrive while Evidence
+ *  stays open (same sourceId, no Present). Prefer warm S1w last-stay when cam was
+ *  wiped by bindStage reset / scheduleFit ResizeObserver; else re-seed from live
+ *  camTo like S1x. Soft-follow mapped target on Slice return (S1q/S1t); skip hard
+ *  zoomToEl. Map landing keeps stay warm without a flush soft-follow (no slice
+ *  vnodes — avoids stacking ±80 camX). Returns true when soft stay applied. */
+function softStayScrollDriveAcrossMapSliceHop() {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (!sourcePane || sourcePane.hidden || !srcBody) return false;
+  const sid = sourceId ? String(sourceId) : "";
+  if (!sid) return false;
+  // Drop lingering scheduleFit ResizeObserver — workspace resize on Map↔Slice must
+  // not fitChart-yank the soft-stay camera mid-hop.
+  if (typeof stageFitRo !== "undefined" && stageFitRo) {
+    stageFitRo.disconnect();
+    stageFitRo = null;
+  }
+  const snap = scrollDriveLastStay;
+  const snapOk =
+    snap &&
+    String(snap.sourceId) === sid &&
+    (() => {
+      const age = Date.now() - (Number(snap.t) || 0);
+      return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+    })();
+  const seedFromSnap = () => {
+    if (!snapOk) return false;
+    scrollDriveBase = {
+      x: Number.isFinite(snap.x) ? snap.x : 0,
+      y: Number.isFinite(snap.y) ? snap.y : 0,
+      k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1,
+    };
+    scrollDriveTargetLocked = "";
+    scrollDriveCamXSettled = false;
+    scrollDriveCamYSettled = false;
+    scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
+    scrollDriveWasMacro = false;
+    scrollDriveJustRestored = true;
+    clearScrollDriveCfgPaint();
+    clearScrollDriveLineMapPaint();
+    clearScrollDriveActiveLinePaint();
+    clearScrollDriveMacroPaint();
+    if (typeof setCamTarget === "function") {
+      setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+    }
+    return true;
+  };
+  // Map landing — keep stay warm; do NOT flush soft-follow (would stack camX caps
+  // with no slice vnode, and Map fit is deferred until Evidence closes / cold remount).
+  if (explorerWs === "map") {
+    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+    if (seedFromSnap() || scrollDriveBase) {
+      if (!snapOk && scrollDriveBase && typeof setCamTarget === "function") {
+        setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+      }
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveWasMacro = false;
+      scrollDriveJustRestored = true;
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      return true;
+    }
+    return false;
+  }
+  // Slice return — prefer snap when cam was yanked; else desk-remount soft stay + flush.
+  if (snapOk) {
+    const close =
+      Number.isFinite(camTo.x) &&
+      Number.isFinite(camTo.y) &&
+      Math.abs(camTo.x - snap.x) < 120 &&
+      Math.abs(camTo.y - snap.y) < 160 &&
+      Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
+    if (!close) {
+      if (seedFromSnap()) {
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+    } else {
+      // Cam still near pre-hop stay — re-assert snap exactly (no stacked soft-follow).
+      if (seedFromSnap()) {
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        // Flush rebuilds CFG / lineMap / active-line (S1l); justRestored soft-stays.
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+    }
+  }
+  let ok = false;
+  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+    ok = softStayScrollDriveAcrossDeskRemount();
+  }
+  if (ok && scrollDriveBase && typeof setCamTarget === "function") {
+    setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+  }
+  return ok;
+}
+// Harness / desk glue — Map↔Slice remount soft stay (S1y).
+if (typeof window !== "undefined") {
+  window.__graphideSoftStayScrollDriveAcrossMapSliceHop = softStayScrollDriveAcrossMapSliceHop;
+}
+
 /** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
 function pauseScrollDriveForPresent() {
   // S1w — remember stay before wipe (closeSourcePane may already have stashed).
@@ -3691,6 +3803,7 @@ function popEnterFrames() {
 
 function setWorkspace(name, pin) {
   if (WORKSPACES.indexOf(name) < 0) return;
+  const prevWs = explorerWs;
   if (name !== explorerWs) {
     const n = popEnterFrames();
     for (let i = 0; i < n; i++) vscode.postMessage({ type: "back" });
@@ -3704,10 +3817,34 @@ function setWorkspace(name, pin) {
     const selected = selectedNodeId ? idVal(selectedNodeId) : "";
     if (selected && hasLineageHops(selected)) lineageEgoId = selected;
   }
+  // S1y — Map↔Slice remount mid-drive: stash stay + keepCam while Evidence open
+  // (same sourceId). Closed Evidence / sourceId change falls through to S1v/S1w.
+  const mapSliceHop =
+    (prevWs === "map" && name === "slice") || (prevWs === "slice" && name === "map");
+  const evidenceStay =
+    mapSliceHop &&
+    sourcePane &&
+    !sourcePane.hidden &&
+    !!sourceId &&
+    !(typeof isPresenting === "function" && isPresenting()) &&
+    (!!scrollDriveBase ||
+      (typeof scrollDriveLastStayMatches === "function" &&
+        scrollDriveLastStayMatches(String(sourceId))));
+  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+    stashScrollDriveLastStay();
+  }
+  // S1y — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
+  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+    stageFitRo.disconnect();
+    stageFitRo = null;
+  }
   explorerWs = name;
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
-  paint({ animate: "none" });
+  paint({ animate: "none", keepCam: !!evidenceStay });
+  if (evidenceStay && typeof softStayScrollDriveAcrossMapSliceHop === "function") {
+    softStayScrollDriveAcrossMapSliceHop();
+  }
   flashCanvas();
 }
 
