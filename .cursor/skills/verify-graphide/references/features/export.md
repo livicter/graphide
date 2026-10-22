@@ -18,6 +18,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Opening Present closes Export (`K18i`), same exclusive chrome as Present closing Ask / Keys.
 - Opening Export closes Evidence (`K18s`), same exclusive chrome as Keys closing Evidence (`K18p`).
 - Opening Export closes Lens (`K18t`), same exclusive chrome as Keys closing Lens (`K18q`).
+- Opening Lens closes Export (`K18ab`), same exclusive chrome as Export closing Lens (`K18t`).
 - Opening Export closes Route (`K18u`), same exclusive chrome as Keys closing Route (`K18r`).
 - Open Export blocks desk L so LENS stays closed (`K15h`), same as Keys (`K15f`) / Ask (`K15g`).
 - Open Export blocks desk F so Present stays off (`K15i`), same chrome key lock as S / X / R / L under Export.
@@ -82,6 +83,7 @@ Driver assertions:
 - opening Present closes Export (`K18i`)
 - opening Export closes Evidence (`K18s`)
 - opening Export closes Lens (`K18t`)
+- opening Lens closes Export (`K18ab`)
 - opening Export closes Route (`K18u`)
 - open Export: L does not open LENS (`K15h`)
 - open Export: F does not enter Present (`K15i`)

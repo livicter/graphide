@@ -7792,6 +7792,35 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Lens must close Export (setLensOpen exclusivity — Lens clears Export chrome).
+    // Reverse of Export closing Lens (K18t). Use #lensBtn: desk L is blocked while Export is open.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedExport = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18ab",
+      "Opening Lens closes Export (exclusive chrome)",
+      lensClosedExport.lensOpen && !lensClosedExport.exportOpen,
+      JSON.stringify(lensClosedExport)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
     // Reopen Evidence for S1a scroll-drive suite.
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
