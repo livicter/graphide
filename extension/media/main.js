@@ -24333,6 +24333,7 @@
         if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
         if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
         if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
+        if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
         if (typeof hideTip === "function") hideTip();
         if (toastEl) {
           toastEl.classList.remove("on");
