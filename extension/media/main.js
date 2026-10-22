@@ -20242,6 +20242,7 @@
     let scrollDriveWorkspaceKey = "";
     let scrollDriveLastShownSourceId = "";
     let scrollDriveJustRestored = false;
+    let scrollDriveSuppressNextRefit = false;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20289,6 +20290,7 @@
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20334,6 +20336,7 @@
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
       else scrollDriveLastStay = null;
       clearScrollDriveCfgPaint();
@@ -20375,6 +20378,7 @@
       }
       scrollDriveLastStay = null;
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       scrollDriveWorkspaceKey = key;
       if (typeof window !== "undefined") {
         window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
@@ -20534,11 +20538,13 @@
     function clearScrollDriveLastStay() {
       scrollDriveLastStay = null;
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       clearPersistedScrollDriveLastStay();
     }
     function clearScrollDriveLastStayOnReviewRestart() {
       scrollDriveLastStay = null;
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
       scrollDriveCamXSettled = false;
@@ -20811,6 +20817,7 @@
       scrollDriveWasMacro = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
@@ -20833,6 +20840,7 @@
     function resumeScrollDriveAfterPresent() {
       setCamEase(CAM_EASE_BASE);
       scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
       const vp = viewportEl || canvas && canvas.querySelector(".viewport");
       if (vp) {
         vp.removeAttribute("data-scroll-present-paused");
@@ -21829,6 +21837,7 @@
         scrollDriveWasMacro = false;
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
         scrollDriveJustRestored = false;
+        scrollDriveSuppressNextRefit = false;
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
         clearScrollDriveLineMapPaint();
@@ -23385,8 +23394,25 @@
       const ws = document.getElementById("workspace");
       if (ws) stageFitRo.observe(ws);
     }
+    function shouldSkipRefitForScrollDriveStay() {
+      if (scrollDriveSuppressNextRefit) return true;
+      if (scrollDriveJustRestored) return true;
+      return !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+    }
     function refitChartSoon() {
-      requestAnimationFrame(() => fitChart());
+      requestAnimationFrame(() => {
+        if (scrollDriveSuppressNextRefit) {
+          scrollDriveSuppressNextRefit = false;
+          return;
+        }
+        if (scrollDriveJustRestored) return;
+        fitChart();
+      });
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideShouldSkipRefitForScrollDriveStay = function() {
+        return typeof shouldSkipRefitForScrollDriveStay === "function" && !!shouldSkipRefitForScrollDriveStay();
+      };
     }
     function zoomBy(factor) {
       const stage = canvas.querySelector(".stage");
@@ -24608,6 +24634,11 @@
         softStayed = true;
       }
       if (softStayed) {
+        scrollDriveSuppressNextRefit = true;
+        if (typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
         if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
       } else if (typeof resetScrollDrive === "function") {
         scrollDriveBase = null;

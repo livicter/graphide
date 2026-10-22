@@ -13014,6 +13014,253 @@ async function main() {
         JSON.stringify(s1adColdRestore)
     );
 
+    // S1ae — Present-exit soft-stay vs refitChartSoon: reopen must not be wiped by rAF fit.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ae://folder");
+      }
+    });
+    // Closed pane + no stay → auto refit must NOT skip (Evidence close / stage fit stays honest).
+    const s1aeSkipCold = await page.evaluate(() => {
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : null;
+      return { skip, hasHook: typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function" };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aeSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ae", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(6100 + i, "s1ae lead " + i);
+      const ownRow = addLine(11, "s1ae own span n1");
+      for (let k = 0; k < 36; k++) addLine(7100 + k, "s1ae far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(180);
+    const s1aeBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        skipRefit: skip,
+      };
+    });
+    // Present on — Evidence closes; warm last-stay still means reopen would skip hard fit.
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1aePresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : null;
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+        skipRefit: skip,
+      };
+    });
+    // Present off alone — no half-restore; then reopen same Evidence (revealSourcePane refit must skip).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    const s1aeAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Allow soft-restore setCamTarget + skipped refit rAF to settle.
+    await page.waitForTimeout(200);
+    const s1aeAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        skipRefit: skip,
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    const s1aeDx = Math.abs((Number(s1aeAfterReopen.camX) || 0) - (Number(s1aeBefore.camX) || 0));
+    const s1aeDy = Math.abs((Number(s1aeAfterReopen.camY) || 0) - (Number(s1aeBefore.camY) || 0));
+    const s1aeDk = Math.abs((Number(s1aeAfterReopen.camK) || 0) - (Number(s1aeBefore.camK) || 0));
+    record(
+      "S1ae",
+      "Present→Evidence reopen soft-stay survives refitChartSoon (skip hard fit; exit alone no half-restore)",
+      s1aeSkipCold.hasHook &&
+        s1aeSkipCold.skip === false &&
+        s1aeSetup.ok &&
+        !s1aeBefore.presentPaused &&
+        s1aeBefore.skipRefit === true &&
+        Number.isFinite(s1aeBefore.camX) &&
+        s1aePresent.presentPaused &&
+        s1aePresent.paneHidden &&
+        s1aePresent.skipRefit === true &&
+        !s1aeAfterExit.presentPaused &&
+        !s1aeAfterExit.presentStayStashed &&
+        !s1aeAfterExit.targetNodeId &&
+        Number(s1aeAfterExit.ratio) === 0 &&
+        s1aeAfterReopen.paneOpen &&
+        !!s1aeAfterReopen.targetNodeId &&
+        !s1aeAfterReopen.presentPaused &&
+        s1aeAfterReopen.skipRefit === true &&
+        Number.isFinite(s1aeAfterReopen.camX) &&
+        s1aeDx <= 96 + 24 &&
+        s1aeDy <= 200 &&
+        s1aeDk <= 0.45,
+      "skipCold=" +
+        JSON.stringify(s1aeSkipCold) +
+        " setup=" +
+        JSON.stringify(s1aeSetup) +
+        " before=" +
+        JSON.stringify(s1aeBefore) +
+        " present=" +
+        JSON.stringify(s1aePresent) +
+        " afterExit=" +
+        JSON.stringify(s1aeAfterExit) +
+        " afterReopen=" +
+        JSON.stringify(s1aeAfterReopen) +
+        " d=" +
+        JSON.stringify({ dx: s1aeDx, dy: s1aeDy, dk: s1aeDk })
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

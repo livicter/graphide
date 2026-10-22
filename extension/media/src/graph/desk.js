@@ -685,6 +685,8 @@ let scrollDriveWorkspaceKey = "";
 let scrollDriveLastShownSourceId = "";
 /** S1w — next applyScrollDriveCamera soft-stays keeping restored base (no camTo reseed). */
 let scrollDriveJustRestored = false;
+/** S1ae — one-shot: soft stay just applied; next refitChartSoon rAF must not wipe it. */
+let scrollDriveSuppressNextRefit = false;
 
 function emptyScrollDrive() {
   return {
@@ -735,6 +737,7 @@ function resetScrollDrive() {
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   // Keep scrollDriveLastStay — S1w Present/close reopen needs it across reset.
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
@@ -791,6 +794,7 @@ function softStayScrollDriveAcrossSourceHop() {
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   // S1w/S1aa — live file hop replaces any Present/close snapshot (memory + storage).
   if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
   else scrollDriveLastStay = null;
@@ -843,6 +847,7 @@ function setScrollDriveWorkspaceKey(next) {
   }
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   scrollDriveWorkspaceKey = key;
   if (typeof window !== "undefined") {
     window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
@@ -1031,6 +1036,7 @@ function stashScrollDriveLastStay() {
 function clearScrollDriveLastStay() {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   clearPersistedScrollDriveLastStay();
 }
 
@@ -1041,6 +1047,7 @@ function clearScrollDriveLastStay() {
 function clearScrollDriveLastStayOnReviewRestart() {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   // Kill live base so a subsequent closeSourcePane stash cannot revive prior cam.
   scrollDriveBase = null;
   scrollDriveTargetLocked = "";
@@ -1398,6 +1405,7 @@ function pauseScrollDriveForPresent() {
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   // S1ad — do not mark justRestored on pause; Present exit must not half-apply restore.
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
@@ -1425,6 +1433,7 @@ function resumeScrollDriveAfterPresent() {
   setCamEase(CAM_EASE_BASE);
   // S1ad — never half-apply restore on Present exit (wait for Evidence reopen).
   scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
   const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
   if (vp) {
     vp.removeAttribute("data-scroll-present-paused");
@@ -2640,6 +2649,7 @@ function flushScrollDrive() {
     scrollDriveWasMacro = false;
     scrollDriveVel = { t: 0, top: 0, vel: 0 };
     scrollDriveJustRestored = false;
+  scrollDriveSuppressNextRefit = false;
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
     clearScrollDriveLineMapPaint();
@@ -4407,8 +4417,35 @@ function scheduleFit(stage) {
   if (ws) stageFitRo.observe(ws);
 }
 
+/** S1ae — Present→Evidence / soft-stay reopen must not wipe cam with hard fit.
+ *  showSource sets `scrollDriveSuppressNextRefit` + disconnects scheduleFit RO when
+ *  soft-restore / soft-hop applies; refitChartSoon honors that one-shot. Probe also
+ *  reports true for warm last-stay (next reopen will soft-stay). Cold open still
+ *  hard-fits. closeSourcePane always fits. Present exit alone does not half-restore
+ *  (S1w). User Fit unchanged. */
+function shouldSkipRefitForScrollDriveStay() {
+  if (scrollDriveSuppressNextRefit) return true;
+  if (scrollDriveJustRestored) return true;
+  return !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+}
+
 function refitChartSoon() {
-  requestAnimationFrame(() => fitChart());
+  requestAnimationFrame(() => {
+    // One-shot from soft stay this open — do not wipe restore / hop cam.
+    if (scrollDriveSuppressNextRefit) {
+      scrollDriveSuppressNextRefit = false;
+      return;
+    }
+    if (scrollDriveJustRestored) return;
+    fitChart();
+  });
+}
+
+// S1ae — harness probe (call-time) for skip-refit honesty.
+if (typeof window !== "undefined") {
+  window.__graphideShouldSkipRefitForScrollDriveStay = function () {
+    return typeof shouldSkipRefitForScrollDriveStay === "function" && !!shouldSkipRefitForScrollDriveStay();
+  };
 }
 
 function zoomBy(factor) {
@@ -5737,6 +5774,8 @@ function revealSourcePane() {
   }
   sourcePane.hidden = false;
   if (workspace) workspace.classList.add("has-source");
+  // S1ae — always schedule; soft stay in showSource one-shot-suppresses the rAF
+  // fit (+ disconnects RO) so Present→Evidence restore is not wiped. Cold open fits.
   refitChartSoon();
 }
 
@@ -5798,6 +5837,13 @@ function showSource(msg, opts) {
     softStayed = true;
   }
   if (softStayed) {
+    // S1ae — suppress revealSourcePane rAF fit + drop scheduleFit RO so soft
+    // restore / hop is not wipe-then-fit (same RO disconnect pattern as S1y).
+    scrollDriveSuppressNextRefit = true;
+    if (typeof stageFitRo !== "undefined" && stageFitRo) {
+      stageFitRo.disconnect();
+      stageFitRo = null;
+    }
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   } else if (typeof resetScrollDrive === "function") {
     scrollDriveBase = null;

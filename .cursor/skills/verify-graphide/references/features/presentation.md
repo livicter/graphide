@@ -90,12 +90,13 @@ Driver assertions:
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
 
-- **S1m / S1ad / ScrollDrive:** entering Present pauses Evidence ScrollDrive
+- **S1m / S1ad / S1ae / ScrollDrive:** entering Present pauses Evidence ScrollDrive
   (`presentPaused`, no residual cam nudge) and stashes last-stay before the
   wipe (`presentStayStashed` / `data-scroll-present-stay` when warm — S1ad).
-  Exit resumes without yanking cam; soft restore waits for Evidence reopen.
+  Exit resumes without yanking cam; soft restore waits for Evidence reopen;
+  desk auto-refit one-shot-skips hard fit after soft stay reopen (S1ae).
   Does not change Lens/Route stage-overlay rules (`P6s` / `K14k`). Owned by
-  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1ad`); this map only notes
+  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1ae`); this map only notes
   the Present exclusive side-effect.
 
 ## Gotchas
