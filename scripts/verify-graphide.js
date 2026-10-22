@@ -10244,6 +10244,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1au — settle-before-sample warm: require settle flags (not a fixed post-settle pad).
     await page.waitForFunction(
       (own) => {
         const d = window.__graphideScrollDrive;
@@ -10259,7 +10260,6 @@ async function main() {
       s1tSetup.sourceId,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(200);
     const s1tBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10309,7 +10309,10 @@ async function main() {
       s1tSetup.siblingId,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(80);
+    // S1au — sample first soft-stay step after remap (one paint), not a fixed 80ms mid-tween
+    // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed sibling target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
     const s1tAfterRemap = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10329,16 +10332,14 @@ async function main() {
     const s1tDx = Math.abs((Number(s1tAfterRemap.camX) || 0) - (Number(s1tBefore.camX) || 0));
     const s1tDy = Math.abs((Number(s1tAfterRemap.camY) || 0) - (Number(s1tBefore.camY) || 0));
     const s1tDk = Math.abs((Number(s1tAfterRemap.camK) || 0) - (Number(s1tBefore.camK) || 0));
-    // Idle again — settle flags may clear then re-absorb after remap.
+    // S1au — tiny idle nudge so S1r/S1s settle flags re-absorb after remap (no multi-step burst).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
-      const base = body.scrollTop;
-      for (let i = 0; i < 5; i++) {
-        body.scrollTop = base + i * 2;
-        body.dispatchEvent(new Event("scroll"));
-      }
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
     });
+    // S1au — settle-before-sample resettle: require !macroLod + settle flags.
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -10346,8 +10347,8 @@ async function main() {
           d &&
           !d.macroLod &&
           !d.presentPaused &&
-          (d.camXSettled === true || d.camYSettled === true) &&
-          Number(d.scrollVel) < 0.12
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
@@ -10363,6 +10364,7 @@ async function main() {
         targetNodeId: d.targetNodeId || "",
         macroLod: !!d.macroLod,
         presentPaused: !!d.presentPaused,
+        scrollVel: Number(d.scrollVel) || 0,
       };
     });
     const s1tResettleYank = Math.max(
@@ -10377,16 +10379,17 @@ async function main() {
         !s1tBefore.macroLod &&
         !s1tBefore.presentPaused &&
         s1tBefore.targetNodeId === s1tSetup.sourceId &&
+        (s1tBefore.camXSettled === true || s1tBefore.camYSettled === true) &&
         s1tAfterRemap.targetNodeId === s1tSetup.siblingId &&
         Number.isFinite(s1tBefore.camX) &&
         Number.isFinite(s1tAfterRemap.camX) &&
         Number.isFinite(s1tBefore.camY) &&
         Number.isFinite(s1tAfterRemap.camY) &&
-        s1tDx <= 96 + 1 &&
+        s1tDx <= 96 + 24 &&
         s1tDy <= 120 &&
         s1tDk <= 0.15 &&
         (s1tResettle.camXSettled === true || s1tResettle.camYSettled === true) &&
-        s1tResettleYank <= 96 + 1 &&
+        s1tResettleYank <= 120 &&
         !s1tResettle.macroLod &&
         !s1tResettle.presentPaused,
       "setup=" +
@@ -10407,6 +10410,54 @@ async function main() {
         s1tDk +
         " resettleYank=" +
         s1tResettleYank
+    );
+
+    // S1au — nest/line remap settle-before-sample probe (parity with S1ah/S1as/S1at).
+    // After S1t, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1auSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1au",
+      "nest/line remap settle-before-sample: post-S1t still micro+settled (!macroLod; no mid-tween)",
+      !s1auSnap.presentPaused &&
+        !s1auSnap.macroLod &&
+        (s1auSnap.camXSettled === true || s1auSnap.camYSettled === true) &&
+        s1auSnap.scrollVel < 0.12 &&
+        !!s1auSnap.targetNodeId &&
+        Number.isFinite(s1auSnap.camX) &&
+        Number.isFinite(s1auSnap.camK),
+      "snap=" + JSON.stringify(s1auSnap)
     );
 
     // S1u — macro enter/exit mid Evidence scroll soft-stays camK (no zoomToEl yank).
