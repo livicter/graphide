@@ -1067,13 +1067,21 @@ function clearScrollDriveLastStay() {
 /** S1af — publish / clear Review-restart stay-clear honesty cue (parity with S1ad
  *  presentStayStashed). Cue means clear ran — never implies soft-restore.
  *  Clear path mutates in place (no full republish) so mid-drive stash cannot
- *  snapshot-stomp a live ScrollDrive publish. */
+ *  snapshot-stomp a live ScrollDrive publish.
+ *  S1an — Review clear wins over Present-stash: when turning cue on, drop
+ *  presentStayStashed / data-scroll-present-stay (stay was wiped — S1ac). Mid-Present
+ *  both cues must not stay true; Present pause flag itself is unchanged. */
 function setScrollDriveReviewStayClearedCue(on) {
   scrollDriveReviewStayCleared = !!on;
   const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
   if (vp) {
-    if (on) vp.setAttribute("data-scroll-review-clear", "1");
-    else vp.removeAttribute("data-scroll-review-clear");
+    if (on) {
+      vp.setAttribute("data-scroll-review-clear", "1");
+      // S1an — mutually exclusive with Present-stash honesty cue.
+      vp.removeAttribute("data-scroll-present-stay");
+    } else {
+      vp.removeAttribute("data-scroll-review-clear");
+    }
   }
   const cur =
     typeof window !== "undefined" && window.__graphideScrollDrive
@@ -1081,10 +1089,12 @@ function setScrollDriveReviewStayClearedCue(on) {
       : null;
   if (cur) {
     cur.reviewStayCleared = !!on;
+    if (on) cur.presentStayStashed = false;
   } else if (on) {
     // No live publish yet — seed a tiny honesty publish for harness.
     const d = emptyScrollDrive();
     d.reviewStayCleared = true;
+    d.presentStayStashed = false;
     publishScrollDrive(d);
   }
 }

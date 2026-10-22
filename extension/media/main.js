@@ -20558,15 +20558,21 @@
       scrollDriveReviewStayCleared = !!on2;
       const vp = viewportEl || canvas && canvas.querySelector(".viewport");
       if (vp) {
-        if (on2) vp.setAttribute("data-scroll-review-clear", "1");
-        else vp.removeAttribute("data-scroll-review-clear");
+        if (on2) {
+          vp.setAttribute("data-scroll-review-clear", "1");
+          vp.removeAttribute("data-scroll-present-stay");
+        } else {
+          vp.removeAttribute("data-scroll-review-clear");
+        }
       }
       const cur = typeof window !== "undefined" && window.__graphideScrollDrive ? window.__graphideScrollDrive : null;
       if (cur) {
         cur.reviewStayCleared = !!on2;
+        if (on2) cur.presentStayStashed = false;
       } else if (on2) {
         const d = emptyScrollDrive();
         d.reviewStayCleared = true;
+        d.presentStayStashed = false;
         publishScrollDrive(d);
       }
     }

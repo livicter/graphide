@@ -14196,6 +14196,102 @@ async function main() {
         JSON.stringify(s1amAfterExit)
     );
 
+    // S1an — Review clear mid-Present drops presentStayStashed (mutual exclusion).
+    // Re-enter Present (warm stay), confirm stash, Review-restart clear → review cue on
+    // and present-stash cue off while still presentPaused; Present exit still coherent.
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1anBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    const s1anAfterClear = await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      } else if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        hasClear:
+          typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1anAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    record(
+      "S1an",
+      "Review clear mid-Present drops presentStayStashed (mutual exclusion with reviewStayCleared)",
+      s1anBefore.presentPaused &&
+        s1anBefore.presentStayStashed === true &&
+        s1anBefore.presentStayAttr === true &&
+        s1anBefore.reviewStayCleared === false &&
+        s1anAfterClear.hasClear &&
+        s1anAfterClear.presentPaused &&
+        s1anAfterClear.reviewStayCleared === true &&
+        s1anAfterClear.cueAttr === true &&
+        s1anAfterClear.presentStayStashed === false &&
+        s1anAfterClear.presentStayAttr === false &&
+        !s1anAfterExit.presentPaused &&
+        s1anAfterExit.presentStayStashed === false &&
+        s1anAfterExit.presentStayAttr === false &&
+        s1anAfterExit.reviewStayCleared === false &&
+        s1anAfterExit.cueAttr === false,
+      "before=" +
+        JSON.stringify(s1anBefore) +
+        " afterClear=" +
+        JSON.stringify(s1anAfterClear) +
+        " afterExit=" +
+        JSON.stringify(s1anAfterExit)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
