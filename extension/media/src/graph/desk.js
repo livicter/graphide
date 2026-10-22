@@ -659,6 +659,8 @@ let scrollDriveCamXSettled = false;
 let scrollDriveCamYSettled = false;
 /** S1s — scrollRatio origin for Y nudge after absorb (0 until first settle). */
 let scrollDriveYNudgeOrigin = 0;
+/** S1u — prior-flush macroLod edge (enter/exit soft remap). */
+let scrollDriveWasMacro = false;
 
 function emptyScrollDrive() {
   return {
@@ -706,6 +708,7 @@ function resetScrollDrive() {
   scrollDriveCamXSettled = false;
   scrollDriveCamYSettled = false;
   scrollDriveYNudgeOrigin = 0;
+  scrollDriveWasMacro = false;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
@@ -752,6 +755,7 @@ function pauseScrollDriveForPresent() {
   scrollDriveCamXSettled = false;
   scrollDriveCamYSettled = false;
   scrollDriveYNudgeOrigin = 0;
+  scrollDriveWasMacro = false;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
@@ -908,6 +912,10 @@ function applyScrollDriveActiveLine(activeLine) {
 
 /** S1q — soft ±px camX follow toward centering the mapped vnode (never yank). */
 const SCROLL_CAMX_FOLLOW_CAP = 80;
+/** S1u — lighter ±px soft follow when macro-hot remaps / macro enter soft-stay. */
+const SCROLL_MACRO_CAM_FOLLOW_CAP = 48;
+/** S1u — max |Δk| per macro setCamTarget so overview eases (skip under reduced-motion). */
+const SCROLL_MACRO_K_DELTA_CAP = 0.35;
 
 /** Content→screen math (same as zoomToEl): ideal camX to center el at scale k.
  *  Soft-clamped delta from baseX so dual-pane morph is not vertical-only. */
@@ -1022,7 +1030,26 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   const camX = el
     ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
     : scrollDriveBase.x;
-  setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
+  // S1u — soft-cap k toward micro base so macro→micro eases (S1k snaps uncapped).
+  let camK = scrollDriveBase.k;
+  if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
+    const dk = camK - camTo.k;
+    if (dk > SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+    else if (dk < -SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+  }
+  setCamTarget(camX, scrollDriveBase.y - nudge, camK);
+  // Keep easing k toward micro base after macro exit when no further scroll arrives.
+  if (
+    !(typeof reduceMotion === "function" && reduceMotion()) &&
+    Number.isFinite(scrollDriveBase.k) &&
+    Math.abs(scrollDriveBase.k - camK) > 0.02
+  ) {
+    if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+    scrollDriveMacroTimer = setTimeout(() => {
+      scrollDriveMacroTimer = 0;
+      if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+    }, 120);
+  }
   // S1r / S1s / S1k — reduced-motion skips settle timers; snap-absorb soft cam into base.
   if (typeof reduceMotion === "function" && reduceMotion()) {
     if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
@@ -1137,35 +1164,82 @@ function clearScrollDriveMacroPaint() {
   }
 }
 
-/** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest. */
-function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+/** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest.
+ *  S1u — soft-stay on macro enter / macro-hot remap: seed from camTo, capped soft
+ *  follow + capped k delta via setCamTarget (no zoomToEl yank mid soft-stay). */
+function applyScrollDriveMacro(scrollRatio, targetNodeId, opts) {
   // S1m — Present owns cam; skip macro LOD camera/paint on stage.
   if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
   if (!canvas) return { macroLod: false };
   const lock = targetNodeId ? String(targetNodeId) : "";
-  if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+  const el = findScrollDriveTargetEl(targetNodeId);
+  const entering = !!(opts && opts.entering);
+  const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+  // Soft-stay when mid dual-pane soft-stay enters macro, or macro-hot remaps.
+  // First lock with no prior base still zoomToEl (S1c cold start).
+  const softStay = !!(scrollDriveBase && (remapping || entering));
+  if (!scrollDriveBase || remapping || entering) {
     scrollDriveTargetLocked = lock;
-    const el = findScrollDriveTargetEl(targetNodeId);
-    if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-    scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+    if (softStay) {
+      // Keep micro base.k so exit can ease back to focus scale (do not adopt overview camTo.k).
+      const keepK =
+        Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0
+          ? scrollDriveBase.k
+          : Number.isFinite(camTo.k) && camTo.k > 0
+            ? camTo.k
+            : 1;
+      scrollDriveBase = {
+        x: Number.isFinite(camTo.x) ? camTo.x : 0,
+        y: Number.isFinite(camTo.y) ? camTo.y : 0,
+        k: keepK,
+      };
+      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+    } else {
+      if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+      scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+      scrollDriveYNudgeOrigin = 0;
+    }
+    scrollDriveCamXSettled = false;
+    scrollDriveCamYSettled = false;
   }
   // Pull toward overview so lodOf(k) → 0; gentler Y nudge than micro focus.
-  const kMacro = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
-  const nudge = scrollRatio * 24;
-  setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, kMacro);
+  const kIdeal = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
+  let kMacro = kIdeal;
+  const reduced = typeof reduceMotion === "function" && reduceMotion();
+  // S1u — cap k delta from live camTo every macro flush so overview eases; S1k snaps.
+  if (!reduced && Number.isFinite(camTo.k) && camTo.k > 0) {
+    const dk = kMacro - camTo.k;
+    if (dk > SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+    else if (dk < -SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+  }
+  const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 24;
+  // S1u — soft X toward new/enter hot vnode (lighter cap than S1q micro).
+  let camX = scrollDriveBase.x;
+  if (el && softStay) {
+    camX = scrollDriveSoftCamX(el, scrollDriveBase.x, kMacro, SCROLL_MACRO_CAM_FOLLOW_CAP);
+  }
+  setCamTarget(camX, scrollDriveBase.y - nudge, kMacro);
+  // Keep easing k toward overview while still capped (no more scroll needed).
+  if (!reduced && Math.abs(kIdeal - kMacro) > 0.02) {
+    if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+    scrollDriveMacroTimer = setTimeout(() => {
+      scrollDriveMacroTimer = 0;
+      if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+    }, 120);
+  }
   const vp = viewportEl || canvas.querySelector(".viewport");
   if (vp) {
     if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
     vp.setAttribute("data-scroll-macro", "1");
   }
   const hotId = targetNodeId ? String(targetNodeId) : "";
-  canvas.querySelectorAll(".vnode[data-id]").forEach((el) => {
-    const id = el.getAttribute("data-id");
+  canvas.querySelectorAll(".vnode[data-id]").forEach((node) => {
+    const id = node.getAttribute("data-id");
     const hot = !!(hotId && id === hotId);
-    el.classList.toggle("scroll-macro-hot", hot);
-    el.classList.toggle("scroll-macro-dim", !hot);
-    if (hot) el.setAttribute("data-macro-hot", "1");
-    else el.removeAttribute("data-macro-hot");
+    node.classList.toggle("scroll-macro-hot", hot);
+    node.classList.toggle("scroll-macro-dim", !hot);
+    if (hot) node.setAttribute("data-macro-hot", "1");
+    else node.removeAttribute("data-macro-hot");
   });
   return { macroLod: true };
 }
@@ -1896,6 +1970,7 @@ function flushScrollDrive() {
     scrollDriveCamXSettled = false;
     scrollDriveCamYSettled = false;
     scrollDriveYNudgeOrigin = 0;
+    scrollDriveWasMacro = false;
     scrollDriveVel = { t: 0, top: 0, vel: 0 };
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
@@ -1950,11 +2025,14 @@ function flushScrollDrive() {
     }
   }
   const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
+  const enteringMacro = !!(macro && !scrollDriveWasMacro);
+  const exitingMacro = !!(!macro && scrollDriveWasMacro);
   let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
   if (macro) {
     // S1c — overview LOD; clear micro CFG so paint does not fight.
+    // S1u — pass entering so mid soft-stay eases into overview (no zoomToEl yank).
     clearScrollDriveCfgPaint();
-    applyScrollDriveMacro(scrollRatio, targetNodeId);
+    applyScrollDriveMacro(scrollRatio, targetNodeId, { entering: enteringMacro });
     // Velocity-driven macro must re-enter when the flick ages out (mid-file → S1b).
     if (scrollRatio > SCROLL_MACRO_RATIO) {
       if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
@@ -1969,6 +2047,15 @@ function flushScrollDrive() {
       scrollDriveMacroTimer = 0;
     }
     clearScrollDriveMacroPaint();
+    // S1u — macro→micro: re-seed X/Y from live camTo then resume S1q soft follow
+    // (S1t-style). Keep micro base.k so camK eases back (no overview stick / zoomToEl).
+    if (exitingMacro && scrollDriveBase) {
+      if (Number.isFinite(camTo.x)) scrollDriveBase.x = camTo.x;
+      if (Number.isFinite(camTo.y)) scrollDriveBase.y = camTo.y;
+      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+    }
     applyScrollDriveCamera(scrollRatio, targetNodeId);
     cfg = applyScrollDriveCfg(scrollRatio, activeLine);
     // S1r / S1s — low scrollVel / idle path (no settle timer scheduled): absorb soft cam.
@@ -1977,6 +2064,7 @@ function flushScrollDrive() {
       absorbScrollDriveSoftCamY();
     }
   }
+  scrollDriveWasMacro = !!macro;
   const anchors = applyScrollDriveAnchors(targetNodeId);
   const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
   const blend = applyScrollDriveBlendPaint(camEase);

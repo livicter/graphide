@@ -20233,6 +20233,7 @@
     let scrollDriveCamXSettled = false;
     let scrollDriveCamYSettled = false;
     let scrollDriveYNudgeOrigin = 0;
+    let scrollDriveWasMacro = false;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20277,6 +20278,7 @@
       scrollDriveCamXSettled = false;
       scrollDriveCamYSettled = false;
       scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20320,6 +20322,7 @@
       scrollDriveCamXSettled = false;
       scrollDriveCamYSettled = false;
       scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
@@ -20438,6 +20441,8 @@
       return { activeLineMarked: true };
     }
     const SCROLL_CAMX_FOLLOW_CAP = 80;
+    const SCROLL_MACRO_CAM_FOLLOW_CAP = 48;
+    const SCROLL_MACRO_K_DELTA_CAP = 0.35;
     function scrollDriveSoftCamX(el2, baseX, k, cap) {
       const stage = canvas && canvas.querySelector(".stage");
       if (!stage || !el2) return baseX;
@@ -20518,7 +20523,20 @@
       }
       const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
       const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
-      setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
+      let camK = scrollDriveBase.k;
+      if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
+        const dk = camK - camTo.k;
+        if (dk > SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+        else if (dk < -SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+      }
+      setCamTarget(camX, scrollDriveBase.y - nudge, camK);
+      if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(scrollDriveBase.k) && Math.abs(scrollDriveBase.k - camK) > 0.02) {
+        if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = setTimeout(() => {
+          scrollDriveMacroTimer = 0;
+          if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+        }, 120);
+      }
       if (typeof reduceMotion === "function" && reduceMotion()) {
         if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
           scrollDriveBase.x = camX;
@@ -20612,32 +20630,66 @@
         }
       }
     }
-    function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+    function applyScrollDriveMacro(scrollRatio, targetNodeId, opts) {
       if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
       if (!canvas) return { macroLod: false };
       const lock = targetNodeId ? String(targetNodeId) : "";
-      if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+      const el2 = findScrollDriveTargetEl(targetNodeId);
+      const entering = !!(opts && opts.entering);
+      const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+      const softStay = !!(scrollDriveBase && (remapping || entering));
+      if (!scrollDriveBase || remapping || entering) {
         scrollDriveTargetLocked = lock;
-        const el2 = findScrollDriveTargetEl(targetNodeId);
-        if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-        scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+        if (softStay) {
+          const keepK = Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0 ? scrollDriveBase.k : Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1;
+          scrollDriveBase = {
+            x: Number.isFinite(camTo.x) ? camTo.x : 0,
+            y: Number.isFinite(camTo.y) ? camTo.y : 0,
+            k: keepK
+          };
+          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+        } else {
+          if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+          scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+          scrollDriveYNudgeOrigin = 0;
+        }
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
       }
-      const kMacro = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
-      const nudge = scrollRatio * 24;
-      setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, kMacro);
+      const kIdeal = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
+      let kMacro = kIdeal;
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (!reduced && Number.isFinite(camTo.k) && camTo.k > 0) {
+        const dk = kMacro - camTo.k;
+        if (dk > SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+        else if (dk < -SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+      }
+      const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 24;
+      let camX = scrollDriveBase.x;
+      if (el2 && softStay) {
+        camX = scrollDriveSoftCamX(el2, scrollDriveBase.x, kMacro, SCROLL_MACRO_CAM_FOLLOW_CAP);
+      }
+      setCamTarget(camX, scrollDriveBase.y - nudge, kMacro);
+      if (!reduced && Math.abs(kIdeal - kMacro) > 0.02) {
+        if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = setTimeout(() => {
+          scrollDriveMacroTimer = 0;
+          if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+        }, 120);
+      }
       const vp = viewportEl || canvas.querySelector(".viewport");
       if (vp) {
         if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
         vp.setAttribute("data-scroll-macro", "1");
       }
       const hotId = targetNodeId ? String(targetNodeId) : "";
-      canvas.querySelectorAll(".vnode[data-id]").forEach((el2) => {
-        const id2 = el2.getAttribute("data-id");
+      canvas.querySelectorAll(".vnode[data-id]").forEach((node) => {
+        const id2 = node.getAttribute("data-id");
         const hot = !!(hotId && id2 === hotId);
-        el2.classList.toggle("scroll-macro-hot", hot);
-        el2.classList.toggle("scroll-macro-dim", !hot);
-        if (hot) el2.setAttribute("data-macro-hot", "1");
-        else el2.removeAttribute("data-macro-hot");
+        node.classList.toggle("scroll-macro-hot", hot);
+        node.classList.toggle("scroll-macro-dim", !hot);
+        if (hot) node.setAttribute("data-macro-hot", "1");
+        else node.removeAttribute("data-macro-hot");
       });
       return { macroLod: true };
     }
@@ -21269,6 +21321,7 @@
         scrollDriveCamXSettled = false;
         scrollDriveCamYSettled = false;
         scrollDriveYNudgeOrigin = 0;
+        scrollDriveWasMacro = false;
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
@@ -21320,10 +21373,12 @@
         }
       }
       const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
+      const enteringMacro = !!(macro && !scrollDriveWasMacro);
+      const exitingMacro = !!(!macro && scrollDriveWasMacro);
       let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
       if (macro) {
         clearScrollDriveCfgPaint();
-        applyScrollDriveMacro(scrollRatio, targetNodeId);
+        applyScrollDriveMacro(scrollRatio, targetNodeId, { entering: enteringMacro });
         if (scrollRatio > SCROLL_MACRO_RATIO) {
           if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
           scrollDriveMacroTimer = setTimeout(() => {
@@ -21337,6 +21392,13 @@
           scrollDriveMacroTimer = 0;
         }
         clearScrollDriveMacroPaint();
+        if (exitingMacro && scrollDriveBase) {
+          if (Number.isFinite(camTo.x)) scrollDriveBase.x = camTo.x;
+          if (Number.isFinite(camTo.y)) scrollDriveBase.y = camTo.y;
+          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+          scrollDriveCamXSettled = false;
+          scrollDriveCamYSettled = false;
+        }
         applyScrollDriveCamera(scrollRatio, targetNodeId);
         cfg = applyScrollDriveCfg(scrollRatio, activeLine);
         if (!reduced && scrollVel <= 0.05) {
@@ -21344,6 +21406,7 @@
           absorbScrollDriveSoftCamY();
         }
       }
+      scrollDriveWasMacro = !!macro;
       const anchors = applyScrollDriveAnchors(targetNodeId);
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
       const blend = applyScrollDriveBlendPaint(camEase);

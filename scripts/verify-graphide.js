@@ -10346,6 +10346,314 @@ async function main() {
         s1tResettleYank
     );
 
+    // S1u — macro enter/exit mid Evidence scroll soft-stays camK (no zoomToEl yank).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1uSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1u", "1");
+        row.setAttribute("data-s1u-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      // Tall pad so mid-file and file-top are distinct; own span near mid.
+      // Use high line nums so pads do not steal S1h lineMap away from sourceId.
+      for (let i = 0; i < 40; i++) addLine(2000 + i, "s1u lead " + i);
+      const ownRow = addLine(11, "s1u own span n1");
+      for (let k = 0; k < 40; k++) addLine(9000 + k, "s1u far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Burst + idle so soft stay / settle flags warm before macro enter.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(180);
+    const s1uBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      const tr = vp ? getComputedStyle(vp).transform : "";
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        transform: tr,
+      };
+    });
+    // Enter macro via file-top (low ratio) — soft stay must keep cam within caps.
+    // Match S1c: ensure scrollable, jump to top, re-tick after a frame so rAF flush lands.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (8000 + i) + '</span><span class="tx">s1u macro pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(50);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp =
+          document.querySelector("#canvas .viewport") ||
+          document.querySelector(".viewport[data-scroll-macro]");
+        return !!(
+          d &&
+          d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) <= 0.18 &&
+          vp &&
+          vp.getAttribute("data-scroll-macro") === "1"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Sample immediately — enterDk must show soft-capped step (not full overview yank).
+    const s1uMacroEnter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    // Let capped k ease toward overview; lod/hot catch up with live cam.
+    await page.waitForTimeout(450);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = 0;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#canvas .viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          vp &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          (vp.getAttribute("data-lod") === "0" || Number(d.camK) <= 0.7) &&
+          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1uMacro = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        lod: (vp && vp.getAttribute("data-lod")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+        targetNodeId: d.targetNodeId || "",
+        transform: vp ? getComputedStyle(vp).transform : "",
+      };
+    });
+    const s1uEnterDx = Math.abs((Number(s1uMacroEnter.camX) || 0) - (Number(s1uBefore.camX) || 0));
+    const s1uEnterDy = Math.abs((Number(s1uMacroEnter.camY) || 0) - (Number(s1uBefore.camY) || 0));
+    const s1uEnterDk = Math.abs((Number(s1uMacroEnter.camK) || 0) - (Number(s1uBefore.camK) || 0));
+    // Exit macro → mid-file micro; soft re-seed from camTo (no zoomToEl yank).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      // Step toward mid in capped chunks so vel does not re-trigger macro.
+      const goal = Math.floor(max * 0.55);
+      let top = body.scrollTop;
+      for (let n = 0; n < 20; n++) {
+        const delta = goal - top;
+        if (Math.abs(delta) <= 4) break;
+        const step = Math.max(-48, Math.min(48, delta));
+        top = Math.max(0, top + step);
+        body.scrollTop = top;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForTimeout(280);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.35);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Sample exit cam immediately — exitDk is one soft-capped step back toward micro k.
+    const s1uExitSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    await page.waitForTimeout(80);
+    const s1uExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    const s1uExitDx = Math.abs((Number(s1uExitSnap.camX) || 0) - (Number(s1uMacro.camX) || 0));
+    const s1uExitDy = Math.abs((Number(s1uExitSnap.camY) || 0) - (Number(s1uMacro.camY) || 0));
+    const s1uExitDk = Math.abs((Number(s1uExitSnap.camK) || 0) - (Number(s1uMacro.camK) || 0));
+    record(
+      "S1u",
+      "macro enter/exit mid Evidence scroll soft-stays camK (no zoomToEl yank)",
+      s1uSetup.ok &&
+        !s1uBefore.macroLod &&
+        !s1uBefore.presentPaused &&
+        Number.isFinite(s1uBefore.camK) &&
+        s1uMacroEnter.macroLod &&
+        s1uMacro.macroLod &&
+        s1uMacro.macroAttr === "1" &&
+        s1uMacro.hot &&
+        !s1uMacro.presentPaused &&
+        (s1uMacro.lod === "0" || Number(s1uMacro.camK) <= 0.7) &&
+        s1uEnterDx <= 96 + 1 &&
+        s1uEnterDy <= 160 &&
+        s1uEnterDk <= 0.35 + 0.05 &&
+        !s1uExit.macroLod &&
+        !s1uExit.presentPaused &&
+        Number(s1uExit.ratio) > 0.35 &&
+        s1uExitDx <= 120 &&
+        s1uExitDy <= 180 &&
+        s1uExitDk <= 0.45 + 0.01,
+      "setup=" +
+        JSON.stringify(s1uSetup) +
+        " before=" +
+        JSON.stringify(s1uBefore) +
+        " macroEnter=" +
+        JSON.stringify(s1uMacroEnter) +
+        " macro=" +
+        JSON.stringify(s1uMacro) +
+        " exitSnap=" +
+        JSON.stringify(s1uExitSnap) +
+        " exit=" +
+        JSON.stringify(s1uExit) +
+        " enterDx=" +
+        s1uEnterDx +
+        " enterDy=" +
+        s1uEnterDy +
+        " enterDk=" +
+        s1uEnterDk +
+        " exitDx=" +
+        s1uExitDx +
+        " exitDy=" +
+        s1uExitDy +
+        " exitDk=" +
+        s1uExitDk
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
