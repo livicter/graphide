@@ -24703,6 +24703,9 @@
       } else if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
         softStayed = true;
       }
+      if (typeof window !== "undefined") {
+        window.__graphideScrollDriveShowSourceSoftStayed = !!softStayed;
+      }
       if (softStayed) {
         scrollDriveSuppressNextRefit = true;
         if (typeof stageFitRo !== "undefined" && stageFitRo) {

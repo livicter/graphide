@@ -1111,7 +1111,9 @@ function clearScrollDriveReviewStayClearedCue() {
 /** S1ac — Review restart / desk clear: wipe in-memory last-stay + current workspace
  *  scoped sessionStorage blob, and drop live base so closeSourcePane cannot re-stash
  *  the prior review cam. Soft-restore then finds nothing until the user builds a new
- *  stay. Leaves other folders' scoped keys alone (multi-folder polish). */
+ *  stay. Leaves other folders' scoped keys alone (multi-folder polish).
+ *  S1ao — same wipe mid-Present (S1an) must leave memory/sessionStorage empty so
+ *  Evidence reopen takes the cold hard path (no soft-restore). */
 function clearScrollDriveLastStayOnReviewRestart() {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
@@ -5942,6 +5944,11 @@ function showSource(msg, opts) {
     softStayScrollDriveAcrossSourceHop()
   ) {
     softStayed = true;
+  }
+  // S1ao — harness-visible: Evidence reopen after Review-during-Present wipe
+  // must report softStayed false (cold hard path; lastStay empty).
+  if (typeof window !== "undefined") {
+    window.__graphideScrollDriveShowSourceSoftStayed = !!softStayed;
   }
   if (softStayed) {
     // S1ae — suppress revealSourcePane rAF fit + drop scheduleFit RO so soft

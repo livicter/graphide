@@ -14292,6 +14292,92 @@ async function main() {
         JSON.stringify(s1anAfterExit)
     );
 
+    // S1ao — Evidence reopen after Review-during-Present wipe must not soft-restore.
+    // After S1an clear+exit: memory/sessionStorage empty, softRestore false; reopen n1
+    // takes cold hard path (__graphideScrollDriveShowSourceSoftStayed false).
+    const s1aoAfterWipe = await page.evaluate(() => {
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      let hostRestored = false;
+      if (typeof window.__graphideSoftStayScrollDriveAcrossHostSourceRepost === "function") {
+        hostRestored = !!window.__graphideSoftStayScrollDriveAcrossHostSourceRepost("n1");
+      }
+      return {
+        hasRaw: hasRaw,
+        probed: probed,
+        restored: !!restored,
+        hostRestored: !!hostRestored,
+        presentPaused: !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+        presentStayStashed: !!(
+          window.__graphideScrollDrive && window.__graphideScrollDrive.presentStayStashed
+        ),
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(80);
+    const s1aoAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      return {
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        hasSoftFlag: typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean",
+        hasRaw: hasRaw,
+        probed: probed,
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1ao",
+      "Evidence reopen after Review-during-Present wipe takes cold hard path (no soft-restore)",
+      !s1aoAfterWipe.presentPaused &&
+        !s1aoAfterWipe.presentStayStashed &&
+        !s1aoAfterWipe.hasRaw &&
+        (s1aoAfterWipe.probed == null || s1aoAfterWipe.probed === false) &&
+        !s1aoAfterWipe.restored &&
+        !s1aoAfterWipe.hostRestored &&
+        s1aoAfterReopen.paneOpen &&
+        s1aoAfterReopen.hasSoftFlag &&
+        s1aoAfterReopen.softStayed === false &&
+        !s1aoAfterReopen.presentPaused &&
+        !s1aoAfterReopen.presentStayStashed &&
+        !!s1aoAfterReopen.targetNodeId,
+      "afterWipe=" +
+        JSON.stringify(s1aoAfterWipe) +
+        " afterReopen=" +
+        JSON.stringify(s1aoAfterReopen)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
