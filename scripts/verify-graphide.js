@@ -10415,38 +10415,40 @@ async function main() {
     // S1au — nest/line remap settle-before-sample probe (parity with S1ah/S1as/S1at).
     // After S1t, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
     // Product soft-stay caps unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1auSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1auSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1au",
       "nest/line remap settle-before-sample: post-S1t still micro+settled (!macroLod; no mid-tween)",
@@ -10793,38 +10795,40 @@ async function main() {
       body.scrollTop = body.scrollTop + 2;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1ajSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollRatio) > 0.25 &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1ajSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1aj",
       "macro settle-before-sample: post-S1u still micro+settled (!macroLod; no mid-tween)",
@@ -10835,6 +10839,22 @@ async function main() {
         Number(s1ajSnap.ratio) > 0.25 &&
         Number.isFinite(s1ajSnap.camK),
       "snap=" + JSON.stringify(s1ajSnap)
+    );
+
+    // S1ba — atomic settle sample for remaining confirm probes (parity with S1az warm atomic).
+    // S1aj + sibling confirms (S1ah/S1ak/S1al/S1as/S1at/S1au/S1av/S1ax/S1ay/S1az) wait+snap
+    // in one evaluate so mid-RAF cannot unsettle between settle wait and cam sample.
+    // Product soft-stay / camK caps unchanged.
+    record(
+      "S1ba",
+      "atomic settle sample: confirm probes wait+snap one evaluate (no mid-RAF unsettle)",
+      !s1ajSnap.presentPaused &&
+        !s1ajSnap.macroLod &&
+        (s1ajSnap.camXSettled === true || s1ajSnap.camYSettled === true) &&
+        s1ajSnap.scrollVel < 0.12 &&
+        Number(s1ajSnap.ratio) > 0.25 &&
+        Number.isFinite(s1ajSnap.camK),
+      "atomicAj=" + JSON.stringify(s1ajSnap)
     );
 
     // S1v — Evidence file / sourceId hop soft-stays cam (no wipe-then-zoomToEl).
@@ -11107,38 +11127,40 @@ async function main() {
     // S1as — file-hop settle-before-sample probe (parity with S1ah/S1aj/S1al).
     // After S1v, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
     // Product soft-stay caps unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1asSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1asSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1as",
       "file-hop settle-before-sample: post-S1v still micro+settled (!macroLod; no mid-tween)",
@@ -11467,38 +11489,40 @@ async function main() {
     // S1at — soft-restore settle-before-sample probe (parity with S1ah/S1as).
     // After S1w, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
     // Product soft-stay caps unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1atSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1atSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1at",
       "soft-restore settle-before-sample: post-S1w still micro+settled (!macroLod; no mid-tween)",
@@ -11682,39 +11706,41 @@ async function main() {
 
     // S1al — remount resettle settle-before-sample probe (parity with S1ak).
     // After S1x, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1alSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollRatio) > 0.25 &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1alSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1al",
       "remount resettle settle-before-sample: post-S1x still micro+settled (!macroLod; no mid-tween)",
@@ -12006,38 +12032,40 @@ async function main() {
       body.scrollTop = body.scrollTop + 2;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1ahSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollRatio) > 0.25 &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          presentPaused: !!d.presentPaused,
+          macroLod: !!d.macroLod,
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1ahSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        presentPaused: !!d.presentPaused,
-        macroLod: !!d.macroLod,
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1ah",
       "settle-before-sample: soft-follow asserts wait for settle flags (micro+settled; no mid-tween)",
@@ -12349,39 +12377,41 @@ async function main() {
     // S1ak — Lineage/Overview resettle settle-before-sample probe (parity with S1ah/S1aj).
     // Single confirm sample after S1z: still !macroLod + settle + low vel (no dual-sample
     // 80ms gap — that flakes when camEase lerps after settle flags). Product unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1akSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollRatio) > 0.25 &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1akSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1ak",
       "Lineage/Overview resettle settle-before-sample: post-S1z still micro+settled (!macroLod; no mid-tween)",
@@ -13124,38 +13154,40 @@ async function main() {
       else body.scrollTop = body.scrollTop + 2;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1avSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1avSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1av",
       "reload/host-repost settle-before-sample: post-S1aa/S1ab still micro+settled (!macroLod; no mid-tween)",
@@ -13933,43 +13965,45 @@ async function main() {
     // S1ay — Present-stage settle-before-sample probe (parity with S1at/S1ax).
     // After S1ae, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
     // Product soft-stay / skipRefit caps unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aySnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        const skip =
+          typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+            ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+            : false;
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          skipRefit: skip,
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1aySnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const skip =
-        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
-          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
-          : false;
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-        skipRefit: skip,
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1ay",
       "Present-stage settle-before-sample: post-S1ad/S1ae still micro+settled (!macroLod; no mid-tween)",
@@ -14319,46 +14353,48 @@ async function main() {
       body.scrollTop = body.scrollTop + 2;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1azSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          !d.reviewStayCleared &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1azSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        reviewStayCleared: !!d.reviewStayCleared,
-        presentStayStashed: !!d.presentStayStashed,
-        cueAttr: !!(
-          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
-          document.querySelector('[data-scroll-review-clear="1"]')
-        ),
-        targetNodeId: d.targetNodeId || "",
-        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1az",
       "Review-clear cue settle-before-sample: post-S1af still micro+settled + cue cleared (!macroLod; no mid-tween)",
@@ -15186,39 +15222,41 @@ async function main() {
     // S1ax — soft-restore round-trip settle-before-sample probe (parity with S1at/S1as/S1av).
     // After S1aq, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
     // Product soft-stay caps unchanged.
-    await page.waitForFunction(
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1axSnap = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const pane = document.getElementById("sourcePane");
-        return !!(
-          pane &&
-          !pane.hidden &&
-          d &&
-          !d.presentPaused &&
-          !d.macroLod &&
-          Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true)
-        );
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1axSnap = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        camXSettled: !!d.camXSettled,
-        camYSettled: !!d.camYSettled,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        targetNodeId: d.targetNodeId || "",
-        softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
-      };
-    });
+    ).then((h) => h.jsonValue());
     record(
       "S1ax",
       "soft-restore round-trip settle-before-sample: post-S1aq still micro+settled (!macroLod; no mid-tween)",
