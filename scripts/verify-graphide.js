@@ -8283,6 +8283,82 @@ async function main() {
         JSON.stringify(s1fReopen)
     );
 
+    // S1g — scrollVel eases tickCam lerp: fast flick → loose camEase; settle → snappy.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      // Ensure scrollable pad still present from S1a–S1f.
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.2);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(40);
+    // Burst scroll to spike EMA velocity.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const steps = [0.25, 0.55, 0.85, 0.95];
+      for (const r of steps) {
+        body.scrollTop = Math.floor(max * r);
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          Number.isFinite(d.camEase) &&
+          Number(d.scrollVel) > 0.2 &&
+          Number(d.camEase) < 0.24
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1gLoose = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Idle — velocity ages out → snappy settle (camEase > base).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          Number.isFinite(d.camEase) &&
+          Number(d.scrollVel) < 0.12 &&
+          Number(d.camEase) > 0.28
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1gSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1g",
+      "Evidence scrollVel eases tickCam lerp (loose on flick, snappy on settle)",
+      s1gLoose.evidenceOpen &&
+        s1gLoose.camEase < 0.24 &&
+        s1gLoose.scrollVel > 0.2 &&
+        s1gSnap.evidenceOpen &&
+        s1gSnap.camEase > 0.28 &&
+        s1gSnap.scrollVel < 0.12,
+      "loose=" + JSON.stringify(s1gLoose) + " snap=" + JSON.stringify(s1gSnap)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

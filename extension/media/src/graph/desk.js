@@ -153,6 +153,12 @@ let viewportEl = null;
 let cam = { x: 0, y: 0, k: 1 };
 let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
+/** ScrollDrive velocity → camera lerp alpha (S1g). Idle desk keeps CAM_EASE_BASE. */
+const CAM_EASE_BASE = 0.24;
+const CAM_EASE_SNAP = 0.36;
+const CAM_EASE_LOOSE = 0.12;
+const SCROLL_VEL_LOOSE = 0.45;
+let camEase = CAM_EASE_BASE;
 let progFocus = 0;
 let selectedNodeId = null;
 let pathEnds = [];
@@ -654,6 +660,7 @@ function emptyScrollDrive() {
     cfgSpanKind: "",
     cfgSpanCount: 0,
     scrollVel: 0,
+    camEase: CAM_EASE_BASE,
     macroLod: false,
     anchorFocus: "",
     anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
@@ -668,6 +675,11 @@ function publishScrollDrive(drive) {
 function resetScrollDrive() {
   scrollDriveBase = null;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
+  if (scrollDriveEaseTimer) {
+    clearTimeout(scrollDriveEaseTimer);
+    scrollDriveEaseTimer = 0;
+  }
+  setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
   clearScrollDriveMacroPaint();
   clearScrollDriveAnchorPaint();
@@ -745,6 +757,18 @@ function readScrollDriveVelocity() {
   const age = now - scrollDriveVel.t;
   if (age <= 120) return scrollDriveVel.vel;
   return scrollDriveVel.vel * Math.exp(-(age - 120) / 180);
+}
+
+function scrollDriveEaseFromVel(vel) {
+  // High velocity → loose lerp (less fight with scroll); low → snappy settle.
+  const v = Math.max(0, Number(vel) || 0);
+  const t = Math.min(1, v / SCROLL_VEL_LOOSE);
+  return CAM_EASE_SNAP + (CAM_EASE_LOOSE - CAM_EASE_SNAP) * t;
+}
+
+function setCamEase(e) {
+  const n = Number(e);
+  camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
 }
 
 function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
@@ -1118,12 +1142,42 @@ function applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors
 }
 
 let scrollDriveMacroTimer = 0;
+let scrollDriveEaseTimer = 0;
+
+function refreshScrollDriveCamEase() {
+  if (!srcBody || !sourcePane || sourcePane.hidden || !scrollDriveBase) {
+    setCamEase(CAM_EASE_BASE);
+    return camEase;
+  }
+  const v = readScrollDriveVelocity();
+  setCamEase(scrollDriveEaseFromVel(v));
+  if (window.__graphideScrollDrive) {
+    window.__graphideScrollDrive.camEase = camEase;
+    window.__graphideScrollDrive.scrollVel = v;
+  }
+  return camEase;
+}
+
+function scheduleScrollDriveEaseSettle() {
+  if (scrollDriveEaseTimer) clearTimeout(scrollDriveEaseTimer);
+  scrollDriveEaseTimer = setTimeout(() => {
+    scrollDriveEaseTimer = 0;
+    if (!srcBody || !sourcePane || sourcePane.hidden) return;
+    refreshScrollDriveCamEase();
+    // Keep settling until velocity ages out (snappy camEase).
+    if (readScrollDriveVelocity() > 0.08) scheduleScrollDriveEaseSettle();
+  }, 160);
+}
 
 function onSrcBodyScroll() {
   if (!srcBody || !sourcePane || sourcePane.hidden) {
     if (scrollDriveMacroTimer) {
       clearTimeout(scrollDriveMacroTimer);
       scrollDriveMacroTimer = 0;
+    }
+    if (scrollDriveEaseTimer) {
+      clearTimeout(scrollDriveEaseTimer);
+      scrollDriveEaseTimer = 0;
     }
     resetScrollDrive();
     return;
@@ -1137,6 +1191,8 @@ function onSrcBodyScroll() {
   const targetNodeId = sourceId ? String(sourceId) : "";
   noteScrollDriveVelocity(srcBody.scrollTop);
   const scrollVel = readScrollDriveVelocity();
+  setCamEase(scrollDriveEaseFromVel(scrollVel));
+  if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
   const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
   let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
   if (macro) {
@@ -1175,6 +1231,7 @@ function onSrcBodyScroll() {
     cfgSpanKind: cfg.cfgSpanKind || "",
     cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
     scrollVel: scrollVel,
+    camEase: camEase,
     macroLod: !!macro,
     anchorFocus: anchors.anchorFocus || "",
     anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
@@ -2651,9 +2708,11 @@ function applyCam() {
 }
 
 function tickCam() {
-  cam.x += (camTo.x - cam.x) * 0.24;
-  cam.y += (camTo.y - cam.y) * 0.24;
-  cam.k += (camTo.k - cam.k) * 0.24;
+  if (scrollDriveBase) refreshScrollDriveCamEase();
+  const a = camEase;
+  cam.x += (camTo.x - cam.x) * a;
+  cam.y += (camTo.y - cam.y) * a;
+  cam.k += (camTo.k - cam.k) * a;
   if (Math.hypot(camTo.x - cam.x, camTo.y - cam.y) < 0.35 && Math.abs(camTo.k - cam.k) < 0.004) {
     cam.x = camTo.x;
     cam.y = camTo.y;

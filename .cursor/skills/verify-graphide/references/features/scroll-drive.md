@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate (S1a–S1f)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease (S1a–S1g)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), unrolls a localized Steiner CFG on Slice with a
@@ -7,12 +7,13 @@ distinct visual groups (S1d), and at file-top or high scroll velocity
 transitions to a macro Map overview LOD focused on the Evidence module
 (S1c), stamps color-coded API / Database / Service / Utility anchors
 from IR kind + EndpointMeta (S1e), and hides deep implementation clutter
-until scroll focus approaches the block (S1f).
+until scroll focus approaches the block (S1f), and eases camera lerp
+by scroll velocity so fast flicks glide and idle settles snappy (S1g).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, macroLod, anchorFocus, anchorCounts, detailNear }`.
+  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
 - `targetNodeId` is the inspected Evidence node (`sourceId`). No AST
@@ -54,6 +55,12 @@ until scroll focus approaches the block (S1f).
   `detailNear` true and CSS reveals those layers with a 180ms opacity
   ease (no pop-in). Reuses `data-lod` / scroll-macro / scroll-cfg; does
   not invent a second LOD system.
+- **S1g velocity polish:** `scrollDriveEaseFromVel(scrollVel)` maps EMA
+  velocity onto `camEase` (lerp alpha for `tickCam`). High velocity →
+  loose ease (~0.12, less fight with scroll); low velocity → snappy
+  settle (~0.36). Idle desk / closed Evidence keeps `CAM_EASE_BASE`
+  (0.24). Still one RAF loop via `tickCam` / `setCamTarget` — no second
+  animation loop. `camEase` publishes on ScrollDrive for the harness.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
   + macro + kind-anchor + detail-gate paint.
 
@@ -68,6 +75,8 @@ until scroll focus approaches the block (S1f).
    Map overview LOD with the module focused. Nodes keep a hairline
    kind-anchor tint (API / DB / Service / Utility). Deep member lists /
    packets / labels stay hidden until you scroll into the focused block.
+   Fast flick loosens camera follow; when you stop, the camera settles
+   snappier on the target.
 
 ## Driving it with the harness
 
@@ -90,7 +99,8 @@ extension/scripts/webview-harness.html?mode=explorer&probe=0
 Driver assertions: **S1a** (camera) · **S1b** (CFG unroll + glow) ·
 **S1c** (macro LOD on file top / fast scroll) · **S1d** (if/loop/try
 span kinds + sibling collapse) · **S1e** (API/DB/Service/Utility
-kind anchors) · **S1f** (hide-until-focus clutter gate).
+kind anchors) · **S1f** (hide-until-focus clutter gate) · **S1g**
+(scrollVel → camEase loose/snappy).
 
 ## Gotchas
 
@@ -102,7 +112,8 @@ kind anchors) · **S1f** (hide-until-focus clutter gate).
   `[data-cfg-active]`, `[data-cfg-span]`, `.vnode.scroll-cfg-sib`,
   `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`,
   `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`,
-  `.viewport[data-scroll-detail]`, `detailNear`.
+  `.viewport[data-scroll-detail]`, `detailNear`, `camEase`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
-  not add a second animation loop.
+  not add a second animation loop. S1g only modulates `camEase` from
+  `scrollVel` — never a parallel tween.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
