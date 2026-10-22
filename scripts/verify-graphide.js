@@ -13517,6 +13517,77 @@ async function main() {
         JSON.stringify(s1afAfterColdOpen)
     );
 
+    // S1ag — workspace-folder change clears S1af Review-clear cue (cannot stick across folders).
+    // Re-plant cue via Review-restart clear, assert same-key no-op keeps it, then folder hop drops it.
+    const s1agPlanted = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    const s1agSameKey = await page.evaluate(() => {
+      const changed =
+        typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
+          ? window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a")
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      return {
+        changed: !!changed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    const s1agHopped = await page.evaluate(() => {
+      const changed =
+        typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
+          ? window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-b")
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      return {
+        changed: !!changed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    record(
+      "S1ag",
+      "Workspace-folder change clears Review-clear cue (same-key no-op keeps it)",
+      s1agPlanted.reviewStayCleared === true &&
+        s1agPlanted.cueAttr === true &&
+        s1agSameKey.changed === false &&
+        s1agSameKey.reviewStayCleared === true &&
+        s1agSameKey.cueAttr === true &&
+        s1agHopped.changed === true &&
+        s1agHopped.reviewStayCleared === false &&
+        s1agHopped.cueAttr === false &&
+        s1agHopped.ws === "ws-s1ag://folder-b",
+      "planted=" +
+        JSON.stringify(s1agPlanted) +
+        " sameKey=" +
+        JSON.stringify(s1agSameKey) +
+        " hopped=" +
+        JSON.stringify(s1agHopped)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

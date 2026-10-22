@@ -840,7 +840,9 @@ function normalizeScrollDriveWorkspaceKey(raw) {
 
 /** S1ab — set workspace scope. Clears in-memory stay on folder change so a foreign
  *  soft-restore cannot apply; leaves the prior folder's scoped sessionStorage blob
- *  intact (returning to that folder can still restore). Current folder cannot read it. */
+ *  intact (returning to that folder can still restore). Current folder cannot read it.
+ *  S1ag — also clear S1af Review-clear honesty cue/attr so clear-happened cannot
+ *  linger across folders (same-key no-op leaves cue alone). */
 function setScrollDriveWorkspaceKey(next) {
   const key = normalizeScrollDriveWorkspaceKey(next);
   if (key === scrollDriveWorkspaceKey) {
@@ -853,6 +855,19 @@ function setScrollDriveWorkspaceKey(next) {
   scrollDriveLastStay = null;
   scrollDriveJustRestored = false;
   scrollDriveSuppressNextRefit = false;
+  // S1ag — folder hop ends Review-clear cue (honesty must not stick across folders).
+  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+    clearScrollDriveReviewStayClearedCue();
+  } else {
+    scrollDriveReviewStayCleared = false;
+    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
+    if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+    const cur =
+      typeof window !== "undefined" && window.__graphideScrollDrive
+        ? window.__graphideScrollDrive
+        : null;
+    if (cur) cur.reviewStayCleared = false;
+  }
   scrollDriveWorkspaceKey = key;
   if (typeof window !== "undefined") {
     window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;

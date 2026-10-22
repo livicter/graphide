@@ -20382,6 +20382,15 @@
       scrollDriveLastStay = null;
       scrollDriveJustRestored = false;
       scrollDriveSuppressNextRefit = false;
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+        const cur = typeof window !== "undefined" && window.__graphideScrollDrive ? window.__graphideScrollDrive : null;
+        if (cur) cur.reviewStayCleared = false;
+      }
       scrollDriveWorkspaceKey = key;
       if (typeof window !== "undefined") {
         window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
