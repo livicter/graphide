@@ -36,7 +36,7 @@ owns this folder.
 | [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
-| [scroll-drive.md](scroll-drive.md) | Evidence scroll → camera + micro CFG + macro LOD + kind anchors + detail gate + camEase + line→node + nest depth | explorer Slice · `S1a`–`S1i` · `__graphideScrollDrive` |
+| [scroll-drive.md](scroll-drive.md) | Evidence scroll → camera + micro CFG + macro LOD + kind anchors + detail gate + camEase + line→node + nest depth + blend polish | explorer Slice · `S1a`–`S1j` · `__graphideScrollDrive` |
 | [hop-card.md](hop-card.md) | Evidence hop card / incident edges | explorer Slice · `hop-card.png` |
 | [coverage-mark.md](coverage-mark.md) | Evidence `#inspMeta` mark | explorer Slice · `coverage-mark.png` |
 | [fit-reorg.md](fit-reorg.md) | Map Fit / Reorganize | explorer Map · `#zoomFit` / `#reorgBtn` · `fit-reorg.png` |

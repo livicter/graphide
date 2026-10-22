@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth (S1a–S1i)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish (S1a–S1j)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -11,12 +11,14 @@ from IR kind + EndpointMeta (S1e), and hides deep implementation clutter
 until scroll focus approaches the block (S1f), and eases camera lerp
 by scroll velocity so fast flicks glide and idle settles snappy (S1g),
 and expands nested control-flow blocks by brace/IR depth as `activeLine`
-enters them (S1i — ancestors stay visible; siblings stay collapsed).
+enters them (S1i — ancestors stay visible; siblings stay collapsed),
+and eases nest-glow / macro↔micro LOD class changes with a camEase-tied
+CSS blend so opacity and glow morph instead of snapping (S1j).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
 - **S1h line→node:** `resolveScrollDriveTargetNode(activeLine)` walks
@@ -69,17 +71,24 @@ enters them (S1i — ancestors stay visible; siblings stay collapsed).
   Macro LOD or far from focus → `detailNear` false (members, hop packets,
   edge kinds, dense labels stay opacity 0). As focus approaches
   (`cfgVisible` / `cfgUnroll` / `activeLine` / `anchorFocus` mid-file) →
-  `detailNear` true and CSS reveals those layers with a 180ms opacity
-  ease (no pop-in). Reuses `data-lod` / scroll-macro / scroll-cfg; does
-  not invent a second LOD system.
+  `detailNear` true and CSS reveals those layers with an opacity ease
+  (`var(--scroll-blend-ms, 180ms)` — S1j). Reuses `data-lod` /
+  scroll-macro / scroll-cfg; does not invent a second LOD system.
 - **S1g velocity polish:** `scrollDriveEaseFromVel(scrollVel)` maps EMA
   velocity onto `camEase` (lerp alpha for `tickCam`). High velocity →
   loose ease (~0.12, less fight with scroll); low velocity → snappy
   settle (~0.36). Idle desk / closed Evidence keeps `CAM_EASE_BASE`
   (0.24). Still one RAF loop via `tickCam` / `setCamTarget` — no second
   animation loop. `camEase` publishes on ScrollDrive for the harness.
+- **S1j nest glow / LOD blend:** `scrollDriveBlendMsFromEase(camEase)`
+  maps loose→~280ms / snappy→~120ms onto `.viewport` `--scroll-blend-ms`
+  and `data-scroll-blend="1"`. CSS transitions ease `.scroll-cfg-*`
+  (incl. nest-hot/anc/sib) and `.scroll-macro-*` opacity / outline /
+  box-shadow; S1f clutter gate reuses the same var (180ms fallback).
+  `blendMs` publishes on ScrollDrive. No second animation loop — still
+  class toggles + CSS ease + existing cam lerp.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
-  + macro + kind-anchor + detail-gate paint.
+  + macro + kind-anchor + detail-gate + blend paint.
 
 ## How to get to it (user POV)
 
@@ -94,7 +103,8 @@ enters them (S1i — ancestors stay visible; siblings stay collapsed).
    kind-anchor tint (API / DB / Service / Utility). Deep member lists /
    packets / labels stay hidden until you scroll into the focused block.
    Fast flick loosens camera follow; when you stop, the camera settles
-   snappier on the target.
+   snappier on the target. Nest glow and macro↔micro LOD fade with the
+   same ease instead of popping.
 
 ## Driving it with the harness
 
@@ -149,6 +159,10 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `cfgNestDepth >= 2`, `cfgNestExpanded >= 2`, paints
   `.scroll-cfg-nest-hot` / `.scroll-cfg-nest-anc` and collapses
   `.scroll-cfg-nest-sib` (or kind sibs). Flat S1d pads stay depth 0.
+- **S1j** — while Evidence scrolls, `.viewport[data-scroll-blend="1"]`
+  and `--scroll-blend-ms` track `camEase`; `blendMs` is finite
+  (120–280). Nest / macro vnode `transition-property` includes
+  opacity. S1f `detailNear` / `data-scroll-detail` still gate clutter.
 
 ## Gotchas
 
@@ -163,8 +177,10 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`,
   `.viewport[data-scroll-detail]`, `detailNear`, `camEase`,
   `lineMapHit`, `resolveScrollDriveTargetNode`, `cfgNestDepth`,
-  `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`.
+  `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`,
+  `blendMs`, `.viewport[data-scroll-blend]`, `--scroll-blend-ms`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
-  `scrollVel` — never a parallel tween.
+  `scrollVel` — never a parallel tween. S1j only sets CSS transition
+  duration from `camEase` — never a parallel tween.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

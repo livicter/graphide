@@ -8841,6 +8841,134 @@ async function main() {
       "pad=" + JSON.stringify(s1iPad) + " after=" + JSON.stringify(afterNest)
     );
 
+    // S1j — nest glow / LOD blend: camEase-tied --scroll-blend-ms; CSS opacity ease (no snap).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        if (!(d && Number.isFinite(d.blendMs) && Number(d.blendMs) >= 100 && Number(d.blendMs) <= 300)) return false;
+        if (!(vp && vp.getAttribute("data-scroll-blend") === "1")) return false;
+        const ms = (vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "";
+        return /ms$/.test(ms.trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1jNest = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      const probe =
+        document.querySelector(
+          "#sliceCanvas .vnode.scroll-cfg-nest-hot, #sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode.scroll-cfg-nest-anc, #sliceCanvas .vnode"
+        ) || null;
+      let transition = "";
+      if (probe) {
+        try {
+          transition = getComputedStyle(probe).transitionProperty || "";
+        } catch (_) {
+          transition = "";
+        }
+      }
+      return {
+        blendMs: Number(d.blendMs),
+        camEase: Number(d.camEase),
+        macroLod: !!d.macroLod,
+        detailNear: !!d.detailNear,
+        detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        transition: transition,
+        nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Macro LOD path must also keep blend paint (file top).
+    const s1jMacro = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          Number.isFinite(d.blendMs) &&
+          Number(d.blendMs) >= 100 &&
+          Number(d.blendMs) <= 300 &&
+          vp &&
+          vp.getAttribute("data-scroll-blend") === "1" &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          d.detailNear === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(120);
+    const s1jMacroAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      const hot = document.querySelector(
+        "#sliceCanvas .vnode.scroll-macro-hot, #sliceCanvas .vnode[data-macro-hot='1'], .vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"
+      );
+      const dim = document.querySelector(
+        "#sliceCanvas .vnode.scroll-macro-dim, .vnode.scroll-macro-dim"
+      );
+      // Probe any painted macro vnode (hot preferred); fall back to any .vnode under blend.
+      const probe =
+        hot ||
+        dim ||
+        document.querySelector("#sliceCanvas .vnode[data-id], .viewport .vnode[data-id], .vnode[data-id]");
+      let transition = "";
+      if (probe) {
+        try {
+          transition = getComputedStyle(probe).transitionProperty || "";
+        } catch (_) {
+          transition = "";
+        }
+      }
+      return {
+        blendMs: Number(d.blendMs),
+        macroLod: !!d.macroLod,
+        detailNear: !!d.detailNear,
+        detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        transition: transition,
+        hot: !!hot,
+        dim: !!dim,
+        probe: !!(probe && probe.getAttribute && probe.getAttribute("data-id")),
+      };
+    });
+    record(
+      "S1j",
+      "Evidence nest/macro paint eases via camEase-tied blendMs / data-scroll-blend (no snap; S1f clutter intact)",
+      s1jNest.evidenceOpen &&
+        Number.isFinite(s1jNest.blendMs) &&
+        s1jNest.blendMs >= 100 &&
+        s1jNest.blendMs <= 300 &&
+        s1jNest.blendAttr === "1" &&
+        /ms$/.test(String(s1jNest.blendVar).trim()) &&
+        String(s1jNest.transition).includes("opacity") &&
+        s1jMacro.ok &&
+        s1jMacroAfter.macroLod &&
+        s1jMacroAfter.blendAttr === "1" &&
+        s1jMacroAfter.macroAttr === "1" &&
+        s1jMacroAfter.detailNear === false &&
+        s1jMacroAfter.detailAttr === "0" &&
+        Number.isFinite(s1jMacroAfter.blendMs) &&
+        s1jMacroAfter.blendMs >= 100 &&
+        s1jMacroAfter.blendMs <= 300 &&
+        String(s1jMacroAfter.transition).includes("opacity"),
+      "nest=" + JSON.stringify(s1jNest) + " macroPad=" + JSON.stringify(s1jMacro) + " macro=" + JSON.stringify(s1jMacroAfter)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
 
 
@@ -14643,6 +14771,13 @@ async function main() {
         lineageEgoFind.missInsideMax <= 0.18,
       JSON.stringify(lineageEgoFind)
     );
+    // Drop any leftover scroll-blend paint so opacity is not mid-transition (S1j).
+    await page.evaluate(() => {
+      document.querySelectorAll(".viewport[data-scroll-blend]").forEach((vp) => {
+        vp.removeAttribute("data-scroll-blend");
+        if (vp.style) vp.style.removeProperty("--scroll-blend-ms");
+      });
+    });
     const lineageEgoDimFloor = await page.evaluate(() => {
       const el =
         document.querySelector("#lineageCanvas .vnode[data-id]") ||
@@ -14650,6 +14785,8 @@ async function main() {
       if (!el) return { ok: false };
       el.classList.add("ego-dim", "dim");
       el.classList.remove("hit", "ego");
+      // Force style recalc after class swap (avoid reading mid CSS transition).
+      void el.offsetWidth;
       const op = Number(getComputedStyle(el).opacity);
       el.classList.remove("ego-dim", "dim");
       return { ok: true, op };

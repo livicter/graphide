@@ -1236,7 +1236,7 @@ svg.steiner .edge-hit {
   outline: 1px solid var(--vscode-focusBorder);
   z-index: 3;
 }
-.steiner-wrap .vnode.dim,
+.steiner-wrap .vnode.dim:not(.ego-dim),
 #enterCanvas .vnode.dim:not(.ego-dim),
 #lineageCanvas .vnode.dim:not(.ego-dim),
 #dfCanvas .vnode.dim:not(.ego-dim),
@@ -2184,6 +2184,35 @@ svg.steiner .edge.walk {
 .vnode.scroll-cfg-nest-sib {
   opacity: 0.18;
 }
+.vnode.scroll-cfg-nest-hot:not(.scroll-cfg-ahead) {
+  opacity: 1;
+  outline: 2px solid color-mix(in srgb, var(--vscode-focusBorder) 85%, transparent);
+  outline-offset: 1px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent),
+    0 0 16px color-mix(in srgb, var(--vscode-textLink-foreground) 40%, transparent);
+}
+/* S1j — nest glow / LOD blend: camEase-tied opacity+glow ease (no snap) */
+.viewport[data-scroll-blend="1"] .vnode {
+  transition:
+    opacity var(--scroll-blend-ms, 180ms) ease,
+    outline-color var(--scroll-blend-ms, 180ms) ease,
+    box-shadow var(--scroll-blend-ms, 180ms) ease;
+}
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-hot,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-dim,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-ahead,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-sib,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-nest-hot,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-nest-anc,
+.viewport[data-scroll-blend="1"] .vnode.scroll-cfg-nest-sib,
+.viewport[data-scroll-blend="1"] .vnode.scroll-macro-hot,
+.viewport[data-scroll-blend="1"] .vnode.scroll-macro-dim {
+  transition:
+    opacity var(--scroll-blend-ms, 180ms) ease,
+    outline-color var(--scroll-blend-ms, 180ms) ease,
+    box-shadow var(--scroll-blend-ms, 180ms) ease;
+}
 /* S1c — scroll-driven macro Map LOD (file top / fast flick) */
 .viewport[data-scroll-macro="1"] .vnode.scroll-macro-hot {
   outline: 1.5px solid var(--vscode-textLink-foreground);
@@ -2223,7 +2252,8 @@ svg.steiner .edge.walk {
 .viewport[data-scroll-detail] .vnode .where,
 .viewport[data-scroll-detail] .comm-node .meta,
 .viewport[data-scroll-detail] .ego-node .meta {
-  transition: opacity 180ms ease;
+  /* S1f keep 180ms default; S1j may shorten/lengthen via --scroll-blend-ms */
+  transition: opacity var(--scroll-blend-ms, 180ms) ease;
 }
 .viewport[data-scroll-detail="0"] .bubble-card .members,
 .viewport[data-scroll-detail="0"] .pkt,

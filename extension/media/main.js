@@ -20245,6 +20245,7 @@
         cfgNestExpanded: 0,
         scrollVel: 0,
         camEase: CAM_EASE_BASE,
+        blendMs: 180,
         macroLod: false,
         anchorFocus: "",
         anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
@@ -20267,6 +20268,7 @@
       clearScrollDriveMacroPaint();
       clearScrollDriveAnchorPaint();
       clearScrollDriveDetailPaint();
+      clearScrollDriveBlendPaint();
       publishScrollDrive(emptyScrollDrive());
     }
     function readSrcActiveLine() {
@@ -20334,6 +20336,34 @@
     function setCamEase(e) {
       const n = Number(e);
       camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
+    }
+    function scrollDriveBlendMsFromEase(ease) {
+      const a = Number(ease);
+      const e = Number.isFinite(a) ? Math.max(0.08, Math.min(0.45, a)) : CAM_EASE_BASE;
+      const span = CAM_EASE_SNAP - CAM_EASE_LOOSE;
+      const t = span > 0 ? Math.max(0, Math.min(1, (e - CAM_EASE_LOOSE) / span)) : 0.5;
+      return Math.round(280 + (120 - 280) * t);
+    }
+    function clearScrollDriveBlendPaint() {
+      const seen = /* @__PURE__ */ new Set();
+      function wipe(vp) {
+        if (!vp || seen.has(vp)) return;
+        seen.add(vp);
+        vp.removeAttribute("data-scroll-blend");
+        if (vp.style) vp.style.removeProperty("--scroll-blend-ms");
+      }
+      wipe(viewportEl);
+      if (canvas) canvas.querySelectorAll(".viewport").forEach(wipe);
+      document.querySelectorAll(".viewport[data-scroll-blend]").forEach(wipe);
+    }
+    function applyScrollDriveBlendPaint(ease) {
+      const ms = scrollDriveBlendMsFromEase(ease);
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        if (vp.getAttribute("data-scroll-blend") !== "1") vp.setAttribute("data-scroll-blend", "1");
+        if (vp.style) vp.style.setProperty("--scroll-blend-ms", ms + "ms");
+      }
+      return { blendMs: ms };
     }
     function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
       if (!canScroll) return false;
@@ -20938,9 +20968,11 @@
       }
       const v = readScrollDriveVelocity();
       setCamEase(scrollDriveEaseFromVel(v));
+      const blend = applyScrollDriveBlendPaint(camEase);
       if (window.__graphideScrollDrive) {
         window.__graphideScrollDrive.camEase = camEase;
         window.__graphideScrollDrive.scrollVel = v;
+        window.__graphideScrollDrive.blendMs = blend.blendMs;
       }
       return camEase;
     }
@@ -21001,6 +21033,7 @@
       }
       const anchors = applyScrollDriveAnchors(targetNodeId);
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
+      const blend = applyScrollDriveBlendPaint(camEase);
       publishScrollDrive({
         scrollRatio,
         activeLine,
@@ -21019,6 +21052,7 @@
         cfgNestExpanded: Number(cfg.cfgNestExpanded) || 0,
         scrollVel,
         camEase,
+        blendMs: blend.blendMs,
         macroLod: !!macro,
         anchorFocus: anchors.anchorFocus || "",
         anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
