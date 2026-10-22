@@ -939,12 +939,14 @@ if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
 }
 
-/** S1y — Map↔Slice workspace hop remounts the canvas mid ScrollDrive while Evidence
- *  stays open (same sourceId, no Present). Prefer warm S1w last-stay when cam was
- *  wiped by bindStage reset / scheduleFit ResizeObserver; else re-seed from live
- *  camTo like S1x. Soft-follow mapped target on Slice return (S1q/S1t); skip hard
- *  zoomToEl. Map landing keeps stay warm without a flush soft-follow (no slice
- *  vnodes — avoids stacking ±80 camX). Returns true when soft stay applied. */
+/** S1y/S1z — desk workspace hop remounts the canvas mid ScrollDrive while Evidence
+ *  stays open (same sourceId, no Present). Covers Map↔Slice (S1y) and
+ *  Lineage↔Slice / Overview↔Slice / Lineage↔Overview / Map↔Lineage|Overview (S1z).
+ *  Prefer warm S1w last-stay when cam was wiped by bindStage reset / scheduleFit
+ *  ResizeObserver; else re-seed from live camTo like S1x. Soft-follow mapped
+ *  target on Slice / Lineage / Overview landing (S1q/S1t); skip hard zoomToEl.
+ *  Map landing keeps stay warm without a flush soft-follow (no slice vnodes —
+ *  avoids stacking ±80 camX). Returns true when soft stay applied. */
 function softStayScrollDriveAcrossMapSliceHop() {
   if (typeof isPresenting === "function" && isPresenting()) return false;
   if (!sourcePane || sourcePane.hidden || !srcBody) return false;
@@ -1007,7 +1009,8 @@ function softStayScrollDriveAcrossMapSliceHop() {
     }
     return false;
   }
-  // Slice return — prefer snap when cam was yanked; else desk-remount soft stay + flush.
+  // Slice / Lineage / Overview landing — prefer snap when cam was yanked; else
+  // desk-remount soft stay + flush (S1y Slice + S1z Lineage/Overview).
   if (snapOk) {
     const close =
       Number.isFinite(camTo.x) &&
@@ -1046,9 +1049,11 @@ function softStayScrollDriveAcrossMapSliceHop() {
   }
   return ok;
 }
-// Harness / desk glue — Map↔Slice remount soft stay (S1y).
+// Harness / desk glue — Map↔Slice (S1y) + Lineage/Overview desk hops (S1z).
+// One soft-stay path — S1z reuses this helper (no third stay fork).
 if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossMapSliceHop = softStayScrollDriveAcrossMapSliceHop;
+  window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop = softStayScrollDriveAcrossMapSliceHop;
 }
 
 /** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
@@ -3817,12 +3822,16 @@ function setWorkspace(name, pin) {
     const selected = selectedNodeId ? idVal(selectedNodeId) : "";
     if (selected && hasLineageHops(selected)) lineageEgoId = selected;
   }
-  // S1y — Map↔Slice remount mid-drive: stash stay + keepCam while Evidence open
-  // (same sourceId). Closed Evidence / sourceId change falls through to S1v/S1w.
-  const mapSliceHop =
-    (prevWs === "map" && name === "slice") || (prevWs === "slice" && name === "map");
+  // S1y/S1z — desk canvas hop remount mid-drive: stash stay + keepCam while Evidence
+  // open (same sourceId). Map↔Slice (S1y); Lineage/Overview↔Slice and peer hops (S1z).
+  // Closed Evidence / sourceId change falls through to S1v/S1w.
+  const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
+  const deskCanvasHop =
+    prevWs !== name &&
+    !!DESK_SCROLL_STAY_WS[prevWs] &&
+    !!DESK_SCROLL_STAY_WS[name];
   const evidenceStay =
-    mapSliceHop &&
+    deskCanvasHop &&
     sourcePane &&
     !sourcePane.hidden &&
     !!sourceId &&
@@ -3833,7 +3842,7 @@ function setWorkspace(name, pin) {
   if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
     stashScrollDriveLastStay();
   }
-  // S1y — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
+  // S1y/S1z — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
   if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
     stageFitRo.disconnect();
     stageFitRo = null;
@@ -4346,12 +4355,12 @@ function paint(opts) {
     return;
   }
   if (isListWorkspace(explorerWs) || explorerWs === "overview") {
-    renderExplorerList(explorerWs);
+    renderExplorerList(explorerWs, { keepCam: !!(opts && opts.keepCam) });
     consumeHarnessActions();
     return;
   }
   if (explorerWs === "lineage") {
-    renderLineage();
+    renderLineage({ keepCam: !!(opts && opts.keepCam) });
     consumeHarnessActions();
     return;
   }
@@ -9510,7 +9519,8 @@ function statChips(map) {
     .join("");
 }
 
-function renderExplorerList(ws) {
+function renderExplorerList(ws, opts) {
+  const keepCam = !!(opts && opts.keepCam);
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
   renderStats(snapshot);
   if (ws === "overview") renderLegend();
@@ -9592,7 +9602,8 @@ function renderExplorerList(ws) {
   if (ws === "overview") {
     const stage = canvas.querySelector(".stage");
     if (stage) {
-      bindStage(stage, { reset: true });
+      // S1z — keepCam on Evidence soft-stay hops (no bindStage cam wipe).
+      bindStage(stage, { reset: !keepCam });
       setZoomUi(true);
     } else {
       setZoomUi(false);
@@ -9971,7 +9982,8 @@ function mountLineageCanvas(reading, focusId) {
   stampXyFlowAttrs();
 }
 
-function renderLineage() {
+function renderLineage(opts) {
+  const keepCam = !!(opts && opts.keepCam);
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
   renderStats(snapshot);
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
@@ -10138,7 +10150,8 @@ function renderLineage() {
       (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') +
       "</div></div></div>";
     lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
-    bindStage(canvas.querySelector(".stage"), { reset: true });
+    // S1z — keepCam on Evidence soft-stay hops (no bindStage cam wipe on full rebuild).
+    bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
   } else {
     const title = canvas.querySelector(".flow-title");
     if (title) {

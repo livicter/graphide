@@ -20542,6 +20542,7 @@
     }
     if (typeof window !== "undefined") {
       window.__graphideSoftStayScrollDriveAcrossMapSliceHop = softStayScrollDriveAcrossMapSliceHop;
+      window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop = softStayScrollDriveAcrossMapSliceHop;
     }
     function pauseScrollDriveForPresent() {
       if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
@@ -22917,8 +22918,9 @@
         const selected2 = selectedNodeId ? idVal(selectedNodeId) : "";
         if (selected2 && hasLineageHops(selected2)) lineageEgoId = selected2;
       }
-      const mapSliceHop = prevWs === "map" && name === "slice" || prevWs === "slice" && name === "map";
-      const evidenceStay = mapSliceHop && sourcePane && !sourcePane.hidden && !!sourceId && !(typeof isPresenting === "function" && isPresenting()) && (!!scrollDriveBase || typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(String(sourceId)));
+      const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
+      const deskCanvasHop = prevWs !== name && !!DESK_SCROLL_STAY_WS[prevWs] && !!DESK_SCROLL_STAY_WS[name];
+      const evidenceStay = deskCanvasHop && sourcePane && !sourcePane.hidden && !!sourceId && !(typeof isPresenting === "function" && isPresenting()) && (!!scrollDriveBase || typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(String(sourceId)));
       if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
         stashScrollDriveLastStay();
       }
@@ -23392,12 +23394,12 @@
         return;
       }
       if (isListWorkspace(explorerWs) || explorerWs === "overview") {
-        renderExplorerList(explorerWs);
+        renderExplorerList(explorerWs, { keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
       if (explorerWs === "lineage") {
-        renderLineage();
+        renderLineage({ keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
@@ -27385,7 +27387,8 @@
     function statChips(map) {
       return [...map.entries()].sort((a, b) => b[1] - a[1]).map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>").join("");
     }
-    function renderExplorerList(ws) {
+    function renderExplorerList(ws, opts) {
+      const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
       renderStats(snapshot);
       if (ws === "overview") renderLegend();
@@ -27460,7 +27463,7 @@
       if (ws === "overview") {
         const stage = canvas.querySelector(".stage");
         if (stage) {
-          bindStage(stage, { reset: true });
+          bindStage(stage, { reset: !keepCam });
           setZoomUi(true);
         } else {
           setZoomUi(false);
@@ -27726,7 +27729,8 @@
       renderLineageCanvas(host, lineageCanvasProps(reading, focusId));
       stampXyFlowAttrs();
     }
-    function renderLineage() {
+    function renderLineage(opts) {
+      const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
       renderStats(snapshot);
       renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
@@ -27794,7 +27798,7 @@
         unmountReviewCanvas();
         canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
         lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
-        bindStage(canvas.querySelector(".stage"), { reset: true });
+        bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       } else {
         const title = canvas.querySelector(".flow-title");
         if (title) {

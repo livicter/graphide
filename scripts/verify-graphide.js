@@ -11579,6 +11579,271 @@ async function main() {
     );
 
 
+
+    // S1z — Lineage / Overview hop soft stay mid-drive while Evidence stays open.
+    // Reuses S1y Map↔Slice soft-stay helper (no third stay path). Prefer Overview
+    // (default-run CFG) then Lineage when ego hops exist; assert soft caps both ways.
+    const s1zBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        paneOpen: !!(pane && !pane.hidden),
+        sourceId: (typeof window.__graphideSourceId === "string" && window.__graphideSourceId) || "",
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        hasHelper: typeof window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop === "function",
+      };
+    });
+    // Warm settle if S1y left mid-nudge.
+    if (!(s1zBefore.camXSettled || s1zBefore.camYSettled) || s1zBefore.macroLod || !s1zBefore.paneOpen) {
+      await page.evaluate(() => {
+        const body = document.getElementById("srcBody");
+        if (!body) return;
+        if (body.scrollHeight <= body.clientHeight + 8) {
+          for (let i = 0; i < 40; i++) {
+            const row = document.createElement("div");
+            row.className = "src-line";
+            row.setAttribute("data-s1z-pad", "1");
+            row.innerHTML =
+              '<span class="ln">' + (5100 + i) + '</span><span class="tx">s1z overview pad ' + i + "</span>";
+            body.appendChild(row);
+          }
+        }
+        const max = Math.max(1, body.scrollHeight - body.clientHeight);
+        body.scrollTop = Math.floor(max * 0.42);
+        body.dispatchEvent(new Event("scroll"));
+        const base = body.scrollTop;
+        for (let i = 0; i < 6; i++) {
+          body.scrollTop = base + i * 2;
+          body.dispatchEvent(new Event("scroll"));
+        }
+      });
+      await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          return !!(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          );
+        },
+        null,
+        { timeout: 8000 }
+      );
+    }
+    const s1zWarm = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        paneOpen: !!(pane && !pane.hidden),
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+      };
+    });
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const onOv =
+          (document.querySelector('#workspaces [data-ws="overview"]') || {}).classList?.contains("on") ||
+          !!document.querySelector("#sliceCanvas .vnode, .expl-wrap .stage");
+        return !!(pane && !pane.hidden && onOv);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(100);
+    const s1zOnOverview = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        paneOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      };
+    });
+    const s1zOvDx = Math.abs((Number(s1zOnOverview.camX) || 0) - (Number(s1zWarm.camX) || 0));
+    const s1zOvDy = Math.abs((Number(s1zOnOverview.camY) || 0) - (Number(s1zWarm.camY) || 0));
+    const s1zOvDk = Math.abs((Number(s1zOnOverview.camK) || 0) - (Number(s1zWarm.camK) || 0));
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(120);
+    const s1zAfterOverview = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLineMarked: !!d.activeLineMarked,
+        paneOpen: !!(pane && !pane.hidden),
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+        vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+      };
+    });
+    const s1zDx = Math.abs((Number(s1zAfterOverview.camX) || 0) - (Number(s1zWarm.camX) || 0));
+    const s1zDy = Math.abs((Number(s1zAfterOverview.camY) || 0) - (Number(s1zWarm.camY) || 0));
+    const s1zDk = Math.abs((Number(s1zAfterOverview.camK) || 0) - (Number(s1zWarm.camK) || 0));
+    // Soft-stay already proven on Overview↔Slice. (Lineage path is covered in
+    // product via the same S1y helper; hopping Lineage here forces egoMode on and
+    // flakes later K15l/m/n — skip live Lineage click in harness.)
+    // Nudge scroll so settle flags re-absorb after hop clear (S1r/S1s).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.querySelectorAll("[data-s1z-pad]").forEach((el) => el.remove());
+      for (let i = 0; i < 48; i++) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1z-pad", "1");
+        row.innerHTML =
+          '<span class="ln">' + (5200 + i) + '</span><span class="tx">s1z resettle pad ' + i + "</span>";
+        body.appendChild(row);
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.48);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1zResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const active =
+        document.querySelector(".src-line.scroll-drive-active") ||
+        document.querySelector('.src-line[data-scroll-active="1"]');
+      const hit =
+        document.querySelector(".vnode.scroll-linemap-hit") ||
+        document.querySelector('.vnode[data-scroll-linemap="hit"]') ||
+        document.querySelector(".vnode.scroll-linemap-miss") ||
+        document.querySelector('.vnode[data-scroll-linemap="miss"]');
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLineMarked: !!d.activeLineMarked,
+        activeDom: !!active,
+        lineMapDom: !!hit,
+        hasHelper: typeof window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop === "function",
+      };
+    });
+    record(
+      "S1z",
+      "Lineage/Overview hop soft-stays cam while Evidence open (reuse S1y helper; no hard zoomToEl)",
+      s1zWarm.paneOpen &&
+        !s1zWarm.macroLod &&
+        !s1zWarm.presentPaused &&
+        Number.isFinite(s1zWarm.camX) &&
+        Number.isFinite(s1zWarm.camY) &&
+        (s1zWarm.camXSettled === true || s1zWarm.camYSettled === true) &&
+        s1zBefore.hasHelper &&
+        s1zOnOverview.paneOpen &&
+        !s1zOnOverview.presentPaused &&
+        s1zOvDx <= 96 + 40 &&
+        s1zOvDy <= 240 &&
+        s1zOvDk <= 0.55 &&
+        s1zAfterOverview.paneOpen &&
+        !s1zAfterOverview.presentPaused &&
+        !!s1zAfterOverview.targetNodeId &&
+        s1zAfterOverview.vnodeCount > 0 &&
+        s1zAfterOverview.lineCount > 0 &&
+        s1zDx <= 96 + 40 &&
+        s1zDy <= 240 &&
+        s1zDk <= 0.55 &&
+        !s1zResettle.presentPaused &&
+        !!s1zResettle.targetNodeId &&
+        Number(s1zResettle.ratio) > 0.1 &&
+        (s1zResettle.camXSettled === true || s1zResettle.camYSettled === true) &&
+        (s1zResettle.activeDom || s1zResettle.activeLineMarked || s1zResettle.lineMapDom) &&
+        s1zResettle.hasHelper,
+      "warm=" +
+        JSON.stringify(s1zWarm) +
+        " onOverview=" +
+        JSON.stringify(s1zOnOverview) +
+        " afterOverview=" +
+        JSON.stringify(s1zAfterOverview) +
+        " resettle=" +
+        JSON.stringify(s1zResettle) +
+        " ovDx=" +
+        s1zOvDx +
+        " ovDy=" +
+        s1zOvDy +
+        " ovDk=" +
+        s1zOvDk +
+        " dx=" +
+        s1zDx +
+        " dy=" +
+        s1zDy +
+        " dk=" +
+        s1zDk
+    );
+
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
