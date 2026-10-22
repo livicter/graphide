@@ -20,6 +20,7 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 - Opening Export closes Lens (`K18t`), same exclusive chrome as Keys closing Lens (`K18q`).
 - Opening Lens closes Export (`K18ab`), same exclusive chrome as Export closing Lens (`K18t`).
 - Opening Export closes Route (`K18u`), same exclusive chrome as Keys closing Route (`K18r`).
+- Opening Route closes Export (`K18ad`), same exclusive chrome as Export closing Route (`K18u`).
 - Open Export blocks desk L so LENS stays closed (`K15h`), same as Keys (`K15f`) / Ask (`K15g`).
 - Open Export blocks desk F so Present stays off (`K15i`), same chrome key lock as S / X / R / L under Export.
 - Open Export blocks desk E so Ego stays off (`K15l`), residual chrome key lock after S / X / R / L / F.
@@ -85,6 +86,7 @@ Driver assertions:
 - opening Export closes Lens (`K18t`)
 - opening Lens closes Export (`K18ab`)
 - opening Export closes Route (`K18u`)
+- opening Route closes Export (`K18ad`)
 - open Export: L does not open LENS (`K15h`)
 - open Export: F does not enter Present (`K15i`)
 - open Export: E does not turn Ego on (`K15l`)

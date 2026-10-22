@@ -7850,6 +7850,35 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Route must close Export (setRouteOpen exclusivity — Route clears Export chrome).
+    // Reverse of Export closing Route (K18u). Use #pathBtn: desk R is blocked while Export is open.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedExport = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18ad",
+      "Opening Route closes Export (exclusive chrome)",
+      routeClosedExport.routeOpen && !routeClosedExport.exportOpen,
+      JSON.stringify(routeClosedExport)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
     // Reopen Evidence for S1a scroll-drive suite.
     await page.evaluate(() => {
       const cell = document.querySelector("#ledgerGrid .cell");
