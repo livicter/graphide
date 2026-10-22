@@ -20234,6 +20234,9 @@
     let scrollDriveCamYSettled = false;
     let scrollDriveYNudgeOrigin = 0;
     let scrollDriveWasMacro = false;
+    let scrollDriveLastStay = null;
+    const SCROLL_DRIVE_LAST_STAY_MS = 6e4;
+    let scrollDriveJustRestored = false;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20279,6 +20282,7 @@
       scrollDriveCamYSettled = false;
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
+      scrollDriveJustRestored = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20320,13 +20324,95 @@
       scrollDriveCamYSettled = false;
       scrollDriveYNudgeOrigin = 0;
       scrollDriveWasMacro = false;
+      scrollDriveJustRestored = false;
+      scrollDriveLastStay = null;
       clearScrollDriveCfgPaint();
       clearScrollDriveLineMapPaint();
       clearScrollDriveActiveLinePaint();
       clearScrollDriveMacroPaint();
       return true;
     }
+    function stashScrollDriveLastStay() {
+      if (!scrollDriveBase) return false;
+      const sid = sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      const d = typeof window !== "undefined" && window.__graphideScrollDrive || {};
+      const x = Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x;
+      const y = Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y;
+      const k = Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0 ? scrollDriveBase.k : 1;
+      scrollDriveLastStay = {
+        sourceId: sid,
+        x: Number.isFinite(x) ? x : 0,
+        y: Number.isFinite(y) ? y : 0,
+        k: Number.isFinite(k) && k > 0 ? k : 1,
+        scrollRatio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
+        t: Date.now()
+      };
+      return true;
+    }
+    function clearScrollDriveLastStay() {
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+    }
+    function softRestoreScrollDriveFromLastStay(nextSourceId) {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (scrollDriveBase) return false;
+      const snap = scrollDriveLastStay;
+      if (!snap || !snap.sourceId) return false;
+      const sid = nextSourceId ? String(nextSourceId) : "";
+      if (!sid) return false;
+      if (String(snap.sourceId) !== sid) {
+        clearScrollDriveLastStay();
+        return false;
+      }
+      const age = Date.now() - (Number(snap.t) || 0);
+      if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_MS) {
+        clearScrollDriveLastStay();
+        return false;
+      }
+      const close = Number.isFinite(camTo.x) && Number.isFinite(camTo.y) && Math.abs(camTo.x - snap.x) < 120 && Math.abs(camTo.y - snap.y) < 160 && Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
+      if (close) {
+        scrollDriveBase = {
+          x: camTo.x,
+          y: camTo.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : snap.k || 1
+        };
+      } else {
+        scrollDriveBase = {
+          x: Number.isFinite(snap.x) ? snap.x : 0,
+          y: Number.isFinite(snap.y) ? snap.y : 0,
+          k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1
+        };
+      }
+      scrollDriveTargetLocked = "";
+      scrollDriveJustRestored = true;
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
+      scrollDriveWasMacro = false;
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      if (typeof setCamTarget === "function") {
+        setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+      }
+      return true;
+    }
+    function scrollDriveLastStayMatches(nextSourceId) {
+      const snap = scrollDriveLastStay;
+      if (!snap || !snap.sourceId) return false;
+      const sid = nextSourceId ? String(nextSourceId) : "";
+      if (!sid || String(snap.sourceId) !== sid) return false;
+      const age = Date.now() - (Number(snap.t) || 0);
+      return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+    }
     function pauseScrollDriveForPresent() {
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
         scrollDriveMacroTimer = 0;
@@ -20493,6 +20579,7 @@
       }
       scrollDriveBase.x = camTo.x;
       scrollDriveCamXSettled = true;
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       return true;
     }
     function absorbScrollDriveSoftCamY() {
@@ -20514,6 +20601,7 @@
       scrollDriveBase.y = camTo.y;
       scrollDriveYNudgeOrigin = ratio;
       scrollDriveCamYSettled = true;
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       return true;
     }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
@@ -20523,15 +20611,19 @@
       const el2 = findScrollDriveTargetEl(targetNodeId);
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
         const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
-        const softStay = remapping;
+        const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
+        scrollDriveJustRestored = false;
+        const softStay = remapping || justRestored;
         scrollDriveTargetLocked = lock;
         if (softStay) {
-          scrollDriveBase = {
-            x: Number.isFinite(camTo.x) ? camTo.x : 0,
-            y: Number.isFinite(camTo.y) ? camTo.y : 0,
-            k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1
-          };
-          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+          if (!justRestored) {
+            scrollDriveBase = {
+              x: Number.isFinite(camTo.x) ? camTo.x : 0,
+              y: Number.isFinite(camTo.y) ? camTo.y : 0,
+              k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1
+            };
+            scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+          }
         } else {
           if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
           scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -21335,6 +21427,7 @@
           scrollDriveEaseTimer = 0;
         }
         cancelScrollDriveRaf();
+        if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
         scrollDriveCamXSettled = false;
@@ -24062,7 +24155,13 @@
       if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
-      if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+      let softStayed = false;
+      if (!scrollDriveBase && typeof softRestoreScrollDriveFromLastStay === "function" && softRestoreScrollDriveFromLastStay(sourceId)) {
+        softStayed = true;
+      } else if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+        softStayed = true;
+      }
+      if (softStayed) {
         if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
       } else if (typeof resetScrollDrive === "function") {
         scrollDriveBase = null;
@@ -24511,6 +24610,7 @@
         hopCard.hidden = true;
         hopCard.innerHTML = "";
       }
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       sourceId = null;
       if (typeof resetScrollDrive === "function") resetScrollDrive();
       return true;
@@ -24606,7 +24706,9 @@
       highlightCommunity(sid);
       applyEgoPaint();
       if (opts && opts.zoomEl) {
-        const softHop = !!scrollDriveBase && sourcePane && !sourcePane.hidden && !(typeof isPresenting === "function" && isPresenting());
+        const presenting = typeof isPresenting === "function" && isPresenting();
+        const lastStayMatch = typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
+        const softHop = !presenting && (!!scrollDriveBase && sourcePane && !sourcePane.hidden || lastStayMatch);
         if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
       }
       if (!opts || opts.peek !== false) peekSource(sid);

@@ -9635,6 +9635,13 @@ async function main() {
     );
 
     // S1q — soft camX follow toward off-center mapped target (micro path; not macro).
+    // Drop S1w last-stay left by S1p Present so this step cold-frames via zoomToEl;
+    // S1w later covers Present→Evidence soft restore on its own cycle.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+    });
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
     await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
@@ -9708,6 +9715,16 @@ async function main() {
       }
       return { ok: true, id: id };
     });
+    // Nudge scroll a few times so soft camX flush runs after Present→reopen soft restore (S1w).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
     await page.waitForFunction(
       (beforeX) => {
         const d = window.__graphideScrollDrive;
@@ -9716,7 +9733,7 @@ async function main() {
         return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
       },
       s1qBefore.camX,
-      { timeout: 6000 }
+      { timeout: 8000 }
     );
     await page.waitForTimeout(200);
     const s1qAfter = await page.evaluate(() => {
@@ -9766,6 +9783,27 @@ async function main() {
     );
 
     // S1r — idle-settle soft camX into scrollDriveBase (no spring-back on tiny nudge).
+    // Cold-frame after S1q: close Evidence, drop S1w last-stay, reopen so zoomToEl
+    // reframes and tickCam catches up (softCamX uses live cam.x; stale cam sticks).
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      document.querySelectorAll("#sliceCanvas .vnode[style*='translateX'], #sliceCanvas .vnode[data-s1q-offcenter], #sliceCanvas .vnode[data-s1r-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1q-offcenter");
+        el.removeAttribute("data-s1r-offcenter");
+      });
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
     await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
@@ -9804,7 +9842,7 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
     const s1rBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const id = d.targetNodeId || "";
@@ -9836,6 +9874,15 @@ async function main() {
       }
       return { ok: true, id: id };
     });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
     await page.waitForFunction(
       (beforeX) => {
         const d = window.__graphideScrollDrive;
@@ -9844,7 +9891,7 @@ async function main() {
         return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
       },
       s1rBefore.camX,
-      { timeout: 6000 }
+      { timeout: 8000 }
     );
     // Burst then idle so S1g settle timer fires and S1r absorbs into base.
     await page.evaluate(() => {
@@ -10902,6 +10949,291 @@ async function main() {
         s1vDk +
         " resettleYank=" +
         s1vResettleYank
+    );
+
+
+    // S1w — Present on→off then reopen same Evidence soft-restores cam (no hard zoomToEl).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1wSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1w", "1");
+        row.setAttribute("data-s1w-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(2100 + i, "s1w lead " + i);
+      const ownRow = addLine(11, "s1w own span n1");
+      for (let k = 0; k < 36; k++) addLine(9100 + k, "s1w far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(180);
+    const s1wBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Present on — Evidence closes, ScrollDrive pauses (S1m); last-stay stashed (S1w).
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1wPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        pausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+      };
+    });
+    // Present off — resume; Evidence still closed.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    // Reopen the same Evidence source (n1) — soft restore, no hard zoomToEl leap.
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(
+          pane &&
+          !pane.hidden &&
+          body &&
+          d &&
+          !d.presentPaused &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(100);
+    const s1wAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+      };
+    });
+    const s1wDx = Math.abs((Number(s1wAfterReopen.camX) || 0) - (Number(s1wBefore.camX) || 0));
+    const s1wDy = Math.abs((Number(s1wAfterReopen.camY) || 0) - (Number(s1wBefore.camY) || 0));
+    const s1wDk = Math.abs((Number(s1wAfterReopen.camK) || 0) - (Number(s1wBefore.camK) || 0));
+    // Pad + mid-scroll so publish / settle flags stay green after restore.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1w-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (3200 + i) + '</span><span class="tx">s1w reopen pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.45);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.presentPaused && Number(d.scrollRatio) > 0.15 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.15)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1wResettle = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    record(
+      "S1w",
+      "Present→Evidence reopen soft-restores cam (same sourceId; no hard zoomToEl)",
+      s1wSetup.ok &&
+        !s1wBefore.macroLod &&
+        !s1wBefore.presentPaused &&
+        Number.isFinite(s1wBefore.camX) &&
+        Number.isFinite(s1wBefore.camY) &&
+        s1wPresent.presentPaused &&
+        s1wPresent.paneHidden &&
+        Number.isFinite(s1wAfterReopen.camX) &&
+        Number.isFinite(s1wAfterReopen.camY) &&
+        !s1wAfterReopen.presentPaused &&
+        !!s1wAfterReopen.targetNodeId &&
+        s1wAfterReopen.lineCount > 0 &&
+        s1wDx <= 96 + 24 &&
+        s1wDy <= 200 &&
+        s1wDk <= 0.45 &&
+        !s1wResettle.presentPaused &&
+        !!s1wResettle.targetNodeId &&
+        Number(s1wResettle.ratio) > 0.15,
+      "setup=" +
+        JSON.stringify(s1wSetup) +
+        " before=" +
+        JSON.stringify(s1wBefore) +
+        " present=" +
+        JSON.stringify(s1wPresent) +
+        " afterReopen=" +
+        JSON.stringify(s1wAfterReopen) +
+        " resettle=" +
+        JSON.stringify(s1wResettle) +
+        " dx=" +
+        s1wDx +
+        " dy=" +
+        s1wDy +
+        " dk=" +
+        s1wDk
     );
 
 

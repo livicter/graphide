@@ -661,6 +661,12 @@ let scrollDriveCamYSettled = false;
 let scrollDriveYNudgeOrigin = 0;
 /** S1u — prior-flush macroLod edge (enter/exit soft remap). */
 let scrollDriveWasMacro = false;
+/** S1w — memory-only last soft-stay snapshot for Present→Evidence reopen / pane close / Slice remount (no reload persistence). */
+let scrollDriveLastStay = null;
+/** S1w — soft-restore window after Present exit / Evidence close (ms). */
+const SCROLL_DRIVE_LAST_STAY_MS = 60000;
+/** S1w — next applyScrollDriveCamera soft-stays keeping restored base (no camTo reseed). */
+let scrollDriveJustRestored = false;
 
 function emptyScrollDrive() {
   return {
@@ -709,6 +715,8 @@ function resetScrollDrive() {
   scrollDriveCamYSettled = false;
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
+  scrollDriveJustRestored = false;
+  // Keep scrollDriveLastStay — S1w Present/close reopen needs it across reset.
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
@@ -759,6 +767,9 @@ function softStayScrollDriveAcrossSourceHop() {
   scrollDriveCamYSettled = false;
   scrollDriveYNudgeOrigin = 0;
   scrollDriveWasMacro = false;
+  scrollDriveJustRestored = false;
+  // S1w — live file hop replaces any Present/close snapshot.
+  scrollDriveLastStay = null;
   // Drop old-file paint; next flush rebuilds for the new #srcBody (S1l coalesce ok).
   clearScrollDriveCfgPaint();
   clearScrollDriveLineMapPaint();
@@ -767,8 +778,114 @@ function softStayScrollDriveAcrossSourceHop() {
   return true;
 }
 
+/** S1w — stash lightweight last-stay before Present pause / Evidence close (memory only). */
+function stashScrollDriveLastStay() {
+  if (!scrollDriveBase) return false;
+  const sid = sourceId ? String(sourceId) : "";
+  if (!sid) return false;
+  const d = (typeof window !== "undefined" && window.__graphideScrollDrive) || {};
+  const x = Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x;
+  const y = Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y;
+  const k =
+    Number.isFinite(camTo.k) && camTo.k > 0
+      ? camTo.k
+      : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0
+        ? scrollDriveBase.k
+        : 1;
+  scrollDriveLastStay = {
+    sourceId: sid,
+    x: Number.isFinite(x) ? x : 0,
+    y: Number.isFinite(y) ? y : 0,
+    k: Number.isFinite(k) && k > 0 ? k : 1,
+    scrollRatio: Number(d.scrollRatio) || 0,
+    targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
+    t: Date.now(),
+  };
+  return true;
+}
+
+/** S1w — drop stale Present/close snapshot (different sourceId / TTL). */
+function clearScrollDriveLastStay() {
+  scrollDriveLastStay = null;
+  scrollDriveJustRestored = false;
+}
+// Harness hook — S1q cold-frames after S1p Present without consuming S1w restore.
+if (typeof window !== "undefined") {
+  window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+}
+
+/** S1w — soft-restore scrollDriveBase from last-stay when reopening the same sourceId
+ *  shortly after Present exit / Evidence close / Slice remount wipe. Skip hard zoomToEl.
+ *  Returns true when restore applied. */
+function softRestoreScrollDriveFromLastStay(nextSourceId) {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (scrollDriveBase) return false;
+  const snap = scrollDriveLastStay;
+  if (!snap || !snap.sourceId) return false;
+  const sid = nextSourceId ? String(nextSourceId) : "";
+  if (!sid) return false;
+  if (String(snap.sourceId) !== sid) {
+    clearScrollDriveLastStay();
+    return false;
+  }
+  const age = Date.now() - (Number(snap.t) || 0);
+  if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_MS) {
+    clearScrollDriveLastStay();
+    return false;
+  }
+  // Prefer live camTo when still close to the snapshot; else seed from snap.
+  const close =
+    Number.isFinite(camTo.x) &&
+    Number.isFinite(camTo.y) &&
+    Math.abs(camTo.x - snap.x) < 120 &&
+    Math.abs(camTo.y - snap.y) < 160 &&
+    Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
+  if (close) {
+    scrollDriveBase = {
+      x: camTo.x,
+      y: camTo.y,
+      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : snap.k || 1,
+    };
+  } else {
+    scrollDriveBase = {
+      x: Number.isFinite(snap.x) ? snap.x : 0,
+      y: Number.isFinite(snap.y) ? snap.y : 0,
+      k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1,
+    };
+  }
+  // Clear lock + mark just-restored so applyScrollDriveCamera soft-stays while
+  // KEEPING the snapshot base (do not reseed from Present leftover camTo).
+  scrollDriveTargetLocked = "";
+  scrollDriveJustRestored = true;
+  scrollDriveCamXSettled = false;
+  scrollDriveCamYSettled = false;
+  scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
+  scrollDriveWasMacro = false;
+  clearScrollDriveCfgPaint();
+  clearScrollDriveLineMapPaint();
+  clearScrollDriveActiveLinePaint();
+  clearScrollDriveMacroPaint();
+  // Ease camera toward restored stay (one path: setCamTarget / tickCam) — no zoomToEl.
+  if (typeof setCamTarget === "function") {
+    setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+  }
+  return true;
+}
+
+/** S1w — true when a same-source last-stay snapshot is still fresh (selectNode soft skip). */
+function scrollDriveLastStayMatches(nextSourceId) {
+  const snap = scrollDriveLastStay;
+  if (!snap || !snap.sourceId) return false;
+  const sid = nextSourceId ? String(nextSourceId) : "";
+  if (!sid || String(snap.sourceId) !== sid) return false;
+  const age = Date.now() - (Number(snap.t) || 0);
+  return Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS;
+}
+
 /** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint. */
 function pauseScrollDriveForPresent() {
+  // S1w — remember stay before wipe (closeSourcePane may already have stashed).
+  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
     scrollDriveMacroTimer = 0;
@@ -982,6 +1099,8 @@ function absorbScrollDriveSoftCamX() {
   }
   scrollDriveBase.x = camTo.x;
   scrollDriveCamXSettled = true;
+  // S1w — keep last-stay warm while Evidence soft-stay is live (Slice remount).
+  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   return true;
 }
 
@@ -1013,6 +1132,8 @@ function absorbScrollDriveSoftCamY() {
   scrollDriveBase.y = camTo.y;
   scrollDriveYNudgeOrigin = ratio;
   scrollDriveCamYSettled = true;
+  // S1w — keep last-stay warm while Evidence soft-stay is live (Slice remount).
+  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   return true;
 }
 
@@ -1029,16 +1150,22 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
     // S1t — any mid-session lock change with an existing base soft-stays.
     // First lock (!scrollDriveBase) still zoomToEl below.
     const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
-    const softStay = remapping;
+    // S1w — just-restored: soft-stay but KEEP snapshot base (no camTo reseed / no zoomToEl).
+    const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
+    scrollDriveJustRestored = false;
+    const softStay = remapping || justRestored;
     scrollDriveTargetLocked = lock;
     if (softStay) {
-      scrollDriveBase = {
-        x: Number.isFinite(camTo.x) ? camTo.x : 0,
-        y: Number.isFinite(camTo.y) ? camTo.y : 0,
-        k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1,
-      };
-      // Rebase Y-nudge origin so seeding from live camTo does not re-apply absolute nudge.
-      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+      if (!justRestored) {
+        scrollDriveBase = {
+          x: Number.isFinite(camTo.x) ? camTo.x : 0,
+          y: Number.isFinite(camTo.y) ? camTo.y : 0,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1,
+        };
+        // Rebase Y-nudge origin so seeding from live camTo does not re-apply absolute nudge.
+        scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+      }
+      // justRestored: keep snapshot base + Y origin from softRestore.
     } else {
       if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
       scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -1993,6 +2120,8 @@ function flushScrollDrive() {
       scrollDriveEaseTimer = 0;
     }
     cancelScrollDriveRaf();
+    // S1w — stash before Present flush wipe when Evidence stay was still live.
+    if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
     scrollDriveBase = null;
     scrollDriveTargetLocked = "";
     scrollDriveCamXSettled = false;
@@ -5056,9 +5185,26 @@ function showSource(msg) {
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
   if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
   // S1v — soft stay across Evidence file switch / workspace hop when a prior
-  // ScrollDrive session was active; first-ever open (no base) still clears so
-  // the next flush may zoomToEl. Present is already exited by revealSourcePane.
-  if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+  // ScrollDrive session was active; S1w — same-source soft restore after Present
+  // pause / Evidence close / Slice remount when last-stay snapshot matches.
+  // First-ever open (no base / no snapshot) still clears so flush may zoomToEl.
+  // Present is already exited by revealSourcePane.
+  let softStayed = false;
+  // Prefer S1w same-source restore when no live base (Present/close reopen).
+  // Only then S1v live file-hop soft-stay (base already open on Slice).
+  if (
+    !scrollDriveBase &&
+    typeof softRestoreScrollDriveFromLastStay === "function" &&
+    softRestoreScrollDriveFromLastStay(sourceId)
+  ) {
+    softStayed = true;
+  } else if (
+    typeof softStayScrollDriveAcrossSourceHop === "function" &&
+    softStayScrollDriveAcrossSourceHop()
+  ) {
+    softStayed = true;
+  }
+  if (softStayed) {
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   } else if (typeof resetScrollDrive === "function") {
     scrollDriveBase = null;
@@ -5682,6 +5828,8 @@ function closeSourcePane() {
     hopCard.hidden = true;
     hopCard.innerHTML = "";
   }
+  // S1w — stash last soft-stay before wipe so Present→Evidence / reopen can restore.
+  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   sourceId = null;
   if (typeof resetScrollDrive === "function") resetScrollDrive();
   return true;
@@ -5787,13 +5935,18 @@ function selectNode(id, opts) {
   applyEgoPaint();
   // S1v — while Evidence ScrollDrive has a live base on Slice, skip hard zoomToEl
   // so peekSource → showSource can soft-follow the new vnode (one camera path).
+  // S1w — also skip when a same-source last-stay snapshot is fresh (Present→reopen
+  // / Evidence close→reopen) even if the pane is still hidden mid-peek.
   if (opts && opts.zoomEl) {
+    const presenting = typeof isPresenting === "function" && isPresenting();
+    const lastStayMatch =
+      typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
     const softHop =
-      !!scrollDriveBase &&
-      sourcePane &&
-      !sourcePane.hidden &&
-      !(typeof isPresenting === "function" && isPresenting());
+      !presenting &&
+      ((!!scrollDriveBase && sourcePane && !sourcePane.hidden) || lastStayMatch);
     if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+    // showSource owns S1w softRestore (do not seed base here — that would make
+    // softStayScrollDriveAcrossSourceHop treat Present→reopen as a file hop).
   }
   if (!opts || opts.peek !== false) peekSource(sid);
 }
