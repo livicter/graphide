@@ -13390,6 +13390,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1ay — settle-before-sample warm (S1ad): require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -13398,13 +13399,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(180);
     const s1adBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -13413,6 +13413,9 @@ async function main() {
         camK: Number(d.camK),
         ratio: Number(d.scrollRatio) || 0,
         targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
         presentPaused: !!d.presentPaused,
         presentStayStashed: !!d.presentStayStashed,
       };
@@ -13533,7 +13536,8 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(100);
+    // S1ay — sample first soft-restore step after reopen (one paint); S1ad only asserts target presence.
+    await page.waitForTimeout(16);
     const s1adAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -13541,6 +13545,9 @@ async function main() {
         presentPaused: !!d.presentPaused,
         presentStayStashed: !!d.presentStayStashed,
         paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
       };
     });
     // Cold path: clear last-stay, Present on without prior stay → no stash cue / no bogus restore.
@@ -13617,7 +13624,9 @@ async function main() {
       "Present enter stashes before wipe + stay cue; exit alone no cam yank; no prior stay → no bogus restore",
       s1adSetup.ok &&
         !s1adBefore.presentPaused &&
+        !s1adBefore.macroLod &&
         Number.isFinite(s1adBefore.camX) &&
+        (s1adBefore.camXSettled === true || s1adBefore.camYSettled === true) &&
         s1adPresent.presentPaused &&
         s1adPresent.presentStayStashed &&
         s1adPresent.stayAttr &&
@@ -13749,6 +13758,7 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
+    // S1ay — settle-before-sample warm (S1ae): require settle flags (not scrollRatio fallback).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
@@ -13757,13 +13767,12 @@ async function main() {
           !d.macroLod &&
           !d.presentPaused &&
           Number(d.scrollVel) < 0.12 &&
-          (d.camXSettled === true || d.camYSettled === true || Number(d.scrollRatio) > 0.2)
+          (d.camXSettled === true || d.camYSettled === true)
         );
       },
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(180);
     const s1aeBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const skip =
@@ -13776,6 +13785,9 @@ async function main() {
         camK: Number(d.camK),
         ratio: Number(d.scrollRatio) || 0,
         targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
         presentPaused: !!d.presentPaused,
         skipRefit: skip,
       };
@@ -13849,8 +13861,9 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    // Allow soft-restore setCamTarget + skipped refit rAF to settle.
-    await page.waitForTimeout(200);
+    // S1ay — sample first soft-restore step after reopen (one paint), not a fixed 200ms
+    // mid-tween stack that can inflate dx toward a zoomToEl/refit leap. Product soft-stay / skipRefit unchanged.
+    await page.waitForTimeout(16);
     const s1aeAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const skip =
@@ -13862,6 +13875,9 @@ async function main() {
         camY: Number(d.camY),
         camK: Number(d.camK),
         targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
         presentPaused: !!d.presentPaused,
         skipRefit: skip,
         paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
@@ -13877,8 +13893,10 @@ async function main() {
         s1aeSkipCold.skip === false &&
         s1aeSetup.ok &&
         !s1aeBefore.presentPaused &&
+        !s1aeBefore.macroLod &&
         s1aeBefore.skipRefit === true &&
         Number.isFinite(s1aeBefore.camX) &&
+        (s1aeBefore.camXSettled === true || s1aeBefore.camYSettled === true) &&
         s1aePresent.presentPaused &&
         s1aePresent.paneHidden &&
         s1aePresent.skipRefit === true &&
@@ -13908,6 +13926,59 @@ async function main() {
         JSON.stringify(s1aeAfterReopen) +
         " d=" +
         JSON.stringify({ dx: s1aeDx, dy: s1aeDy, dk: s1aeDk })
+    );
+
+    // S1ay — Present-stage settle-before-sample probe (parity with S1at/S1ax).
+    // After S1ae, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay / skipRefit caps unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1aySnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+        skipRefit: skip,
+      };
+    });
+    record(
+      "S1ay",
+      "Present-stage settle-before-sample: post-S1ad/S1ae still micro+settled (!macroLod; no mid-tween)",
+      !s1aySnap.presentPaused &&
+        !s1aySnap.macroLod &&
+        (s1aySnap.camXSettled === true || s1aySnap.camYSettled === true) &&
+        s1aySnap.scrollVel < 0.12 &&
+        !!s1aySnap.targetNodeId &&
+        Number.isFinite(s1aySnap.camX) &&
+        Number.isFinite(s1aySnap.camK),
+      "snap=" + JSON.stringify(s1aySnap)
     );
 
     // S1af — Review-clear UI cue (parity with S1ad presentStayStashed).
