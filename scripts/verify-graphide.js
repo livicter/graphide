@@ -9765,6 +9765,189 @@ async function main() {
         s1qDx
     );
 
+    // S1r — idle-settle soft camX into scrollDriveBase (no spring-back on tiny nudge).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1rSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1r", "1");
+          row.innerHTML =
+            '<span class="ln">' + (500 + i) + '</span><span class="tx">s1r pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(300);
+    const s1rBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      return {
+        camX: Number(d.camX),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: id,
+        hasEl: !!el,
+      };
+    });
+    const s1rOffset = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      if (!el) return { ok: false, why: "no-vnode" };
+      el.style.transform = "translateX(-220px)";
+      el.setAttribute("data-s1r-offcenter", "1");
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = body.scrollTop + 14;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, id: id };
+    });
+    await page.waitForFunction(
+      (beforeX) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused)) return false;
+        const x = Number(d.camX);
+        return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
+      },
+      s1rBefore.camX,
+      { timeout: 6000 }
+    );
+    // Burst then idle so S1g settle timer fires and S1r absorbs into base.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          d.camXSettled === true &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const s1rSettled = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        camXSettled: !!d.camXSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Tiny further scroll — must not yank camX back toward pre-follow X.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 4;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(350);
+    const s1rAfterNudge = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-s1r-offcenter="1"]');
+      return {
+        camX: Number(d.camX),
+        camXSettled: !!d.camXSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        stillOff: !!(el && el.getAttribute("data-s1r-offcenter") === "1"),
+      };
+    });
+    await page.evaluate(() => {
+      document.querySelectorAll("#sliceCanvas .vnode[data-s1r-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1r-offcenter");
+      });
+    });
+    const s1rSoftDx = Math.abs((Number(s1rSettled.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    const s1rDistBefore = Math.abs((Number(s1rAfterNudge.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    const s1rDistSettled = Math.abs((Number(s1rSettled.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    // Spring-back = after tiny nudge camX moved back toward pre-follow X by > 8px.
+    const s1rSpringBack = s1rDistBefore < s1rDistSettled - 8;
+    // Stability: either stayed near settled, or continued soft-forward (not back).
+    const s1rYank = Math.abs((Number(s1rAfterNudge.camX) || 0) - (Number(s1rSettled.camX) || 0));
+    record(
+      "S1r",
+      "idle-settle soft camX into scrollDriveBase (no spring-back on tiny nudge)",
+      s1rSetup.ok &&
+        s1rOffset.ok &&
+        s1rBefore.hasEl &&
+        !s1rBefore.macroLod &&
+        !s1rSettled.macroLod &&
+        !s1rSettled.presentPaused &&
+        s1rSettled.camXSettled === true &&
+        Number.isFinite(s1rBefore.camX) &&
+        Number.isFinite(s1rSettled.camX) &&
+        Number.isFinite(s1rAfterNudge.camX) &&
+        s1rSoftDx > 8 &&
+        !s1rSpringBack &&
+        s1rYank <= 96 + 1,
+      "setup=" +
+        JSON.stringify(s1rSetup) +
+        " before=" +
+        JSON.stringify(s1rBefore) +
+        " offset=" +
+        JSON.stringify(s1rOffset) +
+        " settled=" +
+        JSON.stringify(s1rSettled) +
+        " afterNudge=" +
+        JSON.stringify(s1rAfterNudge) +
+        " softDx=" +
+        s1rSoftDx +
+        " yank=" +
+        s1rYank +
+        " springBack=" +
+        s1rSpringBack
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

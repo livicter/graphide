@@ -20230,6 +20230,7 @@
       };
     let scrollDriveBase = null;
     let scrollDriveTargetLocked = "";
+    let scrollDriveCamXSettled = false;
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
@@ -20260,7 +20261,8 @@
         rafCoalesce: true,
         rafFlushes: 0,
         rafMerged: 0,
-        presentPaused: false
+        presentPaused: false,
+        camXSettled: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20269,6 +20271,7 @@
     function resetScrollDrive() {
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
         clearTimeout(scrollDriveMacroTimer);
@@ -20309,6 +20312,7 @@
       if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       setCamEase(CAM_EASE_BASE);
       clearScrollDriveCfgPaint();
@@ -20446,6 +20450,20 @@
       if (dx < -lim) dx = -lim;
       return baseX + dx;
     }
+    function absorbScrollDriveSoftCamX() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase || !canvas) return false;
+      const d = window.__graphideScrollDrive;
+      if (d && d.macroLod) return false;
+      if (!Number.isFinite(camTo.x)) return false;
+      if (Math.abs(camTo.x - scrollDriveBase.x) < 0.5) {
+        scrollDriveCamXSettled = true;
+        return false;
+      }
+      scrollDriveBase.x = camTo.x;
+      scrollDriveCamXSettled = true;
+      return true;
+    }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (typeof isPresenting === "function" && isPresenting()) return;
       if (!canvas) return;
@@ -20455,10 +20473,17 @@
         scrollDriveTargetLocked = lock;
         if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
         scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+        scrollDriveCamXSettled = false;
       }
       const nudge = scrollRatio * 48;
       const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
       setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
+      if (typeof reduceMotion === "function" && reduceMotion()) {
+        if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
+          scrollDriveBase.x = camX;
+        }
+        scrollDriveCamXSettled = true;
+      }
     }
     let scrollDriveVel = { t: 0, top: 0, vel: 0 };
     const SCROLL_MACRO_RATIO = 0.18;
@@ -21148,7 +21173,15 @@
         scrollDriveEaseTimer = 0;
         if (!srcBody || !sourcePane || sourcePane.hidden) return;
         refreshScrollDriveCamEase();
-        if (readScrollDriveVelocity() > 0.08) scheduleScrollDriveEaseSettle();
+        if (readScrollDriveVelocity() > 0.08) {
+          scheduleScrollDriveEaseSettle();
+        } else {
+          absorbScrollDriveSoftCamX();
+          if (window.__graphideScrollDrive) {
+            window.__graphideScrollDrive.camXSettled = !!scrollDriveCamXSettled;
+            window.__graphideScrollDrive.camX = camTo.x;
+          }
+        }
       }, 160);
     }
     function cancelScrollDriveRaf() {
@@ -21184,6 +21217,7 @@
         cancelScrollDriveRaf();
         scrollDriveBase = null;
         scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
         scrollDriveVel = { t: 0, top: 0, vel: 0 };
         setCamEase(CAM_EASE_BASE);
         clearScrollDriveCfgPaint();
@@ -21228,7 +21262,10 @@
         setCamEase(CAM_EASE_SNAP);
       } else {
         setCamEase(scrollDriveEaseFromVel(scrollVel));
-        if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+        if (scrollVel > 0.05) {
+          scrollDriveCamXSettled = false;
+          scheduleScrollDriveEaseSettle();
+        }
       }
       const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
       let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
@@ -21250,6 +21287,7 @@
         clearScrollDriveMacroPaint();
         applyScrollDriveCamera(scrollRatio, targetNodeId);
         cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+        if (!reduced && scrollVel <= 0.05) absorbScrollDriveSoftCamX();
       }
       const anchors = applyScrollDriveAnchors(targetNodeId);
       const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
@@ -21285,7 +21323,8 @@
         rafCoalesce: true,
         rafFlushes: scrollDriveRafFlushes,
         rafMerged: scrollDriveRafMerged,
-        presentPaused: false
+        presentPaused: false,
+        camXSettled: !!scrollDriveCamXSettled
       });
     }
     function onSrcBodyScroll() {

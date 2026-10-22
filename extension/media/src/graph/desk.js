@@ -653,6 +653,8 @@ if (srcEditor)
 let scrollDriveBase = null;
 /** Last camera-lock target — re-zoom when S1h line→node remaps (S1h). */
 let scrollDriveTargetLocked = "";
+/** S1r — idle-settle absorbed soft camX into scrollDriveBase (harness flag). */
+let scrollDriveCamXSettled = false;
 
 function emptyScrollDrive() {
   return {
@@ -685,6 +687,7 @@ function emptyScrollDrive() {
     rafFlushes: 0,
     rafMerged: 0,
     presentPaused: false,
+    camXSettled: false,
   };
 }
 
@@ -695,6 +698,7 @@ function publishScrollDrive(drive) {
 function resetScrollDrive() {
   scrollDriveBase = null;
   scrollDriveTargetLocked = "";
+  scrollDriveCamXSettled = false;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
     clearTimeout(scrollDriveMacroTimer);
@@ -738,6 +742,7 @@ function pauseScrollDriveForPresent() {
   if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
   scrollDriveBase = null;
   scrollDriveTargetLocked = "";
+  scrollDriveCamXSettled = false;
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
@@ -917,6 +922,24 @@ function scrollDriveSoftCamX(el, baseX, k, cap) {
   return baseX + dx;
 }
 
+/** S1r — fold S1q soft-followed camX into scrollDriveBase on idle settle.
+ *  Uses camTo.x (already soft-clamped by applyScrollDriveCamera) so the base
+ *  absorbs the correction without a second RAF loop or fighting S1c macro. */
+function absorbScrollDriveSoftCamX() {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (!scrollDriveBase || !canvas) return false;
+  const d = window.__graphideScrollDrive;
+  if (d && d.macroLod) return false;
+  if (!Number.isFinite(camTo.x)) return false;
+  if (Math.abs(camTo.x - scrollDriveBase.x) < 0.5) {
+    scrollDriveCamXSettled = true;
+    return false;
+  }
+  scrollDriveBase.x = camTo.x;
+  scrollDriveCamXSettled = true;
+  return true;
+}
+
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // S1m — Present owns cam; never nudge while stage is on.
   if (typeof isPresenting === "function" && isPresenting()) return;
@@ -927,15 +950,25 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
     scrollDriveTargetLocked = lock;
     if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
     scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+    scrollDriveCamXSettled = false;
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
   const nudge = scrollRatio * 48;
   // S1q — soft camX follow toward mapped target (prefer lineMapHit el / sourceId vnode).
   // Cap so it eases, never yanks. Macro LOD keeps its own path (no fight).
+  // S1r absorbs camTo.x into scrollDriveBase on idle settle so a missing-el /
+  // base-only path cannot spring back to the pre-follow X.
   const camX = el
     ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
     : scrollDriveBase.x;
   setCamTarget(camX, scrollDriveBase.y - nudge, scrollDriveBase.k);
+  // S1r / S1k — reduced-motion skips settle timers; snap-absorb soft camX into base.
+  if (typeof reduceMotion === "function" && reduceMotion()) {
+    if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
+      scrollDriveBase.x = camX;
+    }
+    scrollDriveCamXSettled = true;
+  }
 }
 
 /** Scroll velocity (px/ms EMA) + age decay — fast flick → macro Map LOD (S1c). */
@@ -1741,7 +1774,16 @@ function scheduleScrollDriveEaseSettle() {
     if (!srcBody || !sourcePane || sourcePane.hidden) return;
     refreshScrollDriveCamEase();
     // Keep settling until velocity ages out (snappy camEase).
-    if (readScrollDriveVelocity() > 0.08) scheduleScrollDriveEaseSettle();
+    if (readScrollDriveVelocity() > 0.08) {
+      scheduleScrollDriveEaseSettle();
+    } else {
+      // S1r — idle settle: fold soft camX into scrollDriveBase (no second RAF).
+      absorbScrollDriveSoftCamX();
+      if (window.__graphideScrollDrive) {
+        window.__graphideScrollDrive.camXSettled = !!scrollDriveCamXSettled;
+        window.__graphideScrollDrive.camX = camTo.x;
+      }
+    }
   }, 160);
 }
 
@@ -1782,6 +1824,7 @@ function flushScrollDrive() {
     cancelScrollDriveRaf();
     scrollDriveBase = null;
     scrollDriveTargetLocked = "";
+    scrollDriveCamXSettled = false;
     scrollDriveVel = { t: 0, top: 0, vel: 0 };
     setCamEase(CAM_EASE_BASE);
     clearScrollDriveCfgPaint();
@@ -1828,7 +1871,11 @@ function flushScrollDrive() {
     setCamEase(CAM_EASE_SNAP);
   } else {
     setCamEase(scrollDriveEaseFromVel(scrollVel));
-    if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
+    if (scrollVel > 0.05) {
+      // Active scroll — settle flag clears until S1r absorb on idle.
+      scrollDriveCamXSettled = false;
+      scheduleScrollDriveEaseSettle();
+    }
   }
   const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
   let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
@@ -1852,6 +1899,8 @@ function flushScrollDrive() {
     clearScrollDriveMacroPaint();
     applyScrollDriveCamera(scrollRatio, targetNodeId);
     cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+    // S1r — low scrollVel / idle path (no settle timer scheduled): absorb soft camX.
+    if (!reduced && scrollVel <= 0.05) absorbScrollDriveSoftCamX();
   }
   const anchors = applyScrollDriveAnchors(targetNodeId);
   const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
@@ -1888,6 +1937,7 @@ function flushScrollDrive() {
     rafFlushes: scrollDriveRafFlushes,
     rafMerged: scrollDriveRafMerged,
     presentPaused: false,
+    camXSettled: !!scrollDriveCamXSettled,
   });
 }
 
