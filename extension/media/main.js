@@ -20230,7 +20230,9 @@
         camK: 1,
         cfgActiveId: "",
         cfgUnroll: 0,
-        cfgVisible: 0
+        cfgVisible: 0,
+        scrollVel: 0,
+        macroLod: false
       };
     }
     function publishScrollDrive(drive) {
@@ -20238,7 +20240,9 @@
     }
     function resetScrollDrive() {
       scrollDriveBase = null;
+      scrollDriveVel = { t: 0, top: 0, vel: 0 };
       clearScrollDriveCfgPaint();
+      clearScrollDriveMacroPaint();
       publishScrollDrive(emptyScrollDrive());
     }
     function readSrcActiveLine() {
@@ -20271,6 +20275,75 @@
       }
       const nudge = scrollRatio * 48;
       setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
+    }
+    let scrollDriveVel = { t: 0, top: 0, vel: 0 };
+    const SCROLL_MACRO_RATIO = 0.18;
+    const SCROLL_MACRO_VEL = 0.55;
+    function noteScrollDriveVelocity(scrollTop) {
+      const now2 = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      if (!scrollDriveVel.t) {
+        scrollDriveVel = { t: now2, top: scrollTop, vel: 0 };
+        return 0;
+      }
+      const dt2 = Math.max(1, now2 - scrollDriveVel.t);
+      const dTop = Math.abs(scrollTop - scrollDriveVel.top);
+      const instant = dTop / dt2;
+      scrollDriveVel.vel = scrollDriveVel.vel * 0.35 + instant * 0.65;
+      scrollDriveVel.t = now2;
+      scrollDriveVel.top = scrollTop;
+      return scrollDriveVel.vel;
+    }
+    function readScrollDriveVelocity() {
+      if (!scrollDriveVel.t) return 0;
+      const now2 = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const age = now2 - scrollDriveVel.t;
+      if (age <= 120) return scrollDriveVel.vel;
+      return scrollDriveVel.vel * Math.exp(-(age - 120) / 180);
+    }
+    function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
+      if (!canScroll) return false;
+      return scrollRatio <= SCROLL_MACRO_RATIO || vel >= SCROLL_MACRO_VEL;
+    }
+    function clearScrollDriveMacroPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".vnode.scroll-macro-hot, .vnode.scroll-macro-dim, .vnode[data-macro-hot]").forEach((el2) => {
+        el2.classList.remove("scroll-macro-hot", "scroll-macro-dim");
+        el2.removeAttribute("data-macro-hot");
+      });
+      const vp = viewportEl || canvas.querySelector(".viewport");
+      if (vp) {
+        vp.removeAttribute("data-scroll-macro");
+        if (!mapStageMounted()) {
+          const lod = String(lodOf(cam && cam.k != null ? cam.k : 1));
+          if (vp.getAttribute("data-lod") !== lod) vp.setAttribute("data-lod", lod);
+        }
+      }
+    }
+    function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+      if (!canvas) return { macroLod: false };
+      if (!scrollDriveBase) {
+        const el2 = findScrollDriveTargetEl(targetNodeId);
+        if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+        scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+      }
+      const kMacro = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
+      const nudge = scrollRatio * 24;
+      setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, kMacro);
+      const vp = viewportEl || canvas.querySelector(".viewport");
+      if (vp) {
+        if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
+        vp.setAttribute("data-scroll-macro", "1");
+      }
+      const hotId = targetNodeId ? String(targetNodeId) : "";
+      canvas.querySelectorAll(".vnode[data-id]").forEach((el2) => {
+        const id2 = el2.getAttribute("data-id");
+        const hot = !!(hotId && id2 === hotId);
+        el2.classList.toggle("scroll-macro-hot", hot);
+        el2.classList.toggle("scroll-macro-dim", !hot);
+        if (hot) el2.setAttribute("data-macro-hot", "1");
+        else el2.removeAttribute("data-macro-hot");
+      });
+      return { macroLod: true };
     }
     function lineOfScrollDriveNode(id2) {
       const n = nodeById.get(idVal(id2));
@@ -20340,17 +20413,45 @@
       }
       return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
     }
+    let scrollDriveMacroTimer = 0;
     function onSrcBodyScroll() {
       if (!srcBody || !sourcePane || sourcePane.hidden) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
         resetScrollDrive();
         return;
       }
-      const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
+      const maxScroll = srcBody.scrollHeight - srcBody.clientHeight;
+      const canScroll = maxScroll > 8;
+      const max = Math.max(1, maxScroll);
       const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
       const activeLine = readSrcActiveLine();
       const targetNodeId = sourceId ? String(sourceId) : "";
-      applyScrollDriveCamera(scrollRatio, targetNodeId);
-      const cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+      noteScrollDriveVelocity(srcBody.scrollTop);
+      const scrollVel = readScrollDriveVelocity();
+      const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
+      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+      if (macro) {
+        clearScrollDriveCfgPaint();
+        applyScrollDriveMacro(scrollRatio, targetNodeId);
+        if (scrollRatio > SCROLL_MACRO_RATIO) {
+          if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = setTimeout(() => {
+            scrollDriveMacroTimer = 0;
+            if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+          }, 220);
+        }
+      } else {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        clearScrollDriveMacroPaint();
+        applyScrollDriveCamera(scrollRatio, targetNodeId);
+        cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+      }
       publishScrollDrive({
         scrollRatio,
         activeLine,
@@ -20360,7 +20461,9 @@
         camK: camTo.k,
         cfgActiveId: cfg.cfgActiveId,
         cfgUnroll: cfg.cfgUnroll,
-        cfgVisible: cfg.cfgVisible
+        cfgVisible: cfg.cfgVisible,
+        scrollVel,
+        macroLod: !!macro
       });
     }
     if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
@@ -20970,7 +21073,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }

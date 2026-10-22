@@ -651,6 +651,8 @@ function emptyScrollDrive() {
     cfgActiveId: "",
     cfgUnroll: 0,
     cfgVisible: 0,
+    scrollVel: 0,
+    macroLod: false,
   };
 }
 
@@ -660,7 +662,9 @@ function publishScrollDrive(drive) {
 
 function resetScrollDrive() {
   scrollDriveBase = null;
+  scrollDriveVel = { t: 0, top: 0, vel: 0 };
   clearScrollDriveCfgPaint();
+  clearScrollDriveMacroPaint();
   publishScrollDrive(emptyScrollDrive());
 }
 
@@ -706,6 +710,86 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
   const nudge = scrollRatio * 48;
   setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
+}
+
+/** Scroll velocity (px/ms EMA) + age decay — fast flick → macro Map LOD (S1c). */
+let scrollDriveVel = { t: 0, top: 0, vel: 0 };
+const SCROLL_MACRO_RATIO = 0.18;
+const SCROLL_MACRO_VEL = 0.55;
+
+function noteScrollDriveVelocity(scrollTop) {
+  const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+  if (!scrollDriveVel.t) {
+    scrollDriveVel = { t: now, top: scrollTop, vel: 0 };
+    return 0;
+  }
+  const dt = Math.max(1, now - scrollDriveVel.t);
+  const dTop = Math.abs(scrollTop - scrollDriveVel.top);
+  const instant = dTop / dt;
+  scrollDriveVel.vel = scrollDriveVel.vel * 0.35 + instant * 0.65;
+  scrollDriveVel.t = now;
+  scrollDriveVel.top = scrollTop;
+  return scrollDriveVel.vel;
+}
+
+function readScrollDriveVelocity() {
+  if (!scrollDriveVel.t) return 0;
+  const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+  const age = now - scrollDriveVel.t;
+  if (age <= 120) return scrollDriveVel.vel;
+  return scrollDriveVel.vel * Math.exp(-(age - 120) / 180);
+}
+
+function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
+  if (!canScroll) return false;
+  // File top (low ratio) or a fast flick — short / unscrollable Evidence stays micro.
+  return scrollRatio <= SCROLL_MACRO_RATIO || vel >= SCROLL_MACRO_VEL;
+}
+
+function clearScrollDriveMacroPaint() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".vnode.scroll-macro-hot, .vnode.scroll-macro-dim, .vnode[data-macro-hot]").forEach((el) => {
+    el.classList.remove("scroll-macro-hot", "scroll-macro-dim");
+    el.removeAttribute("data-macro-hot");
+  });
+  const vp = viewportEl || canvas.querySelector(".viewport");
+  if (vp) {
+    vp.removeAttribute("data-scroll-macro");
+    // Restore LOD from live camera — applyCam will keep it in sync.
+    if (!mapStageMounted()) {
+      const lod = String(lodOf(cam && cam.k != null ? cam.k : 1));
+      if (vp.getAttribute("data-lod") !== lod) vp.setAttribute("data-lod", lod);
+    }
+  }
+}
+
+/** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest. */
+function applyScrollDriveMacro(scrollRatio, targetNodeId) {
+  if (!canvas) return { macroLod: false };
+  if (!scrollDriveBase) {
+    const el = findScrollDriveTargetEl(targetNodeId);
+    if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+    scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+  }
+  // Pull toward overview so lodOf(k) → 0; gentler Y nudge than micro focus.
+  const kMacro = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
+  const nudge = scrollRatio * 24;
+  setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, kMacro);
+  const vp = viewportEl || canvas.querySelector(".viewport");
+  if (vp) {
+    if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
+    vp.setAttribute("data-scroll-macro", "1");
+  }
+  const hotId = targetNodeId ? String(targetNodeId) : "";
+  canvas.querySelectorAll(".vnode[data-id]").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const hot = !!(hotId && id === hotId);
+    el.classList.toggle("scroll-macro-hot", hot);
+    el.classList.toggle("scroll-macro-dim", !hot);
+    if (hot) el.setAttribute("data-macro-hot", "1");
+    else el.removeAttribute("data-macro-hot");
+  });
+  return { macroLod: true };
 }
 
 function lineOfScrollDriveNode(id) {
@@ -786,18 +870,49 @@ function applyScrollDriveCfg(scrollRatio, activeLine) {
   return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
 }
 
+let scrollDriveMacroTimer = 0;
+
 function onSrcBodyScroll() {
   if (!srcBody || !sourcePane || sourcePane.hidden) {
+    if (scrollDriveMacroTimer) {
+      clearTimeout(scrollDriveMacroTimer);
+      scrollDriveMacroTimer = 0;
+    }
     resetScrollDrive();
     return;
   }
-  const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
+  const maxScroll = srcBody.scrollHeight - srcBody.clientHeight;
+  const canScroll = maxScroll > 8;
+  const max = Math.max(1, maxScroll);
   const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
   const activeLine = readSrcActiveLine();
   // S1a: no AST line→node yet — target is the inspected Evidence node (sourceId).
   const targetNodeId = sourceId ? String(sourceId) : "";
-  applyScrollDriveCamera(scrollRatio, targetNodeId);
-  const cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+  noteScrollDriveVelocity(srcBody.scrollTop);
+  const scrollVel = readScrollDriveVelocity();
+  const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
+  let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+  if (macro) {
+    // S1c — overview LOD; clear micro CFG so paint does not fight.
+    clearScrollDriveCfgPaint();
+    applyScrollDriveMacro(scrollRatio, targetNodeId);
+    // Velocity-driven macro must re-enter when the flick ages out (mid-file → S1b).
+    if (scrollRatio > SCROLL_MACRO_RATIO) {
+      if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+      scrollDriveMacroTimer = setTimeout(() => {
+        scrollDriveMacroTimer = 0;
+        if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+      }, 220);
+    }
+  } else {
+    if (scrollDriveMacroTimer) {
+      clearTimeout(scrollDriveMacroTimer);
+      scrollDriveMacroTimer = 0;
+    }
+    clearScrollDriveMacroPaint();
+    applyScrollDriveCamera(scrollRatio, targetNodeId);
+    cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+  }
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
@@ -808,6 +923,8 @@ function onSrcBodyScroll() {
     cfgActiveId: cfg.cfgActiveId,
     cfgUnroll: cfg.cfgUnroll,
     cfgVisible: cfg.cfgVisible,
+    scrollVel: scrollVel,
+    macroLod: !!macro,
   });
 }
 
@@ -1468,7 +1585,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim"];
 
 function exportDiagramRoot() {
   return (

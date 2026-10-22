@@ -2139,6 +2139,15 @@ svg.steiner .edge.walk {
 .vnode.scroll-cfg-ahead {
   opacity: 0.14;
 }
+/* S1c — scroll-driven macro Map LOD (file top / fast flick) */
+.viewport[data-scroll-macro="1"] .vnode.scroll-macro-hot {
+  outline: 1.5px solid var(--vscode-textLink-foreground);
+  outline-offset: 1px;
+  opacity: 1;
+}
+.viewport[data-scroll-macro="1"] .vnode.scroll-macro-dim {
+  opacity: 0.22;
+}
 
 .vnode.route-dim, .comm-node.route-dim, .seq-part.route-dim, .df-node.route-dim, .seq-hop.route-dim, .seq-row.route-dim, path.route-dim, .bubble-card.route-dim {
   opacity: 0.22;

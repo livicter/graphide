@@ -7873,6 +7873,120 @@ async function main() {
         (s1bOpened.top.cfgVisible < afterCfg.cfgVisible || s1bOpened.top.ahead > afterCfg.ahead || afterCfg.cfgUnroll > s1bOpened.top.cfgUnroll),
       "opened=" + JSON.stringify(s1bOpened) + " after=" + JSON.stringify(afterCfg)
     );
+    // S1c — file-top (low scrollRatio) → macro Map LOD; focus Evidence node, dim siblings.
+    const s1cTop = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (300 + i) + '</span><span class="tx">macro-lod pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return {
+        ok: true,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#canvas .viewport, #sliceCanvas") 
+          ? document.querySelector("#canvas .viewport")
+          : null;
+        return !!(
+          d &&
+          d.macroLod &&
+          Number(d.scrollRatio) <= 0.18 &&
+          vp &&
+          vp.getAttribute("data-lod") === "0" &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(150);
+    const afterMacro = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        lod: (vp && vp.getAttribute("data-lod")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+        dim: document.querySelectorAll(".vnode.scroll-macro-dim").length,
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot"),
+        camK: Number(d.camK),
+        targetNodeId: d.targetNodeId || "",
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Mid-file slow scroll must leave macro and restore micro CFG (velocity aged out).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(280); // past velocity recheck timer
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      // Second tick after age decay — settle mid-file micro mode.
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && Number(d.cfgUnroll) > 0.35);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const afterMid = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macroHot: !!document.querySelector(".vnode.scroll-macro-hot"),
+      };
+    });
+    record(
+      "S1c",
+      "Evidence file-top / fast scroll enters macro Map LOD; mid-file returns to CFG",
+      s1cTop.ok &&
+        afterMacro.evidenceOpen &&
+        afterMacro.macroLod &&
+        afterMacro.lod === "0" &&
+        afterMacro.macroAttr === "1" &&
+        afterMacro.hot &&
+        afterMacro.dim >= 1 &&
+        !afterMacro.cfgHot &&
+        !afterMid.macroLod &&
+        afterMid.cfgUnroll > 0.35 &&
+        afterMid.cfgHot,
+      "top=" +
+        JSON.stringify(s1cTop) +
+        " macro=" +
+        JSON.stringify(afterMacro) +
+        " mid=" +
+        JSON.stringify(afterMid)
+    );
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {
