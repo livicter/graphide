@@ -20225,11 +20225,13 @@
         vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
       };
     let scrollDriveBase = null;
+    let scrollDriveTargetLocked = "";
     function emptyScrollDrive() {
       return {
         scrollRatio: 0,
         activeLine: 0,
         targetNodeId: "",
+        lineMapHit: false,
         camX: 0,
         camY: 0,
         camK: 1,
@@ -20251,6 +20253,7 @@
     }
     function resetScrollDrive() {
       scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
       if (scrollDriveEaseTimer) {
         clearTimeout(scrollDriveEaseTimer);
@@ -20265,13 +20268,13 @@
     }
     function readSrcActiveLine() {
       if (!srcBody) return 0;
-      const mid = srcBody.scrollTop + srcBody.clientHeight / 2;
+      const bodyRect = srcBody.getBoundingClientRect();
+      const midY = bodyRect.top + srcBody.clientHeight / 2;
       const lines = srcBody.querySelectorAll(".src-line");
       for (let i = 0; i < lines.length; i++) {
         const el2 = lines[i];
-        const top = el2.offsetTop;
-        const bottom = top + el2.offsetHeight;
-        if (top <= mid && mid < bottom + 0.5) {
+        const r = el2.getBoundingClientRect();
+        if (r.top <= midY && midY < r.bottom + 0.5) {
           const ln2 = el2.querySelector(".ln");
           const n = parseInt(ln2 && ln2.textContent, 10);
           return Number.isFinite(n) ? n : 0;
@@ -20286,7 +20289,9 @@
     }
     function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       if (!canvas) return;
-      if (!scrollDriveBase) {
+      const lock = targetNodeId ? String(targetNodeId) : "";
+      if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+        scrollDriveTargetLocked = lock;
         const el2 = findScrollDriveTargetEl(targetNodeId);
         if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
         scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -20348,7 +20353,9 @@
     }
     function applyScrollDriveMacro(scrollRatio, targetNodeId) {
       if (!canvas) return { macroLod: false };
-      if (!scrollDriveBase) {
+      const lock = targetNodeId ? String(targetNodeId) : "";
+      if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+        scrollDriveTargetLocked = lock;
         const el2 = findScrollDriveTargetEl(targetNodeId);
         if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
         scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -20377,6 +20384,64 @@
       if (!n || !n.span) return 0;
       if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
       return Number(n.span.line) || 0;
+    }
+    function spanLinesOfScrollDriveNode(id2) {
+      const n = nodeById.get(idVal(id2));
+      if (!n || !n.span) return null;
+      const sp = n.span;
+      const start2 = Number(sp.start && sp.start.line || sp.line) || 0;
+      if (!start2) return null;
+      const endRaw = Number(sp.end && sp.end.line || sp.endLine) || start2;
+      return {
+        start: start2,
+        end: Math.max(start2, endRaw),
+        file: sp.file || ""
+      };
+    }
+    function evidenceScrollDriveFile() {
+      if (!sourceId) return "";
+      const n = nodeById.get(idVal(sourceId));
+      return n && n.span && n.span.file || "";
+    }
+    function resolveScrollDriveTargetNode(activeLine) {
+      const fallback = sourceId ? String(sourceId) : "";
+      const line = Number(activeLine) || 0;
+      if (!line || !nodeById || typeof nodeById.forEach !== "function") {
+        return { targetNodeId: fallback, lineMapHit: false };
+      }
+      const file = evidenceScrollDriveFile();
+      const walk = new Set(scrollDriveCfgWalk());
+      let bestContain = null;
+      let bestNear = null;
+      nodeById.forEach((_n2, rawId) => {
+        const id2 = String(idVal(rawId));
+        const span = spanLinesOfScrollDriveNode(id2);
+        if (!span) return;
+        const sameFile = !file || !span.file || span.file === file;
+        if (!sameFile) return;
+        let score = 0;
+        if (walk.has(id2)) score += 2;
+        if (id2 === fallback) score += 1;
+        if (findScrollDriveTargetEl(id2)) score += 1;
+        if (line >= span.start && line <= span.end) {
+          const width = span.end - span.start;
+          const cand2 = { id: id2, width, score };
+          if (!bestContain || cand2.width < bestContain.width || cand2.width === bestContain.width && cand2.score > bestContain.score) {
+            bestContain = cand2;
+          }
+          return;
+        }
+        const dist = line < span.start ? span.start - line : line - span.end;
+        const cand = { id: id2, dist, score };
+        if (!bestNear || cand.dist < bestNear.dist || cand.dist === bestNear.dist && cand.score > bestNear.score) {
+          bestNear = cand;
+        }
+      });
+      if (bestContain) return { targetNodeId: bestContain.id, lineMapHit: true };
+      if (bestNear && bestNear.dist <= 48) {
+        return { targetNodeId: bestNear.id, lineMapHit: true };
+      }
+      return { targetNodeId: fallback, lineMapHit: false };
     }
     function scrollDriveCfgWalk() {
       const flow = typeof currentFlow === "function" && currentFlow() || typeof storyFlow === "function" && storyFlow() || null;
@@ -20689,7 +20754,9 @@
       const max = Math.max(1, maxScroll);
       const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
       const activeLine = readSrcActiveLine();
-      const targetNodeId = sourceId ? String(sourceId) : "";
+      const lineMap = resolveScrollDriveTargetNode(activeLine);
+      const targetNodeId = lineMap.targetNodeId || (sourceId ? String(sourceId) : "");
+      const lineMapHit = !!lineMap.lineMapHit;
       noteScrollDriveVelocity(srcBody.scrollTop);
       const scrollVel = readScrollDriveVelocity();
       setCamEase(scrollDriveEaseFromVel(scrollVel));
@@ -20721,6 +20788,7 @@
         scrollRatio,
         activeLine,
         targetNodeId,
+        lineMapHit,
         camX: camTo.x,
         camY: camTo.y,
         camK: camTo.k,

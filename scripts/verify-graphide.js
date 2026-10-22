@@ -8611,7 +8611,140 @@ async function main() {
       "loose=" + JSON.stringify(s1gLoose) + " snap=" + JSON.stringify(s1gSnap)
     );
 
+    // S1h — activeLine maps to IR/fixture span owner (same-file sibling), not only sourceId.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1hSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const siblingId = "n21";
+      const siblingLine = 31;
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Controlled Evidence body — enough lead-in so sibling is not at viewport mid when scrollTop=0.
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1h", "1");
+        row.setAttribute("data-s1h-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 24; i++) addLine(200 + i, "s1h lead " + i);
+      addLine(ownLine, "s1h own span " + sourceId);
+      const sibRow = addLine(siblingLine, "s1h sibling span " + siblingId);
+      for (let k = 0; k < 24; k++) addLine(900 + k, "s1h far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(sibRow);
+      return {
+        ok: true,
+        sourceId: sourceId,
+        siblingId: siblingId,
+        siblingLine: siblingLine,
+        ownLine: ownLine,
+        scrollTop: body.scrollTop,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+        drive: Object.assign({}, window.__graphideScrollDrive || {}),
+      };
+    });
+    await page.waitForFunction(
+      (sib) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          d.lineMapHit === true &&
+          String(d.targetNodeId || "") === String(sib) &&
+          Number(d.activeLine) > 0
+        );
+      },
+      s1hSetup.siblingId,
+      { timeout: 5000 }
+    );
+    const s1hHit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        targetNodeId: d.targetNodeId || "",
+        lineMapHit: !!d.lineMapHit,
+        activeLine: Number(d.activeLine) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      const far = body && body.querySelector('.src-line[data-s1h-ln="900"]');
+      if (!body || !far) return;
+      const br = body.getBoundingClientRect();
+      const rr = far.getBoundingClientRect();
+      const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+      body.scrollTop = Math.max(0, body.scrollTop + delta);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          d.lineMapHit === false &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          Number(d.activeLine) >= 900
+        );
+      },
+      s1hSetup.sourceId,
+      { timeout: 5000 }
+    );
+    const s1hMiss = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        ok: true,
+        targetNodeId: d.targetNodeId || "",
+        lineMapHit: !!d.lineMapHit,
+        activeLine: Number(d.activeLine) || 0,
+        sourceId: sourceId,
+      };
+    }, s1hSetup.sourceId);
+    record(
+      "S1h",
+      "Evidence activeLine maps to IR/fixture span owner (lineMapHit)",
+      s1hSetup.ok &&
+        s1hHit.evidenceOpen &&
+        s1hHit.lineMapHit === true &&
+        s1hHit.targetNodeId === s1hSetup.siblingId &&
+        s1hMiss.ok &&
+        s1hMiss.lineMapHit === false &&
+        s1hMiss.targetNodeId === s1hSetup.sourceId,
+      "setup=" +
+        JSON.stringify(s1hSetup) +
+        " hit=" +
+        JSON.stringify(s1hHit) +
+        " miss=" +
+        JSON.stringify(s1hMiss)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
+
+
+
+
     await page.waitForFunction(
       () => {
         const pane = document.getElementById("sourcePane");

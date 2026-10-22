@@ -645,12 +645,15 @@ if (srcEditor)
 
 /** ScrollDrive — Evidence #srcBody scroll → camera lerp toward related node (S1a). */
 let scrollDriveBase = null;
+/** Last camera-lock target — re-zoom when S1h line→node remaps (S1h). */
+let scrollDriveTargetLocked = "";
 
 function emptyScrollDrive() {
   return {
     scrollRatio: 0,
     activeLine: 0,
     targetNodeId: "",
+    lineMapHit: false,
     camX: 0,
     camY: 0,
     camK: 1,
@@ -674,6 +677,7 @@ function publishScrollDrive(drive) {
 
 function resetScrollDrive() {
   scrollDriveBase = null;
+  scrollDriveTargetLocked = "";
   scrollDriveVel = { t: 0, top: 0, vel: 0 };
   if (scrollDriveEaseTimer) {
     clearTimeout(scrollDriveEaseTimer);
@@ -689,13 +693,15 @@ function resetScrollDrive() {
 
 function readSrcActiveLine() {
   if (!srcBody) return 0;
-  const mid = srcBody.scrollTop + srcBody.clientHeight / 2;
+  // Use viewport rects — .src-line offsetParent is the desk root, not #srcBody,
+  // so offsetTop is not scroll-local (S1h needs a reliable activeLine).
+  const bodyRect = srcBody.getBoundingClientRect();
+  const midY = bodyRect.top + srcBody.clientHeight / 2;
   const lines = srcBody.querySelectorAll(".src-line");
   for (let i = 0; i < lines.length; i++) {
     const el = lines[i];
-    const top = el.offsetTop;
-    const bottom = top + el.offsetHeight;
-    if (top <= mid && mid < bottom + 0.5) {
+    const r = el.getBoundingClientRect();
+    if (r.top <= midY && midY < r.bottom + 0.5) {
       const ln = el.querySelector(".ln");
       const n = parseInt(ln && ln.textContent, 10);
       return Number.isFinite(n) ? n : 0;
@@ -721,7 +727,9 @@ function findScrollDriveTargetEl(id) {
 
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   if (!canvas) return;
-  if (!scrollDriveBase) {
+  const lock = targetNodeId ? String(targetNodeId) : "";
+  if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+    scrollDriveTargetLocked = lock;
     const el = findScrollDriveTargetEl(targetNodeId);
     if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
     scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -797,7 +805,9 @@ function clearScrollDriveMacroPaint() {
 /** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest. */
 function applyScrollDriveMacro(scrollRatio, targetNodeId) {
   if (!canvas) return { macroLod: false };
-  if (!scrollDriveBase) {
+  const lock = targetNodeId ? String(targetNodeId) : "";
+  if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+    scrollDriveTargetLocked = lock;
     const el = findScrollDriveTargetEl(targetNodeId);
     if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
     scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
@@ -828,6 +838,82 @@ function lineOfScrollDriveNode(id) {
   if (!n || !n.span) return 0;
   if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
   return Number(n.span.line) || 0;
+}
+
+/** IR / fixture span line range — start/end or flat line/endLine (S1h). */
+function spanLinesOfScrollDriveNode(id) {
+  const n = nodeById.get(idVal(id));
+  if (!n || !n.span) return null;
+  const sp = n.span;
+  const start = Number((sp.start && sp.start.line) || sp.line) || 0;
+  if (!start) return null;
+  const endRaw = Number((sp.end && sp.end.line) || sp.endLine) || start;
+  return {
+    start: start,
+    end: Math.max(start, endRaw),
+    file: sp.file || "",
+  };
+}
+
+function evidenceScrollDriveFile() {
+  if (!sourceId) return "";
+  const n = nodeById.get(idVal(sourceId));
+  return (n && n.span && n.span.file) || "";
+}
+
+/**
+ * Map Evidence activeLine → graph node via IR/fixture line spans (S1h).
+ * Prefer same-file tightest containing span; else nearest within 48 lines;
+ * else fall back to inspected Evidence node (sourceId).
+ */
+function resolveScrollDriveTargetNode(activeLine) {
+  const fallback = sourceId ? String(sourceId) : "";
+  const line = Number(activeLine) || 0;
+  if (!line || !nodeById || typeof nodeById.forEach !== "function") {
+    return { targetNodeId: fallback, lineMapHit: false };
+  }
+  const file = evidenceScrollDriveFile();
+  const walk = new Set(scrollDriveCfgWalk());
+  let bestContain = null;
+  let bestNear = null;
+  nodeById.forEach((_n, rawId) => {
+    const id = String(idVal(rawId));
+    const span = spanLinesOfScrollDriveNode(id);
+    if (!span) return;
+    const sameFile = !file || !span.file || span.file === file;
+    if (!sameFile) return;
+    let score = 0;
+    if (walk.has(id)) score += 2;
+    if (id === fallback) score += 1;
+    if (findScrollDriveTargetEl(id)) score += 1;
+    if (line >= span.start && line <= span.end) {
+      const width = span.end - span.start;
+      const cand = { id: id, width: width, score: score };
+      if (
+        !bestContain ||
+        cand.width < bestContain.width ||
+        (cand.width === bestContain.width && cand.score > bestContain.score)
+      ) {
+        bestContain = cand;
+      }
+      return;
+    }
+    const dist = line < span.start ? span.start - line : line - span.end;
+    const cand = { id: id, dist: dist, score: score };
+    if (
+      !bestNear ||
+      cand.dist < bestNear.dist ||
+      (cand.dist === bestNear.dist && cand.score > bestNear.score)
+    ) {
+      bestNear = cand;
+    }
+  });
+  if (bestContain) return { targetNodeId: bestContain.id, lineMapHit: true };
+  // Loose nearest — harness pad lines often sit far from fixture spans.
+  if (bestNear && bestNear.dist <= 48) {
+    return { targetNodeId: bestNear.id, lineMapHit: true };
+  }
+  return { targetNodeId: fallback, lineMapHit: false };
 }
 
 /** Current flow Steiner walk — fixture CFG for micro unroll (S1b). */
@@ -1187,8 +1273,10 @@ function onSrcBodyScroll() {
   const max = Math.max(1, maxScroll);
   const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
   const activeLine = readSrcActiveLine();
-  // S1a: no AST line→node yet — target is the inspected Evidence node (sourceId).
-  const targetNodeId = sourceId ? String(sourceId) : "";
+  // S1h: map activeLine → IR/fixture span owner; fall back to Evidence sourceId.
+  const lineMap = resolveScrollDriveTargetNode(activeLine);
+  const targetNodeId = lineMap.targetNodeId || (sourceId ? String(sourceId) : "");
+  const lineMapHit = !!lineMap.lineMapHit;
   noteScrollDriveVelocity(srcBody.scrollTop);
   const scrollVel = readScrollDriveVelocity();
   setCamEase(scrollDriveEaseFromVel(scrollVel));
@@ -1222,6 +1310,7 @@ function onSrcBodyScroll() {
     scrollRatio: scrollRatio,
     activeLine: activeLine,
     targetNodeId: targetNodeId,
+    lineMapHit: lineMapHit,
     camX: camTo.x,
     camY: camTo.y,
     camK: camTo.k,

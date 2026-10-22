@@ -1,7 +1,8 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease (S1a–S1g)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node (S1a–S1h)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
-related node (S1a), unrolls a localized Steiner CFG on Slice with a
+related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
+unrolls a localized Steiner CFG on Slice with a
 glow on the active block (S1b), annotates `if` / loop / `try` spans as
 distinct visual groups (S1d), and at file-top or high scroll velocity
 transitions to a macro Map overview LOD focused on the Evidence module
@@ -13,11 +14,16 @@ by scroll velocity so fast flicks glide and idle settles snappy (S1g).
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
-- `targetNodeId` is the inspected Evidence node (`sourceId`). No AST
-  line→node mapping yet — later tips may refine that.
+- **S1h line→node:** `resolveScrollDriveTargetNode(activeLine)` walks
+  IR/fixture node spans (`span.start/end` or flat `line`/`endLine`) on
+  the Evidence file. Tightest containing span wins (Steiner-walk /
+  painted bonus); else nearest within 48 lines; else fall back to
+  inspected `sourceId`. `lineMapHit` is true on a span hit. No
+  Tree-sitter — prefer existing spans. Camera re-bases when the mapped
+  target changes.
 - First scroll (or `showSource`) captures a cam base after optional
   `zoomToEl` on the painted node; deeper scroll nudges cam Y.
 - **S1b micro CFG:** `applyScrollDriveCfg` walks the current flow’s
@@ -122,18 +128,24 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
 - **S1g** — burst scroll → `scrollVel` high and `camEase` < 0.24
   (loose); idle settle → `scrollVel` low and `camEase` > 0.28
   (snappy). Still one `tickCam` loop via `scrollDriveEaseFromVel`.
+- **S1h** — mid-file `activeLine` inside a same-file IR/fixture span
+  sets `targetNodeId` to that node with `lineMapHit === true` (not only
+  the inspected `sourceId`). Unmatched pad lines fall back to
+  `sourceId` with `lineMapHit === false`.
 
 ## Gotchas
 
 - Do not invent multi-PR Tree-sitter CFG rewrite here — fixture Steiner
   walk + Evidence line keyword scan is enough for S1b/S1d; S1c reuses
-  `data-lod` / camera lerp; S1f reuses those proximity signals.
+  `data-lod` / camera lerp; S1f reuses those proximity signals; S1h
+  maps lines via existing IR/fixture spans only.
 - Do not add `data-testid`. Hooks are `#srcBody`,
   `window.__graphideScrollDrive`, `.vnode.scroll-cfg-hot`,
   `[data-cfg-active]`, `[data-cfg-span]`, `.vnode.scroll-cfg-sib`,
   `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`,
   `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`,
-  `.viewport[data-scroll-detail]`, `detailNear`, `camEase`.
+  `.viewport[data-scroll-detail]`, `detailNear`, `camEase`,
+  `lineMapHit`, `resolveScrollDriveTargetNode`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween.
