@@ -641,7 +641,17 @@ if (srcEditor)
 let scrollDriveBase = null;
 
 function emptyScrollDrive() {
-  return { scrollRatio: 0, activeLine: 0, targetNodeId: "", camX: 0, camY: 0, camK: 1 };
+  return {
+    scrollRatio: 0,
+    activeLine: 0,
+    targetNodeId: "",
+    camX: 0,
+    camY: 0,
+    camK: 1,
+    cfgActiveId: "",
+    cfgUnroll: 0,
+    cfgVisible: 0,
+  };
 }
 
 function publishScrollDrive(drive) {
@@ -650,6 +660,7 @@ function publishScrollDrive(drive) {
 
 function resetScrollDrive() {
   scrollDriveBase = null;
+  clearScrollDriveCfgPaint();
   publishScrollDrive(emptyScrollDrive());
 }
 
@@ -697,6 +708,84 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
 }
 
+function lineOfScrollDriveNode(id) {
+  const n = nodeById.get(idVal(id));
+  if (!n || !n.span) return 0;
+  if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
+  return Number(n.span.line) || 0;
+}
+
+/** Current flow Steiner walk — fixture CFG for micro unroll (S1b). */
+function scrollDriveCfgWalk() {
+  const flow = (typeof currentFlow === "function" && currentFlow()) || (typeof storyFlow === "function" && storyFlow()) || null;
+  if (!flow || typeof flowWalk !== "function") return [];
+  return flowWalk(flow).map((id) => String(idVal(id))).filter(Boolean);
+}
+
+function pickScrollDriveCfgActive(walk, activeLine, scrollRatio) {
+  if (!walk.length) return "";
+  if (activeLine > 0) {
+    let best = "";
+    let bestDist = Infinity;
+    for (let i = 0; i < walk.length; i++) {
+      const ln = lineOfScrollDriveNode(walk[i]);
+      if (!ln) continue;
+      const d = Math.abs(ln - activeLine);
+      if (d < bestDist) {
+        bestDist = d;
+        best = walk[i];
+      }
+    }
+    // Loose match — harness pad lines often sit far from fixture spans.
+    if (best && bestDist <= 48) return best;
+  }
+  const idx = Math.min(walk.length - 1, Math.max(0, Math.round(scrollRatio * (walk.length - 1))));
+  return walk[idx] || "";
+}
+
+function clearScrollDriveCfgPaint() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode[data-cfg-active]").forEach((el) => {
+    el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+    el.removeAttribute("data-cfg-active");
+  });
+}
+
+/** S1b — unroll Steiner CFG with scroll; glow the active block.
+ *  Idle Evidence (scrollRatio 0) must not dim CFG — Slice ego / select opacity
+ *  gates (EG3d etc.) open Evidence without scrolling. */
+function applyScrollDriveCfg(scrollRatio, activeLine) {
+  const walk = scrollDriveCfgWalk();
+  const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
+  if (unroll <= 0 || !walk.length) {
+    clearScrollDriveCfgPaint();
+    return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+  }
+  const visible = 1 + Math.round(unroll * (walk.length - 1));
+  const visibleWalk = walk.slice(0, Math.max(1, visible));
+  const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
+  const walkSet = new Set(walk);
+  const visibleSet = new Set(visibleWalk);
+  if (canvas) {
+    canvas.querySelectorAll(".vnode").forEach((el) => {
+      const id = el.getAttribute("data-id");
+      if (!id || !walkSet.has(id)) {
+        el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+        el.removeAttribute("data-cfg-active");
+        return;
+      }
+      const ahead = !visibleSet.has(id);
+      const hot = !!(activeId && id === activeId);
+      el.classList.toggle("scroll-cfg-hot", hot);
+      el.classList.toggle("scroll-cfg-ahead", ahead);
+      el.classList.toggle("scroll-cfg-dim", !hot && !ahead);
+      if (hot) el.setAttribute("data-cfg-active", "1");
+      else el.removeAttribute("data-cfg-active");
+    });
+  }
+  return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
+}
+
 function onSrcBodyScroll() {
   if (!srcBody || !sourcePane || sourcePane.hidden) {
     resetScrollDrive();
@@ -708,6 +797,7 @@ function onSrcBodyScroll() {
   // S1a: no AST line→node yet — target is the inspected Evidence node (sourceId).
   const targetNodeId = sourceId ? String(sourceId) : "";
   applyScrollDriveCamera(scrollRatio, targetNodeId);
+  const cfg = applyScrollDriveCfg(scrollRatio, activeLine);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
@@ -715,6 +805,9 @@ function onSrcBodyScroll() {
     camX: camTo.x,
     camY: camTo.y,
     camK: camTo.k,
+    cfgActiveId: cfg.cfgActiveId,
+    cfgUnroll: cfg.cfgUnroll,
+    cfgVisible: cfg.cfgVisible,
   });
 }
 
@@ -1375,7 +1468,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead"];
 
 function exportDiagramRoot() {
   return (

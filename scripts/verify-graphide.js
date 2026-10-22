@@ -7803,6 +7803,76 @@ async function main() {
         " after=" +
         JSON.stringify(afterScrollDrive)
     );
+    // S1b — Slice Steiner CFG unrolls with scroll; active block gets scroll-cfg-hot glow.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    const s1bOpened = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Re-pad if needed (S1a already padded; keep scrollable).
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (200 + i) + '</span><span class="tx">cfg-unroll pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      const top = {
+        ratio: Number((window.__graphideScrollDrive || {}).scrollRatio) || 0,
+        cfgUnroll: Number((window.__graphideScrollDrive || {}).cfgUnroll) || 0,
+        cfgVisible: Number((window.__graphideScrollDrive || {}).cfgVisible) || 0,
+        cfgActiveId: ((window.__graphideScrollDrive || {}).cfgActiveId) || "",
+        hot: !!document.querySelector("#sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode[data-cfg-active='1']"),
+        ahead: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-ahead").length,
+        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      };
+      body.scrollTop = body.scrollHeight;
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, top };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && Number(d.cfgUnroll) > 0.5 && d.cfgActiveId);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(200);
+    const afterCfg = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgVisible: Number(d.cfgVisible) || 0,
+        cfgActiveId: d.cfgActiveId || "",
+        hot: !!document.querySelector("#sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode[data-cfg-active='1']"),
+        ahead: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-ahead").length,
+        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1b",
+      "Evidence scroll unrolls Slice CFG and glows the active block",
+      s1bOpened.ok &&
+        afterCfg.evidenceOpen &&
+        afterCfg.cfgUnroll > 0.5 &&
+        !!afterCfg.cfgActiveId &&
+        afterCfg.hot &&
+        afterCfg.cfgVisible >= 2 &&
+        (s1bOpened.top.cfgVisible < afterCfg.cfgVisible || s1bOpened.top.ahead > afterCfg.ahead || afterCfg.cfgUnroll > s1bOpened.top.cfgUnroll),
+      "opened=" + JSON.stringify(s1bOpened) + " after=" + JSON.stringify(afterCfg)
+    );
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

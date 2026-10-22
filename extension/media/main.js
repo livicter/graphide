@@ -20221,13 +20221,24 @@
       };
     let scrollDriveBase = null;
     function emptyScrollDrive() {
-      return { scrollRatio: 0, activeLine: 0, targetNodeId: "", camX: 0, camY: 0, camK: 1 };
+      return {
+        scrollRatio: 0,
+        activeLine: 0,
+        targetNodeId: "",
+        camX: 0,
+        camY: 0,
+        camK: 1,
+        cfgActiveId: "",
+        cfgUnroll: 0,
+        cfgVisible: 0
+      };
     }
     function publishScrollDrive(drive) {
       window.__graphideScrollDrive = drive || emptyScrollDrive();
     }
     function resetScrollDrive() {
       scrollDriveBase = null;
+      clearScrollDriveCfgPaint();
       publishScrollDrive(emptyScrollDrive());
     }
     function readSrcActiveLine() {
@@ -20261,6 +20272,74 @@
       const nudge = scrollRatio * 48;
       setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
     }
+    function lineOfScrollDriveNode(id2) {
+      const n = nodeById.get(idVal(id2));
+      if (!n || !n.span) return 0;
+      if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
+      return Number(n.span.line) || 0;
+    }
+    function scrollDriveCfgWalk() {
+      const flow = typeof currentFlow === "function" && currentFlow() || typeof storyFlow === "function" && storyFlow() || null;
+      if (!flow || typeof flowWalk !== "function") return [];
+      return flowWalk(flow).map((id2) => String(idVal(id2))).filter(Boolean);
+    }
+    function pickScrollDriveCfgActive(walk, activeLine, scrollRatio) {
+      if (!walk.length) return "";
+      if (activeLine > 0) {
+        let best = "";
+        let bestDist = Infinity;
+        for (let i = 0; i < walk.length; i++) {
+          const ln2 = lineOfScrollDriveNode(walk[i]);
+          if (!ln2) continue;
+          const d = Math.abs(ln2 - activeLine);
+          if (d < bestDist) {
+            bestDist = d;
+            best = walk[i];
+          }
+        }
+        if (best && bestDist <= 48) return best;
+      }
+      const idx = Math.min(walk.length - 1, Math.max(0, Math.round(scrollRatio * (walk.length - 1))));
+      return walk[idx] || "";
+    }
+    function clearScrollDriveCfgPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode[data-cfg-active]").forEach((el2) => {
+        el2.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+        el2.removeAttribute("data-cfg-active");
+      });
+    }
+    function applyScrollDriveCfg(scrollRatio, activeLine) {
+      const walk = scrollDriveCfgWalk();
+      const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
+      if (unroll <= 0 || !walk.length) {
+        clearScrollDriveCfgPaint();
+        return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+      }
+      const visible = 1 + Math.round(unroll * (walk.length - 1));
+      const visibleWalk = walk.slice(0, Math.max(1, visible));
+      const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
+      const walkSet = new Set(walk);
+      const visibleSet = new Set(visibleWalk);
+      if (canvas) {
+        canvas.querySelectorAll(".vnode").forEach((el2) => {
+          const id2 = el2.getAttribute("data-id");
+          if (!id2 || !walkSet.has(id2)) {
+            el2.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+            el2.removeAttribute("data-cfg-active");
+            return;
+          }
+          const ahead = !visibleSet.has(id2);
+          const hot = !!(activeId && id2 === activeId);
+          el2.classList.toggle("scroll-cfg-hot", hot);
+          el2.classList.toggle("scroll-cfg-ahead", ahead);
+          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead);
+          if (hot) el2.setAttribute("data-cfg-active", "1");
+          else el2.removeAttribute("data-cfg-active");
+        });
+      }
+      return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
+    }
     function onSrcBodyScroll() {
       if (!srcBody || !sourcePane || sourcePane.hidden) {
         resetScrollDrive();
@@ -20271,13 +20350,17 @@
       const activeLine = readSrcActiveLine();
       const targetNodeId = sourceId ? String(sourceId) : "";
       applyScrollDriveCamera(scrollRatio, targetNodeId);
+      const cfg = applyScrollDriveCfg(scrollRatio, activeLine);
       publishScrollDrive({
         scrollRatio,
         activeLine,
         targetNodeId,
         camX: camTo.x,
         camY: camTo.y,
-        camK: camTo.k
+        camK: camTo.k,
+        cfgActiveId: cfg.cfgActiveId,
+        cfgUnroll: cfg.cfgUnroll,
+        cfgVisible: cfg.cfgVisible
       });
     }
     if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
@@ -20887,7 +20970,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
