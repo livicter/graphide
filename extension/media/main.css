@@ -2175,6 +2175,15 @@ svg.steiner .edge.walk {
 .vnode.scroll-cfg-sib {
   opacity: 0.2;
 }
+/* S1i — nested CFG: ancestors stay lit; deepest hot; siblings collapse */
+.vnode.scroll-cfg-nest-anc:not(.scroll-cfg-ahead):not(.scroll-cfg-sib) {
+  opacity: 0.85;
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
+  outline-offset: 2px;
+}
+.vnode.scroll-cfg-nest-sib {
+  opacity: 0.18;
+}
 /* S1c — scroll-driven macro Map LOD (file top / fast flick) */
 .viewport[data-scroll-macro="1"] .vnode.scroll-macro-hot {
   outline: 1.5px solid var(--vscode-textLink-foreground);

@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node (S1a–S1h)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth (S1a–S1i)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -9,12 +9,14 @@ transitions to a macro Map overview LOD focused on the Evidence module
 (S1c), stamps color-coded API / Database / Service / Utility anchors
 from IR kind + EndpointMeta (S1e), and hides deep implementation clutter
 until scroll focus approaches the block (S1f), and eases camera lerp
-by scroll velocity so fast flicks glide and idle settles snappy (S1g).
+by scroll velocity so fast flicks glide and idle settles snappy (S1g),
+and expands nested control-flow blocks by brace/IR depth as `activeLine`
+enters them (S1i — ancestors stay visible; siblings stay collapsed).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, macroLod, anchorFocus, anchorCounts, detailNear }`.
 - `#srcBody` `scroll` listener publishes the shape and calls
   `setCamTarget` (existing lerp via `tickCam`).
 - **S1h line→node:** `resolveScrollDriveTargetNode(activeLine)` walks
@@ -39,6 +41,15 @@ by scroll velocity so fast flicks glide and idle settles snappy (S1g).
   `.scroll-cfg-try`). Active span kind follows `activeLine` (else the
   hot node); inactive sibling kinds stay `.scroll-cfg-sib` (collapsed /
   dimmed). `cfgSpanKind` / `cfgSpanCount` publish on ScrollDrive.
+- **S1i nested CFG depth:** `scanScrollDriveCfgSpans` closes spans with
+  brace-depth matching (quote-aware) and assigns nest `depth` from brace
+  open depth + containment refine; IR/fixture walk nesting
+  (`irNestDepthScrollDriveWalk`) is the span-less fallback. Deepest span
+  containing `activeLine` is nest focus — ancestors expand
+  (`.scroll-cfg-nest-anc`), focus glows (`.scroll-cfg-nest-hot`),
+  same-depth / deeper siblings collapse (`.scroll-cfg-nest-sib`).
+  `data-cfg-depth`, `cfgNestDepth` / `cfgNestMax` / `cfgNestExpanded`
+  publish on ScrollDrive. No Tree-sitter.
 - Idle Evidence (`scrollRatio` 0) does **not** dim CFG nodes — open
   Evidence without scrolling must leave Slice opacities alone.
 - **S1c macro Map LOD:** when Evidence can scroll and
@@ -76,7 +87,8 @@ by scroll velocity so fast flicks glide and idle settles snappy (S1g).
 2. Click a boxed hop (`.vnode`) so Evidence opens.
 3. Scroll the Evidence source body. The canvas camera eases toward the
    related node; the CFG unrolls and the active block glows; `if` /
-   loop / `try` regions tint distinctly while sibling kinds stay dim.
+   loop / `try` regions tint distinctly while sibling kinds stay dim;
+   nested blocks expand only as the cursor line enters them.
    Jump to the top of the file (or flick fast) and the canvas eases to
    Map overview LOD with the module focused. Nodes keep a hairline
    kind-anchor tint (API / DB / Service / Utility). Deep member lists /
@@ -132,11 +144,16 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   sets `targetNodeId` to that node with `lineMapHit === true` (not only
   the inspected `sourceId`). Unmatched pad lines fall back to
   `sourceId` with `lineMapHit === false`.
+- **S1i** — nested `if { for { try } }` Evidence braces raise
+  `cfgNestMax >= 2`; centering `activeLine` on the inner `try` sets
+  `cfgNestDepth >= 2`, `cfgNestExpanded >= 2`, paints
+  `.scroll-cfg-nest-hot` / `.scroll-cfg-nest-anc` and collapses
+  `.scroll-cfg-nest-sib` (or kind sibs). Flat S1d pads stay depth 0.
 
 ## Gotchas
 
 - Do not invent multi-PR Tree-sitter CFG rewrite here — fixture Steiner
-  walk + Evidence line keyword scan is enough for S1b/S1d; S1c reuses
+  walk + Evidence line keyword / brace-depth scan is enough for S1b/S1d/S1i; S1c reuses
   `data-lod` / camera lerp; S1f reuses those proximity signals; S1h
   maps lines via existing IR/fixture spans only.
 - Do not add `data-testid`. Hooks are `#srcBody`,
@@ -145,7 +162,8 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `.vnode.scroll-macro-hot`, `.viewport[data-scroll-macro]`,
   `[data-scroll-anchor]`, `.vnode.scroll-anchor-api`,
   `.viewport[data-scroll-detail]`, `detailNear`, `camEase`,
-  `lineMapHit`, `resolveScrollDriveTargetNode`.
+  `lineMapHit`, `resolveScrollDriveTargetNode`, `cfgNestDepth`,
+  `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween.

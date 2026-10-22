@@ -8740,6 +8740,107 @@ async function main() {
         JSON.stringify(s1hMiss)
     );
 
+    // S1i — nested if/for/try braces expand child + ancestors; siblings collapse.
+    const s1iPad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      body.innerHTML = "";
+      function add(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1i", "1");
+        row.setAttribute("data-s1i-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 20; i++) add(100 + i, "s1i lead " + i);
+      add(510, "if (outer) {");
+      for (let i = 0; i < 6; i++) add(511 + i, "  // outer pad " + i);
+      add(520, "  for (let i = 0; i < n; i++) {");
+      for (let i = 0; i < 6; i++) add(521 + i, "    // inner pad " + i);
+      const tryRow = add(530, "    try { flush(); } catch (e) { recover(e); }");
+      add(531, "  }");
+      add(532, "}");
+      for (let i = 0; i < 24; i++) add(600 + i, "s1i trail " + i);
+      // Sibling nest at same outer depth — should collapse when focus is in try.
+      add(700, "if (sibling) {");
+      add(701, "  return alt;");
+      add(702, "}");
+      for (let i = 0; i < 16; i++) add(800 + i, "s1i far " + i);
+      function center(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      center(tryRow);
+      return {
+        ok: true,
+        scrollTop: body.scrollTop,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+        drive: Object.assign({}, window.__graphideScrollDrive || {}),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.2 && Number(d.cfgSpanCount) >= 3)) return false;
+        if (!(Number(d.cfgNestMax) >= 2 && Number(d.cfgNestDepth) >= 2 && Number(d.cfgNestExpanded) >= 2)) return false;
+        const hot =
+          document.querySelector("#sliceCanvas .vnode.scroll-cfg-nest-hot, #sliceCanvas .vnode.scroll-cfg-hot[data-cfg-depth]");
+        const anc = document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length;
+        return !!(hot || anc >= 1 || d.cfgSpanKind === "try");
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(150);
+    const afterNest = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        activeLine: Number(d.activeLine) || 0,
+        macroLod: !!d.macroLod,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgSpanKind: d.cfgSpanKind || "",
+        cfgSpanCount: Number(d.cfgSpanCount) || 0,
+        cfgNestDepth: Number(d.cfgNestDepth) || 0,
+        cfgNestMax: Number(d.cfgNestMax) || 0,
+        cfgNestExpanded: Number(d.cfgNestExpanded) || 0,
+        nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
+        nestAnc: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length,
+        nestSib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-sib").length,
+        depthPaint: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth]").length,
+        deep2: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth='2']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1i",
+      "Evidence nested CFG expands child+ancestors on activeLine; siblings collapse",
+      s1iPad.ok &&
+        afterNest.evidenceOpen &&
+        !afterNest.macroLod &&
+        afterNest.cfgUnroll > 0.2 &&
+        afterNest.cfgSpanCount >= 3 &&
+        afterNest.cfgNestMax >= 2 &&
+        afterNest.cfgNestDepth >= 2 &&
+        afterNest.cfgNestExpanded >= 2 &&
+        afterNest.depthPaint >= 1 &&
+        (afterNest.nestHot >= 1 || afterNest.cfgSpanKind === "try") &&
+        (afterNest.nestAnc >= 1 || afterNest.cfgNestExpanded >= 3 || afterNest.deep2 >= 1),
+      "pad=" + JSON.stringify(s1iPad) + " after=" + JSON.stringify(afterNest)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
 
 

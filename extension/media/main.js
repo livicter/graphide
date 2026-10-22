@@ -20240,6 +20240,9 @@
         cfgVisible: 0,
         cfgSpanKind: "",
         cfgSpanCount: 0,
+        cfgNestDepth: 0,
+        cfgNestMax: 0,
+        cfgNestExpanded: 0,
         scrollVel: 0,
         camEase: CAM_EASE_BASE,
         macroLod: false,
@@ -20470,7 +20473,7 @@
     function clearScrollDriveCfgPaint() {
       if (!canvas) return;
       canvas.querySelectorAll(
-        ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode[data-cfg-active], .vnode[data-cfg-span]"
+        ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode.scroll-cfg-nest-hot, .vnode.scroll-cfg-nest-anc, .vnode.scroll-cfg-nest-sib, .vnode[data-cfg-active], .vnode[data-cfg-span], .vnode[data-cfg-depth]"
       ).forEach((el2) => {
         el2.classList.remove(
           "scroll-cfg-hot",
@@ -20479,14 +20482,19 @@
           "scroll-cfg-sib",
           "scroll-cfg-if",
           "scroll-cfg-loop",
-          "scroll-cfg-try"
+          "scroll-cfg-try",
+          "scroll-cfg-nest-hot",
+          "scroll-cfg-nest-anc",
+          "scroll-cfg-nest-sib"
         );
         el2.removeAttribute("data-cfg-active");
         el2.removeAttribute("data-cfg-span");
+        el2.removeAttribute("data-cfg-depth");
       });
     }
     function classifyScrollDriveCfgSpanText(tx) {
-      const s = String(tx || "");
+      let s = String(tx || "");
+      s = s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/, "");
       if (/\btry\b|\bcatch\b|\bfinally\b|\bexcept\b/.test(s)) return "try";
       if (/\bfor\b|\bwhile\b|\bloop\b/.test(s)) return "loop";
       if (/\belse\s+if\b|\bif\b|\belse\b/.test(s)) return "if";
@@ -20496,21 +20504,149 @@
       if (!srcBody) return [];
       const lines = srcBody.querySelectorAll(".src-line");
       const hits = [];
+      const stack2 = [];
+      let depth = 0;
+      let lastLn = 0;
       for (let i = 0; i < lines.length; i++) {
         const el2 = lines[i];
         const lnEl = el2.querySelector(".ln");
         const txEl = el2.querySelector(".tx");
         const ln2 = parseInt(lnEl && lnEl.textContent, 10);
         if (!Number.isFinite(ln2)) continue;
-        const kind = classifyScrollDriveCfgSpanText(txEl && txEl.textContent);
-        if (!kind) continue;
-        hits.push({ kind, line: ln2, startLine: ln2, endLine: ln2 });
+        lastLn = ln2;
+        const tx = txEl && txEl.textContent || "";
+        const kind = classifyScrollDriveCfgSpanText(tx);
+        if (kind) {
+          const sp = {
+            kind,
+            line: ln2,
+            startLine: ln2,
+            endLine: ln2,
+            depth,
+            entered: false,
+            brace: false
+          };
+          hits.push(sp);
+          stack2.push(sp);
+        }
+        let quote = "";
+        for (let c = 0; c < tx.length; c++) {
+          const ch = tx[c];
+          if (quote) {
+            if (ch === "\\") {
+              c++;
+              continue;
+            }
+            if (ch === quote) quote = "";
+            continue;
+          }
+          if (ch === '"' || ch === "'" || ch === "`") {
+            quote = ch;
+            continue;
+          }
+          if (ch === "{") {
+            depth++;
+            if (stack2.length && stack2[stack2.length - 1].depth === depth - 1) {
+              stack2[stack2.length - 1].entered = true;
+              stack2[stack2.length - 1].brace = true;
+            }
+          } else if (ch === "}") {
+            depth = Math.max(0, depth - 1);
+            while (stack2.length && stack2[stack2.length - 1].entered && stack2[stack2.length - 1].depth === depth) {
+              const done = stack2.pop();
+              done.endLine = ln2;
+            }
+          }
+        }
       }
       for (let i = 0; i < hits.length; i++) {
+        const sp = hits[i];
+        if (sp.brace && sp.entered && sp.endLine >= sp.startLine && stack2.indexOf(sp) < 0) continue;
         const next = hits[i + 1];
-        hits[i].endLine = next ? Math.max(hits[i].startLine, next.startLine - 1) : hits[i].startLine + 8;
+        if (next && next.depth <= sp.depth) {
+          sp.endLine = Math.max(sp.startLine, next.startLine - 1);
+        } else if (!sp.brace) {
+          sp.endLine = sp.startLine + 8;
+        } else {
+          sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
+        }
       }
+      while (stack2.length) {
+        const sp = stack2.pop();
+        sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
+      }
+      assignScrollDriveCfgNestDepth(hits);
       return hits;
+    }
+    function assignScrollDriveCfgNestDepth(spans) {
+      if (!spans || !spans.length) return spans;
+      let anyBrace = false;
+      for (let i = 0; i < spans.length; i++) {
+        if (spans[i].brace) anyBrace = true;
+      }
+      if (anyBrace) {
+        for (let i = 0; i < spans.length; i++) {
+          spans[i].depth = Math.max(0, Number(spans[i].depth) || 0);
+        }
+      } else {
+        for (let i = 0; i < spans.length; i++) spans[i].depth = 0;
+      }
+      const order = spans.slice().sort((a, b) => {
+        const wa = a.endLine - a.startLine;
+        const wb = b.endLine - b.startLine;
+        if (wa !== wb) return wb - wa;
+        return a.startLine - b.startLine;
+      });
+      for (let i = 0; i < order.length; i++) {
+        const child = order[i];
+        let best = anyBrace ? Number(child.depth) || 0 : 0;
+        for (let j = 0; j < order.length; j++) {
+          if (i === j) continue;
+          const par = order[j];
+          if (par.startLine <= child.startLine && par.endLine >= child.endLine) {
+            const wider = par.startLine < child.startLine || par.endLine > child.endLine;
+            if (!wider) continue;
+            best = Math.max(best, (Number(par.depth) || 0) + 1);
+          }
+        }
+        child.depth = best;
+      }
+      return spans;
+    }
+    function pickScrollDriveCfgNestFocus(spans, activeLine) {
+      const line = Number(activeLine) || 0;
+      if (!line || !spans || !spans.length) return null;
+      let best = null;
+      for (let i = 0; i < spans.length; i++) {
+        const sp = spans[i];
+        if (line < sp.startLine || line > sp.endLine) continue;
+        if (!best || (Number(sp.depth) || 0) > (Number(best.depth) || 0) || (Number(sp.depth) || 0) === (Number(best.depth) || 0) && sp.endLine - sp.startLine < best.endLine - best.startLine) {
+          best = sp;
+        }
+      }
+      return best;
+    }
+    function irNestDepthScrollDriveWalk(walk) {
+      const out = /* @__PURE__ */ Object.create(null);
+      if (!walk || !walk.length) return out;
+      const spans = [];
+      for (let i = 0; i < walk.length; i++) {
+        const id2 = walk[i];
+        const sp = spanLinesOfScrollDriveNode(id2);
+        if (!sp) continue;
+        spans.push({ id: id2, start: sp.start, end: sp.end });
+      }
+      for (let i = 0; i < spans.length; i++) {
+        let d = 0;
+        for (let j = 0; j < spans.length; j++) {
+          if (i === j) continue;
+          const a = spans[i];
+          const b = spans[j];
+          if (b.start <= a.start && b.end >= a.end && (b.start < a.start || b.end > a.end)) d++;
+        }
+        out[spans[i].id] = d;
+      }
+      return out;
     }
     function pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById) {
       if (activeLine > 0 && spans.length) {
@@ -20578,18 +20714,83 @@
     function applyScrollDriveCfg(scrollRatio, activeLine) {
       const walk = scrollDriveCfgWalk();
       const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
+      const emptyCfg = {
+        cfgActiveId: "",
+        cfgUnroll: 0,
+        cfgVisible: 0,
+        cfgSpanKind: "",
+        cfgSpanCount: 0,
+        cfgNestDepth: 0,
+        cfgNestMax: 0,
+        cfgNestExpanded: 0
+      };
       if (unroll <= 0 || !walk.length) {
         clearScrollDriveCfgPaint();
-        return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
+        return emptyCfg;
       }
       const spans = scanScrollDriveCfgSpans();
       const kindById = assignScrollDriveCfgSpanKinds(walk, spans);
+      const irNest = irNestDepthScrollDriveWalk(walk);
       const visible = 1 + Math.round(unroll * (walk.length - 1));
       const visibleWalk = walk.slice(0, Math.max(1, visible));
       const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
-      const cfgSpanKind = pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
+      const nestFocus = pickScrollDriveCfgNestFocus(spans, activeLine);
+      const cfgSpanKind = nestFocus && nestFocus.kind || pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
+      let cfgNestMax = 0;
+      for (let i = 0; i < spans.length; i++) {
+        cfgNestMax = Math.max(cfgNestMax, Number(spans[i].depth) || 0);
+      }
+      for (const id2 of walk) {
+        cfgNestMax = Math.max(cfgNestMax, Number(irNest[id2]) || 0);
+      }
+      const cfgNestDepth = nestFocus ? Number(nestFocus.depth) || 0 : 0;
+      const expandedSpans = [];
+      if (nestFocus) {
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          if (sp.startLine <= nestFocus.startLine && sp.endLine >= nestFocus.endLine) {
+            expandedSpans.push(sp);
+          }
+        }
+      }
+      const expandedSet = new Set(expandedSpans);
+      const cfgNestExpanded = expandedSpans.length;
       const walkSet = new Set(walk);
       const visibleSet = new Set(visibleWalk);
+      function nestRoleForId(id2) {
+        if (!nestFocus) return { role: "", depth: Number(irNest[id2]) || 0 };
+        const ln2 = lineOfScrollDriveNode(id2);
+        let hit = null;
+        if (ln2 > 0) {
+          for (let i = 0; i < spans.length; i++) {
+            const sp = spans[i];
+            if (ln2 >= sp.startLine && ln2 <= sp.endLine) {
+              if (!hit || (Number(sp.depth) || 0) > (Number(hit.depth) || 0) || (Number(sp.depth) || 0) === (Number(hit.depth) || 0) && sp.endLine - sp.startLine < hit.endLine - hit.startLine) {
+                hit = sp;
+              }
+            }
+          }
+        }
+        if (!hit) {
+          const kind = kindById[id2] || "";
+          for (let i = 0; i < spans.length; i++) {
+            if (spans[i].kind === kind) {
+              hit = spans[i];
+              break;
+            }
+          }
+        }
+        const depth = hit ? Number(hit.depth) || 0 : Number(irNest[id2]) || 0;
+        if (hit && hit === nestFocus) return { role: "hot", depth };
+        if (hit && expandedSet.has(hit)) return { role: "anc", depth };
+        if (hit && nestFocus && (Number(hit.depth) || 0) === (Number(nestFocus.depth) || 0) && hit !== nestFocus) {
+          return { role: "sib", depth };
+        }
+        if (hit && nestFocus && (Number(hit.depth) || 0) > (Number(nestFocus.depth) || 0) && !expandedSet.has(hit)) {
+          return { role: "sib", depth };
+        }
+        return { role: "", depth };
+      }
       if (canvas) {
         canvas.querySelectorAll(".vnode").forEach((el2) => {
           const id2 = el2.getAttribute("data-id");
@@ -20601,25 +20802,38 @@
               "scroll-cfg-sib",
               "scroll-cfg-if",
               "scroll-cfg-loop",
-              "scroll-cfg-try"
+              "scroll-cfg-try",
+              "scroll-cfg-nest-hot",
+              "scroll-cfg-nest-anc",
+              "scroll-cfg-nest-sib"
             );
             el2.removeAttribute("data-cfg-active");
             el2.removeAttribute("data-cfg-span");
+            el2.removeAttribute("data-cfg-depth");
             return;
           }
           const spanKind = kindById[id2] || "";
           const ahead = !visibleSet.has(id2);
-          const sib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind);
-          const hot = !!(activeId && id2 === activeId && !sib);
+          const nest = nestRoleForId(id2);
+          const kindSib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind && nest.role !== "hot" && nest.role !== "anc");
+          const nestSib = nest.role === "sib";
+          const sib = kindSib || nestSib;
+          const nestHot = nest.role === "hot";
+          const nestAnc = nest.role === "anc";
+          const hot = !!(activeId && id2 === activeId && !sib) || nestHot && !ahead;
           el2.classList.toggle("scroll-cfg-hot", hot);
-          el2.classList.toggle("scroll-cfg-ahead", ahead && !sib);
+          el2.classList.toggle("scroll-cfg-ahead", ahead && !sib && !nestAnc);
           el2.classList.toggle("scroll-cfg-sib", sib && !ahead);
-          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib);
+          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib && !nestAnc);
           el2.classList.toggle("scroll-cfg-if", spanKind === "if");
           el2.classList.toggle("scroll-cfg-loop", spanKind === "loop");
           el2.classList.toggle("scroll-cfg-try", spanKind === "try");
+          el2.classList.toggle("scroll-cfg-nest-hot", nestHot && !ahead);
+          el2.classList.toggle("scroll-cfg-nest-anc", nestAnc && !ahead && !nestHot);
+          el2.classList.toggle("scroll-cfg-nest-sib", nestSib && !ahead);
           if (spanKind) el2.setAttribute("data-cfg-span", spanKind);
           else el2.removeAttribute("data-cfg-span");
+          el2.setAttribute("data-cfg-depth", String(nest.depth || 0));
           if (hot) el2.setAttribute("data-cfg-active", "1");
           else el2.removeAttribute("data-cfg-active");
         });
@@ -20629,7 +20843,10 @@
         cfgUnroll: unroll,
         cfgVisible: visible,
         cfgSpanKind: cfgSpanKind || "",
-        cfgSpanCount: spans.length
+        cfgSpanCount: spans.length,
+        cfgNestDepth,
+        cfgNestMax,
+        cfgNestExpanded
       };
     }
     function scrollDriveAnchorFromMeta(kind, ep, fqn) {
@@ -20762,7 +20979,7 @@
       setCamEase(scrollDriveEaseFromVel(scrollVel));
       if (scrollVel > 0.05) scheduleScrollDriveEaseSettle();
       const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
-      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
+      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
       if (macro) {
         clearScrollDriveCfgPaint();
         applyScrollDriveMacro(scrollRatio, targetNodeId);
@@ -20797,6 +21014,9 @@
         cfgVisible: cfg.cfgVisible,
         cfgSpanKind: cfg.cfgSpanKind || "",
         cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
+        cfgNestDepth: Number(cfg.cfgNestDepth) || 0,
+        cfgNestMax: Number(cfg.cfgNestMax) || 0,
+        cfgNestExpanded: Number(cfg.cfgNestExpanded) || 0,
         scrollVel,
         camEase,
         macroLod: !!macro,
