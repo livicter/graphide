@@ -20231,6 +20231,8 @@
         cfgActiveId: "",
         cfgUnroll: 0,
         cfgVisible: 0,
+        cfgSpanKind: "",
+        cfgSpanCount: 0,
         scrollVel: 0,
         macroLod: false
       };
@@ -20377,41 +20379,168 @@
     }
     function clearScrollDriveCfgPaint() {
       if (!canvas) return;
-      canvas.querySelectorAll(".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode[data-cfg-active]").forEach((el2) => {
-        el2.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+      canvas.querySelectorAll(
+        ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode[data-cfg-active], .vnode[data-cfg-span]"
+      ).forEach((el2) => {
+        el2.classList.remove(
+          "scroll-cfg-hot",
+          "scroll-cfg-dim",
+          "scroll-cfg-ahead",
+          "scroll-cfg-sib",
+          "scroll-cfg-if",
+          "scroll-cfg-loop",
+          "scroll-cfg-try"
+        );
         el2.removeAttribute("data-cfg-active");
+        el2.removeAttribute("data-cfg-span");
       });
+    }
+    function classifyScrollDriveCfgSpanText(tx) {
+      const s = String(tx || "");
+      if (/\btry\b|\bcatch\b|\bfinally\b|\bexcept\b/.test(s)) return "try";
+      if (/\bfor\b|\bwhile\b|\bloop\b/.test(s)) return "loop";
+      if (/\belse\s+if\b|\bif\b|\belse\b/.test(s)) return "if";
+      return "";
+    }
+    function scanScrollDriveCfgSpans() {
+      if (!srcBody) return [];
+      const lines = srcBody.querySelectorAll(".src-line");
+      const hits = [];
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const lnEl = el2.querySelector(".ln");
+        const txEl = el2.querySelector(".tx");
+        const ln2 = parseInt(lnEl && lnEl.textContent, 10);
+        if (!Number.isFinite(ln2)) continue;
+        const kind = classifyScrollDriveCfgSpanText(txEl && txEl.textContent);
+        if (!kind) continue;
+        hits.push({ kind, line: ln2, startLine: ln2, endLine: ln2 });
+      }
+      for (let i = 0; i < hits.length; i++) {
+        const next = hits[i + 1];
+        hits[i].endLine = next ? Math.max(hits[i].startLine, next.startLine - 1) : hits[i].startLine + 8;
+      }
+      return hits;
+    }
+    function pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById) {
+      if (activeLine > 0 && spans.length) {
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          if (activeLine >= sp.startLine && activeLine <= sp.endLine) return sp.kind;
+        }
+        let best = "";
+        let bestDist = Infinity;
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          const d = Math.abs(sp.line - activeLine);
+          if (d < bestDist) {
+            bestDist = d;
+            best = sp.kind;
+          }
+        }
+        if (best && bestDist <= 48) return best;
+      }
+      if (activeId && kindById && kindById[activeId]) return kindById[activeId];
+      return spans[0] && spans[0].kind || "";
+    }
+    function assignScrollDriveCfgSpanKinds(walk, spans) {
+      const out = /* @__PURE__ */ Object.create(null);
+      if (!walk.length) return out;
+      const kinds = [];
+      const seen = /* @__PURE__ */ Object.create(null);
+      for (let i = 0; i < spans.length; i++) {
+        const k = spans[i].kind;
+        if (!seen[k]) {
+          seen[k] = 1;
+          kinds.push(k);
+        }
+      }
+      if (!kinds.length) return out;
+      for (let i = 0; i < walk.length; i++) {
+        const id2 = walk[i];
+        const ln2 = lineOfScrollDriveNode(id2);
+        let kind = "";
+        if (ln2 > 0) {
+          let best = "";
+          let bestDist = Infinity;
+          for (let j = 0; j < spans.length; j++) {
+            const sp = spans[j];
+            if (ln2 >= sp.startLine && ln2 <= sp.endLine) {
+              kind = sp.kind;
+              break;
+            }
+            const d = Math.abs(sp.line - ln2);
+            if (d < bestDist) {
+              bestDist = d;
+              best = sp.kind;
+            }
+          }
+          if (!kind && best && bestDist <= 48) kind = best;
+        }
+        if (!kind) {
+          const bucket = Math.min(kinds.length - 1, Math.floor(i * kinds.length / walk.length));
+          kind = kinds[bucket];
+        }
+        out[id2] = kind;
+      }
+      return out;
     }
     function applyScrollDriveCfg(scrollRatio, activeLine) {
       const walk = scrollDriveCfgWalk();
       const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
       if (unroll <= 0 || !walk.length) {
         clearScrollDriveCfgPaint();
-        return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+        return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
       }
+      const spans = scanScrollDriveCfgSpans();
+      const kindById = assignScrollDriveCfgSpanKinds(walk, spans);
       const visible = 1 + Math.round(unroll * (walk.length - 1));
       const visibleWalk = walk.slice(0, Math.max(1, visible));
       const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
+      const cfgSpanKind = pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
       const walkSet = new Set(walk);
       const visibleSet = new Set(visibleWalk);
       if (canvas) {
         canvas.querySelectorAll(".vnode").forEach((el2) => {
           const id2 = el2.getAttribute("data-id");
           if (!id2 || !walkSet.has(id2)) {
-            el2.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+            el2.classList.remove(
+              "scroll-cfg-hot",
+              "scroll-cfg-dim",
+              "scroll-cfg-ahead",
+              "scroll-cfg-sib",
+              "scroll-cfg-if",
+              "scroll-cfg-loop",
+              "scroll-cfg-try"
+            );
             el2.removeAttribute("data-cfg-active");
+            el2.removeAttribute("data-cfg-span");
             return;
           }
+          const spanKind = kindById[id2] || "";
           const ahead = !visibleSet.has(id2);
-          const hot = !!(activeId && id2 === activeId);
+          const sib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind);
+          const hot = !!(activeId && id2 === activeId && !sib);
           el2.classList.toggle("scroll-cfg-hot", hot);
-          el2.classList.toggle("scroll-cfg-ahead", ahead);
-          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead);
+          el2.classList.toggle("scroll-cfg-ahead", ahead && !sib);
+          el2.classList.toggle("scroll-cfg-sib", sib && !ahead);
+          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib);
+          el2.classList.toggle("scroll-cfg-if", spanKind === "if");
+          el2.classList.toggle("scroll-cfg-loop", spanKind === "loop");
+          el2.classList.toggle("scroll-cfg-try", spanKind === "try");
+          if (spanKind) el2.setAttribute("data-cfg-span", spanKind);
+          else el2.removeAttribute("data-cfg-span");
           if (hot) el2.setAttribute("data-cfg-active", "1");
           else el2.removeAttribute("data-cfg-active");
         });
       }
-      return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
+      return {
+        cfgActiveId: activeId || "",
+        cfgUnroll: unroll,
+        cfgVisible: visible,
+        cfgSpanKind: cfgSpanKind || "",
+        cfgSpanCount: spans.length
+      };
     }
     let scrollDriveMacroTimer = 0;
     function onSrcBodyScroll() {
@@ -20432,7 +20561,7 @@
       noteScrollDriveVelocity(srcBody.scrollTop);
       const scrollVel = readScrollDriveVelocity();
       const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
-      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
       if (macro) {
         clearScrollDriveCfgPaint();
         applyScrollDriveMacro(scrollRatio, targetNodeId);
@@ -20462,6 +20591,8 @@
         cfgActiveId: cfg.cfgActiveId,
         cfgUnroll: cfg.cfgUnroll,
         cfgVisible: cfg.cfgVisible,
+        cfgSpanKind: cfg.cfgSpanKind || "",
+        cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
         scrollVel,
         macroLod: !!macro
       });

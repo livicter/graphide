@@ -7987,6 +7987,98 @@ async function main() {
         " mid=" +
         JSON.stringify(afterMid)
     );
+    // S1d — Evidence if / loop / try lines annotate Steiner CFG spans; active kind glows, siblings collapse.
+    const s1dPad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      // Mid-file micro mode — inject distinct control-flow anchors then scroll into them.
+      const anchors = [
+        { ln: 410, tx: "if (ready) { open_gate(); }" },
+        { ln: 430, tx: "for (let i = 0; i < n; i++) { step(i); }" },
+        { ln: 450, tx: "try { flush(); } catch (e) { recover(e); }" },
+      ];
+      for (const a of anchors) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.innerHTML = '<span class="ln">' + a.ln + '</span><span class="tx">' + a.tx + "</span>";
+        body.appendChild(row);
+      }
+      for (let i = 0; i < 24; i++) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.innerHTML =
+          '<span class="ln">' + (460 + i) + '</span><span class="tx">cfg-span pad ' + i + "</span>";
+        body.appendChild(row);
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.62);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, max: max, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.35 && Number(d.cfgSpanCount) >= 3)) return false;
+        const kinds = new Set();
+        document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
+          kinds.add(el.getAttribute("data-cfg-span"));
+        });
+        return kinds.has("if") && kinds.has("loop") && kinds.has("try") && !!(d.cfgSpanKind);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(150);
+    const afterSpans = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const kinds = [];
+      document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
+        kinds.push(el.getAttribute("data-cfg-span"));
+      });
+      const uniq = Array.from(new Set(kinds));
+      const hot = document.querySelector(
+        "#sliceCanvas .vnode.scroll-cfg-hot[data-cfg-span], #sliceCanvas .vnode[data-cfg-active='1'][data-cfg-span]"
+      );
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgSpanKind: d.cfgSpanKind || "",
+        cfgSpanCount: Number(d.cfgSpanCount) || 0,
+        uniq: uniq,
+        hotSpan: (hot && hot.getAttribute("data-cfg-span")) || "",
+        sib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-sib").length,
+        ifN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-if, #sliceCanvas .vnode[data-cfg-span='if']").length,
+        loopN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-loop, #sliceCanvas .vnode[data-cfg-span='loop']").length,
+        tryN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-try, #sliceCanvas .vnode[data-cfg-span='try']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1d",
+      "Evidence if/loop/try lines annotate CFG spans; active kind glows, siblings collapse",
+      s1dPad.ok &&
+        afterSpans.evidenceOpen &&
+        !afterSpans.macroLod &&
+        afterSpans.cfgUnroll > 0.35 &&
+        afterSpans.cfgSpanCount >= 3 &&
+        ["if", "loop", "try"].includes(afterSpans.cfgSpanKind) &&
+        afterSpans.uniq.includes("if") &&
+        afterSpans.uniq.includes("loop") &&
+        afterSpans.uniq.includes("try") &&
+        !!afterSpans.hotSpan &&
+        afterSpans.sib >= 1 &&
+        afterSpans.ifN >= 1 &&
+        afterSpans.loopN >= 1 &&
+        afterSpans.tryN >= 1,
+      "pad=" + JSON.stringify(s1dPad) + " after=" + JSON.stringify(afterSpans)
+    );
     await page.keyboard.press("Escape"); // close Evidence
     await page.waitForFunction(
       () => {

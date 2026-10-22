@@ -2139,6 +2139,37 @@ svg.steiner .edge.walk {
 .vnode.scroll-cfg-ahead {
   opacity: 0.14;
 }
+/* S1d — if / loop / try span tints + inactive sibling collapse */
+.vnode.scroll-cfg-if:not(.scroll-cfg-ahead):not(.scroll-cfg-sib) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, #58a6ff 55%, transparent);
+}
+.vnode.scroll-cfg-loop:not(.scroll-cfg-ahead):not(.scroll-cfg-sib) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, #3fb950 55%, transparent);
+}
+.vnode.scroll-cfg-try:not(.scroll-cfg-ahead):not(.scroll-cfg-sib) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, #d29922 55%, transparent);
+}
+.vnode.scroll-cfg-hot.scroll-cfg-if {
+  outline-color: #58a6ff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, #58a6ff 70%, transparent),
+    0 0 18px color-mix(in srgb, #58a6ff 45%, transparent);
+}
+.vnode.scroll-cfg-hot.scroll-cfg-loop {
+  outline-color: #3fb950;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, #3fb950 70%, transparent),
+    0 0 18px color-mix(in srgb, #3fb950 45%, transparent);
+}
+.vnode.scroll-cfg-hot.scroll-cfg-try {
+  outline-color: #d29922;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, #d29922 70%, transparent),
+    0 0 18px color-mix(in srgb, #d29922 45%, transparent);
+}
+.vnode.scroll-cfg-sib {
+  opacity: 0.2;
+}
 /* S1c — scroll-driven macro Map LOD (file top / fast flick) */
 .viewport[data-scroll-macro="1"] .vnode.scroll-macro-hot {
   outline: 1.5px solid var(--vscode-textLink-foreground);

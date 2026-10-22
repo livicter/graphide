@@ -651,6 +651,8 @@ function emptyScrollDrive() {
     cfgActiveId: "",
     cfgUnroll: 0,
     cfgVisible: 0,
+    cfgSpanKind: "",
+    cfgSpanCount: 0,
     scrollVel: 0,
     macroLod: false,
   };
@@ -829,13 +831,124 @@ function pickScrollDriveCfgActive(walk, activeLine, scrollRatio) {
 
 function clearScrollDriveCfgPaint() {
   if (!canvas) return;
-  canvas.querySelectorAll(".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode[data-cfg-active]").forEach((el) => {
-    el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
-    el.removeAttribute("data-cfg-active");
-  });
+  canvas
+    .querySelectorAll(
+      ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode[data-cfg-active], .vnode[data-cfg-span]"
+    )
+    .forEach((el) => {
+      el.classList.remove(
+        "scroll-cfg-hot",
+        "scroll-cfg-dim",
+        "scroll-cfg-ahead",
+        "scroll-cfg-sib",
+        "scroll-cfg-if",
+        "scroll-cfg-loop",
+        "scroll-cfg-try"
+      );
+      el.removeAttribute("data-cfg-active");
+      el.removeAttribute("data-cfg-span");
+    });
 }
 
-/** S1b — unroll Steiner CFG with scroll; glow the active block.
+/** Classify Evidence source text into if / loop / try (no Tree-sitter — S1d). */
+function classifyScrollDriveCfgSpanText(tx) {
+  const s = String(tx || "");
+  if (/\btry\b|\bcatch\b|\bfinally\b|\bexcept\b/.test(s)) return "try";
+  if (/\bfor\b|\bwhile\b|\bloop\b/.test(s)) return "loop";
+  if (/\belse\s+if\b|\bif\b|\belse\b/.test(s)) return "if";
+  return "";
+}
+
+/** Scan #srcBody lines for control-flow span anchors (fixture / padded Evidence). */
+function scanScrollDriveCfgSpans() {
+  if (!srcBody) return [];
+  const lines = srcBody.querySelectorAll(".src-line");
+  const hits = [];
+  for (let i = 0; i < lines.length; i++) {
+    const el = lines[i];
+    const lnEl = el.querySelector(".ln");
+    const txEl = el.querySelector(".tx");
+    const ln = parseInt(lnEl && lnEl.textContent, 10);
+    if (!Number.isFinite(ln)) continue;
+    const kind = classifyScrollDriveCfgSpanText(txEl && txEl.textContent);
+    if (!kind) continue;
+    hits.push({ kind: kind, line: ln, startLine: ln, endLine: ln });
+  }
+  for (let i = 0; i < hits.length; i++) {
+    const next = hits[i + 1];
+    hits[i].endLine = next ? Math.max(hits[i].startLine, next.startLine - 1) : hits[i].startLine + 8;
+  }
+  return hits;
+}
+
+function pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById) {
+  if (activeLine > 0 && spans.length) {
+    for (let i = 0; i < spans.length; i++) {
+      const sp = spans[i];
+      if (activeLine >= sp.startLine && activeLine <= sp.endLine) return sp.kind;
+    }
+    let best = "";
+    let bestDist = Infinity;
+    for (let i = 0; i < spans.length; i++) {
+      const sp = spans[i];
+      const d = Math.abs(sp.line - activeLine);
+      if (d < bestDist) {
+        bestDist = d;
+        best = sp.kind;
+      }
+    }
+    if (best && bestDist <= 48) return best;
+  }
+  if (activeId && kindById && kindById[activeId]) return kindById[activeId];
+  return (spans[0] && spans[0].kind) || "";
+}
+
+/** Map Steiner walk nodes → if/loop/try using Evidence spans (line match, else partition). */
+function assignScrollDriveCfgSpanKinds(walk, spans) {
+  const out = Object.create(null);
+  if (!walk.length) return out;
+  const kinds = [];
+  const seen = Object.create(null);
+  for (let i = 0; i < spans.length; i++) {
+    const k = spans[i].kind;
+    if (!seen[k]) {
+      seen[k] = 1;
+      kinds.push(k);
+    }
+  }
+  if (!kinds.length) return out;
+  for (let i = 0; i < walk.length; i++) {
+    const id = walk[i];
+    const ln = lineOfScrollDriveNode(id);
+    let kind = "";
+    if (ln > 0) {
+      let best = "";
+      let bestDist = Infinity;
+      for (let j = 0; j < spans.length; j++) {
+        const sp = spans[j];
+        if (ln >= sp.startLine && ln <= sp.endLine) {
+          kind = sp.kind;
+          break;
+        }
+        const d = Math.abs(sp.line - ln);
+        if (d < bestDist) {
+          bestDist = d;
+          best = sp.kind;
+        }
+      }
+      if (!kind && best && bestDist <= 48) kind = best;
+    }
+    if (!kind) {
+      // Stable partition when fixture spans sit far from padded Evidence lines.
+      const bucket = Math.min(kinds.length - 1, Math.floor((i * kinds.length) / walk.length));
+      kind = kinds[bucket];
+    }
+    out[id] = kind;
+  }
+  return out;
+}
+
+/** S1b + S1d — unroll Steiner CFG with scroll; glow active block; annotate if/loop/try spans.
  *  Idle Evidence (scrollRatio 0) must not dim CFG — Slice ego / select opacity
  *  gates (EG3d etc.) open Evidence without scrolling. */
 function applyScrollDriveCfg(scrollRatio, activeLine) {
@@ -843,31 +956,57 @@ function applyScrollDriveCfg(scrollRatio, activeLine) {
   const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
   if (unroll <= 0 || !walk.length) {
     clearScrollDriveCfgPaint();
-    return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+    return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
   }
+  const spans = scanScrollDriveCfgSpans();
+  const kindById = assignScrollDriveCfgSpanKinds(walk, spans);
   const visible = 1 + Math.round(unroll * (walk.length - 1));
   const visibleWalk = walk.slice(0, Math.max(1, visible));
   const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
+  const cfgSpanKind = pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
   const walkSet = new Set(walk);
   const visibleSet = new Set(visibleWalk);
   if (canvas) {
     canvas.querySelectorAll(".vnode").forEach((el) => {
       const id = el.getAttribute("data-id");
       if (!id || !walkSet.has(id)) {
-        el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+        el.classList.remove(
+          "scroll-cfg-hot",
+          "scroll-cfg-dim",
+          "scroll-cfg-ahead",
+          "scroll-cfg-sib",
+          "scroll-cfg-if",
+          "scroll-cfg-loop",
+          "scroll-cfg-try"
+        );
         el.removeAttribute("data-cfg-active");
+        el.removeAttribute("data-cfg-span");
         return;
       }
+      const spanKind = kindById[id] || "";
       const ahead = !visibleSet.has(id);
-      const hot = !!(activeId && id === activeId);
+      const sib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind);
+      const hot = !!(activeId && id === activeId && !sib);
       el.classList.toggle("scroll-cfg-hot", hot);
-      el.classList.toggle("scroll-cfg-ahead", ahead);
-      el.classList.toggle("scroll-cfg-dim", !hot && !ahead);
+      el.classList.toggle("scroll-cfg-ahead", ahead && !sib);
+      el.classList.toggle("scroll-cfg-sib", sib && !ahead);
+      el.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib);
+      el.classList.toggle("scroll-cfg-if", spanKind === "if");
+      el.classList.toggle("scroll-cfg-loop", spanKind === "loop");
+      el.classList.toggle("scroll-cfg-try", spanKind === "try");
+      if (spanKind) el.setAttribute("data-cfg-span", spanKind);
+      else el.removeAttribute("data-cfg-span");
       if (hot) el.setAttribute("data-cfg-active", "1");
       else el.removeAttribute("data-cfg-active");
     });
   }
-  return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
+  return {
+    cfgActiveId: activeId || "",
+    cfgUnroll: unroll,
+    cfgVisible: visible,
+    cfgSpanKind: cfgSpanKind || "",
+    cfgSpanCount: spans.length,
+  };
 }
 
 let scrollDriveMacroTimer = 0;
@@ -891,7 +1030,7 @@ function onSrcBodyScroll() {
   noteScrollDriveVelocity(srcBody.scrollTop);
   const scrollVel = readScrollDriveVelocity();
   const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
-  let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
+  let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0 };
   if (macro) {
     // S1c — overview LOD; clear micro CFG so paint does not fight.
     clearScrollDriveCfgPaint();
@@ -923,6 +1062,8 @@ function onSrcBodyScroll() {
     cfgActiveId: cfg.cfgActiveId,
     cfgUnroll: cfg.cfgUnroll,
     cfgVisible: cfg.cfgVisible,
+    cfgSpanKind: cfg.cfgSpanKind || "",
+    cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
     scrollVel: scrollVel,
     macroLod: !!macro,
   });
