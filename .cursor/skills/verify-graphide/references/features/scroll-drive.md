@@ -257,3 +257,6 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   S1n only toggles lineMap glow classes + CSS pulse — never a parallel
   tween; respects S1k reduced-motion and S1m Present pause.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
+- **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
+  here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
+  side-effect at this map. Index Live proof stays `S1a`–`S1n`.

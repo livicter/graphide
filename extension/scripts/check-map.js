@@ -355,6 +355,10 @@ assert(featReadme.includes("slice-enter-recycle.md") && featReadme.includes("sli
 assert(featReadme.includes("stamp-recheck.md") && featReadme.includes("stamp-recheck.png"), "feature README must list stamp-recheck.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
 assert(featReadme.includes("scroll-drive.md") && featReadme.includes("S1a") && featReadme.includes("S1n") && featReadme.includes("__graphideScrollDrive"), "feature README must list scroll-drive.md with S1a–S1n");
+const openEvidenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-evidence.md"), "utf8");
+assert(openEvidenceMap.includes("scroll-drive.md") && openEvidenceMap.includes("S1a") && openEvidenceMap.includes("S1n") && openEvidenceMap.includes("line→node") && openEvidenceMap.includes("lineMapHit"), "open-evidence must defer S1a–S1n scroll-drive ownership (S1o)");
+const presentationMapS1o = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md"), "utf8");
+assert(presentationMapS1o.includes("S1m") && presentationMapS1o.includes("presentPaused") && presentationMapS1o.includes("scroll-drive.md"), "presentation must point S1m Present-pause at scroll-drive.md (S1o)");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -644,6 +648,24 @@ assert(scrollDriveMap.includes("S1m") && scrollDriveMap.includes("presentPaused"
 assert(js.includes("function applyScrollDriveLineMapGlow") && js.includes("function clearScrollDriveLineMapPaint") && js.includes("scroll-linemap-hit") && js.includes("scroll-linemap-miss") && js.includes("lineMapPulse") && js.includes("data-scroll-linemap") && /applyScrollDriveLineMapGlow\s*\(\s*lineMapHit/.test(js) && driver.includes("S1n"), "Evidence lineMapHit must pulse mapped node glow distinct from scroll-cfg-hot (S1n)");
 assert(css.includes("scroll-linemap-pulse") && css.includes("scroll-linemap-hit") && css.includes("scroll-linemap-miss") && css.includes("@keyframes scroll-linemap-pulse"), "CSS must define S1n lineMapHit glow pulse");
 assert(scrollDriveMap.includes("S1n") && scrollDriveMap.includes("lineMapPulse") && scrollDriveMap.includes("applyScrollDriveLineMapGlow") && scrollDriveMap.includes("scroll-linemap-hit"), "scroll-drive feature map must name S1n lineMapHit glow");
+assert(
+  scrollDriveMap.includes("S1h") &&
+    scrollDriveMap.includes("S1i") &&
+    scrollDriveMap.includes("S1j") &&
+    scrollDriveMap.includes("S1k") &&
+    scrollDriveMap.includes("S1l") &&
+    scrollDriveMap.includes("S1m") &&
+    scrollDriveMap.includes("S1n") &&
+    scrollDriveMap.includes("S1o") &&
+    scrollDriveMap.includes("lineMapHit") &&
+    scrollDriveMap.includes("cfgNestDepth") &&
+    scrollDriveMap.includes("blendMs") &&
+    scrollDriveMap.includes("reducedMotion") &&
+    scrollDriveMap.includes("rafCoalesce") &&
+    scrollDriveMap.includes("presentPaused") &&
+    scrollDriveMap.includes("lineMapPulse"),
+  "scroll-drive feature map must sync S1h–S1n (+ S1o note) after S1docs S1a–S1g"
+);
 const lensOverlayMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md"), "utf8");
 assert(lensOverlayMap.includes("P6s") && lensOverlayMap.includes("K14k") && /does \*\*not\*\* exit Presentation Stage/.test(lensOverlayMap), "lens feature map must document Present stage overlay (P6s/K14k)");
 assert(js.includes("hideTip()") && /function revealSourcePane\(\)[\s\S]*?hideTip\(\)/.test(js) && /function revealSourcePane\(\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function applyPresent\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function applyPresent\(on\w*\)[\s\S]*?tip\.hidden = true/.test(js) && /function setLensOpen\(on\w*\)[\s\S]*?hideTip\(\)/.test(js) && /function setLensOpen\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function setRouteOpen\(on\w*\)[\s\S]*?hideTip\(\)/.test(js) && /function setRouteOpen\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /e\.key === "\/" && graphSearch[\s\S]*?hideTip\(\)/.test(js) && /e\.key === "\/" && graphSearch[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && driver.includes("K19") && driver.includes("K19b") && driver.includes("K19c") && driver.includes("K19d") && driver.includes("K19e") && driver.includes("K19f") && driver.includes("K19g") && driver.includes("K19h") && driver.includes("K20") && driver.includes("K20b") && driver.includes("K20c") && driver.includes("K20d") && driver.includes("K20e") && driver.includes("K20f") && driver.includes("K20g") && driver.includes("K20h"), "Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find must hideTip and clear toast so chrome does not stick");
