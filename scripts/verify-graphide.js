@@ -7923,6 +7923,45 @@ async function main() {
       null,
       { timeout: 5000 }
     );
+    // Opening Ask must close Present (setLlmPane exclusivity — Ask clears Presentation Stage).
+    // Reverse of Present closing Ask (K18g). #llmBtn is display:none on stage — click via evaluate.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("llmBtn");
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden) && !(document.body && document.body.classList.contains("present"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const askClosedPresent = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K18ai",
+      "Opening Ask closes Present (exclusive chrome)",
+      askClosedPresent.askOpen && !askClosedPresent.presenting,
+      JSON.stringify(askClosedPresent)
+    );
+    await page.keyboard.press("Escape"); // close Ask
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
     // Opening Evidence must close Lens (revealSourcePane exclusivity — Evidence clears Lens chrome).
     // Reverse of Ask/Keys/Export closing Lens; open Lens first, then reopen Evidence via ledger cell.
     await page.click("#lensBtn");
