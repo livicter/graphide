@@ -9117,6 +9117,61 @@ async function main() {
       "mock=" + JSON.stringify(s1kMock) + " after=" + JSON.stringify(s1kAfter)
     );
 
+    // S1l — burst #srcBody scrolls coalesce into one rAF flush (rafMerged rises; Lens stays Present overlay).
+    const s1lBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      return {
+        evidenceOpen: !!(pane && !pane.hidden),
+        flushes: Number(d.rafFlushes) || 0,
+        merged: Number(d.rafMerged) || 0,
+        canScroll: !!(body && body.scrollHeight - body.clientHeight > 8),
+      };
+    });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      // Fire many scroll events synchronously before the next animation frame.
+      for (let i = 0; i < 14; i++) {
+        body.scrollTop = Math.floor(max * (0.28 + i * 0.03));
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (prev) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && d.rafCoalesce === true)) return false;
+        const flushes = Number(d.rafFlushes) || 0;
+        const merged = Number(d.rafMerged) || 0;
+        // At least one flush; surplus events from the 14-burst should merge.
+        return flushes > prev.flushes && merged >= prev.merged + 8;
+      },
+      s1lBefore,
+      { timeout: 6000 }
+    );
+    const s1lAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        rafCoalesce: !!d.rafCoalesce,
+        rafFlushes: Number(d.rafFlushes) || 0,
+        rafMerged: Number(d.rafMerged) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1l",
+      "Evidence scroll coalesces into one rAF flush per frame (rafMerged / rafFlushes)",
+      s1lBefore.evidenceOpen &&
+        s1lBefore.canScroll &&
+        s1lAfter.evidenceOpen &&
+        s1lAfter.rafCoalesce === true &&
+        s1lAfter.rafFlushes > s1lBefore.flushes &&
+        s1lAfter.rafMerged >= s1lBefore.merged + 8,
+      "before=" + JSON.stringify(s1lBefore) + " after=" + JSON.stringify(s1lAfter)
+    );
+
     await page.keyboard.press("Escape"); // close Evidence
 
 

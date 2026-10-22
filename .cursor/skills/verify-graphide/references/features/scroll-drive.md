@@ -1,4 +1,4 @@
-# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion (S1a–S1k)
+# Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + vel ease + line→node + nest depth + blend polish + reduced-motion + rAF coalesce (S1a–S1l)
 
 Evidence `#srcBody` scroll smoothly tracks the graph camera toward the
 related node (S1a), maps `activeLine` onto the IR/fixture span owner (S1h),
@@ -15,14 +15,17 @@ enters them (S1i — ancestors stay visible; siblings stay collapsed),
 and eases nest-glow / macro↔micro LOD class changes with a camEase-tied
 CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
-timers (S1k — `setCamTarget` already jumps).
+timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
+scroll into one `requestAnimationFrame` flush per frame so burst
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive).
 
 ## Sub-features
 
 - Data shape `window.__graphideScrollDrive`:
-  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear }`.
-- `#srcBody` `scroll` listener publishes the shape and calls
-  `setCamTarget` (existing lerp via `tickCam`).
+  `{ scrollRatio, activeLine, targetNodeId, lineMapHit, camX, camY, camK, cfgActiveId, cfgUnroll, cfgVisible, cfgSpanKind, cfgSpanCount, cfgNestDepth, cfgNestMax, cfgNestExpanded, scrollVel, camEase, blendMs, macroLod, anchorFocus, anchorCounts, detailNear, reducedMotion, rafCoalesce, rafFlushes, rafMerged }`.
+- `#srcBody` `scroll` listener schedules `scheduleScrollDriveFlush`
+  (S1l); one rAF runs `flushScrollDrive`, which publishes the shape and
+  calls `setCamTarget` (existing lerp via `tickCam`).
 - **S1h line→node:** `resolveScrollDriveTargetNode(activeLine)` walks
   IR/fixture node spans (`span.start/end` or flat `line`/`endLine`) on
   the Evidence file. Tightest containing span wins (Steiner-walk /
@@ -95,6 +98,14 @@ timers (S1k — `setCamTarget` already jumps).
   0ms`, and skips `scheduleScrollDriveEaseSettle`. Camera still snaps via
   existing `setCamTarget` reduceMotion path — no second animation loop.
   Motion preference off keeps S1g/S1j ease behavior.
+- **S1l rAF coalesce:** `onSrcBodyScroll` only schedules
+  `scheduleScrollDriveFlush`. Multiple scroll events in one frame merge
+  into a single `flushScrollDrive` via `requestAnimationFrame`.
+  `rafCoalesce: true`, `rafFlushes` (flush count), and `rafMerged`
+  (events beyond the first per flush) publish on ScrollDrive. Closed
+  Evidence still resets sync (cancel pending rAF). Not a second cam
+  loop — still `tickCam` / `setCamTarget`. Lens stays a Present stage
+  overlay (`P6s` / `K14k`); this batch does not make Lens exit Present.
 - Closing Evidence (`closeSourcePane`) resets the drive and clears CFG
   + macro + kind-anchor + detail-gate + blend paint.
 
@@ -113,7 +124,8 @@ timers (S1k — `setCamTarget` already jumps).
    Fast flick loosens camera follow; when you stop, the camera settles
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
-   nest/macro paint snap with no settle timers.
+   nest/macro paint snap with no settle timers. Burst scrolls coalesce
+   into one paint per frame (`rafMerged` rises).
 
 ## Driving it with the harness
 
@@ -175,6 +187,9 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
 - **S1k** — mock `matchMedia('(prefers-reduced-motion: reduce)')` →
   `reducedMotion === true`, `blendMs === 0`, `--scroll-blend-ms: 0ms`,
   `camEase` snappy (`CAM_EASE_SNAP`). Restore matchMedia after.
+- **S1l** — fire many `#srcBody` scroll events in one turn → after one
+  frame, `rafCoalesce === true`, `rafFlushes` rose by 1 (or small N),
+  `rafMerged` rose by ≥ the surplus events. Still one cam path.
 
 ## Gotchas
 
@@ -191,10 +206,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `lineMapHit`, `resolveScrollDriveTargetNode`, `cfgNestDepth`,
   `data-cfg-depth`, `.scroll-cfg-nest-hot`, `.scroll-cfg-nest-anc`,
   `blendMs`, `.viewport[data-scroll-blend]`, `--scroll-blend-ms`,
-  `reducedMotion`, `reduceMotion()`.
+  `reducedMotion`, `reduceMotion()`, `rafCoalesce`, `rafFlushes`,
+  `rafMerged`, `scheduleScrollDriveFlush`, `flushScrollDrive`.
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
   `scrollVel` — never a parallel tween. S1j only sets CSS transition
   duration from `camEase` — never a parallel tween. S1k only zeros
   blend + skips settle timers under `reduceMotion` — still one cam path.
+  S1l only coalesces scroll → flush via rAF — never a parallel tween.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.

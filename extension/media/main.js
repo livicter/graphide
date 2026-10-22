@@ -20250,7 +20250,10 @@
         anchorFocus: "",
         anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
         detailNear: false,
-        reducedMotion: false
+        reducedMotion: false,
+        rafCoalesce: true,
+        rafFlushes: 0,
+        rafMerged: 0
       };
     }
     function publishScrollDrive(drive) {
@@ -20260,6 +20263,13 @@
       scrollDriveBase = null;
       scrollDriveTargetLocked = "";
       scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      if (scrollDriveRaf) {
+        cancelAnimationFrame(scrollDriveRaf);
+        scrollDriveRaf = 0;
+      }
+      scrollDriveRafPending = 0;
+      scrollDriveRafFlushes = 0;
+      scrollDriveRafMerged = 0;
       if (scrollDriveEaseTimer) {
         clearTimeout(scrollDriveEaseTimer);
         scrollDriveEaseTimer = 0;
@@ -20963,6 +20973,10 @@
     }
     let scrollDriveMacroTimer = 0;
     let scrollDriveEaseTimer = 0;
+    let scrollDriveRaf = 0;
+    let scrollDriveRafPending = 0;
+    let scrollDriveRafFlushes = 0;
+    let scrollDriveRafMerged = 0;
     function refreshScrollDriveCamEase() {
       if (!srcBody || !sourcePane || sourcePane.hidden || !scrollDriveBase) {
         setCamEase(CAM_EASE_BASE);
@@ -20991,7 +21005,27 @@
         if (readScrollDriveVelocity() > 0.08) scheduleScrollDriveEaseSettle();
       }, 160);
     }
-    function onSrcBodyScroll() {
+    function cancelScrollDriveRaf() {
+      if (scrollDriveRaf) {
+        cancelAnimationFrame(scrollDriveRaf);
+        scrollDriveRaf = 0;
+      }
+      scrollDriveRafPending = 0;
+    }
+    function scheduleScrollDriveFlush() {
+      scrollDriveRafPending += 1;
+      if (scrollDriveRaf) return;
+      scrollDriveRaf = requestAnimationFrame(() => {
+        scrollDriveRaf = 0;
+        const pending = scrollDriveRafPending;
+        scrollDriveRafPending = 0;
+        const merged = Math.max(0, pending - 1);
+        scrollDriveRafMerged += merged;
+        scrollDriveRafFlushes += 1;
+        flushScrollDrive();
+      });
+    }
+    function flushScrollDrive() {
       if (!srcBody || !sourcePane || sourcePane.hidden) {
         if (scrollDriveMacroTimer) {
           clearTimeout(scrollDriveMacroTimer);
@@ -21001,6 +21035,7 @@
           clearTimeout(scrollDriveEaseTimer);
           scrollDriveEaseTimer = 0;
         }
+        cancelScrollDriveRaf();
         resetScrollDrive();
         return;
       }
@@ -21068,8 +21103,27 @@
         anchorFocus: anchors.anchorFocus || "",
         anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
         detailNear: !!detail.detailNear,
-        reducedMotion: !!reduced
+        reducedMotion: !!reduced,
+        rafCoalesce: true,
+        rafFlushes: scrollDriveRafFlushes,
+        rafMerged: scrollDriveRafMerged
       });
+    }
+    function onSrcBodyScroll() {
+      if (!srcBody || !sourcePane || sourcePane.hidden) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        if (scrollDriveEaseTimer) {
+          clearTimeout(scrollDriveEaseTimer);
+          scrollDriveEaseTimer = 0;
+        }
+        cancelScrollDriveRaf();
+        resetScrollDrive();
+        return;
+      }
+      scheduleScrollDriveFlush();
     }
     if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
     publishScrollDrive(emptyScrollDrive());

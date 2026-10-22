@@ -43,6 +43,9 @@ stay human — present and preset never write `.graphide/stamps/`.
 - While `body.present` with Keys open, desk `D` still toggles Day/Night (`P6h`).
 - While `body.present` with Keys open, desk `+`/`=`/`-` still zoom (`P6i`); Fit (`0`) still refits (`P6k`).
 - Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`), same exclusive chrome as Keys / Export closing Ask.
+- Reverse exclusivity: Ask / Evidence exit Present when opened (`K18ai` /
+  `K18aj`). Lens / Route / Keys / Export stay stage overlays (`P6s` /
+  `P6r` / `K14i`–`K14l`) — opening them does not call `applyPresent(false)`.
 - Opening Present hides the hover tip (`K19e`) and clears the toast (`K20e`), same chrome exclusivity as Keys / Export / Ask / Evidence.
 
 ## How to get to it (user POV)
