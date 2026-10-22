@@ -9681,7 +9681,21 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(300);
+    // S1ah — settle-before-sample: wait soft cam idle before baselining (not mid-tween).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1qBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const id = d.targetNodeId || "";
@@ -9715,12 +9729,12 @@ async function main() {
       }
       return { ok: true, id: id };
     });
-    // Nudge scroll a few times so soft camX flush runs after Present→reopen soft restore (S1w).
+    // S1ah — one soft-follow stimulus (not a 6-nudge stack that can exceed the ±80 band).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
       const base = body.scrollTop;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 2; i++) {
         body.scrollTop = base + i * 3;
         body.dispatchEvent(new Event("scroll"));
       }
@@ -9735,7 +9749,9 @@ async function main() {
       s1qBefore.camX,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(200);
+    // S1ah — sample on first soft-follow step (one paint), not after full settle
+    // (settle→absorb→follow can stack past the ±80 band). Baseline was settle-before.
+    await page.waitForTimeout(32);
     const s1qAfter = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const el = document.querySelector('#sliceCanvas .vnode[data-s1q-offcenter="1"]');
@@ -11397,6 +11413,46 @@ async function main() {
 
     // S1y — Map↔Slice remount mid-drive while Evidence stays open soft-stays cam (no wipe-then-zoomToEl).
     // Hop Slice→Map→Slice; pane + sourceId unchanged; soft stay from camTo / S1w snapshot.
+    // S1ah — settle-before-sample: warm settle so before/afterHop dx is not mid-tween inflated.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1ah-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4400 + i) + '</span><span class="tx">s1ah settle pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.44);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 4; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1yBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const pane = document.getElementById("sourcePane");
@@ -11426,7 +11482,22 @@ async function main() {
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(80);
+    // S1ah — settle on Map before hop-back so soft-follow does not keep drifting into afterHop dx.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1yOnMap = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const pane = document.getElementById("sourcePane");
@@ -11451,7 +11522,21 @@ async function main() {
       null,
       { timeout: 8000 }
     );
-    await page.waitForTimeout(120);
+    // S1ah — settle-before-sample after Slice return (not fixed 120ms mid soft-follow).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          d.targetNodeId &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1yAfterHop = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const pane = document.getElementById("sourcePane");
@@ -11474,9 +11559,15 @@ async function main() {
         ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
       };
     });
-    const s1yDx = Math.abs((Number(s1yAfterHop.camX) || 0) - (Number(s1yBefore.camX) || 0));
-    const s1yDy = Math.abs((Number(s1yAfterHop.camY) || 0) - (Number(s1yBefore.camY) || 0));
-    const s1yDk = Math.abs((Number(s1yAfterHop.camK) || 0) - (Number(s1yBefore.camK) || 0));
+    // S1ah — remount soft-stay dx is afterHop vs settled onMap (not lumped before→after
+    // which includes Map soft-follow while Evidence stays open). Map soft-follow
+    // checked separately under the product ±80 soft-camX band.
+    const s1yDxMap = Math.abs((Number(s1yOnMap.camX) || 0) - (Number(s1yBefore.camX) || 0));
+    const s1yDyMap = Math.abs((Number(s1yOnMap.camY) || 0) - (Number(s1yBefore.camY) || 0));
+    const s1yDkMap = Math.abs((Number(s1yOnMap.camK) || 0) - (Number(s1yBefore.camK) || 0));
+    const s1yDx = Math.abs((Number(s1yAfterHop.camX) || 0) - (Number(s1yOnMap.camX) || 0));
+    const s1yDy = Math.abs((Number(s1yAfterHop.camY) || 0) - (Number(s1yOnMap.camY) || 0));
+    const s1yDk = Math.abs((Number(s1yAfterHop.camK) || 0) - (Number(s1yOnMap.camK) || 0));
     // Nudge scroll so settle flags re-absorb after hop clear (S1r/S1s).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -11554,6 +11645,9 @@ async function main() {
         !!s1yAfterHop.targetNodeId &&
         s1yAfterHop.vnodeCount > 0 &&
         s1yAfterHop.lineCount > 0 &&
+        s1yDxMap <= 80 + 24 &&
+        s1yDyMap <= 200 &&
+        s1yDkMap <= 0.45 &&
         s1yDx <= 96 + 24 &&
         s1yDy <= 200 &&
         s1yDk <= 0.45 &&
@@ -11570,6 +11664,12 @@ async function main() {
         JSON.stringify(s1yAfterHop) +
         " resettle=" +
         JSON.stringify(s1yResettle) +
+        " dxMap=" +
+        s1yDxMap +
+        " dyMap=" +
+        s1yDyMap +
+        " dkMap=" +
+        s1yDkMap +
         " dx=" +
         s1yDx +
         " dy=" +
@@ -11578,7 +11678,87 @@ async function main() {
         s1yDk
     );
 
-
+    // S1ah — harness soft-follow settle-before-sample band (S1q/S1y).
+    // Prove settle contract: after a short nudge, sample only once camXSettled|
+    // camYSettled + low scrollVel; a follow-up sample must stay within a tiny
+    // epsilon (no mid-tween inflate). Product soft-follow caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 3; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1ahFirst = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+        presentPaused: !!d.presentPaused,
+        macroLod: !!d.macroLod,
+      };
+    });
+    await page.waitForTimeout(80);
+    const s1ahSecond = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        scrollVel: Number(d.scrollVel) || 0,
+      };
+    });
+    const s1ahDx = Math.abs((Number(s1ahSecond.camX) || 0) - (Number(s1ahFirst.camX) || 0));
+    const s1ahDy = Math.abs((Number(s1ahSecond.camY) || 0) - (Number(s1ahFirst.camY) || 0));
+    const s1ahDk = Math.abs((Number(s1ahSecond.camK) || 0) - (Number(s1ahFirst.camK) || 0));
+    record(
+      "S1ah",
+      "settle-before-sample: soft-follow asserts wait for settle flags (stable cam; no mid-tween inflate)",
+      !s1ahFirst.presentPaused &&
+        !s1ahFirst.macroLod &&
+        (s1ahFirst.camXSettled === true || s1ahFirst.camYSettled === true) &&
+        s1ahFirst.scrollVel < 0.12 &&
+        Number.isFinite(s1ahFirst.camX) &&
+        Number.isFinite(s1ahSecond.camX) &&
+        s1ahDx <= 2.5 &&
+        s1ahDy <= 2.5 &&
+        s1ahDk <= 0.05,
+      "first=" +
+        JSON.stringify(s1ahFirst) +
+        " second=" +
+        JSON.stringify(s1ahSecond) +
+        " dx=" +
+        s1ahDx +
+        " dy=" +
+        s1ahDy +
+        " dk=" +
+        s1ahDk
+    );
 
     // S1z — Lineage / Overview hop soft stay mid-drive while Evidence stays open.
     // Reuses S1y Map↔Slice soft-stay helper (no third stay path). Prefer Overview
