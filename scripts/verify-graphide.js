@@ -15527,7 +15527,26 @@ async function main() {
       null,
       { timeout: 5000 }
     );
-    await page.waitForTimeout(80);
+    // S1bg — settle-before-sample cold reopen (S1ao): require softStayed false + target
+    // (not a fixed 80ms pad). Product cold hard path unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean" &&
+          window.__graphideScrollDriveShowSourceSoftStayed === false &&
+          d &&
+          !d.presentPaused &&
+          !d.presentStayStashed &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
     const s1aoAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const key = window.__graphideScrollDriveLastStayKey || "";
@@ -15570,6 +15589,121 @@ async function main() {
         JSON.stringify(s1aoAfterWipe) +
         " afterReopen=" +
         JSON.stringify(s1aoAfterReopen)
+    );
+
+    // S1bg — cold-path reopen settle-before-sample probe (parity with S1bf).
+    // After S1ao cold open: tiny nudge, atomic wait+snap softStayed false + micro+settled
+    // + both cues off. Product cold hard path unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bg-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4700 + i) + '</span><span class="tx">s1bg pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          window.__graphideScrollDriveShowSourceSoftStayed === false &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bgSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            window.__graphideScrollDriveShowSourceSoftStayed === false &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bg",
+      "Cold-path reopen settle-before-sample: post-S1ao still micro+settled + softStayed false + cues cleared (!macroLod; no mid-tween)",
+      s1bgSnap.paneOpen &&
+        !s1bgSnap.presentPaused &&
+        !s1bgSnap.macroLod &&
+        !s1bgSnap.reviewStayCleared &&
+        !s1bgSnap.cueAttr &&
+        !s1bgSnap.presentStayStashed &&
+        !s1bgSnap.presentStayAttr &&
+        s1bgSnap.softStayed === false &&
+        (s1bgSnap.camXSettled === true || s1bgSnap.camYSettled === true) &&
+        s1bgSnap.scrollVel < 0.12 &&
+        !!s1bgSnap.targetNodeId &&
+        Number(s1bgSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bgSnap.camX),
+      "snap=" + JSON.stringify(s1bgSnap)
     );
 
     // S1aq — soft-restore round-trip after fresh stay post-S1ao wipe.
