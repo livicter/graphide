@@ -23698,7 +23698,18 @@
       if (flow && (flow.tree && flow.tree.edges && flow.tree.edges.length || flow.tree && flow.tree.nodes && flow.tree.nodes.length)) {
         popEnterFrames();
         explorerWs = "slice";
-        paint({ animate: "none" });
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        paint({ animate: "none", keepCam: !!evidenceStay });
+        if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+          softStayScrollDriveAcrossDeskRemount();
+        }
       }
     }
     function enterMapBubble(id2) {

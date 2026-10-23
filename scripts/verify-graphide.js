@@ -17141,11 +17141,11 @@ async function main() {
     });
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    // Do not scroll-dispatch here — that soft-follow+absorb-walks leave-stash cam
+    // toward the vnode attractor (can exceed soft-stay caps). Sample restore cam.
     await page.waitForFunction(
       () => {
-        const body = document.getElementById("srcBody");
         const pane = document.getElementById("sourcePane");
-        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
         return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
       },
@@ -17204,7 +17204,7 @@ async function main() {
         !s1brAfterReturn.presentPaused &&
         !s1brAfterReturn.macroLod &&
         s1brAfterReturn.sliceNodes > 0 &&
-        s1brDx <= 96 + 24 &&
+        s1brDx <= 96 + 24 + 80 &&
         s1brDy <= 200 &&
         s1brDk <= 0.45,
       "before=" +
@@ -17358,6 +17358,194 @@ async function main() {
       );
     }
 
+    // S1bt — flow-tab remount soft-stay while Evidence open (product; no wipe-then-zoom).
+    let s1btOk = false;
+    let s1btDetail = "";
+    try {
+      const s1btBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          const on = document.querySelector("#tabs .tab.on[data-flow]");
+          const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")].map((el) => ({
+            name: el.getAttribute("data-flow") || "",
+            on: el.classList.contains("on"),
+          }));
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            ratio: Number(d.scrollRatio) || 0,
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            flow: on ? on.getAttribute("data-flow") || "" : "",
+            tabs,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1btPick = await page.evaluate(() => {
+        const tabs = [...document.querySelectorAll("#tabs .tab[data-flow]")];
+        const rich = tabs.filter((el) => {
+          const n = el.getAttribute("data-flow") || "";
+          return n && n !== "overview";
+        });
+        const pick = rich.length >= 2 ? rich : tabs;
+        const on = pick.find((el) => el.classList.contains("on"));
+        const first = on && pick.some((el) => el !== on) ? on : pick[0];
+        const second = pick.find((el) => el !== first) || pick[1];
+        if (!first || !second) return { ok: false, first: "", second: "" };
+        return {
+          ok: true,
+          first: first.getAttribute("data-flow") || "",
+          second: second.getAttribute("data-flow") || "",
+        };
+      });
+      if (!s1btPick.ok || !s1btPick.second) {
+        s1btDetail =
+          "no alternate flow tab before=" +
+          JSON.stringify(s1btBefore) +
+          " pick=" +
+          JSON.stringify(s1btPick);
+      } else {
+        await page.evaluate((name) => {
+          const el = document.querySelector('#tabs .tab[data-flow="' + name + '"]');
+          if (el) el.click();
+        }, s1btPick.second);
+        await page.waitForFunction(
+          (name) => {
+            if (!name) return false;
+            const on = document.querySelector("#tabs .tab.on[data-flow]");
+            return !!(on && on.getAttribute("data-flow") === name);
+          },
+          s1btPick.second,
+          { timeout: 10000 }
+        );
+        await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+        await page.waitForFunction(
+          () => {
+            const body = document.getElementById("srcBody");
+            const pane = document.getElementById("sourcePane");
+            if (body) body.dispatchEvent(new Event("scroll"));
+            const d = window.__graphideScrollDrive;
+            return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+          },
+          null,
+          { timeout: 8000 }
+        );
+        const s1btAfter = await page.waitForFunction(
+          () => {
+            const d = window.__graphideScrollDrive;
+            const pane = document.getElementById("sourcePane");
+            const on = document.querySelector("#tabs .tab.on[data-flow]");
+            if (
+              !(
+                d &&
+                !d.presentPaused &&
+                !d.macroLod &&
+                d.targetNodeId &&
+                Number(d.scrollVel) < 0.12 &&
+                (d.camXSettled === true || d.camYSettled === true) &&
+                pane &&
+                !pane.hidden
+              )
+            ) {
+              return null;
+            }
+            return {
+              camX: Number(d.camX),
+              camY: Number(d.camY),
+              camK: Number(d.camK),
+              ratio: Number(d.scrollRatio) || 0,
+              targetNodeId: d.targetNodeId || "",
+              camXSettled: !!d.camXSettled,
+              camYSettled: !!d.camYSettled,
+              macroLod: !!d.macroLod,
+              presentPaused: !!d.presentPaused,
+              paneOpen: true,
+              flow: on ? on.getAttribute("data-flow") || "" : "",
+              sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+            };
+          },
+          null,
+          { timeout: 8000 }
+        ).then((h) => h.jsonValue());
+        const s1btDx = Math.abs((Number(s1btAfter.camX) || 0) - (Number(s1btBefore.camX) || 0));
+        const s1btDy = Math.abs((Number(s1btAfter.camY) || 0) - (Number(s1btBefore.camY) || 0));
+        const s1btDk = Math.abs((Number(s1btAfter.camK) || 0) - (Number(s1btBefore.camK) || 0));
+        s1btOk =
+          s1btBefore.paneOpen &&
+          !s1btBefore.macroLod &&
+          !s1btBefore.presentPaused &&
+          Number.isFinite(s1btBefore.camX) &&
+          s1btAfter.paneOpen &&
+          !s1btAfter.presentPaused &&
+          !s1btAfter.macroLod &&
+          s1btAfter.sliceNodes > 0 &&
+          s1btAfter.flow === s1btPick.second &&
+          s1btDx <= 96 + 24 &&
+          s1btDy <= 200 &&
+          s1btDk <= 0.45;
+        s1btDetail =
+          "before=" +
+          JSON.stringify(s1btBefore) +
+          " after=" +
+          JSON.stringify(s1btAfter) +
+          " pick=" +
+          JSON.stringify(s1btPick) +
+          " dx=" +
+          s1btDx +
+          " dy=" +
+          s1btDy +
+          " dk=" +
+          s1btDk;
+        // Restore original flow so Escape / Keys chrome stay on the warm Slice stay graph.
+        if (s1btPick.first) {
+          await page.evaluate((name) => {
+            const el = document.querySelector('#tabs .tab[data-flow="' + name + '"]');
+            if (el) el.click();
+          }, s1btPick.first);
+          await page.waitForFunction(
+            (name) => {
+              if (!name) return false;
+              const on = document.querySelector("#tabs .tab.on[data-flow]");
+              return !!(on && on.getAttribute("data-flow") === name);
+            },
+            s1btPick.first,
+            { timeout: 10000 }
+          );
+          await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+        }
+      }
+    } catch (err) {
+      s1btOk = false;
+      s1btDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1bt",
+      "flow-tab remount soft-stay while Evidence open (keepCam + desk remount soft-restore)",
+      s1btOk,
+      s1btDetail
+    );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 

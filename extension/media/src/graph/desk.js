@@ -4792,7 +4792,20 @@ function selectFlow(name) {
     // selectFlow already replaced the host stack. Pop the desk frames only.
     popEnterFrames();
     explorerWs = "slice";
-    paint({ animate: "none" });
+    // S1bt — flow-tab remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
+    const evidenceStay =
+      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+      stashScrollDriveLastStay();
+    }
+    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+      stageFitRo.disconnect();
+      stageFitRo = null;
+    }
+    paint({ animate: "none", keepCam: !!evidenceStay });
+    if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+      softStayScrollDriveAcrossDeskRemount();
+    }
   }
 }
 
