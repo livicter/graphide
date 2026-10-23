@@ -11775,14 +11775,17 @@ async function main() {
     });
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector('#sliceCanvas .vnode[data-id]', { timeout: 10000 });
+    // S1bn — remount warm-publish: re-dispatch scroll until drive publishes (parity with S1bm).
     await page.waitForFunction(
       () => {
+        const body = document.getElementById("srcBody");
         const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
         return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
       },
       null,
-      { timeout: 6000 }
+      { timeout: 8000 }
     );
     // S1al — settle-before-sample after remount (not fixed 120ms mid soft-follow).
     // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
@@ -12080,9 +12083,12 @@ async function main() {
     });
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    // S1bn — hop-back warm-publish: re-dispatch scroll until drive publishes (parity with S1bm).
     await page.waitForFunction(
       () => {
+        const body = document.getElementById("srcBody");
         const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
         return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
       },
@@ -12435,9 +12441,12 @@ async function main() {
     const s1zOvDk = Math.abs((Number(s1zOnOverview.camK) || 0) - (Number(s1zWarm.camK) || 0));
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    // S1bn — remount/hop warm-publish: re-dispatch scroll until drive publishes (parity with S1bm).
     await page.waitForFunction(
       () => {
+        const body = document.getElementById("srcBody");
         const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
         return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
       },
@@ -16617,6 +16626,44 @@ async function main() {
         Number.isFinite(s1bmSnap.camX) &&
         Number.isFinite(s1bmSnap.camK),
       "snap=" + JSON.stringify(s1bmSnap)
+    );
+
+    // S1bn — remount/hop warm-publish pad hunt confirm: still micro+settled after S1x/S1y/S1z waits.
+    const s1bnSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bn",
+      "remount/hop warm-publish pad hunt: post-S1x/S1y/S1z still micro+settled (!macroLod; no mid-tween)",
+      s1bnSnap.paneOpen &&
+        !s1bnSnap.presentPaused &&
+        !s1bnSnap.macroLod &&
+        (s1bnSnap.camXSettled === true || s1bnSnap.camYSettled === true) &&
+        s1bnSnap.scrollVel < 0.12 &&
+        !!s1bnSnap.targetNodeId &&
+        Number.isFinite(s1bnSnap.camX) &&
+        Number.isFinite(s1bnSnap.camK),
+      "snap=" + JSON.stringify(s1bnSnap)
     );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
