@@ -10100,12 +10100,15 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true };
     });
-    // S1bj — settle-before-sample warm baseline (S1s): not a fixed 250ms pad.
+    // S1bj/S1bm — settle-before-sample warm baseline (S1s): re-dispatch scroll until drive
+    // publishes (not a fixed 250ms pad; remount can leave __graphideScrollDrive unset briefly).
     const s1sBefore = await page.waitForFunction(
       () => {
-        const d = window.__graphideScrollDrive;
+        const body = document.getElementById("srcBody");
         const pane = document.getElementById("sourcePane");
-        if (!(pane && !pane.hidden && d && !d.presentPaused)) return null;
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        if (!(pane && !pane.hidden && d && !d.presentPaused && Number.isFinite(Number(d.camY)))) return null;
         return {
           camY: Number(d.camY),
           ratio: Number(d.scrollRatio) || 0,
@@ -10114,7 +10117,7 @@ async function main() {
         };
       },
       null,
-      { timeout: 6000 }
+      { timeout: 8000 }
     ).then((h) => h.jsonValue());
     const s1sSetup = await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -16575,6 +16578,45 @@ async function main() {
         Number.isFinite(s1blSnap.camX) &&
         Number.isFinite(s1blSnap.camK),
       "snap=" + JSON.stringify(s1blSnap)
+    );
+
+    // S1bm — one-paint pad hunt confirm: post soft-step path still micro+settled
+    // (16/32ms fixed pads → double-rAF; leave S1m 280 + velocity timers).
+    const s1bmSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bm",
+      "S1s warm-publish pad hunt: post-S1r/S1s still micro+settled (!macroLod; no mid-tween)",
+      s1bmSnap.paneOpen &&
+        !s1bmSnap.presentPaused &&
+        !s1bmSnap.macroLod &&
+        (s1bmSnap.camXSettled === true || s1bmSnap.camYSettled === true) &&
+        s1bmSnap.scrollVel < 0.12 &&
+        !!s1bmSnap.targetNodeId &&
+        Number.isFinite(s1bmSnap.camX) &&
+        Number.isFinite(s1bmSnap.camK),
+      "snap=" + JSON.stringify(s1bmSnap)
     );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
