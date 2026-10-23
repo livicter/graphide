@@ -21079,10 +21079,12 @@
       if (!canvas) return;
       const lock = targetNodeId ? String(targetNodeId) : "";
       const el2 = findScrollDriveTargetEl(targetNodeId);
+      let keepRestoredCamX = false;
       if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
         const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
         const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
         scrollDriveJustRestored = false;
+        keepRestoredCamX = justRestored;
         const softStay = remapping || justRestored;
         scrollDriveTargetLocked = lock;
         if (softStay) {
@@ -21099,11 +21101,11 @@
           scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
           scrollDriveYNudgeOrigin = 0;
         }
-        scrollDriveCamXSettled = false;
+        scrollDriveCamXSettled = !!justRestored;
         scrollDriveCamYSettled = false;
       }
       const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
-      const camX = el2 ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
+      const camX = el2 && !keepRestoredCamX ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
       let camK = scrollDriveBase.k;
       if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
         const dk = camK - camTo.k;

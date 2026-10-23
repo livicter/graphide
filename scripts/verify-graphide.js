@@ -17701,6 +17701,140 @@ async function main() {
       s1buDetail
     );
 
+    // S1bv — just-restored first flush keeps leave-stash / soft-restore base X (no soft-follow walk).
+    let s1bvOk = false;
+    let s1bvDetail = "";
+    try {
+      const s1bvBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            egoOn: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1bvWasOn = !!s1bvBefore.egoOn;
+      await page.click("#egoBtn");
+      await page.waitForFunction(
+        (wantOn) => {
+          const btn = document.getElementById("egoBtn");
+          return !!(btn && btn.classList.contains("on")) === !!wantOn;
+        },
+        !s1bvWasOn,
+        { timeout: 5000 }
+      );
+      // No scroll-dispatch — sample restore cam; just-restored must not soft-follow-walk.
+      await page.waitForFunction(
+        () => {
+          const pane = document.getElementById("sourcePane");
+          const d = window.__graphideScrollDrive;
+          return !!(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            d.camXSettled === true
+          );
+        },
+        null,
+        { timeout: 8000 }
+      );
+      const s1bvAfter = await page.evaluate(() => {
+        const d = window.__graphideScrollDrive || {};
+        const pane = document.getElementById("sourcePane");
+        const btn = document.getElementById("egoBtn");
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: !!(pane && !pane.hidden),
+          egoOn: !!(btn && btn.classList.contains("on")),
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        };
+      });
+      const s1bvDx = Math.abs((Number(s1bvAfter.camX) || 0) - (Number(s1bvBefore.camX) || 0));
+      const s1bvDy = Math.abs((Number(s1bvAfter.camY) || 0) - (Number(s1bvBefore.camY) || 0));
+      const s1bvDk = Math.abs((Number(s1bvAfter.camK) || 0) - (Number(s1bvBefore.camK) || 0));
+      s1bvOk =
+        s1bvBefore.paneOpen &&
+        !s1bvBefore.macroLod &&
+        !s1bvBefore.presentPaused &&
+        Number.isFinite(s1bvBefore.camX) &&
+        s1bvAfter.paneOpen &&
+        !s1bvAfter.presentPaused &&
+        !s1bvAfter.macroLod &&
+        s1bvAfter.camXSettled &&
+        s1bvAfter.sliceNodes > 0 &&
+        s1bvAfter.egoOn === !s1bvWasOn &&
+        s1bvDx <= 24 &&
+        s1bvDy <= 48 &&
+        s1bvDk <= 0.2;
+      s1bvDetail =
+        "before=" +
+        JSON.stringify(s1bvBefore) +
+        " after=" +
+        JSON.stringify(s1bvAfter) +
+        " dx=" +
+        s1bvDx +
+        " dy=" +
+        s1bvDy +
+        " dk=" +
+        s1bvDk;
+      if (s1bvAfter.egoOn) {
+        await page.click("#egoBtn");
+        await page.waitForFunction(
+          () => {
+            const btn = document.getElementById("egoBtn");
+            return !(btn && btn.classList.contains("on"));
+          },
+          null,
+          { timeout: 5000 }
+        );
+      }
+    } catch (err) {
+      s1bvOk = false;
+      s1bvDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1bv",
+      "just-restored first flush keeps soft-restore base X (no soft-follow walk; ego remount)",
+      s1bvOk,
+      s1bvDetail
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

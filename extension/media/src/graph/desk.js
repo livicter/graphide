@@ -1776,6 +1776,8 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   if (!canvas) return;
   const lock = targetNodeId ? String(targetNodeId) : "";
   const el = findScrollDriveTargetEl(targetNodeId);
+  // S1bv — when just-restored fires inside the lock block, skip soft camX on this apply.
+  let keepRestoredCamX = false;
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
     // S1t — mid-scroll nest/line remap: seed base from current camTo and soft-follow
     // the new vnode (S1q cap). Avoid zoomToEl yank that discards S1r/S1s settle.
@@ -1786,6 +1788,9 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
     // S1w — just-restored: soft-stay but KEEP snapshot base (no camTo reseed / no zoomToEl).
     const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
     scrollDriveJustRestored = false;
+    // S1bv — remember just-restored across this apply so soft camX cannot walk the
+    // leave-stash / soft-restore base toward the vnode attractor on first flush.
+    keepRestoredCamX = justRestored;
     const softStay = remapping || justRestored;
     scrollDriveTargetLocked = lock;
     if (softStay) {
@@ -1805,7 +1810,9 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       scrollDriveYNudgeOrigin = 0;
     }
     // Remap / first lock — idle settle may re-absorb soft cam into the new base.
-    scrollDriveCamXSettled = false;
+    // S1bv — just-restored base is already the stay; mark X settled so harness / idle
+    // do not soft-follow+absorb-walk it on the first flush.
+    scrollDriveCamXSettled = !!justRestored;
     scrollDriveCamYSettled = false;
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
@@ -1815,9 +1822,11 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // Cap so it eases, never yanks. Macro LOD keeps its own path (no fight).
   // S1r absorbs camTo.x into scrollDriveBase on idle settle so a missing-el /
   // base-only path cannot spring back to the pre-follow X.
-  const camX = el
-    ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
-    : scrollDriveBase.x;
+  // S1bv — just-restored first flush keeps snapshot base X (no soft-follow walk).
+  const camX =
+    el && !keepRestoredCamX
+      ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
+      : scrollDriveBase.x;
   // S1u — soft-cap k toward micro base so macro→micro eases (S1k snaps uncapped).
   let camK = scrollDriveBase.k;
   if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
