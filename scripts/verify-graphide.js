@@ -17221,6 +17221,144 @@ async function main() {
         s1brDk
     );
 
+    // S1bs — ego remount soft-stay while Evidence open (product; no wipe-then-zoom).
+    const s1bsBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          egoOn: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1bsWasOn = !!s1bsBefore.egoOn;
+    await page.click("#egoBtn");
+    await page.waitForFunction(
+      (wantOn) => {
+        const btn = document.getElementById("egoBtn");
+        const on = !!(btn && btn.classList.contains("on"));
+        return on === !!wantOn;
+      },
+      !s1bsWasOn,
+      { timeout: 5000 }
+    );
+    await page.waitForFunction(
+      () => {
+        const body = document.getElementById("srcBody");
+        const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1bsAfter = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const btn = document.getElementById("egoBtn");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          egoOn: !!(btn && btn.classList.contains("on")),
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1bsDx = Math.abs((Number(s1bsAfter.camX) || 0) - (Number(s1bsBefore.camX) || 0));
+    const s1bsDy = Math.abs((Number(s1bsAfter.camY) || 0) - (Number(s1bsBefore.camY) || 0));
+    const s1bsDk = Math.abs((Number(s1bsAfter.camK) || 0) - (Number(s1bsBefore.camK) || 0));
+    record(
+      "S1bs",
+      "ego remount soft-stay while Evidence open (keepCam + desk remount soft-restore)",
+      s1bsBefore.paneOpen &&
+        !s1bsBefore.macroLod &&
+        !s1bsBefore.presentPaused &&
+        Number.isFinite(s1bsBefore.camX) &&
+        s1bsAfter.paneOpen &&
+        !s1bsAfter.presentPaused &&
+        !s1bsAfter.macroLod &&
+        s1bsAfter.sliceNodes > 0 &&
+        s1bsAfter.egoOn === !s1bsWasOn &&
+        s1bsDx <= 96 + 24 &&
+        s1bsDy <= 200 &&
+        s1bsDk <= 0.45,
+      "before=" +
+        JSON.stringify(s1bsBefore) +
+        " after=" +
+        JSON.stringify(s1bsAfter) +
+        " dx=" +
+        s1bsDx +
+        " dy=" +
+        s1bsDy +
+        " dk=" +
+        s1bsDk
+    );
+    // Leave ego off so later tip/Keys chrome probes stay uncolored by neighborhood dim.
+    if (s1bsAfter.egoOn) {
+      await page.click("#egoBtn");
+      await page.waitForFunction(
+        () => {
+          const btn = document.getElementById("egoBtn");
+          return !(btn && btn.classList.contains("on"));
+        },
+        null,
+        { timeout: 5000 }
+      );
+    }
+
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

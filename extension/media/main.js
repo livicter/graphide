@@ -23325,7 +23325,18 @@
         if (wrap) wrap.hidden = !egoMode;
       }
       if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-        paint({ animate: "none" });
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        paint({ animate: "none", keepCam: !!evidenceStay });
+        if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+          softStayScrollDriveAcrossDeskRemount();
+        }
         return;
       }
       applyEgoPaint();
