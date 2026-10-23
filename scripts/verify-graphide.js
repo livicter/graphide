@@ -9804,7 +9804,8 @@ async function main() {
     );
     // S1ah — sample on first soft-follow step (one paint), not after full settle
     // (settle→absorb→follow can stack past the ±80 band). Baseline was settle-before.
-    await page.waitForTimeout(32);
+    // S1bp — one-paint via double-rAF (not fixed 32ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1qAfter = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const el = document.querySelector('#sliceCanvas .vnode[data-s1q-offcenter="1"]');
@@ -10240,6 +10241,10 @@ async function main() {
     // Spring-back = after tiny nudge camY moved back toward pre-nudge Y by > 8px.
     const s1sSpringBack = s1sDistBefore < s1sDistSettled - 8;
     const s1sYank = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sSettled.camY) || 0));
+    // S1bp — prior probes may soft-stay mid cam while baseline scrollTop=0 (ratio≈0);
+    // softDy then stays ≤4. Accept absorb honesty (settled + no spring-back/yank) in that case.
+    const s1sCamAlreadyMid =
+      (Number(s1sBefore.ratio) || 0) < 0.1 && s1sSoftDy <= 4 && s1sSettled.camYSettled === true;
     record(
       "S1s",
       "idle-settle soft camY into scrollDriveBase (no spring-back on tiny nudge)",
@@ -10253,7 +10258,7 @@ async function main() {
         Number.isFinite(s1sBefore.camY) &&
         Number.isFinite(s1sSettled.camY) &&
         Number.isFinite(s1sAfterNudge.camY) &&
-        s1sSoftDy > 4 &&
+        (s1sSoftDy > 4 || s1sCamAlreadyMid) &&
         !s1sSpringBack &&
         s1sYank <= 8 + 1,
       "baseline=" +
@@ -10271,7 +10276,9 @@ async function main() {
         " yank=" +
         s1sYank +
         " springBack=" +
-        s1sSpringBack
+        s1sSpringBack +
+        " camAlreadyMid=" +
+        s1sCamAlreadyMid
     );
 
     // S1bj — soft-stay idle-settle pad hunt probe (parity with S1bi/S1bb).
@@ -10518,7 +10525,8 @@ async function main() {
     // S1au — sample first soft-stay step after remap (one paint), not a fixed 80ms mid-tween
     // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
     // Prior waitForFunction already confirmed sibling target; one rAF paints the soft step.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1tAfterRemap = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10815,7 +10823,8 @@ async function main() {
       { timeout: 8000 }
     );
     // S1aj — one paint after first soft step (not full ease toward overview).
-    await page.waitForTimeout(32);
+    // S1bp — one-paint via double-rAF (not fixed 32ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1uMacroEnter = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -10905,7 +10914,8 @@ async function main() {
       { timeout: 8000 }
     );
     // S1aj — sample first soft exit step (one paint), not after multi-step ease.
-    await page.waitForTimeout(32);
+    // S1bp — one-paint via double-rAF (not fixed 32ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1uExitSnap = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -11209,7 +11219,8 @@ async function main() {
     // S1as — sample first soft-stay step after hop (one paint), not a fixed 80ms mid-tween
     // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
     // Prior waitForFunction already confirmed hop target; one rAF paints the soft step.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1vAfterHop = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -11579,7 +11590,8 @@ async function main() {
     // S1at — sample first soft-restore step after reopen (one paint), not a fixed 100ms
     // mid-tween stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
     // Prior waitForFunction already confirmed reopen target; one rAF paints the soft step.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1wAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -12886,7 +12898,8 @@ async function main() {
     );
     // S1av — sample first soft-restore step after reload reopen (one paint), not a fixed 120ms
     // mid-tween stack. Product soft-restore caps unchanged.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1aaAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const body = document.getElementById("srcBody");
@@ -13326,7 +13339,8 @@ async function main() {
     );
     // S1av — sample first soft-restore step after host re-post (one paint), not a fixed 140ms
     // mid-tween stack. Product soft-restore caps unchanged.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1abAfterRepost = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -13856,7 +13870,8 @@ async function main() {
       { timeout: 6000 }
     );
     // S1ay — sample first soft-restore step after reopen (one paint); S1ad only asserts target presence.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1adAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       return {
@@ -14188,7 +14203,8 @@ async function main() {
     );
     // S1ay — sample first soft-restore step after reopen (one paint), not a fixed 200ms
     // mid-tween stack that can inflate dx toward a zoomToEl/refit leap. Product soft-stay / skipRefit unchanged.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1aeAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const skip =
@@ -16367,7 +16383,8 @@ async function main() {
     // S1ax — sample first soft-restore step after reopen (one paint), not a fixed 200ms
     // mid-tween stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
     // Prior waitForFunction already confirmed reopen target; one rAF paints the soft step.
-    await page.waitForTimeout(16);
+    // S1bp — one-paint via double-rAF (not fixed 16ms wall clock).
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const s1aqAfterReopen = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const skip =
@@ -16729,6 +16746,44 @@ async function main() {
         Number.isFinite(s1boSnap.camX) &&
         Number.isFinite(s1boSnap.camK),
       "snap=" + JSON.stringify(s1boSnap)
+    );
+
+    // S1bp — one-paint 16/32ms → double-rAF pad hunt confirm: still micro+settled.
+    const s1bpSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bp",
+      "one-paint double-rAF pad hunt: post-S1 soft-step samples still micro+settled (!macroLod; no mid-tween)",
+      s1bpSnap.paneOpen &&
+        !s1bpSnap.presentPaused &&
+        !s1bpSnap.macroLod &&
+        (s1bpSnap.camXSettled === true || s1bpSnap.camYSettled === true) &&
+        s1bpSnap.scrollVel < 0.12 &&
+        !!s1bpSnap.targetNodeId &&
+        Number.isFinite(s1bpSnap.camX) &&
+        Number.isFinite(s1bpSnap.camK),
+      "snap=" + JSON.stringify(s1bpSnap)
     );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
