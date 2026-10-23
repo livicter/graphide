@@ -17,7 +17,7 @@ CSS blend so opacity and glow morph instead of snapping (S1j), and under
 `prefers-reduced-motion` snaps camera + blend (0ms) with no velocity settle
 timers (S1k — `setCamTarget` already jumps), and coalesces `#srcBody`
 scroll into one `requestAnimationFrame` flush per frame so burst
-scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open), and when Slice/desk remounts (canvas rebuild) **without** closing Evidence / changing `sourceId`, re-seeds ScrollDrive from live `camTo` + warm S1w snapshot so soft stay and settle flags stay honest across remount (S1x — next flush repaints active-line / lineMap; no wipe-then-`zoomToEl`). Map↔Slice workspace hops remount the canvas the same way while Evidence stays open — stash last-stay, `keepCam`, and soft-restore from `camTo` / snapshot instead of wipe-then-`zoomToEl` (S1y). Lineage / Overview (and peer desk hops among map/slice/lineage/overview) remount canvas the same way — reuse the S1y soft-stay helper, seed from `camTo` / S1w snapshot, soft-follow, no wipe-then-`zoomToEl` (S1z). Soft restore also survives webview reload / extension-host restart for the same workspace `sourceId` via a tiny sessionStorage last-stay blob (S1aa — key `graphide.scrollDrive.lastStay.v1`; no file contents / secrets; stale / mismatched / corrupt → ignore + clear). S1ab scopes that blob by workspace folder id (`workspaceFolder` from the host; key suffix `::` + encodeURIComponent(ws); blob field `ws`) so the same `sourceId` in a different folder cannot soft-restore, clears in-memory stay on workspace change, and soft-restores on host re-post of `source` for the same scoped source even when in-memory snap is empty (post-reload peek reply path) without treating it as an S1v file hop. S1ac clears in-memory last-stay **and** the current workspace scoped sessionStorage blob on Review restart (`startReview`) / desk `empty` clear, drops the live `scrollDriveBase` so a close cannot re-stash the prior review cam, and leaves other folders' scoped keys alone — soft-restore finds nothing until the user builds a new stay. S1ad stashes last-stay on Present enter **before** exclusive chrome closes Evidence / pause wipes base (parity with Evidence close), publishes harness-visible `presentStayStashed` / `data-scroll-present-stay` so a Present pause without a prior stay does not imply a restore, and Present exit alone clears the cue + `scrollDriveJustRestored` without yanking cam — soft restore still waits for Evidence reopen (S1w). S1ae makes soft-stay reopen one-shot-suppress `refitChartSoon` and disconnect scheduleFit RO — so Present→Evidence soft-restore is not wiped by hard fit; cold opens still fit; Evidence close still fits; Present exit alone still does not half-restore. S1af publishes a short-lived Review-clear honesty cue (`reviewStayCleared` / `data-scroll-review-clear`) when `startReview` / desk `empty` wipe stay — clear happened, not a restore; one-shot, cleared on next soft-stash or cold open. S1ag also clears that cue on workspace-folder change (S1ab path) so clear-happened cannot stick across folders. S1ah tightens harness soft-follow / remount asserts to settle-before-sample (`camXSettled` / `camYSettled` / low `scrollVel`) so mid-tween races cannot inflate dx — product soft-follow caps unchanged. S1ai clears any lingering Review-clear cue on Present enter / pause so `presentStayStashed` and `reviewStayCleared` stay mutually exclusive. S1aj applies settle-before-sample to S1u macro enter/exit (first soft k step, not stacked ease) — product ±0.35 camK cap unchanged. S1ak applies the same settle-before-sample to S1z Lineage/Overview warm / return / resettle (require `!macroLod` on resettle) — product soft-stay unchanged. S1al applies settle-before-sample to S1x desk/Slice remount after-remount / resettle (require `!macroLod`; tiny nudge) — product soft-stay unchanged. S1am makes Present exit scrub `reviewStayCleared` / `data-scroll-review-clear` (never re-publish a mid-Present half-set) so exit clears `presentStayStashed` without implying a Review clear — pairs with S1ad/S1ae/S1ai. S1an makes Review clear mid-Present drop `presentStayStashed` / `data-scroll-present-stay` so clear-happened and Present-stash honesty cannot both stay true — pairs with S1ai/S1am. S1ao makes Evidence reopen after that wipe take the cold hard path (no soft-restore; memory/sessionStorage empty) — pairs with S1ac/S1an. S1ap syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1ao` (parity with S1o feature-map sync). S1aq proves a fresh stay after that wipe soft-restores again on Present→Evidence (round-trip; pairs S1w/S1ao). S1ar syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1aq` (parity with S1ap). S1as applies settle-before-sample to S1v Evidence file-hop (warm settle flags, first soft step after hop, `!macroLod` resettle) — product soft-stay caps unchanged. S1at applies settle-before-sample to S1w Present→Evidence soft-restore (warm settle flags, first soft step after reopen, `!macroLod` resettle) — product soft-stay caps unchanged. S1au applies settle-before-sample to S1t nest/line remap (warm settle flags, first soft step after remap, `!macroLod` resettle) — product soft-stay caps unchanged. S1av applies settle-before-sample to S1aa sessionStorage reload / S1ab host re-post soft-restore (warm settle flags, first soft step after reopen/repost, `!macroLod` resettle) — product soft-restore caps unchanged. S1aw syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1av` (parity with S1ap/S1ar). S1ax applies settle-before-sample to S1aq soft-restore round-trip (warm settle flags, first soft step after reopen, `!macroLod` resettle) — product soft-stay caps unchanged. S1ay applies settle-before-sample to S1ad Present-stage stash / S1ae Present-exit vs refit (warm settle flags, first soft step after reopen) — product soft-stay / skipRefit caps unchanged. S1az applies settle-before-sample to S1af Review-clear cue warm / re-stash (settle flags before Evidence close) — product cue semantics unchanged. S1ba makes remaining confirm-probe samples atomic (wait+snap in one evaluate) so mid-RAF cannot unsettle between settle wait and cam snap — product soft-stay / camK caps unchanged. S1bb makes remaining warm/resettle baselines atomic the same way — product soft-stay / camK caps unchanged. S1bc applies settle-before-sample to S1ag workspace-change Review-clear cue (settle before plant; S1bc probe confirms post-hop cue cleared + micro+settled) — product cue semantics unchanged. S1bd applies settle-before-sample to S1ai Present-stash/Review-clear mutual exclusion (settle before Path A plant / Path B warm close; S1bd probe confirms post-S1ai both cues cleared + micro+settled) — product mutual exclusion unchanged. S1be applies settle-before-sample to S1am Present-exit Review-clear cue polish (settle before Present enter; S1be probe confirms post-exit both cues scrubbed + micro+settled) — product exit scrub unchanged.
+scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and pauses the ScrollDrive camera while Presentation Stage is on so stage camera is never fought by residual Evidence scroll (S1m — `presentPaused`; resume on Present exit), and when `lineMapHit` is true pulses the mapped graph node with a glow distinct from generic `scroll-cfg-hot` (S1n — quieter outline on miss/fallback; no pulse under reduced-motion; cleared on Present pause), and paints the mid-viewport Evidence `.src-line` that owns `activeLine` with a dual-pane cue (S1p — `.scroll-drive-active` / `data-scroll-active`; cleared on Present pause / Evidence close / reset), and soft-follows **camX** toward centering the mapped vnode so the dual-pane morph is not vertical-only (S1q — capped ±80px on the micro path; macro LOD keeps its own camera; Present pause no-ops), and on idle settle folds that soft camX into `scrollDriveBase` so the next nudge does not spring back to the pre-follow X (S1r — reuses S1g ease-settle / low `scrollVel`; no second RAF), and likewise folds the post-nudge soft camY into `scrollDriveBase.y` (rebasing the Y-nudge origin) so dual-pane stay is not X-stable but Y-springy (S1s — same settle path), and when S1i nest-focus / S1h line→node remaps mid-scroll, seeds `scrollDriveBase` from the live `camTo` then soft-follows the new vnode instead of a hard `zoomToEl` yank (S1t — first lock still zooms; settle flags clear so idle can re-absorb), and softens macro enter/exit / macro-hot remaps the same way so `camK` (and X/Y) ease via camEase instead of yanking against dual-pane soft stay (S1u — capped k delta + lighter soft follow; cold first lock may still zoom), and when Evidence switches file / `sourceId` (or another vnode reloads `#srcBody`) while Slice soft-stay is live, seeds `scrollDriveBase` from live `camTo` and soft-follows the new vnode instead of wiping then `zoomToEl` (S1v — first-ever open may still zoom; settle flags clear for S1r/S1s re-absorb), and remembers a lightweight last-stay snapshot across Present pause / Evidence close so reopening the **same** `sourceId` soft-restores instead of hard-zooming (S1w — memory only; different source falls back to S1v / first-open), and when Slice/desk remounts (canvas rebuild) **without** closing Evidence / changing `sourceId`, re-seeds ScrollDrive from live `camTo` + warm S1w snapshot so soft stay and settle flags stay honest across remount (S1x — next flush repaints active-line / lineMap; no wipe-then-`zoomToEl`). Map↔Slice workspace hops remount the canvas the same way while Evidence stays open — stash last-stay, `keepCam`, and soft-restore from `camTo` / snapshot instead of wipe-then-`zoomToEl` (S1y). Lineage / Overview (and peer desk hops among map/slice/lineage/overview) remount canvas the same way — reuse the S1y soft-stay helper, seed from `camTo` / S1w snapshot, soft-follow, no wipe-then-`zoomToEl` (S1z). Soft restore also survives webview reload / extension-host restart for the same workspace `sourceId` via a tiny sessionStorage last-stay blob (S1aa — key `graphide.scrollDrive.lastStay.v1`; no file contents / secrets; stale / mismatched / corrupt → ignore + clear). S1ab scopes that blob by workspace folder id (`workspaceFolder` from the host; key suffix `::` + encodeURIComponent(ws); blob field `ws`) so the same `sourceId` in a different folder cannot soft-restore, clears in-memory stay on workspace change, and soft-restores on host re-post of `source` for the same scoped source even when in-memory snap is empty (post-reload peek reply path) without treating it as an S1v file hop. S1ac clears in-memory last-stay **and** the current workspace scoped sessionStorage blob on Review restart (`startReview`) / desk `empty` clear, drops the live `scrollDriveBase` so a close cannot re-stash the prior review cam, and leaves other folders' scoped keys alone — soft-restore finds nothing until the user builds a new stay. S1ad stashes last-stay on Present enter **before** exclusive chrome closes Evidence / pause wipes base (parity with Evidence close), publishes harness-visible `presentStayStashed` / `data-scroll-present-stay` so a Present pause without a prior stay does not imply a restore, and Present exit alone clears the cue + `scrollDriveJustRestored` without yanking cam — soft restore still waits for Evidence reopen (S1w). S1ae makes soft-stay reopen one-shot-suppress `refitChartSoon` and disconnect scheduleFit RO — so Present→Evidence soft-restore is not wiped by hard fit; cold opens still fit; Evidence close still fits; Present exit alone still does not half-restore. S1af publishes a short-lived Review-clear honesty cue (`reviewStayCleared` / `data-scroll-review-clear`) when `startReview` / desk `empty` wipe stay — clear happened, not a restore; one-shot, cleared on next soft-stash or cold open. S1ag also clears that cue on workspace-folder change (S1ab path) so clear-happened cannot stick across folders. S1ah tightens harness soft-follow / remount asserts to settle-before-sample (`camXSettled` / `camYSettled` / low `scrollVel`) so mid-tween races cannot inflate dx — product soft-follow caps unchanged. S1ai clears any lingering Review-clear cue on Present enter / pause so `presentStayStashed` and `reviewStayCleared` stay mutually exclusive. S1aj applies settle-before-sample to S1u macro enter/exit (first soft k step, not stacked ease) — product ±0.35 camK cap unchanged. S1ak applies the same settle-before-sample to S1z Lineage/Overview warm / return / resettle (require `!macroLod` on resettle) — product soft-stay unchanged. S1al applies settle-before-sample to S1x desk/Slice remount after-remount / resettle (require `!macroLod`; tiny nudge) — product soft-stay unchanged. S1am makes Present exit scrub `reviewStayCleared` / `data-scroll-review-clear` (never re-publish a mid-Present half-set) so exit clears `presentStayStashed` without implying a Review clear — pairs with S1ad/S1ae/S1ai. S1an makes Review clear mid-Present drop `presentStayStashed` / `data-scroll-present-stay` so clear-happened and Present-stash honesty cannot both stay true — pairs with S1ai/S1am. S1ao makes Evidence reopen after that wipe take the cold hard path (no soft-restore; memory/sessionStorage empty) — pairs with S1ac/S1an. S1ap syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1ao` (parity with S1o feature-map sync). S1aq proves a fresh stay after that wipe soft-restores again on Present→Evidence (round-trip; pairs S1w/S1ao). S1ar syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1aq` (parity with S1ap). S1as applies settle-before-sample to S1v Evidence file-hop (warm settle flags, first soft step after hop, `!macroLod` resettle) — product soft-stay caps unchanged. S1at applies settle-before-sample to S1w Present→Evidence soft-restore (warm settle flags, first soft step after reopen, `!macroLod` resettle) — product soft-stay caps unchanged. S1au applies settle-before-sample to S1t nest/line remap (warm settle flags, first soft step after remap, `!macroLod` resettle) — product soft-stay caps unchanged. S1av applies settle-before-sample to S1aa sessionStorage reload / S1ab host re-post soft-restore (warm settle flags, first soft step after reopen/repost, `!macroLod` resettle) — product soft-restore caps unchanged. S1aw syncs open-evidence / presentation / index Live proof deferrals through `S1a`–`S1av` (parity with S1ap/S1ar). S1ax applies settle-before-sample to S1aq soft-restore round-trip (warm settle flags, first soft step after reopen, `!macroLod` resettle) — product soft-stay caps unchanged. S1ay applies settle-before-sample to S1ad Present-stage stash / S1ae Present-exit vs refit (warm settle flags, first soft step after reopen) — product soft-stay / skipRefit caps unchanged. S1az applies settle-before-sample to S1af Review-clear cue warm / re-stash (settle flags before Evidence close) — product cue semantics unchanged. S1ba makes remaining confirm-probe samples atomic (wait+snap in one evaluate) so mid-RAF cannot unsettle between settle wait and cam snap — product soft-stay / camK caps unchanged. S1bb makes remaining warm/resettle baselines atomic the same way — product soft-stay / camK caps unchanged. S1bc applies settle-before-sample to S1ag workspace-change Review-clear cue (settle before plant; S1bc probe confirms post-hop cue cleared + micro+settled) — product cue semantics unchanged. S1bd applies settle-before-sample to S1ai Present-stash/Review-clear mutual exclusion (settle before Path A plant / Path B warm close; S1bd probe confirms post-S1ai both cues cleared + micro+settled) — product mutual exclusion unchanged. S1be applies settle-before-sample to S1am Present-exit Review-clear cue polish (settle before Present enter; S1be probe confirms post-exit both cues scrubbed + micro+settled) — product exit scrub unchanged. S1bf applies settle-before-sample to S1an Review-during-Present mutual exclusion (settle before Present enter; S1bf probe confirms post-wipe both cues cleared + micro+settled; re-wipe for S1ao) — product mutual exclusion unchanged.
 
 ## Sub-features
 
@@ -343,7 +343,8 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
   (Review restart / desk clear mid-Present) also drops `presentStayStashed` /
   `data-scroll-present-stay` so clear-happened and Present-stash honesty cannot
   both stay true; Present pause flag unchanged. Soft restore finds nothing after
-  wipe (S1ac); Present exit still scrubs Review-clear (S1am).
+  wipe (S1ac); Present exit still scrubs Review-clear (S1am). Warm Present enter
+  require settle flags (S1bf).
 - **S1ao Evidence reopen after Review-during-Present wipe:** after S1an/S1ac wipe
   mid-Present, memory + scoped sessionStorage stay empty so Evidence reopen takes
   the cold hard path (`__graphideScrollDriveShowSourceSoftStayed` false; no
@@ -419,7 +420,11 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
 - **S1be Present-exit Review-clear cue polish settle-before-sample (harness):** S1am
   settles before Present enter (require settle flags); S1be probe confirms post-exit
   both cues scrubbed + micro+settled (atomic wait+snap). Product exit scrub unchanged.
-- Closing Evidence (`closeSourcePane`) stashes last-stay (S1w/S1aa/S1ab/S1ac/S1ad/S1af/S1ag/S1ah/S1ai/S1aj/S1ak/S1al/S1am/S1an/S1ao/S1ap/S1aq/S1ar/S1as/S1at/S1au/S1av/S1aw/S1ax/S1ay/S1az/S1ba/S1bb/S1bc/S1bd/S1be) then resets
+- **S1bf Review-during-Present mutual-exclusion settle-before-sample (harness):** S1an
+  settles before Present enter (require settle flags); S1bf probe confirms post-wipe
+  both cues cleared + micro+settled (atomic wait+snap); re-wipes stay for S1ao.
+  Product mutual exclusion unchanged.
+- Closing Evidence (`closeSourcePane`) stashes last-stay (S1w/S1aa/S1ab/S1ac/S1ad/S1af/S1ag/S1ah/S1ai/S1aj/S1ak/S1al/S1am/S1an/S1ao/S1ap/S1aq/S1ar/S1as/S1at/S1au/S1av/S1aw/S1ax/S1ay/S1az/S1ba/S1bb/S1bc/S1bd/S1be/S1bf) then resets
   the drive and clears CFG + macro + kind-anchor + detail-gate + blend +
   lineMap + active-line paint.
 
@@ -439,7 +444,7 @@ scrolls paint once (S1l — `rafMerged` / `rafFlushes` on ScrollDrive), and paus
    snappier on the target. Nest glow and macro↔micro LOD fade with the
    same ease instead of popping. With reduced motion, camera and
    nest/macro paint snap with no settle timers. Burst scrolls coalesce
-   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again. Re-selecting Slice (or any desk remount that rebuilds the graph) while Evidence stays open keeps that soft stay — settle flags clear then re-absorb, and the dual-pane cues repaint on the next flush. Hopping Map↔Slice (workspace remount) while Evidence stays open likewise soft-stays — no wipe-then-zoom yank. Hopping Lineage or Overview (same Evidence / sourceId) likewise soft-stays via the same helper. After a webview reload, reopening the **same** source soft-restores from the sessionStorage last-stay blob instead of hard-zooming (S1aa). That blob is workspace-scoped (S1ab) — opening another folder cannot revive a foreign stay; a host re-post of the same source after reload still soft-restores. Starting a new Review (or clearing the desk) drops that stay so the next open does not revive a previous review's cam (S1ac). Present enter stashes that stay before the stage wipes ScrollDrive (S1ad) — exiting Present alone does not yank the camera; reopening the same Evidence still soft-restores, and the desk auto-refit no longer fights that restore (S1ae). Review restart / desk clear also flashes a short stay-cleared cue so the wipe is visible to verify without looking like a restore (S1af); hopping workspace folder clears that cue too so it cannot stick across folders (S1ag). Soft-follow / remount verify samples wait for settle so mid-tween dx flakes stay out of the band (S1ah). Present enter clears any lingering Review-clear cue so stash and clear honesty cannot both fire (S1ai). Macro enter/exit verify samples the first soft camK step after settle (S1aj). Lineage/Overview hop verify settles before warm / return / resettle samples (S1ak). Desk remount verify settles before after-remount / resettle samples (S1al). Present exit verify scrubs Review-clear so exit never looks like a Review wipe (S1am). Review clear mid-Present drops present-stash honesty so both cues cannot stay true (S1an). Evidence reopen after that wipe takes the cold hard path — no soft-restore (S1ao). Feature-map / index Live proof deferrals sync through `S1a`–`S1ao` (S1ap). A fresh stay after that wipe soft-restores again on Present→Evidence (S1aq). Feature-map / index Live proof deferrals sync through `S1a`–`S1aq` (S1ar). Evidence file-hop verify settles before warm / after-hop / resettle samples (S1as). Present→Evidence soft-restore verify settles before warm / after-reopen / resettle samples (S1at). Nest/line remap verify settles before warm / after-remap / resettle samples (S1au). SessionStorage reload / host re-post soft-restore verify settles before warm / after-reopen / resettle samples (S1av). Feature-map / index Live proof deferrals sync through `S1a`–`S1av` (S1aw). Soft-restore round-trip verify settles before warm / after-reopen / resettle samples (S1ax). Present-stage stash / Present-exit vs refit verify settles before warm / after-reopen samples (S1ay). Review-clear cue verify settles before warm / re-stash samples (S1az). Confirm-probe samples wait+snap atomically so mid-RAF cannot unsettle between (S1ba). Warm/resettle baselines likewise (S1bb). Workspace-change Review-clear cue verify settles before plant / confirms post-hop (S1bc). Present-stash/Review-clear mutual-exclusion verify settles before plant / warm close / confirms post-S1ai (S1bd). Present-exit Review-clear cue polish verify settles before Present / confirms post-exit (S1be).
+   into one paint per frame (`rafMerged` rises). Press **F** (Present) and ScrollDrive pauses (`presentPaused`); Exit / Esc resumes. When the active line maps to an IR span (`lineMapHit`), that node pulses; unmatched lines keep a quieter fallback outline. The mid-viewport Evidence line itself gets a left-gutter tint (`scroll-drive-active`) so both panes agree on the driving line. When the mapped node sits left/right of center, the camera eases a little in X (not only Y) toward it; after you stop scrolling, that X correction settles into the scroll-drive base so a tiny follow-up nudge stays framed, and the post-nudge Y likewise settles into the base so dual-pane stay is not Y-springy. When nest focus or the line→node target remaps mid-file, the camera soft-follows the new node from the current stay instead of jumping. Entering or leaving macro Map LOD (or changing the macro-hot module) likewise eases `camK` / focus instead of yanking against that stay. Opening a different Evidence file (or hopping to another vnode that reloads the source body) keeps that soft stay — the camera eases toward the new target instead of resetting hard. After Present (or closing Evidence) and reopening the **same** source, the camera soft-restores from the last stay instead of hard-zooming again. Re-selecting Slice (or any desk remount that rebuilds the graph) while Evidence stays open keeps that soft stay — settle flags clear then re-absorb, and the dual-pane cues repaint on the next flush. Hopping Map↔Slice (workspace remount) while Evidence stays open likewise soft-stays — no wipe-then-zoom yank. Hopping Lineage or Overview (same Evidence / sourceId) likewise soft-stays via the same helper. After a webview reload, reopening the **same** source soft-restores from the sessionStorage last-stay blob instead of hard-zooming (S1aa). That blob is workspace-scoped (S1ab) — opening another folder cannot revive a foreign stay; a host re-post of the same source after reload still soft-restores. Starting a new Review (or clearing the desk) drops that stay so the next open does not revive a previous review's cam (S1ac). Present enter stashes that stay before the stage wipes ScrollDrive (S1ad) — exiting Present alone does not yank the camera; reopening the same Evidence still soft-restores, and the desk auto-refit no longer fights that restore (S1ae). Review restart / desk clear also flashes a short stay-cleared cue so the wipe is visible to verify without looking like a restore (S1af); hopping workspace folder clears that cue too so it cannot stick across folders (S1ag). Soft-follow / remount verify samples wait for settle so mid-tween dx flakes stay out of the band (S1ah). Present enter clears any lingering Review-clear cue so stash and clear honesty cannot both fire (S1ai). Macro enter/exit verify samples the first soft camK step after settle (S1aj). Lineage/Overview hop verify settles before warm / return / resettle samples (S1ak). Desk remount verify settles before after-remount / resettle samples (S1al). Present exit verify scrubs Review-clear so exit never looks like a Review wipe (S1am). Review clear mid-Present drops present-stash honesty so both cues cannot stay true (S1an). Evidence reopen after that wipe takes the cold hard path — no soft-restore (S1ao). Feature-map / index Live proof deferrals sync through `S1a`–`S1ao` (S1ap). A fresh stay after that wipe soft-restores again on Present→Evidence (S1aq). Feature-map / index Live proof deferrals sync through `S1a`–`S1aq` (S1ar). Evidence file-hop verify settles before warm / after-hop / resettle samples (S1as). Present→Evidence soft-restore verify settles before warm / after-reopen / resettle samples (S1at). Nest/line remap verify settles before warm / after-remap / resettle samples (S1au). SessionStorage reload / host re-post soft-restore verify settles before warm / after-reopen / resettle samples (S1av). Feature-map / index Live proof deferrals sync through `S1a`–`S1av` (S1aw). Soft-restore round-trip verify settles before warm / after-reopen / resettle samples (S1ax). Present-stage stash / Present-exit vs refit verify settles before warm / after-reopen samples (S1ay). Review-clear cue verify settles before warm / re-stash samples (S1az). Confirm-probe samples wait+snap atomically so mid-RAF cannot unsettle between (S1ba). Warm/resettle baselines likewise (S1bb). Workspace-change Review-clear cue verify settles before plant / confirms post-hop (S1bc). Present-stash/Review-clear mutual-exclusion verify settles before plant / warm close / confirms post-S1ai (S1bd). Present-exit Review-clear cue polish verify settles before Present / confirms post-exit (S1be). Review-during-Present mutual-exclusion verify settles before Present / confirms post-wipe (S1bf).
 
 ## Driving it with the harness
 
@@ -643,7 +648,8 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   Present enter (S1be).
 - **S1an** — Present on with warm stash, Review-restart clear mid-Present →
   `reviewStayCleared` / cue on and `presentStayStashed` / present-stay attr
-  off while still `presentPaused`; Present exit → both cues false.
+  off while still `presentPaused`; Present exit → both cues false. Settle before
+  Present enter (S1bf).
 - **S1ao** — after S1an wipe+exit: no lastStay raw / softRestore false; reopen
   same Evidence → `__graphideScrollDriveShowSourceSoftStayed` false (cold hard
   path). A fresh stay after cold open may stash again (not a revive).
@@ -687,6 +693,8 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   both cues off (single sample). S1ai Path A plant / Path B warm require settle.
 - **S1be** — after S1am, confirm `!macroLod` + settle flags + low `scrollVel` +
   both cues scrubbed (single sample). S1am settles before Present enter.
+- **S1bf** — after S1an, confirm `!macroLod` + settle flags + low `scrollVel` +
+  both cues cleared (single sample); re-wipe for S1ao. S1an settles before Present.
 
 ## Gotchas
 
@@ -765,6 +773,7 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   S1ag workspace-change Review-clear cue settle-before-sample (S1bc),
   S1ai Present-stash/Review-clear mutual-exclusion settle-before-sample (S1bd),
   S1am Present-exit Review-clear cue polish settle-before-sample (S1be),
+  S1an Review-during-Present mutual-exclusion settle-before-sample (S1bf),
   `refitChartSoon` soft-stay skip (S1ae).
 - Camera still uses the existing lerp (`tickCam` / `setCamTarget`); do
   not add a second animation loop. S1g only modulates `camEase` from
@@ -857,6 +866,7 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   yanks cam; respects S1ad/S1ae/S1ai. Warm Present settle is S1be (harness).
   S1an only drops presentStayStashed when Review-clear turns on mid-Present —
   never refuses the clear cue; Present pause unchanged; respects S1ac/S1ad/S1af/S1ai/S1am.
+  Warm Present settle is S1bf (harness).
   S1ao only proves Evidence reopen after that wipe takes cold hard path (no
   soft-restore; stay empty) — never invents a new restore; respects S1ac/S1an/S1w.
   S1ap only syncs feature-map / index deferrals through `S1a`–`S1ao` — never
@@ -891,10 +901,12 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   never changes product mutual exclusion; respects S1ai/S1af/S1az/S1bc.
   S1be only tightens harness settle-before-sample on S1am Present-exit Review-clear cue polish —
   never changes product exit scrub; respects S1am/S1ai/S1bd.
+  S1bf only tightens harness settle-before-sample on S1an Review-during-Present mutual exclusion —
+  never changes product mutual exclusion; respects S1an/S1am/S1be.
 - Unscrollable Evidence (short snippet) must not enter macro LOD.
 - **S1o feature-map sync:** `open-evidence.md` defers `S1a`–`S1n` ownership
   here (not just `S1a`–`S1g`); `presentation.md` points S1m Present-pause
-  side-effect at this map. Index Live proof re-synced through `S1a`–`S1av` by S1aw (S1ar covered through S1aq; S1ap through S1ao); S1as is harness-only on S1v; S1at is harness-only on S1w; S1au is harness-only on S1t; S1av is harness-only on S1aa/S1ab; S1ax is harness-only on S1aq; S1ay is harness-only on S1ad/S1ae; S1az is harness-only on S1af; S1ba is harness-only atomic on confirm probes; S1bb is harness-only atomic on warm/resettle baselines; S1bc is harness-only on S1ag; S1bd is harness-only on S1ai; S1be is harness-only on S1am.
+  side-effect at this map. Index Live proof re-synced through `S1a`–`S1av` by S1aw (S1ar covered through S1aq; S1ap through S1ao); S1as is harness-only on S1v; S1at is harness-only on S1w; S1au is harness-only on S1t; S1av is harness-only on S1aa/S1ab; S1ax is harness-only on S1aq; S1ay is harness-only on S1ad/S1ae; S1az is harness-only on S1af; S1ba is harness-only atomic on confirm probes; S1bb is harness-only atomic on warm/resettle baselines; S1bc is harness-only on S1ag; S1bd is harness-only on S1ai; S1be is harness-only on S1am; S1bf is harness-only on S1an.
 - **S1p active-line cue:** Evidence editor tint pairs with S1n graph glow;
   `open-evidence.md` / index deferral extends to `S1a`–`S1p`. Clear on
   Present pause / close — do not leave a stale `.scroll-drive-active`.
@@ -950,7 +962,7 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
 - **S1ae Present-exit soft-stay vs `refitChartSoon`:** soft-stay reopen
   one-shot-suppresses auto hard fit + disconnects RO so Present→Evidence
   soft-restore is not wiped; cold open / Evidence close still fit; user Fit
-  unchanged. Deferral extends to `S1a`–`S1be`.
+  unchanged. Deferral extends to `S1a`–`S1bf`.
 - **S1af Review-clear UI cue:** Review restart / desk empty publish
   `reviewStayCleared` / `data-scroll-review-clear` (clear happened, not a
   restore); one-shot cleared on soft-stash / cold open. Deferral extends to
@@ -961,99 +973,104 @@ Driver assertions (ids in `scripts/verify-graphide.js`):
   `S1a`–`S1ah`.
 - **S1ah soft-follow settle-before-sample:** harness waits for settle flags /
   low `scrollVel` before S1q/S1y cam samples (and S1ah stability probe);
-  product soft-follow caps unchanged. Deferral extends to `S1a`–`S1be`.
+  product soft-follow caps unchanged. Deferral extends to `S1a`–`S1bf`.
 - **S1ai Present-stash vs Review-clear mutual exclusion:** Present enter /
   pause clears lingering `reviewStayCleared` so it cannot coexist with
-  `presentStayStashed`. Deferral extends to `S1a`–`S1be`.
+  `presentStayStashed`. Deferral extends to `S1a`–`S1bf`.
 - **S1aj macro enter/exit settle-before-sample:** harness waits for settle
   flags before S1u baseline and samples the first soft camK step on macro
   enter/exit (plus S1aj stability probe); product ±0.35 cap unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1ak Lineage/Overview resettle settle-before-sample:** harness settles
   before S1z warm / Overview / return / resettle samples (require `!macroLod`
   on resettle) plus S1ak stability probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1al remount resettle settle-before-sample:** harness settles after S1x
   remount and before resettle sample (require `!macroLod`; tiny nudge) plus
   S1al confirm probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1am Present-exit Review-clear cue polish:** Present exit force-clears
   `reviewStayCleared` / `data-scroll-review-clear` (never re-publishes memory)
   so exit clears `presentStayStashed` without implying a Review clear.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1an Review-during-Present mutual exclusion:** Review clear mid-Present
   drops `presentStayStashed` / `data-scroll-present-stay` (clear wins over
   Present-stash honesty); Present pause unchanged; soft restore finds nothing
-  after wipe. Deferral extends to `S1a`–`S1be`.
+  after wipe. Deferral extends to `S1a`–`S1bf`.
 - **S1ao Evidence reopen after Review-during-Present wipe:** after S1an/S1ac
   wipe, Evidence reopen takes cold hard path (no soft-restore of wiped stay;
   `__graphideScrollDriveShowSourceSoftStayed` false). Fresh stay after open OK.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1ap feature-map / index Live proof sync:** `open-evidence.md` /
   `presentation.md` / features index deferrals and Live proof read
   `S1a`–`S1ao` (parity with S1o); re-synced through `S1a`–`S1aq` by S1ar;
   re-synced through `S1a`–`S1av` by S1aw.
-  Docs-only. Deferral extends to `S1a`–`S1be`.
+  Docs-only. Deferral extends to `S1a`–`S1bf`.
 - **S1aq soft-restore round-trip after fresh stay post-S1ao wipe:** after cold
   hard path, new stay Present→Evidence soft-restores again; S1ax settles before
-  warm / after-reopen / resettle samples. Deferral extends to `S1a`–`S1be`.
+  warm / after-reopen / resettle samples. Deferral extends to `S1a`–`S1bf`.
 - **S1ar feature-map / index Live proof sync:** `open-evidence.md` /
   `presentation.md` / features index deferrals and Live proof read
   `S1a`–`S1aq` (parity with S1ap); re-synced through `S1a`–`S1av` by S1aw.
-  Docs-only. Deferral extends to `S1a`–`S1be`.
+  Docs-only. Deferral extends to `S1a`–`S1bf`.
 - **S1as file-hop settle-before-sample:** harness settles before S1v warm /
   after-hop / resettle samples (require settle flags + `!macroLod` on resettle;
   first soft step after hop) plus S1as confirm probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1at soft-restore settle-before-sample:** harness settles before S1w warm /
   after-reopen / resettle samples (require settle flags + `!macroLod` on resettle;
   first soft step after reopen) plus S1at confirm probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1au nest/line remap settle-before-sample:** harness settles before S1t warm /
   after-remap / resettle samples (require settle flags + `!macroLod` on resettle;
   first soft step after remap) plus S1au confirm probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1av reload / host re-post settle-before-sample:** harness settles before S1aa/S1ab
   warm / after-reopen|repost / S1aa resettle samples (require settle flags +
   `!macroLod` on resettle; first soft step) plus S1av confirm probe; product
-  soft-restore caps unchanged. Deferral extends to `S1a`–`S1be`.
+  soft-restore caps unchanged. Deferral extends to `S1a`–`S1bf`.
 - **S1aw feature-map / index Live proof sync:** `open-evidence.md` /
   `presentation.md` / features index deferrals and Live proof read
-  `S1a`–`S1av` (parity with S1ap/S1ar). Docs-only. Deferral extends to `S1a`–`S1be`.
+  `S1a`–`S1av` (parity with S1ap/S1ar). Docs-only. Deferral extends to `S1a`–`S1bf`.
 - **S1ax soft-restore round-trip settle-before-sample:** harness settles before S1aq warm /
   after-reopen / resettle samples (require settle flags + `!macroLod` on resettle;
   first soft step after reopen) plus S1ax confirm probe; product soft-stay unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1ay Present-stage settle-before-sample:** harness settles before S1ad/S1ae warm /
   after-reopen samples (require settle flags; first soft step after reopen) plus
   S1ay confirm probe; product soft-stay / skipRefit caps unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1az Review-clear cue settle-before-sample:** harness settles before S1af warm /
   re-stash samples (require settle flags before Evidence close) plus S1az confirm
   probe (cue cleared + micro+settled); atomic S1y/S1z warm settle samples; product
   Review-clear cue semantics unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1ba atomic settle sample for confirm probes:** harness confirm probes
   (S1aj / S1ah / S1ak / S1al / S1as / S1at / S1au / S1av / S1ax / S1ay / S1az)
   wait+snap in one evaluate so mid-RAF cannot unsettle between; S1ba confirm
   probe; product soft-stay / camK caps unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1bb atomic settle sample for warm/resettle baselines:** harness warm/resettle
   samples (S1q / S1r / S1t / S1u / S1v / S1w / S1x / S1y / S1z / S1aa / S1ab /
   S1ad / S1ae / S1aq) wait+snap in one evaluate; S1bb confirm probe; product
   soft-stay / camK caps unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1bc workspace-change Review-clear cue settle-before-sample:** harness settles before S1ag
   plant (require settle flags before Review-clear plant) plus S1bc confirm probe
   (post-hop cue cleared + micro+settled; atomic wait+snap); product Review-clear
   cue semantics unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1bd Present-stash/Review-clear mutual-exclusion settle-before-sample:** harness
   settles before S1ai Path A plant / Path B warm Evidence close (require settle
   flags) plus S1bd confirm probe (both cues cleared + micro+settled; atomic
   wait+snap); product mutual exclusion unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
 - **S1be Present-exit Review-clear cue polish settle-before-sample:** harness settles
   before S1am Present enter (require settle flags) plus S1be confirm probe (both
   cues scrubbed + micro+settled; atomic wait+snap); product exit scrub unchanged.
-  Deferral extends to `S1a`–`S1be`.
+  Deferral extends to `S1a`–`S1bf`.
+- **S1bf Review-during-Present mutual-exclusion settle-before-sample:** harness settles
+  before S1an Present enter (require settle flags) plus S1bf confirm probe (both
+  cues cleared + micro+settled; atomic wait+snap; re-wipe for S1ao); product mutual
+  exclusion unchanged.
+  Deferral extends to `S1a`–`S1bf`.

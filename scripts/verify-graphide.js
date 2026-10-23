@@ -15232,6 +15232,27 @@ async function main() {
     // S1an — Review clear mid-Present drops presentStayStashed (mutual exclusion).
     // Re-enter Present (warm stay), confirm stash, Review-restart clear → review cue on
     // and present-stash cue off while still presentPaused; Present exit still coherent.
+    // S1bf — settle-before-sample before Present enter so mid-Present clear honesty is not
+    // raced mid-tween (parity with S1be/S1bd). Product mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     await page.keyboard.press("f");
     await page.waitForFunction(
       () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
@@ -15323,6 +15344,146 @@ async function main() {
         JSON.stringify(s1anAfterClear) +
         " afterExit=" +
         JSON.stringify(s1anAfterExit)
+    );
+
+    // S1bf — Review-during-Present mutual-exclusion settle-before-sample probe (parity with S1be).
+    // After S1an wipe+exit: reopen cold, tiny nudge, atomic wait+snap both cues off + micro+settled;
+    // then re-wipe stay so S1ao afterWipe still finds empty (product wipe unchanged).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bf-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4600 + i) + '</span><span class="tx">s1bf pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bfSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bf",
+      "Review-during-Present mutual-exclusion settle-before-sample: post-S1an still micro+settled + both cues cleared (!macroLod; no mid-tween)",
+      s1bfSnap.paneOpen &&
+        !s1bfSnap.presentPaused &&
+        !s1bfSnap.macroLod &&
+        !s1bfSnap.reviewStayCleared &&
+        !s1bfSnap.cueAttr &&
+        !s1bfSnap.presentStayStashed &&
+        !s1bfSnap.presentStayAttr &&
+        (s1bfSnap.camXSettled === true || s1bfSnap.camYSettled === true) &&
+        s1bfSnap.scrollVel < 0.12 &&
+        !!s1bfSnap.targetNodeId &&
+        Number(s1bfSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bfSnap.camX),
+      "snap=" + JSON.stringify(s1bfSnap)
+    );
+    // Re-wipe stay (and close Evidence) so S1ao afterWipe still finds empty storage/memory.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(false);
+      }
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
     );
 
     // S1ao — Evidence reopen after Review-during-Present wipe must not soft-restore.
