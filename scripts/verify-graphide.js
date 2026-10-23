@@ -10799,8 +10799,8 @@ async function main() {
         targetNodeId: d.targetNodeId || "",
       };
     });
-    // Let capped k ease toward overview; lod/hot catch up with live cam.
-    await page.waitForTimeout(450);
+    // S1bl — settle-before-sample S1u macro catch-up: reinforce file-top then atomic
+    // wait+snap for macroLod+hot (not a fixed 450ms pad while k eases).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (body) {
@@ -10808,39 +10808,39 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
-    await page.waitForFunction(
+    const s1uMacro = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const vp = document.querySelector("#canvas .viewport");
-        return !!(
-          d &&
-          d.macroLod &&
-          vp &&
-          vp.getAttribute("data-scroll-macro") === "1" &&
-          (vp.getAttribute("data-lod") === "0" || Number(d.camK) <= 0.7) &&
-          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
-        );
+        if (
+          !(
+            d &&
+            d.macroLod &&
+            vp &&
+            vp.getAttribute("data-scroll-macro") === "1" &&
+            (vp.getAttribute("data-lod") === "0" || Number(d.camK) <= 0.7) &&
+            document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          lod: (vp && vp.getAttribute("data-lod")) || "",
+          macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+          hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+          targetNodeId: d.targetNodeId || "",
+          transform: vp ? getComputedStyle(vp).transform : "",
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    const s1uMacro = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector("#canvas .viewport");
-      return {
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        lod: (vp && vp.getAttribute("data-lod")) || "",
-        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
-        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
-        targetNodeId: d.targetNodeId || "",
-        transform: vp ? getComputedStyle(vp).transform : "",
-      };
-    });
+    ).then((h) => h.jsonValue());
     const s1uEnterDx = Math.abs((Number(s1uMacroEnter.camX) || 0) - (Number(s1uBefore.camX) || 0));
     const s1uEnterDy = Math.abs((Number(s1uMacroEnter.camY) || 0) - (Number(s1uBefore.camY) || 0));
     const s1uEnterDk = Math.abs((Number(s1uMacroEnter.camK) || 0) - (Number(s1uBefore.camK) || 0));
@@ -16311,8 +16311,7 @@ async function main() {
       null,
       { timeout: 6000 }
     );
-    await page.waitForTimeout(80);
-    // Clear prior softStayed flag so reopen result is honest.
+    // S1bl — no fixed 80ms pad after Present-exit settle; clear softStayed for honest reopen.
     await page.evaluate(() => {
       window.__graphideScrollDriveShowSourceSoftStayed = false;
     });
@@ -16536,6 +16535,46 @@ async function main() {
         Number.isFinite(s1axSnap.camX) &&
         Number.isFinite(s1axSnap.camK),
       "snap=" + JSON.stringify(s1axSnap)
+    );
+
+    // S1bl — soft-step / macro catch-up pad hunt confirm: post-S1u/S1aq still micro+settled
+    // (S1u 450ms + S1aq 80ms replaced; leave intentional one-paint 16/32ms + S1m 280).
+    const s1blSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bl",
+      "soft-step / macro catch-up pad hunt: post-S1u/S1aq still micro+settled (!macroLod; no mid-tween)",
+      s1blSnap.paneOpen &&
+        !s1blSnap.presentPaused &&
+        !s1blSnap.macroLod &&
+        (s1blSnap.camXSettled === true || s1blSnap.camYSettled === true) &&
+        s1blSnap.scrollVel < 0.12 &&
+        !!s1blSnap.targetNodeId &&
+        Number.isFinite(s1blSnap.camX) &&
+        Number.isFinite(s1blSnap.camK),
+      "snap=" + JSON.stringify(s1blSnap)
     );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
