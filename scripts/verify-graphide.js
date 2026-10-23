@@ -14483,6 +14483,26 @@ async function main() {
 
     // S1ag — workspace-folder change clears S1af Review-clear cue (cannot stick across folders).
     // Re-plant cue via Review-restart clear, assert same-key no-op keeps it, then folder hop drops it.
+    // S1bc — settle-before-sample before plant so Review-clear honesty is not raced mid-tween
+    // (parity with S1az warm on S1af). Product cue semantics unchanged; plant still wipes settle flags.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     const s1agPlanted = await page.evaluate(() => {
       if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
         window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a");
@@ -14550,6 +14570,115 @@ async function main() {
         JSON.stringify(s1agSameKey) +
         " hopped=" +
         JSON.stringify(s1agHopped)
+    );
+
+    // S1bc — workspace-change Review-clear cue settle-before-sample probe (parity with S1az).
+    // After S1ag hop: cue cleared; plant wiped settle flags — tiny nudge then atomic wait+snap
+    // confirming !reviewStayCleared + micro+settled. Product cue unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bc-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4300 + i) + '</span><span class="tx">s1bc pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top; else ≤2px nudge (avoid SCROLL_MACRO_VEL).
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb after plant wiped them (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // Atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1bcSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+          ws: window.__graphideScrollDriveWorkspaceKey || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bc",
+      "Workspace-change Review-clear cue settle-before-sample: post-S1ag still micro+settled + cue cleared (!macroLod; no mid-tween)",
+      s1bcSnap.paneOpen &&
+        !s1bcSnap.presentPaused &&
+        !s1bcSnap.macroLod &&
+        !s1bcSnap.reviewStayCleared &&
+        !s1bcSnap.cueAttr &&
+        !s1bcSnap.presentStayStashed &&
+        (s1bcSnap.camXSettled === true || s1bcSnap.camYSettled === true) &&
+        s1bcSnap.scrollVel < 0.12 &&
+        !!s1bcSnap.targetNodeId &&
+        Number(s1bcSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bcSnap.camX) &&
+        s1bcSnap.ws === "ws-s1ag://folder-b",
+      "snap=" + JSON.stringify(s1bcSnap)
     );
 
     // S1ai — Present enter clears lingering Review-clear cue; mutually exclusive with presentStayStashed.
