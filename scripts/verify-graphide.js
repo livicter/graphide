@@ -17835,6 +17835,200 @@ async function main() {
       s1bvDetail
     );
 
+    // S1bw — ego-hops remount soft-stay while Evidence open (product; no wipe-then-zoom).
+    let s1bwOk = false;
+    let s1bwDetail = "";
+    try {
+      // Ego hops select only shows while Ego is on.
+      await page.evaluate(() => {
+        const btn = document.getElementById("egoBtn");
+        if (btn && !btn.classList.contains("on")) btn.click();
+      });
+      await page.waitForFunction(
+        () => {
+          const s = document.getElementById("egoHops");
+          const btn = document.getElementById("egoBtn");
+          return !!(
+            btn &&
+            btn.classList.contains("on") &&
+            s &&
+            !s.disabled &&
+            s.getBoundingClientRect().width > 0
+          );
+        },
+        null,
+        { timeout: 5000 }
+      );
+      // Normalize to 1-hop before baseline.
+      await page.evaluate(() => {
+        const s = document.getElementById("egoHops");
+        if (s && s.value !== "1") {
+          s.value = "1";
+          s.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+      const s1bwBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          const hops = document.getElementById("egoHops");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden &&
+              hops &&
+              hops.value === "1"
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            hops: hops.value,
+            egoOn: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      await page.evaluate(() => {
+        const s = document.getElementById("egoHops");
+        if (s) {
+          s.value = "2";
+          s.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+      await page.waitForFunction(
+        () => {
+          const hops = document.getElementById("egoHops");
+          const body = document.getElementById("srcBody");
+          const pane = document.getElementById("sourcePane");
+          if (body) body.dispatchEvent(new Event("scroll"));
+          const d = window.__graphideScrollDrive;
+          return !!(
+            hops &&
+            hops.value === "2" &&
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            d.targetNodeId
+          );
+        },
+        null,
+        { timeout: 8000 }
+      );
+      const s1bwAfter = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          const hops = document.getElementById("egoHops");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden &&
+              hops &&
+              hops.value === "2"
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            hops: hops.value,
+            egoOn: !!(document.getElementById("egoBtn") && document.getElementById("egoBtn").classList.contains("on")),
+            sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1bwDx = Math.abs((Number(s1bwAfter.camX) || 0) - (Number(s1bwBefore.camX) || 0));
+      const s1bwDy = Math.abs((Number(s1bwAfter.camY) || 0) - (Number(s1bwBefore.camY) || 0));
+      const s1bwDk = Math.abs((Number(s1bwAfter.camK) || 0) - (Number(s1bwBefore.camK) || 0));
+      s1bwOk =
+        s1bwBefore.paneOpen &&
+        !s1bwBefore.macroLod &&
+        !s1bwBefore.presentPaused &&
+        Number.isFinite(s1bwBefore.camX) &&
+        s1bwBefore.hops === "1" &&
+        s1bwAfter.paneOpen &&
+        !s1bwAfter.presentPaused &&
+        !s1bwAfter.macroLod &&
+        s1bwAfter.sliceNodes > 0 &&
+        s1bwAfter.hops === "2" &&
+        s1bwAfter.egoOn &&
+        s1bwDx <= 96 + 24 &&
+        s1bwDy <= 200 &&
+        s1bwDk <= 0.45;
+      s1bwDetail =
+        "before=" +
+        JSON.stringify(s1bwBefore) +
+        " after=" +
+        JSON.stringify(s1bwAfter) +
+        " dx=" +
+        s1bwDx +
+        " dy=" +
+        s1bwDy +
+        " dk=" +
+        s1bwDk;
+      // Restore 1-hop + Ego off so later steps stay clean.
+      await page.evaluate(() => {
+        const s = document.getElementById("egoHops");
+        if (s && s.value !== "1") {
+          s.value = "1";
+          s.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        const btn = document.getElementById("egoBtn");
+        if (btn && btn.classList.contains("on")) btn.click();
+      });
+      await page.waitForFunction(
+        () => {
+          const btn = document.getElementById("egoBtn");
+          return !(btn && btn.classList.contains("on"));
+        },
+        null,
+        { timeout: 5000 }
+      );
+    } catch (err) {
+      s1bwOk = false;
+      s1bwDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1bw",
+      "ego-hops remount soft-stay while Evidence open (keepCam + desk remount soft-restore)",
+      s1bwOk,
+      s1bwDetail
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
