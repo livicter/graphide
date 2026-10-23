@@ -16786,6 +16786,303 @@ async function main() {
       "snap=" + JSON.stringify(s1bpSnap)
     );
 
+    // S1bq — enter-canvas remount soft-stays while Evidence stays open (product; parity S1x).
+    // Click a Slice run → #enterCanvas remount; cam must not wipe-then-zoomToEl.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    // Warm publish after possible remount (parity S1bn).
+    await page.waitForFunction(
+      () => {
+        const body = document.getElementById("srcBody");
+        const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1bqBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          runCount: document.querySelectorAll("#canvas .run[data-run], .chart .run").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1bqRunClick = await page.evaluate(() => {
+      const run = document.querySelector("#canvas .run[data-run], .chart .run");
+      if (!run) return { clicked: false };
+      run.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return {
+        clicked: true,
+        run: run.getAttribute("data-run") || "",
+        bubble: run.getAttribute("data-bubble") || "",
+      };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .react-flow__node").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(async () => {
+        const dump = await page.evaluate(() => ({
+          runs: document.querySelectorAll("#canvas .run[data-run], .chart .run").length,
+          enter: !!document.getElementById("enterCanvas"),
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          pane: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        }));
+        failFast(
+          "S1bq enter-canvas did not mount — click=" +
+            JSON.stringify(s1bqRunClick) +
+            " dump=" +
+            JSON.stringify(dump)
+        );
+      });
+    // Warm publish after enter remount.
+    await page.waitForFunction(
+      () => {
+        const body = document.getElementById("srcBody");
+        const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Atomic settle sample after enter remount (parity S1bb / S1x).
+    const s1bqAfterEnter = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1bqDx = Math.abs((Number(s1bqAfterEnter.camX) || 0) - (Number(s1bqBefore.camX) || 0));
+    const s1bqDy = Math.abs((Number(s1bqAfterEnter.camY) || 0) - (Number(s1bqBefore.camY) || 0));
+    const s1bqDk = Math.abs((Number(s1bqAfterEnter.camK) || 0) - (Number(s1bqBefore.camK) || 0));
+    // Tiny nudge + resettle while still inside enter (parity S1x resettle).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bq-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (5100 + i) + '</span><span class="tx">s1bq enter pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bqResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          enterXy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Back out of enter while Evidence stays open — soft-stay (no fromInner hard reset).
+    const s1bqBeforeBack = {
+      camX: s1bqResettle.camX,
+      camY: s1bqResettle.camY,
+      camK: s1bqResettle.camK,
+    };
+    await page.evaluate(() => {
+      const back = document.getElementById("backBtn");
+      if (back && !back.disabled) back.click();
+    });
+    await page.waitForFunction(
+      () => !document.getElementById("enterCanvas") && document.querySelector("#sliceCanvas .vnode[data-id]"),
+      null,
+      { timeout: 10000 }
+    );
+    await page.waitForFunction(
+      () => {
+        const body = document.getElementById("srcBody");
+        const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1bqAfterBack = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          enterGone: !document.getElementById("enterCanvas"),
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1bqBackDx = Math.abs((Number(s1bqAfterBack.camX) || 0) - (Number(s1bqBeforeBack.camX) || 0));
+    const s1bqBackDy = Math.abs((Number(s1bqAfterBack.camY) || 0) - (Number(s1bqBeforeBack.camY) || 0));
+    const s1bqBackDk = Math.abs((Number(s1bqAfterBack.camK) || 0) - (Number(s1bqBeforeBack.camK) || 0));
+    record(
+      "S1bq",
+      "enter-canvas remount soft-stays cam while Evidence open (enter+back; no wipe-then-zoomToEl)",
+      s1bqRunClick.clicked &&
+        s1bqBefore.paneOpen &&
+        !s1bqBefore.macroLod &&
+        !s1bqBefore.presentPaused &&
+        Number.isFinite(s1bqBefore.camX) &&
+        s1bqAfterEnter.paneOpen &&
+        !s1bqAfterEnter.presentPaused &&
+        !s1bqAfterEnter.macroLod &&
+        s1bqAfterEnter.enterXy > 1 &&
+        s1bqDx <= 96 + 24 &&
+        s1bqDy <= 200 &&
+        s1bqDk <= 0.45 &&
+        s1bqResettle.paneOpen &&
+        !s1bqResettle.macroLod &&
+        (s1bqResettle.camXSettled === true || s1bqResettle.camYSettled === true) &&
+        s1bqAfterBack.paneOpen &&
+        s1bqAfterBack.enterGone &&
+        s1bqAfterBack.sliceNodes > 0 &&
+        !s1bqAfterBack.macroLod &&
+        s1bqBackDx <= 96 + 24 &&
+        s1bqBackDy <= 200 &&
+        s1bqBackDk <= 0.45,
+      "click=" +
+        JSON.stringify(s1bqRunClick) +
+        " before=" +
+        JSON.stringify(s1bqBefore) +
+        " afterEnter=" +
+        JSON.stringify(s1bqAfterEnter) +
+        " dx=" +
+        s1bqDx +
+        " dy=" +
+        s1bqDy +
+        " dk=" +
+        s1bqDk +
+        " resettle=" +
+        JSON.stringify(s1bqResettle) +
+        " afterBack=" +
+        JSON.stringify(s1bqAfterBack) +
+        " backDx=" +
+        s1bqBackDx +
+        " backDy=" +
+        s1bqBackDy +
+        " backDk=" +
+        s1bqBackDk
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

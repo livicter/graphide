@@ -1336,6 +1336,19 @@ function softStayScrollDriveAcrossDeskRemount() {
 // Harness / desk glue — Slice remount soft stay (S1x).
 if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
+
+
+/** S1bq — Evidence open + warm stay (live base or matching last-stay): enter/exit remount soft-stays. */
+function evidenceScrollDriveStayLive() {
+  if (typeof isPresenting === "function" && isPresenting()) return false;
+  if (!sourcePane || sourcePane.hidden || !sourceId) return false;
+  return !!(
+    scrollDriveBase ||
+    (typeof scrollDriveLastStayMatches === "function" &&
+      scrollDriveLastStayMatches(String(sourceId)))
+  );
+}
+
 }
 
 /** S1y/S1z — desk workspace hop remounts the canvas mid ScrollDrive while Evidence
@@ -4773,6 +4786,17 @@ function enterRun(flow, bubble, fromEl) {
   graphFilter.bubble = null;
   vscode.postMessage({ type: "enterRun", flow, bubble });
   const token = ++navToken;
+  // S1bq — Evidence soft-stay live: stash + skip zoomToEl yank into the community
+  // (parity with selectNode softHop); enter remount keepCam + soft-restore.
+  const evidenceStay =
+    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+    stashScrollDriveLastStay();
+  }
+  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+    stageFitRo.disconnect();
+    stageFitRo = null;
+  }
   const go = () => {
     if (token !== navToken) return;
     const top = stack[stack.length - 1];
@@ -4782,9 +4806,9 @@ function enterRun(flow, bubble, fromEl) {
       String(top.bubble) === String(bubble) &&
       String(top.flow || "") === String(flow || "");
     if (!same) stack.push({ kind: "bubble", flow, bubble: String(bubble) });
-    paint({ animate: "list" });
+    paint({ animate: "list", keepCam: !!evidenceStay });
   };
-  if (fromEl && !reduceMotion()) {
+  if (fromEl && !reduceMotion() && !evidenceStay) {
     fromEl.classList.add("zoom-in");
     canvas.classList.add("leaving");
     zoomToEl(fromEl, 1.9);
@@ -4802,14 +4826,31 @@ function syncBackBtn() {
 function goBack() {
   if (stack[stack.length - 1]?.kind === "bubble") {
     const token = ++navToken;
+    // S1bq — leave enter while Evidence open: keepCam + soft-stay (no fromInner hard cam reset).
+    const evidenceStay =
+      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+      stashScrollDriveLastStay();
+    }
+    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+      stageFitRo.disconnect();
+      stageFitRo = null;
+    }
     const go = () => {
       if (token !== navToken) return;
       stack.pop();
       graphFilter.bubble = null;
       vscode.postMessage({ type: "back" });
-      paint({ animate: "tree", fromInner: true });
+      paint({
+        animate: "tree",
+        fromInner: !evidenceStay,
+        keepCam: !!evidenceStay,
+      });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     };
-    if (!reduceMotion()) {
+    if (!reduceMotion() && !evidenceStay) {
       canvas.classList.add("leaving");
       setTimeout(go, 150);
     } else {
@@ -4865,7 +4906,8 @@ function paint(opts) {
         plugin: snapshot.plugin,
         stats: snapshot.stats,
       },
-      animate
+      animate,
+      { keepCam: !!(opts && opts.keepCam) }
     );
     applyEgoPaint();
     consumeHarnessActions();
@@ -4951,7 +4993,8 @@ function paint(opts) {
       plugin: snapshot.plugin,
       stats: snapshot.stats,
     },
-    animate
+    animate,
+    { keepCam: !!(opts && opts.keepCam) }
   );
   consumeHarnessActions();
 }
@@ -11957,7 +12000,7 @@ function mountEnterCanvas(inner) {
   stampXyFlowAttrs();
 }
 
-function renderInner(msg, animate) {
+function renderInner(msg, animate, opts) {
   const inner = msg.inner || { nodes: [] };
   renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
   renderStats(msg);
@@ -11981,6 +12024,11 @@ function renderInner(msg, animate) {
   }
   const key = enterWorkspaceKey(inner);
   const recycle = enterStageMounted() && key === enterBodyKey;
+  // S1bq — enter remount while Evidence open soft-stays (parity with S1x Slice remount).
+  const keepCam = !!(opts && opts.keepCam);
+  const evidenceLive =
+    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+  const stay = keepCam || evidenceLive;
   canvas.className = "play has-stage programs-view" + (animate ? " play" : "");
   if (recycle) {
     const title = canvas.querySelector(".flow-title");
@@ -12000,7 +12048,7 @@ function renderInner(msg, animate) {
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
       "</div></div>";
     enterBodyKey = document.getElementById("enterCanvas") ? key : "";
-    bindStage(canvas.querySelector(".stage"), { reset: true });
+    bindStage(canvas.querySelector(".stage"), { reset: !stay });
   }
   setZoomUi(true);
   mountEnterCanvas(inner);
@@ -12013,6 +12061,10 @@ function renderInner(msg, animate) {
   renderLedger(leafNodes.length ? leafNodes : nodes.map((n) => ({ id: n.id, fqn: n.fqn, kind: n.kind })), {
     selected: selectedNodeId,
   });
+  // S1bq — re-seed soft stay + settle honesty across enter remount / recycle.
+  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+    softStayScrollDriveAcrossDeskRemount();
+  }
 }
 
 function renderCoverage(cov, findings, graph, opts) {
