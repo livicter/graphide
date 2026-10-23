@@ -17083,6 +17083,144 @@ async function main() {
         s1bqBackDk
     );
 
+    // S1br — list↔canvas soft-stay: Slice→Decisions→Slice while Evidence open (no wipe-then-zoom).
+    const s1brBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          ws: (document.body && document.body.getAttribute("data-ws")) || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    await page.click('#workspaces [data-ws="decisions"]');
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const meta = (document.getElementById("meta") || {}).textContent || "";
+        return !!(pane && !pane.hidden && /decisions/i.test(meta));
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1brOnList = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const d = window.__graphideScrollDrive || {};
+      return {
+        paneOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        hasSlice: !!document.querySelector("#sliceCanvas .vnode[data-id]"),
+        meta: ((document.getElementById("meta") || {}).textContent || "").slice(0, 80),
+      };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const body = document.getElementById("srcBody");
+        const pane = document.getElementById("sourcePane");
+        if (body) body.dispatchEvent(new Event("scroll"));
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1brAfterReturn = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            pane &&
+            !pane.hidden
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: true,
+          sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1brDx = Math.abs((Number(s1brAfterReturn.camX) || 0) - (Number(s1brBefore.camX) || 0));
+    const s1brDy = Math.abs((Number(s1brAfterReturn.camY) || 0) - (Number(s1brBefore.camY) || 0));
+    const s1brDk = Math.abs((Number(s1brAfterReturn.camK) || 0) - (Number(s1brBefore.camK) || 0));
+    record(
+      "S1br",
+      "list↔canvas soft-stay: Slice→Decisions→Slice while Evidence open (stash leave; soft-restore return)",
+      s1brBefore.paneOpen &&
+        !s1brBefore.macroLod &&
+        !s1brBefore.presentPaused &&
+        Number.isFinite(s1brBefore.camX) &&
+        s1brOnList.paneOpen &&
+        !s1brOnList.hasSlice &&
+        /decisions/i.test(s1brOnList.meta) &&
+        s1brAfterReturn.paneOpen &&
+        !s1brAfterReturn.presentPaused &&
+        !s1brAfterReturn.macroLod &&
+        s1brAfterReturn.sliceNodes > 0 &&
+        s1brDx <= 96 + 24 &&
+        s1brDy <= 200 &&
+        s1brDk <= 0.45,
+      "before=" +
+        JSON.stringify(s1brBefore) +
+        " onList=" +
+        JSON.stringify(s1brOnList) +
+        " after=" +
+        JSON.stringify(s1brAfterReturn) +
+        " dx=" +
+        s1brDx +
+        " dy=" +
+        s1brDy +
+        " dk=" +
+        s1brDk
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

@@ -4327,25 +4327,32 @@ function setWorkspace(name, pin) {
   }
   // S1y/S1z — desk canvas hop remount mid-drive: stash stay + keepCam while Evidence
   // open (same sourceId). Map↔Slice (S1y); Lineage/Overview↔Slice and peer hops (S1z).
+  // S1br — list↔canvas: stash on leave-canvas; soft-stay on return-to-canvas while Evidence open.
   // Closed Evidence / sourceId change falls through to S1v/S1w.
   const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
-  const deskCanvasHop =
-    prevWs !== name &&
-    !!DESK_SCROLL_STAY_WS[prevWs] &&
-    !!DESK_SCROLL_STAY_WS[name];
-  const evidenceStay =
-    deskCanvasHop &&
-    sourcePane &&
-    !sourcePane.hidden &&
-    !!sourceId &&
-    !(typeof isPresenting === "function" && isPresenting()) &&
-    (!!scrollDriveBase ||
-      (typeof scrollDriveLastStayMatches === "function" &&
-        scrollDriveLastStayMatches(String(sourceId))));
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+  const fromCanvas = !!DESK_SCROLL_STAY_WS[prevWs];
+  const toCanvas = !!DESK_SCROLL_STAY_WS[name];
+  const deskCanvasHop = prevWs !== name && fromCanvas && toCanvas;
+  const evidenceOpen =
+    !!(sourcePane && !sourcePane.hidden && sourceId) &&
+    !(typeof isPresenting === "function" && isPresenting());
+  const stayWarm =
+    !!scrollDriveBase ||
+    (typeof scrollDriveLastStayMatches === "function" &&
+      scrollDriveLastStayMatches(String(sourceId)));
+  const listLeaveStash =
+    prevWs !== name && fromCanvas && !toCanvas && evidenceOpen && !!scrollDriveBase;
+  const listReturnStay =
+    prevWs !== name && !fromCanvas && toCanvas && evidenceOpen && stayWarm;
+  const evidenceStay = (deskCanvasHop || listReturnStay) && evidenceOpen && stayWarm;
+  if (
+    (evidenceStay || listLeaveStash) &&
+    scrollDriveBase &&
+    typeof stashScrollDriveLastStay === "function"
+  ) {
     stashScrollDriveLastStay();
   }
-  // S1y/S1z — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
+  // S1y/S1z/S1br — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
   if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
     stageFitRo.disconnect();
     stageFitRo = null;
