@@ -9853,15 +9853,23 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true, scrollTop: body.scrollTop, max: max };
     });
+    // S1bj — settle-before-sample warm (S1r): require settle flags (not a fixed 500ms pad).
     await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId);
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.35 &&
+          d.targetNodeId &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
       },
       null,
-      { timeout: 6000 }
+      { timeout: 8000 }
     );
-    await page.waitForTimeout(500);
     const s1rBefore = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
       const id = d.targetNodeId || "";
@@ -9957,18 +9965,33 @@ async function main() {
       body.scrollTop = body.scrollTop + 4;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForTimeout(350);
-    const s1rAfterNudge = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const el = document.querySelector('#sliceCanvas .vnode[data-s1r-offcenter="1"]');
-      return {
-        camX: Number(d.camX),
-        camXSettled: !!d.camXSettled,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-        stillOff: !!(el && el.getAttribute("data-s1r-offcenter") === "1"),
-      };
-    });
+    // S1bj — settle-before-sample after nudge (S1r): not a fixed 350ms pad.
+    const s1rAfterNudge = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-s1r-offcenter="1"]');
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camXSettled: !!d.camXSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          stillOff: !!(el && el.getAttribute("data-s1r-offcenter") === "1"),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     await page.evaluate(() => {
       document.querySelectorAll("#sliceCanvas .vnode[data-s1r-offcenter]").forEach((el) => {
         el.style.transform = "";
@@ -10047,16 +10070,22 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true };
     });
-    await page.waitForTimeout(250);
-    const s1sBefore = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camY: Number(d.camY),
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-      };
-    });
+    // S1bj — settle-before-sample warm baseline (S1s): not a fixed 250ms pad.
+    const s1sBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (!(pane && !pane.hidden && d && !d.presentPaused)) return null;
+        return {
+          camY: Number(d.camY),
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 6000 }
+    ).then((h) => h.jsonValue());
     const s1sSetup = await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return { ok: false, why: "no-srcBody" };
@@ -10085,33 +10114,34 @@ async function main() {
         body.dispatchEvent(new Event("scroll"));
       }
     });
-    await page.waitForFunction(
+    // S1bj — atomic settle sample (S1s): wait+snap (not settle wait + fixed 200ms pad).
+    const s1sSettled = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        return !!(
-          d &&
-          !d.macroLod &&
-          !d.presentPaused &&
-          d.camYSettled === true &&
-          Number(d.scrollVel) < 0.12
-        );
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            d.camYSettled === true &&
+            Number(d.scrollVel) < 0.12
+          )
+        ) {
+          return null;
+        }
+        return {
+          camY: Number(d.camY),
+          camEase: Number(d.camEase),
+          scrollVel: Number(d.scrollVel) || 0,
+          camYSettled: !!d.camYSettled,
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
       },
       null,
       { timeout: 8000 }
-    );
-    await page.waitForTimeout(200);
-    const s1sSettled = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camY: Number(d.camY),
-        camEase: Number(d.camEase),
-        scrollVel: Number(d.scrollVel) || 0,
-        camYSettled: !!d.camYSettled,
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-      };
-    });
+    ).then((h) => h.jsonValue());
     // Tiny further scroll — must not yank camY back toward pre-nudge / lock Y.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -10119,17 +10149,32 @@ async function main() {
       body.scrollTop = body.scrollTop + 4;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForTimeout(350);
-    const s1sAfterNudge = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        camY: Number(d.camY),
-        camYSettled: !!d.camYSettled,
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        presentPaused: !!d.presentPaused,
-      };
-    });
+    // S1bj — settle-before-sample after nudge (S1s): not a fixed 350ms pad.
+    const s1sAfterNudge = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camY: Number(d.camY),
+          camYSettled: !!d.camYSettled,
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     const s1sSoftDy = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
     const s1sDistBefore = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sBefore.camY) || 0));
     const s1sDistSettled = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
@@ -10168,6 +10213,100 @@ async function main() {
         s1sYank +
         " springBack=" +
         s1sSpringBack
+    );
+
+    // S1bj — soft-stay idle-settle pad hunt probe (parity with S1bi/S1bb).
+    // After S1r/S1s: tiny nudge, atomic wait+snap micro+settled (camX|camY settled).
+    // Product soft-stay absorb unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bj-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4400 + i) + '</span><span class="tx">s1bj pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bjSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bj",
+      "soft-stay idle-settle pad hunt: post-S1r/S1s still micro+settled (!macroLod; no mid-tween)",
+      s1bjSnap.paneOpen &&
+        !s1bjSnap.presentPaused &&
+        !s1bjSnap.macroLod &&
+        (s1bjSnap.camXSettled === true || s1bjSnap.camYSettled === true) &&
+        s1bjSnap.scrollVel < 0.12 &&
+        !!s1bjSnap.targetNodeId &&
+        Number(s1bjSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bjSnap.camX) &&
+        Number.isFinite(s1bjSnap.camY),
+      "snap=" + JSON.stringify(s1bjSnap)
     );
 
     // S1t — nest/line remap mid-scroll soft-cam stay (no zoomToEl yank; settle flags refresh).
