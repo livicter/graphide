@@ -8253,6 +8253,7 @@ async function main() {
       { timeout: 8000 }
     ).then((h) => h.jsonValue());
     // Mid-file slow scroll must leave macro and restore micro CFG (velocity aged out).
+    // S1bo — no fixed 280ms velocity pad: re-dispatch until !macroLod + mid-file micro.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (!body) return;
@@ -8260,20 +8261,15 @@ async function main() {
       body.scrollTop = Math.floor(max * 0.55);
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForTimeout(280); // past velocity recheck timer
-    await page.evaluate(() => {
-      const body = document.getElementById("srcBody");
-      if (!body) return;
-      // Second tick after age decay — settle mid-file micro mode.
-      body.dispatchEvent(new Event("scroll"));
-    });
     await page.waitForFunction(
       () => {
+        const body = document.getElementById("srcBody");
+        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
-        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && Number(d.cfgUnroll) > 0.35);
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && Number(d.cfgUnroll) > 0.35 && Number(d.scrollVel) < 0.12);
       },
       null,
-      { timeout: 5000 }
+      { timeout: 8000 }
     );
     const afterMid = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
@@ -8602,7 +8598,15 @@ async function main() {
       body.scrollTop = Math.floor(max * 0.2);
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForTimeout(40);
+    // S1bo — settle-before-burst (not a fixed 40ms pad) so EMA baseline is quiet.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.presentPaused && (d.camXSettled === true || d.camYSettled === true) && Number(d.scrollVel) < 0.12);
+      },
+      null,
+      { timeout: 8000 }
+    );
     // Burst scroll to spike EMA velocity.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -9233,27 +9237,43 @@ async function main() {
     );
     // Residual scroll events / macro timer must not revive CFG/macro paint or clear presentPaused.
     // Present stage may still ease its own camera — do not assert viewport transform equality.
+    // S1bo — no fixed 280ms residual pad: residual scrolls + double-rAF (one-paint) then
+    // waitForFunction Present-pause honesty (Present publish zeros rafFlushes, so no flush counter).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
       if (body) {
         body.dispatchEvent(new Event("scroll"));
         body.dispatchEvent(new Event("scroll"));
       }
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
     });
-    await page.waitForTimeout(280);
-    const s1mPaused = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector(".viewport");
-      return {
-        presenting: !!(document.body && document.body.classList.contains("present")),
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-        presentPaused: !!d.presentPaused,
-        camEase: Number(d.camEase),
-        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
-        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
-        macro: !!(vp && vp.getAttribute("data-scroll-macro") === "1"),
-      };
-    });
+    const s1mPaused = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        const vp = document.querySelector(".viewport");
+        const presenting = !!(document.body && document.body.classList.contains("present"));
+        const evidenceOpen = !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden);
+        const presentPaused = !!d.presentPaused;
+        const attr = !!(vp && vp.getAttribute("data-scroll-present-paused") === "1");
+        const cfgHot = !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']");
+        const macro = !!(vp && vp.getAttribute("data-scroll-macro") === "1");
+        // Hold Present-pause honesty after residual scroll; no CFG/macro revive.
+        if (!(presenting && presentPaused && attr && !evidenceOpen && !cfgHot && !macro)) return null;
+        return {
+          presenting,
+          evidenceOpen,
+          presentPaused,
+          camEase: Number(d.camEase),
+          attr,
+          cfgHot,
+          macro,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     await page.keyboard.press("Escape"); // exit Present
     await page.waitForFunction(
       () => {
@@ -10127,15 +10147,21 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true, scrollTop: body.scrollTop, max: max };
     });
+    // S1bo — mid-file publish wait: prior probes may already soft-stay near 0.55 so
+    // camY delta can be <4; accept moved-OR-already mid-file micro+settling.
     await page.waitForFunction(
       (beforeY) => {
+        const body = document.getElementById("srcBody");
+        if (body) body.dispatchEvent(new Event("scroll"));
         const d = window.__graphideScrollDrive;
         if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId)) return false;
         const y = Number(d.camY);
-        return Number.isFinite(y) && Number.isFinite(beforeY) && Math.abs(y - beforeY) > 4;
+        if (!Number.isFinite(y)) return false;
+        if (Number.isFinite(beforeY) && Math.abs(y - beforeY) > 4) return true;
+        return d.camYSettled === true || d.camXSettled === true;
       },
       s1sBefore.camY,
-      { timeout: 6000 }
+      { timeout: 8000 }
     );
     // Burst then idle so S1g settle timer fires and S1s absorbs into base.
     await page.evaluate(() => {
@@ -16664,6 +16690,45 @@ async function main() {
         Number.isFinite(s1bnSnap.camX) &&
         Number.isFinite(s1bnSnap.camK),
       "snap=" + JSON.stringify(s1bnSnap)
+    );
+
+    // S1bo — velocity / Present-residual / S1g burst pad hunt confirm: still micro+settled
+    // after S1c mid-file age-out + S1m residual + S1g settle-before-burst (no fixed 280/40ms).
+    const s1boSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bo",
+      "velocity / Present-residual / S1g burst pad hunt: post-S1c/S1m/S1g still micro+settled (!macroLod; no mid-tween)",
+      s1boSnap.paneOpen &&
+        !s1boSnap.presentPaused &&
+        !s1boSnap.macroLod &&
+        (s1boSnap.camXSettled === true || s1boSnap.camYSettled === true) &&
+        s1boSnap.scrollVel < 0.12 &&
+        !!s1boSnap.targetNodeId &&
+        Number.isFinite(s1boSnap.camX) &&
+        Number.isFinite(s1boSnap.camK),
+      "snap=" + JSON.stringify(s1boSnap)
     );
 
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
