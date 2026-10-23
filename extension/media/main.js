@@ -22465,7 +22465,22 @@
         consumeHarnessActions();
         return;
       }
-      paint({ animate: "none", keepCam: mapStageMounted() || !!canvas.querySelector(".stage") });
+      // S1by — host patch remount while Evidence open: keepCam + soft-stay (vnode rebuild).
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({
+        animate: "none",
+        keepCam: evidenceStay || mapStageMounted() || !!canvas.querySelector(".stage"),
+      });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function applyPreview(msg) {
       if (!busy) return;

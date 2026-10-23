@@ -18156,6 +18156,130 @@ async function main() {
       s1bxDetail
     );
 
+    // S1by — host patch remount soft-stay while Evidence open (product; vnode rebuild).
+    let s1byOk = false;
+    let s1byDetail = "";
+    try {
+      const s1byBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      // Panel-ish patch on Slice still full-paints (mapStageMounted false) → soft-stay path.
+      await page.evaluate(() => {
+        window.postMessage({ type: "patch", stats: { elapsed_ms: 141 } }, "*");
+      });
+      await page.waitForFunction(
+        () => {
+          const body = document.getElementById("srcBody");
+          const pane = document.getElementById("sourcePane");
+          if (body) body.dispatchEvent(new Event("scroll"));
+          const d = window.__graphideScrollDrive;
+          return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+        },
+        null,
+        { timeout: 8000 }
+      );
+      const s1byAfter = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1byDx = Math.abs((Number(s1byAfter.camX) || 0) - (Number(s1byBefore.camX) || 0));
+      const s1byDy = Math.abs((Number(s1byAfter.camY) || 0) - (Number(s1byBefore.camY) || 0));
+      const s1byDk = Math.abs((Number(s1byAfter.camK) || 0) - (Number(s1byBefore.camK) || 0));
+      s1byOk =
+        s1byBefore.paneOpen &&
+        !s1byBefore.macroLod &&
+        !s1byBefore.presentPaused &&
+        Number.isFinite(s1byBefore.camX) &&
+        s1byAfter.paneOpen &&
+        !s1byAfter.presentPaused &&
+        !s1byAfter.macroLod &&
+        s1byAfter.sliceNodes > 0 &&
+        s1byDx <= 96 + 24 &&
+        s1byDy <= 200 &&
+        s1byDk <= 0.45;
+      s1byDetail =
+        "before=" +
+        JSON.stringify(s1byBefore) +
+        " after=" +
+        JSON.stringify(s1byAfter) +
+        " dx=" +
+        s1byDx +
+        " dy=" +
+        s1byDy +
+        " dk=" +
+        s1byDk;
+    } catch (err) {
+      s1byOk = false;
+      s1byDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1by",
+      "host patch remount soft-stay while Evidence open (keepCam + desk remount soft-restore)",
+      s1byOk,
+      s1byDetail
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
