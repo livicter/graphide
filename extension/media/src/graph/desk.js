@@ -3151,7 +3151,22 @@ window.addEventListener("message", (event) => {
   if (msg.type === "cancelled") {
     clearTimeout(previewTimer);
     finishWork();
-    if (snapshot) paint({ animate: "none" });
+    // S1bz — cancelled remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
+    if (snapshot) {
+      const evidenceStay =
+        typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
+    }
     status.textContent = "cancelled";
     return;
   }
