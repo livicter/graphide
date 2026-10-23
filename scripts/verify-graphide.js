@@ -8077,31 +8077,35 @@ async function main() {
         clientHeight: body.clientHeight,
       };
     });
-    await page.waitForFunction(
-      () => {
+    // S1bk — settle-before-sample S1a cam lerp: wait ratio+target+cam moved (not a fixed 350ms pad).
+    const afterScrollDrive = await page.waitForFunction(
+      (before) => {
         const d = window.__graphideScrollDrive;
-        return !!(d && Number(d.scrollRatio) > 0.5);
+        if (!(d && Number(d.scrollRatio) > 0.5 && d.targetNodeId)) return null;
+        const camY = Number(d.camY);
+        const vp = document.querySelector("#canvas .viewport");
+        const t = (vp && vp.style.transform) || "";
+        const moved =
+          (Number.isFinite(before.camY) && Number.isFinite(camY) && Math.abs(camY - before.camY) > 0.5) ||
+          (!!before.transform && !!t && before.transform !== t);
+        if (!moved) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          activeLine: Number(d.activeLine) || 0,
+          camX: Number(d.camX),
+          camY: camY,
+          camK: Number(d.camK),
+          targetNodeId: d.targetNodeId || "",
+          transform: t,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
-      null,
-      { timeout: 5000 }
-    );
-    // Allow one lerp tick so camY lands on camTo.
-    await page.waitForTimeout(350);
-    const afterScrollDrive = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector("#canvas .viewport");
-      const t = (vp && vp.style.transform) || "";
-      return {
-        ratio: Number(d.scrollRatio) || 0,
-        activeLine: Number(d.activeLine) || 0,
-        camX: Number(d.camX),
-        camY: Number(d.camY),
-        camK: Number(d.camK),
-        targetNodeId: d.targetNodeId || "",
-        transform: t,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      {
+        camY: beforeScrollDrive.camY,
+        transform: beforeScrollDrive.transform || "",
+      },
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     const camMoved =
       (Number.isFinite(beforeScrollDrive.camY) &&
         Number.isFinite(afterScrollDrive.camY) &&
@@ -8161,28 +8165,25 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true, top };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1b CFG (not wait + fixed 200ms pad).
+    const afterCfg = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        return !!(d && Number(d.cfgUnroll) > 0.5 && d.cfgActiveId);
+        if (!(d && Number(d.cfgUnroll) > 0.5 && d.cfgActiveId)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          cfgUnroll: Number(d.cfgUnroll) || 0,
+          cfgVisible: Number(d.cfgVisible) || 0,
+          cfgActiveId: d.cfgActiveId || "",
+          hot: !!document.querySelector("#sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode[data-cfg-active='1']"),
+          ahead: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-ahead").length,
+          vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(200);
-    const afterCfg = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        ratio: Number(d.scrollRatio) || 0,
-        cfgUnroll: Number(d.cfgUnroll) || 0,
-        cfgVisible: Number(d.cfgVisible) || 0,
-        cfgActiveId: d.cfgActiveId || "",
-        hot: !!document.querySelector("#sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode[data-cfg-active='1']"),
-        ahead: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-ahead").length,
-        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1b",
       "Evidence scroll unrolls Slice CFG and glows the active block",
@@ -8216,43 +8217,41 @@ async function main() {
         clientHeight: body.clientHeight,
       };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1c macro LOD (not wait + fixed 150ms pad).
+    const afterMacro = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        const vp = document.querySelector("#canvas .viewport, #sliceCanvas") 
-          ? document.querySelector("#canvas .viewport")
-          : null;
-        return !!(
-          d &&
-          d.macroLod &&
-          Number(d.scrollRatio) <= 0.18 &&
-          vp &&
-          vp.getAttribute("data-lod") === "0" &&
-          vp.getAttribute("data-scroll-macro") === "1" &&
-          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
-        );
+        const vp = document.querySelector("#canvas .viewport");
+        if (
+          !(
+            d &&
+            d.macroLod &&
+            Number(d.scrollRatio) <= 0.18 &&
+            vp &&
+            vp.getAttribute("data-lod") === "0" &&
+            vp.getAttribute("data-scroll-macro") === "1" &&
+            document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+          )
+        ) {
+          return null;
+        }
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          lod: (vp && vp.getAttribute("data-lod")) || "",
+          macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+          hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+          dim: document.querySelectorAll(".vnode.scroll-macro-dim").length,
+          cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot"),
+          camK: Number(d.camK),
+          targetNodeId: d.targetNodeId || "",
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(150);
-    const afterMacro = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector("#canvas .viewport");
-      return {
-        ratio: Number(d.scrollRatio) || 0,
-        scrollVel: Number(d.scrollVel) || 0,
-        macroLod: !!d.macroLod,
-        lod: (vp && vp.getAttribute("data-lod")) || "",
-        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
-        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
-        dim: document.querySelectorAll(".vnode.scroll-macro-dim").length,
-        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot"),
-        camK: Number(d.camK),
-        targetNodeId: d.targetNodeId || "",
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     // Mid-file slow scroll must leave macro and restore micro CFG (velocity aged out).
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -8342,46 +8341,39 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true, max: max, scrollTop: body.scrollTop };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1d CFG spans (not wait + fixed 150ms pad).
+    const afterSpans = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.35 && Number(d.cfgSpanCount) >= 3)) return false;
-        const kinds = new Set();
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.35 && Number(d.cfgSpanCount) >= 3)) return null;
+        const kinds = [];
         document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
-          kinds.add(el.getAttribute("data-cfg-span"));
+          kinds.push(el.getAttribute("data-cfg-span"));
         });
-        return kinds.has("if") && kinds.has("loop") && kinds.has("try") && !!(d.cfgSpanKind);
+        const uniq = Array.from(new Set(kinds));
+        if (!(uniq.includes("if") && uniq.includes("loop") && uniq.includes("try") && d.cfgSpanKind)) return null;
+        const hot = document.querySelector(
+          "#sliceCanvas .vnode.scroll-cfg-hot[data-cfg-span], #sliceCanvas .vnode[data-cfg-active='1'][data-cfg-span]"
+        );
+        return {
+          ok: true,
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          cfgUnroll: Number(d.cfgUnroll) || 0,
+          cfgSpanKind: d.cfgSpanKind || "",
+          cfgSpanCount: Number(d.cfgSpanCount) || 0,
+          uniq: uniq,
+          hotSpan: (hot && hot.getAttribute("data-cfg-span")) || "",
+          sib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-sib").length,
+          ifN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-if, #sliceCanvas .vnode[data-cfg-span='if']").length,
+          loopN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-loop, #sliceCanvas .vnode[data-cfg-span='loop']").length,
+          tryN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-try, #sliceCanvas .vnode[data-cfg-span='try']").length,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(150);
-    const afterSpans = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const kinds = [];
-      document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
-        kinds.push(el.getAttribute("data-cfg-span"));
-      });
-      const uniq = Array.from(new Set(kinds));
-      const hot = document.querySelector(
-        "#sliceCanvas .vnode.scroll-cfg-hot[data-cfg-span], #sliceCanvas .vnode[data-cfg-active='1'][data-cfg-span]"
-      );
-      return {
-        ok: true,
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        cfgUnroll: Number(d.cfgUnroll) || 0,
-        cfgSpanKind: d.cfgSpanKind || "",
-        cfgSpanCount: Number(d.cfgSpanCount) || 0,
-        uniq: uniq,
-        hotSpan: (hot && hot.getAttribute("data-cfg-span")) || "",
-        sib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-sib").length,
-        ifN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-if, #sliceCanvas .vnode[data-cfg-span='if']").length,
-        loopN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-loop, #sliceCanvas .vnode[data-cfg-span='loop']").length,
-        tryN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-try, #sliceCanvas .vnode[data-cfg-span='try']").length,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1d",
       "Evidence if/loop/try lines annotate CFG spans; active kind glows, siblings collapse",
@@ -8432,52 +8424,48 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true, vnodes: nodes.length, scrollTop: body.scrollTop };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1e kind anchors (not wait + fixed 120ms pad).
+    const afterAnchors = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35)) return false;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35)) return null;
         const counts = d.anchorCounts || {};
-        const stamped = document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").length;
-        const buckets = new Set();
+        const buckets = [];
         document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
-          buckets.add(el.getAttribute("data-scroll-anchor"));
+          buckets.push(el.getAttribute("data-scroll-anchor"));
         });
-        return (
-          stamped >= 2 &&
-          buckets.has("util") &&
-          buckets.has("svc") &&
-          (buckets.has("api") || buckets.has("db")) &&
-          !!d.anchorFocus &&
-          (Number(counts.util) || 0) + (Number(counts.svc) || 0) + (Number(counts.api) || 0) + (Number(counts.db) || 0) >= 2
-        );
+        const uniq = Array.from(new Set(buckets));
+        const stamped = buckets.length;
+        if (
+          !(
+            stamped >= 2 &&
+            uniq.includes("util") &&
+            uniq.includes("svc") &&
+            (uniq.includes("api") || uniq.includes("db")) &&
+            !!d.anchorFocus &&
+            (Number(counts.util) || 0) + (Number(counts.svc) || 0) + (Number(counts.api) || 0) + (Number(counts.db) || 0) >= 2
+          )
+        ) {
+          return null;
+        }
+        return {
+          ok: true,
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          anchorFocus: d.anchorFocus || "",
+          counts: counts,
+          uniq: uniq,
+          stamped: stamped,
+          apiCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-api, #sliceCanvas .vnode[data-scroll-anchor='api']").length,
+          dbCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-db, #sliceCanvas .vnode[data-scroll-anchor='db']").length,
+          svcCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-svc, #sliceCanvas .vnode[data-scroll-anchor='svc']").length,
+          utilCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-util, #sliceCanvas .vnode[data-scroll-anchor='util']").length,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(120);
-    const afterAnchors = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const buckets = [];
-      document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
-        buckets.push(el.getAttribute("data-scroll-anchor"));
-      });
-      const uniq = Array.from(new Set(buckets));
-      const counts = d.anchorCounts || {};
-      return {
-        ok: true,
-        ratio: Number(d.scrollRatio) || 0,
-        macroLod: !!d.macroLod,
-        anchorFocus: d.anchorFocus || "",
-        counts: counts,
-        uniq: uniq,
-        stamped: buckets.length,
-        apiCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-api, #sliceCanvas .vnode[data-scroll-anchor='api']").length,
-        dbCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-db, #sliceCanvas .vnode[data-scroll-anchor='db']").length,
-        svcCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-svc, #sliceCanvas .vnode[data-scroll-anchor='svc']").length,
-        utilCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-util, #sliceCanvas .vnode[data-scroll-anchor='util']").length,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1e",
       "Evidence scroll stamps API/DB/Service/Utility kind anchors from IR kinds",
@@ -8518,32 +8506,32 @@ async function main() {
       body.scrollTop = 0;
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1f far/detail-closed (not wait + fixed 100ms pad).
+    const s1fFar = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const vp = document.querySelector(".viewport");
-        return !!(
-          d &&
-          d.macroLod &&
-          !d.detailNear &&
-          vp &&
-          vp.getAttribute("data-scroll-detail") === "0"
-        );
+        if (
+          !(
+            d &&
+            d.macroLod &&
+            !d.detailNear &&
+            vp &&
+            vp.getAttribute("data-scroll-detail") === "0"
+          )
+        ) {
+          return null;
+        }
+        return {
+          detailNear: !!d.detailNear,
+          attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+          macroLod: !!d.macroLod,
+          ratio: Number(d.scrollRatio) || 0,
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(100);
-    const s1fFar = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector(".viewport");
-      return {
-        detailNear: !!d.detailNear,
-        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
-        macroLod: !!d.macroLod,
-        ratio: Number(d.scrollRatio) || 0,
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     // Scroll mid again — detail must reopen with focus.
     await page.evaluate(() => {
       const body = document.getElementById("srcBody");
@@ -8552,36 +8540,36 @@ async function main() {
       body.scrollTop = Math.floor(max * 0.55);
       body.dispatchEvent(new Event("scroll"));
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1f reopen/detail-near (not wait + fixed 100ms pad).
+    const s1fReopen = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const vp = document.querySelector(".viewport");
-        return !!(
-          d &&
-          !d.macroLod &&
-          d.detailNear &&
-          vp &&
-          vp.getAttribute("data-scroll-detail") === "1" &&
-          (Number(d.cfgVisible) >= 2 || Number(d.cfgUnroll) > 0.35 || Number(d.scrollRatio) > 0.25)
-        );
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            d.detailNear &&
+            vp &&
+            vp.getAttribute("data-scroll-detail") === "1" &&
+            (Number(d.cfgVisible) >= 2 || Number(d.cfgUnroll) > 0.35 || Number(d.scrollRatio) > 0.25)
+          )
+        ) {
+          return null;
+        }
+        return {
+          detailNear: !!d.detailNear,
+          attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+          macroLod: !!d.macroLod,
+          cfgVisible: Number(d.cfgVisible) || 0,
+          cfgUnroll: Number(d.cfgUnroll) || 0,
+          ratio: Number(d.scrollRatio) || 0,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(100);
-    const s1fReopen = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector(".viewport");
-      return {
-        detailNear: !!d.detailNear,
-        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
-        macroLod: !!d.macroLod,
-        cfgVisible: Number(d.cfgVisible) || 0,
-        cfgUnroll: Number(d.cfgUnroll) || 0,
-        ratio: Number(d.scrollRatio) || 0,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1f",
       "Evidence scroll gates deep clutter until focus approaches (detailNear / data-scroll-detail)",
@@ -8859,41 +8847,38 @@ async function main() {
         drive: Object.assign({}, window.__graphideScrollDrive || {}),
       };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1i nest glow (not wait + fixed 150ms pad).
+    const afterNest = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
-        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.2 && Number(d.cfgSpanCount) >= 3)) return false;
-        if (!(Number(d.cfgNestMax) >= 2 && Number(d.cfgNestDepth) >= 2 && Number(d.cfgNestExpanded) >= 2)) return false;
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.2 && Number(d.cfgSpanCount) >= 3)) return null;
+        if (!(Number(d.cfgNestMax) >= 2 && Number(d.cfgNestDepth) >= 2 && Number(d.cfgNestExpanded) >= 2)) return null;
         const hot =
           document.querySelector("#sliceCanvas .vnode.scroll-cfg-nest-hot, #sliceCanvas .vnode.scroll-cfg-hot[data-cfg-depth]");
         const anc = document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length;
-        return !!(hot || anc >= 1 || d.cfgSpanKind === "try");
+        if (!(hot || anc >= 1 || d.cfgSpanKind === "try")) return null;
+        return {
+          ok: true,
+          ratio: Number(d.scrollRatio) || 0,
+          activeLine: Number(d.activeLine) || 0,
+          macroLod: !!d.macroLod,
+          cfgUnroll: Number(d.cfgUnroll) || 0,
+          cfgSpanKind: d.cfgSpanKind || "",
+          cfgSpanCount: Number(d.cfgSpanCount) || 0,
+          cfgNestDepth: Number(d.cfgNestDepth) || 0,
+          cfgNestMax: Number(d.cfgNestMax) || 0,
+          cfgNestExpanded: Number(d.cfgNestExpanded) || 0,
+          nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
+          nestAnc: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length,
+          nestSib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-sib").length,
+          depthPaint: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth]").length,
+          deep2: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth='2']").length,
+          evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
       },
       null,
-      { timeout: 6000 }
-    );
-    await page.waitForTimeout(150);
-    const afterNest = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        ok: true,
-        ratio: Number(d.scrollRatio) || 0,
-        activeLine: Number(d.activeLine) || 0,
-        macroLod: !!d.macroLod,
-        cfgUnroll: Number(d.cfgUnroll) || 0,
-        cfgSpanKind: d.cfgSpanKind || "",
-        cfgSpanCount: Number(d.cfgSpanCount) || 0,
-        cfgNestDepth: Number(d.cfgNestDepth) || 0,
-        cfgNestMax: Number(d.cfgNestMax) || 0,
-        cfgNestExpanded: Number(d.cfgNestExpanded) || 0,
-        nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
-        nestAnc: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length,
-        nestSib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-sib").length,
-        depthPaint: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth]").length,
-        deep2: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth='2']").length,
-        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1i",
       "Evidence nested CFG expands child+ancestors on activeLine; siblings collapse",
@@ -8960,62 +8945,61 @@ async function main() {
       body.dispatchEvent(new Event("scroll"));
       return { ok: true };
     });
-    await page.waitForFunction(
+    // S1bk — atomic settle sample S1j macro blend (not wait + fixed 120ms pad).
+    const s1jMacroAfter = await page.waitForFunction(
       () => {
         const d = window.__graphideScrollDrive;
         const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
-        return !!(
-          d &&
-          d.macroLod &&
-          Number.isFinite(d.blendMs) &&
-          Number(d.blendMs) >= 100 &&
-          Number(d.blendMs) <= 300 &&
-          vp &&
-          vp.getAttribute("data-scroll-blend") === "1" &&
-          vp.getAttribute("data-scroll-macro") === "1" &&
-          d.detailNear === false
+        if (
+          !(
+            d &&
+            d.macroLod &&
+            Number.isFinite(d.blendMs) &&
+            Number(d.blendMs) >= 100 &&
+            Number(d.blendMs) <= 300 &&
+            vp &&
+            vp.getAttribute("data-scroll-blend") === "1" &&
+            vp.getAttribute("data-scroll-macro") === "1" &&
+            d.detailNear === false
+          )
+        ) {
+          return null;
+        }
+        const hot = document.querySelector(
+          "#sliceCanvas .vnode.scroll-macro-hot, #sliceCanvas .vnode[data-macro-hot='1'], .vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"
         );
+        const dim = document.querySelector(
+          "#sliceCanvas .vnode.scroll-macro-dim, .vnode.scroll-macro-dim"
+        );
+        const probe =
+          hot ||
+          dim ||
+          document.querySelector("#sliceCanvas .vnode[data-id], .viewport .vnode[data-id], .vnode[data-id]");
+        let transition = "";
+        if (probe) {
+          try {
+            transition = getComputedStyle(probe).transitionProperty || "";
+          } catch (_) {
+            transition = "";
+          }
+        }
+        return {
+          blendMs: Number(d.blendMs),
+          macroLod: !!d.macroLod,
+          detailNear: !!d.detailNear,
+          detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+          blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+          blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+          macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+          transition: transition,
+          hot: !!hot,
+          dim: !!dim,
+          probe: !!(probe && probe.getAttribute && probe.getAttribute("data-id")),
+        };
       },
       null,
-      { timeout: 6000 }
-    );
-    await page.waitForTimeout(120);
-    const s1jMacroAfter = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
-      const hot = document.querySelector(
-        "#sliceCanvas .vnode.scroll-macro-hot, #sliceCanvas .vnode[data-macro-hot='1'], .vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"
-      );
-      const dim = document.querySelector(
-        "#sliceCanvas .vnode.scroll-macro-dim, .vnode.scroll-macro-dim"
-      );
-      // Probe any painted macro vnode (hot preferred); fall back to any .vnode under blend.
-      const probe =
-        hot ||
-        dim ||
-        document.querySelector("#sliceCanvas .vnode[data-id], .viewport .vnode[data-id], .vnode[data-id]");
-      let transition = "";
-      if (probe) {
-        try {
-          transition = getComputedStyle(probe).transitionProperty || "";
-        } catch (_) {
-          transition = "";
-        }
-      }
-      return {
-        blendMs: Number(d.blendMs),
-        macroLod: !!d.macroLod,
-        detailNear: !!d.detailNear,
-        detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
-        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
-        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
-        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
-        transition: transition,
-        hot: !!hot,
-        dim: !!dim,
-        probe: !!(probe && probe.getAttribute && probe.getAttribute("data-id")),
-      };
-    });
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1j",
       "Evidence nest/macro paint eases via camEase-tied blendMs / data-scroll-blend (no snap; S1f clutter intact)",
@@ -9037,6 +9021,52 @@ async function main() {
         s1jMacroAfter.blendMs <= 300 &&
         String(s1jMacroAfter.transition).includes("opacity"),
       "nest=" + JSON.stringify(s1jNest) + " macroPad=" + JSON.stringify(s1jMacro) + " macro=" + JSON.stringify(s1jMacroAfter)
+    );
+
+    // S1bk — early pad hunt confirm: mid-file micro+settled after atomic S1a–S1j samples (no fixed ms pads).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bkSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.1 && d.targetNodeId)) return null;
+        if (!(d.camXSettled === true || d.camYSettled === true)) return null;
+        if (!(Number(d.scrollVel) < 0.12)) return null;
+        return {
+          ratio: Number(d.scrollRatio) || 0,
+          scrollVel: Number(d.scrollVel) || 0,
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camXSettled: d.camXSettled === true,
+          camYSettled: d.camYSettled === true,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+          cfgUnroll: Number(d.cfgUnroll) || 0,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bk",
+      "early wait-then-sample pad hunt: post-S1a–S1j still micro+settled (!macroLod; no mid-tween)",
+      s1bkSnap.paneOpen &&
+        !s1bkSnap.presentPaused &&
+        !s1bkSnap.macroLod &&
+        (s1bkSnap.camXSettled === true || s1bkSnap.camYSettled === true) &&
+        s1bkSnap.scrollVel < 0.12 &&
+        !!s1bkSnap.targetNodeId &&
+        Number(s1bkSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bkSnap.camX) &&
+        Number.isFinite(s1bkSnap.camY),
+      "snap=" + JSON.stringify(s1bkSnap)
     );
 
     // S1k — prefers-reduced-motion: snap blendMs to 0, camEase snappy, no settle timers.
