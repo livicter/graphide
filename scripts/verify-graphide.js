@@ -14319,26 +14319,33 @@ async function main() {
       };
     });
     await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
-    await page.waitForFunction(
+    // S1bh — settle-before-sample cold open (S1af): require cue cleared + pane
+    // (not a fixed 80ms pad). Product Review-clear cue semantics unchanged.
+    const s1afAfterColdOpen = await page.waitForFunction(
       () => {
         const pane = document.getElementById("sourcePane");
-        return !!(pane && !pane.hidden);
-      },
-      null,
-      { timeout: 5000 }
-    );
-    await page.waitForTimeout(80);
-    const s1afAfterColdOpen = await page.evaluate(() => {
-      const d = window.__graphideScrollDrive || {};
-      return {
-        reviewStayCleared: !!d.reviewStayCleared,
-        cueAttr: !!(
+        const d = window.__graphideScrollDrive;
+        if (!(pane && !pane.hidden && d && d.reviewStayCleared === false)) return null;
+        const cueAttr = !!(
           document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
           document.querySelector('[data-scroll-review-clear="1"]')
-        ),
-        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
-      };
-    });
+        );
+        if (cueAttr) return null;
+        return {
+          reviewStayCleared: !!d.reviewStayCleared,
+          cueAttr: cueAttr,
+          paneOpen: true,
+          presentStayStashed: !!d.presentStayStashed,
+          softStayed:
+            typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean"
+              ? !!window.__graphideScrollDriveShowSourceSoftStayed
+              : null,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 6000 }
+    ).then((h) => h.jsonValue());
     record(
       "S1af",
       "Review-clear publishes short-lived stay-cleared cue (not a restore); soft-stash / cold open clears it",
@@ -14479,6 +14486,117 @@ async function main() {
         Number(s1azSnap.ratio) > 0.1 &&
         Number.isFinite(s1azSnap.camX),
       "snap=" + JSON.stringify(s1azSnap)
+    );
+
+    // S1bh — Review-clear cold-open settle-before-sample probe (parity with S1bg).
+    // After S1af cold open + S1az settle: tiny nudge, atomic wait+snap cue cleared +
+    // micro+settled. Product Review-clear cue semantics unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bh-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4250 + i) + '</span><span class="tx">s1bh pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bhSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bh",
+      "Review-clear cold-open settle-before-sample: post-S1af still micro+settled + cue cleared (!macroLod; no mid-tween)",
+      s1bhSnap.paneOpen &&
+        !s1bhSnap.presentPaused &&
+        !s1bhSnap.macroLod &&
+        !s1bhSnap.reviewStayCleared &&
+        !s1bhSnap.cueAttr &&
+        !s1bhSnap.presentStayStashed &&
+        !s1bhSnap.presentStayAttr &&
+        (s1bhSnap.camXSettled === true || s1bhSnap.camYSettled === true) &&
+        s1bhSnap.scrollVel < 0.12 &&
+        !!s1bhSnap.targetNodeId &&
+        Number(s1bhSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bhSnap.camX),
+      "snap=" + JSON.stringify(s1bhSnap)
     );
 
     // S1ag — workspace-folder change clears S1af Review-clear cue (cannot stick across folders).
