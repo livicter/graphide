@@ -18029,6 +18029,133 @@ async function main() {
       s1bwDetail
     );
 
+    // S1bx — stamp remount soft-stay while Evidence open (product; no wipe-then-zoom).
+    let s1bxOk = false;
+    let s1bxDetail = "";
+    try {
+      const s1bxBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1bxPosts0 = await page.evaluate(() => (window.__vscodePosts || []).length);
+      await page.click("#stampBtn");
+      await page.waitForFunction(
+        (before) => {
+          const posts = window.__vscodePosts || [];
+          const stamped = posts.slice(before).some((m) => m && m.type === "stamp");
+          const body = document.getElementById("srcBody");
+          const pane = document.getElementById("sourcePane");
+          if (body) body.dispatchEvent(new Event("scroll"));
+          const d = window.__graphideScrollDrive;
+          return !!(stamped && pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+        },
+        s1bxPosts0,
+        { timeout: 8000 }
+      );
+      const s1bxAfter = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+            sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const s1bxDx = Math.abs((Number(s1bxAfter.camX) || 0) - (Number(s1bxBefore.camX) || 0));
+      const s1bxDy = Math.abs((Number(s1bxAfter.camY) || 0) - (Number(s1bxBefore.camY) || 0));
+      const s1bxDk = Math.abs((Number(s1bxAfter.camK) || 0) - (Number(s1bxBefore.camK) || 0));
+      s1bxOk =
+        s1bxBefore.paneOpen &&
+        !s1bxBefore.macroLod &&
+        !s1bxBefore.presentPaused &&
+        Number.isFinite(s1bxBefore.camX) &&
+        s1bxAfter.paneOpen &&
+        !s1bxAfter.presentPaused &&
+        !s1bxAfter.macroLod &&
+        s1bxAfter.sliceNodes > 0 &&
+        s1bxDx <= 96 + 24 &&
+        s1bxDy <= 200 &&
+        s1bxDk <= 0.45;
+      s1bxDetail =
+        "before=" +
+        JSON.stringify(s1bxBefore) +
+        " after=" +
+        JSON.stringify(s1bxAfter) +
+        " dx=" +
+        s1bxDx +
+        " dy=" +
+        s1bxDy +
+        " dk=" +
+        s1bxDk;
+      // Scrub probe stamp from __vscodePosts so later PW4 (counts all stamps) stays honest.
+      await page.evaluate((before) => {
+        if (Array.isArray(window.__vscodePosts)) window.__vscodePosts.length = before;
+      }, s1bxPosts0);
+    } catch (err) {
+      s1bxOk = false;
+      s1bxDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1bx",
+      "stamp remount soft-stay while Evidence open (keepCam + desk remount soft-restore)",
+      s1bxOk,
+      s1bxDetail
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 

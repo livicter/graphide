@@ -24571,7 +24571,19 @@
       vscode.postMessage({ type: "stamp", flow });
       flashToast("Stamped " + flow + " · holds", "holds");
       flashBtn(stampBtn, "flash-holds");
-      paint({ animate: "none" });
+      // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function requestSkip(name) {
       const flow = name || currentFlow() && currentFlow().name;
@@ -24583,7 +24595,19 @@
       vscode.postMessage({ type: "skip", flow });
       flashToast("Skipped " + flow, "skip");
       flashBtn(skipBtn, "flash-skip");
-      paint({ animate: "none" });
+      // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function programKeyOf(p) {
       return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
