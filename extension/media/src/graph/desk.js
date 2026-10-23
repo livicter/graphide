@@ -4397,7 +4397,20 @@ function setEgoMode(on) {
 function refreshExplorer() {
   if (!snapshot) return;
   if (enterCanvasActive() || isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
-    paint({ animate: "none" });
+    // S1bu — search / kind-filter remount while Evidence open: keepCam + soft-stay.
+    const evidenceStay =
+      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+      stashScrollDriveLastStay();
+    }
+    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+      stageFitRo.disconnect();
+      stageFitRo = null;
+    }
+    paint({ animate: "none", keepCam: !!evidenceStay });
+    if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+      softStayScrollDriveAcrossDeskRemount();
+    }
     return;
   }
   if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") {

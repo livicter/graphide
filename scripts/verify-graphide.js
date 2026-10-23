@@ -17547,6 +17547,160 @@ async function main() {
       s1btDetail
     );
 
+    // S1bu — search/kind remount soft-stay while Evidence open (refreshExplorer; no wipe-then-zoom).
+    let s1buOk = false;
+    let s1buDetail = "";
+    try {
+      const s1buBefore = await page.waitForFunction(
+        () => {
+          const d = window.__graphideScrollDrive;
+          const pane = document.getElementById("sourcePane");
+          if (
+            !(
+              d &&
+              !d.presentPaused &&
+              !d.macroLod &&
+              d.targetNodeId &&
+              Number(d.scrollVel) < 0.12 &&
+              (d.camXSettled === true || d.camYSettled === true) &&
+              pane &&
+              !pane.hidden
+            )
+          ) {
+            return null;
+          }
+          return {
+            camX: Number(d.camX),
+            camY: Number(d.camY),
+            camK: Number(d.camK),
+            ratio: Number(d.scrollRatio) || 0,
+            targetNodeId: d.targetNodeId || "",
+            camXSettled: !!d.camXSettled,
+            camYSettled: !!d.camYSettled,
+            macroLod: !!d.macroLod,
+            presentPaused: !!d.presentPaused,
+            paneOpen: true,
+          };
+        },
+        null,
+        { timeout: 8000 }
+      ).then((h) => h.jsonValue());
+      const kindInput = await page.$('#kindFilters input[data-kind]');
+      if (!kindInput) {
+        s1buDetail = "no #kindFilters input before=" + JSON.stringify(s1buBefore);
+      } else {
+        const wasChecked = await page.evaluate(
+          (el) => !!el.checked,
+          kindInput
+        );
+        await kindInput.click();
+        await page.waitForFunction(
+          (want) => {
+            const el = document.querySelector("#kindFilters input[data-kind]");
+            return !!(el && !!el.checked === !!want);
+          },
+          !wasChecked,
+          { timeout: 5000 }
+        );
+        await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+        await page.waitForFunction(
+          () => {
+            const pane = document.getElementById("sourcePane");
+            const d = window.__graphideScrollDrive;
+            return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+          },
+          null,
+          { timeout: 8000 }
+        );
+        const s1buAfter = await page.waitForFunction(
+          () => {
+            const d = window.__graphideScrollDrive;
+            const pane = document.getElementById("sourcePane");
+            if (
+              !(
+                d &&
+                !d.presentPaused &&
+                !d.macroLod &&
+                d.targetNodeId &&
+                Number(d.scrollVel) < 0.12 &&
+                (d.camXSettled === true || d.camYSettled === true) &&
+                pane &&
+                !pane.hidden
+              )
+            ) {
+              return null;
+            }
+            return {
+              camX: Number(d.camX),
+              camY: Number(d.camY),
+              camK: Number(d.camK),
+              ratio: Number(d.scrollRatio) || 0,
+              targetNodeId: d.targetNodeId || "",
+              camXSettled: !!d.camXSettled,
+              camYSettled: !!d.camYSettled,
+              macroLod: !!d.macroLod,
+              presentPaused: !!d.presentPaused,
+              paneOpen: true,
+              sliceNodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+            };
+          },
+          null,
+          { timeout: 8000 }
+        ).then((h) => h.jsonValue());
+        const s1buDx = Math.abs((Number(s1buAfter.camX) || 0) - (Number(s1buBefore.camX) || 0));
+        const s1buDy = Math.abs((Number(s1buAfter.camY) || 0) - (Number(s1buBefore.camY) || 0));
+        const s1buDk = Math.abs((Number(s1buAfter.camK) || 0) - (Number(s1buBefore.camK) || 0));
+        s1buOk =
+          s1buBefore.paneOpen &&
+          !s1buBefore.macroLod &&
+          !s1buBefore.presentPaused &&
+          Number.isFinite(s1buBefore.camX) &&
+          s1buAfter.paneOpen &&
+          !s1buAfter.presentPaused &&
+          !s1buAfter.macroLod &&
+          s1buAfter.sliceNodes > 0 &&
+          s1buDx <= 96 + 24 &&
+          s1buDy <= 200 &&
+          s1buDk <= 0.45;
+        s1buDetail =
+          "before=" +
+          JSON.stringify(s1buBefore) +
+          " after=" +
+          JSON.stringify(s1buAfter) +
+          " wasChecked=" +
+          wasChecked +
+          " dx=" +
+          s1buDx +
+          " dy=" +
+          s1buDy +
+          " dk=" +
+          s1buDk;
+        // Restore kind filter so later chrome probes see the full Slice cut.
+        const nowChecked = await page.evaluate((el) => !!el.checked, kindInput);
+        if (nowChecked !== wasChecked) {
+          await kindInput.click();
+          await page.waitForFunction(
+            (want) => {
+              const el = document.querySelector("#kindFilters input[data-kind]");
+              return !!(el && !!el.checked === !!want);
+            },
+            wasChecked,
+            { timeout: 5000 }
+          );
+          await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+        }
+      }
+    } catch (err) {
+      s1buOk = false;
+      s1buDetail = "error=" + String((err && err.message) || err);
+    }
+    record(
+      "S1bu",
+      "search/kind remount soft-stay while Evidence open (refreshExplorer keepCam + soft-restore)",
+      s1buOk,
+      s1buDetail
+    );
+
     await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
 
 
