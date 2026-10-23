@@ -14687,6 +14687,26 @@ async function main() {
         window.__graphideSetScrollDriveWorkspaceKey("ws-s1ai://folder");
       }
     });
+    // S1bd — settle-before-sample before Path A plant so Review-clear honesty is not raced mid-tween
+    // (parity with S1bc on S1ag / S1az on S1af). Product cue mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
     // Path A: Review-clear cue alone → Present enter drops cue (even with no stash).
     await page.evaluate(() => {
       if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
@@ -14769,6 +14789,22 @@ async function main() {
       },
       null,
       { timeout: 6000 }
+    );
+    // S1bd — settle-before-sample warm (S1ai Path B): require settle flags before Evidence close
+    // so Present-stash honesty is not raced mid-tween. Product mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
     );
     await page.keyboard.press("Escape");
     await page.waitForFunction(
@@ -14853,6 +14889,127 @@ async function main() {
         JSON.stringify(s1aiForced) +
         " mutEx=" +
         JSON.stringify(s1aiMutEx)
+    );
+
+    // S1bd — Present-stash/Review-clear mutual-exclusion settle-before-sample probe (parity with S1bc).
+    // After S1ai Path B exit: reopen same Evidence, tiny nudge, atomic wait+snap confirming
+    // both cues off + micro+settled. Product mutual exclusion unchanged.
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bd-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4400 + i) + '</span><span class="tx">s1bd pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bdSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bd",
+      "Present-stash/Review-clear mutual-exclusion settle-before-sample: post-S1ai still micro+settled + both cues cleared (!macroLod; no mid-tween)",
+      s1bdSnap.paneOpen &&
+        !s1bdSnap.presentPaused &&
+        !s1bdSnap.macroLod &&
+        !s1bdSnap.reviewStayCleared &&
+        !s1bdSnap.cueAttr &&
+        !s1bdSnap.presentStayStashed &&
+        !s1bdSnap.presentStayAttr &&
+        (s1bdSnap.camXSettled === true || s1bdSnap.camYSettled === true) &&
+        s1bdSnap.scrollVel < 0.12 &&
+        !!s1bdSnap.targetNodeId &&
+        Number(s1bdSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bdSnap.camX),
+      "snap=" + JSON.stringify(s1bdSnap)
     );
 
     // S1am — Present exit never implies Review clear (parity with S1ad/S1ai).
