@@ -513,6 +513,74 @@ assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") &&
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
 assert(driver.includes("passport.png") && driver.includes("data-passport-action"), "verify driver must drive Plan Passport fixture");
+
+// --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
+{
+  const immutableFs = require("fs");
+  const immutablePath = require("path");
+  const immutableRoot = immutablePath.resolve(__dirname, "..", "..");
+  const immutableLockRel = ".cursor/skills/verify-graphide/references/immutable-specs.lock";
+  const immutableLockPath = immutablePath.join(immutableRoot, immutableLockRel);
+  const immutableScriptPath = immutablePath.join(immutableRoot, "extension/scripts/check-immutable-specs.js");
+  const immutableMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/immutable-harness.md"
+  );
+
+  assert(immutableFs.existsSync(immutableScriptPath), "immutable checker missing");
+  assert(immutableFs.existsSync(immutableLockPath), "immutable lock missing");
+  assert(immutableFs.existsSync(immutableMapPath), "immutable-harness.md missing");
+
+  const immutablePkg = JSON.parse(
+    immutableFs.readFileSync(immutablePath.join(immutableRoot, "package.json"), "utf8")
+  );
+  const immutableVerify = String((immutablePkg.scripts && immutablePkg.scripts.verify) || "");
+
+  assert(
+    immutableVerify.includes("check-immutable-specs.js"),
+    "npm verify must call check-immutable-specs.js"
+  );
+  assert(
+    immutableVerify.indexOf("check-immutable-specs.js") < immutableVerify.indexOf("check-map.js"),
+    "immutable checker must run before check-map"
+  );
+  assert(immutableVerify.includes("check-map.js"), "npm verify must call check-map.js");
+  assert(
+    immutableVerify.indexOf("check-map.js") < immutableVerify.indexOf("verify-graphide.js"),
+    "check-map must run before verify-graphide"
+  );
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["verify:immutable"]) || "").includes(
+      "check-immutable-specs.js"
+    ),
+    "verify:immutable script missing"
+  );
+
+  const immutableLock = immutableFs.readFileSync(immutableLockPath, "utf8");
+  assert(/^#\s*seal-sha256:\s*[a-f0-9]{64}$/m.test(immutableLock), "immutable lock seal missing");
+
+  for (const rel of [
+    "package.json",
+    "extension/scripts/check-map.js",
+    "extension/scripts/check-immutable-specs.js",
+    "scripts/verify-graphide.js",
+    ".cursor/skills/verify-graphide/references/features/immutable-harness.md",
+  ]) {
+    assert(immutableLock.includes("  " + rel + "\n") || immutableLock.includes("  " + rel + "\r\n") || new RegExp("  " + rel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$", "m").test(immutableLock), "immutable lock missing " + rel);
+  }
+
+  const immutableMap = immutableFs.readFileSync(immutableMapPath, "utf8");
+  assert(
+    immutableMap.includes("## Sub-features") &&
+      immutableMap.includes("## How to get to it (user POV)") &&
+      immutableMap.includes("## Driving it with the harness") &&
+      immutableMap.includes("## Gotchas"),
+    "immutable-harness feature map must use the four headings"
+  );
+  assert(featReadme.includes("immutable-harness.md"), "feature README must list immutable-harness.md");
+  assert(driver.includes("I1") && driver.includes("check-immutable-specs") && driver.includes("Immutable specs"), "verify driver must prove immutable seal I1–I5");
+}
+
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");

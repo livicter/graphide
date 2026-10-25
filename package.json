@@ -1,13 +1,16 @@
 {
   "name": "graphide",
   "private": true,
-  "description": "Graphide Review desk — workspace tests plus the webview verify harness",
+  "description": "Graphide Review desk \u2014 workspace tests plus the webview verify harness",
   "scripts": {
-    "verify": "node scripts/verify-graphide.js",
+    "verify": "node extension/scripts/check-immutable-specs.js && node extension/scripts/check-immutable-specs.js --self-test && node extension/scripts/check-map.js && node scripts/verify-graphide.js",
     "build:webview": "node extension/scripts/build-webview.mjs",
     "package": "node scripts/package-graphide.js",
     "check:package": "node scripts/check-package.js",
-    "check:activation": "node scripts/check-activation.js"
+    "check:activation": "node scripts/check-activation.js",
+    "verify:immutable": "node extension/scripts/check-immutable-specs.js",
+    "verify:immutable:self-test": "node extension/scripts/check-immutable-specs.js --self-test",
+    "immutable:write": "node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation"
   },
   "engines": {
     "node": ">=20"

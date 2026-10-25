@@ -974,6 +974,131 @@ function assertSelfReviewSnap(snap) {
   return { nodes: nodes.length, edges: edges.length, files, plugin, altitude: altitude.length, labels };
 }
 
+
+function runImmutableSealChecks() {
+  const checker = path.join(ROOT, "extension", "scripts", "check-immutable-specs.js");
+  if (!fs.existsSync(checker)) {
+    record("I1", "Immutable checker exists", false, "missing check-immutable-specs.js");
+    failFast("immutable checker missing");
+  }
+  const lock = path.join(ROOT, ".cursor", "skills", "verify-graphide", "references", "immutable-specs.lock");
+  record("I0", "Immutable lock file present", fs.existsSync(lock), lock);
+
+  const verifyRun = spawnSync(process.execPath, [checker], {
+    cwd: ROOT,
+    encoding: "utf8",
+    env: process.env,
+  });
+  const verifyOut = String(verifyRun.stdout || "") + String(verifyRun.stderr || "");
+  const verifyOk = verifyRun.status === 0 && /Immutable specs OK/.test(verifyOut);
+  record("I1", "Immutable specs seal verifies on tip", verifyOk, verifyOut.trim().split("\n").slice(-3).join(" | "));
+  if (!verifyOk) failFast("immutable seal failed — " + verifyOut.slice(-500));
+
+  const selfRun = spawnSync(process.execPath, [checker, "--self-test"], {
+    cwd: ROOT,
+    encoding: "utf8",
+    env: process.env,
+  });
+  const selfOut = String(selfRun.stdout || "") + String(selfRun.stderr || "");
+  const selfOk = selfRun.status === 0 && /self-test OK/.test(selfOut);
+  record("I2", "Immutable self-test detects check-map tamper on a temp copy", selfOk, selfOut.trim());
+  if (!selfOk) failFast("immutable self-test failed — " + selfOut.slice(-500));
+
+  // I3: missing protected file fails — rename a locked feature map aside.
+  const i3Target = path.join(
+    ROOT,
+    ".cursor",
+    "skills",
+    "verify-graphide",
+    "references",
+    "features",
+    "immutable-harness.md"
+  );
+  const i3Aside = i3Target + ".immutable-aside";
+  let i3ok = false;
+  let i3detail = "";
+  try {
+    fs.renameSync(i3Target, i3Aside);
+    const missRun = spawnSync(process.execPath, [checker], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+    });
+    const missOut = String(missRun.stdout || "") + String(missRun.stderr || "");
+    i3ok = missRun.status !== 0 && /missing protected file|locked feature map missing|hash drift/.test(missOut);
+    i3detail = missOut.trim().split("\n").slice(0, 8).join(" | ");
+  } finally {
+    try {
+      if (fs.existsSync(i3Aside)) fs.renameSync(i3Aside, i3Target);
+    } catch (e) {}
+  }
+  record("I3", "Immutable check fails when a protected file is missing", i3ok, i3detail);
+  if (!i3ok) failFast("immutable missing-file probe failed — " + i3detail);
+
+  // I4: new feature map without lock entry fails (unlocked).
+  const i4Rel = path.join(
+    ".cursor",
+    "skills",
+    "verify-graphide",
+    "references",
+    "features",
+    "_immutable-probe-unlocked.md"
+  );
+  const i4Abs = path.join(ROOT, i4Rel);
+  let i4ok = false;
+  let i4detail = "";
+  try {
+    fs.writeFileSync(
+      i4Abs,
+      [
+        "# Immutable probe (ephemeral)",
+        "",
+        "## Sub-features",
+        "- probe",
+        "",
+        "## How to get to it (user POV)",
+        "- n/a",
+        "",
+        "## Driving it with the harness",
+        "- n/a",
+        "",
+        "## Gotchas",
+        "- auto-deleted by I4 probe",
+        "",
+      ].join("\n")
+    );
+    const unlockRun = spawnSync(process.execPath, [checker], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+    });
+    const unlockOut = String(unlockRun.stdout || "") + String(unlockRun.stderr || "");
+    i4ok = unlockRun.status !== 0 && /unlocked feature map/.test(unlockOut);
+    i4detail = unlockOut.trim().split("\n").slice(0, 8).join(" | ");
+  } finally {
+    try {
+      if (fs.existsSync(i4Abs)) fs.unlinkSync(i4Abs);
+    } catch (e) {}
+  }
+  record("I4", "Immutable check fails when a new feature map is unlocked", i4ok, i4detail);
+  if (!i4ok) failFast("immutable unlocked-map probe failed — " + i4detail);
+
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const verifyScript = String((pkg.scripts && pkg.scripts.verify) || "");
+  const i5ok =
+    verifyScript.indexOf("check-immutable-specs.js") >= 0 &&
+    verifyScript.indexOf("check-map.js") > verifyScript.indexOf("check-immutable-specs.js") &&
+    verifyScript.indexOf("verify-graphide.js") > verifyScript.indexOf("check-map.js");
+  record(
+    "I5",
+    "npm verify wires immutable seal before check-map and Playwright",
+    i5ok,
+    verifyScript
+  );
+  if (!i5ok) failFast("package.json verify script missing immutable order");
+}
+
+
 function finish(extra, passLine) {
   const failed = checks.filter((c) => !c.pass);
   writeReport(extra);
@@ -986,6 +1111,7 @@ function finish(extra, passLine) {
 }
 
 async function main() {
+  runImmutableSealChecks();
   fs.mkdirSync(OUT, { recursive: true });
   const assertOnly = process.argv.includes("--assert-snap");
 
@@ -25244,7 +25370,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · immutable · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

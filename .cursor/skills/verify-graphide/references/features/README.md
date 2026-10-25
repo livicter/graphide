@@ -17,6 +17,7 @@ owns this folder.
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` |
+| [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` |
 | [lineage.md](lineage.md) | Lineage workspace | `?lineage=1` · `verification/lineage.png` |
 | [export.md](export.md) | PNG / SVG / Share Card | explorer Map · `export-share.png` |
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |
