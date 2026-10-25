@@ -35,6 +35,7 @@ const NODE_TYPES = {
   sliceVnode: DerivedNode,
   lineageVnode: DerivedNode,
   enterVnode: DerivedNode,
+  trajNode: DerivedNode,
 };
 
 function ReviewBackEdge(props) {
@@ -92,7 +93,7 @@ function FitWhenReady({ graphKey }) {
     let ro = null;
     const paneOf = () =>
       document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow, #trajCanvas .react-flow"
       );
     const fit = () => {
       const pane = paneOf();
@@ -623,6 +624,51 @@ export function renderEnterCanvas(host, props) {
       cursor={props.cursor}
       hotIds={hotIds}
       embed
+      onNodeClick={props.onNodeClick}
+      onHopClick={props.onHopClick}
+    />
+  );
+}
+
+export function renderTrajectoryCanvas(host, props) {
+  const nodes = props.nodes || [];
+  const hops = props.hops || [];
+  const laid = layoutGraph(nodes, hops, {
+    nodeCap: 24,
+    hopCap: 48,
+    nodeW: 176,
+    nodeH: 64,
+    rankdir: "TB",
+    nodesep: 28,
+    ranksep: 56,
+  });
+  const hotIds = new Set((props.hotIds || []).map(String));
+  const items = decorateDerived(
+    nodes.map((n) => ({
+      id: String(n.id),
+      fqn: n.fqn || n.title || String(n.id),
+      kind: n.kind || "thought",
+      kindClass: "kind-" + (n.kind || "thought"),
+      label: n.label || n.title || String(n.id),
+      meta: n.summary || n.kind || "",
+      trajId: String(n.id),
+      selected: hotIds.has(String(n.id)),
+      on: hotIds.has(String(n.id)),
+      surface: "traj-node",
+      showFqn: false,
+      shape: n.shape || "fn",
+    })),
+    hops
+  );
+  mountReviewCanvas(
+    host,
+    <ReviewCanvas
+      nodeType="trajNode"
+      laid={laid}
+      items={items}
+      hops={hops}
+      cursor={props.cursor}
+      hotIds={hotIds}
       onNodeClick={props.onNodeClick}
       onHopClick={props.onHopClick}
     />

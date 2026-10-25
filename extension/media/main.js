@@ -7536,6 +7536,15 @@
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M10.4 6.2h1.8V4.4" })
           ] }),
           "Lifecycle"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "trajectory", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "3.2", cy: "4.2", r: "1.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "8", r: "1.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.8", cy: "11.8", r: "1.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.4 4.8 6.8 7.2M9.2 8.8 11.6 11.2" })
+          ] }),
+          "Trajectory"
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("nav", { id: "tabs" }),
@@ -16965,6 +16974,7 @@
       delete attrs["data-kind"];
     }
     if (d.side) attrs["data-side"] = d.side;
+    if (d.trajId) attrs["data-traj-id"] = String(d.trajId);
     if (d.file) attrs["data-file"] = d.file;
     if (d.flow) attrs["data-flow"] = d.flow;
     if (d.hops) attrs["data-hops"] = d.hops;
@@ -19045,7 +19055,8 @@
     lcState: DerivedNode,
     sliceVnode: DerivedNode,
     lineageVnode: DerivedNode,
-    enterVnode: DerivedNode
+    enterVnode: DerivedNode,
+    trajNode: DerivedNode
   };
   function ReviewBackEdge(props) {
     const top = useStore((s) => {
@@ -19099,7 +19110,7 @@
       fitted.current = "";
       let ro = null;
       const paneOf = () => document.querySelector(
-        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow"
+        "#deltaCanvas .react-flow, #seqCanvas .react-flow, #dfCanvas .react-flow, #lcCanvas .react-flow, #sliceCanvas .react-flow, #lineageCanvas .react-flow, #enterCanvas .react-flow, #trajCanvas .react-flow"
       );
       const fit = () => {
         const pane2 = paneOf();
@@ -19632,6 +19643,53 @@
       )
     );
   }
+  function renderTrajectoryCanvas(host, props) {
+    const nodes = props.nodes || [];
+    const hops = props.hops || [];
+    const laid = layoutGraph(nodes, hops, {
+      nodeCap: 24,
+      hopCap: 48,
+      nodeW: 176,
+      nodeH: 64,
+      rankdir: "TB",
+      nodesep: 28,
+      ranksep: 56
+    });
+    const hotIds = new Set((props.hotIds || []).map(String));
+    const items = decorateDerived(
+      nodes.map((n) => ({
+        id: String(n.id),
+        fqn: n.fqn || n.title || String(n.id),
+        kind: n.kind || "thought",
+        kindClass: "kind-" + (n.kind || "thought"),
+        label: n.label || n.title || String(n.id),
+        meta: n.summary || n.kind || "",
+        trajId: String(n.id),
+        selected: hotIds.has(String(n.id)),
+        on: hotIds.has(String(n.id)),
+        surface: "traj-node",
+        showFqn: false,
+        shape: n.shape || "fn"
+      })),
+      hops
+    );
+    mountReviewCanvas(
+      host,
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+        ReviewCanvas,
+        {
+          nodeType: "trajNode",
+          laid,
+          items,
+          hops,
+          cursor: props.cursor,
+          hotIds,
+          onNodeClick: props.onNodeClick,
+          onHopClick: props.onHopClick
+        }
+      )
+    );
+  }
 
   // extension/media/src/graph/desk.js
   function bootDesk() {
@@ -19711,9 +19769,9 @@
       custom: { url: "", model: "" }
     };
     let llmTok = 0;
-    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
-    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
-    const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
+    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trajectory"];
+    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trajectory: 1 };
+    const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, trajectory: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
     }
@@ -19731,6 +19789,7 @@
       sliceBodyKey = "";
       enterBodyKey = "";
       lineageBodyKey = "";
+      trajBodyKey = "";
       lineageHopCursor = -1;
       lineageEgoId = "";
     }
@@ -19795,6 +19854,8 @@
     let lcCursor = -1;
     let lcWalk = { playing: false, timer: 0 };
     let lcBodyKey = "";
+    let trajBodyKey = "";
+    let trajCursor = 0;
     let sliceBodyKey = "";
     let enterBodyKey = "";
     let lineageBodyKey = "";
@@ -22122,7 +22183,6 @@
         const n = parseInt(egoHopsEl.value, 10);
         egoHops = n === 2 ? 2 : 1;
         if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-          // S1bw — ego-hops remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
           const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
           if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
             stashScrollDriveLastStay();
@@ -22258,10 +22318,8 @@
       if (msg.type === "cancelled") {
         clearTimeout(previewTimer);
         finishWork();
-        // S1bz — cancelled remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
         if (snapshot) {
-          const evidenceStay =
-            typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+          const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
           if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
             stashScrollDriveLastStay();
           }
@@ -22480,7 +22538,6 @@
         consumeHarnessActions();
         return;
       }
-      // S1by — host patch remount while Evidence open: keepCam + soft-stay (vnode rebuild).
       const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
       if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
         stashScrollDriveLastStay();
@@ -22491,7 +22548,7 @@
       }
       paint({
         animate: "none",
-        keepCam: evidenceStay || mapStageMounted() || !!canvas.querySelector(".stage"),
+        keepCam: evidenceStay || mapStageMounted() || !!canvas.querySelector(".stage")
       });
       if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
         softStayScrollDriveAcrossDeskRemount();
@@ -24601,7 +24658,6 @@
       vscode.postMessage({ type: "stamp", flow });
       flashToast("Stamped " + flow + " · holds", "holds");
       flashBtn(stampBtn, "flash-holds");
-      // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
       const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
       if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
         stashScrollDriveLastStay();
@@ -24625,7 +24681,6 @@
       vscode.postMessage({ type: "skip", flow });
       flashToast("Skipped " + flow, "skip");
       flashBtn(skipBtn, "flash-skip");
-      // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
       const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
       if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
         stashScrollDriveLastStay();
@@ -27921,6 +27976,159 @@
         };
       if (play) play.onclick = () => toggleLcReview();
     }
+    const TRAJECTORY_KINDS = { thought: 1, tool: 1, edit: 1, validate: 1 };
+    const TRAJECTORY_FIXTURE = Object.freeze({
+      version: 1,
+      subtaskId: "traj-fix-auth-null",
+      title: "Fix null token in auth middleware",
+      nodes: [
+        {
+          id: "t1",
+          kind: "thought",
+          title: "Repro null token",
+          summary: "Trace 401 on stale token",
+          pin: { artifact: "notes/auth-null.md", diff: "" }
+        },
+        {
+          id: "t2",
+          kind: "tool",
+          title: "grep middleware",
+          summary: "Locate decodeToken call",
+          pin: { artifact: "cmd: grep -n decodeToken extension/src/auth", diff: "" }
+        },
+        {
+          id: "t3",
+          kind: "edit",
+          title: "Guard decodeToken",
+          summary: "401 when token null",
+          pin: {
+            artifact: "extension/src/auth.js",
+            diff: "--- a/auth.js\n+++ b/auth.js\n- const u = decodeToken(t);\n+ const u = t ? decodeToken(t) : null;\n+ if (!u) return unauthorized();"
+          }
+        },
+        {
+          id: "t4",
+          kind: "validate",
+          title: "pnpm test auth",
+          summary: "12 pass / 0 fail",
+          pin: { artifact: "pnpm test auth → 12 passed", diff: "", status: "pass" }
+        }
+      ],
+      edges: [
+        { id: "e1", source: "t1", target: "t2", kind: "necessitated_by" },
+        { id: "e2", source: "t2", target: "t3", kind: "necessitated_by" },
+        { id: "e3", source: "t3", target: "t4", kind: "necessitated_by" }
+      ]
+    });
+    function isTrajectory(v) {
+      return !!(v && Array.isArray(v.nodes) && Array.isArray(v.edges) && v.nodes.every((n) => n && typeof n.id === "string" && TRAJECTORY_KINDS[n.kind]) && v.edges.every((e) => e && e.kind === "necessitated_by" && e.source && e.target));
+    }
+    function getTrajectory() {
+      const o = typeof window !== "undefined" ? window.__graphideTrajectory : null;
+      return isTrajectory(o) ? o : TRAJECTORY_FIXTURE;
+    }
+    function trajectoryReading() {
+      const fx = getTrajectory();
+      const nodes = (fx.nodes || []).map((n) => ({
+        id: String(n.id),
+        kind: n.kind || "thought",
+        title: n.title || String(n.id),
+        summary: n.summary || "",
+        label: n.title || String(n.id),
+        fqn: n.title || String(n.id),
+        pin: n.pin || { artifact: "", diff: "" },
+        shape: n.kind === "validate" ? "end" : n.kind === "thought" ? "start" : "fn"
+      }));
+      const hops = (fx.edges || []).map((e, i) => ({
+        i,
+        from: String(e.source),
+        to: String(e.target),
+        kind: e.kind || "necessitated_by",
+        label: e.kind || "necessitated_by",
+        variant: "default"
+      }));
+      return { fx, nodes, hops, title: fx.title || "Trajectory" };
+    }
+    function trajectoryWorkspaceKey() {
+      const r = trajectoryReading();
+      return r.nodes.map((n) => n.id + ":" + n.kind).join("|") + "#" + trajCursor;
+    }
+    function renderTrajectoryPin(node) {
+      if (!node) {
+        return '<div class="empty">Select a trajectory step to inspect its artifact / diff.</div>';
+      }
+      const pin = node.pin || {};
+      const diff = pin.diff ? '<pre class="traj-diff">' + esc(pin.diff) + "</pre>" : "";
+      const status2 = pin.status ? '<div class="k">status · ' + esc(pin.status) + "</div>" : "";
+      return '<div class="traj-pin-body" data-traj-pin="' + esc(node.id) + '"><div class="k">' + esc(node.kind || "") + " · " + esc(node.title || node.id) + '</div><div class="t">' + esc(node.summary || "") + '</div><div class="b">' + esc(pin.artifact || "") + "</div>" + status2 + diff + "</div>";
+    }
+    function renderTrajectoryBody() {
+      const { fx, nodes, hops, title } = trajectoryReading();
+      if (!nodes.length) {
+        return '<div class="empty">No trajectory fixture loaded.</div>';
+      }
+      if (trajCursor < 0 || trajCursor >= nodes.length) trajCursor = 0;
+      const hot = nodes[trajCursor];
+      const steps = nodes.map((n, i) => {
+        return '<article class="traj-step expl-card' + (i === trajCursor ? " on" : "") + '" data-traj-i="' + i + '" data-traj-id="' + esc(n.id) + '" data-traj-kind="' + esc(n.kind || "") + '"><div class="k">' + esc(n.kind || "") + '</div><div class="t">' + esc(n.title || n.id) + '</div><div class="b">' + esc(n.summary || "") + "</div></article>";
+      }).join("");
+      return '<div class="traj-page"><div class="outcome-strip"><span class="outcome-k">' + esc(title) + " · " + nodes.length + ' steps · fixture</span></div><div class="ws-split"><div class="ws-list" id="trajSteps">' + steps + '</div><div class="ws-detail"><div id="trajCanvas" class="traj-canvas seq-canvas"></div><aside id="trajPin" class="traj-pin" aria-live="polite">' + renderTrajectoryPin(hot) + "</aside></div></div></div>";
+    }
+    function trajectoryCanvasProps() {
+      const { nodes, hops } = trajectoryReading();
+      const hot = nodes[trajCursor];
+      return {
+        nodes,
+        hops,
+        cursor: trajCursor,
+        hotIds: hot ? [hot.id] : [],
+        onNodeClick: (id2) => {
+          const i = nodes.findIndex((n) => String(n.id) === String(id2));
+          if (i < 0) return;
+          trajCursor = i;
+          paint({ animate: "none" });
+        }
+      };
+    }
+    function paintTrajectoryWorkspace(title) {
+      canvas.className = "play explorer-list";
+      const html = renderTrajectoryBody();
+      const key = trajectoryWorkspaceKey();
+      const keep = !!(canvas.querySelector(".traj-page") && document.getElementById("trajCanvas") && key === trajBodyKey && html.indexOf('id="trajCanvas"') >= 0);
+      if (keep) {
+        patchTrajectoryChrome();
+      } else {
+        unmountReviewCanvas();
+        canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + html + "</div>";
+        trajBodyKey = html.indexOf('id="trajCanvas"') >= 0 ? key : "";
+      }
+      const host = document.getElementById("trajCanvas");
+      if (host && !host.classList.contains("empty")) renderTrajectoryCanvas(host, trajectoryCanvasProps());
+      else unmountReviewCanvas();
+      applyGraphFilter();
+    }
+    function patchTrajectoryChrome() {
+      const { nodes } = trajectoryReading();
+      if (trajCursor < 0 || trajCursor >= nodes.length) trajCursor = 0;
+      const hot = nodes[trajCursor];
+      canvas.querySelectorAll("#trajSteps .traj-step").forEach((el2) => {
+        const i = parseInt(el2.getAttribute("data-traj-i"), 10);
+        el2.classList.toggle("on", i === trajCursor);
+      });
+      const pin = document.getElementById("trajPin");
+      if (pin) pin.innerHTML = renderTrajectoryPin(hot);
+    }
+    function bindTrajectoryPage() {
+      canvas.querySelectorAll("#trajSteps .traj-step").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          const i = parseInt(el2.getAttribute("data-traj-i"), 10);
+          if (!Number.isFinite(i)) return;
+          trajCursor = i;
+          paint({ animate: "none" });
+        };
+      });
+    }
     function countMap(items, keyFn) {
       const m = /* @__PURE__ */ new Map();
       for (const x of items || []) {
@@ -27952,7 +28160,8 @@
         delta: "Delta — derived parent vs head",
         sequence: "Sequence — callers, callees, returns on this flow",
         dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
-        lifecycle: "Lifecycle — review states, waits, terminals on this flow"
+        lifecycle: "Lifecycle — review states, waits, terminals on this flow",
+        trajectory: "Trajectory — agent Thought → Tool → Edit → Validation DAG"
       };
       setMeta(
         '<span class="crumb">Review</span> / <b>' + esc(ws) + "</b> · " + esc(titles[ws] || ws)
@@ -27982,6 +28191,13 @@
         paintLifecycleWorkspace(titles.lifecycle);
         bindWorkbenchPages();
         bindLifecyclePage();
+        applyProbePaint();
+        return;
+      }
+      if (ws === "trajectory") {
+        paintTrajectoryWorkspace(titles.trajectory);
+        bindWorkbenchPages();
+        bindTrajectoryPage();
         applyProbePaint();
         return;
       }
@@ -28053,7 +28269,7 @@
         };
       });
       canvas.querySelectorAll("[data-id]").forEach((el2) => {
-        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas")) return;
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
         el2.onclick = () => {
           explorerWs = "lineage";
           explorerPinned = true;

@@ -16,6 +16,7 @@ owns this folder.
 | [sequence.md](sequence.md) | Sequence workspace | `?sequence=1` · `verification/sequence.png` |
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
+| [trajectory.md](trajectory.md) | Trajectory DAG (ADE) | `?trajectory=1` · `verification/trajectory.png` |
 | [lineage.md](lineage.md) | Lineage workspace | `?lineage=1` · `verification/lineage.png` |
 | [export.md](export.md) | PNG / SVG / Share Card | explorer Map · `export-share.png` |
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |

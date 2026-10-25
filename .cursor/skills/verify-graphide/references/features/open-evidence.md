@@ -45,7 +45,7 @@ Inspect a node or hop without covering the object rail.
 extension/scripts/webview-harness.html?mode=explorer&probe=0
 ```
 
-1. Click `#workspaces [data-ws="slice"]` so `#ledgerPane` is shown (`LIST_WORKSPACES` hides the rail on decisions / registry / timeline / delta / sequence / dataflow / lifecycle; Map and Slice keep it).
+1. Click `#workspaces [data-ws="slice"]` so `#ledgerPane` is shown (`LIST_WORKSPACES` hides the rail on decisions / registry / timeline / delta / sequence / dataflow / lifecycle / trajectory; Map and Slice keep it).
 2. Click `.vnode[data-id]` or `#ledgerGrid .cell`.
 3. Wait for `#sourcePane` to be visible (`hidden` attribute gone, `.src-k` still says Evidence).
 

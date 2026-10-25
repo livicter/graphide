@@ -444,7 +444,38 @@
       });
   }
 
-  if (params.get("lifecycle") === "1") {
+
+  function loadTrajectoryFixture(done) {
+    fetch("./trajectory-fixture.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no trajectory-fixture.json (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (fx) {
+        const ok =
+          fx &&
+          Array.isArray(fx.nodes) &&
+          Array.isArray(fx.edges) &&
+          fx.nodes.length > 0;
+        if (!ok) throw new Error("trajectory-fixture.json is not a trajectory fixture");
+        window.__graphideTrajectory = fx;
+        window.__graphideTrajectoryError = "";
+        done();
+      })
+      .catch(function (err) {
+        window.__graphideTrajectory = null;
+        window.__graphideTrajectoryError = String(err && err.message ? err.message : err);
+        // Fixture override is optional — desk falls back to embedded TRAJECTORY_FIXTURE.
+        done();
+      });
+  }
+
+  if (params.get("trajectory") === "1") {
+    loadTrajectoryFixture(function () {
+      window.postMessage(msg, "*");
+      afterPaint();
+    });
+  } else if (params.get("lifecycle") === "1") {
     loadNamedSnap("lifecycle-snap.json", "__graphideLifecycle", "__graphideLifecycleError", afterPaint, params.get("require") === "1");
   } else if (params.get("lineage") === "1") {
     loadNamedSnap("sequence-snap.json", "__graphideLineage", "__graphideLineageError", afterPaint, params.get("require") === "1");

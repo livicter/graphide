@@ -36,6 +36,7 @@ const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&w
 const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence";
 const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
 const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
+const TRAJECTORY_HARNESS = "/scripts/webview-harness.html?trajectory=1&probe=0&ws=trajectory";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -23997,7 +23998,109 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
+
     assertNoStampDir("L8", "Lifecycle step did not write .graphide/stamps/");
+
+    const trajectoryUrl = origin + TRAJECTORY_HARNESS;
+    console.log("trajectory " + trajectoryUrl);
+    await page.goto(trajectoryUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page
+      .waitForFunction(() => document.body.classList.contains("desk"), null, { timeout: 25000 })
+      .catch(() => null);
+    await page.waitForTimeout(400);
+    if ((await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return on ? on.getAttribute("data-ws") : "";
+    })) !== "trajectory") {
+      await page.click('#workspaces [data-ws="trajectory"]');
+      await page.waitForTimeout(300);
+    }
+    await page.waitForSelector("#trajSteps .traj-step", { timeout: 10000 });
+    await page.waitForSelector("#trajCanvas .react-flow__node", { timeout: 10000 });
+    await page.waitForSelector("#trajPin", { timeout: 5000 });
+
+    const trajDesk = await page.evaluate(() => {
+      const steps = [...document.querySelectorAll("#trajSteps .traj-step")];
+      const idxs = steps.map((el) => el.getAttribute("data-traj-i"));
+      const ids = steps.map((el) => el.getAttribute("data-traj-id"));
+      const kinds = steps.map((el) => el.getAttribute("data-traj-kind"));
+      const ordered = idxs.every((v, i) => String(v) === String(i));
+      const pin = document.getElementById("trajPin");
+      const pinText = ((pin && pin.textContent) || "").replace(/\s+/g, " ").trim();
+      const xy = document.querySelectorAll("#trajCanvas .react-flow__node").length;
+      const edges = document.querySelectorAll("#trajCanvas .react-flow__edge").length;
+      const selected = document.querySelectorAll("#trajCanvas .vnode.on, #trajCanvas .vnode.selected").length;
+      const trajIds = [...document.querySelectorAll("#trajCanvas .vnode[data-traj-id]")].map((el) =>
+        el.getAttribute("data-traj-id")
+      );
+      return {
+        ws: ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        steps: steps.length,
+        ordered,
+        ids,
+        kinds,
+        pinText,
+        pinHasThought: /auth-null|Repro null token|thought/i.test(pinText),
+        xy,
+        edges,
+        xyFlow: !!document.querySelector("#trajCanvas .react-flow"),
+        selected,
+        trajIds,
+        tabs: document.querySelectorAll('#workspaces [data-ws="trajectory"]').length,
+        badHooks: (() => {
+          const root = document.querySelector(".traj-page");
+          if (!root) return true;
+          // XYFlow ships rf__* data-testid on wrapper/nodes/edges — exclude .react-flow.
+          const hits = [...root.querySelectorAll("[data-testid],[data-component]")].filter(
+            (el) => !el.closest(".react-flow")
+          );
+          return hits.length > 0;
+        })(),
+      };
+    });
+    record("T1", "Trajectory tab exists once on the explorer row", trajDesk.tabs === 1, "tabs=" + trajDesk.tabs);
+    record("T2", "Trajectory workspace is active", trajDesk.ws === "trajectory", trajDesk.ws);
+    record(
+      "T3",
+      "Trajectory has four ordered fixture steps",
+      trajDesk.steps === 4 && trajDesk.ordered && trajDesk.ids.join(",") === "t1,t2,t3,t4",
+      "steps=" + trajDesk.steps + " ids=" + trajDesk.ids.join(",") + " kinds=" + trajDesk.kinds.join(",")
+    );
+    record(
+      "T4",
+      "Trajectory canvas mounts XYFlow DAG (4 nodes, 3 edges)",
+      trajDesk.xyFlow && trajDesk.xy === 4 && trajDesk.edges >= 3 && trajDesk.trajIds.length === 4,
+      "xy=" + trajDesk.xy + " edges=" + trajDesk.edges + " trajIds=" + trajDesk.trajIds.join(",")
+    );
+    record(
+      "T5",
+      "Trajectory default pin shows Thought artifact",
+      trajDesk.pinHasThought && trajDesk.selected >= 1,
+      trajDesk.pinText.slice(0, 120)
+    );
+
+    await page.click('#trajSteps .traj-step[data-traj-i="2"]');
+    await page.waitForTimeout(200);
+    const trajEdit = await page.evaluate(() => {
+      const pin = ((document.getElementById("trajPin") || {}).textContent || "").replace(/\s+/g, " ").trim();
+      const on = document.querySelector('#trajSteps .traj-step[data-traj-i="2"].on');
+      return {
+        pin,
+        stepOn: !!on,
+        hasDiff: /decodeToken|unauthorized|auth\.js/i.test(pin),
+      };
+    });
+    record(
+      "T6",
+      "Trajectory step click pins Edit artifact/diff",
+      trajEdit.stepOn && trajEdit.hasDiff,
+      trajEdit.pin.slice(0, 140)
+    );
+    record("T7", "Trajectory page does not introduce data-testid / data-component", !trajDesk.badHooks, "");
+    await shot(page, "trajectory.png");
+    assertNoStampDir("T8", "Trajectory step did not write .graphide/stamps/");
 
     const lineageUrl = origin + LINEAGE_HARNESS;
     console.log("lineage " + lineageUrl);
@@ -25086,6 +25189,8 @@ async function main() {
       "` (Data-flow on fixtures/demo) then `" +
       LIFECYCLE_HARNESS +
       "` (Lifecycle on fixtures/demo) then `" +
+      TRAJECTORY_HARNESS +
+      "` (Trajectory DAG fixture) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -25100,7 +25205,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trajectory · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

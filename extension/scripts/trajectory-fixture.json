@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "subtaskId": "traj-fix-auth-null",
+  "title": "Fix null token in auth middleware",
+  "nodes": [
+    {
+      "id": "t1",
+      "kind": "thought",
+      "title": "Repro null token",
+      "summary": "Trace 401 on stale token",
+      "pin": { "artifact": "notes/auth-null.md", "diff": "" }
+    },
+    {
+      "id": "t2",
+      "kind": "tool",
+      "title": "grep middleware",
+      "summary": "Locate decodeToken call",
+      "pin": { "artifact": "cmd: grep -n decodeToken extension/src/auth", "diff": "" }
+    },
+    {
+      "id": "t3",
+      "kind": "edit",
+      "title": "Guard decodeToken",
+      "summary": "401 when token null",
+      "pin": {
+        "artifact": "extension/src/auth.js",
+        "diff": "--- a/auth.js\n+++ b/auth.js\n- const u = decodeToken(t);\n+ const u = t ? decodeToken(t) : null;\n+ if (!u) return unauthorized();"
+      }
+    },
+    {
+      "id": "t4",
+      "kind": "validate",
+      "title": "pnpm test auth",
+      "summary": "12 pass / 0 fail",
+      "pin": { "artifact": "pnpm test auth → 12 passed", "diff": "", "status": "pass" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "t2", "kind": "necessitated_by" },
+    { "id": "e2", "source": "t2", "target": "t3", "kind": "necessitated_by" },
+    { "id": "e3", "source": "t3", "target": "t4", "kind": "necessitated_by" }
+  ]
+}

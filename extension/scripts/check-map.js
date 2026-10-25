@@ -110,6 +110,7 @@ assert(chrome.includes('data-ws="delta"'), "delta workspace tab missing");
 assert(chrome.includes('data-ws="sequence"'), "sequence workspace tab missing");
 assert(chrome.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
 assert(chrome.includes('data-ws="lifecycle"'), "lifecycle workspace tab missing");
+assert(chrome.includes('data-ws="trajectory"'), "trajectory workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -150,7 +151,7 @@ assert(!chrome.includes("MiniMap") && !chrome.includes("<Controls"), "Sequence m
 assert(fs.existsSync(path.join(__dirname, "../media/xyflow.css")), "XYFlow CSS must ship as extension/media/xyflow.css");
 assert(css.includes('@import url("xyflow.css")'), "main.css must import the shipped XYFlow stylesheet");
 assert(css.includes("#seqCanvas .react-flow"), "Sequence XYFlow must be contained in #seqCanvas");
-assert(css.includes("#deltaCanvas .react-flow") && css.includes("#dfCanvas .react-flow") && css.includes("#lcCanvas .react-flow") && css.includes("#sliceCanvas .react-flow") && css.includes("#lineageCanvas .react-flow") && css.includes("#enterCanvas .react-flow"), "Delta / Data-flow / Lifecycle / Slice / Lineage / Enter XYFlow must be contained in their canvas hosts");
+assert(css.includes("#deltaCanvas .react-flow") && css.includes("#dfCanvas .react-flow") && css.includes("#lcCanvas .react-flow") && css.includes("#sliceCanvas .react-flow") && css.includes("#lineageCanvas .react-flow") && css.includes("#enterCanvas .react-flow") && css.includes("#trajCanvas .react-flow"), "Delta / Data-flow / Lifecycle / Slice / Lineage / Enter / Trajectory XYFlow must be contained in their canvas hosts");
 assert(js.includes("function renderDeltaCanvas") || chrome.includes("mountDeltaCanvas") || chrome.includes("renderDeltaCanvas"), "Delta XYFlow mount missing");
 assert(js.includes("DELTA_NODE_CAP") || chrome.includes("DELTA_NODE_CAP") || chrome.includes("nodeCap: 24"), "Delta must cap at 24");
 assert(js.includes("function renderDataflowCanvas") || chrome.includes("renderDataflowCanvas"), "Data-flow XYFlow mount missing");
@@ -176,6 +177,7 @@ assert(js.includes("function flow_dataflow") || js.includes("function dataflowOf
 assert(js.includes("function renderLifecycleBody"), "Lifecycle workspace missing");
 assert(js.includes('id="lcPlay"') && js.includes('id="lcTrans"') && js.includes('id="lcCanvas"'), "Lifecycle Play walk and machine missing");
 assert(js.includes("function flow_lifecycle") || js.includes("function lifecycleOf"), "Lifecycle must read the derived review machine");
+assert(js.includes("TRAJECTORY_FIXTURE") && js.includes("function paintTrajectoryWorkspace") && js.includes("function getTrajectory"), "Trajectory DAG workspace missing");
 assert(js.includes('from: "broken"') && js.includes('to: "walking"'), "Lifecycle recover must be a real broken → walking transition");
 assert(js.includes("data-delta-view") && js.includes('["before", "Before"]') && js.includes('["after", "After"]'), "Delta Before/After switch missing");
 assert(js.includes("function renderRegistryBody"), "registry must be an audit table");
@@ -266,6 +268,7 @@ assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
+assert(harness.includes("trajectory-fixture.json") && harness.includes("__graphideTrajectory"), "trajectory fixture loader missing");
 assert(harness.includes("python-snap.json") && harness.includes("__graphidePython"), "python fixture snap loader missing");
 assert(harness.includes("js-snap.json") && harness.includes("__graphideJs"), "javascript fixture snap loader missing");
 assert(harness.includes("ts-snap.json") && harness.includes("__graphideTs"), "typescript fixture snap loader missing");
@@ -321,6 +324,7 @@ const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/ve
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
+assert(featReadme.includes("trajectory.md") && featReadme.includes("trajectory.png"), "feature README must list trajectory.md");
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
 assert(featReadme.includes("panel-timeout.md") && featReadme.includes("panel-timeout.png"), "feature README must list panel-timeout.md");
 assert(featReadme.includes("python-desk.md") && featReadme.includes("python-desk.png"), "feature README must list python-desk.md");
@@ -354,9 +358,9 @@ assert(featReadme.includes("slice-runs.md") && featReadme.includes("slice-runs.p
 assert(featReadme.includes("slice-enter-recycle.md") && featReadme.includes("slice-enter-recycle.png"), "feature README must list slice-enter-recycle.md");
 assert(featReadme.includes("stamp-recheck.md") && featReadme.includes("stamp-recheck.png"), "feature README must list stamp-recheck.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
-assert(featReadme.includes("scroll-drive.md") && featReadme.includes("S1a") && featReadme.includes("S1n") && featReadme.includes("__graphideScrollDrive"), "feature README must list scroll-drive.md with S1a–S1n");
+assert(featReadme.includes("scroll-drive.md") && featReadme.includes("S1a") && featReadme.includes("S1bz") && featReadme.includes("__graphideScrollDrive"), "feature README must list scroll-drive.md with S1a–S1bz");
 const openEvidenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-evidence.md"), "utf8");
-assert(openEvidenceMap.includes("scroll-drive.md") && openEvidenceMap.includes("S1a") && openEvidenceMap.includes("S1n") && openEvidenceMap.includes("line→node") && openEvidenceMap.includes("lineMapHit"), "open-evidence must defer S1a–S1n scroll-drive ownership (S1o)");
+assert(openEvidenceMap.includes("scroll-drive.md") && openEvidenceMap.includes("S1a") && openEvidenceMap.includes("S1bz") && openEvidenceMap.includes("line→node") && openEvidenceMap.includes("lineMapHit"), "open-evidence must defer S1a–S1bz scroll-drive ownership (S1o)");
 const presentationMapS1o = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md"), "utf8");
 assert(presentationMapS1o.includes("S1m") && presentationMapS1o.includes("presentPaused") && presentationMapS1o.includes("scroll-drive.md"), "presentation must point S1m Present-pause at scroll-drive.md (S1o)");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
@@ -445,6 +449,15 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline.md")), "timeline feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trajectory.md")), "trajectory feature map missing");
+const trajectoryMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trajectory.md"), "utf8");
+assert(
+  trajectoryMap.includes("## Sub-features") &&
+    trajectoryMap.includes("## How to get to it (user POV)") &&
+    trajectoryMap.includes("## Driving it with the harness") &&
+    trajectoryMap.includes("## Gotchas"),
+  "trajectory feature map must use the four headings"
+);
 assert(chrome.includes('id="pathBtn"'), "PATH button missing from chrome");
 assert(chrome.includes('id="lensBtn"'), "LENS button missing from chrome");
 assert(chrome.includes('id="probeDock"') && chrome.includes('id="routeReceipt"') && chrome.includes('id="lensReceipt"'), "route / lens receipt dock missing");
@@ -497,6 +510,7 @@ assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") &&
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
+assert(driver.includes("trajectory.png") && driver.includes("TRAJECTORY_HARNESS") && driver.includes("data-traj-id"), "verify driver must drive Trajectory DAG fixture");
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");

@@ -131,6 +131,7 @@ export function DerivedNode({ data }) {
     delete attrs["data-kind"];
   }
   if (d.side) attrs["data-side"] = d.side;
+  if (d.trajId) attrs["data-traj-id"] = String(d.trajId);
   if (d.file) attrs["data-file"] = d.file;
   if (d.flow) attrs["data-flow"] = d.flow;
   if (d.hops) attrs["data-hops"] = d.hops;
