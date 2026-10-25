@@ -12,6 +12,7 @@ import {
   unmountSequenceCanvas,
   unmountReviewCanvas,
 } from "./sequence-canvas.jsx";
+import { TRAJECTORY_FIXTURE } from "./trajectory-fixture.js";
 
 export function bootDesk() {
   const vscode = acquireHost();
@@ -91,8 +92,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1 };
 const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
 
 function reviewCanvasWorkspace(ws) {
@@ -10228,6 +10229,113 @@ function bindLifecyclePage() {
   if (play) play.onclick = () => toggleLcReview();
 }
 
+
+function trajectoryFixture() {
+  return TRAJECTORY_FIXTURE;
+}
+
+function renderTrajectoryBody() {
+  const fix = trajectoryFixture();
+  const nodes = fix.nodes || [];
+  const edges = fix.edges || [];
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const nodeW = 168;
+  const nodeH = 64;
+  const edgeLines = edges
+    .map((e) => {
+      const a = byId.get(e.from);
+      const b = byId.get(e.to);
+      if (!a || !b) return "";
+      const x1 = a.x + nodeW;
+      const y1 = a.y + nodeH / 2;
+      const x2 = b.x;
+      const y2 = b.y + nodeH / 2;
+      return (
+        '<line class="traj-edge" data-edge-id="' +
+        esc(e.id) +
+        '" data-from="' +
+        esc(e.from) +
+        '" data-to="' +
+        esc(e.to) +
+        '" x1="' +
+        x1 +
+        '" y1="' +
+        y1 +
+        '" x2="' +
+        x2 +
+        '" y2="' +
+        y2 +
+        '" />'
+      );
+    })
+    .join("");
+  const nodeHtml = nodes
+    .map((n) => {
+      const art = n.artifact || "";
+      const diff = n.diff || "";
+      return (
+        '<div class="traj-node status-' +
+        esc(n.status || "pending") +
+        '" data-id="' +
+        esc(n.id) +
+        '" data-artifact="' +
+        esc(art) +
+        '" data-diff="' +
+        esc(diff) +
+        '" style="left:' +
+        n.x +
+        "px;top:" +
+        n.y +
+        'px">' +
+        '<div class="traj-label">' +
+        esc(n.label || n.id) +
+        "</div>" +
+        (art ? '<div class="traj-pin artifact" title="artifact">' + esc(art) + "</div>" : "") +
+        (diff ? '<div class="traj-pin diff" title="diff">' + esc(diff) + "</div>" : "") +
+        "</div>"
+      );
+    })
+    .join("");
+  const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 40;
+  const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 40;
+  return (
+    '<div class="traj-page">' +
+    '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
+    esc(fix.id) +
+    '" style="min-width:' +
+    maxX +
+    "px;min-height:" +
+    maxY +
+    'px">' +
+    '<svg class="traj-edges" width="' +
+    maxX +
+    '" height="' +
+    maxY +
+    '" aria-hidden="true">' +
+    edgeLines +
+    "</svg>" +
+    nodeHtml +
+    "</div>" +
+    '<div class="traj-meta">' +
+    nodes.length +
+    " subtasks · " +
+    edges.length +
+    " deps · fixture " +
+    esc(fix.id) +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function paintTrajectoryWorkspace(title) {
+  unmountAllReviewCanvases();
+  const html = renderTrajectoryBody();
+  canvas.className = "play explorer-list traj";
+  canvas.innerHTML =
+    '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
+  setZoomUi(false);
+}
+
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -10265,6 +10373,7 @@ function renderExplorerList(ws, opts) {
     sequence: "Sequence — callers, callees, returns on this flow",
     dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
     lifecycle: "Lifecycle — review states, waits, terminals on this flow",
+    trace: "Trace — read-only execution trajectory DAG",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -10297,6 +10406,12 @@ function renderExplorerList(ws, opts) {
     paintLifecycleWorkspace(titles.lifecycle);
     bindWorkbenchPages();
     bindLifecyclePage();
+    applyProbePaint();
+    return;
+  }
+  if (ws === "trace") {
+    paintTrajectoryWorkspace(titles.trace);
+    bindWorkbenchPages();
     applyProbePaint();
     return;
   }
@@ -10373,7 +10488,7 @@ function renderExplorerList(ws, opts) {
     };
   });
   canvas.querySelectorAll("[data-id]").forEach((el) => {
-    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas")) return;
+    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
     el.onclick = () => {
       explorerWs = "lineage";
       explorerPinned = true;

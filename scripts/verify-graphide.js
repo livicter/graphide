@@ -1607,6 +1607,59 @@ async function main() {
     );
     assertNoStampDir("DH5", "Draft-hint step did not write .graphide/stamps/");
 
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "trace";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector('[data-testid="trajectory-dag"]', { timeout: 8000 });
+    const trajDesk = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const nodes = host ? [...host.querySelectorAll(".traj-node")] : [];
+      const edges = host ? [...host.querySelectorAll(".traj-edge")] : [];
+      const arts = nodes.map((el) => el.getAttribute("data-artifact") || "").filter(Boolean);
+      const diffs = nodes.map((el) => el.getAttribute("data-diff") || "").filter(Boolean);
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        host: !!host,
+        hostId: host ? host.id : "",
+        nodes: nodes.length,
+        edges: edges.length,
+        arts: arts.length,
+        diffs: diffs.length,
+        artSample: arts.slice(0, 3),
+        diffSample: diffs.slice(0, 3),
+        labels: nodes.map((el) => ((el.querySelector(".traj-label") || {}).textContent || "").trim()),
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+      };
+    });
+    record("A1a", "Trace workspace is active with trajectory-dag host", trajDesk.ws === "trace" && trajDesk.host && trajDesk.hostId === "trajCanvas", JSON.stringify({ ws: trajDesk.ws, hostId: trajDesk.hostId }));
+    record(
+      "A1a1",
+      "Trajectory DAG has ≥3 subtask nodes and ≥2 dependency edges",
+      trajDesk.nodes >= 3 && trajDesk.edges >= 2,
+      "nodes=" + trajDesk.nodes + " edges=" + trajDesk.edges + " labels=" + trajDesk.labels.join(",")
+    );
+    record(
+      "A1a2",
+      "Trajectory nodes expose artifact and diff pins",
+      trajDesk.arts >= 3 && trajDesk.diffs >= 2,
+      "arts=" + trajDesk.arts + " diffs=" + trajDesk.diffs + " " + trajDesk.artSample.join("|") + " · " + trajDesk.diffSample.join("|")
+    );
+    record(
+      "A1a3",
+      "Trace keeps Map community LOD idle (xy=0 on Trace)",
+      trajDesk.xy === 0,
+      "xy=" + trajDesk.xy
+    );
+    await shot(page, "trajectory-dag.png");
+    assertNoStampDir("A1a4", "Trace step did not write .graphide/stamps/");
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
     await page.waitForTimeout(250);

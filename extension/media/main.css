@@ -1382,7 +1382,8 @@ svg.steiner.flowing .vnode.hot .node-box {
 #canvas:has(.delta-page),
 #canvas:has(.seq-page),
 #canvas:has(.df-page),
-#canvas:has(.lc-page) {
+#canvas:has(.lc-page),
+#canvas:has(.traj-page) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1391,7 +1392,8 @@ svg.steiner.flowing .vnode.hot .node-box {
 #canvas:has(.delta-page) .expl-wrap,
 #canvas:has(.seq-page) .expl-wrap,
 #canvas:has(.df-page) .expl-wrap,
-#canvas:has(.lc-page) .expl-wrap {
+#canvas:has(.lc-page) .expl-wrap,
+#canvas:has(.traj-page) .expl-wrap {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -2354,6 +2356,57 @@ html.bright .route-hop {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
 }
+
+/* ADE A1a — Trace trajectory DAG (fixture, read-only) */
+.traj-page { display: flex; flex-direction: column; gap: 8px; min-height: 200px; }
+.traj-canvas {
+  position: relative;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 180px;
+  width: 100%;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: var(--g-panel, rgba(127,127,127,0.06));
+}
+.traj-edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.traj-edge {
+  stroke: var(--g-line, #8b949e);
+  stroke-width: 2;
+  marker-end: none;
+}
+.traj-node {
+  position: absolute;
+  width: 168px;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--g-line, #8b949e);
+  border-radius: 6px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-foreground, #ddd);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.traj-node.status-done { border-color: #3fb950; }
+.traj-node.status-running { border-color: var(--vscode-focusBorder, #2f81f7); }
+.traj-node.status-pending { opacity: 0.78; }
+.traj-label { font-weight: 600; margin-bottom: 4px; }
+.traj-pin {
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.traj-pin.diff { color: #3fb950; }
+.traj-meta { font-size: 11px; opacity: 0.7; }
+html.bright .traj-canvas { background: rgba(0,0,0,0.03); }
+html.bright .traj-node { background: #fff; }
+
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
   overflow: hidden;
