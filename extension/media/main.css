@@ -2407,6 +2407,30 @@ html.bright .route-hop {
 html.bright .traj-canvas { background: rgba(0,0,0,0.03); }
 html.bright .traj-node { background: #fff; }
 
+.passport-page { display: flex; flex-direction: column; gap: 12px; max-width: 920px; }
+.passport-section { margin: 0; padding: 10px 12px; border: 1px solid var(--vscode-widget-border, #333); border-radius: 8px; background: color-mix(in srgb, var(--vscode-editor-background) 94%, transparent); }
+.passport-section h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.8; }
+.passport-section ul { margin: 0; padding-left: 1.1rem; }
+.passport-section li { margin: 4px 0; }
+.passport-gate { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--vscode-widget-border, #333); border-left-width: 4px; }
+.passport-gate[data-passport-state="pending"] { border-left-color: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-gate[data-passport-state="rejected"] { border-left-color: var(--vscode-errorForeground, #f14c4c); }
+.passport-gate[data-passport-state="approved"] { border-left-color: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-gate-state { font-weight: 600; margin-bottom: 6px; }
+.passport-gate-paths { margin: 0; padding-left: 1.1rem; }
+.passport-gate-paths [data-blocked="1"] { opacity: 0.75; text-decoration: line-through; }
+.passport-sign { display: flex; gap: 8px; margin-top: 4px; }
+.passport-sign button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--vscode-widget-border, #333); background: var(--vscode-button-secondaryBackground, #3a3a3a); color: var(--vscode-button-secondaryForeground, #fff); }
+.passport-sign button[data-passport-action="approve"] { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); }
+.passport-page [data-level="high"] { color: var(--vscode-errorForeground, #f14c4c); }
+.passport-page [data-level="med"] { color: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-page [data-level="low"] { color: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-page [data-stability="draft"] { font-style: italic; opacity: 0.85; }
+#passportImpact dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 0; }
+#passportImpact dt { opacity: 0.75; }
+#passportImpact dd { margin: 0; }
+
+
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
   overflow: hidden;

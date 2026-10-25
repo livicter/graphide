@@ -103,6 +103,13 @@ export function GraphBar() {
           </WsIco>
           Trace
         </button>
+        <button type="button" data-ws="passport">
+          <WsIco>
+            <rect x="3" y="2.5" width="10" height="11" rx="1.2" />
+            <path d="M5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.6" />
+          </WsIco>
+          Passport
+        </button>
       </nav>
       <nav id="tabs" />
       <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">

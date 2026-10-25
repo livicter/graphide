@@ -36,6 +36,7 @@ const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&w
 const SEQUENCE_HARNESS = "/scripts/webview-harness.html?sequence=1&probe=0&require=1&ws=sequence";
 const DATAFLOW_HARNESS = "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
 const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
+const PASSPORT_HARNESS = "/scripts/webview-harness.html?passport=1&probe=0&ws=passport";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -1659,6 +1660,94 @@ async function main() {
     );
     await shot(page, "trajectory-dag.png");
     assertNoStampDir("A1a4", "Trace step did not write .graphide/stamps/");
+
+    // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "passport";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#passportPage", { timeout: 8000 });
+    await page.waitForSelector("#passportGate", { timeout: 5000 });
+    await page.waitForSelector("#passportSign", { timeout: 5000 });
+
+    const passDesk = await page.evaluate(() => {
+      const gate = document.getElementById("passportGate");
+      const impact = document.getElementById("passportImpact");
+      const impactText = ((impact && impact.textContent) || "").replace(/\s+/g, " ").trim();
+      const blocked = document.querySelectorAll('#passportGate [data-blocked="1"]').length;
+      const paths = document.querySelectorAll("#passportGate [data-passport-path]").length;
+      const root = document.getElementById("passportPage");
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        tabs: document.querySelectorAll('#workspaces [data-ws="passport"]').length,
+        gateState: gate ? gate.getAttribute("data-passport-state") : "",
+        blocked,
+        paths,
+        hasTargets: !!document.querySelector('[data-passport="targets"] li'),
+        hasContracts: !!document.querySelector('[data-passport="contracts"] li'),
+        hasRisks: !!document.querySelector('[data-passport="risks"] li'),
+        hasTests: !!document.querySelector('[data-passport="tests"] li'),
+        hasImpact: !!impact,
+        impactText,
+        impactVocab:
+          /call graph/i.test(impactText) &&
+          /API contract/i.test(impactText) &&
+          /invariant/i.test(impactText),
+        badHooks: (() => {
+          if (!root) return true;
+          return [...root.querySelectorAll("[data-testid],[data-component]")].length > 0;
+        })(),
+      };
+    });
+    record("P1", "Passport tab exists once on the explorer row", passDesk.tabs === 1, "tabs=" + passDesk.tabs);
+    record("P2", "Passport workspace is active", passDesk.ws === "passport", passDesk.ws);
+    record(
+      "P3",
+      "Passport gate starts pending with blocked write paths",
+      passDesk.gateState === "pending" && passDesk.blocked >= 1 && passDesk.paths >= 1,
+      "state=" + passDesk.gateState + " blocked=" + passDesk.blocked + " paths=" + passDesk.paths
+    );
+    record(
+      "P4",
+      "Passport sections render targets/contracts/risks/tests/impact",
+      passDesk.hasTargets && passDesk.hasContracts && passDesk.hasRisks && passDesk.hasTests && passDesk.hasImpact,
+      ""
+    );
+    record(
+      "P5",
+      "Passport impact stub uses Architecture Delta vocabulary",
+      passDesk.impactVocab,
+      passDesk.impactText.slice(0, 160)
+    );
+
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(250);
+    const passApproved = await page.evaluate(() => {
+      const gate = document.getElementById("passportGate");
+      return {
+        state: gate ? gate.getAttribute("data-passport-state") : "",
+        blocked: document.querySelectorAll('#passportGate [data-blocked="1"]').length,
+        paths: document.querySelectorAll("#passportGate [data-passport-path]").length,
+      };
+    });
+    record(
+      "P6",
+      "Passport Approve unlocks gated write paths",
+      passApproved.state === "approved" && passApproved.blocked === 0 && passApproved.paths >= 1,
+      "state=" + passApproved.state + " blocked=" + passApproved.blocked
+    );
+    record("P7", "Passport page does not introduce data-testid / data-component", !passDesk.badHooks, "");
+    await shot(page, "passport.png");
+    assertNoStampDir("P8", "Passport sign-off did not write .graphide/stamps/");
+
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
@@ -25139,6 +25228,8 @@ async function main() {
       "` (Data-flow on fixtures/demo) then `" +
       LIFECYCLE_HARNESS +
       "` (Lifecycle on fixtures/demo) then `" +
+      PASSPORT_HARNESS +
+      "` (Plan Passport fixture) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -25153,7 +25244,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

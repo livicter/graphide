@@ -444,7 +444,36 @@
       });
   }
 
-  if (params.get("lifecycle") === "1") {
+  function loadPassportFixture(done) {
+    fetch("./passport-fixture.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no passport-fixture.json (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (fx) {
+        const ok =
+          fx &&
+          Array.isArray(fx.targets) &&
+          Array.isArray(fx.contracts) &&
+          Array.isArray(fx.gatedWrites);
+        if (!ok) throw new Error("passport-fixture.json is not a passport fixture");
+        window.__graphidePassport = fx;
+        window.__graphidePassportError = "";
+        done();
+      })
+      .catch(function (err) {
+        window.__graphidePassport = null;
+        window.__graphidePassportError = String(err && err.message ? err.message : err);
+        done();
+      });
+  }
+
+  if (params.get("passport") === "1") {
+    loadPassportFixture(function () {
+      window.postMessage(msg, "*");
+      afterPaint();
+    });
+  } else if (params.get("lifecycle") === "1") {
     loadNamedSnap("lifecycle-snap.json", "__graphideLifecycle", "__graphideLifecycleError", afterPaint, params.get("require") === "1");
   } else if (params.get("lineage") === "1") {
     loadNamedSnap("sequence-snap.json", "__graphideLineage", "__graphideLineageError", afterPaint, params.get("require") === "1");

@@ -110,6 +110,8 @@ assert(chrome.includes('data-ws="delta"'), "delta workspace tab missing");
 assert(chrome.includes('data-ws="sequence"'), "sequence workspace tab missing");
 assert(chrome.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
 assert(chrome.includes('data-ws="lifecycle"'), "lifecycle workspace tab missing");
+assert(chrome.includes('data-ws="trace"'), "trace workspace tab missing");
+assert(chrome.includes('data-ws="passport"'), "passport workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -174,6 +176,17 @@ assert(js.includes("function renderDataflowBody"), "Data-flow workspace missing"
 assert(js.includes('id="dfPlay"') && js.includes('id="dfHops"') && js.includes('id="dfStages"'), "Data-flow Play walk and pipeline missing");
 assert(js.includes("function flow_dataflow") || js.includes("function dataflowOf"), "Data-flow must read Steiner data hops");
 assert(js.includes("function renderLifecycleBody"), "Lifecycle workspace missing");
+assert(js.includes("PASSPORT_FIXTURE") && js.includes("function paintPassportWorkspace") && js.includes("function getPassport") && js.includes("function bindPassportPage"), "Plan Passport workspace missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport.md")), "passport feature map missing");
+const passportMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport.md"), "utf8");
+assert(
+  passportMap.includes("## Sub-features") &&
+    passportMap.includes("## How to get to it (user POV)") &&
+    passportMap.includes("## Driving it with the harness") &&
+    passportMap.includes("## Gotchas"),
+  "passport feature map must use the four headings"
+);
+assert(js.includes("function paintTrajectoryWorkspace") && js.includes("TRAJECTORY_FIXTURE"), "Trace trajectory workspace missing");
 assert(js.includes('id="lcPlay"') && js.includes('id="lcTrans"') && js.includes('id="lcCanvas"'), "Lifecycle Play walk and machine missing");
 assert(js.includes("function flow_lifecycle") || js.includes("function lifecycleOf"), "Lifecycle must read the derived review machine");
 assert(js.includes('from: "broken"') && js.includes('to: "walking"'), "Lifecycle recover must be a real broken → walking transition");
@@ -266,6 +279,7 @@ assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
+assert(harness.includes("passport-fixture.json") && harness.includes("__graphidePassport"), "passport fixture loader missing");
 assert(harness.includes("python-snap.json") && harness.includes("__graphidePython"), "python fixture snap loader missing");
 assert(harness.includes("js-snap.json") && harness.includes("__graphideJs"), "javascript fixture snap loader missing");
 assert(harness.includes("ts-snap.json") && harness.includes("__graphideTs"), "typescript fixture snap loader missing");
@@ -319,6 +333,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
+assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
@@ -497,6 +512,7 @@ assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") &&
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
+assert(driver.includes("passport.png") && driver.includes("data-passport-action"), "verify driver must drive Plan Passport fixture");
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");

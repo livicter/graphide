@@ -7546,6 +7546,13 @@
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.7 8H6.7M8 5.5v1.8M8 9.3v1.8M9.3 8h1.9" })
           ] }),
           "Trace"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "passport", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "3", y: "2.5", width: "10", height: "11", rx: "1.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.6" })
+          ] }),
+          "Passport"
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("nav", { id: "tabs" }),
@@ -19770,8 +19777,8 @@
       custom: { url: "", model: "" }
     };
     let llmTok = 0;
-    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace"];
-    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1 };
+    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace", "passport"];
+    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1, passport: 1 };
     const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
@@ -28010,6 +28017,140 @@
       canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
       setZoomUi(false);
     }
+    const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
+    const PASSPORT_FIXTURE = Object.freeze({
+      version: 1,
+      id: "passport-ade-phase-1.2",
+      title: "Plan Passport — ADE Phase 1.2 Trajectory gate",
+      status: "pending",
+      summary: "Semantic structural delta for Plan Passport workspace v0 (upstream sign-off before agent writes).",
+      targets: [
+        { id: "t1", label: "Passport paint + bind", path: "extension/media/src/graph/desk.js" },
+        { id: "t2", label: "Explorer Passport tab", path: "extension/media/src/chrome/GraphBar.jsx" },
+        { id: "t3", label: "Harness + verify gate", path: "scripts/verify-graphide.js" }
+      ],
+      contracts: [
+        {
+          id: "c1",
+          kind: "function",
+          name: "paintPassportWorkspace",
+          sig: "(title) => void",
+          stability: "draft"
+        },
+        {
+          id: "c2",
+          kind: "function",
+          name: "getPassport",
+          sig: "() => PassportFixture",
+          stability: "draft"
+        },
+        {
+          id: "c3",
+          kind: "function",
+          name: "setPassportGate",
+          sig: "(state) => void",
+          stability: "draft"
+        }
+      ],
+      risks: [
+        { id: "r1", level: "high", area: "gate-state writes", note: "must never touch .graphide/stamps/" },
+        { id: "r2", level: "med", area: "agent write ordering", note: "file writes stay blocked until Approve" },
+        { id: "r3", level: "low", area: "explorer tab ordering" }
+      ],
+      testStrategy: [
+        { id: "p1", kind: "assert", desc: "tab present, click-only (no digit key)" },
+        { id: "p2", kind: "assert", desc: "gate banner starts pending with blocked paths" },
+        { id: "p3", kind: "e2e", desc: "Approve unlocks gate fixture state; Reject re-blocks" }
+      ],
+      gatedWrites: [
+        { path: "extension/media/src/graph/desk.js", reason: "agent would edit paint/bind" },
+        { path: "extension/media/src/chrome/GraphBar.jsx", reason: "agent would add chrome" },
+        { path: "extension/media/main.css", reason: "agent would restyle passport" }
+      ],
+      impact: {
+        callGraphs: [
+          "paintPassportWorkspace ← renderExplorerList(ws)",
+          "setPassportGate ← #passportSign Approve/Reject"
+        ],
+        apiContracts: [
+          "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
+          "PASSPORT_GATE ∈ pending|approved|rejected"
+        ],
+        invariants: [
+          "no digit-key binding for passport",
+          "gate state fixture-only (no .graphide/stamps/)",
+          "Architecture Delta vocabulary in #passportImpact stub only"
+        ]
+      }
+    });
+    let passportGate = "pending";
+    function isPassport(v) {
+      return !!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.targets) && Array.isArray(v.contracts) && Array.isArray(v.risks) && Array.isArray(v.testStrategy) && Array.isArray(v.gatedWrites) && v.impact && typeof v.impact === "object");
+    }
+    function getPassport() {
+      const o = typeof window !== "undefined" ? window.__graphidePassport : null;
+      return isPassport(o) ? o : PASSPORT_FIXTURE;
+    }
+    function passportGateState() {
+      return PASSPORT_STATES[passportGate] ? passportGate : "pending";
+    }
+    function renderPassportGate(fx, state) {
+      const unlocked = state === "approved";
+      const label = unlocked ? "Writes unlocked — agent-style file writes may proceed (fixture)" : state === "rejected" ? "Rejected — gated write paths stay blocked" : "Gated write paths blocked until approved";
+      const paths = (fx.gatedWrites || []).map((w) => {
+        const blocked = unlocked ? "" : ' data-blocked="1"';
+        return '<li data-passport-path="' + esc(w.path || "") + '"' + blocked + "><code>" + esc(w.path || "") + "</code>" + (w.reason ? " — " + esc(w.reason) : "") + "</li>";
+      }).join("");
+      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-state">' + esc(label) + '</div><ul class="passport-gate-paths">' + paths + "</ul></div>";
+    }
+    function renderPassportSection(key, title, body) {
+      return '<section class="passport-section" data-passport="' + esc(key) + '"><h3>' + esc(title) + "</h3>" + body + "</section>";
+    }
+    function renderPassportBody() {
+      const fx = getPassport();
+      const state = passportGateState();
+      const targets = (fx.targets || []).map(
+        (t) => '<li data-passport-target="' + esc(t.id || "") + '">' + esc(t.label || t.id || "") + " <code>" + esc(t.path || "") + "</code></li>"
+      ).join("");
+      const contracts = (fx.contracts || []).map(
+        (c) => '<li data-passport-contract="' + esc(c.id || "") + '"><code>' + esc(c.kind || "") + "</code> <strong>" + esc(c.name || "") + "</strong> <code>" + esc(c.sig || "") + '</code> <em data-stability="' + esc(c.stability || "") + '">' + esc(c.stability || "") + "</em></li>"
+      ).join("");
+      const risks = (fx.risks || []).map(
+        (r) => '<li data-passport-risk="' + esc(r.id || "") + '" data-level="' + esc(r.level || "") + '"><b>' + esc(r.level || "") + "</b> " + esc(r.area || "") + (r.note ? " — " + esc(r.note) : "") + "</li>"
+      ).join("");
+      const tests = (fx.testStrategy || []).map(
+        (x) => '<li data-passport-test="' + esc(x.id || "") + '"><code>' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + "</li>"
+      ).join("");
+      const impact = fx.impact || {};
+      const dl = "<dl><dt>Call graphs</dt><dd>" + (impact.callGraphs || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") + "</dd><dt>API contracts</dt><dd>" + (impact.apiContracts || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") + "</dd><dt>Invariants</dt><dd>" + (impact.invariants || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") + "</dd></dl>";
+      return '<div id="passportPage" class="passport-page"><div class="outcome-strip"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + " · fixture</span></div>" + renderPassportGate(fx, state) + renderPassportSection("targets", "Architecture targets", "<ul>" + targets + "</ul>") + renderPassportSection("contracts", "Interfaces / API contracts", "<ul>" + contracts + "</ul>") + renderPassportSection("risks", "Breaking-change risk", "<ul>" + risks + "</ul>") + renderPassportSection("tests", "Test strategy", "<ul>" + tests + "</ul>") + '<section class="passport-section" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' + esc(fx.summary || "") + " — Architecture Delta vocabulary (call graphs / API contracts / invariants):</p>" + dl + '</section><div id="passportSign" class="passport-sign"><button type="button" data-passport-action="approve">Approve</button><button type="button" data-passport-action="reject">Reject</button></div></div>';
+    }
+    function paintPassportWorkspace(title) {
+      unmountAllReviewCanvases();
+      canvas.className = "play explorer-list";
+      canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
+      setZoomUi(false);
+    }
+    function setPassportGate(state) {
+      passportGate = PASSPORT_STATES[state] ? state : "pending";
+      paint({ animate: "none" });
+    }
+    function bindPassportPage() {
+      const sign = document.getElementById("passportSign");
+      if (!sign) return;
+      const approve = sign.querySelector('[data-passport-action="approve"]');
+      const reject = sign.querySelector('[data-passport-action="reject"]');
+      if (approve)
+        approve.onclick = (ev) => {
+          ev.stopPropagation();
+          setPassportGate("approved");
+        };
+      if (reject)
+        reject.onclick = (ev) => {
+          ev.stopPropagation();
+          setPassportGate("rejected");
+        };
+    }
     function countMap(items, keyFn) {
       const m = /* @__PURE__ */ new Map();
       for (const x of items || []) {
@@ -28042,7 +28183,8 @@
         sequence: "Sequence — callers, callees, returns on this flow",
         dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
         lifecycle: "Lifecycle — review states, waits, terminals on this flow",
-        trace: "Trace — read-only execution trajectory DAG"
+        trace: "Trace — read-only execution trajectory DAG",
+        passport: "Passport — Plan Passport sign-off before agent writes"
       };
       setMeta(
         '<span class="crumb">Review</span> / <b>' + esc(ws) + "</b> · " + esc(titles[ws] || ws)
@@ -28078,6 +28220,13 @@
       if (ws === "trace") {
         paintTrajectoryWorkspace(titles.trace);
         bindWorkbenchPages();
+        applyProbePaint();
+        return;
+      }
+      if (ws === "passport") {
+        paintPassportWorkspace(titles.passport);
+        bindWorkbenchPages();
+        bindPassportPage();
         applyProbePaint();
         return;
       }
