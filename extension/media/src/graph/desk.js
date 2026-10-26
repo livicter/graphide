@@ -11312,7 +11312,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       kind: "assert",
       desc: "tab present, click-only (no digit key)",
       fixture: "?passport=1&ws=passport",
-      covers: "chrome"
+      covers: "chrome",
+      traj: "sub-passport"
     },
     {
       id: "p2",
@@ -11326,7 +11327,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       kind: "e2e",
       desc: "Approve unlocks gate fixture state; Reject re-blocks",
       fixture: "P6",
-      covers: "gate"
+      covers: "gate",
+      traj: "sub-verify"
     },
     {
       id: "p4",
@@ -11340,14 +11342,16 @@ const PASSPORT_FIXTURE = Object.freeze({
       kind: "assert",
       desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
       fixture: "P5b",
-      covers: "impact"
+      covers: "impact",
+      traj: "sub-edit"
     },
     {
       id: "p6",
       kind: "assert",
       desc: "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
       fixture: "PF1\u2013PF5",
-      covers: "targets,contracts,risks,tests,impact"
+      covers: "targets,contracts,risks,tests,impact",
+      traj: "sub-fixture"
     }
   ],
   gatedWrites: [
@@ -12180,13 +12184,20 @@ function renderPassportBody() {
     .join("");
   const tests = (fx.testStrategy || [])
     .map((x) => {
+      const trajId = resolvePassportTrajId(x);
       return (
-        '<li class="passport-row" data-passport-test="' +
+        '<li class="passport-row' +
+        passportRowActiveClass(trajId) +
+        '" data-passport-test="' +
         esc(x.id || "") +
-        '"><div class="passport-row-head"><code class="passport-test-kind">' +
+        '"' +
+        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-test-traj="1"' : "") +
+        passportRowActiveAttr(trajId) +
+        '><div class="passport-row-head"><code class="passport-test-kind">' +
         esc(x.kind || "") +
         "</code> " +
         esc(x.desc || "") +
+        renderAdeTrajHop(trajId) +
         "</div>" +
         (x.fixture
           ? '<div class="passport-row-meta" data-passport-fixture="' +
@@ -12211,7 +12222,7 @@ function renderPassportBody() {
     '<div class="ade-hop-row">' +
     renderAdeHop("trace", "← Open Trace") +
     renderSealStatusChip() +
-    '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk Open in Trace · seal stub · no live Delta</span>' +
+    '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span>' +
     "</div>" +
     '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
     esc(fx.title || "Plan Passport") +

@@ -49,6 +49,11 @@ is a stub that reuses Delta vocabulary only).
   reuse `data-ade-traj-hop` Open in Trace (`resolvePassportTrajId` /
   `hopAdeTraj`). Unmapped rows omit the hop. Screenshot
   `verification/passport-risk-traj-map.png`.
+- Test-strategy → Trace traj mapping (TM1–TM3; ids avoid TS1/TS2 typescript desk):
+  optional fixture `traj` on `testStrategy` rows; mapped rows carry
+  `data-ade-traj` + `data-ade-test-traj` and reuse `data-ade-traj-hop`
+  Open in Trace. Unmapped rows omit the hop. Screenshot
+  `verification/passport-test-strategy-traj-map.png`.
 
 - Empty-state (PE1–PE3): when the fixture has no plan rows
   (`targets/contracts/risks/testStrategy/gatedWrites` empty, or
@@ -90,6 +95,9 @@ Contract/risk traj map: `?trace=1&passport=1&gate=approved&ws=passport`
 then click `[data-ade-contract-traj] [data-ade-traj-hop]` /
 `[data-ade-risk-traj] [data-ade-traj-hop]` (CX1–CX3).
 
+Test-strategy traj map: same harness; click
+`[data-ade-test-traj] [data-ade-traj-hop]` (TM1–TM3).
+
 `passport=1` fetches `passport-fixture.json` into
 `window.__graphidePassport` (falls back to the embedded fixture if the
 JSON is missing or invalid). It does **not** require a ReviewSnapshot snap
@@ -113,6 +121,7 @@ Driver assertions:
 - IR1–IR3: impact-row head/detail hierarchy + expand/hover; static string fallback; screenshot `verification/passport-impact-rows.png`
 - PE1–PE3: empty fixture shows `.passport-empty` chrome + Open Trace hop; screenshot `verification/passport-empty-state.png`
 - CX1–CX3: contract/risk `traj` → Open in Trace; screenshot `verification/passport-risk-traj-map.png`
+- TM1–TM3: test-strategy `traj` → Open in Trace; screenshot `verification/passport-test-strategy-traj-map.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

@@ -568,6 +568,9 @@ assert(traceMap.includes("DF1") && traceMap.includes("dep-list") && traceMap.inc
 assert(driver.includes("CX1") && driver.includes("CX3") && driver.includes("passport-risk-traj-map.png") && driver.includes("data-ade-contract-traj") && driver.includes("data-ade-risk-traj"), "verify driver must prove Passport contract/risk traj map CX1–CX3");
 assert(js.includes("data-ade-contract-traj") && js.includes("data-ade-risk-traj") && js.includes("resolvePassportTrajId"), "Passport contract/risk traj mapping attrs missing");
 assert(passportMap.includes("CX1") && passportMap.includes("contract/risk") && passportMap.includes("passport-risk-traj-map.png") && passportMap.includes("data-ade-contract-traj"), "passport feature map must name contract/risk traj map CX / proof");
+assert(driver.includes("TM1") && driver.includes("TM3") && driver.includes("passport-test-strategy-traj-map.png") && driver.includes("data-ade-test-traj"), "verify driver must prove Passport test-strategy traj map TM1–TM3");
+assert(js.includes("data-ade-test-traj") && js.includes("resolvePassportTrajId"), "Passport test-strategy traj mapping attrs missing");
+assert(passportMap.includes("TM1") && passportMap.includes("test-strategy") && passportMap.includes("passport-test-strategy-traj-map.png") && passportMap.includes("data-ade-test-traj"), "passport feature map must name test-strategy traj map TM / proof");
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "id": "passport-ade-phase-1.2-fixtures",
-  "title": "Plan Passport — ADE Phase 1.2 richer fixtures",
+  "title": "Plan Passport \u2014 ADE Phase 1.2 richer fixtures",
   "status": "pending",
   "summary": "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
   "targets": [
@@ -28,7 +28,7 @@
       "path": "scripts/verify-graphide.js",
       "layer": "harness",
       "deltaStatus": "Added",
-      "impact": "PF1–PF5 fixture drivers",
+      "impact": "PF1\u2013PF5 fixture drivers",
       "traj": "sub-verify"
     },
     {
@@ -158,7 +158,8 @@
       "kind": "assert",
       "desc": "tab present, click-only (no digit key)",
       "fixture": "?passport=1&ws=passport",
-      "covers": "chrome"
+      "covers": "chrome",
+      "traj": "sub-passport"
     },
     {
       "id": "p2",
@@ -172,7 +173,8 @@
       "kind": "e2e",
       "desc": "Approve unlocks gate fixture state; Reject re-blocks",
       "fixture": "P6",
-      "covers": "gate"
+      "covers": "gate",
+      "traj": "sub-verify"
     },
     {
       "id": "p4",
@@ -186,14 +188,16 @@
       "kind": "assert",
       "desc": "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
       "fixture": "P5b",
-      "covers": "impact"
+      "covers": "impact",
+      "traj": "sub-edit"
     },
     {
       "id": "p6",
       "kind": "assert",
-      "desc": "architecture/API/risk/test rows expose layer·delta·mitigation·fixture fields",
-      "fixture": "PF1–PF5",
-      "covers": "targets,contracts,risks,tests,impact"
+      "desc": "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
+      "fixture": "PF1\u2013PF5",
+      "covers": "targets,contracts,risks,tests,impact",
+      "traj": "sub-fixture"
     }
   ],
   "gatedWrites": [
@@ -225,7 +229,7 @@
     "callGraphs": [
       {
         "id": "cg1",
-        "label": "paintPassportWorkspace ← renderExplorerList(ws)",
+        "label": "paintPassportWorkspace \u2190 renderExplorerList(ws)",
         "detail": "Explorer list paint owns Passport page mount",
         "deltaStatus": "Changed",
         "deltaClass": "Topology",
@@ -233,21 +237,21 @@
       },
       {
         "id": "cg2",
-        "label": "setPassportGate ← #passportSign Approve/Reject",
+        "label": "setPassportGate \u2190 #passportSign Approve/Reject",
         "detail": "Sign-off flips gate without disk writes",
         "deltaClass": "Semantic",
         "clusterKind": "Stable"
       },
       {
         "id": "cg3",
-        "label": "bindTrajectoryPage ← renderExplorerList(trace)",
+        "label": "bindTrajectoryPage \u2190 renderExplorerList(trace)",
         "detail": "Trace bind stays on A1a path",
         "deltaClass": "Topology",
         "clusterKind": "Stable"
       },
       {
         "id": "cg4",
-        "label": "renderPassportImpact ← renderPassportBody",
+        "label": "renderPassportImpact \u2190 renderPassportBody",
         "detail": "Structured rows + Delta vocab chips",
         "deltaStatus": "Added",
         "deltaClass": "Presentation"
@@ -257,7 +261,7 @@
     "apiContracts": [
       {
         "id": "ac1",
-        "label": "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
+        "label": "getPassport() \u2192 PASSPORT_FIXTURE | window.__graphidePassport",
         "detail": "Harness ?passport=1 may override embedded fixture",
         "deltaStatus": "Changed",
         "deltaClass": "Semantic",
@@ -265,7 +269,7 @@
       },
       {
         "id": "ac2",
-        "label": "PASSPORT_GATE ∈ pending|approved|rejected",
+        "label": "PASSPORT_GATE \u2208 pending|approved|rejected",
         "detail": "URL ?gate= seeds + replaceState sync",
         "deltaClass": "Semantic",
         "clusterKind": "Stable"
@@ -340,7 +344,7 @@
         {
           "id": "structural",
           "label": "Structural delta",
-          "detail": "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+          "detail": "Pair by (kind, fqn). Exact facts only \u2014 no blast radius or merge safety."
         },
         {
           "id": "impact",

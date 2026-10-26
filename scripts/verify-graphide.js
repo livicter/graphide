@@ -52,6 +52,8 @@ const PASSPORT_EMPTY_HARNESS =
   "/scripts/webview-harness.html?passport=1&passportEmpty=1&trace=1&probe=0&ws=passport";
 const RISK_TRAJ_MAP_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&gate=approved&probe=0&ws=passport";
+const TEST_TRAJ_MAP_HARNESS =
+  "/scripts/webview-harness.html?trace=1&passport=1&gate=approved&probe=0&ws=passport";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -27983,6 +27985,182 @@ async function main() {
     );
     assertNoStampDir("CX4", "Passport contract/risk traj map did not write .graphide/stamps/");
 
+    // ADE Passport test-strategy → Trace traj mapping (TM1–TM3; ids avoid TS1/TS2 typescript desk)
+    const testTrajMapUrl = origin + TEST_TRAJ_MAP_HARNESS;
+    console.log("ade-test-traj-map " + testTrajMapUrl);
+    await page.goto(testTrajMapUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const pageEl = document.getElementById("passportPage");
+        const testHop = document.querySelector(
+          '[data-passport-test][data-ade-test-traj="1"] [data-ade-traj-hop]'
+        );
+        return (
+          on &&
+          on.getAttribute("data-ws") === "passport" &&
+          pageEl &&
+          !pageEl.hasAttribute("data-passport-empty") &&
+          testHop
+        );
+      },
+      null,
+      { timeout: 20000 }
+    );
+    const tm1click = await page.evaluate(() => {
+      const mapped = document.querySelectorAll("[data-ade-test-traj]").length;
+      const unmapped = !!document.querySelector(
+        '[data-passport-test]:not([data-ade-test-traj])'
+      );
+      const row = document.querySelector(
+        '[data-passport-test][data-ade-test-traj="1"][data-ade-traj]'
+      );
+      const btn = row && row.querySelector("[data-ade-traj-hop]");
+      if (!row || !btn) throw new Error("missing test traj hop");
+      const traj = row.getAttribute("data-ade-traj") || "";
+      const id = row.getAttribute("data-passport-test") || "";
+      btn.click();
+      return { traj, id, mapped, unmapped };
+    });
+    await page.waitForFunction(
+      (want) => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return (
+          on &&
+          on.getAttribute("data-ws") === "trace" &&
+          host &&
+          host.getAttribute("data-focus") === want
+        );
+      },
+      tm1click.traj,
+      { timeout: 10000 }
+    );
+    const tm1 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+        focusWin: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "TM1",
+      "Passport test-strategy Open-in-Trace focuses mapped Trace traj; gate preserved",
+      tm1.ws === "trace" &&
+        tm1.focus === tm1click.traj &&
+        tm1.trajParam === tm1click.traj &&
+        tm1.focusWin === tm1click.traj &&
+        tm1.gateParam === "approved" &&
+        !!tm1click.traj &&
+        tm1click.mapped >= 2 &&
+        tm1click.unmapped,
+      JSON.stringify({ tm1click, tm1 })
+    );
+
+    // TM2: return to Passport; hop a different mapped test traj
+    await page.goto(testTrajMapUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('[data-ade-test-traj="1"] [data-ade-traj-hop]', {
+      timeout: 15000,
+      state: "attached",
+    });
+    const tm2click = await page.evaluate((avoid) => {
+      const mapped = document.querySelectorAll("[data-ade-test-traj]").length;
+      const unmapped = !!document.querySelector(
+        '[data-passport-test]:not([data-ade-test-traj])'
+      );
+      const rows = [...document.querySelectorAll('[data-ade-test-traj="1"][data-ade-traj]')];
+      const row =
+        rows.find((el) => (el.getAttribute("data-ade-traj") || "") !== avoid) || rows[0];
+      const btn = row && row.querySelector("[data-ade-traj-hop]");
+      if (!row || !btn) throw new Error("missing second test traj hop");
+      const traj = row.getAttribute("data-ade-traj") || "";
+      btn.click();
+      return {
+        traj,
+        id: row.getAttribute("data-passport-test") || "",
+        mapped,
+        unmapped,
+      };
+    }, tm1click.traj);
+    await page.waitForFunction(
+      (want) => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return (
+          on &&
+          on.getAttribute("data-ws") === "trace" &&
+          host &&
+          host.getAttribute("data-focus") === want
+        );
+      },
+      tm2click.traj,
+      { timeout: 10000 }
+    );
+    const tm2 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+      };
+    });
+    record(
+      "TM2",
+      "Passport test-strategy Open-in-Trace focuses a different Trace traj; optional rows stay unmapped",
+      tm2.ws === "trace" &&
+        tm2.focus === tm2click.traj &&
+        tm2.trajParam === tm2click.traj &&
+        tm2.gateParam === "approved" &&
+        tm2click.traj &&
+        tm2click.traj !== tm1click.traj &&
+        tm2click.mapped >= 2 &&
+        tm2click.unmapped,
+      JSON.stringify({ tm1click, tm2click, tm2 })
+    );
+    await shot(page, "passport-test-strategy-traj-map.png");
+    const tmShot = checks.find((c) => c.id === "shot:passport-test-strategy-traj-map.png");
+    record(
+      "TM2-shot",
+      "screenshot passport-test-strategy-traj-map.png is not a black frame",
+      !!(tmShot && tmShot.pass),
+      tmShot ? tmShot.detail : "missing shot"
+    );
+
+    // TM3: empty Passport still has zero test-traj attrs / row hops
+    const tmEmptyUrl = origin + PASSPORT_EMPTY_HARNESS;
+    await page.goto(tmEmptyUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector("#passportPage[data-passport-empty]", { timeout: 15000 });
+    const tm3 = await page.evaluate(() => {
+      return {
+        empty: !!document.querySelector("#passportPage[data-passport-empty]"),
+        rowHops: document.querySelectorAll("[data-ade-traj-hop]").length,
+        testMapped: document.querySelectorAll("[data-ade-test-traj]").length,
+        stripHop: !!document.querySelector('[data-ade-hop="trace"]'),
+      };
+    });
+    record(
+      "TM3",
+      "Empty Passport emits no test-strategy traj hops; strip Open Trace remains",
+      tm3.empty &&
+        tm3.rowHops === 0 &&
+        tm3.testMapped === 0 &&
+        tm3.stripHop,
+      JSON.stringify(tm3)
+    );
+    assertNoStampDir("TM4", "Passport test-strategy traj map did not write .graphide/stamps/");
+
 
   } finally {
     await browser.close();
@@ -28006,7 +28184,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +

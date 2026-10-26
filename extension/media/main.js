@@ -28705,7 +28705,8 @@
           kind: "assert",
           desc: "tab present, click-only (no digit key)",
           fixture: "?passport=1&ws=passport",
-          covers: "chrome"
+          covers: "chrome",
+          traj: "sub-passport"
         },
         {
           id: "p2",
@@ -28719,7 +28720,8 @@
           kind: "e2e",
           desc: "Approve unlocks gate fixture state; Reject re-blocks",
           fixture: "P6",
-          covers: "gate"
+          covers: "gate",
+          traj: "sub-verify"
         },
         {
           id: "p4",
@@ -28733,14 +28735,16 @@
           kind: "assert",
           desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
           fixture: "P5b",
-          covers: "impact"
+          covers: "impact",
+          traj: "sub-edit"
         },
         {
           id: "p6",
           kind: "assert",
           desc: "architecture/API/risk/test rows expose layer·delta·mitigation·fixture fields",
           fixture: "PF1–PF5",
-          covers: "targets,contracts,risks,tests,impact"
+          covers: "targets,contracts,risks,tests,impact",
+          traj: "sub-fixture"
         }
       ],
       gatedWrites: [
@@ -29196,9 +29200,10 @@
         return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-risk="' + esc(r.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-risk-traj="1"' : "") + passportRowActiveAttr(trajId) + ' data-level="' + esc(r.level || "") + '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' + esc(r.level || "") + '">' + esc(r.level || "") + "</span> <b>" + esc(r.area || "") + "</b>" + (r.note ? " — " + esc(r.note) : "") + renderAdeTrajHop(trajId) + "</div>" + (r.mitigation ? '<div class="passport-row-meta" data-passport-mitigation="' + esc(r.id || "") + '"><span class="passport-meta-k">mitigation</span> ' + esc(r.mitigation) + "</div>" : "") + (r.blast ? '<div class="passport-row-meta" data-passport-blast="' + esc(r.id || "") + '"><span class="passport-meta-k">blast</span> <code>' + esc(r.blast) + "</code></div>" : "") + "</li>";
       }).join("");
       const tests = (fx.testStrategy || []).map((x) => {
-        return '<li class="passport-row" data-passport-test="' + esc(x.id || "") + '"><div class="passport-row-head"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + "</div>" + (x.fixture ? '<div class="passport-row-meta" data-passport-fixture="' + esc(x.id || "") + '"><span class="passport-meta-k">fixture</span> <code>' + esc(x.fixture) + "</code></div>" : "") + (x.covers ? '<div class="passport-row-meta" data-passport-covers="' + esc(x.id || "") + '"><span class="passport-meta-k">covers</span> ' + esc(x.covers) + "</div>" : "") + "</li>";
+        const trajId = resolvePassportTrajId(x);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-test="' + esc(x.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-test-traj="1"' : "") + passportRowActiveAttr(trajId) + '><div class="passport-row-head"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + renderAdeTrajHop(trajId) + "</div>" + (x.fixture ? '<div class="passport-row-meta" data-passport-fixture="' + esc(x.id || "") + '"><span class="passport-meta-k">fixture</span> <code>' + esc(x.fixture) + "</code></div>" : "") + (x.covers ? '<div class="passport-row-meta" data-passport-covers="' + esc(x.id || "") + '"><span class="passport-meta-k">covers</span> ' + esc(x.covers) + "</div>" : "") + "</li>";
       }).join("");
-      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
+      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
         "targets",
         "Architecture targets",
         "<ul>" + targets + "</ul>",
