@@ -1875,10 +1875,20 @@ async function main() {
     const passDesk = await page.evaluate(() => {
       const gate = document.getElementById("passportGate");
       const impact = document.getElementById("passportImpact");
+      const vocab = document.getElementById("passportDeltaVocab");
       const impactText = ((impact && impact.textContent) || "").replace(/\s+/g, " ").trim();
       const blocked = document.querySelectorAll('#passportGate [data-blocked="1"]').length;
       const paths = document.querySelectorAll("#passportGate [data-passport-path]").length;
       const root = document.getElementById("passportPage");
+      const statusVals = [...document.querySelectorAll('#passportDeltaVocab [data-vocab="status"] [data-vocab-value]')].map(
+        (el) => el.getAttribute("data-vocab-value") || ""
+      );
+      const classVals = [...document.querySelectorAll('#passportDeltaVocab [data-vocab="class"] [data-vocab-value]')].map(
+        (el) => el.getAttribute("data-vocab-value") || ""
+      );
+      const regionIds = [...document.querySelectorAll("#passportDeltaVocab [data-impact-region]")].map(
+        (el) => el.getAttribute("data-impact-region") || ""
+      );
       return {
         ws:
           ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
@@ -1898,6 +1908,12 @@ async function main() {
           /call graph/i.test(impactText) &&
           /API contract/i.test(impactText) &&
           /invariant/i.test(impactText),
+        hasDeltaVocab: !!vocab,
+        deltaStub: !!(vocab && vocab.getAttribute("data-delta-stub") === "1"),
+        statusVals,
+        classVals,
+        regionIds,
+        liveDeltaInPassport: !!document.querySelector("#passportPage #deltaCanvas, #passportPage .delta-page"),
         badHooks: (() => {
           if (!root) return true;
           return [...root.querySelectorAll("[data-testid],[data-component]")].length > 0;
@@ -1924,6 +1940,29 @@ async function main() {
       passDesk.impactVocab,
       passDesk.impactText.slice(0, 160)
     );
+    const statusOk =
+      ["Added", "Removed", "Changed", "Moved", "Rerouted"].every((k) => passDesk.statusVals.includes(k));
+    const classOk = ["Semantic", "Topology", "Presentation"].every((k) => passDesk.classVals.includes(k));
+    const regionOk =
+      ["structural", "impact", "community"].every((k) => passDesk.regionIds.includes(k));
+    record(
+      "P5b",
+      "Passport Delta vocabulary stub names statuses/classes/impact regions (no live Delta mount)",
+      passDesk.hasDeltaVocab &&
+        passDesk.deltaStub &&
+        statusOk &&
+        classOk &&
+        regionOk &&
+        !passDesk.liveDeltaInPassport,
+      "statuses=" +
+        passDesk.statusVals.join(",") +
+        " classes=" +
+        passDesk.classVals.join(",") +
+        " regions=" +
+        passDesk.regionIds.join(",") +
+        " live=" +
+        passDesk.liveDeltaInPassport
+    );
 
     await page.click('[data-passport-action="approve"]');
     await page.waitForTimeout(250);
@@ -1943,6 +1982,7 @@ async function main() {
     );
     record("P7", "Passport page does not introduce data-testid / data-component", !passDesk.badHooks, "");
     await shot(page, "passport.png");
+    await shot(page, "passport-delta-vocab.png");
     assertNoStampDir("P8", "Passport sign-off did not write .graphide/stamps/");
 
 

@@ -28219,7 +28219,8 @@
         { id: "p1", kind: "assert", desc: "tab present, click-only (no digit key)" },
         { id: "p2", kind: "assert", desc: "gate banner starts pending with blocked paths" },
         { id: "p3", kind: "e2e", desc: "Approve unlocks gate fixture state; Reject re-blocks" },
-        { id: "p4", kind: "assert", desc: "impact stub keeps Architecture Delta vocabulary text" }
+        { id: "p4", kind: "assert", desc: "impact stub keeps Architecture Delta vocabulary text" },
+        { id: "p5", kind: "assert", desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount" }
       ],
       gatedWrites: [
         { path: "extension/media/src/graph/desk.js", reason: "agent would edit paint/bind" },
@@ -28241,10 +28242,55 @@
         invariants: [
           "no digit-key binding for passport",
           "gate state fixture-only (no .graphide/stamps/)",
-          "Architecture Delta vocabulary in #passportImpact stub only",
-          "Trace keeps #trajCanvas[data-testid=trajectory-dag]"
-        ]
+          "Architecture Delta vocabulary in #passportDeltaVocab stub only",
+          "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
+          "no live #deltaCanvas mount on Passport"
+        ],
+        deltaVocab: {
+          statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
+          classes: ["Semantic", "Topology", "Presentation"],
+          clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
+          regions: [
+            {
+              id: "structural",
+              label: "Structural delta",
+              detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+            },
+            {
+              id: "impact",
+              label: "Impact regions",
+              detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
+            },
+            {
+              id: "community",
+              label: "Cluster continuity",
+              detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+            }
+          ]
+        }
       }
+    });
+    const DELTA_VOCAB_DEFAULT = Object.freeze({
+      statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
+      classes: ["Semantic", "Topology", "Presentation"],
+      clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
+      regions: [
+        {
+          id: "structural",
+          label: "Structural delta",
+          detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+        },
+        {
+          id: "impact",
+          label: "Impact regions",
+          detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
+        },
+        {
+          id: "community",
+          label: "Cluster continuity",
+          detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+        }
+      ]
     });
     let passportGate = "pending";
     function isPassport(v) {
@@ -28271,10 +28317,20 @@
       const countHtml = typeof count === "number" ? '<span class="passport-section-count">' + count + "</span>" : "";
       return '<section class="passport-section" data-passport="' + esc(key) + '"><h3>' + esc(title) + countHtml + "</h3>" + body + "</section>";
     }
+    function renderDeltaVocabStub(impact) {
+      const vocab = impact && impact.deltaVocab && typeof impact.deltaVocab === "object" ? impact.deltaVocab : DELTA_VOCAB_DEFAULT;
+      const chipRow = (kind, items) => '<div class="passport-vocab-row" data-vocab="' + esc(kind) + '"><span class="passport-vocab-label">' + esc(kind) + '</span><div class="passport-vocab-chips">' + (items || []).map(
+        (s) => '<span class="passport-vocab-chip" data-vocab-chip="' + esc(kind) + '" data-vocab-value="' + esc(s) + '">' + esc(s) + "</span>"
+      ).join("") + "</div></div>";
+      const regions = (vocab.regions || []).map(
+        (r) => '<li class="passport-vocab-region" data-impact-region="' + esc(r.id || "") + '"><strong>' + esc(r.label || r.id || "") + "</strong><span>" + esc(r.detail || "") + "</span></li>"
+      ).join("");
+      return '<div id="passportDeltaVocab" class="passport-delta-vocab" data-delta-stub="1"><div class="passport-delta-vocab-head"><span class="passport-delta-vocab-k">Architecture Delta</span><span class="passport-delta-vocab-stub">vocabulary stub · no live Delta mount</span></div>' + chipRow("status", vocab.statuses) + chipRow("class", vocab.classes) + chipRow("cluster", vocab.clusterKinds) + '<ul class="passport-vocab-regions">' + regions + "</ul></div>";
+    }
     function renderPassportImpact(fx) {
       const impact = fx.impact || {};
       const card = (key, title, items) => '<div class="passport-impact-card" data-impact="' + esc(key) + '"><h4>' + esc(title) + "</h4><ul>" + (items || []).map((s) => "<li><code>" + esc(s) + "</code></li>").join("") + "</ul></div>";
-      return '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' + esc(fx.summary || "") + ' — Architecture Delta vocabulary (call graphs / API contracts / invariants):</p><div class="passport-impact-grid">' + card("callGraphs", "Call graphs", impact.callGraphs) + card("apiContracts", "API contracts", impact.apiContracts) + card("invariants", "Invariants", impact.invariants) + "</div></section>";
+      return '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' + esc(fx.summary || "") + " — Architecture Delta vocabulary (structural delta / impact regions / call graphs / API contracts / invariants):</p>" + renderDeltaVocabStub(impact) + '<div class="passport-impact-grid">' + card("callGraphs", "Call graphs", impact.callGraphs) + card("apiContracts", "API contracts", impact.apiContracts) + card("invariants", "Invariants", impact.invariants) + "</div></section>";
     }
     function renderPassportBody() {
       const fx = getPassport();

@@ -20,9 +20,17 @@ is a stub that reuses Delta vocabulary only).
   never writes `.graphide/stamps/`.
 - Semantic impact stub `#passportImpact` — fixture call graphs / API
   contracts / invariants text. Does not mount Architecture Delta.
+- Architecture Delta vocabulary stub `#passportDeltaVocab[data-delta-stub="1"]`
+  inside `#passportImpact`. Names closed IR labels:
+  status chips (`Added|Removed|Changed|Moved|Rerouted`),
+  class chips (`Semantic|Topology|Presentation`),
+  cluster chips (`Stable|Split|Merge|Relabel|Added|Removed`),
+  and impact regions (`[data-impact-region="structural|impact|community"]`).
+  Fixture-only copy — never mounts `#deltaCanvas` / live Delta workspace.
 - Engine: embedded `PASSPORT_FIXTURE` in desk.js, overridable by
   `window.__graphidePassport` when `isPassport()` passes (harness
-  `?passport=1` loads `passport-fixture.json`).
+  `?passport=1` loads `passport-fixture.json`). Impact may carry
+  `impact.deltaVocab`; desk falls back to `DELTA_VOCAB_DEFAULT`.
 
 ## How to get to it (user POV)
 
@@ -31,7 +39,8 @@ is a stub that reuses Delta vocabulary only).
 2. Click **Passport** (`#workspaces [data-ws="passport"]`).
 3. You should see the fixture Plan Passport: gate banner (pending /
    blocked paths), architecture targets, contracts, risks, test
-   strategy, and a semantic impact stub.
+   strategy, a semantic impact stub, and the Architecture Delta
+   vocabulary strip (status/class/cluster chips + impact regions).
 4. Click **Approve** to unlock gated write paths (fixture only), or
    **Reject** to keep them blocked. Stamp / Skip remain human
    attestation for flows — they are not this gate.
@@ -55,9 +64,12 @@ Driver assertions:
 - `#workspaces [data-ws="passport"]` is on
 - `#passportPage` mounts with targets / contracts / risks / tests /
   `#passportImpact`
+- `#passportDeltaVocab[data-delta-stub="1"]` shows status/class/cluster
+  chips and `[data-impact-region]` rows; no `#deltaCanvas` under Passport
 - `#passportGate[data-passport-state="pending"]` shows blocked paths
 - Approve flips state to `approved` and clears `data-blocked`
-- screenshot `verification/passport.png` is not a black frame
+- screenshots `verification/passport.png` and
+  `verification/passport-delta-vocab.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -68,8 +80,13 @@ Driver assertions:
 - Immutable verification harness is a later Phase 1 slice — out of scope.
 - Do not add `data-testid` / `data-component` on the Passport page.
   `[data-ws="passport"]`, `#passportPage`, `#passportGate`, `#passportSign`,
-  `#passportImpact`, `[data-passport-action]`, `[data-passport-path]` are
+  `#passportImpact`, `#passportDeltaVocab`, `[data-passport-action]`,
+  `[data-passport-path]`, `[data-vocab-chip]`, `[data-impact-region]` are
   the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.
 - Semantic impact is a stub. Do not mount live Architecture Delta here.
+- `#passportDeltaVocab` is vocabulary/copy only. Do not wire it to
+  `architecture_delta`, `delta-snap.json`, or `#deltaCanvas`.
+- Product hooks for the vocab stub: `#passportDeltaVocab`,
+  `[data-vocab-chip]`, `[data-impact-region]`. Keep sibling Delta tab.

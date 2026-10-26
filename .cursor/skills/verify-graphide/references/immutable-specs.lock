@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: 490cf3b3ca581710ca91bfe1c2aef953f0ca76c8c8183be416b5de579c64f15d
+# seal-sha256: 5b13f53a395616f443f413371b215ad6622886da864e005b8e0499e72b426f1c
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -39,7 +39,7 @@ ff17ad44b157f26013472c8f7394fa3ce09a32a19337c0f785fbd214b312a40b  .cursor/skills
 9dc6dfebec597a80b5c65c40b755c3164fd95294477caf9daef2a6de75003d5d  .cursor/skills/verify-graphide/references/features/open-slice.md
 d11098a3ea9a0525cd45c21f5956bff2c925ce80f1fccba842c1242b1b6cc946  .cursor/skills/verify-graphide/references/features/overview.md
 5f197a6e9b33422bb91ad70fe6f1c912ca4dc582d8255221ccbe559fd07ae2c5  .cursor/skills/verify-graphide/references/features/panel-timeout.md
-ffd54872494dbd0c6f051825d2433d3d301c5167d05ec5f32595f09eb58717d9  .cursor/skills/verify-graphide/references/features/passport.md
+b005aec0f2f128fee51fd7d24f4fa851d458b9fc2fda78c46ed5988e1eae3011  .cursor/skills/verify-graphide/references/features/passport.md
 22629fa9dc4432a82ab69b4a3c12a3abfdf515b8d95b3d76943581f7f46ac0fe  .cursor/skills/verify-graphide/references/features/path-walk.md
 0aafe65966e6f98e4d9fbb796f16e6e3b8e78fe8db582ba939ccfb05bd49fe2b  .cursor/skills/verify-graphide/references/features/presentation.md
 ce8a1ec4601728c70c7c0eed4b44f4d8af90c6a01ab3b60fcd1d9b883af4e264  .cursor/skills/verify-graphide/references/features/program-chips.md
@@ -66,4 +66,4 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
 13a398ffd6e600efad28b8af3a11b046f23f1249cc6eb49585636b433765113f  extension/scripts/check-map.js
 f4708ae3a2d00fc390aa9927fa760654b538b19eb41f52335ab06b6cb559b9fa  package.json
-670303ef87d5eb13611d520b20868922cf4d84122c35ad7d65f968ec16f2d334  scripts/verify-graphide.js
+669b4ddc603ef810221523fc5eae8f795a69d8a0bd8906a50d134177ab528937  scripts/verify-graphide.js

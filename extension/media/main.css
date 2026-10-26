@@ -2588,6 +2588,59 @@ html.bright .traj-node { background: #fff; }
 .passport-impact-card ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .passport-impact-card li { margin: 0; font-size: 11px; line-height: 1.4; }
 
+.passport-delta-vocab {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+  border: 1px dashed var(--vscode-widget-border, #333);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, #3fb950 4%);
+}
+.passport-delta-vocab-head {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; margin-bottom: 10px;
+}
+.passport-delta-vocab-k {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.passport-delta-vocab-stub {
+  font-size: 11px; opacity: 0.72;
+}
+.passport-vocab-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 8px;
+}
+.passport-vocab-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  opacity: 0.75; min-width: 58px;
+}
+.passport-vocab-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.passport-vocab-chip {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 650;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, #333);
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent);
+}
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Added"],
+.passport-vocab-chip[data-vocab-chip="cluster"][data-vocab-value="Added"] { color: #3fb950; }
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Removed"],
+.passport-vocab-chip[data-vocab-chip="cluster"][data-vocab-value="Removed"] {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Changed"],
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Moved"],
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Rerouted"] {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+.passport-vocab-regions {
+  margin: 8px 0 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+}
+@media (max-width: 900px) { .passport-vocab-regions { grid-template-columns: 1fr; } }
+.passport-vocab-region {
+  margin: 0; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, #333) 75%, transparent);
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px; line-height: 1.4;
+}
+.passport-vocab-region strong { font-size: 11px; letter-spacing: 0.02em; }
+.passport-vocab-region span { opacity: 0.8; }
+
+
 
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
