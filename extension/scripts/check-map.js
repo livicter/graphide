@@ -638,6 +638,11 @@ assert(driver.includes("PCF1") && driver.includes("PCF3") && driver.includes("pa
 assert(js.includes("data-passport-clear-filter") && js.includes("passport-sticky-clear-filter") && js.includes("clearTrajResidualFilter") && /stickyClearFilterCue|data-passport-clear-filter/.test(js), "Passport sticky clear-filter cue markup/helpers missing");
 assert(css.includes("passport-sticky-clear-filter") && (css.includes("data-passport-clear-filter") || css.includes('data-passport-clear-filter="1"')), "Passport sticky clear-filter cue CSS missing");
 assert(passportMap.includes("PCF1") && passportMap.includes("clear-filter cue") && passportMap.includes("passport-sticky-clear-filter.png") && passportMap.includes("data-passport-clear-filter"), "passport feature map must name sticky clear-filter cue PCF / proof");
+assert(driver.includes("RFC1") && driver.includes("RFC3") && driver.includes("trajectory-legend-residual-filter-count.png") && driver.includes("passport-residual-filter-count.png") && driver.includes("data-filter-residual-count"), "verify driver must prove residual-filter count RFC1–RFC3");
+assert(js.includes("residual-filter-count") && js.includes("data-residual-filter-count") && js.includes("data-filter-residual-count") && js.includes("passport-residual-filter-count") && /filter ·/.test(js), "residual-filter count chip markup missing");
+assert(css.includes("residual-filter-count") && css.includes("passport-residual-filter-count") && (css.includes("data-residual-filter-count") || css.includes('data-residual-filter-count="1"')), "residual-filter count CSS missing");
+assert(traceMap.includes("RFC1") && traceMap.includes("residual-filter count") && traceMap.includes("trajectory-legend-residual-filter-count.png") && traceMap.includes("data-filter-residual-count"), "trace feature map must name residual-filter count RFC / proof");
+assert(passportMap.includes("RFC1") && passportMap.includes("residual-filter count") && passportMap.includes("passport-residual-filter-count.png") && passportMap.includes("data-filter-residual-count"), "passport feature map must name residual-filter count RFC / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

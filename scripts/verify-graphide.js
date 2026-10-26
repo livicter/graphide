@@ -6029,6 +6029,269 @@ async function main() {
       "Passport sticky clear-filter cue step did not write .graphide/stamps/"
     );
 
+    // ADE residual-filter count chip when ON (RFC1–RFC3) — Trace legend + Passport sticky; pairs like LC/FC
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const chip =
+          legend &&
+          legend.querySelector(
+            '.residual-filter-count[data-residual-filter-count="1"]'
+          );
+        const empty = document.querySelector(
+          '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+        );
+        const bearingN = document.querySelectorAll(
+          '.traj-node[data-residual-bearing="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          !!chip &&
+          !empty &&
+          bearingN > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const rfc1 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const chip =
+        legend &&
+        legend.querySelector(
+          '.residual-filter-count[data-residual-filter-count="1"]'
+        );
+      const clearCue =
+        legend && legend.querySelector('[data-legend-clear-filter="1"]');
+      const empty = document.querySelector(
+        '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+      );
+      const bearingN = document.querySelectorAll(
+        '.traj-node[data-residual-bearing="1"]'
+      ).length;
+      const chipBox = chip ? chip.getBoundingClientRect() : null;
+      const nAttr = chip
+        ? chip.getAttribute("data-filter-residual-count") || ""
+        : "";
+      const hostN = legend
+        ? legend.getAttribute("data-filter-residual-count") || ""
+        : "";
+      return {
+        filterAttr: legend
+          ? legend.getAttribute("data-residual-filter") || ""
+          : "",
+        chip: !!chip,
+        chipClass: chip ? chip.className || "" : "",
+        chipText: chip ? (chip.textContent || "").trim() : "",
+        nAttr,
+        hostN,
+        clearCue: !!clearCue,
+        empty: !!empty,
+        bearingN,
+        chipH: chipBox ? chipBox.height : 0,
+        chipW: chipBox ? chipBox.width : 0,
+      };
+    });
+    const rfc1N = Number(rfc1.nAttr);
+    const rfc1TraceOk =
+      rfc1.filterAttr === "on" &&
+      rfc1.chip &&
+      /residual-filter-count/.test(rfc1.chipClass) &&
+      /filter/.test(rfc1.chipText) &&
+      rfc1N > 0 &&
+      rfc1N === rfc1.bearingN &&
+      String(rfc1N) === rfc1.hostN &&
+      !rfc1.empty &&
+      rfc1.clearCue &&
+      rfc1.chipH > 8 &&
+      rfc1.chipW > 20;
+
+    await shot(page, "trajectory-legend-residual-filter-count.png");
+
+    // Passport sticky mirror of same N (Trace↔Passport keeps shared filter ON)
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual"
+        );
+        const chip =
+          residual &&
+          residual.querySelector(
+            '.passport-residual-filter-count[data-residual-filter-count="1"]'
+          );
+        const empty = document.querySelector(
+          '[data-passport-residual-filter-empty="1"], [data-traj-residual-filter-empty="1"]'
+        );
+        const bearingN = document.querySelectorAll(
+          '.passport-gate-path[data-residual-bearing="1"]'
+        ).length;
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") === "on" &&
+          !!chip &&
+          !empty &&
+          bearingN > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rfc1p = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual"
+      );
+      const chip =
+        residual &&
+        residual.querySelector(
+          '.passport-residual-filter-count[data-residual-filter-count="1"]'
+        );
+      const clearCue =
+        residual && residual.querySelector('[data-passport-clear-filter="1"]');
+      const empty = document.querySelector(
+        '[data-passport-residual-filter-empty="1"], [data-traj-residual-filter-empty="1"]'
+      );
+      const bearingN = document.querySelectorAll(
+        '.passport-gate-path[data-residual-bearing="1"]'
+      ).length;
+      const chipBox = chip ? chip.getBoundingClientRect() : null;
+      return {
+        filterAttr: residual
+          ? residual.getAttribute("data-residual-filter") || ""
+          : "",
+        chip: !!chip,
+        chipClass: chip ? chip.className || "" : "",
+        chipText: chip ? (chip.textContent || "").trim() : "",
+        nAttr: chip ? chip.getAttribute("data-filter-residual-count") || "" : "",
+        hostN: residual
+          ? residual.getAttribute("data-filter-residual-count") || ""
+          : "",
+        clearCue: !!clearCue,
+        empty: !!empty,
+        bearingN,
+        chipH: chipBox ? chipBox.height : 0,
+        chipW: chipBox ? chipBox.width : 0,
+      };
+    });
+    const rfc1pN = Number(rfc1p.nAttr);
+    const rfc1PassOk =
+      rfc1p.filterAttr === "on" &&
+      rfc1p.chip &&
+      /passport-residual-filter-count/.test(rfc1p.chipClass) &&
+      /filter/.test(rfc1p.chipText) &&
+      rfc1pN > 0 &&
+      rfc1pN === rfc1p.bearingN &&
+      String(rfc1pN) === rfc1p.hostN &&
+      !rfc1p.empty &&
+      rfc1p.clearCue &&
+      rfc1p.chipH > 8 &&
+      rfc1p.chipW > 20 &&
+      rfc1pN === rfc1N;
+    record(
+      "RFC1",
+      "Residual filter ON + bearings shows Trace+Passport residual-filter count chips (paired N)",
+      !!(rfc1TraceOk && rfc1PassOk),
+      JSON.stringify({ trace: rfc1, passport: rfc1p, pairedN: rfc1N })
+    );
+
+    await shot(page, "passport-residual-filter-count.png");
+    const rfcTraceShot = checks.find(
+      (c) => c.id === "shot:trajectory-legend-residual-filter-count.png"
+    );
+    const rfcPassShot = checks.find(
+      (c) => c.id === "shot:passport-residual-filter-count.png"
+    );
+    record(
+      "RFC3",
+      "screenshots trajectory-legend-residual-filter-count.png + passport-residual-filter-count.png are not black frames",
+      !!(rfcTraceShot && rfcTraceShot.pass && rfcPassShot && rfcPassShot.pass),
+      JSON.stringify({
+        trace: rfcTraceShot ? rfcTraceShot.detail : "missing",
+        passport: rfcPassShot ? rfcPassShot.detail : "missing",
+      })
+    );
+
+    // RFC2: filter OFF → count chips absent (both surfaces)
+    await page.click('#passportSign [data-passport-clear-filter="1"]');
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual"
+        );
+        const chip =
+          residual &&
+          residual.querySelector('[data-residual-filter-count="1"]');
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") !== "on" &&
+          !chip &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    const rfc2 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const legendChip =
+        legend && legend.querySelector('[data-residual-filter-count="1"]');
+      const anyChip = document.querySelector(
+        '[data-residual-filter-count="1"]'
+      );
+      return {
+        filterAttr: legend
+          ? legend.getAttribute("data-residual-filter") || ""
+          : "",
+        legendChip: !!legendChip,
+        anyChip: !!anyChip,
+        hostN: legend
+          ? legend.getAttribute("data-filter-residual-count")
+          : null,
+      };
+    });
+    const rfc2ok =
+      rfc2.filterAttr !== "on" &&
+      !rfc2.legendChip &&
+      !rfc2.anyChip &&
+      !rfc2.hostN;
+    record(
+      "RFC2",
+      "Residual filter OFF hides residual-filter count chip (Trace + Passport)",
+      !!rfc2ok,
+      JSON.stringify(rfc2)
+    );
+    assertNoStampDir(
+      "RFC4",
+      "Residual-filter count chip step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

@@ -11064,6 +11064,29 @@ function renderTrajectoryBody() {
     trajResidualFilter && residualTrajs.size > 0
       ? '<button type="button" class="traj-legend-chip legend-clear-filter" data-legend-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
       : "";
+  // ADE Trace legend residual-filter count chip (RFC1–RFC3) — ON + bearings; pairs with Passport sticky RC
+  const filterResidualN = residualTrajs.size;
+  const hasResidualFilterCount = trajResidualFilter && filterResidualN > 0;
+  const residualFilterCountAttr = hasResidualFilterCount
+    ? ' data-residual-filter-count="1" data-filter-residual-count="' +
+      esc(String(filterResidualN)) +
+      '"'
+    : "";
+  const residualFilterCountChip = hasResidualFilterCount
+    ? '<span class="traj-legend-chip residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
+      esc(String(filterResidualN)) +
+      '" title="Residual filter matches ' +
+      esc(String(filterResidualN)) +
+      '" aria-label="Residual filter matches ' +
+      esc(String(filterResidualN)) +
+      '">' +
+      '<span class="traj-legend-filter-residual-badge">' +
+      esc(String(filterResidualN)) +
+      "</span>" +
+      '<span class="traj-legend-label">filter · ' +
+      esc(String(filterResidualN)) +
+      "</span></span>"
+    : "";
   const edgeLegend =
     edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend
       ? ""
@@ -11071,6 +11094,7 @@ function renderTrajectoryBody() {
         adjResidualAttr +
         focusResidualScopeAttr +
         residualFilterAttr +
+        residualFilterCountAttr +
         ">" +
         edgeKinds
           .map((k) => {
@@ -11101,6 +11125,7 @@ function renderTrajectoryBody() {
         adjResidualChips +
         focusResidualChip +
         residualFilterToggle +
+        residualFilterCountChip +
         legendClearFilterCue +
         "</div>";
   return (
@@ -12256,6 +12281,25 @@ function renderPassportResidual(fx, state) {
     trajResidualFilter && passportResidualTrajIds().size > 0
       ? '<button type="button" class="passport-sticky-clear-filter" data-passport-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
       : "";
+  // ADE Passport sticky residual-filter count (RFC1–RFC3) — ON + bearings; pairs with Trace legend RC
+  const filterBearingN = passportResidualTrajIds().size;
+  const hasPassportFilterCount = trajResidualFilter && filterBearingN > 0;
+  const residualFilterCountAttr = hasPassportFilterCount
+    ? ' data-residual-filter-count="1" data-filter-residual-count="' +
+      esc(String(filterBearingN)) +
+      '"'
+    : "";
+  const residualFilterCountChip = hasPassportFilterCount
+    ? '<span class="passport-residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
+      esc(String(filterBearingN)) +
+      '" title="Residual filter matches ' +
+      esc(String(filterBearingN)) +
+      '" aria-label="Residual filter matches ' +
+      esc(String(filterBearingN)) +
+      '">filter · ' +
+      esc(String(filterBearingN)) +
+      "</span>"
+    : "";
   return (
     '<div class="passport-residual" data-passport-residual="1" data-residual-state="' +
     esc(residualState) +
@@ -12264,12 +12308,14 @@ function renderPassportResidual(fx, state) {
     '"' +
     scopeAttrs +
     residualFilterAttr +
+    residualFilterCountAttr +
     '><span class="passport-residual-badge">' +
     esc(String(n)) +
     '</span><span class="passport-residual-copy">' +
     esc(copy) +
     "</span>" +
     residualFilterToggle +
+    residualFilterCountChip +
     stickyClearFilterCue +
     clearCue +
     "</div>"
