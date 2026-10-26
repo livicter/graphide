@@ -19,7 +19,10 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Diff pins carry `data-adds` / `data-dels`. Hover shows `#trajPinTip`
   (`data-traj-pin-tip`) with matching counts (`[data-tip-counts]`,
   `[data-tip-adds]` / `[data-tip-dels]`) and artifact path — no native
-  `title` double-tip.
+  `title` double-tip. Pin-tip chrome: add/del chips
+  (`.traj-pin-tip-chip-add` / `.traj-pin-tip-chip-del`), path dir +
+  basename (`[data-tip-art-dir]` / `[data-tip-art-base]`), and pin-anchored
+  placement (`data-tip-place=below|above`).
 - Inspector also shows phase / agent / duration, a deps list
   (`[data-traj-dep]` under `[data-traj-deps]`), and artifact-diff
   adds/dels (`[data-artifact-diff]`).
@@ -65,10 +68,12 @@ Driver assertions:
 - A1a–A1a3: host + pins; Map LOD idle (`xy=0`)
 - TF1–TF5: richer phase/agent/deps/artifact-diff inspector hooks
 - PH1–PH3: diff pin hover tip (`#trajPinTip`) with matching adds/dels
+- PTC1–PTC3: pin-tip chrome chips, path basename split, pin-anchored place
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
-  `verification/trajectory-fixtures.png`, and
-  `verification/trajectory-pin-hover.png` are not black frames
+  `verification/trajectory-fixtures.png`,
+  `verification/trajectory-pin-hover.png`, and
+  `verification/trajectory-pin-tip-chrome.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -83,6 +88,7 @@ Driver assertions:
   `data-testid="trajectory-dag"`, `.traj-node`, `.traj-edge`,
   `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]`,
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
-  `#trajPinTip` / `[data-traj-pin-tip]`.
+  `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
+  `[data-tip-art-base]`, `data-tip-place`.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).

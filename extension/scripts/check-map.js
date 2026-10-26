@@ -534,9 +534,12 @@ assert(driver.includes("TF1") && driver.includes("TF5") && driver.includes("traj
 assert(js.includes("trajNodeDeps") && js.includes("data-traj-dep") && js.includes("data-artifact-diff"), "Trace richer fixture inspector render missing");
 assert(traceMap.includes("data-phase") && traceMap.includes("TF1") && traceMap.includes("trajectory-fixtures.png"), "trace feature map must name richer fixture hooks / TF1 / trajectory-fixtures.png");
 assert(driver.includes("PH1") && driver.includes("PH3") && driver.includes("trajectory-pin-hover.png") && driver.includes("trajPinTip"), "verify driver must prove Trace pin-hover tip PH1–PH3");
+assert(driver.includes("PTC1") && driver.includes("PTC3") && driver.includes("trajectory-pin-tip-chrome.png") && driver.includes("traj-pin-tip-chip-add"), "verify driver must prove pin-tip chrome PTC1–PTC3");
 assert(js.includes("showTrajPinTip") && js.includes("hideTrajPinTip") && js.includes("data-traj-pin-tip") && js.includes("data-tip-ready"), "Trace pin-hover tip render/bind missing");
-assert(css.includes("#trajPinTip") && css.includes("traj-pin-tip-counts"), "Trace pin-hover tip CSS missing");
+assert(js.includes("traj-pin-tip-chip-add") && js.includes("data-tip-art-base") && js.includes("data-tip-place"), "Trace pin-tip chrome chips/path/place missing");
+assert(css.includes("#trajPinTip") && css.includes("traj-pin-tip-counts") && css.includes("traj-pin-tip-chip-add") && css.includes("traj-pin-tip-art-base"), "Trace pin-tip chrome CSS missing");
 assert(traceMap.includes("trajPinTip") && traceMap.includes("PH1") && traceMap.includes("trajectory-pin-hover.png"), "trace feature map must name pin-hover tip / PH1 / trajectory-pin-hover.png");
+assert(traceMap.includes("PTC1") && traceMap.includes("traj-pin-tip-chip") && traceMap.includes("trajectory-pin-tip-chrome.png"), "trace feature map must name pin-tip chrome PTC / chips / proof");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

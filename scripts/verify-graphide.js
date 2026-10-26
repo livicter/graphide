@@ -2163,7 +2163,71 @@ async function main() {
         counts: pinHover.counts,
       })
     );
+    const pinChrome = await page.evaluate(() => {
+      const tip = document.getElementById("trajPinTip");
+      if (!tip || tip.hidden) return { ok: false };
+      const chipAdd = tip.querySelector(".traj-pin-tip-chip-add[data-tip-adds]");
+      const chipDel = tip.querySelector(".traj-pin-tip-chip-del[data-tip-dels]");
+      const artBase = tip.querySelector("[data-tip-art-base]");
+      const artDir = tip.querySelector("[data-tip-art-dir]");
+      const place = tip.getAttribute("data-tip-place") || "";
+      const left = tip.style.left || "";
+      const top = tip.style.top || "";
+      return {
+        ok: true,
+        chipAdd: !!(chipAdd && /^\+\d+$/.test((chipAdd.textContent || "").trim())),
+        chipDel: !!(chipDel && /^[−-]\d+$/.test((chipDel.textContent || "").trim())),
+        artBase: artBase ? (artBase.textContent || "").trim() : "",
+        artDir: artDir ? (artDir.textContent || "").trim() : "",
+        place,
+        left,
+        top,
+        tipW: tip.offsetWidth,
+        tipH: tip.offsetHeight,
+      };
+    });
+    const ptc1ok = pinChrome.ok && pinChrome.chipAdd && pinChrome.chipDel;
+    record(
+      "PTC1",
+      "Pin tip add/del chips render as +N/−N pills",
+      ptc1ok,
+      JSON.stringify(pinChrome)
+    );
+    const ptc2ok =
+      pinChrome.ok &&
+      !!pinChrome.artBase &&
+      pinChrome.artBase.indexOf("/") < 0 &&
+      (!!pinChrome.artDir ? pinChrome.artDir.endsWith("/") : true);
+    record(
+      "PTC2",
+      "Pin tip path splits dir + basename for readability",
+      ptc2ok,
+      JSON.stringify({
+        artBase: pinChrome.artBase,
+        artDir: pinChrome.artDir,
+      })
+    );
+    const ptc3ok =
+      pinChrome.ok &&
+      (pinChrome.place === "below" || pinChrome.place === "above") &&
+      /^\d+(\.\d+)?px$/.test(pinChrome.left) &&
+      /^\d+(\.\d+)?px$/.test(pinChrome.top) &&
+      pinChrome.tipW > 40 &&
+      pinChrome.tipH > 20;
+    record(
+      "PTC3",
+      "Pin tip anchors to pin (below/above) with on-screen placement",
+      ptc3ok,
+      JSON.stringify({
+        place: pinChrome.place,
+        left: pinChrome.left,
+        top: pinChrome.top,
+        tipW: pinChrome.tipW,
+        tipH: pinChrome.tipH,
+      })
+    );
     await shot(page, "trajectory-pin-hover.png");
+    await shot(page, "trajectory-pin-tip-chrome.png");
     await page.mouse.move(8, 8);
     await page.waitForTimeout(120);
     const tipGone = await page.evaluate(() => {

@@ -28263,11 +28263,32 @@
       el2.removeAttribute("data-node-id");
       el2.removeAttribute("data-adds");
       el2.removeAttribute("data-dels");
+      el2.removeAttribute("data-tip-place");
       el2.innerHTML = "";
     }
-    function positionTrajPinTip(el2, ev) {
-      const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - el2.offsetWidth);
-      const y = Math.min(ev.clientY + 14, window.innerHeight - 16 - el2.offsetHeight);
+    function positionTrajPinTip(el2, ev, pin) {
+      const margin = 10;
+      const tipW = el2.offsetWidth || 180;
+      const tipH = el2.offsetHeight || 64;
+      let x;
+      let y;
+      if (pin && typeof pin.getBoundingClientRect === "function") {
+        const r = pin.getBoundingClientRect();
+        x = r.left + r.width / 2 - tipW / 2;
+        y = r.bottom + 8;
+        if (y + tipH > window.innerHeight - margin) {
+          y = r.top - tipH - 8;
+          el2.setAttribute("data-tip-place", "above");
+        } else {
+          el2.setAttribute("data-tip-place", "below");
+        }
+      } else {
+        x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+        y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+        el2.setAttribute("data-tip-place", "cursor");
+      }
+      x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+      y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
       el2.style.left = x + "px";
       el2.style.top = y + "px";
     }
@@ -28297,14 +28318,21 @@
       }
       html += "</div>";
       if (kind === "diff" || hasCounts) {
-        html += '<div class="traj-pin-tip-counts" data-tip-counts="1"><span class="traj-diff-adds" data-tip-adds="1">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels" data-tip-dels="1">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span></div>";
+        html += '<div class="traj-pin-tip-counts" data-tip-counts="1"><span class="traj-pin-tip-chip traj-pin-tip-chip-add traj-diff-adds" data-tip-adds="1">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span><span class="traj-pin-tip-chip traj-pin-tip-chip-del traj-diff-dels" data-tip-dels="1">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span></div>";
       }
       if (art) {
-        html += '<code class="traj-pin-tip-art" data-tip-artifact="1">' + esc(art) + "</code>";
+        const slash = art.lastIndexOf("/");
+        const dir = slash >= 0 ? art.slice(0, slash + 1) : "";
+        const base = slash >= 0 ? art.slice(slash + 1) : art;
+        html += '<code class="traj-pin-tip-art" data-tip-artifact="1" title="' + esc(art) + '">';
+        if (dir) {
+          html += '<span class="traj-pin-tip-art-dir" data-tip-art-dir="1">' + esc(dir) + "</span>";
+        }
+        html += '<span class="traj-pin-tip-art-base" data-tip-art-base="1">' + esc(base) + "</span></code>";
       }
       el2.innerHTML = html;
       el2.hidden = false;
-      positionTrajPinTip(el2, ev);
+      positionTrajPinTip(el2, ev, pin);
     }
     function bindTrajectoryPage() {
       const host = document.getElementById("trajCanvas");
@@ -28344,7 +28372,7 @@
         };
         pin.onpointermove = (ev) => {
           const tipEl = document.getElementById("trajPinTip");
-          if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev);
+          if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev, pin);
         };
         pin.onpointerleave = () => hideTrajPinTip();
       });

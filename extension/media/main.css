@@ -2522,33 +2522,74 @@ html.bright .route-hop {
 #trajPinTip {
   position: fixed;
   z-index: 30;
-  max-width: 300px;
-  padding: 8px 10px;
-  border-radius: var(--g-radius-sm, 7px);
+  min-width: 148px;
+  max-width: 320px;
+  padding: 9px 11px;
+  border-radius: var(--g-radius-sm, 8px);
   font-size: 11px;
   line-height: 1.4;
   pointer-events: none;
   background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
   color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
   border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
-  box-shadow: var(--g-lift, 0 6px 18px rgba(0,0,0,0.28));
-  backdrop-filter: blur(10px);
+  box-shadow: var(--g-lift, 0 8px 22px rgba(0,0,0,0.32));
+  backdrop-filter: blur(12px);
 }
 #trajPinTip[hidden] { display: none !important; }
-.traj-pin-tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+#trajPinTip[data-pin-kind="diff"] {
+  border-color: color-mix(in srgb, #3fb950 42%, var(--vscode-editorHoverWidget-border, var(--vscode-panel-border)));
+}
+.traj-pin-tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .traj-pin-tip-kind {
   font-size: 10px; font-weight: 650; letter-spacing: 0.03em; text-transform: uppercase;
-  padding: 1px 6px; border-radius: 999px;
+  padding: 1px 7px; border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, transparent);
   color: var(--vscode-focusBorder, #2f81f7);
 }
 #trajPinTip[data-pin-kind="diff"] .traj-pin-tip-kind {
   color: #3fb950;
   border-color: color-mix(in srgb, #3fb950 55%, transparent);
+  background: color-mix(in srgb, #3fb950 12%, transparent);
 }
-.traj-pin-tip-diff-label { color: #3fb950; font-size: 11px; }
-.traj-pin-tip-counts { font-variant-numeric: tabular-nums; margin: 2px 0 4px; }
-.traj-pin-tip-art { display: block; font-size: 10px; opacity: 0.78; word-break: break-all; }
+.traj-pin-tip-diff-label { color: #3fb950; font-size: 11px; font-weight: 600; }
+.traj-pin-tip-counts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0 6px;
+}
+.traj-pin-tip-chip {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 650;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.traj-pin-tip-chip-add {
+  color: #3fb950;
+  background: color-mix(in srgb, #3fb950 16%, transparent);
+  border-color: color-mix(in srgb, #3fb950 42%, transparent);
+}
+.traj-pin-tip-chip-del {
+  color: #f85149;
+  background: color-mix(in srgb, #f85149 14%, transparent);
+  border-color: color-mix(in srgb, #f85149 42%, transparent);
+}
+.traj-pin-tip-art {
+  display: block;
+  font-size: 10.5px;
+  line-height: 1.35;
+  word-break: break-all;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-line, rgba(127,127,127,0.35)) 75%, transparent);
+}
+.traj-pin-tip-art-dir { opacity: 0.55; }
+.traj-pin-tip-art-base { opacity: 0.96; font-weight: 650; }
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
   border-radius: 10px;
