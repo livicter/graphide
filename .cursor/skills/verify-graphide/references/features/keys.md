@@ -54,7 +54,7 @@ second command palette and not an agent stamp.
   Trace/Passport paint paths (`paintTrajectoryWorkspace` / `paintPassportWorkspace`) call
   `syncResidualFilterLive(true)` so `#residualFilterLive` `data-filter-residual-count` + text
   stay current when bearings change without a toggle (Approve / focus / fixture). No toast on
-  paint refresh. Proof: `verification/residual-filter-live-paint-refresh.png`. Prefer LRP.
+  paint refresh. Proof: `verification/residual-filter-live-paint-refresh.png`. Prefer LRP. Empty chrome Clear residual filter `:focus-visible` ring matches CC/PCF (CFV1–CFV3); proof `verification/residual-filter-clear-focus-visible.png`. Prefer CFV.
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
@@ -146,6 +146,7 @@ Driver assertions:
 - ADE PKP1–PKP3: Passport residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed` / residual-filter binding); OFF clears pressed; Map leave clears pressed + binding → PATH. Screenshot `verification/passport-keys-residual-pressed.png` is not a black frame. No stamps. Prefer PKP (KP is Trace).
 - ADE ALR1–ALR3: Trace residual ON → `#residualFilterLive[data-residual-filter-live]` (`aria-live="polite"` / `role="status"`) text matches `Residual filter on, N matching` (N = bearing count); OFF / clear → `Residual filter off`; `#toast` Residuals on/off still works separately. Screenshot `verification/residual-filter-aria-live.png` is not a black frame. No stamps. Prefer ALR (AL is adj-residual).
 - ADE LRP1–LRP3: residual filter ON → Approve/paint changes bearing N without toggle → `#residualFilterLive` text/`data-filter-residual-count` refresh to new N (no Residuals toast); filter OFF across Trace/Passport paint stays off; ALR toggle path still works. Screenshot `verification/residual-filter-live-paint-refresh.png` is not a black frame. No stamps. Prefer LRP.
+- ADE CFV1–CFV3: empty chrome Clear residual filter keyboard `:focus-visible` outline matches CC/PCF; screenshot `verification/residual-filter-clear-focus-visible.png`. Prefer CFV.
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,

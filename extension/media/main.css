@@ -3438,8 +3438,12 @@ button.residual-filter-clear[data-residual-filter-clear="1"] {
   border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 70%, transparent);
 }
 .residual-filter-clear:hover,
-button.residual-filter-clear[data-residual-filter-clear="1"]:hover {
+button.residual-filter-clear[data-residual-filter-clear="1"]:hover,
+.residual-filter-clear:focus-visible,
+button.residual-filter-clear[data-residual-filter-clear="1"]:focus-visible {
   background: var(--vscode-button-hoverBackground, #1177bb);
+  outline: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 80%, transparent);
+  outline-offset: 1px;
 }
 
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }

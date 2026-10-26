@@ -7773,8 +7773,158 @@ async function main() {
     );
     assertNoStampDir("LRP4", "Residual-filter live paint refresh step did not write .graphide/stamps/");
 
+    // ADE residual-filter clear focus-visible parity (CFV1–CFV3) — FE empty Clear matches CC/PCF ring
+    // After LRP, gate is typically approved + filter OFF. Re-ON filter → empty chrome; focus Clear.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign .passport-residual[data-passport-residual]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    // Ensure gate approved so bearings are zero (empty chrome path).
+    await page.evaluate(() => {
+      const approve = document.querySelector('#passportSign [data-passport-action="approve"]');
+      const gate = document.getElementById("passportGate");
+      if (approve && gate && gate.getAttribute("data-passport-state") !== "approved") {
+        approve.click();
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return !!(gate && gate.getAttribute("data-passport-state") === "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"] [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const cfvPass = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!btn) return { present: false };
+      btn.focus({ focusVisible: true });
+      const cs = getComputedStyle(btn);
+      return {
+        present: true,
+        focused: document.activeElement === btn,
+        focusVisible: typeof btn.matches === "function" ? btn.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        outlineColor: cs.outlineColor,
+        cls: btn.classList.contains("residual-filter-clear"),
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+    });
+    // Hop Trace for empty Clear focus-visible (shared filter still ON, gate approved).
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector(
+      '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"] [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const cfvTrace = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '.traj-empty.residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!btn) return { present: false };
+      btn.focus({ focusVisible: true });
+      const cs = getComputedStyle(btn);
+      return {
+        present: true,
+        focused: document.activeElement === btn,
+        focusVisible: typeof btn.matches === "function" ? btn.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        outlineColor: cs.outlineColor,
+        cls: btn.classList.contains("residual-filter-clear"),
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+    });
+    const outlineOk = (o) =>
+      !!(
+        o &&
+        o.present &&
+        o.focused &&
+        o.focusVisible &&
+        o.cls &&
+        /clear residual filter/i.test(o.label) &&
+        o.outlineStyle === "solid" &&
+        (o.outlineWidth === "1px" || o.outlineWidth === "1") &&
+        (o.outlineOffset === "1px" || o.outlineOffset === "1")
+      );
+    const cfv1ok = outlineOk(cfvTrace);
+    record(
+      "CFV1",
+      "Trace empty Clear residual filter shows CC/PCF-matching :focus-visible outline ring",
+      !!cfv1ok,
+      JSON.stringify({ trace: cfvTrace, passport: cfvPass })
+    );
+    const cfv2ok = outlineOk(cfvPass);
+    record(
+      "CFV2",
+      "Passport empty Clear residual filter shows CC/PCF-matching :focus-visible outline ring",
+      !!cfv2ok,
+      JSON.stringify({ passport: cfvPass, trace: cfvTrace })
+    );
 
+    await shot(page, "residual-filter-clear-focus-visible.png");
+    const cfvShot = checks.find(
+      (c) => c.id === "shot:residual-filter-clear-focus-visible.png"
+    );
+    record(
+      "CFV3",
+      "screenshot residual-filter-clear-focus-visible.png is not a black frame",
+      !!(cfvShot && cfvShot.pass),
+      cfvShot ? cfvShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CFV4",
+      "Residual-filter clear focus-visible step did not write .graphide/stamps/"
+    );
 
+    // Restore: clear filter + reject gate so later IR/PR residual chrome still sees bearings.
+    await page.evaluate(() => {
+      const clear = document.querySelector('[data-residual-filter-clear="1"]');
+      if (clear) clear.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const empty = document.querySelector(
+          '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+        );
+        return (
+          (!legend || legend.getAttribute("data-residual-filter") !== "on") && !empty
+        );
+      },
+      null,
+      { timeout: 8000 }
+    ).catch(() => null);
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="reject"]', {
+      timeout: 8000,
+    });
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "rejected";
+      },
+      null,
+      { timeout: 8000 }
+    );
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');

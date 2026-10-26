@@ -672,6 +672,11 @@ assert(js.includes("syncResidualFilterLive") && /function paintTrajectoryWorkspa
 assert(keysMap.includes("LRP1") && keysMap.includes("live-paint-refresh") && keysMap.includes("residual-filter-live-paint-refresh.png") && keysMap.includes("paintTrajectoryWorkspace"), "keys feature map must name residual-filter live paint refresh LRP / proof");
 assert(traceMap.includes("LRP1") && traceMap.includes("live count paint refresh") && traceMap.includes("residual-filter-live-paint-refresh.png"), "trace feature map must name residual-filter live paint refresh LRP / proof");
 assert(passportMap.includes("LRP1") && passportMap.includes("live count paint refresh") && passportMap.includes("residual-filter-live-paint-refresh.png"), "passport feature map must name residual-filter live paint refresh LRP / proof");
+assert(driver.includes("CFV1") && driver.includes("CFV3") && driver.includes("residual-filter-clear-focus-visible.png") && driver.includes("data-residual-filter-clear") && driver.includes("focus-visible"), "verify driver must prove residual-filter clear focus-visible CFV1–CFV3");
+assert(css.includes("residual-filter-clear:focus-visible") && css.includes('data-residual-filter-clear="1"]:focus-visible') && css.includes("outline-offset: 1px"), "residual-filter-clear focus-visible CSS missing");
+assert(keysMap.includes("CFV1") && keysMap.includes("focus-visible") && keysMap.includes("residual-filter-clear-focus-visible.png"), "keys feature map must name residual-filter clear focus-visible CFV / proof");
+assert(traceMap.includes("CFV1") && traceMap.includes("focus-visible") && traceMap.includes("residual-filter-clear-focus-visible.png") && traceMap.includes("data-residual-filter-clear"), "trace feature map must name residual-filter clear focus-visible CFV / proof");
+assert(passportMap.includes("CFV1") && passportMap.includes("focus-visible") && passportMap.includes("residual-filter-clear-focus-visible.png") && passportMap.includes("data-residual-filter-clear"), "passport feature map must name residual-filter clear focus-visible CFV / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
