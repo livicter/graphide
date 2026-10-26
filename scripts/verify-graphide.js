@@ -5869,6 +5869,166 @@ async function main() {
     );
     assertNoStampDir("CC4", "Trace legend clear-filter cue step did not write .graphide/stamps/");
 
+    // ADE Passport sticky clear-filter cue (PCF1–PCF3) — filter ON + bearings; mirror Trace CC
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          '#passportSign .passport-residual'
+        );
+        const cue =
+          residual && residual.querySelector('[data-passport-clear-filter="1"]');
+        const empty = document.querySelector(
+          '[data-passport-residual-filter-empty="1"], [data-traj-residual-filter-empty="1"]'
+        );
+        const bearingN = document.querySelectorAll(
+          '.passport-gate-path[data-residual-bearing="1"]'
+        ).length;
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") === "on" &&
+          !!cue &&
+          !empty &&
+          bearingN > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const pcf1 = await page.evaluate(() => {
+      const residual = document.querySelector(
+        '#passportSign .passport-residual'
+      );
+      const cue =
+        residual && residual.querySelector('[data-passport-clear-filter="1"]');
+      const empty = document.querySelector(
+        '[data-passport-residual-filter-empty="1"], [data-traj-residual-filter-empty="1"]'
+      );
+      const emptyClear = document.querySelector(
+        '[data-residual-filter-clear="1"]'
+      );
+      const cueBox = cue ? cue.getBoundingClientRect() : null;
+      return {
+        filterAttr: residual
+          ? residual.getAttribute("data-residual-filter") || ""
+          : "",
+        cue: !!cue,
+        cueText: cue ? (cue.textContent || "").trim() : "",
+        cueClass: cue ? cue.className || "" : "",
+        empty: !!empty,
+        emptyClear: !!emptyClear,
+        bearingN: document.querySelectorAll(
+          '.passport-gate-path[data-residual-bearing="1"]'
+        ).length,
+        filteredN: document.querySelectorAll(
+          '.passport-gate-path[data-residual-filtered="1"]'
+        ).length,
+        cueH: cueBox ? cueBox.height : 0,
+        cueW: cueBox ? cueBox.width : 0,
+      };
+    });
+    const pcf1ok =
+      pcf1.filterAttr === "on" &&
+      pcf1.cue &&
+      /Clear filter/i.test(pcf1.cueText) &&
+      /passport-sticky-clear-filter/.test(pcf1.cueClass) &&
+      !pcf1.empty &&
+      !pcf1.emptyClear &&
+      pcf1.bearingN > 0 &&
+      pcf1.cueH > 10 &&
+      pcf1.cueW > 40;
+    record(
+      "PCF1",
+      "Residual filter ON + bearings shows Passport sticky Clear-filter cue (no empty chrome)",
+      !!pcf1ok,
+      JSON.stringify(pcf1)
+    );
+
+    await shot(page, "passport-sticky-clear-filter.png");
+    const pcfShot = checks.find(
+      (c) => c.id === "shot:passport-sticky-clear-filter.png"
+    );
+    record(
+      "PCF3",
+      "screenshot passport-sticky-clear-filter.png is not a black frame",
+      !!(pcfShot && pcfShot.pass),
+      pcfShot ? pcfShot.detail : "missing shot"
+    );
+
+    await page.click('#passportSign [data-passport-clear-filter="1"]');
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          '#passportSign .passport-residual'
+        );
+        const cue =
+          residual && residual.querySelector('[data-passport-clear-filter="1"]');
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") !== "on" &&
+          !cue &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pcf2 = await page.evaluate(() => {
+      const residual = document.querySelector(
+        '#passportSign .passport-residual'
+      );
+      const btn =
+        residual &&
+        residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+      const cue =
+        residual && residual.querySelector('[data-passport-clear-filter="1"]');
+      return {
+        filterAttr: residual
+          ? residual.getAttribute("data-residual-filter") || ""
+          : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        cue: !!cue,
+        bearingN: document.querySelectorAll(
+          '.passport-gate-path[data-residual-bearing="1"]'
+        ).length,
+        filteredN: document.querySelectorAll(
+          '.passport-gate-path[data-residual-filtered="1"]'
+        ).length,
+      };
+    });
+    const pcf2ok =
+      pcf2.filterAttr !== "on" &&
+      pcf2.pressed === "false" &&
+      !pcf2.cue &&
+      pcf2.filteredN === 0 &&
+      pcf2.bearingN > 0;
+    record(
+      "PCF2",
+      "Passport sticky Clear-filter cue turns filter OFF and hides cue",
+      !!pcf2ok,
+      JSON.stringify(pcf2)
+    );
+    assertNoStampDir(
+      "PCF4",
+      "Passport sticky clear-filter cue step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

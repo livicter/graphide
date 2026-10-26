@@ -29320,7 +29320,8 @@
       const clearCue = scoped ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>' : "";
       const residualFilterAttr = trajResidualFilter ? ' data-residual-filter="on"' : "";
       const residualFilterToggle = '<button type="button" class="passport-residual-filter-toggle" data-passport-residual-filter-toggle="1" aria-pressed="' + (trajResidualFilter ? "true" : "false") + '" title="Show residual-bearing gate paths only" aria-label="Toggle residual-bearing filter">' + (trajResidualFilter ? "residuals on" : "residuals") + "</button>";
-      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + residualFilterToggle + clearCue + "</div>";
+      const stickyClearFilterCue = trajResidualFilter && passportResidualTrajIds().size > 0 ? '<button type="button" class="passport-sticky-clear-filter" data-passport-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>' : "";
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + residualFilterToggle + stickyClearFilterCue + clearCue + "</div>";
     }
     function renderPassportGate(fx, state) {
       const unlocked = state === "approved";
@@ -29512,6 +29513,15 @@
             ev.preventDefault();
             ev.stopPropagation();
             toggleTrajResidualFilter();
+          };
+        const stickyClearFilter = sign.querySelector(
+          '[data-passport-clear-filter="1"]'
+        );
+        if (stickyClearFilter)
+          stickyClearFilter.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            clearTrajResidualFilter();
           };
       }
       document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {

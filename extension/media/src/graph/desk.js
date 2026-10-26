@@ -12251,6 +12251,11 @@ function renderPassportResidual(fx, state) {
     '" title="Show residual-bearing gate paths only" aria-label="Toggle residual-bearing filter">' +
     (trajResidualFilter ? "residuals on" : "residuals") +
     "</button>";
+  // ADE Passport sticky clear-filter cue (PCF1–PCF3) — ON + non-empty; mirror Trace legend CC
+  const stickyClearFilterCue =
+    trajResidualFilter && passportResidualTrajIds().size > 0
+      ? '<button type="button" class="passport-sticky-clear-filter" data-passport-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
+      : "";
   return (
     '<div class="passport-residual" data-passport-residual="1" data-residual-state="' +
     esc(residualState) +
@@ -12265,6 +12270,7 @@ function renderPassportResidual(fx, state) {
     esc(copy) +
     "</span>" +
     residualFilterToggle +
+    stickyClearFilterCue +
     clearCue +
     "</div>"
   );
@@ -12858,6 +12864,15 @@ function bindPassportPage() {
         ev.preventDefault();
         ev.stopPropagation();
         toggleTrajResidualFilter();
+      };
+    const stickyClearFilter = sign.querySelector(
+      '[data-passport-clear-filter="1"]'
+    );
+    if (stickyClearFilter)
+      stickyClearFilter.onclick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        clearTrajResidualFilter();
       };
   }
   document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {

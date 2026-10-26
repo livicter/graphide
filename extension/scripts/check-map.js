@@ -634,6 +634,10 @@ assert(driver.includes("CC1") && driver.includes("CC3") && driver.includes("traj
 assert(js.includes("data-legend-clear-filter") && js.includes("legend-clear-filter") && js.includes("clearTrajResidualFilter") && /legendClearFilterCue|data-legend-clear-filter/.test(js), "Trace legend clear-filter cue markup/helpers missing");
 assert(css.includes("legend-clear-filter") && (css.includes("data-legend-clear-filter") || css.includes('data-legend-clear-filter="1"')), "Trace legend clear-filter cue CSS missing");
 assert(traceMap.includes("CC1") && traceMap.includes("clear-filter cue") && traceMap.includes("trajectory-legend-clear-filter.png") && traceMap.includes("data-legend-clear-filter"), "trace feature map must name legend clear-filter cue CC / proof");
+assert(driver.includes("PCF1") && driver.includes("PCF3") && driver.includes("passport-sticky-clear-filter.png") && driver.includes("data-passport-clear-filter"), "verify driver must prove Passport sticky clear-filter cue PCF1–PCF3");
+assert(js.includes("data-passport-clear-filter") && js.includes("passport-sticky-clear-filter") && js.includes("clearTrajResidualFilter") && /stickyClearFilterCue|data-passport-clear-filter/.test(js), "Passport sticky clear-filter cue markup/helpers missing");
+assert(css.includes("passport-sticky-clear-filter") && (css.includes("data-passport-clear-filter") || css.includes('data-passport-clear-filter="1"')), "Passport sticky clear-filter cue CSS missing");
+assert(passportMap.includes("PCF1") && passportMap.includes("clear-filter cue") && passportMap.includes("passport-sticky-clear-filter.png") && passportMap.includes("data-passport-clear-filter"), "passport feature map must name sticky clear-filter cue PCF / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
