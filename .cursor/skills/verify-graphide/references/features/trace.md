@@ -30,6 +30,9 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
   optional `data-label`. Focus dims off-path deps. Edge-legend chips
   (`#trajEdgeLegend` / `.traj-legend-chip`) mirror that focus: on-path
   kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3).
+- Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
+  `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
+  click-focus (KS1–KS3).
 - Engine: embedded `TRAJECTORY_FIXTURE` (`trajectory-fixture.js`),
   overridable by `window.__graphideTrajectory` when
   `isTrajectoryFixture()` passes (harness `?trace=1` loads
@@ -45,8 +48,8 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
    with phase/role/agent chrome, artifact + diff pins (adds/dels), and an
    inspector that fills when you select a node.
 4. Hover a diff pin to read +adds/−dels and the artifact path in the tip.
-5. Click a pin to focus it; use `[` / `]` to step subtasks. Neighbors stay
-   lit; off-path deps dim.
+5. Click a pin to focus it; use `[` / `]` / `←` / `→` / `j` / `k` to step
+   subtasks. Neighbors stay lit; off-path deps dim (same as click-focus).
 
 The in-tree proof is the embedded fixture (`ade-a1a-fixture` v2).
 
@@ -73,13 +76,15 @@ Driver assertions:
 - PTC1–PTC3: pin-tip chrome chips, path basename split, pin-anchored place
 - EL1–EL3: `#trajEdgeLegend` / `.traj-edge-legend` seq/fork/join chips; stroke styles mirror `.traj-edge.kind-*`; screenshot `verification/trajectory-edge-legend.png`
 - FLD1–FLD3: legend focus-dim — selected node dims off-path `.traj-legend-chip` (keeps on-path chips readable); screenshot `verification/trajectory-legend-focus-dim.png`
+- KS1–KS3: keyboard node-step (ArrowRight / `]`) advances focus; on-path edges + legend chips stay in sync with click-focus; screenshot `verification/trajectory-keyboard-step.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
   `verification/trajectory-pin-hover.png`, and
   `verification/trajectory-pin-tip-chrome.png`, and
   `verification/trajectory-edge-legend.png`, and
-  `verification/trajectory-legend-focus-dim.png` are not black frames
+  `verification/trajectory-legend-focus-dim.png`, and
+  `verification/trajectory-keyboard-step.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -95,6 +100,7 @@ Driver assertions:
   `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]`,
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
-  `[data-tip-art-base]`, `data-tip-place`.
+  `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`
+  (`[` / `]` / arrows / `j` `k`).
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).

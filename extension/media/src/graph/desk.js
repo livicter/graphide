@@ -434,7 +434,7 @@ document.addEventListener("keydown", (e) => {
   // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.
   if (e.target && e.target.closest && e.target.closest("select")) return;
   // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
-  if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+  if (e.repeat && !/^(\+|=|-|_|\[|\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
   // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
   // On Presentation Stage, Style / theme / zoom stay — let them through so Export/Keys do not steal stage chrome.
   // ? / F1 always toggle Keys (documented), even when Keys (or other chrome) is already open.
@@ -597,6 +597,20 @@ document.addEventListener("keydown", (e) => {
     else if (explorerWs === "lifecycle") toggleLcReview();
     else togglePathWalk();
     return;
+  }
+  // ADE Trace keyboard node-step (KS): arrows + j/k alias existing [ ] → stepTrajectory.
+  // Programs-stack arrows return earlier; Map/path walks stay on their explorerWs branches.
+  if (explorerWs === "trace") {
+    if (e.key === "ArrowRight" || e.key === "j" || e.key === "J") {
+      e.preventDefault();
+      stepTrajectory(1);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "k" || e.key === "K") {
+      e.preventDefault();
+      stepTrajectory(-1);
+      return;
+    }
   }
   if (e.key === "[") {
     e.preventDefault();
@@ -10362,7 +10376,7 @@ function renderTrajectoryDetail(fix, selectedId) {
   if (!n) {
     return (
       '<aside id="trajDetail" class="traj-detail" data-empty="1">' +
-      '<div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] to step.</div>' +
+      '<div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step.</div>' +
       "</aside>"
     );
   }
@@ -10737,7 +10751,7 @@ function renderTrajectoryBody() {
     " deps · fixture " +
     esc(fix.id) +
     (fix.version ? " v" + esc(String(fix.version)) : "") +
-    " · click node / pin · [ ] step</div>" +
+    " · click node / pin · [ ] / ←→ / jk step</div>" +
     "</div>"
   );
 }

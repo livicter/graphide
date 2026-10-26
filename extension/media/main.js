@@ -7697,6 +7697,14 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "[" }),
           " ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "]" }),
+          " / ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "←" }),
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "→" }),
+          " / ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "j" }),
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "k" }),
           " step"
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { children: [
@@ -20219,7 +20227,7 @@
       }
       if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (e.target && e.target.closest && e.target.closest("select")) return;
-      if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+      if (e.repeat && !/^(\+|=|-|_|\[|\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
       if (e.key !== "Backspace" && e.key !== "?" && e.key !== "F1" && !(isPresenting() && (e.key === "s" || e.key === "S" || e.key === "d" || e.key === "D" || e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_" || e.key === "0")) && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
         return;
       }
@@ -20358,6 +20366,18 @@
         else if (explorerWs === "lifecycle") toggleLcReview();
         else togglePathWalk();
         return;
+      }
+      if (explorerWs === "trace") {
+        if (e.key === "ArrowRight" || e.key === "j" || e.key === "J") {
+          e.preventDefault();
+          stepTrajectory(1);
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key === "k" || e.key === "K") {
+          e.preventDefault();
+          stepTrajectory(-1);
+          return;
+        }
       }
       if (e.key === "[") {
         e.preventDefault();
@@ -28174,7 +28194,7 @@
     function renderTrajectoryDetail(fix, selectedId) {
       const n = (fix.nodes || []).find((x) => x.id === selectedId);
       if (!n) {
-        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] to step.</div></aside>';
+        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step.</div></aside>';
       }
       const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
       const artCls = pin === "artifact" ? " pin-focus" : "";
@@ -28238,7 +28258,7 @@
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + "</div>";
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · [ ] step</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · [ ] / ←→ / jk step</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();

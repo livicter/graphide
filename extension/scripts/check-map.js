@@ -125,7 +125,7 @@ assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not ste
 assert(js.includes("if (e.metaKey || e.ctrlKey && !e.altKey) return;"), "Cmd / Ctrl chords must not fire desk keys (Cmd+S must not stamp)");
 assert(js.includes('if (e.target && e.target.closest && e.target.closest("select")) return;'), "a focused <select> must keep its typeahead keys (no workspace switch / stamp)");
 assert((js.match(/if \(e\.isComposing\) return;/g) || []).length >= 2, "IME-composing Enter must not send Ask or start a review");
-assert(js.includes("if (e.repeat && !/^(\\+|=|-|_|\\[|\\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;"), "holding a toggle / action key must fire it once (auto-repeat ignored)");
+assert(js.includes("if (e.repeat && !/^(\\+|=|-|_|\\[|\\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;"), "holding a toggle / action key must fire it once (auto-repeat ignored)");
 assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
 assert(js.includes("function enterMapBubble"), "Map enter must use the same bubble stack as Slice");
@@ -336,8 +336,8 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
 assert(
-  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381") && rootReadme.includes("#386"),
-  "root README must document ADE Phase 1 tip stack #371…#386"
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381") && rootReadme.includes("#388"),
+  "root README must document ADE Phase 1 tip stack #371…#388"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -553,6 +553,10 @@ assert(css.includes("traj-legend-chip.on-path") || css.includes(".traj-legend-ch
 assert(css.includes("traj-legend-chip.dim") || css.includes(".traj-legend-chip.dim") || css.includes("has-focus .traj-legend-chip.dim"), "Trace legend focus-dim CSS missing dim chip");
 assert(js.includes("onPathKinds") && js.includes("data-dim") && js.includes("traj-legend-chip"), "Trace legend focus-dim markup missing onPathKinds/data-dim");
 assert(traceMap.includes("FLD1") && traceMap.includes("focus-dim") && traceMap.includes("trajectory-legend-focus-dim.png"), "trace feature map must name legend focus-dim FLD / proof");
+assert(driver.includes("KS1") && driver.includes("KS3") && driver.includes("trajectory-keyboard-step.png"), "verify driver must prove Trace keyboard node-step KS1–KS3");
+assert(js.includes('e.key === "ArrowRight" || e.key === "j" || e.key === "J"') && js.includes("stepTrajectory"), "Trace keyboard step ArrowRight/j → stepTrajectory missing");
+assert(js.includes('e.key === "ArrowLeft" || e.key === "k" || e.key === "K"') && js.includes('explorerWs === "trace"'), "Trace keyboard step ArrowLeft/k under explorerWs===trace missing");
+assert(traceMap.includes("KS1") && traceMap.includes("keyboard") && traceMap.includes("trajectory-keyboard-step.png"), "trace feature map must name keyboard step KS / proof");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

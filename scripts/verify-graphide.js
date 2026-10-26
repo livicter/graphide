@@ -2474,6 +2474,145 @@ async function main() {
     );
     assertNoStampDir("FLD4", "Trace legend focus-dim step did not write .graphide/stamps/");
 
+    // ADE Trace keyboard node-step — KS1–KS3 (ArrowRight / ] advance focus; legend dim stays in sync)
+    // FLD left focus on sub-edit; ArrowRight → sub-fixture; ] → sub-diff.
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajCanvas");
+        const pageEl = document.querySelector(".traj-page");
+        const on = document.querySelector(".traj-node.on");
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-fixture" &&
+          pageEl &&
+          pageEl.classList.contains("has-focus") &&
+          on &&
+          on.getAttribute("data-id") === "sub-fixture"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ks1 = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      const pageEl = document.querySelector(".traj-page");
+      const on = document.querySelector(".traj-node.on");
+      const legend = document.getElementById("trajEdgeLegend");
+      const chips = legend
+        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]")].map((chip) => ({
+            kind: chip.getAttribute("data-kind") || "",
+            onPath: chip.classList.contains("on-path"),
+            dim: chip.classList.contains("dim"),
+            dataOnPath: chip.getAttribute("data-on-path") === "1",
+            dataDim: chip.getAttribute("data-dim") === "1",
+          }))
+        : [];
+      const onPathEdgeKinds = [
+        ...new Set(
+          [...document.querySelectorAll(".traj-edge.on-path")].map(
+            (e) => e.getAttribute("data-kind") || "seq"
+          )
+        ),
+      ].sort();
+      const onPathChipKinds = chips.filter((c) => c.onPath).map((c) => c.kind).sort();
+      const dimChipKinds = chips.filter((c) => c.dim).map((c) => c.kind).sort();
+      return {
+        focus: host ? host.getAttribute("data-focus") : "",
+        hasFocus: !!(pageEl && pageEl.classList.contains("has-focus")),
+        onId: on ? on.getAttribute("data-id") : "",
+        onPathEdgeKinds,
+        onPathChipKinds,
+        dimChipKinds,
+        chips,
+      };
+    });
+    // sub-fixture neighbors touch seq+fork+join — all chips on-path is valid; require xor dim/on-path per chip.
+    const ks1chipXor =
+      Array.isArray(ks1.chips) &&
+      ks1.chips.length > 0 &&
+      ks1.chips.every((c) => !!(c.onPath) !== !!(c.dim));
+    const ks1ok =
+      ks1.focus === "sub-fixture" &&
+      ks1.hasFocus &&
+      ks1.onId === "sub-fixture" &&
+      ks1.onPathChipKinds.join(",") === ks1.onPathEdgeKinds.join(",") &&
+      ks1chipXor;
+    record(
+      "KS1",
+      "ArrowRight from sub-edit → sub-fixture focus; legend on-path kinds match on-path edges",
+      ks1ok,
+      JSON.stringify(ks1)
+    );
+
+    await page.keyboard.press("]");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajCanvas");
+        const on = document.querySelector(".traj-node.on");
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-diff" &&
+          on &&
+          on.getAttribute("data-id") === "sub-diff"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ks2 = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      const pageEl = document.querySelector(".traj-page");
+      const on = document.querySelector(".traj-node.on");
+      const legend = document.getElementById("trajEdgeLegend");
+      const chips = legend
+        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]")].map((chip) => ({
+            kind: chip.getAttribute("data-kind") || "",
+            onPath: chip.classList.contains("on-path"),
+            dim: chip.classList.contains("dim"),
+          }))
+        : [];
+      const onPathEdgeKinds = [
+        ...new Set(
+          [...document.querySelectorAll(".traj-edge.on-path")].map(
+            (e) => e.getAttribute("data-kind") || "seq"
+          )
+        ),
+      ].sort();
+      const onPathChipKinds = chips.filter((c) => c.onPath).map((c) => c.kind).sort();
+      return {
+        focus: host ? host.getAttribute("data-focus") : "",
+        hasFocus: !!(pageEl && pageEl.classList.contains("has-focus")),
+        onId: on ? on.getAttribute("data-id") : "",
+        onPathEdgeKinds,
+        onPathChipKinds,
+        chips,
+      };
+    });
+    const ks2ok =
+      ks2.focus === "sub-diff" &&
+      ks2.hasFocus &&
+      ks2.onId === "sub-diff" &&
+      ks2.onPathChipKinds.join(",") === ks2.onPathEdgeKinds.join(",");
+    record(
+      "KS2",
+      "] advances to sub-diff; focus / on-path / legend dim stay in sync",
+      ks2ok,
+      JSON.stringify(ks2)
+    );
+
+    await shot(page, "trajectory-keyboard-step.png");
+    const ks3Shot = checks.find((c) => c.id === "shot:trajectory-keyboard-step.png");
+    record(
+      "KS3",
+      "screenshot trajectory-keyboard-step.png is not a black frame",
+      !!(ks3Shot && ks3Shot.pass),
+      ks3Shot ? ks3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("KS4", "Trace keyboard node-step did not write .graphide/stamps/");
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(

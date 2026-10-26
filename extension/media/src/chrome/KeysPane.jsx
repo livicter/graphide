@@ -18,7 +18,7 @@ export function KeysPane() {
           <kbd>S</kbd> stamp · <kbd>X</kbd> skip
         </li>
         <li>
-          <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step
+          <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> / <kbd>←</kbd> <kbd>→</kbd> / <kbd>j</kbd> <kbd>k</kbd> step
         </li>
         <li>
           <kbd>R</kbd> PATH · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
