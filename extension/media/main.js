@@ -28537,6 +28537,14 @@
       el2.hidden = false;
       positionTrajPinTip(el2, ev, pin);
     }
+    function clearTrajFocus() {
+      trajSelectedId = "";
+      trajPinFocus = "";
+      hideTrajPinTip();
+      if (typeof window !== "undefined") window.__graphideTrajectoryFocus = "";
+      syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
+      paint({ animate: "none" });
+    }
     function focusTrajectoryDep(depId) {
       const id2 = String(depId || "");
       if (!id2) return false;
@@ -29247,7 +29255,8 @@
       const n = scoped ? focusN : globalN;
       const copy = scoped ? residualState === "approved" ? "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " blocked" : residualState === "approved" ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
       const scopeAttrs = scoped ? ' data-residual-scope="focus" data-residual-focus="' + esc(focusId) + '" data-focus-residual-count="' + esc(String(focusN)) + '"' : ' data-residual-scope="global"';
-      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span></div>";
+      const clearCue = scoped ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>' : "";
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + clearCue + "</div>";
     }
     function renderPassportGate(fx, state) {
       const unlocked = state === "approved";
@@ -29417,6 +29426,13 @@
           reject.onclick = (ev) => {
             ev.stopPropagation();
             setPassportGate("rejected");
+          };
+        const clearFocus = sign.querySelector('[data-passport-clear-focus="1"]');
+        if (clearFocus)
+          clearFocus.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            clearTrajFocus();
           };
       }
       bindPassportImpactRows();

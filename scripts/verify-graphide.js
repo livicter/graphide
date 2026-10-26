@@ -4463,6 +4463,204 @@ async function main() {
     );
     assertNoStampDir("LC4", "Trace legend focus-residual step did not write .graphide/stamps/");
 
+    // ADE Passport sticky clear-focus cue (CF1–CF3) — pairs with FC/LC
+    // LC left Trace focused on sub-diff + gate rejected; hop Passport and assert clear cue.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+      timeout: 8000,
+    });
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        const focus = window.__graphideTrajectoryFocus || "";
+        if (!residual) return false;
+        if (residual.getAttribute("data-residual-scope") === "focus" && focus === "sub-diff") {
+          return !!residual.querySelector('[data-passport-clear-focus="1"]');
+        }
+        return false;
+      },
+      null,
+      { timeout: 8000 }
+    ).catch(() => null);
+    // If focus was lost after LC, reseed via Trace toggle then return.
+    let cfSeed = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      return {
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        win: window.__graphideTrajectoryFocus || "",
+        cue: residual
+          ? !!residual.querySelector('[data-passport-clear-focus="1"]')
+          : false,
+      };
+    });
+    if (!(cfSeed.scope === "focus" && cfSeed.focus === "sub-diff" && cfSeed.cue)) {
+      await page.click('#workspaces [data-ws="trace"]');
+      await page.waitForSelector('[data-testid="trajectory-dag"] .traj-node[data-id="sub-diff"]', {
+        timeout: 8000,
+      });
+      await page.evaluate(() => {
+        const n = document.querySelector('.traj-node[data-id="sub-diff"]');
+        if (!n) throw new Error("missing sub-diff for CF seed");
+        if (!n.classList.contains("on")) n.click();
+      });
+      await page.waitForFunction(
+        () => {
+          const host = document.querySelector('[data-testid="trajectory-dag"]');
+          return host && host.getAttribute("data-focus") === "sub-diff";
+        },
+        null,
+        { timeout: 8000 }
+      );
+      await page.click('#workspaces [data-ws="passport"]');
+      await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+        timeout: 8000,
+      });
+      await page.waitForTimeout(120);
+    }
+    const cf1 = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const cue = residual
+        ? residual.querySelector('[data-passport-clear-focus="1"]')
+        : null;
+      const badge = residual ? residual.querySelector(".passport-residual-badge") : null;
+      const copy = residual
+        ? ((residual.querySelector(".passport-residual-copy") || residual).textContent || "")
+        : "";
+      const gate = document.getElementById("passportGate");
+      return {
+        present: !!residual,
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") || "" : "",
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        badge: badge ? (badge.textContent || "").trim() : "",
+        copy,
+        cue: !!cue,
+        cueLabel: cue ? (cue.textContent || "").trim() : "",
+        cueClass: cue ? cue.classList.contains("passport-clear-focus") : false,
+        gateState: gate ? gate.getAttribute("data-passport-state") || "" : "",
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "CF1",
+      "Focus-scoped Passport sticky residual exposes clear-focus cue",
+      !!(
+        cf1.present &&
+        cf1.scope === "focus" &&
+        cf1.focus === "sub-diff" &&
+        cf1.winFocus === "sub-diff" &&
+        cf1.cue &&
+        cf1.cueClass &&
+        /clear focus/i.test(cf1.cueLabel) &&
+        Number(cf1.focusCount) >= 1 &&
+        Number(cf1.focusCount) < Number(cf1.globalCount) &&
+        cf1.badge === cf1.focusCount &&
+        /Focus path/i.test(cf1.copy)
+      ),
+      JSON.stringify(cf1)
+    );
+
+    await shot(page, "passport-clear-focus-cue.png");
+    const cfShot = checks.find((c) => c.id === "shot:passport-clear-focus-cue.png");
+    record(
+      "CF3",
+      "screenshot passport-clear-focus-cue.png is not a black frame",
+      !!(cfShot && cfShot.pass),
+      cfShot ? cfShot.detail : "missing shot"
+    );
+
+    const gateBefore = cf1.gateState;
+    await page.click('#passportSign [data-passport-clear-focus="1"]');
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        if (!residual) return false;
+        const scope = residual.getAttribute("data-residual-scope") || "";
+        const cue = residual.querySelector('[data-passport-clear-focus="1"]');
+        const win = window.__graphideTrajectoryFocus || "";
+        return scope === "global" && !cue && win === "";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const cf2 = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const cue = residual
+        ? residual.querySelector('[data-passport-clear-focus="1"]')
+        : null;
+      const badge = residual ? residual.querySelector(".passport-residual-badge") : null;
+      const copy = residual
+        ? ((residual.querySelector(".passport-residual-copy") || residual).textContent || "")
+        : "";
+      const gate = document.getElementById("passportGate");
+      return {
+        present: !!residual,
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") : null,
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") : null,
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        badge: badge ? (badge.textContent || "").trim() : "",
+        copy,
+        cue: !!cue,
+        gateState: gate ? gate.getAttribute("data-passport-state") || "" : "",
+        winFocus: window.__graphideTrajectoryFocus || "",
+        adj: document.querySelectorAll("#passportGate [data-passport-adj-residual]").length,
+      };
+    });
+    // Trace legend should also restore global when hopped
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(100);
+    const cf2Legend = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        scope: legend ? legend.getAttribute("data-residual-scope") || "" : "",
+        chips: legend ? legend.querySelectorAll('[data-focus-residual="1"]').length : -1,
+      };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+      timeout: 8000,
+    });
+    record(
+      "CF2",
+      "Clear-focus cue restores global Passport residual + clears Trace focus chrome",
+      !!(
+        cf2.present &&
+        cf2.scope === "global" &&
+        (cf2.focus == null || cf2.focus === "") &&
+        (cf2.focusCount == null || cf2.focusCount === "") &&
+        !cf2.cue &&
+        cf2.winFocus === "" &&
+        cf2.badge === cf2.globalCount &&
+        cf2.globalCount === cf1.globalCount &&
+        /Sign-off incomplete|Writes unlocked/i.test(cf2.copy) &&
+        !/Focus path/i.test(cf2.copy) &&
+        cf2.gateState === gateBefore &&
+        cf2.adj === 0 &&
+        cf2Legend &&
+        cf2Legend.focus === "" &&
+        cf2Legend.scope === "global" &&
+        cf2Legend.chips === 0
+      ),
+      JSON.stringify({ after: cf2, legend: cf2Legend, before: cf1 })
+    );
+    assertNoStampDir("CF4", "Passport clear-focus cue did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

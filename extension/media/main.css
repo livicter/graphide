@@ -3166,6 +3166,34 @@ html.bright .traj-node { background: #fff; }
 .passport-residual[data-residual-scope="focus"] .passport-residual-badge {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 45%, transparent);
 }
+/* Passport sticky clear-focus cue (CF1–CF3) — pairs with FC/LC */
+.passport-residual .passport-clear-focus,
+.passport-residual [data-passport-clear-focus="1"] {
+  appearance: none;
+  margin: 0 0 0 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 55%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 16%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--vscode-focusBorder, #6ea8fe);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.passport-residual .passport-clear-focus:hover,
+.passport-residual .passport-clear-focus:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 26%, var(--vscode-editorWidget-background, #1e1e1e));
+}
+.passport-residual[data-residual-scope="global"] .passport-clear-focus {
+  display: none;
+}
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }

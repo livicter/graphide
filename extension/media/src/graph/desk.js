@@ -11278,6 +11278,17 @@ function showTrajPinTip(pin, node, ev) {
 }
 
 
+
+/** CF: clear Trace/Passport traj focus and restore global residual chrome. */
+function clearTrajFocus() {
+  trajSelectedId = "";
+  trajPinFocus = "";
+  hideTrajPinTip();
+  if (typeof window !== "undefined") window.__graphideTrajectoryFocus = "";
+  syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
+  paint({ animate: "none" });
+}
+
 function focusTrajectoryDep(depId) {
   const id = String(depId || "");
   if (!id) return false;
@@ -12094,6 +12105,9 @@ function renderPassportResidual(fx, state) {
       esc(String(focusN)) +
       '"'
     : ' data-residual-scope="global"';
+  const clearCue = scoped
+    ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>'
+    : "";
   return (
     '<div class="passport-residual" data-passport-residual="1" data-residual-state="' +
     esc(residualState) +
@@ -12105,7 +12119,9 @@ function renderPassportResidual(fx, state) {
     esc(String(n)) +
     '</span><span class="passport-residual-copy">' +
     esc(copy) +
-    "</span></div>"
+    "</span>" +
+    clearCue +
+    "</div>"
   );
 }
 
@@ -12662,6 +12678,13 @@ function bindPassportPage() {
       reject.onclick = (ev) => {
         ev.stopPropagation();
         setPassportGate("rejected");
+      };
+    const clearFocus = sign.querySelector('[data-passport-clear-focus="1"]');
+    if (clearFocus)
+      clearFocus.onclick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        clearTrajFocus();
       };
   }
   bindPassportImpactRows();

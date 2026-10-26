@@ -604,6 +604,10 @@ assert(driver.includes("LC1") && driver.includes("LC3") && driver.includes("traj
 assert(js.includes("focus-residual") && js.includes("data-focus-residual") && js.includes("focus residual") && js.includes("traj-legend-focus-residual-badge"), "Trace legend focus-residual markup missing");
 assert(css.includes("traj-legend-chip.focus-residual") || css.includes(".traj-legend-chip.focus-residual") || css.includes('[data-focus-residual="1"]'), "Trace legend focus-residual CSS missing");
 assert(traceMap.includes("LC1") && traceMap.includes("focus-residual") && traceMap.includes("trajectory-legend-focus-residual.png") && traceMap.includes("data-focus-residual"), "trace feature map must name focus-residual legend LC / proof");
+assert(driver.includes("CF1") && driver.includes("CF3") && driver.includes("passport-clear-focus-cue.png") && driver.includes("data-passport-clear-focus"), "verify driver must prove Passport clear-focus cue CF1–CF3");
+assert(js.includes("data-passport-clear-focus") && js.includes("passport-clear-focus") && js.includes("clearTrajFocus") && js.includes("Clear focus"), "Passport clear-focus cue markup/helper missing");
+assert(css.includes("passport-clear-focus") || css.includes('[data-passport-clear-focus="1"]'), "Passport clear-focus cue CSS missing");
+assert(passportMap.includes("CF1") && passportMap.includes("clear-focus") && passportMap.includes("passport-clear-focus-cue.png") && passportMap.includes("data-passport-clear-focus"), "passport feature map must name clear-focus cue CF / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
