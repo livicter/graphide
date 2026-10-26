@@ -695,6 +695,12 @@ assert(keysMap.includes("CCF1") && keysMap.includes("count-chip") && keysMap.inc
 assert(traceMap.includes("CCF1") && traceMap.includes("count chip keyboard") && traceMap.includes("residual-filter-count-chip-focus.png") && traceMap.includes('role="status"'), "trace feature map must name residual-filter count-chip focus CCF / proof");
 assert(passportMap.includes("CCF1") && passportMap.includes("count chip keyboard") && passportMap.includes("residual-filter-count-chip-focus.png") && passportMap.includes('role="status"'), "passport feature map must name residual-filter count-chip focus CCF / proof");
 
+assert(driver.includes("FHP1") && driver.includes("FHP3") && driver.includes("residual-filter-count-host-parity.png") && driver.includes("data-residual-filter") && driver.includes("boxShadow"), "verify driver must prove residual-filter count host parity FHP1–FHP3");
+assert(css.includes('#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip.residual-filter-count') && css.includes('.passport-residual[data-residual-filter="on"] .passport-residual-filter-count') && css.includes("box-shadow: inset 0 0 0 1px") && css.includes("28%"), "residual-filter count pressed/host parity CSS missing");
+assert(keysMap.includes("FHP1") && keysMap.includes("pressed/ON") && keysMap.includes("residual-filter-count-host-parity.png"), "keys feature map must name residual-filter count host parity FHP / proof");
+assert(traceMap.includes("FHP1") && traceMap.includes("pressed/ON visual parity") && traceMap.includes("residual-filter-count-host-parity.png"), "trace feature map must name residual-filter count host parity FHP / proof");
+assert(passportMap.includes("FHP1") && passportMap.includes("pressed/ON visual parity") && passportMap.includes("residual-filter-count-host-parity.png"), "passport feature map must name residual-filter count host parity FHP / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

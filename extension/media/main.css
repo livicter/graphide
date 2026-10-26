@@ -3226,6 +3226,12 @@ html.bright .traj-node { background: #fff; }
   outline: 1px solid color-mix(in srgb, var(--traj-filter-residual) 80%, transparent);
   outline-offset: 1px;
 }
+/* ADE Trace legend residual-filter count pressed/host parity (FHP1–FHP3) — match toggle aria-pressed inset/28% */
+#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip.residual-filter-count,
+#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip[data-residual-filter-count="1"] {
+  background: color-mix(in srgb, var(--traj-filter-residual) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-filter-residual) 50%, transparent);
+}
 .traj-node.residual-filtered,
 .traj-node[data-residual-filtered="1"] {
   opacity: 0.22;
@@ -3429,6 +3435,12 @@ html.bright .traj-node { background: #fff; }
 .passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"]:focus-visible {
   outline: 1px solid color-mix(in srgb, var(--passport-filter-residual) 80%, transparent);
   outline-offset: 1px;
+}
+/* ADE Passport sticky residual-filter count pressed/host parity (FHP1–FHP3) — match toggle aria-pressed inset/28% */
+.passport-residual[data-residual-filter="on"] .passport-residual-filter-count,
+.passport-residual[data-residual-filter="on"] [data-residual-filter-count="1"].passport-residual-filter-count {
+  background: color-mix(in srgb, var(--passport-filter-residual) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-filter-residual) 50%, transparent);
 }
 
 .passport-gate-path.residual-filtered,

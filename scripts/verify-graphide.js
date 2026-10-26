@@ -8524,6 +8524,188 @@ async function main() {
       "Residual-filter count-chip focus step did not write .graphide/stamps/"
     );
 
+    // ADE residual-filter count pressed/host parity (FHP1–FHP3) — match toggle inset/28% when ON
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const fhpTrace = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const chip = document.querySelector(
+        '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]'
+      );
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (!host || !chip || !toggle) return { present: false };
+      const csChip = getComputedStyle(chip);
+      const csToggle = getComputedStyle(toggle);
+      const hostOn = host.getAttribute("data-residual-filter") === "on";
+      const chipShadow = csChip.boxShadow || "";
+      const toggleShadow = csToggle.boxShadow || "";
+      const chipBg = csChip.backgroundColor || "";
+      const toggleBg = csToggle.backgroundColor || "";
+      // Enter/Space must not clear (parity with CCF)
+      const filterBefore = host.getAttribute("data-residual-filter");
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true })
+      );
+      const filterAfter = host.getAttribute("data-residual-filter");
+      return {
+        present: true,
+        hostOn,
+        hostAttr: host.getAttribute("data-residual-filter"),
+        chipInset: /inset/i.test(chipShadow),
+        toggleInset: /inset/i.test(toggleShadow),
+        chipShadow,
+        toggleShadow,
+        chipBg,
+        toggleBg,
+        bgParity: chipBg === toggleBg,
+        shadowParity: chipShadow === toggleShadow,
+        tabindex: chip.getAttribute("tabindex"),
+        role: chip.getAttribute("role"),
+        filterBefore,
+        filterAfter,
+        cls: chip.classList.contains("residual-filter-count"),
+      };
+    });
+    const fhp1ok = !!(
+      fhpTrace &&
+      fhpTrace.present &&
+      fhpTrace.hostOn &&
+      fhpTrace.chipInset &&
+      fhpTrace.toggleInset &&
+      fhpTrace.bgParity &&
+      fhpTrace.shadowParity &&
+      fhpTrace.tabindex === "0" &&
+      fhpTrace.role === "status" &&
+      fhpTrace.filterBefore === "on" &&
+      fhpTrace.filterAfter === "on" &&
+      fhpTrace.cls
+    );
+    record(
+      "FHP1",
+      "Trace legend residual-filter count chip has pressed/ON chrome parity with toggle (inset + matching bg)",
+      !!fhp1ok,
+      JSON.stringify(fhpTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const fhpPass = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      const chip = document.querySelector(
+        '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]'
+      );
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!host || !chip || !toggle) return { present: false };
+      const csChip = getComputedStyle(chip);
+      const csToggle = getComputedStyle(toggle);
+      const csHost = getComputedStyle(host);
+      const hostOn = host.getAttribute("data-residual-filter") === "on";
+      const chipShadow = csChip.boxShadow || "";
+      const toggleShadow = csToggle.boxShadow || "";
+      const chipBg = csChip.backgroundColor || "";
+      const toggleBg = csToggle.backgroundColor || "";
+      const hostShadow = csHost.boxShadow || "";
+      const filterBefore = host.getAttribute("data-residual-filter");
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true })
+      );
+      const filterAfter = host.getAttribute("data-residual-filter");
+      return {
+        present: true,
+        hostOn,
+        hostAttr: host.getAttribute("data-residual-filter"),
+        chipInset: /inset/i.test(chipShadow),
+        toggleInset: /inset/i.test(toggleShadow),
+        hostInset: /inset/i.test(hostShadow),
+        chipShadow,
+        toggleShadow,
+        chipBg,
+        toggleBg,
+        bgParity: chipBg === toggleBg,
+        shadowParity: chipShadow === toggleShadow,
+        tabindex: chip.getAttribute("tabindex"),
+        role: chip.getAttribute("role"),
+        filterBefore,
+        filterAfter,
+        cls: chip.classList.contains("passport-residual-filter-count"),
+      };
+    });
+    const fhp2ok = !!(
+      fhpPass &&
+      fhpPass.present &&
+      fhpPass.hostOn &&
+      fhpPass.chipInset &&
+      fhpPass.toggleInset &&
+      fhpPass.hostInset &&
+      fhpPass.bgParity &&
+      fhpPass.shadowParity &&
+      fhpPass.tabindex === "0" &&
+      fhpPass.role === "status" &&
+      fhpPass.filterBefore === "on" &&
+      fhpPass.filterAfter === "on" &&
+      fhpPass.cls
+    );
+    record(
+      "FHP2",
+      "Passport sticky residual-filter count chip has pressed/ON chrome parity with toggle; host ON inset retained",
+      !!fhp2ok,
+      JSON.stringify(fhpPass)
+    );
+
+    await shot(page, "residual-filter-count-host-parity.png");
+    const fhpShot = checks.find(
+      (c) => c.id === "shot:residual-filter-count-host-parity.png"
+    );
+    record(
+      "FHP3",
+      "screenshot residual-filter-count-host-parity.png is not a black frame",
+      !!(fhpShot && fhpShot.pass),
+      fhpShot ? fhpShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "FHP4",
+      "Residual-filter count host parity step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
