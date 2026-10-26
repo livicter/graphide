@@ -7,31 +7,36 @@
   "targets": [
     { "id": "t1", "label": "Passport paint + bind", "path": "extension/media/src/graph/desk.js" },
     { "id": "t2", "label": "Explorer Passport tab", "path": "extension/media/src/chrome/GraphBar.jsx" },
-    { "id": "t3", "label": "Harness + verify gate", "path": "scripts/verify-graphide.js" }
+    { "id": "t3", "label": "Harness + verify gate", "path": "scripts/verify-graphide.js" },
+    { "id": "t4", "label": "Trace DAG polish", "path": "extension/media/src/graph/trajectory-fixture.js" }
   ],
   "contracts": [
     { "id": "c1", "kind": "function", "name": "paintPassportWorkspace", "sig": "(title) => void", "stability": "draft" },
     { "id": "c2", "kind": "function", "name": "getPassport", "sig": "() => PassportFixture", "stability": "draft" },
-    { "id": "c3", "kind": "function", "name": "setPassportGate", "sig": "(state) => void", "stability": "draft" }
+    { "id": "c3", "kind": "function", "name": "setPassportGate", "sig": "(state) => void", "stability": "draft" },
+    { "id": "c4", "kind": "function", "name": "bindTrajectoryPage", "sig": "() => void", "stability": "draft" }
   ],
   "risks": [
     { "id": "r1", "level": "high", "area": "gate-state writes", "note": "must never touch .graphide/stamps/" },
     { "id": "r2", "level": "med", "area": "agent write ordering", "note": "file writes stay blocked until Approve" },
-    { "id": "r3", "level": "low", "area": "explorer tab ordering" }
+    { "id": "r3", "level": "low", "area": "explorer tab ordering" },
+    { "id": "r4", "level": "med", "area": "A1a semantics", "note": "Trace polish must keep trajectory-dag host + pin attrs" }
   ],
   "testStrategy": [
     { "id": "p1", "kind": "assert", "desc": "tab present, click-only (no digit key)" },
     { "id": "p2", "kind": "assert", "desc": "gate banner starts pending with blocked paths" },
-    { "id": "p3", "kind": "e2e", "desc": "Approve unlocks gate fixture state; Reject re-blocks" }
+    { "id": "p3", "kind": "e2e", "desc": "Approve unlocks gate fixture state; Reject re-blocks" },
+    { "id": "p4", "kind": "assert", "desc": "impact stub keeps Architecture Delta vocabulary text" }
   ],
   "gatedWrites": [
     { "path": "extension/media/src/graph/desk.js", "reason": "agent would edit paint/bind" },
     { "path": "extension/media/src/chrome/GraphBar.jsx", "reason": "agent would add chrome" },
-    { "path": "extension/media/main.css", "reason": "agent would restyle passport" }
+    { "path": "extension/media/main.css", "reason": "agent would restyle passport" },
+    { "path": "extension/media/src/graph/trajectory-fixture.js", "reason": "agent would reshape Trace fixture" }
   ],
   "impact": {
-    "callGraphs": ["paintPassportWorkspace ← renderExplorerList(ws)", "setPassportGate ← #passportSign Approve/Reject"],
-    "apiContracts": ["getPassport() → PASSPORT_FIXTURE | window.__graphidePassport", "PASSPORT_GATE ∈ pending|approved|rejected"],
-    "invariants": ["no digit-key binding for passport", "gate state fixture-only (no .graphide/stamps/)", "Architecture Delta vocabulary in #passportImpact stub only"]
+    "callGraphs": ["paintPassportWorkspace ← renderExplorerList(ws)", "setPassportGate ← #passportSign Approve/Reject", "bindTrajectoryPage ← renderExplorerList(trace)"],
+    "apiContracts": ["getPassport() → PASSPORT_FIXTURE | window.__graphidePassport", "PASSPORT_GATE ∈ pending|approved|rejected", "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace"],
+    "invariants": ["no digit-key binding for passport", "gate state fixture-only (no .graphide/stamps/)", "Architecture Delta vocabulary in #passportImpact stub only", "Trace keeps #trajCanvas[data-testid=trajectory-dag]"]
   }
 }

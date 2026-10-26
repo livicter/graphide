@@ -10234,14 +10234,17 @@ function trajectoryFixture() {
   return TRAJECTORY_FIXTURE;
 }
 
-function renderTrajectoryBody() {
-  const fix = trajectoryFixture();
-  const nodes = fix.nodes || [];
-  const edges = fix.edges || [];
+let trajSelectedId = "";
+
+function trajStatusLabel(status) {
+  if (status === "done") return "done";
+  if (status === "running") return "running";
+  return "pending";
+}
+
+function renderTrajectoryEdges(nodes, edges, nodeW, nodeH) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const nodeW = 168;
-  const nodeH = 64;
-  const edgeLines = edges
+  return edges
     .map((e) => {
       const a = byId.get(e.from);
       const b = byId.get(e.to);
@@ -10250,56 +10253,168 @@ function renderTrajectoryBody() {
       const y1 = a.y + nodeH / 2;
       const x2 = b.x;
       const y2 = b.y + nodeH / 2;
+      const mx = (x1 + x2) / 2;
+      const kind = e.kind || "seq";
+      const d =
+        "M" +
+        x1 +
+        " " +
+        y1 +
+        " C" +
+        mx +
+        " " +
+        y1 +
+        ", " +
+        mx +
+        " " +
+        y2 +
+        ", " +
+        x2 +
+        " " +
+        y2;
       return (
-        '<line class="traj-edge" data-edge-id="' +
+        '<path class="traj-edge kind-' +
+        esc(kind) +
+        '" data-edge-id="' +
         esc(e.id) +
         '" data-from="' +
         esc(e.from) +
         '" data-to="' +
         esc(e.to) +
-        '" x1="' +
-        x1 +
-        '" y1="' +
-        y1 +
-        '" x2="' +
-        x2 +
-        '" y2="' +
-        y2 +
+        '" data-kind="' +
+        esc(kind) +
+        '" d="' +
+        d +
         '" />'
       );
     })
     .join("");
+}
+
+function renderTrajectoryDetail(fix, selectedId) {
+  const n = (fix.nodes || []).find((x) => x.id === selectedId);
+  if (!n) {
+    return (
+      '<aside id="trajDetail" class="traj-detail" data-empty="1">' +
+      '<div class="traj-detail-empty">Select a subtask to inspect artifact / diff pins and role.</div>' +
+      "</aside>"
+    );
+  }
+  return (
+    '<aside id="trajDetail" class="traj-detail" data-selected="' +
+    esc(n.id) +
+    '">' +
+    '<div class="traj-detail-head">' +
+    '<span class="traj-status-chip status-' +
+    esc(n.status || "pending") +
+    '">' +
+    esc(trajStatusLabel(n.status)) +
+    "</span>" +
+    "<strong>" +
+    esc(n.label || n.id) +
+    "</strong>" +
+    '<code class="traj-detail-id">' +
+    esc(n.id) +
+    "</code></div>" +
+    '<dl class="traj-detail-grid">' +
+    "<dt>Kind</dt><dd>" +
+    esc(n.kind || "—") +
+    "</dd>" +
+    "<dt>Role</dt><dd>" +
+    esc(n.role || "—") +
+    "</dd>" +
+    "<dt>Artifact</dt><dd>" +
+    (n.artifact ? "<code data-traj-artifact=\"1\">" + esc(n.artifact) + "</code>" : "—") +
+    "</dd>" +
+    "<dt>Diff pin</dt><dd>" +
+    (n.diff ? "<code class=\"traj-diff\" data-traj-diff=\"1\">" + esc(n.diff) + "</code>" : "—") +
+    "</dd>" +
+    "<dt>Note</dt><dd>" +
+    esc(n.note || "—") +
+    "</dd></dl></aside>"
+  );
+}
+
+function renderTrajectoryBody() {
+  const fix = trajectoryFixture();
+  const nodes = fix.nodes || [];
+  const edges = fix.edges || [];
+  const nodeW = 176;
+  const nodeH = 78;
+  const selectedId = trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
+  const edgeLines = renderTrajectoryEdges(nodes, edges, nodeW, nodeH);
   const nodeHtml = nodes
     .map((n) => {
       const art = n.artifact || "";
       const diff = n.diff || "";
+      const on = selectedId === n.id ? " on" : "";
       return (
-        '<div class="traj-node status-' +
+        '<button type="button" class="traj-node status-' +
         esc(n.status || "pending") +
+        on +
         '" data-id="' +
         esc(n.id) +
         '" data-artifact="' +
         esc(art) +
         '" data-diff="' +
         esc(diff) +
+        '" data-kind="' +
+        esc(n.kind || "") +
+        '" data-role="' +
+        esc(n.role || "") +
         '" style="left:' +
         n.x +
         "px;top:" +
         n.y +
-        'px">' +
+        'px" aria-pressed="' +
+        (on ? "true" : "false") +
+        '">' +
+        '<div class="traj-node-top">' +
+        '<span class="traj-status-chip status-' +
+        esc(n.status || "pending") +
+        '">' +
+        esc(trajStatusLabel(n.status)) +
+        "</span>" +
+        (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") +
+        "</div>" +
         '<div class="traj-label">' +
         esc(n.label || n.id) +
         "</div>" +
         (art ? '<div class="traj-pin artifact" title="artifact">' + esc(art) + "</div>" : "") +
         (diff ? '<div class="traj-pin diff" title="diff">' + esc(diff) + "</div>" : "") +
-        "</div>"
+        "</button>"
       );
     })
     .join("");
-  const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 40;
-  const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 40;
+  const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
+  const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
+  const done = nodes.filter((n) => n.status === "done").length;
+  const running = nodes.filter((n) => n.status === "running").length;
+  const pending = nodes.filter((n) => n.status === "pending").length;
   return (
     '<div class="traj-page">' +
+    '<div class="traj-strip">' +
+    '<span class="traj-strip-title">' +
+    esc(fix.title || "Execution trajectory") +
+    "</span>" +
+    '<span class="traj-strip-sub">' +
+    esc(fix.subtitle || "") +
+    "</span>" +
+    '<span class="traj-strip-stats">' +
+    '<span class="traj-stat" data-stat="done"><b>' +
+    done +
+    "</b> done</span>" +
+    '<span class="traj-stat" data-stat="running"><b>' +
+    running +
+    "</b> running</span>" +
+    '<span class="traj-stat" data-stat="pending"><b>' +
+    pending +
+    "</b> pending</span>" +
+    '<span class="traj-stat" data-stat="deps"><b>' +
+    edges.length +
+    "</b> deps</span>" +
+    "</span></div>" +
+    '<div class="traj-layout">' +
     '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
     esc(fix.id) +
     '" style="min-width:' +
@@ -10312,9 +10427,15 @@ function renderTrajectoryBody() {
     '" height="' +
     maxY +
     '" aria-hidden="true">' +
+    "<defs>" +
+    '<marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+    '<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>' +
+    "</defs>" +
     edgeLines +
     "</svg>" +
     nodeHtml +
+    "</div>" +
+    renderTrajectoryDetail(fix, selectedId) +
     "</div>" +
     '<div class="traj-meta">' +
     nodes.length +
@@ -10322,7 +10443,7 @@ function renderTrajectoryBody() {
     edges.length +
     " deps · fixture " +
     esc(fix.id) +
-    "</div>" +
+    " · click a node for pins</div>" +
     "</div>"
   );
 }
@@ -10334,6 +10455,19 @@ function paintTrajectoryWorkspace(title) {
   canvas.innerHTML =
     '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
   setZoomUi(false);
+}
+
+function bindTrajectoryPage() {
+  const host = document.getElementById("trajCanvas");
+  if (!host) return;
+  host.querySelectorAll(".traj-node").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-id") || "";
+      trajSelectedId = trajSelectedId === id ? "" : id;
+      paint({ animate: "none" });
+    };
+  });
 }
 
 
@@ -10349,6 +10483,7 @@ const PASSPORT_FIXTURE = Object.freeze({
     { id: "t1", label: "Passport paint + bind", path: "extension/media/src/graph/desk.js" },
     { id: "t2", label: "Explorer Passport tab", path: "extension/media/src/chrome/GraphBar.jsx" },
     { id: "t3", label: "Harness + verify gate", path: "scripts/verify-graphide.js" },
+    { id: "t4", label: "Trace DAG polish", path: "extension/media/src/graph/trajectory-fixture.js" },
   ],
   contracts: [
     {
@@ -10372,35 +10507,48 @@ const PASSPORT_FIXTURE = Object.freeze({
       sig: "(state) => void",
       stability: "draft",
     },
+    {
+      id: "c4",
+      kind: "function",
+      name: "bindTrajectoryPage",
+      sig: "() => void",
+      stability: "draft",
+    },
   ],
   risks: [
     { id: "r1", level: "high", area: "gate-state writes", note: "must never touch .graphide/stamps/" },
     { id: "r2", level: "med", area: "agent write ordering", note: "file writes stay blocked until Approve" },
     { id: "r3", level: "low", area: "explorer tab ordering" },
+    { id: "r4", level: "med", area: "A1a semantics", note: "Trace polish must keep trajectory-dag host + pin attrs" },
   ],
   testStrategy: [
     { id: "p1", kind: "assert", desc: "tab present, click-only (no digit key)" },
     { id: "p2", kind: "assert", desc: "gate banner starts pending with blocked paths" },
     { id: "p3", kind: "e2e", desc: "Approve unlocks gate fixture state; Reject re-blocks" },
+    { id: "p4", kind: "assert", desc: "impact stub keeps Architecture Delta vocabulary text" },
   ],
   gatedWrites: [
     { path: "extension/media/src/graph/desk.js", reason: "agent would edit paint/bind" },
     { path: "extension/media/src/chrome/GraphBar.jsx", reason: "agent would add chrome" },
     { path: "extension/media/main.css", reason: "agent would restyle passport" },
+    { path: "extension/media/src/graph/trajectory-fixture.js", reason: "agent would reshape Trace fixture" },
   ],
   impact: {
     callGraphs: [
       "paintPassportWorkspace ← renderExplorerList(ws)",
       "setPassportGate ← #passportSign Approve/Reject",
+      "bindTrajectoryPage ← renderExplorerList(trace)",
     ],
     apiContracts: [
       "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
       "PASSPORT_GATE ∈ pending|approved|rejected",
+      "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
     ],
     invariants: [
       "no digit-key binding for passport",
       "gate state fixture-only (no .graphide/stamps/)",
       "Architecture Delta vocabulary in #passportImpact stub only",
+      "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
     ],
   },
 });
@@ -10437,6 +10585,8 @@ function renderPassportGate(fx, state) {
     : state === "rejected"
       ? "Rejected — gated write paths stay blocked"
       : "Gated write paths blocked until approved";
+  const chip =
+    state === "approved" ? "approved" : state === "rejected" ? "rejected" : "pending";
   const paths = (fx.gatedWrites || [])
     .map((w) => {
       const blocked = unlocked ? "" : ' data-blocked="1"';
@@ -10445,10 +10595,12 @@ function renderPassportGate(fx, state) {
         esc(w.path || "") +
         "\"" +
         blocked +
-        "><code>" +
+        '><span class="passport-path-state">' +
+        (unlocked ? "open" : "blocked") +
+        "</span><code>" +
         esc(w.path || "") +
         "</code>" +
-        (w.reason ? " — " + esc(w.reason) : "") +
+        (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") +
         "</li>"
       );
     })
@@ -10456,23 +10608,56 @@ function renderPassportGate(fx, state) {
   return (
     '<div id="passportGate" class="passport-gate" data-passport-state="' +
     esc(state) +
-    '"><div class="passport-gate-state">' +
+    '"><div class="passport-gate-head"><span class="passport-gate-chip" data-gate-chip="' +
+    esc(chip) +
+    '">' +
+    esc(chip) +
+    '</span><div class="passport-gate-state">' +
     esc(label) +
-    '</div><ul class="passport-gate-paths">' +
+    '</div></div><ul class="passport-gate-paths">' +
     paths +
     "</ul></div>"
   );
 }
 
-function renderPassportSection(key, title, body) {
+function renderPassportSection(key, title, body, count) {
+  const countHtml =
+    typeof count === "number"
+      ? '<span class="passport-section-count">' + count + "</span>"
+      : "";
   return (
     '<section class="passport-section" data-passport="' +
     esc(key) +
     '"><h3>' +
     esc(title) +
+    countHtml +
     "</h3>" +
     body +
     "</section>"
+  );
+}
+
+function renderPassportImpact(fx) {
+  const impact = fx.impact || {};
+  const card = (key, title, items) =>
+    '<div class="passport-impact-card" data-impact="' +
+    esc(key) +
+    '"><h4>' +
+    esc(title) +
+    "</h4><ul>" +
+    (items || []).map((s) => "<li><code>" + esc(s) + "</code></li>").join("") +
+    "</ul></div>";
+  return (
+    '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact">' +
+    "<h3>Semantic impact</h3>" +
+    '<p class="passport-impact-summary">' +
+    esc(fx.summary || "") +
+    " — Architecture Delta vocabulary (call graphs / API contracts / invariants):</p>" +
+    '<div class="passport-impact-grid">' +
+    card("callGraphs", "Call graphs", impact.callGraphs) +
+    card("apiContracts", "API contracts", impact.apiContracts) +
+    card("invariants", "Invariants", impact.invariants) +
+    "</div></section>"
   );
 }
 
@@ -10484,9 +10669,9 @@ function renderPassportBody() {
       (t) =>
         '<li data-passport-target="' +
         esc(t.id || "") +
-        '">' +
+        '"><span class="passport-target-label">' +
         esc(t.label || t.id || "") +
-        " <code>" +
+        "</span> <code>" +
         esc(t.path || "") +
         "</code></li>"
     )
@@ -10496,11 +10681,11 @@ function renderPassportBody() {
       (c) =>
         '<li data-passport-contract="' +
         esc(c.id || "") +
-        '"><code>' +
+        '"><code class="passport-kind">' +
         esc(c.kind || "") +
         "</code> <strong>" +
         esc(c.name || "") +
-        "</strong> <code>" +
+        '</strong> <code class="passport-sig">' +
         esc(c.sig || "") +
         '</code> <em data-stability="' +
         esc(c.stability || "") +
@@ -10516,10 +10701,13 @@ function renderPassportBody() {
         esc(r.id || "") +
         '" data-level="' +
         esc(r.level || "") +
-        '"><b>' +
+        '"><span class="passport-risk-pill" data-level="' +
         esc(r.level || "") +
-        "</b> " +
+        '">' +
+        esc(r.level || "") +
+        "</span> <b>" +
         esc(r.area || "") +
+        "</b>" +
         (r.note ? " — " + esc(r.note) : "") +
         "</li>"
     )
@@ -10529,52 +10717,65 @@ function renderPassportBody() {
       (x) =>
         '<li data-passport-test="' +
         esc(x.id || "") +
-        '"><code>' +
+        '"><code class="passport-test-kind">' +
         esc(x.kind || "") +
         "</code> " +
         esc(x.desc || "") +
         "</li>"
     )
     .join("");
-  const impact = fx.impact || {};
-  const dl =
-    "<dl>" +
-    "<dt>Call graphs</dt><dd>" +
-    (impact.callGraphs || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") +
-    "</dd>" +
-    "<dt>API contracts</dt><dd>" +
-    (impact.apiContracts || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") +
-    "</dd>" +
-    "<dt>Invariants</dt><dd>" +
-    (impact.invariants || []).map((s) => "<code>" + esc(s) + "</code>").join(" ") +
-    "</dd></dl>";
   return (
     '<div id="passportPage" class="passport-page">' +
-    '<div class="outcome-strip"><span class="outcome-k">' +
+    '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
     esc(fx.title || "Plan Passport") +
     " · " +
     esc(fx.id || "") +
-    " · fixture</span></div>" +
+    ' · fixture</span><span class="passport-outcome-counts">' +
+    (fx.targets || []).length +
+    " targets · " +
+    (fx.contracts || []).length +
+    " contracts · " +
+    (fx.risks || []).length +
+    " risks · " +
+    (fx.testStrategy || []).length +
+    " tests</span></div>" +
     renderPassportGate(fx, state) +
-    renderPassportSection("targets", "Architecture targets", "<ul>" + targets + "</ul>") +
-    renderPassportSection("contracts", "Interfaces / API contracts", "<ul>" + contracts + "</ul>") +
-    renderPassportSection("risks", "Breaking-change risk", "<ul>" + risks + "</ul>") +
-    renderPassportSection("tests", "Test strategy", "<ul>" + tests + "</ul>") +
-    '<section class="passport-section" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' +
-    esc(fx.summary || "") +
-    " — Architecture Delta vocabulary (call graphs / API contracts / invariants):</p>" +
-    dl +
-    "</section>" +
+    renderPassportSection(
+      "targets",
+      "Architecture targets",
+      "<ul>" + targets + "</ul>",
+      (fx.targets || []).length
+    ) +
+    renderPassportSection(
+      "contracts",
+      "Interfaces / API contracts",
+      "<ul>" + contracts + "</ul>",
+      (fx.contracts || []).length
+    ) +
+    renderPassportSection(
+      "risks",
+      "Breaking-change risk",
+      "<ul>" + risks + "</ul>",
+      (fx.risks || []).length
+    ) +
+    renderPassportSection(
+      "tests",
+      "Test strategy",
+      "<ul>" + tests + "</ul>",
+      (fx.testStrategy || []).length
+    ) +
+    renderPassportImpact(fx) +
     '<div id="passportSign" class="passport-sign">' +
     '<button type="button" data-passport-action="approve">Approve</button>' +
     '<button type="button" data-passport-action="reject">Reject</button>' +
+    '<span class="passport-sign-hint">Fixture gate only — never writes .graphide/stamps/</span>' +
     "</div></div>"
   );
 }
 
 function paintPassportWorkspace(title) {
   unmountAllReviewCanvases();
-  canvas.className = "play explorer-list";
+  canvas.className = "play explorer-list passport";
   canvas.innerHTML =
     '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
   setZoomUi(false);
@@ -10602,6 +10803,7 @@ function bindPassportPage() {
       setPassportGate("rejected");
     };
 }
+
 
 
 function countMap(items, keyFn) {
@@ -10681,6 +10883,7 @@ function renderExplorerList(ws, opts) {
   if (ws === "trace") {
     paintTrajectoryWorkspace(titles.trace);
     bindWorkbenchPages();
+    bindTrajectoryPage();
     applyProbePaint();
     return;
   }
