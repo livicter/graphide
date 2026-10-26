@@ -1096,6 +1096,77 @@ function runImmutableSealChecks() {
     verifyScript
   );
   if (!i5ok) failFast("package.json verify script missing immutable order");
+
+  // I6–I8: product-path FS sandbox stub (--gate-write)
+  const gateDeny = spawnSync(
+    process.execPath,
+    [checker, "--gate-write", ".cursor/skills/verify-graphide/references/features/immutable-harness.md"],
+    { cwd: ROOT, encoding: "utf8", env: { ...process.env, ADE_ALLOW_SPEC_MUTATION: "" } }
+  );
+  const gateDenyOut = String(gateDeny.stdout || "") + String(gateDeny.stderr || "");
+  let gateDenyJson = null;
+  try {
+    gateDenyJson = JSON.parse(gateDenyOut.trim().split("\n").filter(Boolean).pop());
+  } catch (e) {}
+  const i6ok =
+    gateDeny.status !== 0 &&
+    gateDenyJson &&
+    gateDenyJson.allowed === false &&
+    gateDenyJson.class === "sealed";
+  record(
+    "I6",
+    "FS sandbox gate denies sealed feature map without unlock",
+    i6ok,
+    gateDenyOut.trim().slice(0, 240)
+  );
+  if (!i6ok) failFast("fs-sandbox I6 deny failed — " + gateDenyOut.slice(-400));
+
+  const gateMedia = spawnSync(
+    process.execPath,
+    [checker, "--gate-write", "extension/media/main.js"],
+    { cwd: ROOT, encoding: "utf8", env: { ...process.env, ADE_ALLOW_SPEC_MUTATION: "" } }
+  );
+  const gateMediaOut = String(gateMedia.stdout || "") + String(gateMedia.stderr || "");
+  let gateMediaJson = null;
+  try {
+    gateMediaJson = JSON.parse(gateMediaOut.trim().split("\n").filter(Boolean).pop());
+  } catch (e) {}
+  const i7ok =
+    gateMedia.status === 0 &&
+    gateMediaJson &&
+    gateMediaJson.allowed === true &&
+    gateMediaJson.class === "agent";
+  record(
+    "I7",
+    "FS sandbox gate allows extension/media/** without unlock",
+    i7ok,
+    gateMediaOut.trim().slice(0, 240)
+  );
+  if (!i7ok) failFast("fs-sandbox I7 media allow failed — " + gateMediaOut.slice(-400));
+
+  const unlockEnv = { ...process.env, ADE_ALLOW_SPEC_MUTATION: "1" };
+  const gateUnlock = spawnSync(
+    process.execPath,
+    [checker, "--gate-write", "package.json"],
+    { cwd: ROOT, encoding: "utf8", env: unlockEnv }
+  );
+  const gateUnlockOut = String(gateUnlock.stdout || "") + String(gateUnlock.stderr || "");
+  let gateUnlockJson = null;
+  try {
+    gateUnlockJson = JSON.parse(gateUnlockOut.trim().split("\n").filter(Boolean).pop());
+  } catch (e) {}
+  const i8ok =
+    gateUnlock.status === 0 &&
+    gateUnlockJson &&
+    gateUnlockJson.allowed === true &&
+    gateUnlockJson.class === "unlock";
+  record(
+    "I8",
+    "FS sandbox gate allows sealed path with ADE_ALLOW_SPEC_MUTATION=1",
+    i8ok,
+    gateUnlockOut.trim().slice(0, 240)
+  );
+  if (!i8ok) failFast("fs-sandbox I8 unlock allow failed — " + gateUnlockOut.slice(-400));
 }
 
 
@@ -25370,7 +25441,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · immutable · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · immutable · fs-sandbox · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

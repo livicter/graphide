@@ -51,7 +51,8 @@ Driver / script assertions (I1–I5):
   unlock for intentional spec edits.
 - Lock entries are exact paths (no globs). New feature maps need a human
   `--write` after they land.
-- This slice does not provide Docker/Wasm isolation, live agent write
-  interception, or required CI status / branch protection.
+- Product-path write policy stub lives beside this seal: see
+  [fs-sandbox.md](fs-sandbox.md) (`--gate-write`). Still not Docker/Wasm
+  or an OS-level interceptor; required CI / branch protection deferred.
 - Local shells can still invoke `node scripts/verify-graphide.js` alone;
   `npm run verify` is the agent make-green path that includes the seal.

@@ -579,6 +579,35 @@ assert(driver.includes("passport.png") && driver.includes("data-passport-action"
   );
   assert(featReadme.includes("immutable-harness.md"), "feature README must list immutable-harness.md");
   assert(driver.includes("I1") && driver.includes("check-immutable-specs") && driver.includes("Immutable specs"), "verify driver must prove immutable seal I1–I5");
+  assert(driver.includes("I6") && driver.includes("I7") && driver.includes("I8") && driver.includes("--gate-write"), "verify driver must prove fs-sandbox gate I6–I8");
+
+  const fsSandboxMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/fs-sandbox.md"
+  );
+  assert(immutableFs.existsSync(fsSandboxMapPath), "fs-sandbox.md missing");
+  const fsSandboxMap = immutableFs.readFileSync(fsSandboxMapPath, "utf8");
+  assert(
+    fsSandboxMap.includes("## Sub-features") &&
+      fsSandboxMap.includes("## How to get to it (user POV)") &&
+      fsSandboxMap.includes("## Driving it with the harness") &&
+      fsSandboxMap.includes("## Gotchas") &&
+      fsSandboxMap.includes("--gate-write") &&
+      fsSandboxMap.includes("extension/media"),
+    "fs-sandbox feature map must use the four headings and name --gate-write / media"
+  );
+  assert(featReadme.includes("fs-sandbox.md"), "feature README must list fs-sandbox.md");
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["fs-sandbox:gate"]) || "").includes("--gate-write"),
+    "fs-sandbox:gate script missing"
+  );
+  const checkerSrc = immutableFs.readFileSync(immutableScriptPath, "utf8");
+  assert(
+    checkerSrc.includes("classifyWrite") &&
+      checkerSrc.includes("--gate-write") &&
+      checkerSrc.includes("AGENT_WRITABLE_PREFIX"),
+    "immutable checker must export classifyWrite / --gate-write stub"
+  );
 }
 
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");

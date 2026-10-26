@@ -10,7 +10,8 @@
     "check:activation": "node scripts/check-activation.js",
     "verify:immutable": "node extension/scripts/check-immutable-specs.js",
     "verify:immutable:self-test": "node extension/scripts/check-immutable-specs.js --self-test",
-    "immutable:write": "node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation"
+    "immutable:write": "node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation",
+    "fs-sandbox:gate": "node extension/scripts/check-immutable-specs.js --gate-write"
   },
   "engines": {
     "node": ">=20"
