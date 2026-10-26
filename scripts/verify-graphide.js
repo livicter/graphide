@@ -3473,6 +3473,101 @@ async function main() {
     );
     await shot(page, "passport-gate-signoff.png");
 
+    // ADE Passport residual / incomplete-signoff cue on sticky sign rail — PR1–PR3
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+      timeout: 8000,
+    });
+    // Ensure rejected/pending so incomplete cue is measurable
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(180);
+    const pr1 = await page.evaluate(() => {
+      const sign = document.getElementById("passportSign");
+      const residual = sign && sign.querySelector(".passport-residual[data-passport-residual]");
+      const paths = document.querySelectorAll("#passportGate [data-passport-path]").length;
+      const copy = residual ? (residual.querySelector(".passport-residual-copy") || residual).textContent || "" : "";
+      const badge = residual ? residual.querySelector(".passport-residual-badge") : null;
+      return {
+        present: !!residual,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+        count: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        badge: badge ? (badge.textContent || "").trim() : "",
+        copy,
+        paths,
+        signState: sign ? sign.getAttribute("data-passport-sign-state") || "" : "",
+        hasApprove: !!(sign && sign.querySelector('[data-passport-action="approve"]')),
+        hasReject: !!(sign && sign.querySelector('[data-passport-action="reject"]')),
+      };
+    });
+    record(
+      "PR1",
+      "Sticky #passportSign residual cue shows incomplete/blocked path count",
+      pr1.present &&
+        (pr1.state === "rejected" || pr1.state === "pending") &&
+        pr1.count === String(pr1.paths) &&
+        pr1.badge === String(pr1.paths) &&
+        /Sign-off incomplete/i.test(pr1.copy) &&
+        /paths? blocked/i.test(pr1.copy) &&
+        pr1.paths >= 1 &&
+        pr1.hasApprove &&
+        pr1.hasReject,
+      JSON.stringify(pr1)
+    );
+
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(180);
+    const pr2Approve = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      const copy = residual ? (residual.querySelector(".passport-residual-copy") || residual).textContent || "" : "";
+      return {
+        present: !!residual,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+        count: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        copy,
+        signState: (() => {
+          const s = document.getElementById("passportSign");
+          return s ? s.getAttribute("data-passport-sign-state") || "" : "";
+        })(),
+      };
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(180);
+    const pr2Reject = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      const copy = residual ? (residual.querySelector(".passport-residual-copy") || residual).textContent || "" : "";
+      return {
+        present: !!residual,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+        count: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        copy,
+      };
+    });
+    record(
+      "PR2",
+      "Approve flips residual to unlocked/open; Reject restores incomplete/blocked cue",
+      pr2Approve.present &&
+        pr2Approve.state === "approved" &&
+        /Writes unlocked/i.test(pr2Approve.copy) &&
+        /paths? open/i.test(pr2Approve.copy) &&
+        pr2Approve.count === pr1.count &&
+        pr2Reject.present &&
+        pr2Reject.state === "rejected" &&
+        /Sign-off incomplete/i.test(pr2Reject.copy) &&
+        /paths? blocked/i.test(pr2Reject.copy) &&
+        pr2Reject.count === pr1.count,
+      JSON.stringify({ approve: pr2Approve, reject: pr2Reject, baseCount: pr1.count })
+    );
+
+    await shot(page, "passport-residual-chrome.png");
+    const prShot = checks.find((c) => c.id === "shot:passport-residual-chrome.png");
+    record(
+      "PR3",
+      "screenshot passport-residual-chrome.png is not a black frame",
+      !!(prShot && prShot.pass),
+      prShot ? prShot.detail : "missing shot"
+    );
+    assertNoStampDir("PR4", "Passport residual chrome did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
@@ -28369,7 +28464,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map + Trace hop-affordance) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map + Trace hop-affordance + Passport residual chrome) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -28384,7 +28479,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

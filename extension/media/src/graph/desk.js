@@ -11900,6 +11900,27 @@ function passportGateState() {
   return PASSPORT_STATES[passportGate] ? passportGate : "pending";
 }
 
+
+function renderPassportResidual(fx, state) {
+  const n = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites.length : 0;
+  const residualState = PASSPORT_STATES[state] ? state : "pending";
+  const copy =
+    residualState === "approved"
+      ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open"
+      : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
+  return (
+    '<div class="passport-residual" data-passport-residual="1" data-residual-state="' +
+    esc(residualState) +
+    '" data-residual-count="' +
+    esc(String(n)) +
+    '"><span class="passport-residual-badge">' +
+    esc(String(n)) +
+    '</span><span class="passport-residual-copy">' +
+    esc(copy) +
+    "</span></div>"
+  );
+}
+
 function renderPassportGate(fx, state) {
   const unlocked = state === "approved";
   const label = unlocked
@@ -12352,7 +12373,10 @@ function renderPassportBody() {
       (fx.testStrategy || []).length
     ) +
     renderPassportImpact(fx) +
-    '<div id="passportSign" class="passport-sign">' +
+    '<div id="passportSign" class="passport-sign" data-passport-sign-state="' +
+    esc(state) +
+    '">' +
+    renderPassportResidual(fx, state) +
     '<div class="passport-sign-actions">' +
     '<button type="button" data-passport-action="approve">Approve</button>' +
     '<button type="button" data-passport-action="reject">Reject</button>' +

@@ -576,6 +576,10 @@ assert(driver.includes("HA1") && driver.includes("HA3") && driver.includes("traj
 assert(js.includes("trajOutgoingIds") && js.includes("hopTrajectoryNext") && js.includes("data-ade-hop-next") && js.includes("data-traj-next"), "Trace hop-affordance trajOutgoingIds / hopTrajectoryNext missing");
 assert(css.includes("traj-hop-next") && css.includes("data-ade-hop-next") && css.includes("traj-next-list"), "Trace hop-affordance CSS missing");
 assert(traceMap.includes("HA1") && traceMap.includes("hop-affordance") && traceMap.includes("trajectory-hop-affordance.png") && traceMap.includes("data-ade-hop-next"), "trace feature map must name hop-affordance HA / proof");
+assert(driver.includes("PR1") && driver.includes("PR3") && driver.includes("passport-residual-chrome.png") && driver.includes("data-passport-residual"), "verify driver must prove Passport residual chrome PR1–PR3");
+assert(js.includes("renderPassportResidual") && js.includes("data-passport-residual") && js.includes("data-residual-count") && js.includes("data-residual-state"), "Passport residual chrome render/markup missing");
+assert(css.includes("passport-residual") && css.includes("passport-residual-badge") && css.includes('data-residual-state="approved"'), "Passport residual chrome CSS missing");
+assert(passportMap.includes("PR1") && passportMap.includes("residual") && passportMap.includes("passport-residual-chrome.png") && passportMap.includes("data-passport-residual"), "passport feature map must name residual chrome PR / proof");
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

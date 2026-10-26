@@ -97,6 +97,8 @@ then click `[data-ade-contract-traj] [data-ade-traj-hop]` /
 
 Test-strategy traj map: same harness; click
 `[data-ade-test-traj] [data-ade-traj-hop]` (TM1–TM3).
+Residual / incomplete-signoff cue: sticky `#passportSign .passport-residual` (PR1–PR3) shows blocked/open path count while scrolling.
+
 
 `passport=1` fetches `passport-fixture.json` into
 `window.__graphidePassport` (falls back to the embedded fixture if the
@@ -122,6 +124,7 @@ Driver assertions:
 - PE1–PE3: empty fixture shows `.passport-empty` chrome + Open Trace hop; screenshot `verification/passport-empty-state.png`
 - CX1–CX3: contract/risk `traj` → Open in Trace; screenshot `verification/passport-risk-traj-map.png`
 - TM1–TM3: test-strategy `traj` → Open in Trace; screenshot `verification/passport-test-strategy-traj-map.png`
+- PR1–PR3: sticky `#passportSign` residual / incomplete-signoff cue (`.passport-residual` / `data-passport-residual` / `data-residual-count`); screenshot `verification/passport-residual-chrome.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
