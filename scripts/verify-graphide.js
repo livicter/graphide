@@ -5731,6 +5731,144 @@ async function main() {
       { timeout: 8000 }
     );
 
+    // ADE Trace legend clear-filter cue (CC1–CC3) — filter ON + bearings exist
+    // Distinct from FE empty chrome (which only shows when bearingN===0).
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const cue = legend && legend.querySelector('[data-legend-clear-filter="1"]');
+        const empty = document.querySelector(
+          '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+        );
+        const bearingN = document.querySelectorAll(
+          '.traj-node[data-residual-bearing="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          !!cue &&
+          !empty &&
+          bearingN > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const cc1 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const cue =
+        legend && legend.querySelector('[data-legend-clear-filter="1"]');
+      const empty = document.querySelector(
+        '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+      );
+      const emptyClear = document.querySelector('[data-residual-filter-clear="1"]');
+      const cueBox = cue ? cue.getBoundingClientRect() : null;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        cue: !!cue,
+        cueText: cue ? (cue.textContent || "").trim() : "",
+        cueClass: cue ? cue.className || "" : "",
+        empty: !!empty,
+        emptyClear: !!emptyClear,
+        bearingN: document.querySelectorAll(
+          '.traj-node[data-residual-bearing="1"]'
+        ).length,
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+        cueH: cueBox ? cueBox.height : 0,
+        cueW: cueBox ? cueBox.width : 0,
+      };
+    });
+    const cc1ok =
+      cc1.filterAttr === "on" &&
+      cc1.cue &&
+      /Clear filter/i.test(cc1.cueText) &&
+      /legend-clear-filter/.test(cc1.cueClass) &&
+      !cc1.empty &&
+      !cc1.emptyClear &&
+      cc1.bearingN > 0 &&
+      cc1.filteredN > 0 &&
+      cc1.cueH > 10 &&
+      cc1.cueW > 40;
+    record(
+      "CC1",
+      "Residual filter ON + bearings shows Trace legend Clear-filter cue (no empty chrome)",
+      !!cc1ok,
+      JSON.stringify(cc1)
+    );
+
+    await shot(page, "trajectory-legend-clear-filter.png");
+    const ccShot = checks.find((c) => c.id === "shot:trajectory-legend-clear-filter.png");
+    record(
+      "CC3",
+      "screenshot trajectory-legend-clear-filter.png is not a black frame",
+      !!(ccShot && ccShot.pass),
+      ccShot ? ccShot.detail : "missing shot"
+    );
+
+    await page.click('#trajEdgeLegend [data-legend-clear-filter="1"]');
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const cue = legend && legend.querySelector('[data-legend-clear-filter="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") !== "on" &&
+          !cue &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const cc2 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const cue =
+        legend && legend.querySelector('[data-legend-clear-filter="1"]');
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        cue: !!cue,
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+        bearingN: document.querySelectorAll(
+          '.traj-node[data-residual-bearing="1"]'
+        ).length,
+      };
+    });
+    const cc2ok =
+      cc2.filterAttr !== "on" &&
+      cc2.pressed === "false" &&
+      !cc2.cue &&
+      cc2.filteredN === 0 &&
+      cc2.bearingN > 0;
+    record(
+      "CC2",
+      "Legend Clear-filter cue turns filter OFF and hides cue",
+      !!cc2ok,
+      JSON.stringify(cc2)
+    );
+    assertNoStampDir("CC4", "Trace legend clear-filter cue step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

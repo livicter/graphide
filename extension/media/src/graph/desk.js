@@ -11059,6 +11059,11 @@ function renderTrajectoryBody() {
     '<span class="traj-legend-label">' +
     (trajResidualFilter ? "residuals on" : "residuals") +
     "</span></button>";
+  // ADE Trace legend clear-filter cue (CC1–CC3) — ON + non-empty only; distinct from FE empty chrome
+  const legendClearFilterCue =
+    trajResidualFilter && residualTrajs.size > 0
+      ? '<button type="button" class="traj-legend-chip legend-clear-filter" data-legend-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
+      : "";
   const edgeLegend =
     edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend
       ? ""
@@ -11096,6 +11101,7 @@ function renderTrajectoryBody() {
         adjResidualChips +
         focusResidualChip +
         residualFilterToggle +
+        legendClearFilterCue +
         "</div>";
   return (
     '<div class="traj-page' +
@@ -11472,6 +11478,13 @@ function bindTrajectoryPage() {
     };
   }
   document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearTrajResidualFilter();
+    };
+  });
+  document.querySelectorAll('#trajEdgeLegend [data-legend-clear-filter="1"]').forEach((btn) => {
     btn.onclick = (ev) => {
       ev.preventDefault();
       ev.stopPropagation();

@@ -630,6 +630,10 @@ assert(js.includes("renderResidualFilterEmptyChrome") && js.includes("clearTrajR
 assert(css.includes("residual-filter-empty") && css.includes("residual-filter-clear") && (css.includes("data-residual-filter-empty") || css.includes('data-residual-filter-empty="1"')), "residual-filter empty chrome CSS missing");
 assert(traceMap.includes("FE1") && traceMap.includes("residual-filter empty") && traceMap.includes("residual-filter-empty.png") && traceMap.includes("data-traj-residual-filter-empty"), "trace feature map must name residual-filter empty FE / proof");
 assert(passportMap.includes("FE1") && passportMap.includes("residual-filter empty") && passportMap.includes("residual-filter-empty.png") && passportMap.includes("data-passport-residual-filter-empty"), "passport feature map must name residual-filter empty FE / proof");
+assert(driver.includes("CC1") && driver.includes("CC3") && driver.includes("trajectory-legend-clear-filter.png") && driver.includes("data-legend-clear-filter"), "verify driver must prove Trace legend clear-filter cue CC1–CC3");
+assert(js.includes("data-legend-clear-filter") && js.includes("legend-clear-filter") && js.includes("clearTrajResidualFilter") && /legendClearFilterCue|data-legend-clear-filter/.test(js), "Trace legend clear-filter cue markup/helpers missing");
+assert(css.includes("legend-clear-filter") && (css.includes("data-legend-clear-filter") || css.includes('data-legend-clear-filter="1"')), "Trace legend clear-filter cue CSS missing");
+assert(traceMap.includes("CC1") && traceMap.includes("clear-filter cue") && traceMap.includes("trajectory-legend-clear-filter.png") && traceMap.includes("data-legend-clear-filter"), "trace feature map must name legend clear-filter cue CC / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

@@ -28431,10 +28431,11 @@
       const focusResidualChip = hasFocusResidualLegend ? '<span class="traj-legend-chip focus-residual" data-focus-residual="1" data-residual-scope="focus" data-residual-focus="' + esc(selectedId) + '" data-focus-residual-count="' + esc(String(focusResidualN)) + '" data-residual-state="' + esc(focusResidualGate) + '" title="' + esc(focusResidualLabel) + '"><span class="traj-legend-focus-residual-badge">' + esc(String(focusResidualN)) + '</span><span class="traj-legend-label">' + esc(focusResidualLabel) + "</span></span>" : "";
       const residualFilterAttr = trajResidualFilter ? ' data-residual-filter="on"' : "";
       const residualFilterToggle = '<button type="button" class="traj-legend-chip residual-filter-toggle" data-residual-filter-toggle="1" aria-pressed="' + (trajResidualFilter ? "true" : "false") + '" title="Show residual-bearing nodes only" aria-label="Toggle residual-bearing filter"><span class="traj-legend-label">' + (trajResidualFilter ? "residuals on" : "residuals") + "</span></button>";
+      const legendClearFilterCue = trajResidualFilter && residualTrajs.size > 0 ? '<button type="button" class="traj-legend-chip legend-clear-filter" data-legend-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>' : "";
       const edgeLegend = edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend ? "" : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' + adjResidualAttr + focusResidualScopeAttr + residualFilterAttr + ">" + edgeKinds.map((k) => {
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
-      }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + "</div>";
+      }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + legendClearFilterCue + "</div>";
       return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
@@ -28667,6 +28668,13 @@
         };
       }
       document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter();
+        };
+      });
+      document.querySelectorAll('#trajEdgeLegend [data-legend-clear-filter="1"]').forEach((btn) => {
         btn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
