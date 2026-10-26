@@ -27607,6 +27607,198 @@ async function main() {
     );
     assertNoStampDir("TH4", "Trace→Passport row highlight did not write .graphide/stamps/");
 
+    // ADE Trace dep-list click→focus (DF1–DF3) — ids DF* avoid deeplink DL1–DL5 collision
+    const depFocusUrl =
+      origin +
+      "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-diff&gate=approved&probe=0&ws=trace";
+    console.log("ade-dep-list-focus " + depFocusUrl);
+    await page.goto(depFocusUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('[data-testid="trajectory-dag"]', { timeout: 20000 });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const deps = detail ? detail.querySelectorAll("[data-traj-dep]") : [];
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-diff" &&
+          detail &&
+          detail.getAttribute("data-selected") === "sub-diff" &&
+          deps.length >= 2
+        );
+      },
+      null,
+      { timeout: 20000 }
+    );
+    const dfBefore = await page.evaluate(() => {
+      const detail = document.getElementById("trajDetail");
+      const deps = detail
+        ? [...detail.querySelectorAll("[data-traj-dep]")].map((el) => el.getAttribute("data-traj-dep") || "")
+        : [];
+      return {
+        focus: (document.querySelector('[data-testid="trajectory-dag"]') || {}).getAttribute
+          ? document.querySelector('[data-testid="trajectory-dag"]').getAttribute("data-focus") || ""
+          : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        deps,
+        clickable: detail
+          ? [...detail.querySelectorAll("[data-traj-dep]")].every(
+              (el) => el.getAttribute("data-ade-dep-focus") === "1" && el.getAttribute("role") === "button"
+            )
+          : false,
+      };
+    });
+    const firstDep = dfBefore.deps[0] || "";
+    const secondDep = dfBefore.deps[1] || "";
+    await page.evaluate((id) => {
+      const chip = document.querySelector('#trajDetail [data-traj-dep="' + id + '"]');
+      if (!chip) throw new Error("missing dep chip " + id);
+      chip.click();
+    }, firstDep);
+    await page.waitForFunction(
+      (id) => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const on = host && host.querySelector('.traj-node.on[data-id="' + id + '"]');
+        return (
+          host &&
+          host.getAttribute("data-focus") === id &&
+          detail &&
+          detail.getAttribute("data-selected") === id &&
+          !!on
+        );
+      },
+      firstDep,
+      { timeout: 10000 }
+    );
+    const df1 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const q = new URLSearchParams(location.search);
+      const onPath = host ? host.querySelectorAll(".traj-edge[data-on-path='1']").length : 0;
+      const dimNodes = host ? host.querySelectorAll(".traj-node.dim").length : 0;
+      const legendOn = document.querySelectorAll(".traj-legend-chip.on-path").length;
+      const legendDim = document.querySelectorAll(".traj-legend-chip.dim").length;
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        trajParam: q.get("traj") || "",
+        pinFocus: detail ? detail.getAttribute("data-pin-focus") || "" : "",
+        onPath,
+        dimNodes,
+        legendOn,
+        legendDim,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "DF1",
+      "Click Trace detail dep-list chip focuses matching DAG node",
+      dfBefore.deps.length >= 2 &&
+        dfBefore.clickable &&
+        firstDep &&
+        df1.focus === firstDep &&
+        df1.selected === firstDep &&
+        df1.trajParam === firstDep &&
+        df1.winFocus === firstDep &&
+        !df1.pinFocus &&
+        df1.onPath > 0 &&
+        df1.dimNodes > 0,
+      JSON.stringify({ before: dfBefore, after: df1, firstDep })
+    );
+
+    // Restore original sub-diff selection, then click the other dep chip (sub-fixture).
+    await page.evaluate(() => {
+      const node = document.querySelector('[data-testid="trajectory-dag"] .traj-node[data-id="sub-diff"]');
+      if (!node) throw new Error("missing sub-diff node to restore");
+      node.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const deps = detail ? detail.querySelectorAll("[data-traj-dep]") : [];
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-diff" &&
+          detail &&
+          detail.getAttribute("data-selected") === "sub-diff" &&
+          deps.length >= 2
+        );
+      },
+      null,
+      { timeout: 10000 }
+    );
+    if (!secondDep || secondDep === firstDep) {
+      throw new Error("need two distinct deps; got " + JSON.stringify({ firstDep, secondDep }));
+    }
+    const df2click = await page.evaluate((id) => {
+      const chip = document.querySelector('#trajDetail [data-traj-dep="' + id + '"]');
+      if (!chip) return { ok: false, why: "missing chip " + id };
+      chip.click();
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const q = new URLSearchParams(location.search);
+      return {
+        ok: true,
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        trajParam: q.get("traj") || "",
+        onCount: host ? host.querySelectorAll(".traj-node.on").length : 0,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    }, secondDep);
+    if (!df2click.ok || df2click.focus !== secondDep) {
+      throw new Error(
+        "DF2 dep click did not focus secondDep — " +
+          JSON.stringify({ secondDep, firstDep, df2click })
+      );
+    }
+    const df2 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const q = new URLSearchParams(location.search);
+      const legendOn = document.querySelectorAll(".traj-legend-chip.on-path").length;
+      const legendDim = document.querySelectorAll(".traj-legend-chip.dim").length;
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        trajParam: q.get("traj") || "",
+        onCount: host ? host.querySelectorAll(".traj-node.on").length : 0,
+        onPath: host ? host.querySelectorAll(".traj-edge[data-on-path='1']").length : 0,
+        dimNodes: host ? host.querySelectorAll(".traj-node.dim").length : 0,
+        legendOn,
+        legendDim,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    // Keyboard step stays on the same trajSelectedId path (KS1–KS3); DF2 proves dep-list shares it.
+    record(
+      "DF2",
+      "Second dep click moves focus; on-path edges + legend dim stay in sync",
+      secondDep &&
+        secondDep !== firstDep &&
+        df2.focus === secondDep &&
+        df2.selected === secondDep &&
+        df2.trajParam === secondDep &&
+        df2.winFocus === secondDep &&
+        df2.onCount === 1 &&
+        df2.onPath > 0 &&
+        df2.dimNodes > 0 &&
+        (df2.legendOn > 0 || df2.legendDim > 0),
+      JSON.stringify({ firstDep, secondDep, df2click, df2 })
+    );
+
+    await shot(page, "trajectory-dep-list-focus.png");
+    const dfShot = checks.find((c) => c.id === "shot:trajectory-dep-list-focus.png");
+    record(
+      "DF3",
+      "screenshot trajectory-dep-list-focus.png is not a black frame",
+      !!(dfShot && dfShot.pass),
+      dfShot ? dfShot.detail : "missing shot"
+    );
+    assertNoStampDir("DF4", "Trace dep-list focus did not write .graphide/stamps/");
+
 
   } finally {
     await browser.close();
@@ -27630,7 +27822,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -27645,7 +27837,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

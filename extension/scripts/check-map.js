@@ -561,6 +561,10 @@ assert(driver.includes("KS1") && driver.includes("KS3") && driver.includes("traj
 assert(js.includes('e.key === "ArrowRight" || e.key === "j" || e.key === "J"') && js.includes("stepTrajectory"), "Trace keyboard step ArrowRight/j → stepTrajectory missing");
 assert(js.includes('e.key === "ArrowLeft" || e.key === "k" || e.key === "K"') && js.includes('explorerWs === "trace"'), "Trace keyboard step ArrowLeft/k under explorerWs===trace missing");
 assert(traceMap.includes("KS1") && traceMap.includes("keyboard") && traceMap.includes("trajectory-keyboard-step.png"), "trace feature map must name keyboard step KS / proof");
+assert(driver.includes("DF1") && driver.includes("DF3") && driver.includes("trajectory-dep-list-focus.png") && driver.includes("data-ade-dep-focus"), "verify driver must prove Trace dep-list focus DF1–DF3");
+assert(js.includes("focusTrajectoryDep") && js.includes("data-ade-dep-focus") && js.includes("data-traj-dep"), "Trace dep-list focusTrajectoryDep / data-ade-dep-focus missing");
+assert(css.includes("data-ade-dep-focus") && css.includes(".traj-dep:hover code"), "Trace dep-list focus CSS missing");
+assert(traceMap.includes("DF1") && traceMap.includes("dep-list") && traceMap.includes("trajectory-dep-list-focus.png"), "trace feature map must name dep-list focus DF / proof");
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
 assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");

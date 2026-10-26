@@ -28246,9 +28246,9 @@
       const dels = Number(n.dels);
       const hasDiffMeta = Number.isFinite(adds) || Number.isFinite(dels);
       const depHtml = deps.length ? '<ul class="traj-dep-list" data-traj-deps="1">' + deps.map(
-        (d) => '<li class="traj-dep" data-traj-dep="' + esc(d) + '"><code>' + esc(d) + "</code></li>"
+        (d) => '<li class="traj-dep" role="button" tabindex="0" data-traj-dep="' + esc(d) + '" data-ade-dep-focus="1" title="Focus dependency ' + esc(d) + '"><code>' + esc(d) + "</code></li>"
       ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
-      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
+      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or pin to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
     }
     function trajZoomPctLabel(scale) {
       return Math.round((Number(scale) || 1) * 100) + "%";
@@ -28451,6 +28451,17 @@
       el2.hidden = false;
       positionTrajPinTip(el2, ev, pin);
     }
+    function focusTrajectoryDep(depId) {
+      const id2 = String(depId || "");
+      if (!id2) return false;
+      const nodes = trajectoryFixture().nodes || [];
+      if (!nodes.some((n) => n.id === id2)) return false;
+      trajSelectedId = id2;
+      trajPinFocus = "";
+      syncAdeDeepLink("trace");
+      paint({ animate: "none" });
+      return true;
+    }
     function bindTrajectoryPage() {
       const host = document.getElementById("trajCanvas");
       if (!host) return;
@@ -28513,6 +28524,25 @@
       };
       bindAdeHopButtons();
       bindAdePassportHlHops();
+      const detail = document.getElementById("trajDetail");
+      if (detail) {
+        const onDepActivate = (ev) => {
+          const chip = ev.target && ev.target.closest ? ev.target.closest("[data-traj-dep]") : null;
+          if (!chip || !detail.contains(chip)) return;
+          const id2 = chip.getAttribute("data-traj-dep") || "";
+          if (!id2) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          focusTrajectoryDep(id2);
+        };
+        detail.querySelectorAll("[data-traj-dep]").forEach((chip) => {
+          chip.onclick = onDepActivate;
+          chip.onkeydown = (ev) => {
+            if (ev.key !== "Enter" && ev.key !== " ") return;
+            onDepActivate(ev);
+          };
+        });
+      }
     }
     const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
     const PASSPORT_FIXTURE = Object.freeze({

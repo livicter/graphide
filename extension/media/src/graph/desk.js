@@ -10441,7 +10441,9 @@ function renderTrajectoryDetail(fix, selectedId) {
       deps
         .map(
           (d) =>
-            '<li class="traj-dep" data-traj-dep="' +
+            '<li class="traj-dep" role="button" tabindex="0" data-traj-dep="' +
+            esc(d) +
+            '" data-ade-dep-focus="1" title="Focus dependency ' +
             esc(d) +
             '"><code>' +
             esc(d) +
@@ -10546,7 +10548,7 @@ function renderTrajectoryDetail(fix, selectedId) {
     "<dt>Note</dt><dd>" +
     esc(n.note || "—") +
     "</dd></dl>" +
-    '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div>' +
+    '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or pin to focus it</div>' +
     '<div class="traj-detail-ade-hop">' +
     '<button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' +
     esc(n.id) +
@@ -11060,6 +11062,19 @@ function showTrajPinTip(pin, node, ev) {
   positionTrajPinTip(el, ev, pin);
 }
 
+
+function focusTrajectoryDep(depId) {
+  const id = String(depId || "");
+  if (!id) return false;
+  const nodes = trajectoryFixture().nodes || [];
+  if (!nodes.some((n) => n.id === id)) return false;
+  trajSelectedId = id;
+  trajPinFocus = "";
+  syncAdeDeepLink("trace");
+  paint({ animate: "none" });
+  return true;
+}
+
 function bindTrajectoryPage() {
   const host = document.getElementById("trajCanvas");
   if (!host) return;
@@ -11113,6 +11128,26 @@ function bindTrajectoryPage() {
   if (zfit) zfit.onclick = (ev) => { ev.preventDefault(); trajZoomFit(); };
   bindAdeHopButtons();
   bindAdePassportHlHops();
+  const detail = document.getElementById("trajDetail");
+  if (detail) {
+    const onDepActivate = (ev) => {
+      const chip =
+        ev.target && ev.target.closest ? ev.target.closest("[data-traj-dep]") : null;
+      if (!chip || !detail.contains(chip)) return;
+      const id = chip.getAttribute("data-traj-dep") || "";
+      if (!id) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      focusTrajectoryDep(id);
+    };
+    detail.querySelectorAll("[data-traj-dep]").forEach((chip) => {
+      chip.onclick = onDepActivate;
+      chip.onkeydown = (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        onDepActivate(ev);
+      };
+    });
+  }
 }
 
 

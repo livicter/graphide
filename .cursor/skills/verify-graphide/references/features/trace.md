@@ -32,7 +32,7 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
   kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
-  click-focus (KS1–KS3).
+  click-focus (KS1–KS3) and dep-list click→focus (DF1–DF3).
 - Empty-state (ES1–ES3): when the fixture has no nodes (`nodes: []` or
   harness `?traceEmpty=1` / `TRAJECTORY_EMPTY_FIXTURE`), `#trajCanvas`
   shows `.traj-empty` chrome (copy + Open Passport `data-ade-hop`) instead
@@ -84,6 +84,7 @@ Driver assertions:
 - EL1–EL3: `#trajEdgeLegend` / `.traj-edge-legend` seq/fork/join chips; stroke styles mirror `.traj-edge.kind-*`; screenshot `verification/trajectory-edge-legend.png`
 - FLD1–FLD3: legend focus-dim — selected node dims off-path `.traj-legend-chip` (keeps on-path chips readable); screenshot `verification/trajectory-legend-focus-dim.png`
 - KS1–KS3: keyboard node-step (ArrowRight / `]`) advances focus; on-path edges + legend chips stay in sync with click-focus; screenshot `verification/trajectory-keyboard-step.png`
+- DF1–DF3: Trace detail dep-list click→focus — `[data-traj-dep]` / `data-ade-dep-focus` sets `trajSelectedId` via `focusTrajectoryDep`; on-path / legend dim / keyboard step stay in sync; screenshot `verification/trajectory-dep-list-focus.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
@@ -107,7 +108,7 @@ Driver assertions:
 - Keep existing A1a node ids used by deep-link (`sub-verify`, etc.).
 - Product hooks: `[data-ws="trace"]`, `#trajCanvas`,
   `data-testid="trajectory-dag"`, `.traj-node`, `.traj-edge`,
-  `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]`,
+  `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]` / `data-ade-dep-focus` / `focusTrajectoryDep`,
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
   `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`

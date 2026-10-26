@@ -2595,6 +2595,18 @@ html.bright .traj-zoom-bar {
 }
 .traj-dep-badge { opacity: 0.75; }
 .traj-dep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.traj-dep {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 4px;
+  outline: none;
+}
+.traj-dep:hover code,
+.traj-dep:focus-visible code {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent);
+}
+.traj-dep[data-ade-dep-focus="1"] code { cursor: pointer; }
 .traj-dep code {
   font-size: 11px;
   padding: 1px 5px;
