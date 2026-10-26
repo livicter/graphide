@@ -608,6 +608,11 @@ assert(driver.includes("CF1") && driver.includes("CF3") && driver.includes("pass
 assert(js.includes("data-passport-clear-focus") && js.includes("passport-clear-focus") && js.includes("clearTrajFocus") && js.includes("Clear focus"), "Passport clear-focus cue markup/helper missing");
 assert(css.includes("passport-clear-focus") || css.includes('[data-passport-clear-focus="1"]'), "Passport clear-focus cue CSS missing");
 assert(passportMap.includes("CF1") && passportMap.includes("clear-focus") && passportMap.includes("passport-clear-focus-cue.png") && passportMap.includes("data-passport-clear-focus"), "passport feature map must name clear-focus cue CF / proof");
+assert(driver.includes("RF1") && driver.includes("RF3") && driver.includes("trajectory-legend-residual-filter.png") && driver.includes("data-residual-filter-toggle"), "verify driver must prove Trace legend residual filter RF1–RF3");
+assert(js.includes("trajResidualFilter") && js.includes("data-residual-filter-toggle") && js.includes("data-residual-bearing") && js.includes("data-residual-filtered") && js.includes("residual-filter-toggle"), "Trace legend residual filter markup/state missing");
+assert(css.includes("residual-filter-toggle") || css.includes('[data-residual-filter-toggle="1"]') || css.includes("data-residual-filter"), "Trace legend residual filter CSS missing");
+assert(css.includes("residual-filtered") || css.includes('[data-residual-filtered="1"]'), "Trace residual-filtered node CSS missing");
+assert(traceMap.includes("RF1") && traceMap.includes("residual filter") && traceMap.includes("trajectory-legend-residual-filter.png") && traceMap.includes("data-residual-filter-toggle"), "trace feature map must name residual filter RF / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

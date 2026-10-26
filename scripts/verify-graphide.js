@@ -4661,6 +4661,210 @@ async function main() {
     );
     assertNoStampDir("CF4", "Passport clear-focus cue did not write .graphide/stamps/");
 
+    // ADE Trace legend residual filter/toggle (RF1–RF3) — pairs with #404/#406 residual legend chrome
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend [data-residual-filter-toggle=\"1\"]", {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(120);
+    // Ensure filter starts OFF (CF left focus cleared; filter is independent)
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        return (
+          legend &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          legend.getAttribute("data-residual-filter") !== "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rf1 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const nodes = host
+        ? [...host.querySelectorAll(".traj-node")].map((n) => ({
+            id: n.getAttribute("data-id") || "",
+            bearing: n.getAttribute("data-residual-bearing") === "1",
+            filtered: n.getAttribute("data-residual-filtered") === "1",
+            filteredClass: n.classList.contains("residual-filtered"),
+          }))
+        : [];
+      const bearingN = nodes.filter((n) => n.bearing).length;
+      const filteredN = nodes.filter((n) => n.filtered).length;
+      const kindChips = legend
+        ? legend.querySelectorAll(
+            ".traj-legend-chip[data-kind]:not(.adj-residual):not(.focus-residual)"
+          ).length
+        : -1;
+      return {
+        legend: !!legend,
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        toggle: !!btn,
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? ((btn.textContent || "").trim()) : "",
+        isChipClass: !!(btn && btn.classList.contains("residual-filter-toggle")),
+        bearingN,
+        filteredN,
+        nodeN: nodes.length,
+        kindChips,
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "RF1",
+      "Trace legend residual filter toggle present; bearing nodes marked while filter off",
+      !!(
+        rf1.legend &&
+        rf1.toggle &&
+        rf1.isChipClass &&
+        rf1.pressed === "false" &&
+        rf1.filterAttr !== "on" &&
+        /residuals/i.test(rf1.label) &&
+        !/residuals on/i.test(rf1.label) &&
+        rf1.bearingN >= 1 &&
+        rf1.filteredN === 0 &&
+        rf1.nodeN > rf1.bearingN &&
+        rf1.kindChips >= 1
+      ),
+      JSON.stringify(rf1)
+    );
+
+    const rfFocusBefore = rf1.winFocus;
+    await page.click('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rf2on = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const nodes = host
+        ? [...host.querySelectorAll(".traj-node")].map((n) => ({
+            id: n.getAttribute("data-id") || "",
+            bearing: n.getAttribute("data-residual-bearing") === "1",
+            filtered: n.getAttribute("data-residual-filtered") === "1",
+            filteredClass: n.classList.contains("residual-filtered"),
+          }))
+        : [];
+      const bearing = nodes.filter((n) => n.bearing);
+      const filtered = nodes.filter((n) => n.filtered);
+      const bearingAlsoFiltered = bearing.filter((n) => n.filtered).length;
+      const nonBearingUnfiltered = nodes.filter((n) => !n.bearing && !n.filtered).length;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? ((btn.textContent || "").trim()) : "",
+        bearingN: bearing.length,
+        filteredN: filtered.length,
+        filteredClassN: nodes.filter((n) => n.filteredClass).length,
+        bearingAlsoFiltered,
+        nonBearingUnfiltered,
+        winFocus: window.__graphideTrajectoryFocus || "",
+        kindChips: legend
+          ? legend.querySelectorAll(
+              ".traj-legend-chip[data-kind]:not(.adj-residual):not(.focus-residual)"
+            ).length
+          : -1,
+      };
+    });
+
+    await shot(page, "trajectory-legend-residual-filter.png");
+    const rfShot = checks.find((c) => c.id === "shot:trajectory-legend-residual-filter.png");
+    record(
+      "RF3",
+      "screenshot trajectory-legend-residual-filter.png is not a black frame",
+      !!(rfShot && rfShot.pass),
+      rfShot ? rfShot.detail : "missing shot"
+    );
+
+    await page.click('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") !== "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rf2off = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const filtered = document.querySelectorAll(
+        '.traj-node[data-residual-filtered="1"]'
+      ).length;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? ((btn.textContent || "").trim()) : "",
+        filteredN: filtered,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "RF2",
+      "Residual filter toggles on (dims non-bearing) then off without changing traj focus",
+      !!(
+        rf2on.filterAttr === "on" &&
+        rf2on.pressed === "true" &&
+        /residuals on/i.test(rf2on.label) &&
+        rf2on.bearingN >= 1 &&
+        rf2on.filteredN >= 1 &&
+        rf2on.filteredClassN === rf2on.filteredN &&
+        rf2on.bearingAlsoFiltered === 0 &&
+        rf2on.nonBearingUnfiltered === 0 &&
+        rf2on.winFocus === rfFocusBefore &&
+        rf2on.kindChips >= 1 &&
+        rf2off.filterAttr !== "on" &&
+        rf2off.pressed === "false" &&
+        /residuals/i.test(rf2off.label) &&
+        !/residuals on/i.test(rf2off.label) &&
+        rf2off.filteredN === 0 &&
+        rf2off.winFocus === rfFocusBefore
+      ),
+      JSON.stringify({ on: rf2on, off: rf2off, focusBefore: rfFocusBefore })
+    );
+    assertNoStampDir("RF4", "Trace legend residual filter step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

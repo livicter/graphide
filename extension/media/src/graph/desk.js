@@ -10319,6 +10319,7 @@ let trajSelectedId = "";
 let trajPinFocus = "";
 let trajFocusSeeded = false;
 let trajScale = 1;
+let trajResidualFilter = false;
 const TRAJ_SCALE_MIN = 0.35;
 const TRAJ_SCALE_MAX = 3;
 const TRAJ_SCALE_STEP = 1.25;
@@ -10719,6 +10720,15 @@ function renderTrajectoryBody() {
         focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id)
           ? ' data-traj-adj-residual="1"'
           : "";
+      const residualBearing = residualTrajs.has(n.id);
+      const residualBearingAttr = residualBearing
+        ? ' data-residual-bearing="1"'
+        : "";
+      const residualFiltered = trajResidualFilter && !residualBearing;
+      const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
+      const residualFilteredAttr = residualFiltered
+        ? ' data-residual-filtered="1"'
+        : "";
       const dim = focusOn && !near.has(n.id) ? " dim" : "";
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
@@ -10736,11 +10746,14 @@ function renderTrajectoryBody() {
         on +
         neighbor +
         adjResidual +
+        residualFilteredClass +
         dim +
         '" data-id="' +
         esc(n.id) +
         '"' +
         adjResidualAttr +
+        residualBearingAttr +
+        residualFilteredAttr +
         ' data-artifact="' +
         esc(art) +
         '" data-diff="' +
@@ -10961,12 +10974,23 @@ function renderTrajectoryBody() {
       esc(focusResidualLabel) +
       "</span></span>"
     : "";
+  const residualFilterAttr = trajResidualFilter
+    ? ' data-residual-filter="on"'
+    : "";
+  const residualFilterToggle =
+    '<button type="button" class="traj-legend-chip residual-filter-toggle" data-residual-filter-toggle="1" aria-pressed="' +
+    (trajResidualFilter ? "true" : "false") +
+    '" title="Show residual-bearing nodes only" aria-label="Toggle residual-bearing filter">' +
+    '<span class="traj-legend-label">' +
+    (trajResidualFilter ? "residuals on" : "residuals") +
+    "</span></button>";
   const edgeLegend =
     edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend
       ? ""
       : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' +
         adjResidualAttr +
         focusResidualScopeAttr +
+        residualFilterAttr +
         ">" +
         edgeKinds
           .map((k) => {
@@ -10996,6 +11020,7 @@ function renderTrajectoryBody() {
           .join("") +
         adjResidualChips +
         focusResidualChip +
+        residualFilterToggle +
         "</div>";
   return (
     '<div class="traj-page' +
@@ -11357,6 +11382,17 @@ function bindTrajectoryPage() {
   if (zin) zin.onclick = (ev) => { ev.preventDefault(); trajZoomBy(TRAJ_SCALE_STEP); };
   if (zout) zout.onclick = (ev) => { ev.preventDefault(); trajZoomBy(1 / TRAJ_SCALE_STEP); };
   if (zfit) zfit.onclick = (ev) => { ev.preventDefault(); trajZoomFit(); };
+  const residualFilterBtn = document.querySelector(
+    '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+  );
+  if (residualFilterBtn) {
+    residualFilterBtn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      trajResidualFilter = !trajResidualFilter;
+      paint({ animate: "none" });
+    };
+  }
   bindAdeHopButtons();
   bindAdePassportHlHops();
   const detail = document.getElementById("trajDetail");

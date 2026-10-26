@@ -785,6 +785,11 @@ html.bright .traj-node { background: rgb(255, 255, 255); }
 #trajEdgeLegend .traj-legend-chip.focus-residual .traj-legend-label { color: inherit; text-transform: lowercase; }
 #trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="approved"] { --traj-focus-residual: var(--vscode-testing-iconPassed, #3fb950); }
 #trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="rejected"] { --traj-focus-residual: var(--vscode-errorForeground, #f14c4c); }
+#trajEdgeLegend[data-residual-filter="on"] { outline: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, transparent); outline-offset: 2px; }
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle, #trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"] { --traj-residual-filter: var(--vscode-editorWarning-foreground, #cca700); cursor: pointer; color: var(--traj-residual-filter); border-color: color-mix(in srgb, var(--traj-residual-filter) 55%, var(--g-line, #8b949e)); background: color-mix(in srgb, var(--traj-residual-filter) 12%, var(--vscode-editorWidget-background, #1e1e1e)); font: inherit; }
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle[aria-pressed="true"], #trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"][aria-pressed="true"] { background: color-mix(in srgb, var(--traj-residual-filter) 28%, var(--vscode-editorWidget-background, #1e1e1e)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-residual-filter) 50%, transparent); }
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle .traj-legend-label { color: inherit; text-transform: lowercase; }
+.traj-node.residual-filtered, .traj-node[data-residual-filtered="1"] { opacity: 0.22; filter: saturate(0.35); }
 .passport-hop-residual { --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)); display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; padding: 1px 2px; color: var(--passport-hop-residual); font-size: 10px; line-height: 1.2; }
 .passport-hop-residual[data-hop-residual-state="pending"] { --passport-hop-residual: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-hop-residual[data-hop-residual-state="rejected"] { --passport-hop-residual: var(--vscode-errorForeground, #f14c4c); }

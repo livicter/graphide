@@ -3087,6 +3087,34 @@ html.bright .traj-node { background: #fff; }
 #trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="rejected"] {
   --traj-focus-residual: var(--vscode-errorForeground, #f14c4c);
 }
+/* Trace legend residual filter/toggle (RF1–RF3) — pairs with #404/#406 residual legend chrome */
+#trajEdgeLegend[data-residual-filter="on"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, transparent);
+  outline-offset: 2px;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"] {
+  --traj-residual-filter: var(--vscode-editorWarning-foreground, #cca700);
+  cursor: pointer;
+  color: var(--traj-residual-filter);
+  border-color: color-mix(in srgb, var(--traj-residual-filter) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--traj-residual-filter) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+  font: inherit;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle[aria-pressed="true"],
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"][aria-pressed="true"] {
+  background: color-mix(in srgb, var(--traj-residual-filter) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-residual-filter) 50%, transparent);
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+.traj-node.residual-filtered,
+.traj-node[data-residual-filtered="1"] {
+  opacity: 0.22;
+  filter: saturate(0.35);
+}
 /* Passport hop residual badge on gate path rows (HB1–HB3) */
 .passport-hop-residual {
   --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));
