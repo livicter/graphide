@@ -7926,6 +7926,106 @@ async function main() {
       { timeout: 8000 }
     );
 
+    // ADE residual-filter toggle focus-visible parity (TFV1–TFV3) — Trace/Passport toggles match clear-chip ring
+    // After CFV restore: filter OFF, gate rejected → residual chrome + toggles present.
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    const tfvTrace = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const pressedBefore = btn.getAttribute("aria-pressed");
+      btn.focus({ focusVisible: true });
+      const cs = getComputedStyle(btn);
+      return {
+        present: true,
+        focused: document.activeElement === btn,
+        focusVisible: typeof btn.matches === "function" ? btn.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        outlineColor: cs.outlineColor,
+        cls: btn.classList.contains("residual-filter-toggle"),
+        pressedBefore,
+        pressedAfter: btn.getAttribute("aria-pressed"),
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const tfvPass = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const pressedBefore = btn.getAttribute("aria-pressed");
+      btn.focus({ focusVisible: true });
+      const cs = getComputedStyle(btn);
+      return {
+        present: true,
+        focused: document.activeElement === btn,
+        focusVisible: typeof btn.matches === "function" ? btn.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        outlineColor: cs.outlineColor,
+        cls: btn.classList.contains("passport-residual-filter-toggle"),
+        pressedBefore,
+        pressedAfter: btn.getAttribute("aria-pressed"),
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+    });
+    const tfvOutlineOk = (o) =>
+      !!(
+        o &&
+        o.present &&
+        o.focused &&
+        o.focusVisible &&
+        o.cls &&
+        o.pressedBefore === o.pressedAfter &&
+        /residual/i.test(o.label) &&
+        o.outlineStyle === "solid" &&
+        (o.outlineWidth === "1px" || o.outlineWidth === "1") &&
+        (o.outlineOffset === "1px" || o.outlineOffset === "1")
+      );
+    const tfv1ok = tfvOutlineOk(tfvTrace);
+    record(
+      "TFV1",
+      "Trace legend residual-filter toggle shows warning-themed :focus-visible outline ring",
+      !!tfv1ok,
+      JSON.stringify({ trace: tfvTrace, passport: tfvPass })
+    );
+    const tfv2ok = tfvOutlineOk(tfvPass);
+    record(
+      "TFV2",
+      "Passport sticky residual-filter toggle shows warning-themed :focus-visible outline ring",
+      !!tfv2ok,
+      JSON.stringify({ passport: tfvPass, trace: tfvTrace })
+    );
+
+    await shot(page, "residual-filter-toggle-focus-visible.png");
+    const tfvShot = checks.find(
+      (c) => c.id === "shot:residual-filter-toggle-focus-visible.png"
+    );
+    record(
+      "TFV3",
+      "screenshot residual-filter-toggle-focus-visible.png is not a black frame",
+      !!(tfvShot && tfvShot.pass),
+      tfvShot ? tfvShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "TFV4",
+      "Residual-filter toggle focus-visible step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

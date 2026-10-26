@@ -3164,6 +3164,12 @@ html.bright .traj-node { background: #fff; }
   color: inherit;
   text-transform: lowercase;
 }
+/* ADE Trace legend residual-filter toggle focus-visible (TFV1–TFV3) — match clear-chip ring, warning residual */
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle:focus-visible,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--traj-residual-filter) 80%, transparent);
+  outline-offset: 1px;
+}
 /* ADE Trace legend clear-filter cue (CC1–CC3) — ON + non-empty; distinct from FE empty clear */
 #trajEdgeLegend .traj-legend-chip.legend-clear-filter,
 #trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"] {
@@ -3346,6 +3352,12 @@ html.bright .traj-node { background: #fff; }
 .passport-residual [data-passport-residual-filter-toggle="1"][aria-pressed="true"] {
   background: color-mix(in srgb, var(--passport-residual-filter) 28%, var(--vscode-editorWidget-background, #1e1e1e));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual-filter) 50%, transparent);
+}
+/* ADE Passport residual-filter toggle focus-visible (TFV1–TFV3) — match clear-chip ring, warning residual */
+.passport-residual .passport-residual-filter-toggle:focus-visible,
+.passport-residual [data-passport-residual-filter-toggle="1"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--passport-residual-filter) 80%, transparent);
+  outline-offset: 1px;
 }
 /* ADE Passport sticky clear-filter cue (PCF1–PCF3) — ON + non-empty; mirror Trace legend CC */
 .passport-residual .passport-sticky-clear-filter,
