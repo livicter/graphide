@@ -10883,10 +10883,49 @@ function renderTrajectoryBody() {
       }
     }
   }
+  // AL: residual-adjacent node kinds on Trace legend (after #403 node attrs)
+  const adjResidualKinds = new Set();
+  let adjResidualCount = 0;
+  if (focusOn) {
+    for (const n of nodes) {
+      if (!near.has(n.id) || selectedId === n.id) continue;
+      if (!residualTrajs.has(n.id)) continue;
+      adjResidualCount += 1;
+      adjResidualKinds.add(n.kind || "task");
+    }
+  }
+  const hasAdjResidualLegend = focusOn && adjResidualCount > 0;
+  const adjResidualAttr = hasAdjResidualLegend
+    ? ' data-adj-residual-count="' + String(adjResidualCount) + '"'
+    : "";
+  const adjResidualChips = hasAdjResidualLegend
+    ? Array.from(adjResidualKinds)
+        .sort()
+        .map((k) => {
+          return (
+            '<span class="traj-legend-chip adj-residual kind-' +
+            esc(k) +
+            '" data-node-kind="' +
+            esc(k) +
+            '" data-adj-residual="1" title="Adjacent residual ' +
+            esc(k) +
+            '">' +
+            '<svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">' +
+            '<line x1="1" y1="5" x2="21" y2="5" stroke-dasharray="2 2"></line>' +
+            "</svg>" +
+            '<span class="traj-legend-label">adj ' +
+            esc(k) +
+            "</span></span>"
+          );
+        })
+        .join("")
+    : "";
   const edgeLegend =
-    edgeKinds.length === 0
+    edgeKinds.length === 0 && !hasAdjResidualLegend
       ? ""
-      : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds">' +
+      : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' +
+        adjResidualAttr +
+        ">" +
         edgeKinds
           .map((k) => {
             const chipFocus = focusOn
@@ -10913,6 +10952,7 @@ function renderTrajectoryBody() {
             );
           })
           .join("") +
+        adjResidualChips +
         "</div>";
   return (
     '<div class="traj-page' +

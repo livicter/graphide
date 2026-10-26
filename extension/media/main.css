@@ -3034,6 +3034,29 @@ html.bright .traj-node { background: #fff; }
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 65%, transparent),
     0 0 10px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 28%, transparent);
 }
+
+/* Trace adj-residual legend chips (AL1–AL3) — residual-adjacent node kinds on #trajEdgeLegend */
+#trajEdgeLegend .traj-legend-chip.adj-residual,
+#trajEdgeLegend .traj-legend-chip[data-adj-residual="1"] {
+  --traj-adj-legend: var(--vscode-editorWarning-foreground, #cca700);
+  color: var(--traj-adj-legend);
+  border-color: color-mix(in srgb, var(--traj-adj-legend) 55%, var(--g-line, #8b949e));
+  border-style: dashed;
+  background: color-mix(in srgb, var(--traj-adj-legend) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual .traj-legend-stroke line {
+  stroke: var(--traj-adj-legend);
+  stroke-dasharray: 2 2;
+  opacity: 0.95;
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual.dim {
+  opacity: 1;
+  filter: none;
+}
 /* Passport hop residual badge on gate path rows (HB1–HB3) */
 .passport-hop-residual {
   --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));

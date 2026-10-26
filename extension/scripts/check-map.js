@@ -592,6 +592,10 @@ assert(driver.includes("AR1") && driver.includes("AR3") && driver.includes("pass
 assert(js.includes("data-passport-adj-residual") && js.includes("passport-adj-residual") && js.includes("data-traj-adj-residual") && js.includes("passportResidualTrajIds"), "Passport traj-hop adjacent residual markup missing");
 assert(css.includes("passport-adj-residual") && css.includes("passport-adj-residual-cue") && css.includes("data-traj-adj-residual"), "Passport traj-hop adjacent residual CSS missing");
 assert(passportMap.includes("AR1") && passportMap.includes("adjacent residual") && passportMap.includes("passport-traj-adjacent-residual.png") && passportMap.includes("data-passport-adj-residual"), "passport feature map must name adjacent residual AR / proof");
+assert(driver.includes("AL1") && driver.includes("AL3") && driver.includes("trajectory-adj-residual-legend.png") && driver.includes("data-adj-residual"), "verify driver must prove Trace adj-residual legend AL1–AL3");
+assert(js.includes("adjResidualKinds") && js.includes("data-adj-residual") && js.includes("data-adj-residual-count") && js.includes("data-node-kind") && js.includes("adj-residual"), "Trace adj-residual legend markup missing");
+assert(css.includes("traj-legend-chip.adj-residual") || css.includes(".traj-legend-chip.adj-residual") || css.includes('[data-adj-residual="1"]'), "Trace adj-residual legend CSS missing");
+assert(traceMap.includes("AL1") && traceMap.includes("adj-residual") && traceMap.includes("trajectory-adj-residual-legend.png") && traceMap.includes("data-adj-residual"), "trace feature map must name adj-residual legend AL / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

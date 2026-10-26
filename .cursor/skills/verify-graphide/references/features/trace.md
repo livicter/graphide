@@ -33,7 +33,7 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Edges carry `data-from` / `data-to` / `data-kind` (`seq|fork|join`) and
   optional `data-label`. Focus dims off-path deps. Edge-legend chips
   (`#trajEdgeLegend` / `.traj-legend-chip`) mirror that focus: on-path
-  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3).
+  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3). When residual neighbors exist, adj-residual node-kind chips (`.adj-residual` / `data-adj-residual`) append after edge chips (AL1–AL3).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
   click-focus (KS1–KS3), dep-list click→focus (DF1–DF3), and directed hop-affordance next → chips (HA1–HA3).
@@ -94,6 +94,7 @@ Driver assertions:
 - DF1–DF3: Trace detail dep-list click→focus — `[data-traj-dep]` / `data-ade-dep-focus` sets `trajSelectedId` via `focusTrajectoryDep`; on-path / legend dim / keyboard step stay in sync; screenshot `verification/trajectory-dep-list-focus.png`
 - HA1–HA3: Trace hop-affordance — selected-node `.traj-hop-next` / detail Next hops `[data-traj-next]` / `data-ade-hop-next` hop along directed edges via `hopTrajectoryNext` / `trajOutgoingIds` (does not change `stepTrajectory` array-order); screenshot `verification/trajectory-hop-affordance.png`
 - AR1–AR3 (shared with Passport): focused-traj neighbor nodes mapped to residual Passport gatedWrites carry `data-traj-adj-residual` / `.traj-adj-residual`; proof `verification/passport-traj-adjacent-residual.png`
+- AL1–AL3: Trace adj-residual legend chips — when focus has residual neighbors, `#trajEdgeLegend` appends `.traj-legend-chip.adj-residual` / `data-adj-residual="1"` / `data-node-kind` for those node kinds (`data-adj-residual-count`); Approve clears; proof `verification/trajectory-adj-residual-legend.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
