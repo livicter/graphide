@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: 9adf7f431293ad6ae6cad3d5a5e6c76c521e370aaf0ebf088e9f6cd9b646d374
+# seal-sha256: 5b5ca14600b87a58c477555c10c91a2679551744b224b2eb7ac97ca4e3362cf0
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -67,6 +67,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-173eb737fee2e80dc00d0375d2d2a546bcbf5ff68579738efdb56dddb8d05d0d  extension/scripts/check-map.js
+0a38497305c5e117a6b88ccb3dcb1e63e008fd456bc8f4c7e458dcd24465a7c8  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
 dc5c46af8cd68454b5c818248a16fa96bff0b9d85636b785bbb401e4c6e1c353  scripts/verify-graphide.js
