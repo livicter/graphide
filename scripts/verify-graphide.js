@@ -1967,6 +1967,140 @@ async function main() {
     await shot(page, "trajectory-dag.png");
     assertNoStampDir("A1a4", "Trace step did not write .graphide/stamps/");
 
+    // ADE Trace richer fixtures (v2) — phase/agent/deps/artifact-diff inspector.
+    const trajFx = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const nodes = host ? [...host.querySelectorAll(".traj-node")] : [];
+      const edges = host ? [...host.querySelectorAll(".traj-edge")] : [];
+      const meta = document.querySelector(".traj-meta");
+      return {
+        version: meta ? meta.getAttribute("data-fixture-version") || "" : "",
+        nodes: nodes.map((el) => ({
+          id: el.getAttribute("data-id") || "",
+          phase: el.getAttribute("data-phase") || "",
+          agent: el.getAttribute("data-agent") || "",
+          role: el.getAttribute("data-role") || "",
+          deps: el.getAttribute("data-deps") || "",
+          adds: el.getAttribute("data-adds") || "",
+          dels: el.getAttribute("data-dels") || "",
+          duration: el.getAttribute("data-duration") || "",
+        })),
+        edgeKinds: edges.map((el) => el.getAttribute("data-kind") || ""),
+        edgeLabels: edges.map((el) => el.getAttribute("data-label") || "").filter(Boolean).length,
+      };
+    });
+
+    const tf1ok =
+      trajFx.nodes.length >= 6 &&
+      trajFx.nodes.filter((n) => n.phase && n.agent && n.role).length >= 6;
+    record(
+      "TF1",
+      "Trace nodes expose phase + agent + role",
+      tf1ok,
+      "nodes=" +
+        trajFx.nodes.map((n) => n.id + ":" + n.phase + "/" + n.agent + "/" + n.role).join(",")
+    );
+
+    const kinds = new Set(trajFx.edgeKinds);
+    const tf2ok =
+      trajFx.nodes.filter((n) => n.deps !== null && n.deps !== undefined).length >= 6 &&
+      trajFx.nodes.some((n) => (n.deps || "").includes(",")) &&
+      kinds.has("seq") &&
+      kinds.has("fork") &&
+      kinds.has("join");
+    record(
+      "TF2",
+      "Trace nodes expose deps and edges cover seq/fork/join",
+      tf2ok,
+      "kinds=" +
+        [...kinds].join(",") +
+        " labeled=" +
+        trajFx.edgeLabels +
+        " depsSample=" +
+        trajFx.nodes
+          .filter((n) => n.deps)
+          .slice(0, 3)
+          .map((n) => n.id + "→" + n.deps)
+          .join(";")
+    );
+
+    const tf3ok =
+      trajFx.nodes.filter((n) => n.adds !== "" && n.dels !== "").length >= 4 &&
+      trajFx.nodes.some((n) => Number(n.adds) > 0);
+    record(
+      "TF3",
+      "Trace nodes expose artifact-diff adds/dels",
+      tf3ok,
+      "diff=" +
+        trajFx.nodes
+          .filter((n) => n.adds !== "" || n.dels !== "")
+          .map((n) => n.id + ":+" + n.adds + "/-" + n.dels)
+          .join(",")
+    );
+
+    // Select a node with deps + artifact-diff for inspector proof.
+    const pick =
+      trajFx.nodes.find((n) => n.id === "sub-diff") ||
+      trajFx.nodes.find((n) => (n.deps || "").includes(",") && n.adds !== "") ||
+      trajFx.nodes[0];
+    if (pick && pick.id) {
+      await page.click('.traj-node[data-id="' + pick.id + '"]');
+      await page.waitForTimeout(200);
+    }
+    const detail = await page.evaluate(() => {
+      const panel = document.getElementById("trajDetail");
+      const deps = panel ? [...panel.querySelectorAll("[data-traj-dep]")] : [];
+      const diff = panel ? panel.querySelector("[data-artifact-diff]") : null;
+      return {
+        selected: panel ? panel.getAttribute("data-selected") || "" : "",
+        empty: panel ? panel.getAttribute("data-empty") || "" : "",
+        phase: panel ? panel.getAttribute("data-phase") || "" : "",
+        agent: panel ? panel.getAttribute("data-agent") || "" : "",
+        duration: panel ? panel.getAttribute("data-duration") || "" : "",
+        depIds: deps.map((el) => el.getAttribute("data-traj-dep") || ""),
+        hasDepsList: !!(panel && panel.querySelector("[data-traj-deps]")),
+        adds: diff ? diff.getAttribute("data-adds") || "" : "",
+        dels: diff ? diff.getAttribute("data-dels") || "" : "",
+        hasDiff: !!diff,
+      };
+    });
+    const tf4ok =
+      detail.selected &&
+      !detail.empty &&
+      detail.phase &&
+      detail.agent &&
+      detail.hasDepsList &&
+      detail.depIds.length >= 1 &&
+      detail.hasDiff &&
+      detail.adds !== "";
+    record(
+      "TF4",
+      "Trace inspector shows deps + duration + artifact-diff for selected subtask",
+      tf4ok,
+      JSON.stringify(detail)
+    );
+
+    const tf5ok =
+      trajFx.version === "2" &&
+      trajFx.nodes.length >= 8 &&
+      trajFx.edgeKinds.length >= 8 &&
+      trajFx.edgeLabels >= 4;
+    record(
+      "TF5",
+      "Trace fixture v2 has ≥8 subtasks / ≥8 deps with edge labels",
+      tf5ok,
+      "v=" +
+        trajFx.version +
+        " nodes=" +
+        trajFx.nodes.length +
+        " edges=" +
+        trajFx.edgeKinds.length +
+        " labels=" +
+        trajFx.edgeLabels
+    );
+    await shot(page, "trajectory-fixtures.png");
+    assertNoStampDir("TF6", "Trace fixtures step did not write .graphide/stamps/");
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(
@@ -25891,7 +26025,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · ade-deeplink · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

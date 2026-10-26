@@ -10334,6 +10334,7 @@ function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
         '" data-kind="' +
         esc(kind) +
         '"' +
+        (e.label ? ' data-label="' + esc(e.label) + '"' : "") +
         (onPath ? ' data-on-path="1"' : "") +
         ' d="' +
         d +
@@ -10343,23 +10344,59 @@ function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
     .join("");
 }
 
+function trajNodeDeps(fix, n) {
+  if (Array.isArray(n.deps) && n.deps.length) return n.deps.slice();
+  const id = n.id;
+  return (fix.edges || []).filter((e) => e.to === id).map((e) => e.from);
+}
+
+function trajDurationLabel(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (n < 1000) return n + "ms";
+  return (Math.round(n / 100) / 10) + "s";
+}
+
 function renderTrajectoryDetail(fix, selectedId) {
   const n = (fix.nodes || []).find((x) => x.id === selectedId);
   if (!n) {
     return (
       '<aside id="trajDetail" class="traj-detail" data-empty="1">' +
-      '<div class="traj-detail-empty">Select a subtask to inspect artifact / diff pins and role. Use [ ] to step.</div>' +
+      '<div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] to step.</div>' +
       "</aside>"
     );
   }
   const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
   const artCls = pin === "artifact" ? " pin-focus" : "";
   const diffCls = pin === "diff" ? " pin-focus" : "";
+  const deps = trajNodeDeps(fix, n);
+  const adds = Number(n.adds);
+  const dels = Number(n.dels);
+  const hasDiffMeta = Number.isFinite(adds) || Number.isFinite(dels);
+  const depHtml = deps.length
+    ? '<ul class="traj-dep-list" data-traj-deps="1">' +
+      deps
+        .map(
+          (d) =>
+            '<li class="traj-dep" data-traj-dep="' +
+            esc(d) +
+            '"><code>' +
+            esc(d) +
+            "</code></li>"
+        )
+        .join("") +
+      "</ul>"
+    : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
   return (
     '<aside id="trajDetail" class="traj-detail" data-selected="' +
     esc(n.id) +
     '"' +
     (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") +
+    (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") +
+    (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") +
+    (Number.isFinite(Number(n.durationMs))
+      ? ' data-duration="' + esc(String(n.durationMs)) + '"'
+      : "") +
     ">" +
     '<div class="traj-detail-head">' +
     '<span class="traj-status-chip status-' +
@@ -10367,6 +10404,13 @@ function renderTrajectoryDetail(fix, selectedId) {
     '">' +
     esc(trajStatusLabel(n.status)) +
     "</span>" +
+    (n.phase
+      ? '<span class="traj-phase-chip" data-traj-phase-chip="' +
+        esc(n.phase) +
+        '">' +
+        esc(n.phase) +
+        "</span>"
+      : "") +
     "<strong>" +
     esc(n.label || n.id) +
     "</strong>" +
@@ -10379,6 +10423,24 @@ function renderTrajectoryDetail(fix, selectedId) {
     "</dd>" +
     "<dt>Role</dt><dd>" +
     esc(n.role || "—") +
+    "</dd>" +
+    '<dt>Phase</dt><dd data-traj-phase="' +
+    esc(n.phase || "") +
+    '">' +
+    esc(n.phase || "—") +
+    "</dd>" +
+    '<dt>Agent</dt><dd data-traj-agent="' +
+    esc(n.agent || "") +
+    '">' +
+    esc(n.agent || "—") +
+    "</dd>" +
+    '<dt>Duration</dt><dd data-traj-duration="' +
+    esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) +
+    '">' +
+    esc(trajDurationLabel(n.durationMs)) +
+    "</dd>" +
+    "<dt>Deps</dt><dd>" +
+    depHtml +
     "</dd>" +
     '<dt class="' +
     (pin === "artifact" ? "on" : "") +
@@ -10406,6 +10468,18 @@ function renderTrajectoryDetail(fix, selectedId) {
         "</code>"
       : "—") +
     "</dd>" +
+    '<dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' +
+    (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
+    (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
+    ">" +
+    (hasDiffMeta
+      ? '<span class="traj-diff-adds">+' +
+        esc(String(Number.isFinite(adds) ? adds : 0)) +
+        '</span> <span class="traj-diff-dels">−' +
+        esc(String(Number.isFinite(dels) ? dels : 0)) +
+        "</span>"
+      : "—") +
+    "</dd>" +
     "<dt>Note</dt><dd>" +
     esc(n.note || "—") +
     "</dd></dl>" +
@@ -10420,8 +10494,8 @@ function renderTrajectoryBody() {
   const fix = trajectoryFixture();
   const nodes = fix.nodes || [];
   const edges = fix.edges || [];
-  const nodeW = 176;
-  const nodeH = 78;
+  const nodeW = 188;
+  const nodeH = 96;
   const selectedId =
     trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
   if (!selectedId) trajPinFocus = "";
@@ -10438,6 +10512,13 @@ function renderTrajectoryBody() {
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
       const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
+      const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
+      const depAttr = deps.join(",");
+      const adds = Number(n.adds);
+      const dels = Number(n.dels);
+      const diffMeta =
+        (Number.isFinite(adds) ? " +" + adds : "") +
+        (Number.isFinite(dels) ? " −" + dels : "");
       return (
         '<button type="button" class="traj-node status-' +
         esc(n.status || "pending") +
@@ -10454,7 +10535,18 @@ function renderTrajectoryBody() {
         esc(n.kind || "") +
         '" data-role="' +
         esc(n.role || "") +
-        '" style="left:' +
+        '" data-phase="' +
+        esc(n.phase || "") +
+        '" data-agent="' +
+        esc(n.agent || "") +
+        '" data-duration="' +
+        esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") +
+        '" data-deps="' +
+        esc(depAttr) +
+        '"' +
+        (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
+        (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
+        ' style="left:' +
         n.x +
         "px;top:" +
         n.y +
@@ -10467,10 +10559,42 @@ function renderTrajectoryBody() {
         '">' +
         esc(trajStatusLabel(n.status)) +
         "</span>" +
+        (n.phase
+          ? '<span class="traj-phase-chip" data-traj-phase-chip="' +
+            esc(n.phase) +
+            '">' +
+            esc(n.phase) +
+            "</span>"
+          : "") +
         (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") +
         "</div>" +
         '<div class="traj-label">' +
         esc(n.label || n.id) +
+        "</div>" +
+        '<div class="traj-node-meta">' +
+        (n.role
+          ? '<span class="traj-role-chip" data-traj-role-chip="' +
+            esc(n.role) +
+            '">' +
+            esc(n.role) +
+            "</span>"
+          : "") +
+        (deps.length
+          ? '<span class="traj-dep-badge" data-dep-count="' +
+            deps.length +
+            '">' +
+            deps.length +
+            " dep" +
+            (deps.length === 1 ? "" : "s") +
+            "</span>"
+          : "") +
+        (n.agent
+          ? '<span class="traj-agent-chip" data-traj-agent-chip="' +
+            esc(n.agent) +
+            '">' +
+            esc(n.agent) +
+            "</span>"
+          : "") +
         "</div>" +
         (art
           ? '<div class="traj-pin artifact' +
@@ -10479,11 +10603,11 @@ function renderTrajectoryBody() {
             esc(art) +
             "</div>"
           : "") +
-        (diff
+        (diff || diffMeta
           ? '<div class="traj-pin diff' +
             pinDiff +
             '" data-traj-pin="diff" title="diff">' +
-            esc(diff) +
+            esc((diff || "Δ") + diffMeta) +
             "</div>"
           : "") +
         "</button>"
@@ -10549,12 +10673,15 @@ function renderTrajectoryBody() {
     "</div>" +
     renderTrajectoryDetail(fix, selectedId) +
     "</div>" +
-    '<div class="traj-meta">' +
+    '<div class="traj-meta" data-fixture-version="' +
+    esc(String(fix.version || 1)) +
+    '">' +
     nodes.length +
     " subtasks · " +
     edges.length +
     " deps · fixture " +
     esc(fix.id) +
+    (fix.version ? " v" + esc(String(fix.version)) : "") +
     " · click node / pin · [ ] step</div>" +
     "</div>"
   );

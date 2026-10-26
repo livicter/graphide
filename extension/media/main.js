@@ -19652,9 +19652,10 @@
 
   // extension/media/src/graph/trajectory-fixture.js
   var TRAJECTORY_FIXTURE = {
+    version: 2,
     id: "ade-a1a-fixture",
     title: "Execution trajectory",
-    subtitle: "Phase 1 Trace — fixture DAG with deps, artifact pins, and diff pins",
+    subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins",
     nodes: [
       {
         id: "sub-plan",
@@ -19662,8 +19663,14 @@
         status: "done",
         kind: "plan",
         role: "upstream",
+        phase: "scope",
+        agent: "planner",
+        durationMs: 420,
+        deps: [],
         artifact: "ADE-PLAN.md",
         diff: "",
+        adds: 0,
+        dels: 0,
         note: "Phase 1 scope locked before edits",
         x: 40,
         y: 56
@@ -19674,11 +19681,17 @@
         status: "done",
         kind: "edit",
         role: "write",
+        phase: "implement",
+        agent: "desk",
+        durationMs: 1800,
+        deps: ["sub-plan"],
         artifact: "extension/media/src/graph/desk.js",
         diff: "+traj",
+        adds: 214,
+        dels: 18,
         note: "Trajectory paint + bind on Review desk",
-        x: 260,
-        y: 56
+        x: 240,
+        y: 40
       },
       {
         id: "sub-fixture",
@@ -19686,11 +19699,35 @@
         status: "done",
         kind: "fixture",
         role: "sim",
+        phase: "implement",
+        agent: "harness",
+        durationMs: 640,
+        deps: ["sub-plan"],
         artifact: "extension/media/src/graph/trajectory-fixture.js",
         diff: "+nodes",
+        adds: 96,
+        dels: 12,
         note: "Parallel sim path: richer subtasks / deps",
-        x: 260,
+        x: 240,
         y: 200
+      },
+      {
+        id: "sub-diff",
+        label: "Artifact diff",
+        status: "done",
+        kind: "diff",
+        role: "review",
+        phase: "inspect",
+        agent: "diff",
+        durationMs: 510,
+        deps: ["sub-edit", "sub-fixture"],
+        artifact: "verification/trajectory-fixtures.png",
+        diff: "+pins",
+        adds: 4,
+        dels: 1,
+        note: "Pin-level artifact/diff readability for inspector",
+        x: 460,
+        y: 120
       },
       {
         id: "sub-verify",
@@ -19698,11 +19735,17 @@
         status: "running",
         kind: "verify",
         role: "gate",
+        phase: "prove",
+        agent: "verify",
+        durationMs: 9200,
+        deps: ["sub-edit", "sub-diff"],
         artifact: "scripts/verify-graphide.js",
-        diff: "+A1a",
-        note: "Immutable seal + Trace/Passport drivers",
-        x: 500,
-        y: 56
+        diff: "+TF",
+        adds: 88,
+        dels: 6,
+        note: "Immutable seal + Trace/Passport / TF drivers",
+        x: 680,
+        y: 40
       },
       {
         id: "sub-seal",
@@ -19710,11 +19753,35 @@
         status: "done",
         kind: "harness",
         role: "gate",
+        phase: "prove",
+        agent: "immutable",
+        durationMs: 310,
+        deps: ["sub-fixture", "sub-diff"],
         artifact: ".cursor/skills/verify-graphide/references/immutable-specs.lock",
         diff: "+I0-I5",
+        adds: 2,
+        dels: 2,
         note: "SHA-256 lock on protected assert / feature maps",
-        x: 500,
+        x: 680,
         y: 200
+      },
+      {
+        id: "sub-passport",
+        label: "Passport hop",
+        status: "pending",
+        kind: "gate",
+        role: "downstream",
+        phase: "signoff",
+        agent: "passport",
+        durationMs: 0,
+        deps: ["sub-verify"],
+        artifact: "extension/scripts/passport-fixture.json",
+        diff: "",
+        adds: 0,
+        dels: 0,
+        note: "Deep-link preserves traj focus into Passport",
+        x: 900,
+        y: 40
       },
       {
         id: "sub-pr",
@@ -19722,20 +19789,32 @@
         status: "pending",
         kind: "ship",
         role: "downstream",
+        phase: "ship",
+        agent: "ship",
+        durationMs: 0,
+        deps: ["sub-verify", "sub-seal", "sub-passport"],
         artifact: "pull-request",
         diff: "",
+        adds: 0,
+        dels: 0,
         note: "Draft only — no undraft / merge",
-        x: 740,
-        y: 120
+        x: 900,
+        y: 200
       }
     ],
     edges: [
-      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq" },
-      { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork" },
-      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq" },
-      { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq" },
-      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "join" },
-      { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join" }
+      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit" },
+      { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim" },
+      { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff" },
+      { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff" },
+      { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove" },
+      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove" },
+      { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal" },
+      { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal" },
+      { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign" },
+      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship" },
+      { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship" },
+      { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship" }
     ]
   };
 
@@ -28077,18 +28156,36 @@
         const onPath = focusOn && (e.from === selectedId || e.to === selectedId);
         const dim = focusOn && !onPath;
         const d = "M" + x1 + " " + y1 + " C" + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2;
-        return '<path class="traj-edge kind-' + esc(kind) + (onPath ? " on-path" : "") + (dim ? " dim" : "") + '" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(kind) + '"' + (onPath ? ' data-on-path="1"' : "") + ' d="' + d + '" />';
+        return '<path class="traj-edge kind-' + esc(kind) + (onPath ? " on-path" : "") + (dim ? " dim" : "") + '" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(kind) + '"' + (e.label ? ' data-label="' + esc(e.label) + '"' : "") + (onPath ? ' data-on-path="1"' : "") + ' d="' + d + '" />';
       }).join("");
+    }
+    function trajNodeDeps(fix, n) {
+      if (Array.isArray(n.deps) && n.deps.length) return n.deps.slice();
+      const id2 = n.id;
+      return (fix.edges || []).filter((e) => e.to === id2).map((e) => e.from);
+    }
+    function trajDurationLabel(ms) {
+      const n = Number(ms);
+      if (!Number.isFinite(n) || n <= 0) return "—";
+      if (n < 1e3) return n + "ms";
+      return Math.round(n / 100) / 10 + "s";
     }
     function renderTrajectoryDetail(fix, selectedId) {
       const n = (fix.nodes || []).find((x) => x.id === selectedId);
       if (!n) {
-        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect artifact / diff pins and role. Use [ ] to step.</div></aside>';
+        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] to step.</div></aside>';
       }
       const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
       const artCls = pin === "artifact" ? " pin-focus" : "";
       const diffCls = pin === "diff" ? " pin-focus" : "";
-      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span><strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div></aside>';
+      const deps = trajNodeDeps(fix, n);
+      const adds = Number(n.adds);
+      const dels = Number(n.dels);
+      const hasDiffMeta = Number.isFinite(adds) || Number.isFinite(dels);
+      const depHtml = deps.length ? '<ul class="traj-dep-list" data-traj-deps="1">' + deps.map(
+        (d) => '<li class="traj-dep" data-traj-dep="' + esc(d) + '"><code>' + esc(d) + "</code></li>"
+      ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
+      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div></aside>';
     }
     function renderTrajectoryBody() {
       seedTrajectoryFocus();
@@ -28096,8 +28193,8 @@
       const fix = trajectoryFixture();
       const nodes = fix.nodes || [];
       const edges = fix.edges || [];
-      const nodeW = 176;
-      const nodeH = 78;
+      const nodeW = 188;
+      const nodeH = 96;
       const selectedId = trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
       if (!selectedId) trajPinFocus = "";
       const near = trajNeighborIds(fix, selectedId);
@@ -28111,14 +28208,19 @@
         const dim = focusOn && !near.has(n.id) ? " dim" : "";
         const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
         const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + dim + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" title="artifact">' + esc(art) + "</div>" : "") + (diff ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" title="diff">' + esc(diff) + "</div>" : "") + "</button>";
+        const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
+        const depAttr = deps.join(",");
+        const adds = Number(n.adds);
+        const dels = Number(n.dels);
+        const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + dim + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" title="artifact">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" title="diff">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
       const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
       const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
       const done = nodes.filter((n) => n.status === "done").length;
       const running = nodes.filter((n) => n.status === "running").length;
       const pending = nodes.filter((n) => n.status === "pending").length;
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + " · click node / pin · [ ] step</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · [ ] step</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();

@@ -516,6 +516,18 @@ assert(driver.includes("passport.png") && driver.includes("data-passport-action"
 assert(driver.includes("PF1") && driver.includes("PF5") && driver.includes("passport-fixtures.png") && driver.includes("data-passport-layer"), "verify driver must prove richer Passport fixtures PF1–PF5");
 assert(js.includes("renderPassportImpactItem") && js.includes("data-passport-mitigation") && js.includes("data-impact-row"), "Passport richer fixture row render missing");
 assert(passportMap.includes("data-passport-layer") && passportMap.includes("PF1") && passportMap.includes("passport-fixtures.png"), "passport feature map must name richer fixture hooks / PF1 / passport-fixtures.png");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md")), "trace feature map missing");
+const traceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md"), "utf8");
+assert(
+  traceMap.includes("## Sub-features") &&
+    traceMap.includes("## How to get to it (user POV)") &&
+    traceMap.includes("## Driving it with the harness") &&
+    traceMap.includes("## Gotchas"),
+  "trace feature map must use the four headings"
+);
+assert(driver.includes("TF1") && driver.includes("TF5") && driver.includes("trajectory-fixtures.png") && driver.includes("data-phase"), "verify driver must prove richer Trace fixtures TF1–TF5");
+assert(js.includes("trajNodeDeps") && js.includes("data-traj-dep") && js.includes("data-artifact-diff"), "Trace richer fixture inspector render missing");
+assert(traceMap.includes("data-phase") && traceMap.includes("TF1") && traceMap.includes("trajectory-fixtures.png"), "trace feature map must name richer fixture hooks / TF1 / trajectory-fixtures.png");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

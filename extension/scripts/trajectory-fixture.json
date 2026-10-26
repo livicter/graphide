@@ -1,7 +1,8 @@
 {
+  "version": 2,
   "id": "ade-a1a-fixture",
   "title": "Execution trajectory",
-  "subtitle": "Phase 1 Trace — fixture DAG with deps, artifact pins, and diff pins",
+  "subtitle": "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins",
   "nodes": [
     {
       "id": "sub-plan",
@@ -9,8 +10,14 @@
       "status": "done",
       "kind": "plan",
       "role": "upstream",
+      "phase": "scope",
+      "agent": "planner",
+      "durationMs": 420,
+      "deps": [],
       "artifact": "ADE-PLAN.md",
       "diff": "",
+      "adds": 0,
+      "dels": 0,
       "note": "Phase 1 scope locked before edits",
       "x": 40,
       "y": 56
@@ -21,11 +28,19 @@
       "status": "done",
       "kind": "edit",
       "role": "write",
+      "phase": "implement",
+      "agent": "desk",
+      "durationMs": 1800,
+      "deps": [
+        "sub-plan"
+      ],
       "artifact": "extension/media/src/graph/desk.js",
       "diff": "+traj",
+      "adds": 214,
+      "dels": 18,
       "note": "Trajectory paint + bind on Review desk",
-      "x": 260,
-      "y": 56
+      "x": 240,
+      "y": 40
     },
     {
       "id": "sub-fixture",
@@ -33,11 +48,40 @@
       "status": "done",
       "kind": "fixture",
       "role": "sim",
+      "phase": "implement",
+      "agent": "harness",
+      "durationMs": 640,
+      "deps": [
+        "sub-plan"
+      ],
       "artifact": "extension/media/src/graph/trajectory-fixture.js",
       "diff": "+nodes",
+      "adds": 96,
+      "dels": 12,
       "note": "Parallel sim path: richer subtasks / deps",
-      "x": 260,
+      "x": 240,
       "y": 200
+    },
+    {
+      "id": "sub-diff",
+      "label": "Artifact diff",
+      "status": "done",
+      "kind": "diff",
+      "role": "review",
+      "phase": "inspect",
+      "agent": "diff",
+      "durationMs": 510,
+      "deps": [
+        "sub-edit",
+        "sub-fixture"
+      ],
+      "artifact": "verification/trajectory-fixtures.png",
+      "diff": "+pins",
+      "adds": 4,
+      "dels": 1,
+      "note": "Pin-level artifact/diff readability for inspector",
+      "x": 460,
+      "y": 120
     },
     {
       "id": "sub-verify",
@@ -45,11 +89,20 @@
       "status": "running",
       "kind": "verify",
       "role": "gate",
+      "phase": "prove",
+      "agent": "verify",
+      "durationMs": 9200,
+      "deps": [
+        "sub-edit",
+        "sub-diff"
+      ],
       "artifact": "scripts/verify-graphide.js",
-      "diff": "+A1a",
-      "note": "Immutable seal + Trace/Passport drivers",
-      "x": 500,
-      "y": 56
+      "diff": "+TF",
+      "adds": 88,
+      "dels": 6,
+      "note": "Immutable seal + Trace/Passport / TF drivers",
+      "x": 680,
+      "y": 40
     },
     {
       "id": "sub-seal",
@@ -57,11 +110,40 @@
       "status": "done",
       "kind": "harness",
       "role": "gate",
+      "phase": "prove",
+      "agent": "immutable",
+      "durationMs": 310,
+      "deps": [
+        "sub-fixture",
+        "sub-diff"
+      ],
       "artifact": ".cursor/skills/verify-graphide/references/immutable-specs.lock",
       "diff": "+I0-I5",
+      "adds": 2,
+      "dels": 2,
       "note": "SHA-256 lock on protected assert / feature maps",
-      "x": 500,
+      "x": 680,
       "y": 200
+    },
+    {
+      "id": "sub-passport",
+      "label": "Passport hop",
+      "status": "pending",
+      "kind": "gate",
+      "role": "downstream",
+      "phase": "signoff",
+      "agent": "passport",
+      "durationMs": 0,
+      "deps": [
+        "sub-verify"
+      ],
+      "artifact": "extension/scripts/passport-fixture.json",
+      "diff": "",
+      "adds": 0,
+      "dels": 0,
+      "note": "Deep-link preserves traj focus into Passport",
+      "x": 900,
+      "y": 40
     },
     {
       "id": "sub-pr",
@@ -69,11 +151,21 @@
       "status": "pending",
       "kind": "ship",
       "role": "downstream",
+      "phase": "ship",
+      "agent": "ship",
+      "durationMs": 0,
+      "deps": [
+        "sub-verify",
+        "sub-seal",
+        "sub-passport"
+      ],
       "artifact": "pull-request",
       "diff": "",
+      "adds": 0,
+      "dels": 0,
       "note": "Draft only — no undraft / merge",
-      "x": 740,
-      "y": 120
+      "x": 900,
+      "y": 200
     }
   ],
   "edges": [
@@ -81,37 +173,85 @@
       "id": "e-plan-edit",
       "from": "sub-plan",
       "to": "sub-edit",
-      "kind": "seq"
+      "kind": "seq",
+      "label": "scope→edit"
     },
     {
       "id": "e-plan-fixture",
       "from": "sub-plan",
       "to": "sub-fixture",
-      "kind": "fork"
+      "kind": "fork",
+      "label": "scope→sim"
+    },
+    {
+      "id": "e-edit-diff",
+      "from": "sub-edit",
+      "to": "sub-diff",
+      "kind": "seq",
+      "label": "edit→diff"
+    },
+    {
+      "id": "e-fixture-diff",
+      "from": "sub-fixture",
+      "to": "sub-diff",
+      "kind": "join",
+      "label": "sim→diff"
+    },
+    {
+      "id": "e-diff-verify",
+      "from": "sub-diff",
+      "to": "sub-verify",
+      "kind": "seq",
+      "label": "diff→prove"
     },
     {
       "id": "e-edit-verify",
       "from": "sub-edit",
       "to": "sub-verify",
-      "kind": "seq"
+      "kind": "seq",
+      "label": "edit→prove"
     },
     {
       "id": "e-fixture-seal",
       "from": "sub-fixture",
       "to": "sub-seal",
-      "kind": "seq"
+      "kind": "seq",
+      "label": "sim→seal"
+    },
+    {
+      "id": "e-diff-seal",
+      "from": "sub-diff",
+      "to": "sub-seal",
+      "kind": "join",
+      "label": "diff→seal"
+    },
+    {
+      "id": "e-verify-passport",
+      "from": "sub-verify",
+      "to": "sub-passport",
+      "kind": "seq",
+      "label": "prove→sign"
     },
     {
       "id": "e-verify-pr",
       "from": "sub-verify",
       "to": "sub-pr",
-      "kind": "join"
+      "kind": "fork",
+      "label": "prove→ship"
     },
     {
       "id": "e-seal-pr",
       "from": "sub-seal",
       "to": "sub-pr",
-      "kind": "join"
+      "kind": "join",
+      "label": "seal→ship"
+    },
+    {
+      "id": "e-passport-pr",
+      "from": "sub-passport",
+      "to": "sub-pr",
+      "kind": "join",
+      "label": "sign→ship"
     }
   ]
 }
