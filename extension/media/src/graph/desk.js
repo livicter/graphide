@@ -11213,7 +11213,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       stability: "draft",
       deltaClass: "Presentation",
       breaking: false,
-      change: "Renders enriched fixture rows"
+      change: "Renders enriched fixture rows",
+      traj: "sub-passport"
     },
     {
       id: "c2",
@@ -11233,7 +11234,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       stability: "draft",
       deltaClass: "Topology",
       breaking: false,
-      change: "Gate state fixture-only"
+      change: "Gate state fixture-only",
+      traj: "sub-edit"
     },
     {
       id: "c4",
@@ -11243,7 +11245,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       stability: "draft",
       deltaClass: "Topology",
       breaking: false,
-      change: "Trace bind unchanged (A1a)"
+      change: "Trace bind unchanged (A1a)",
+      traj: "sub-fixture"
     },
     {
       id: "c5",
@@ -11253,7 +11256,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       stability: "draft",
       deltaClass: "Presentation",
       breaking: false,
-      change: "Structured impact rows + Delta chips"
+      change: "Structured impact rows + Delta chips",
+      traj: "sub-passport"
     }
   ],
   risks: [
@@ -11263,7 +11267,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       area: "gate-state writes",
       note: "must never touch .graphide/stamps/",
       mitigation: "setPassportGate is in-memory only",
-      blast: ".graphide/stamps/"
+      blast: ".graphide/stamps/",
+      traj: "sub-passport"
     },
     {
       id: "r2",
@@ -11271,7 +11276,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       area: "agent write ordering",
       note: "file writes stay blocked until Approve",
       mitigation: "gatedWrites stay data-blocked until approved",
-      blast: "extension/media/**"
+      blast: "extension/media/**",
+      traj: "sub-edit"
     },
     {
       id: "r3",
@@ -11287,7 +11293,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       area: "A1a semantics",
       note: "Trace polish must keep trajectory-dag host + pin attrs",
       mitigation: "This slice does not edit Trace paint/bind",
-      blast: "#trajCanvas"
+      blast: "#trajCanvas",
+      traj: "sub-fixture"
     },
     {
       id: "r5",
@@ -11295,7 +11302,8 @@ const PASSPORT_FIXTURE = Object.freeze({
       area: "live Delta mount",
       note: "Impact must stay vocabulary stub",
       mitigation: "No #deltaCanvas under #passportPage",
-      blast: "#passportImpact"
+      blast: "#passportImpact",
+      traj: "sub-passport"
     }
   ],
   testStrategy: [
@@ -12092,10 +12100,15 @@ function renderPassportBody() {
     .map((c) => {
       const klass = c.deltaClass || "";
       const breaking = !!c.breaking;
+      const trajId = resolvePassportTrajId(c);
       return (
-        '<li class="passport-row" data-passport-contract="' +
+        '<li class="passport-row' +
+        passportRowActiveClass(trajId) +
+        '" data-passport-contract="' +
         esc(c.id || "") +
         '"' +
+        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-contract-traj="1"' : "") +
+        passportRowActiveAttr(trajId) +
         (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") +
         (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') +
         '><div class="passport-row-head">' +
@@ -12114,7 +12127,9 @@ function renderPassportBody() {
         esc(c.stability || "") +
         '">' +
         esc(c.stability || "") +
-        "</em></div>" +
+        "</em>" +
+        renderAdeTrajHop(trajId) +
+        "</div>" +
         (c.change
           ? '<div class="passport-row-impact">' + esc(c.change) + "</div>"
           : "") +
@@ -12124,10 +12139,16 @@ function renderPassportBody() {
     .join("");
   const risks = (fx.risks || [])
     .map((r) => {
+      const trajId = resolvePassportTrajId(r);
       return (
-        '<li class="passport-row" data-passport-risk="' +
+        '<li class="passport-row' +
+        passportRowActiveClass(trajId) +
+        '" data-passport-risk="' +
         esc(r.id || "") +
-        '" data-level="' +
+        '"' +
+        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-risk-traj="1"' : "") +
+        passportRowActiveAttr(trajId) +
+        ' data-level="' +
         esc(r.level || "") +
         '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' +
         esc(r.level || "") +
@@ -12137,6 +12158,7 @@ function renderPassportBody() {
         esc(r.area || "") +
         "</b>" +
         (r.note ? " — " + esc(r.note) : "") +
+        renderAdeTrajHop(trajId) +
         "</div>" +
         (r.mitigation
           ? '<div class="passport-row-meta" data-passport-mitigation="' +
@@ -12189,7 +12211,7 @@ function renderPassportBody() {
     '<div class="ade-hop-row">' +
     renderAdeHop("trace", "← Open Trace") +
     renderSealStatusChip() +
-    '<span class="ade-hop-hint">preserves traj focus · gate state · seal stub · no live Delta</span>' +
+    '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk Open in Trace · seal stub · no live Delta</span>' +
     "</div>" +
     '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
     esc(fx.title || "Plan Passport") +

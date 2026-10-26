@@ -43,6 +43,13 @@ is a stub that reuses Delta vocabulary only).
   Enter/Space expands. Hover/focus-visible highlight. String items use
   `.passport-impact-row--static` (no expand). Screenshot
   `verification/passport-impact-rows.png`.
+- Contract/risk → Trace traj mapping (CX1–CX3; ids avoid cancel CR1):
+  optional fixture `traj` on contracts/risks; mapped rows carry
+  `data-ade-traj` + `data-ade-contract-traj` / `data-ade-risk-traj` and
+  reuse `data-ade-traj-hop` Open in Trace (`resolvePassportTrajId` /
+  `hopAdeTraj`). Unmapped rows omit the hop. Screenshot
+  `verification/passport-risk-traj-map.png`.
+
 - Empty-state (PE1–PE3): when the fixture has no plan rows
   (`targets/contracts/risks/testStrategy/gatedWrites` empty, or
   `?passportEmpty=1` / `PASSPORT_EMPTY_FIXTURE`), `#passportPage` shows
@@ -79,6 +86,10 @@ extension/scripts/webview-harness.html?passport=1&probe=0&ws=passport
 Empty chrome: `?passport=1&passportEmpty=1&ws=passport` (or
 `PASSPORT_EMPTY_FIXTURE` / `window.__graphidePassport` with empty arrays).
 
+Contract/risk traj map: `?trace=1&passport=1&gate=approved&ws=passport`
+then click `[data-ade-contract-traj] [data-ade-traj-hop]` /
+`[data-ade-risk-traj] [data-ade-traj-hop]` (CX1–CX3).
+
 `passport=1` fetches `passport-fixture.json` into
 `window.__graphidePassport` (falls back to the embedded fixture if the
 JSON is missing or invalid). It does **not** require a ReviewSnapshot snap
@@ -101,6 +112,7 @@ Driver assertions:
 - GS1–GS3: Sticky Decision Rail — `#passportGate` / `#passportSign` stay readable while scrolling; filled `data-gate-chip`; `.passport-gate-summary` + `.passport-sign-actions`; screenshot `verification/passport-gate-signoff.png`
 - IR1–IR3: impact-row head/detail hierarchy + expand/hover; static string fallback; screenshot `verification/passport-impact-rows.png`
 - PE1–PE3: empty fixture shows `.passport-empty` chrome + Open Trace hop; screenshot `verification/passport-empty-state.png`
+- CX1–CX3: contract/risk `traj` → Open in Trace; screenshot `verification/passport-risk-traj-map.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -119,7 +131,7 @@ Driver assertions:
   `[data-passport-mitigation]`, `[data-passport-blast]`,
   `[data-passport-fixture]`, `[data-passport-covers]`, `[data-impact-row]`,
   `[data-impact-expanded]`, `.passport-impact-head`, `.passport-impact-detail`,
-  `.passport-impact-row--static`,
+  `.passport-impact-row--static`, `[data-ade-contract-traj]`, `[data-ade-risk-traj]`,
   `[data-vocab-chip]`, `[data-impact-region]` are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.

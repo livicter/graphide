@@ -50,6 +50,8 @@ const SEAL_CHIP_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&seal=sealed&probe=0&ws=trace";
 const PASSPORT_EMPTY_HARNESS =
   "/scripts/webview-harness.html?passport=1&passportEmpty=1&trace=1&probe=0&ws=passport";
+const RISK_TRAJ_MAP_HARNESS =
+  "/scripts/webview-harness.html?trace=1&passport=1&gate=approved&probe=0&ws=passport";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -27799,6 +27801,188 @@ async function main() {
     );
     assertNoStampDir("DF4", "Trace dep-list focus did not write .graphide/stamps/");
 
+    // ADE Passport contract/risk → Trace traj mapping (CX1–CX3; ids avoid cancel CR1–CR1d)
+    const riskTrajMapUrl = origin + RISK_TRAJ_MAP_HARNESS;
+    console.log("ade-risk-traj-map " + riskTrajMapUrl);
+    await page.goto(riskTrajMapUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const pageEl = document.getElementById("passportPage");
+        const contractHop = document.querySelector(
+          '[data-passport-contract][data-ade-contract-traj="1"] [data-ade-traj-hop]'
+        );
+        return (
+          on &&
+          on.getAttribute("data-ws") === "passport" &&
+          pageEl &&
+          !pageEl.hasAttribute("data-passport-empty") &&
+          contractHop
+        );
+      },
+      null,
+      { timeout: 20000 }
+    );
+    const cx1click = await page.evaluate(() => {
+      const row = document.querySelector(
+        '[data-passport-contract][data-ade-contract-traj="1"][data-ade-traj]'
+      );
+      const btn = row && row.querySelector("[data-ade-traj-hop]");
+      if (!row || !btn) throw new Error("missing contract traj hop");
+      const traj = row.getAttribute("data-ade-traj") || "";
+      btn.click();
+      return { traj, id: row.getAttribute("data-passport-contract") || "" };
+    });
+    await page.waitForFunction(
+      (want) => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return (
+          on &&
+          on.getAttribute("data-ws") === "trace" &&
+          host &&
+          host.getAttribute("data-focus") === want
+        );
+      },
+      cx1click.traj,
+      { timeout: 10000 }
+    );
+    const cx1 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+        focusWin: window.__graphideTrajectoryFocus || "",
+        contractMapped: document.querySelectorAll("[data-ade-contract-traj]").length,
+        riskMapped: document.querySelectorAll("[data-ade-risk-traj]").length,
+      };
+    });
+    // contractMapped/riskMapped are 0 on Trace page — recount after return in CX2
+    record(
+      "CX1",
+      "Passport contract Open-in-Trace focuses mapped Trace traj; gate preserved",
+      cx1.ws === "trace" &&
+        cx1.focus === cx1click.traj &&
+        cx1.trajParam === cx1click.traj &&
+        cx1.focusWin === cx1click.traj &&
+        cx1.gateParam === "approved" &&
+        !!cx1click.traj,
+      JSON.stringify({ cx1click, cx1 })
+    );
+
+    // CX2: return to Passport; hop a risk with a different traj
+    await page.goto(riskTrajMapUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('[data-ade-risk-traj="1"] [data-ade-traj-hop]', {
+      timeout: 15000,
+      state: "attached",
+    });
+    const cx2click = await page.evaluate((avoid) => {
+      const contractMapped = document.querySelectorAll("[data-ade-contract-traj]").length;
+      const riskMapped = document.querySelectorAll("[data-ade-risk-traj]").length;
+      const unmappedContract = !!document.querySelector(
+        '[data-passport-contract]:not([data-ade-contract-traj])'
+      );
+      const unmappedRisk = !!document.querySelector(
+        '[data-passport-risk]:not([data-ade-risk-traj])'
+      );
+      const rows = [...document.querySelectorAll('[data-ade-risk-traj="1"][data-ade-traj]')];
+      const row =
+        rows.find((el) => (el.getAttribute("data-ade-traj") || "") !== avoid) || rows[0];
+      const btn = row && row.querySelector("[data-ade-traj-hop]");
+      if (!row || !btn) throw new Error("missing risk traj hop");
+      const traj = row.getAttribute("data-ade-traj") || "";
+      btn.click();
+      return {
+        traj,
+        id: row.getAttribute("data-passport-risk") || "",
+        contractMapped,
+        riskMapped,
+        unmappedContract,
+        unmappedRisk,
+      };
+    }, cx1click.traj);
+    await page.waitForFunction(
+      (want) => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return (
+          on &&
+          on.getAttribute("data-ws") === "trace" &&
+          host &&
+          host.getAttribute("data-focus") === want
+        );
+      },
+      cx2click.traj,
+      { timeout: 10000 }
+    );
+    const cx2 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+      };
+    });
+    record(
+      "CX2",
+      "Passport risk Open-in-Trace focuses a different Trace traj; optional rows stay unmapped",
+      cx2.ws === "trace" &&
+        cx2.focus === cx2click.traj &&
+        cx2.trajParam === cx2click.traj &&
+        cx2.gateParam === "approved" &&
+        cx2click.traj &&
+        cx2click.traj !== cx1click.traj &&
+        cx2click.contractMapped >= 2 &&
+        cx2click.riskMapped >= 2 &&
+        cx2click.unmappedContract &&
+        cx2click.unmappedRisk,
+      JSON.stringify({ cx1click, cx2click, cx2 })
+    );
+    await shot(page, "passport-risk-traj-map.png");
+    const cxShot = checks.find((c) => c.id === "shot:passport-risk-traj-map.png");
+    record(
+      "CX2-shot",
+      "screenshot passport-risk-traj-map.png is not a black frame",
+      !!(cxShot && cxShot.pass),
+      cxShot ? cxShot.detail : "missing shot"
+    );
+
+    // CX3: empty Passport still has zero row hops
+    const cxEmptyUrl = origin + PASSPORT_EMPTY_HARNESS;
+    await page.goto(cxEmptyUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector("#passportPage[data-passport-empty]", { timeout: 15000 });
+    const cx3 = await page.evaluate(() => {
+      return {
+        empty: !!document.querySelector("#passportPage[data-passport-empty]"),
+        rowHops: document.querySelectorAll("[data-ade-traj-hop]").length,
+        contractMapped: document.querySelectorAll("[data-ade-contract-traj]").length,
+        riskMapped: document.querySelectorAll("[data-ade-risk-traj]").length,
+        stripHop: !!document.querySelector('[data-ade-hop="trace"]'),
+      };
+    });
+    record(
+      "CX3",
+      "Empty Passport emits no contract/risk traj hops; strip Open Trace remains",
+      cx3.empty &&
+        cx3.rowHops === 0 &&
+        cx3.contractMapped === 0 &&
+        cx3.riskMapped === 0 &&
+        cx3.stripHop,
+      JSON.stringify(cx3)
+    );
+    assertNoStampDir("CX4", "Passport contract/risk traj map did not write .graphide/stamps/");
+
 
   } finally {
     await browser.close();
@@ -27822,7 +28006,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -27837,7 +28021,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

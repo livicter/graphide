@@ -28606,7 +28606,8 @@
           stability: "draft",
           deltaClass: "Presentation",
           breaking: false,
-          change: "Renders enriched fixture rows"
+          change: "Renders enriched fixture rows",
+          traj: "sub-passport"
         },
         {
           id: "c2",
@@ -28626,7 +28627,8 @@
           stability: "draft",
           deltaClass: "Topology",
           breaking: false,
-          change: "Gate state fixture-only"
+          change: "Gate state fixture-only",
+          traj: "sub-edit"
         },
         {
           id: "c4",
@@ -28636,7 +28638,8 @@
           stability: "draft",
           deltaClass: "Topology",
           breaking: false,
-          change: "Trace bind unchanged (A1a)"
+          change: "Trace bind unchanged (A1a)",
+          traj: "sub-fixture"
         },
         {
           id: "c5",
@@ -28646,7 +28649,8 @@
           stability: "draft",
           deltaClass: "Presentation",
           breaking: false,
-          change: "Structured impact rows + Delta chips"
+          change: "Structured impact rows + Delta chips",
+          traj: "sub-passport"
         }
       ],
       risks: [
@@ -28656,7 +28660,8 @@
           area: "gate-state writes",
           note: "must never touch .graphide/stamps/",
           mitigation: "setPassportGate is in-memory only",
-          blast: ".graphide/stamps/"
+          blast: ".graphide/stamps/",
+          traj: "sub-passport"
         },
         {
           id: "r2",
@@ -28664,7 +28669,8 @@
           area: "agent write ordering",
           note: "file writes stay blocked until Approve",
           mitigation: "gatedWrites stay data-blocked until approved",
-          blast: "extension/media/**"
+          blast: "extension/media/**",
+          traj: "sub-edit"
         },
         {
           id: "r3",
@@ -28680,7 +28686,8 @@
           area: "A1a semantics",
           note: "Trace polish must keep trajectory-dag host + pin attrs",
           mitigation: "This slice does not edit Trace paint/bind",
-          blast: "#trajCanvas"
+          blast: "#trajCanvas",
+          traj: "sub-fixture"
         },
         {
           id: "r5",
@@ -28688,7 +28695,8 @@
           area: "live Delta mount",
           note: "Impact must stay vocabulary stub",
           mitigation: "No #deltaCanvas under #passportPage",
-          blast: "#passportImpact"
+          blast: "#passportImpact",
+          traj: "sub-passport"
         }
       ],
       testStrategy: [
@@ -29180,15 +29188,17 @@
       const contracts = (fx.contracts || []).map((c) => {
         const klass = c.deltaClass || "";
         const breaking = !!c.breaking;
-        return '<li class="passport-row" data-passport-contract="' + esc(c.id || "") + '"' + (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") + (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') + '><div class="passport-row-head"><code class="passport-kind">' + esc(c.kind || "") + "</code> <strong>" + esc(c.name || "") + '</strong> <code class="passport-sig">' + esc(c.sig || "") + "</code>" + renderPassportDeltaChip("class", klass) + (breaking ? '<span class="passport-breaking-pill" data-passport-breaking-pill="1">breaking</span>' : '<span class="passport-breaking-pill" data-passport-breaking-pill="0">compat</span>') + ' <em data-stability="' + esc(c.stability || "") + '">' + esc(c.stability || "") + "</em></div>" + (c.change ? '<div class="passport-row-impact">' + esc(c.change) + "</div>" : "") + "</li>";
+        const trajId = resolvePassportTrajId(c);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-contract="' + esc(c.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-contract-traj="1"' : "") + passportRowActiveAttr(trajId) + (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") + (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') + '><div class="passport-row-head"><code class="passport-kind">' + esc(c.kind || "") + "</code> <strong>" + esc(c.name || "") + '</strong> <code class="passport-sig">' + esc(c.sig || "") + "</code>" + renderPassportDeltaChip("class", klass) + (breaking ? '<span class="passport-breaking-pill" data-passport-breaking-pill="1">breaking</span>' : '<span class="passport-breaking-pill" data-passport-breaking-pill="0">compat</span>') + ' <em data-stability="' + esc(c.stability || "") + '">' + esc(c.stability || "") + "</em>" + renderAdeTrajHop(trajId) + "</div>" + (c.change ? '<div class="passport-row-impact">' + esc(c.change) + "</div>" : "") + "</li>";
       }).join("");
       const risks = (fx.risks || []).map((r) => {
-        return '<li class="passport-row" data-passport-risk="' + esc(r.id || "") + '" data-level="' + esc(r.level || "") + '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' + esc(r.level || "") + '">' + esc(r.level || "") + "</span> <b>" + esc(r.area || "") + "</b>" + (r.note ? " — " + esc(r.note) : "") + "</div>" + (r.mitigation ? '<div class="passport-row-meta" data-passport-mitigation="' + esc(r.id || "") + '"><span class="passport-meta-k">mitigation</span> ' + esc(r.mitigation) + "</div>" : "") + (r.blast ? '<div class="passport-row-meta" data-passport-blast="' + esc(r.id || "") + '"><span class="passport-meta-k">blast</span> <code>' + esc(r.blast) + "</code></div>" : "") + "</li>";
+        const trajId = resolvePassportTrajId(r);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-risk="' + esc(r.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-risk-traj="1"' : "") + passportRowActiveAttr(trajId) + ' data-level="' + esc(r.level || "") + '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' + esc(r.level || "") + '">' + esc(r.level || "") + "</span> <b>" + esc(r.area || "") + "</b>" + (r.note ? " — " + esc(r.note) : "") + renderAdeTrajHop(trajId) + "</div>" + (r.mitigation ? '<div class="passport-row-meta" data-passport-mitigation="' + esc(r.id || "") + '"><span class="passport-meta-k">mitigation</span> ' + esc(r.mitigation) + "</div>" : "") + (r.blast ? '<div class="passport-row-meta" data-passport-blast="' + esc(r.id || "") + '"><span class="passport-meta-k">blast</span> <code>' + esc(r.blast) + "</code></div>" : "") + "</li>";
       }).join("");
       const tests = (fx.testStrategy || []).map((x) => {
         return '<li class="passport-row" data-passport-test="' + esc(x.id || "") + '"><div class="passport-row-head"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + "</div>" + (x.fixture ? '<div class="passport-row-meta" data-passport-fixture="' + esc(x.id || "") + '"><span class="passport-meta-k">fixture</span> <code>' + esc(x.fixture) + "</code></div>" : "") + (x.covers ? '<div class="passport-row-meta" data-passport-covers="' + esc(x.id || "") + '"><span class="passport-meta-k">covers</span> ' + esc(x.covers) + "</div>" : "") + "</li>";
       }).join("");
-      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate state · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
+      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
         "targets",
         "Architecture targets",
         "<ul>" + targets + "</ul>",
