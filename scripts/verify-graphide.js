@@ -6292,6 +6292,195 @@ async function main() {
       "Residual-filter count chip step did not write .graphide/stamps/"
     );
 
+    // ADE Keys residual-filter hint (KH1–KH3) — workspace-aware R row on #keysPane
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    // Ensure Keys closed then open via ?
+    await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          pane.classList.contains("open") &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "residual-filter" &&
+          row.getAttribute("data-keys-residual-hint") === "1"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const kh1 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      const textEl = row && row.querySelector("[data-keys-r-binding-text]");
+      const bindingText = textEl
+        ? (textEl.textContent || "").trim()
+        : row
+          ? (row.textContent || "").replace(/\s+/g, " ").trim()
+          : "";
+      const box = row ? row.getBoundingClientRect() : null;
+      return {
+        open: !!(pane && !pane.hidden && pane.classList.contains("open")),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        hint: row ? row.getAttribute("data-keys-residual-hint") || "" : "",
+        bindingText,
+        rowH: box ? box.height : 0,
+        rowW: box ? box.width : 0,
+      };
+    });
+    const kh1ok =
+      kh1.open &&
+      kh1.binding === "residual-filter" &&
+      kh1.hint === "1" &&
+      /residual filter/i.test(kh1.bindingText) &&
+      kh1.bindingText !== "PATH" &&
+      kh1.rowH > 8 &&
+      kh1.rowW > 40;
+    record(
+      "KH1",
+      "Trace Keys R row shows residual-filter binding (not PATH-only)",
+      !!kh1ok,
+      JSON.stringify(kh1)
+    );
+    await shot(page, "keys-residual-filter.png");
+    const khShot = checks.find((c) => c.id === "shot:keys-residual-filter.png");
+
+    // KH2: Passport Keys same residual hint
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign, #passportImpact", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "residual-filter" &&
+          row.getAttribute("data-keys-residual-hint") === "1"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kh2 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      const textEl = row && row.querySelector("[data-keys-r-binding-text]");
+      return {
+        open: !!(pane && !pane.hidden),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        hint: row ? row.getAttribute("data-keys-residual-hint") || "" : "",
+        bindingText: textEl ? (textEl.textContent || "").trim() : "",
+      };
+    });
+    const kh2ok =
+      kh2.open &&
+      kh2.binding === "residual-filter" &&
+      kh2.hint === "1" &&
+      /residual filter/i.test(kh2.bindingText);
+    record(
+      "KH2",
+      "Passport Keys R row shows residual-filter binding",
+      !!kh2ok,
+      JSON.stringify(kh2)
+    );
+
+    // KH3 Map PATH + proof shot quality (reuse KH3 id for shot+Map; rewrite last KH3)
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(120);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "path" &&
+          row.getAttribute("data-keys-residual-hint") === "0"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kh3map = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      const textEl = row && row.querySelector("[data-keys-r-binding-text]");
+      return {
+        open: !!(pane && !pane.hidden),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        hint: row ? row.getAttribute("data-keys-residual-hint") || "" : "",
+        bindingText: textEl ? (textEl.textContent || "").trim() : "",
+      };
+    });
+    const kh3mapOk =
+      kh3map.open &&
+      kh3map.binding === "path" &&
+      kh3map.hint === "0" &&
+      kh3map.bindingText === "PATH";
+    // Close Keys before continuing IR suite
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    record(
+      "KH3",
+      "screenshot keys-residual-filter.png is not a black frame; Map Keys keeps PATH",
+      !!(khShot && khShot.pass && kh3mapOk),
+      JSON.stringify({ shot: khShot ? khShot.detail : "missing", map: kh3map })
+    );
+    assertNoStampDir("KH4", "Keys residual-filter hint step did not write .graphide/stamps/");
+
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

@@ -20,8 +20,8 @@ export function KeysPane() {
         <li>
           <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> / <kbd>←</kbd> <kbd>→</kbd> / <kbd>j</kbd> <kbd>k</kbd> step
         </li>
-        <li>
-          <kbd>R</kbd> PATH / Trace·Passport residual filter · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
+        <li data-keys-row="r" data-keys-r-binding="path" data-keys-residual-hint="0">
+          <kbd>R</kbd> <span data-keys-r-binding-text>PATH</span> · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
         </li>
         <li>
           <kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint

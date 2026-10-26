@@ -7707,9 +7707,11 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "k" }),
           " step"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
-          " PATH / Trace·Passport residual filter · ",
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "data-keys-r-binding-text": true, children: "PATH" }),
+          " · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "L" }),
           " LENS · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "E" }),
@@ -22924,6 +22926,16 @@
       void canvas.offsetWidth;
       canvas.classList.add("swap");
     }
+    function syncKeysRRow(ws) {
+      if (!keysPane) return;
+      const row = keysPane.querySelector('[data-keys-row="r"]');
+      if (!row) return;
+      const textEl = row.querySelector("[data-keys-r-binding-text]");
+      const residual = ws === "trace" || ws === "passport";
+      row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
+      row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
+      if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
+    }
     function setKeysPane(on2) {
       if (!keysPane) return;
       if (on2) {
@@ -22941,6 +22953,7 @@
       keysPane.hidden = !on2;
       keysPane.classList.toggle("open", !!on2);
       if (keysBtn) keysBtn.classList.toggle("on", !!on2);
+      if (on2 && typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
     }
     function setExportMenu(on2) {
       if (!exportMenu) return;
@@ -23585,6 +23598,7 @@
         trajResidualFilter = false;
       }
       explorerWs = name;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(name);
       if (pin) explorerPinned = true;
       if (name === "lineage" && !egoMode) egoMode = true;
       paint({ animate: "none", keepCam: !!evidenceStay });

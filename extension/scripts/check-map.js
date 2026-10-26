@@ -316,6 +316,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/search.md")), "search feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ask.md")), "ask feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md")), "keys feature map missing");
+const keysMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/path-walk.md")), "path-walk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome.md")), "apple-chrome feature map missing");
@@ -643,6 +644,10 @@ assert(js.includes("residual-filter-count") && js.includes("data-residual-filter
 assert(css.includes("residual-filter-count") && css.includes("passport-residual-filter-count") && (css.includes("data-residual-filter-count") || css.includes('data-residual-filter-count="1"')), "residual-filter count CSS missing");
 assert(traceMap.includes("RFC1") && traceMap.includes("residual-filter count") && traceMap.includes("trajectory-legend-residual-filter-count.png") && traceMap.includes("data-filter-residual-count"), "trace feature map must name residual-filter count RFC / proof");
 assert(passportMap.includes("RFC1") && passportMap.includes("residual-filter count") && passportMap.includes("passport-residual-filter-count.png") && passportMap.includes("data-filter-residual-count"), "passport feature map must name residual-filter count RFC / proof");
+assert(driver.includes("KH1") && driver.includes("KH3") && driver.includes("keys-residual-filter.png") && driver.includes("data-keys-residual-hint"), "verify driver must prove Keys residual-filter hint KH1–KH3");
+assert(js.includes("syncKeysRRow") && js.includes("data-keys-row") && js.includes("data-keys-r-binding") && js.includes("data-keys-residual-hint") && js.includes("data-keys-r-binding-text"), "Keys residual-filter hint syncKeysRRow / data attrs missing");
+assert(chrome.includes('data-keys-row="r"') && chrome.includes("data-keys-r-binding") && chrome.includes("data-keys-residual-hint") && chrome.includes("data-keys-r-binding-text"), "KeysPane R row residual-hint hooks missing from chrome");
+assert(keysMap.includes("KH1") && keysMap.includes("residual-filter hint") && keysMap.includes("keys-residual-filter.png") && keysMap.includes("data-keys-residual-hint") && keysMap.includes("syncKeysRRow"), "keys feature map must name residual-filter hint KH / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

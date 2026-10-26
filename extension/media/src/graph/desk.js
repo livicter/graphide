@@ -3675,6 +3675,18 @@ function flashCanvas() {
   canvas.classList.add("swap");
 }
 
+/** ADE Keys residual-filter hint (KH1–KH3): workspace-aware R row on #keysPane. */
+function syncKeysRRow(ws) {
+  if (!keysPane) return;
+  const row = keysPane.querySelector('[data-keys-row="r"]');
+  if (!row) return;
+  const textEl = row.querySelector("[data-keys-r-binding-text]");
+  const residual = ws === "trace" || ws === "passport";
+  row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
+  row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
+  if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
+}
+
 function setKeysPane(on) {
   if (!keysPane) return;
   if (on) {
@@ -3692,6 +3704,7 @@ function setKeysPane(on) {
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
   if (keysBtn) keysBtn.classList.toggle("on", !!on);
+  if (on && typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
 }
 
 function setExportMenu(on) {
@@ -4468,6 +4481,8 @@ function setWorkspace(name, pin) {
     trajResidualFilter = false;
   }
   explorerWs = name;
+  // Keep #keysPane R row in sync even while closed (RK1 keysDoc + KH workspace-aware).
+  if (typeof syncKeysRRow === "function") syncKeysRRow(name);
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
   paint({ animate: "none", keepCam: !!evidenceStay });
