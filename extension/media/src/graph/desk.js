@@ -10920,11 +10920,53 @@ function renderTrajectoryBody() {
         })
         .join("")
     : "";
+  // LC: focus-scoped residual count chip on Trace legend (pairs with Passport FC #405)
+  const passportFx = getPassport();
+  const passportWrites = Array.isArray(passportFx && passportFx.gatedWrites)
+    ? passportFx.gatedWrites
+    : [];
+  const focusResidualN = focusOn
+    ? passportWrites.filter((w) => {
+        const tid = resolvePassportTrajId(w);
+        return !!(tid && near.has(tid));
+      }).length
+    : 0;
+  const hasFocusResidualLegend = focusOn && focusResidualN > 0;
+  const focusResidualScopeAttr = hasFocusResidualLegend
+    ? ' data-residual-scope="focus" data-residual-focus="' +
+      esc(selectedId) +
+      '" data-focus-residual-count="' +
+      esc(String(focusResidualN)) +
+      '"'
+    : ' data-residual-scope="global"';
+  const focusResidualGate = passportGateState();
+  const focusResidualLabel =
+    focusResidualGate === "approved"
+      ? "focus open · " + focusResidualN
+      : "focus residual · " + focusResidualN;
+  const focusResidualChip = hasFocusResidualLegend
+    ? '<span class="traj-legend-chip focus-residual" data-focus-residual="1" data-residual-scope="focus" data-residual-focus="' +
+      esc(selectedId) +
+      '" data-focus-residual-count="' +
+      esc(String(focusResidualN)) +
+      '" data-residual-state="' +
+      esc(focusResidualGate) +
+      '" title="' +
+      esc(focusResidualLabel) +
+      '">' +
+      '<span class="traj-legend-focus-residual-badge">' +
+      esc(String(focusResidualN)) +
+      "</span>" +
+      '<span class="traj-legend-label">' +
+      esc(focusResidualLabel) +
+      "</span></span>"
+    : "";
   const edgeLegend =
-    edgeKinds.length === 0 && !hasAdjResidualLegend
+    edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend
       ? ""
       : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' +
         adjResidualAttr +
+        focusResidualScopeAttr +
         ">" +
         edgeKinds
           .map((k) => {
@@ -10953,6 +10995,7 @@ function renderTrajectoryBody() {
           })
           .join("") +
         adjResidualChips +
+        focusResidualChip +
         "</div>";
   return (
     '<div class="traj-page' +

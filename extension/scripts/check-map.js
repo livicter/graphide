@@ -600,6 +600,10 @@ assert(driver.includes("FC1") && driver.includes("FC3") && driver.includes("pass
 assert(js.includes("data-residual-scope") && js.includes("data-residual-focus") && js.includes("data-focus-residual-count") && js.includes("Focus path"), "Passport focus residual count markup missing");
 assert(css.includes('data-residual-scope="focus"') || css.includes("[data-residual-scope=\"focus\"]") || css.includes('[data-residual-scope="focus"]'), "Passport focus residual count CSS missing");
 assert(passportMap.includes("FC1") && passportMap.includes("focus-scoped residual") && passportMap.includes("passport-focus-residual-count.png") && passportMap.includes("data-focus-residual-count"), "passport feature map must name focus residual count FC / proof");
+assert(driver.includes("LC1") && driver.includes("LC3") && driver.includes("trajectory-legend-focus-residual.png") && driver.includes("data-focus-residual"), "verify driver must prove Trace legend focus-residual LC1–LC3");
+assert(js.includes("focus-residual") && js.includes("data-focus-residual") && js.includes("focus residual") && js.includes("traj-legend-focus-residual-badge"), "Trace legend focus-residual markup missing");
+assert(css.includes("traj-legend-chip.focus-residual") || css.includes(".traj-legend-chip.focus-residual") || css.includes('[data-focus-residual="1"]'), "Trace legend focus-residual CSS missing");
+assert(traceMap.includes("LC1") && traceMap.includes("focus-residual") && traceMap.includes("trajectory-legend-focus-residual.png") && traceMap.includes("data-focus-residual"), "trace feature map must name focus-residual legend LC / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

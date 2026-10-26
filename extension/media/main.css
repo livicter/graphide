@@ -3057,6 +3057,36 @@ html.bright .traj-node { background: #fff; }
   opacity: 1;
   filter: none;
 }
+/* Trace legend focus-residual count chip (LC1–LC3) — pairs with Passport FC #405 */
+#trajEdgeLegend[data-residual-scope="focus"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 55%, transparent);
+  outline-offset: 2px;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual,
+#trajEdgeLegend .traj-legend-chip[data-focus-residual="1"] {
+  --traj-focus-residual: var(--vscode-focusBorder, #6ea8fe);
+  color: var(--traj-focus-residual);
+  border-color: color-mix(in srgb, var(--traj-focus-residual) 60%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--traj-focus-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e));
+  gap: 6px;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual .traj-legend-focus-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.15rem; height: 1.15rem; padding: 0 5px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--traj-focus-residual) 22%, transparent);
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="approved"] {
+  --traj-focus-residual: var(--vscode-testing-iconPassed, #3fb950);
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="rejected"] {
+  --traj-focus-residual: var(--vscode-errorForeground, #f14c4c);
+}
 /* Passport hop residual badge on gate path rows (HB1–HB3) */
 .passport-hop-residual {
   --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));

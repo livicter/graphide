@@ -2382,7 +2382,7 @@ async function main() {
       };
       const legend = document.getElementById("trajEdgeLegend");
       if (!legend) return { ok: false, reason: "missing" };
-      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual])")].map((chip) => {
+      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual]):not(.focus-residual):not([data-focus-residual])")].map((chip) => {
         const kind = chip.getAttribute("data-kind") || "";
         const line = chip.querySelector("svg.traj-legend-stroke line");
         const label = ((chip.querySelector(".traj-legend-label") || {}).textContent || "").trim();
@@ -2504,7 +2504,7 @@ async function main() {
       const legend = document.getElementById("trajEdgeLegend");
       if (!legend) return { ok: false, reason: "missing-legend" };
       const pageEl = document.querySelector(".traj-page");
-      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual])")].map((chip) => {
+      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual]):not(.focus-residual):not([data-focus-residual])")].map((chip) => {
         const kind = chip.getAttribute("data-kind") || "";
         const cs = getComputedStyle(chip);
         return {
@@ -2622,7 +2622,7 @@ async function main() {
       const on = document.querySelector(".traj-node.on");
       const legend = document.getElementById("trajEdgeLegend");
       const chips = legend
-        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual])")].map((chip) => ({
+        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual]):not(.focus-residual):not([data-focus-residual])")].map((chip) => ({
             kind: chip.getAttribute("data-kind") || "",
             onPath: chip.classList.contains("on-path"),
             dim: chip.classList.contains("dim"),
@@ -2689,7 +2689,7 @@ async function main() {
       const on = document.querySelector(".traj-node.on");
       const legend = document.getElementById("trajEdgeLegend");
       const chips = legend
-        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual])")].map((chip) => ({
+        ? [...legend.querySelectorAll(".traj-legend-chip[data-kind]:not(.adj-residual):not([data-adj-residual]):not(.focus-residual):not([data-focus-residual])")].map((chip) => ({
             kind: chip.getAttribute("data-kind") || "",
             onPath: chip.classList.contains("on-path"),
             dim: chip.classList.contains("dim"),
@@ -4184,7 +4184,284 @@ async function main() {
     );
     assertNoStampDir("FC4", "Passport focus residual count did not write .graphide/stamps/");
 
+    // ADE Trace legend focus-residual count chip (LC1–LC3) — pairs with Passport FC #405
+    // FC left Passport focused on sub-diff + gate rejected; hop Trace and assert legend count chip.
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(120);
+    const lcFocusProbe = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        win: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    if (lcFocusProbe.focus !== "sub-diff") {
+      await page.waitForSelector('[data-testid="trajectory-dag"] .traj-node[data-id="sub-diff"]', {
+        timeout: 10000,
+      });
+      await page.evaluate(() => {
+        const n = document.querySelector('.traj-node[data-id="sub-diff"]');
+        if (!n) throw new Error("missing sub-diff for LC");
+        if (!n.classList.contains("on")) n.click();
+        else {
+          n.click();
+          n.click();
+        }
+      });
+      await page.waitForFunction(
+        () => {
+          const host = document.querySelector('[data-testid="trajectory-dag"]');
+          return host && host.getAttribute("data-focus") === "sub-diff";
+        },
+        null,
+        { timeout: 8000 }
+      );
+    }
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+      timeout: 8000,
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(140);
+    const lcPassport = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      return {
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") || "" : "",
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend", { timeout: 8000 });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        return (
+          legend &&
+          legend.getAttribute("data-residual-scope") === "focus" &&
+          legend.querySelectorAll('[data-focus-residual="1"]').length === 1
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lc1 = await page.evaluate((passport) => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (!legend) return { ok: false, reason: "missing-legend" };
+      const chips = [...legend.querySelectorAll('.traj-legend-chip[data-focus-residual="1"]')];
+      const chip = chips[0] || null;
+      const badge = chip
+        ? ((chip.querySelector(".traj-legend-focus-residual-badge") || {}).textContent || "").trim()
+        : "";
+      const label = chip
+        ? ((chip.querySelector(".traj-legend-label") || {}).textContent || "").trim()
+        : "";
+      const edgeKinds = legend.querySelectorAll(
+        ".traj-legend-chip[data-kind]:not(.adj-residual):not(.focus-residual)"
+      ).length;
+      const adj = legend.querySelectorAll('[data-adj-residual="1"]').length;
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      return {
+        present: chips.length === 1 && !!chip,
+        hostScope: legend.getAttribute("data-residual-scope") || "",
+        hostFocus: legend.getAttribute("data-residual-focus") || "",
+        hostCount: legend.getAttribute("data-focus-residual-count") || "",
+        chipScope: chip ? chip.getAttribute("data-residual-scope") || "" : "",
+        chipFocus: chip ? chip.getAttribute("data-residual-focus") || "" : "",
+        chipCount: chip ? chip.getAttribute("data-focus-residual-count") || "" : "",
+        chipState: chip ? chip.getAttribute("data-residual-state") || "" : "",
+        hasKind: !!(chip && chip.getAttribute("data-kind")),
+        isAdj: !!(chip && (chip.classList.contains("adj-residual") || chip.hasAttribute("data-adj-residual"))),
+        isFocusClass: !!(chip && chip.classList.contains("focus-residual")),
+        badge,
+        label,
+        edgeKinds,
+        adj,
+        dagFocus: host ? host.getAttribute("data-focus") || "" : "",
+        passport,
+      };
+    }, lcPassport);
+    record(
+      "LC1",
+      "Focused traj shows Trace legend focus-residual count chip matching Passport sticky focusN",
+      !!(
+        lc1 &&
+        lc1.present &&
+        lc1.hostScope === "focus" &&
+        lc1.hostFocus === "sub-diff" &&
+        lc1.chipScope === "focus" &&
+        lc1.chipFocus === "sub-diff" &&
+        lc1.dagFocus === "sub-diff" &&
+        lcPassport.scope === "focus" &&
+        lcPassport.focus === "sub-diff" &&
+        Number(lc1.hostCount) >= 1 &&
+        lc1.hostCount === lcPassport.focusCount &&
+        lc1.chipCount === lcPassport.focusCount &&
+        lc1.badge === lcPassport.focusCount &&
+        Number(lc1.hostCount) < Number(lcPassport.globalCount) &&
+        /focus residual/i.test(lc1.label) &&
+        !lc1.hasKind &&
+        !lc1.isAdj &&
+        lc1.isFocusClass &&
+        lc1.edgeKinds >= 1 &&
+        lc1.adj >= 1 &&
+        (lc1.chipState === "rejected" || lc1.chipState === "pending")
+      ),
+      JSON.stringify(lc1)
+    );
 
+    // LC2: clear focus restores global; Approve flips open label; Reject restores residual label
+    await page.evaluate(() => {
+      const n = document.querySelector('.traj-node[data-id="sub-diff"].on');
+      if (n) n.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const legend = document.getElementById("trajEdgeLegend");
+        const focus = host ? host.getAttribute("data-focus") || "" : "";
+        const chips = legend ? legend.querySelectorAll('[data-focus-residual="1"]').length : -1;
+        return focus !== "sub-diff" && chips === 0;
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lc2Clear = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        scope: legend ? legend.getAttribute("data-residual-scope") || "" : "",
+        focusAttr: legend ? legend.getAttribute("data-residual-focus") : null,
+        countAttr: legend ? legend.getAttribute("data-focus-residual-count") : null,
+        chips: legend ? legend.querySelectorAll('[data-focus-residual="1"]').length : -1,
+      };
+    });
+    // Restore focus + Approve → open label, same N
+    await page.evaluate(() => {
+      const n = document.querySelector('.traj-node[data-id="sub-diff"]');
+      if (!n) throw new Error("missing sub-diff for LC2 refocus");
+      if (!n.classList.contains("on")) n.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return host && host.getAttribute("data-focus") === "sub-diff";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('[data-passport-action="approve"]', { timeout: 8000 });
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(160);
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend", { timeout: 8000 });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          '#trajEdgeLegend .traj-legend-chip[data-focus-residual="1"]'
+        );
+        return chip && chip.getAttribute("data-residual-state") === "approved";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lc2Approve = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const chip = legend && legend.querySelector('.traj-legend-chip[data-focus-residual="1"]');
+      const label = chip
+        ? ((chip.querySelector(".traj-legend-label") || {}).textContent || "").trim()
+        : "";
+      const badge = chip
+        ? ((chip.querySelector(".traj-legend-focus-residual-badge") || {}).textContent || "").trim()
+        : "";
+      return {
+        present: !!chip,
+        scope: legend ? legend.getAttribute("data-residual-scope") || "" : "",
+        focus: legend ? legend.getAttribute("data-residual-focus") || "" : "",
+        count: legend ? legend.getAttribute("data-focus-residual-count") || "" : "",
+        chipCount: chip ? chip.getAttribute("data-focus-residual-count") || "" : "",
+        state: chip ? chip.getAttribute("data-residual-state") || "" : "",
+        label,
+        badge,
+        adj: legend ? legend.querySelectorAll('[data-adj-residual="1"]').length : -1,
+      };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('[data-passport-action="reject"]', { timeout: 8000 });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(140);
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend", { timeout: 8000 });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          '#trajEdgeLegend .traj-legend-chip[data-focus-residual="1"]'
+        );
+        return chip && (chip.getAttribute("data-residual-state") === "rejected" || chip.getAttribute("data-residual-state") === "pending");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lc2Reject = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const chip = legend && legend.querySelector('.traj-legend-chip[data-focus-residual="1"]');
+      const label = chip
+        ? ((chip.querySelector(".traj-legend-label") || {}).textContent || "").trim()
+        : "";
+      return {
+        present: !!chip,
+        scope: legend ? legend.getAttribute("data-residual-scope") || "" : "",
+        focus: legend ? legend.getAttribute("data-residual-focus") || "" : "",
+        count: legend ? legend.getAttribute("data-focus-residual-count") || "" : "",
+        state: chip ? chip.getAttribute("data-residual-state") || "" : "",
+        label,
+        adj: legend ? legend.querySelectorAll('[data-adj-residual="1"]').length : -1,
+      };
+    });
+    record(
+      "LC2",
+      "Clear-focus restores global legend residual; Approve/Reject flip focus-residual label; count persists",
+      !!(
+        lc2Clear &&
+        lc2Clear.chips === 0 &&
+        lc2Clear.scope === "global" &&
+        (lc2Clear.focusAttr == null || lc2Clear.focusAttr === "") &&
+        (lc2Clear.countAttr == null || lc2Clear.countAttr === "") &&
+        lc2Approve &&
+        lc2Approve.present &&
+        lc2Approve.scope === "focus" &&
+        lc2Approve.focus === "sub-diff" &&
+        lc2Approve.state === "approved" &&
+        lc2Approve.count === lcPassport.focusCount &&
+        lc2Approve.chipCount === lcPassport.focusCount &&
+        lc2Approve.badge === lcPassport.focusCount &&
+        /focus open/i.test(lc2Approve.label) &&
+        lc2Approve.adj === 0 &&
+        lc2Reject &&
+        lc2Reject.present &&
+        lc2Reject.scope === "focus" &&
+        lc2Reject.focus === "sub-diff" &&
+        lc2Reject.count === lcPassport.focusCount &&
+        /focus residual/i.test(lc2Reject.label) &&
+        lc2Reject.adj >= 1
+      ),
+      JSON.stringify({ clear: lc2Clear, approve: lc2Approve, reject: lc2Reject, passport: lcPassport })
+    );
+
+    await shot(page, "trajectory-legend-focus-residual.png");
+    const lcShot = checks.find((c) => c.id === "shot:trajectory-legend-focus-residual.png");
+    record(
+      "LC3",
+      "screenshot trajectory-legend-focus-residual.png is not a black frame",
+      !!(lcShot && lcShot.pass),
+      lcShot ? lcShot.detail : "missing shot"
+    );
+    assertNoStampDir("LC4", "Trace legend focus-residual step did not write .graphide/stamps/");
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
