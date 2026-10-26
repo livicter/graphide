@@ -10547,6 +10547,7 @@ function renderTrajectoryEmptyBody(fix) {
     '<span class="traj-stat" data-stat="pending"><b>0</b> pending</span>' +
     '<span class="traj-stat" data-stat="deps"><b>0</b> deps</span>' +
     "</span>" +
+    renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
     '<div class="traj-layout">' +
@@ -10576,6 +10577,7 @@ function renderTrajectoryEmptyBody(fix) {
 function renderTrajectoryBody() {
   seedTrajectoryFocus();
   seedPassportGate();
+  seedSealStatus();
   const fix = trajectoryFixture();
   const nodes = fix.nodes || [];
   const edges = fix.edges || [];
@@ -10789,6 +10791,7 @@ function renderTrajectoryBody() {
     "</b> deps</span>" +
     "</span>" +
     edgeLegend +
+    renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
     '<div class="traj-layout">' +
@@ -11377,6 +11380,67 @@ const DELTA_VOCAB_DEFAULT = Object.freeze({
 let passportGate = "pending";
 let passportGateSeeded = false;
 
+/** Mirror classifyWrite vocabulary (display-only stub; not live FS). */
+const SEAL_STATES = { sealed: 1, open: 1, unlock: 1 };
+let sealStatus = "sealed";
+let sealStatusSeeded = false;
+
+function normalizeSealStatus(raw) {
+  const s = String(raw || "").trim().toLowerCase();
+  if (s === "agent") return "open";
+  if (SEAL_STATES[s]) return s;
+  return "";
+}
+
+function seedSealStatus() {
+  // Prefer live window override so verify / harness flips re-paint without
+  // calling setSealStatus. URL ?seal= seeds only on first pass.
+  let want =
+    (typeof window !== "undefined" && window.__graphideSealStatus) || "";
+  if (!want && !sealStatusSeeded && typeof location !== "undefined") {
+    try {
+      want = new URLSearchParams(location.search || "").get("seal") || "";
+    } catch (_err) {
+      want = "";
+    }
+  }
+  const norm = normalizeSealStatus(want);
+  if (norm) sealStatus = norm;
+  sealStatusSeeded = true;
+}
+
+function sealStatusState() {
+  return SEAL_STATES[sealStatus] ? sealStatus : "sealed";
+}
+
+function sealStatusLabel(state) {
+  if (state === "open") return "OPEN · agent";
+  if (state === "unlock") return "UNLOCK · ADE_ALLOW";
+  return "SEALED";
+}
+
+function renderSealStatusChip() {
+  seedSealStatus();
+  const state = sealStatusState();
+  return (
+    '<span id="adeSealChip" class="ade-seal-chip traj-status-chip" data-seal-state="' +
+    esc(state) +
+    '" role="status" title="Immutable seal / write-gate stub (fixture)">' +
+    esc(sealStatusLabel(state)) +
+    "</span>"
+  );
+}
+
+function setSealStatus(state) {
+  // Fixture-only display. Never write disk / stamps / Docker.
+  const norm = normalizeSealStatus(state) || "sealed";
+  sealStatus = norm;
+  sealStatusSeeded = true;
+  if (typeof window !== "undefined") window.__graphideSealStatus = norm;
+  syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
+  paint({ animate: "none" });
+}
+
 function seedPassportGate() {
   if (passportGateSeeded) return;
   passportGateSeeded = true;
@@ -11404,6 +11468,7 @@ function renderAdeHop(target, label) {
 
 function syncAdeDeepLink(wsOverride) {
   seedPassportGate();
+  seedSealStatus();
   if (typeof history === "undefined" || !history.replaceState) return;
   if (typeof location === "undefined") return;
   let cur;
@@ -11426,12 +11491,14 @@ function syncAdeDeepLink(wsOverride) {
   if (trajSelectedId) q.set("traj", trajSelectedId);
   else q.delete("traj");
   q.set("gate", passportGateState());
+  q.set("seal", sealStatusState());
   const next = location.pathname + "?" + q.toString() + (location.hash || "");
   const prev = location.pathname + location.search + (location.hash || "");
   if (next !== prev) history.replaceState(null, "", next);
   if (typeof window !== "undefined") {
     window.__graphideTrajectoryFocus = trajSelectedId || "";
     window.__graphidePassportGate = passportGateState();
+    window.__graphideSealStatus = sealStatusState();
   }
 }
 
@@ -11669,6 +11736,7 @@ function renderPassportImpact(fx) {
 
 function renderPassportBody() {
   seedPassportGate();
+  seedSealStatus();
   const fx = getPassport();
   const state = passportGateState();
   const targets = (fx.targets || [])
@@ -11809,7 +11877,8 @@ function renderPassportBody() {
     '<div id="passportPage" class="passport-page">' +
     '<div class="ade-hop-row">' +
     renderAdeHop("trace", "← Open Trace") +
-    '<span class="ade-hop-hint">preserves traj focus · gate state · no live Delta</span>' +
+    renderSealStatusChip() +
+    '<span class="ade-hop-hint">preserves traj focus · gate state · seal stub · no live Delta</span>' +
     "</div>" +
     '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
     esc(fx.title || "Plan Passport") +

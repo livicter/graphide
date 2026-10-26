@@ -57,3 +57,5 @@ Driver / script assertions (I6–I8):
 - Docker/Wasm isolation and required CI branch protection stay deferred.
 - Agent writes that need a consultable apply path use
   [write-bus.md](write-bus.md) (`proposeWrite` / `--out` / `--apply`).
+- Desk `#adeSealChip` (see [immutable-harness.md](immutable-harness.md) SC1–SC3)
+  mirrors these classes in Trace/Passport chrome; still not live FS.

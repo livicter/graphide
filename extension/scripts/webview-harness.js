@@ -377,6 +377,12 @@
   if (params.get("traj") && params.get("trace") !== "1") {
     window.__graphideTrajectoryFocus = params.get("traj");
   }
+  {
+    const sealEarly = params.get("seal") || "";
+    if (sealEarly === "sealed" || sealEarly === "open" || sealEarly === "unlock" || sealEarly === "agent") {
+      window.__graphideSealStatus = sealEarly === "agent" ? "open" : sealEarly;
+    }
+  }
 
   function afterPaint() {
     setTimeout(function () {
@@ -527,6 +533,10 @@
     const gate = params.get("gate") || "";
     if (gate === "pending" || gate === "approved" || gate === "rejected") {
       window.__graphidePassportGate = gate;
+    }
+    const seal = params.get("seal") || "";
+    if (seal === "sealed" || seal === "open" || seal === "unlock" || seal === "agent") {
+      window.__graphideSealStatus = seal === "agent" ? "open" : seal;
     }
     let left = 2;
     const finishOne = function () {

@@ -2703,6 +2703,29 @@ html.bright .traj-node { background: #fff; }
 .traj-strip .ade-hop { margin-left: 4px; }
 .ade-hop-hint { font-size: 11px; opacity: 0.68; }
 
+/* ADE immutable seal / write-gate status chip (fixture stub; not live FS) */
+.ade-seal-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid currentColor;
+  --ade-seal: var(--vscode-editorWarning-foreground, #cca700);
+  color: var(--ade-seal);
+  background: color-mix(in srgb, var(--ade-seal) 16%, var(--vscode-badge-background, #4d4d4d));
+}
+.ade-seal-chip[data-seal-state="sealed"] {
+  --ade-seal: var(--vscode-editorWarning-foreground, #cca700);
+}
+.ade-seal-chip[data-seal-state="open"] {
+  --ade-seal: var(--vscode-testing-iconPassed, #3fb950);
+}
+.ade-seal-chip[data-seal-state="unlock"] {
+  --ade-seal: var(--vscode-focusBorder, #2f81f7);
+}
+.traj-strip .ade-seal-chip { margin-left: 2px; }
+.ade-hop-row .ade-seal-chip { margin-left: 2px; }
+
+
 .passport-page { display: flex; flex-direction: column; gap: 12px; max-width: 980px; padding-bottom: 8px; }
 .passport-outcome { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
 .passport-outcome-counts { font-size: 11px; opacity: 0.75; margin-left: auto; }

@@ -19,6 +19,10 @@ filesystem write interception.
 - Product agent surface `extension/media/**` is intentionally unlocked.
 - `npm run verify` runs immutable verify + self-test + `check-map` before
   Playwright `scripts/verify-graphide.js`.
+- Visible `#adeSealChip` / `.ade-seal-chip` status chrome on Trace `.traj-strip`
+  and Passport `.ade-hop-row` mirrors `classifyWrite` vocabulary
+  (`sealed` | `open`/`agent` | `unlock`) via `window.__graphideSealStatus` /
+  `?seal=` — display-only fixture stub, not live Docker/Wasm FS.
 
 ## How to get to it (user POV)
 
@@ -34,6 +38,8 @@ filesystem write interception.
 node extension/scripts/check-immutable-specs.js
 node extension/scripts/check-immutable-specs.js --self-test
 npm run verify
+# Desk seal chip (fixture):
+# /scripts/webview-harness.html?trace=1&passport=1&seal=sealed&probe=0&ws=trace
 ```
 
 Driver / script assertions (I1–I5):
@@ -44,6 +50,15 @@ Driver / script assertions (I1–I5):
 - I4: unlocked new feature map under `references/features/` fails verify
 - I5: `package.json` `scripts.verify` invokes immutable check before
   `check-map` and `verify-graphide.js`
+
+Desk seal status chip (SC1–SC3):
+
+- SC1: Trace strip shows `#adeSealChip` with `data-seal-state` matching seed
+  (`?seal=` / `window.__graphideSealStatus`)
+- SC2: Passport hop row shows the same chip adjacent to gate chrome; passport
+  approve/reject gate remains separate
+- SC3: proof `verification/seal-status-chip.png` is non-black; flipping seed
+  re-paints chip without stamps
 
 ## Gotchas
 
@@ -57,3 +72,5 @@ Driver / script assertions (I1–I5):
   or an OS-level interceptor; required CI / branch protection deferred.
 - Local shells can still invoke `node scripts/verify-graphide.js` alone;
   `npm run verify` is the agent make-green path that includes the seal.
+- `#adeSealChip` is display-only chrome mirroring classifyWrite vocabulary;
+  it does not call Node or mutate the lock from the webview.

@@ -18,7 +18,7 @@ owns this folder.
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
 | [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 |
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` · `passport-fixtures.png` · PF1–PF5 |
-| [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` |
+| [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` · `#adeSealChip` · SC1–SC3 · `seal-status-chip.png` |
 | [fs-sandbox.md](fs-sandbox.md) | Product-path FS sandbox stub (ADE) | `--gate-write` · I6–I8 |
 | [write-bus.md](write-bus.md) | Agent write-bus stub (ADE) | `agent-write-bus.js` · I9–I11 |
 | [trace-passport-deeplink.md](trace-passport-deeplink.md) | Trace↔Passport deep-link (ADE) | `?trace=1&passport=1` · DL1–DL5 · `trajectory-deeplink.png` |

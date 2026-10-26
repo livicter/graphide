@@ -566,6 +566,20 @@ assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && 
 assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");
 assert(css.includes("traj-empty") && css.includes("traj-canvas--empty") && css.includes("traj-empty-action"), "Trace empty-state CSS missing");
 assert(traceMap.includes("ES1") && traceMap.includes("empty-state") && traceMap.includes("trajectory-empty-state.png"), "trace feature map must name empty-state ES / proof");
+assert(driver.includes("SC1") && driver.includes("SC3") && driver.includes("seal-status-chip.png") && driver.includes("adeSealChip"), "verify driver must prove seal status chip SC1–SC3");
+assert(js.includes("renderSealStatusChip") && js.includes("adeSealChip") && js.includes("data-seal-state") && js.includes("seedSealStatus"), "Seal status chip render/seed markup missing");
+assert(js.includes("__graphideSealStatus") && js.includes('get("seal")'), "Seal status ?seal= / window seed hook missing");
+assert(css.includes("ade-seal-chip") && css.includes('data-seal-state="sealed"') && css.includes('data-seal-state="unlock"'), "Seal status chip CSS missing");
+{
+  const sealMap = fs.readFileSync(
+    path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/immutable-harness.md"),
+    "utf8"
+  );
+  assert(
+    sealMap.includes("SC1") && sealMap.includes("adeSealChip") && sealMap.includes("seal-status-chip.png"),
+    "immutable-harness feature map must name SC1 / adeSealChip / proof"
+  );
+}
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

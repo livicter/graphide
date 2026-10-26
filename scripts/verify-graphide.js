@@ -42,6 +42,8 @@ const DEEPLINK_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-verify&gate=approved&probe=0&ws=trace";
 const TRACE_EMPTY_HARNESS =
   "/scripts/webview-harness.html?trace=1&traceEmpty=1&passport=1&probe=0&ws=trace";
+const SEAL_CHIP_HARNESS =
+  "/scripts/webview-harness.html?trace=1&passport=1&seal=sealed&probe=0&ws=trace";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -2721,6 +2723,109 @@ async function main() {
     await page.evaluate(() => {
       window.__graphideTrajectory = null;
     });
+
+    // ADE seal status chip — SC1–SC3 (immutable/write-gate chrome; fixture stub)
+    // Note: sticky-clusters also uses SC1–SC5 record ids earlier; titles distinguish.
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "sealed";
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#adeSealChip[data-seal-state]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const scSeal1 = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      const strip = document.querySelector(".traj-strip");
+      const inStrip = !!(chip && strip && strip.contains(chip));
+      const box = chip ? chip.getBoundingClientRect() : null;
+      return {
+        state: chip ? chip.getAttribute("data-seal-state") : "",
+        label: chip ? (chip.textContent || "").trim() : "",
+        inStrip,
+        visible: !!(box && box.width > 8 && box.height > 8),
+        gateChip: !!document.querySelector(".passport-gate-chip"),
+      };
+    });
+    const scSeal1ok =
+      scSeal1.state === "sealed" &&
+      /SEALED/i.test(scSeal1.label) &&
+      scSeal1.inStrip &&
+      scSeal1.visible &&
+      !scSeal1.gateChip;
+    record(
+      "SC1",
+      "Trace strip shows #adeSealChip sealed (immutable/write-gate stub)",
+      scSeal1ok,
+      JSON.stringify(scSeal1)
+    );
+
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "unlock";
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportPage", { timeout: 8000 });
+    await page.waitForSelector("#adeSealChip[data-seal-state]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const scSeal2 = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      const hop = document.querySelector(".ade-hop-row");
+      const gate = document.getElementById("passportGate");
+      const gateChip = document.querySelector(".passport-gate-chip");
+      const inHop = !!(chip && hop && hop.contains(chip));
+      const box = chip ? chip.getBoundingClientRect() : null;
+      return {
+        state: chip ? chip.getAttribute("data-seal-state") : "",
+        label: chip ? (chip.textContent || "").trim() : "",
+        inHop,
+        visible: !!(box && box.width > 8 && box.height > 8),
+        gate: !!gate,
+        gateChip: gateChip ? gateChip.getAttribute("data-gate-chip") : "",
+        chipIsGate: !!(chip && chip.classList.contains("passport-gate-chip")),
+      };
+    });
+    const scSeal2ok =
+      scSeal2.state === "unlock" &&
+      /UNLOCK/i.test(scSeal2.label) &&
+      scSeal2.inHop &&
+      scSeal2.visible &&
+      scSeal2.gate &&
+      !!scSeal2.gateChip &&
+      !scSeal2.chipIsGate;
+    record(
+      "SC2",
+      "Passport hop row shows #adeSealChip unlock; passport gate chip stays separate",
+      scSeal2ok,
+      JSON.stringify(scSeal2)
+    );
+
+    // Flip to open for proof on Trace (populated DAG + chip).
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "open";
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#adeSealChip[data-seal-state="open"]', { timeout: 8000 });
+    await page.waitForTimeout(80);
+    const scSeal3Probe = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      return {
+        state: chip ? chip.getAttribute("data-seal-state") : "",
+        count: document.querySelectorAll(".ade-seal-chip").length,
+        label: chip ? (chip.textContent || "").trim() : "",
+      };
+    });
+    await shot(page, "seal-status-chip.png");
+    const scSeal3Shot = checks.find((c) => c.id === "shot:seal-status-chip.png");
+    const scSeal3ok =
+      scSeal3Probe.state === "open" &&
+      scSeal3Probe.count === 1 &&
+      /OPEN/i.test(scSeal3Probe.label) &&
+      !!(scSeal3Shot && scSeal3Shot.pass);
+    record(
+      "SC3",
+      "screenshot seal-status-chip.png is not a black frame; open flip single chip",
+      scSeal3ok,
+      JSON.stringify({ probe: scSeal3Probe, shot: scSeal3Shot ? scSeal3Shot.detail : "missing" })
+    );
+    assertNoStampDir("SC4", "Seal status chip step did not write .graphide/stamps/");
 
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
