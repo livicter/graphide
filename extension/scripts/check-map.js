@@ -581,6 +581,13 @@ assert(css.includes("ade-seal-chip") && css.includes('data-seal-state="sealed"')
   );
 }
 
+assert(driver.includes("PE1") && driver.includes("PE3") && driver.includes("passport-empty-state.png"), "verify driver must prove Passport empty-state PE1–PE3");
+assert(js.includes("renderPassportEmptyBody") && js.includes("passport-empty") && js.includes("data-passport-empty-chrome") && js.includes("PASSPORT_EMPTY_FIXTURE"), "Passport empty-state render/markup missing");
+assert(js.includes("wantPassportEmpty") && js.includes("passportEmpty") && js.includes("hasPassportPlanRows"), "Passport empty-state ?passportEmpty=1 hook missing");
+assert(css.includes("passport-empty") && css.includes("passport-page--empty") && css.includes("passport-empty-action"), "Passport empty-state CSS missing");
+assert(passportMap.includes("PE1") && passportMap.includes("empty-state") && passportMap.includes("passport-empty-state.png"), "passport feature map must name empty-state PE / proof");
+assert(harness.includes("passportEmpty"), "harness ?passportEmpty=1 inject missing");
+
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {
   const immutableFs = require("fs");

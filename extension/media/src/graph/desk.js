@@ -11532,7 +11532,54 @@ function isPassport(v) {
   );
 }
 
+const PASSPORT_EMPTY_FIXTURE = Object.freeze({
+  version: 2,
+  id: "passport-ade-empty-fixture",
+  title: "Plan Passport",
+  status: "pending",
+  summary: "No plan rows yet — empty fixture",
+  targets: Object.freeze([]),
+  contracts: Object.freeze([]),
+  risks: Object.freeze([]),
+  testStrategy: Object.freeze([]),
+  gatedWrites: Object.freeze([]),
+  impact: Object.freeze({
+    callGraphs: Object.freeze([]),
+    apiContracts: Object.freeze([]),
+    invariants: Object.freeze([]),
+    deltaVocab: DELTA_VOCAB_DEFAULT,
+  }),
+});
+
+function wantPassportEmpty() {
+  if (typeof window === "undefined" || typeof location === "undefined") return false;
+  try {
+    return new URLSearchParams(location.search || "").get("passportEmpty") === "1";
+  } catch (_err) {
+    return false;
+  }
+}
+
+function hasPassportPlanRows(fx) {
+  if (!fx || typeof fx !== "object") return false;
+  const impact = fx.impact || {};
+  const impactRows =
+    (impact.callGraphs || []).length +
+    (impact.apiContracts || []).length +
+    (impact.invariants || []).length;
+  return (
+    (fx.targets || []).length +
+      (fx.contracts || []).length +
+      (fx.risks || []).length +
+      (fx.testStrategy || []).length +
+      (fx.gatedWrites || []).length +
+      impactRows >
+    0
+  );
+}
+
 function getPassport() {
+  if (wantPassportEmpty()) return PASSPORT_EMPTY_FIXTURE;
   const o = typeof window !== "undefined" ? window.__graphidePassport : null;
   return isPassport(o) ? o : PASSPORT_FIXTURE;
 }
@@ -11734,10 +11781,40 @@ function renderPassportImpact(fx) {
   );
 }
 
+function renderPassportEmptyBody(fx) {
+  seedPassportGate();
+  seedSealStatus();
+  const title = fx.title || "Plan Passport";
+  return (
+    '<div id="passportPage" class="passport-page passport-page--empty" data-passport-empty="1">' +
+    '<div class="ade-hop-row">' +
+    renderAdeHop("trace", "← Open Trace") +
+    renderSealStatusChip() +
+    '<span class="ade-hop-hint">empty fixture · hop Trace · no live Delta</span>' +
+    "</div>" +
+    '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
+    esc(title) +
+    " · " +
+    esc(fx.id || "passport-ade-empty-fixture") +
+    ' · empty fixture</span><span class="passport-outcome-counts">0 targets · 0 contracts · 0 risks · 0 tests</span></div>' +
+    '<div class="passport-empty desk-empty" data-passport-empty-chrome="1" role="status">' +
+    '<b class="passport-empty-title">No plan rows</b>' +
+    '<div class="passport-empty-copy">Passport is empty — no targets, contracts, risks, tests, or gated writes yet. Open Trace to inspect the trajectory, or load a Passport fixture.</div>' +
+    '<div class="passport-empty-action">' +
+    renderAdeHop("trace", "← Open Trace") +
+    "</div>" +
+    "</div>" +
+    "</div>"
+  );
+}
+
 function renderPassportBody() {
   seedPassportGate();
   seedSealStatus();
   const fx = getPassport();
+  if (!hasPassportPlanRows(fx)) {
+    return renderPassportEmptyBody(fx);
+  }
   const state = passportGateState();
   const targets = (fx.targets || [])
     .map((t) => {

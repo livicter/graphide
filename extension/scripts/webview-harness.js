@@ -464,6 +464,24 @@
   }
 
   function loadPassportFixture(done) {
+    if (params.get("passportEmpty") === "1") {
+      window.__graphidePassport = {
+        version: 2,
+        id: "passport-ade-empty-fixture",
+        title: "Plan Passport",
+        status: "pending",
+        summary: "No plan rows yet — empty fixture",
+        targets: [],
+        contracts: [],
+        risks: [],
+        testStrategy: [],
+        gatedWrites: [],
+        impact: { callGraphs: [], apiContracts: [], invariants: [] },
+      };
+      window.__graphidePassportError = "";
+      done();
+      return;
+    }
     fetch("./passport-fixture.json", { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error("no passport-fixture.json (" + r.status + ")");

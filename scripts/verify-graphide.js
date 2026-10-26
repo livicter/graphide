@@ -44,6 +44,8 @@ const TRACE_EMPTY_HARNESS =
   "/scripts/webview-harness.html?trace=1&traceEmpty=1&passport=1&probe=0&ws=trace";
 const SEAL_CHIP_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&seal=sealed&probe=0&ws=trace";
+const PASSPORT_EMPTY_HARNESS =
+  "/scripts/webview-harness.html?passport=1&passportEmpty=1&trace=1&probe=0&ws=passport";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -2826,6 +2828,123 @@ async function main() {
       JSON.stringify({ probe: scSeal3Probe, shot: scSeal3Shot ? scSeal3Shot.detail : "missing" })
     );
     assertNoStampDir("SC4", "Seal status chip step did not write .graphide/stamps/");
+
+    // ADE Passport empty-state — PE1–PE3 (blank plan chrome when fixture has no rows)
+    await page.evaluate(() => {
+      window.__graphidePassport = {
+        version: 2,
+        id: "passport-ade-empty-fixture",
+        title: "Plan Passport",
+        status: "pending",
+        summary: "No plan rows yet — empty fixture",
+        targets: [],
+        contracts: [],
+        risks: [],
+        testStrategy: [],
+        gatedWrites: [],
+        impact: { callGraphs: [], apiContracts: [], invariants: [] },
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, .traj-page", { timeout: 8000 });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(".passport-empty[data-passport-empty-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    const pe1 = await page.evaluate(() => {
+      const pageEl = document.getElementById("passportPage");
+      const empty = document.querySelector(".passport-empty[data-passport-empty-chrome]");
+      const title = empty && empty.querySelector(".passport-empty-title");
+      const copy = empty && empty.querySelector(".passport-empty-copy");
+      const action = empty && empty.querySelector('.passport-empty-action [data-ade-hop="trace"]');
+      const hop = document.querySelector('.ade-hop-row [data-ade-hop="trace"]');
+      const seal = document.getElementById("adeSealChip");
+      const emptyBox = empty ? empty.getBoundingClientRect() : null;
+      const fx = window.__graphidePassport || null;
+      return {
+        pageEmpty: !!(pageEl && pageEl.getAttribute("data-passport-empty") === "1"),
+        fixture: fx && fx.id ? fx.id : "",
+        title: title ? (title.textContent || "").trim() : "",
+        copy: copy ? (copy.textContent || "").trim() : "",
+        hasAction: !!(action && hop),
+        seal: !!seal,
+        rowCount: document.querySelectorAll(".passport-row").length,
+        impactRows: document.querySelectorAll("#passportImpact [data-impact-row], .passport-impact-row").length,
+        impact: !!document.getElementById("passportImpact"),
+        sign: !!document.getElementById("passportSign"),
+        targets: fx && Array.isArray(fx.targets) ? fx.targets.length : -1,
+        contracts: fx && Array.isArray(fx.contracts) ? fx.contracts.length : -1,
+        risks: fx && Array.isArray(fx.risks) ? fx.risks.length : -1,
+        tests: fx && Array.isArray(fx.testStrategy) ? fx.testStrategy.length : -1,
+        gated: fx && Array.isArray(fx.gatedWrites) ? fx.gatedWrites.length : -1,
+        emptyH: emptyBox ? emptyBox.height : 0,
+        emptyW: emptyBox ? emptyBox.width : 0,
+      };
+    });
+    const pe1ok =
+      pe1.pageEmpty &&
+      pe1.fixture === "passport-ade-empty-fixture" &&
+      /No plan rows/i.test(pe1.title) &&
+      /Passport is empty/i.test(pe1.copy) &&
+      pe1.hasAction &&
+      pe1.seal &&
+      pe1.rowCount === 0 &&
+      pe1.impactRows === 0 &&
+      !pe1.impact &&
+      !pe1.sign &&
+      pe1.targets === 0 &&
+      pe1.contracts === 0 &&
+      pe1.risks === 0 &&
+      pe1.tests === 0 &&
+      pe1.gated === 0 &&
+      pe1.emptyH > 40 &&
+      pe1.emptyW > 120;
+    record(
+      "PE1",
+      "Passport empty fixture shows empty-state chrome (copy + Open Trace); no plan rows",
+      pe1ok,
+      JSON.stringify(pe1)
+    );
+
+    await page.click('.passport-empty-action [data-ade-hop="trace"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "trace";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#trajCanvas, .traj-page", { timeout: 8000 });
+    const pe2 = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        traj: !!(document.getElementById("trajCanvas") || document.querySelector(".traj-page")),
+      };
+    });
+    record(
+      "PE2",
+      "Passport empty-state Open Trace affordance hops to Trace",
+      pe2.ws === "trace" && pe2.traj,
+      JSON.stringify(pe2)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(".passport-empty[data-passport-empty-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await shot(page, "passport-empty-state.png");
+    const pe3Shot = checks.find((c) => c.id === "shot:passport-empty-state.png");
+    record(
+      "PE3",
+      "screenshot passport-empty-state.png is not a black frame",
+      !!(pe3Shot && pe3Shot.pass),
+      pe3Shot ? pe3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("PE4", "Passport empty-state step did not write .graphide/stamps/");
+    // Clear empty override so later Passport / deeplink paths use the embedded fixture again.
+    await page.evaluate(() => {
+      window.__graphidePassport = null;
+    });
 
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');

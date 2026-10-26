@@ -43,6 +43,12 @@ is a stub that reuses Delta vocabulary only).
   Enter/Space expands. Hover/focus-visible highlight. String items use
   `.passport-impact-row--static` (no expand). Screenshot
   `verification/passport-impact-rows.png`.
+- Empty-state (PE1–PE3): when the fixture has no plan rows
+  (`targets/contracts/risks/testStrategy/gatedWrites` empty, or
+  `?passportEmpty=1` / `PASSPORT_EMPTY_FIXTURE`), `#passportPage` shows
+  `.passport-empty[data-passport-empty-chrome]` desk chrome (copy +
+  Open Trace hop) instead of blank sections. Proof
+  `verification/passport-empty-state.png`.
 - Engine: embedded `PASSPORT_FIXTURE` in desk.js, overridable by
   `window.__graphidePassport` when `isPassport()` passes (harness
   `?passport=1` loads `passport-fixture.json`). Impact may carry
@@ -70,6 +76,9 @@ The in-tree proof is the embedded fixture (`passport-ade-phase-1.2`).
 extension/scripts/webview-harness.html?passport=1&probe=0&ws=passport
 ```
 
+Empty chrome: `?passport=1&passportEmpty=1&ws=passport` (or
+`PASSPORT_EMPTY_FIXTURE` / `window.__graphidePassport` with empty arrays).
+
 `passport=1` fetches `passport-fixture.json` into
 `window.__graphidePassport` (falls back to the embedded fixture if the
 JSON is missing or invalid). It does **not** require a ReviewSnapshot snap
@@ -91,6 +100,7 @@ Driver assertions:
 - PF1–PF5: richer architecture/API/risk/test/impact row hooks
 - GS1–GS3: Sticky Decision Rail — `#passportGate` / `#passportSign` stay readable while scrolling; filled `data-gate-chip`; `.passport-gate-summary` + `.passport-sign-actions`; screenshot `verification/passport-gate-signoff.png`
 - IR1–IR3: impact-row head/detail hierarchy + expand/hover; static string fallback; screenshot `verification/passport-impact-rows.png`
+- PE1–PE3: empty fixture shows `.passport-empty` chrome + Open Trace hop; screenshot `verification/passport-empty-state.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
