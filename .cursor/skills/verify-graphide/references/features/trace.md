@@ -27,7 +27,9 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
   (`[data-traj-dep]` under `[data-traj-deps]`), and artifact-diff
   adds/dels (`[data-artifact-diff]`).
 - Edges carry `data-from` / `data-to` / `data-kind` (`seq|fork|join`) and
-  optional `data-label`. Focus dims off-path deps.
+  optional `data-label`. Focus dims off-path deps. Edge-legend chips
+  (`#trajEdgeLegend` / `.traj-legend-chip`) mirror that focus: on-path
+  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3).
 - Engine: embedded `TRAJECTORY_FIXTURE` (`trajectory-fixture.js`),
   overridable by `window.__graphideTrajectory` when
   `isTrajectoryFixture()` passes (harness `?trace=1` loads
@@ -70,12 +72,14 @@ Driver assertions:
 - PH1–PH3: diff pin hover tip (`#trajPinTip`) with matching adds/dels
 - PTC1–PTC3: pin-tip chrome chips, path basename split, pin-anchored place
 - EL1–EL3: `#trajEdgeLegend` / `.traj-edge-legend` seq/fork/join chips; stroke styles mirror `.traj-edge.kind-*`; screenshot `verification/trajectory-edge-legend.png`
+- FLD1–FLD3: legend focus-dim — selected node dims off-path `.traj-legend-chip` (keeps on-path chips readable); screenshot `verification/trajectory-legend-focus-dim.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
   `verification/trajectory-pin-hover.png`, and
   `verification/trajectory-pin-tip-chrome.png`, and
-  `verification/trajectory-edge-legend.png` are not black frames
+  `verification/trajectory-edge-legend.png`, and
+  `verification/trajectory-legend-focus-dim.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

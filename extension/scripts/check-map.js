@@ -548,6 +548,11 @@ assert(driver.includes("EL1") && driver.includes("EL3") && driver.includes("traj
 assert(css.includes("traj-edge-legend") && css.includes("traj-legend-chip") && css.includes("kind-fork") && css.includes("stroke-dasharray: 5 4"), "Trace edge-legend CSS missing");
 assert(js.includes("trajEdgeLegend") && js.includes("traj-legend-chip") && js.includes("traj-edge-legend"), "Trace edge-legend markup missing");
 assert(traceMap.includes("EL1") && traceMap.includes("trajEdgeLegend") && traceMap.includes("trajectory-edge-legend.png"), "trace feature map must name edge-legend EL / trajEdgeLegend / proof");
+assert(driver.includes("FLD1") && driver.includes("FLD3") && driver.includes("trajectory-legend-focus-dim.png"), "verify driver must prove Trace legend focus-dim FLD1–FLD3");
+assert(css.includes("traj-legend-chip.on-path") || css.includes(".traj-legend-chip.on-path") || css.includes("has-focus .traj-legend-chip.on-path"), "Trace legend focus-dim CSS missing on-path chip");
+assert(css.includes("traj-legend-chip.dim") || css.includes(".traj-legend-chip.dim") || css.includes("has-focus .traj-legend-chip.dim"), "Trace legend focus-dim CSS missing dim chip");
+assert(js.includes("onPathKinds") && js.includes("data-dim") && js.includes("traj-legend-chip"), "Trace legend focus-dim markup missing onPathKinds/data-dim");
+assert(traceMap.includes("FLD1") && traceMap.includes("focus-dim") && traceMap.includes("trajectory-legend-focus-dim.png"), "trace feature map must name legend focus-dim FLD / proof");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

@@ -2362,6 +2362,118 @@ async function main() {
     );
     assertNoStampDir("EL4", "Trace edge-legend step did not write .graphide/stamps/");
 
+    // ADE Trace legend focus-dim — FLD1–FLD3 (build on EL; select sub-edit → seq on-path, fork/join dim)
+    await page.click('.traj-node[data-id="sub-edit"]');
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajCanvas");
+        const pageEl = document.querySelector(".traj-page");
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-edit" &&
+          pageEl &&
+          pageEl.classList.contains("has-focus")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+    const fld = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (!legend) return { ok: false, reason: "missing-legend" };
+      const pageEl = document.querySelector(".traj-page");
+      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]")].map((chip) => {
+        const kind = chip.getAttribute("data-kind") || "";
+        const cs = getComputedStyle(chip);
+        return {
+          kind,
+          onPath: chip.classList.contains("on-path"),
+          dim: chip.classList.contains("dim"),
+          dataOnPath: chip.getAttribute("data-on-path") === "1",
+          dataDim: chip.getAttribute("data-dim") === "1",
+          opacity: Number.parseFloat(cs.opacity || "1"),
+        };
+      });
+      const byKind = Object.fromEntries(chips.map((c) => [c.kind, c]));
+      const onPathEdgeKinds = [
+        ...new Set(
+          [...document.querySelectorAll(".traj-edge.on-path")].map(
+            (e) => e.getAttribute("data-kind") || "seq"
+          )
+        ),
+      ].sort();
+      return {
+        ok: true,
+        hasFocus: !!(pageEl && pageEl.classList.contains("has-focus")),
+        focus: (document.getElementById("trajCanvas") || {}).getAttribute
+          ? document.getElementById("trajCanvas").getAttribute("data-focus")
+          : "",
+        chips,
+        byKind,
+        onPathEdgeKinds,
+      };
+    });
+    const seqChip = fld.byKind && fld.byKind.seq;
+    const forkChip = fld.byKind && fld.byKind.fork;
+    const joinChip = fld.byKind && fld.byKind.join;
+    const fld1ok =
+      fld.ok &&
+      fld.hasFocus &&
+      fld.focus === "sub-edit" &&
+      !!seqChip &&
+      !!forkChip &&
+      !!joinChip &&
+      seqChip.onPath &&
+      !seqChip.dim &&
+      seqChip.dataOnPath &&
+      !seqChip.dataDim &&
+      !forkChip.onPath &&
+      forkChip.dim &&
+      forkChip.dataDim &&
+      !joinChip.onPath &&
+      joinChip.dim &&
+      joinChip.dataDim &&
+      fld.onPathEdgeKinds.join(",") === "seq";
+    record(
+      "FLD1",
+      "Focus sub-edit marks seq legend chip on-path; fork/join dim (matches on-path edge kinds)",
+      fld1ok,
+      JSON.stringify({
+        focus: fld.focus,
+        onPathEdgeKinds: fld.onPathEdgeKinds,
+        chips: fld.chips,
+      })
+    );
+    const fld2ok =
+      !!seqChip &&
+      !!forkChip &&
+      !!joinChip &&
+      seqChip.opacity >= 0.9 &&
+      forkChip.opacity <= 0.5 &&
+      joinChip.opacity <= 0.5 &&
+      forkChip.opacity < seqChip.opacity &&
+      joinChip.opacity < seqChip.opacity;
+    record(
+      "FLD2",
+      "On-path legend chip stays readable; off-path chips dim (opacity)",
+      fld2ok,
+      JSON.stringify({
+        seqOpacity: seqChip && seqChip.opacity,
+        forkOpacity: forkChip && forkChip.opacity,
+        joinOpacity: joinChip && joinChip.opacity,
+      })
+    );
+    await shot(page, "trajectory-legend-focus-dim.png");
+    const fld3Shot = checks.find((c) => c.id === "shot:trajectory-legend-focus-dim.png");
+    record(
+      "FLD3",
+      "screenshot trajectory-legend-focus-dim.png is not a black frame",
+      !!(fld3Shot && fld3Shot.pass),
+      fld3Shot ? fld3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("FLD4", "Trace legend focus-dim step did not write .graphide/stamps/");
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(

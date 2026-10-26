@@ -10634,25 +10634,43 @@ function renderTrajectoryBody() {
   const edgeKinds = ["seq", "fork", "join"].filter((k) =>
     edges.some((e) => (e.kind || "seq") === k)
   );
+  const onPathKinds = new Set();
+  if (focusOn) {
+    for (const e of edges) {
+      if (e.from === selectedId || e.to === selectedId) {
+        onPathKinds.add(e.kind || "seq");
+      }
+    }
+  }
   const edgeLegend =
     edgeKinds.length === 0
       ? ""
       : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds">' +
         edgeKinds
-          .map(
-            (k) =>
+          .map((k) => {
+            const chipFocus = focusOn
+              ? onPathKinds.has(k)
+                ? " on-path"
+                : " dim"
+              : "";
+            return (
               '<span class="traj-legend-chip kind-' +
               esc(k) +
+              chipFocus +
               '" data-kind="' +
               esc(k) +
-              '">' +
+              '"' +
+              (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") +
+              (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") +
+              ">" +
               '<svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">' +
               '<line x1="1" y1="5" x2="21" y2="5"></line>' +
               "</svg>" +
               '<span class="traj-legend-label">' +
               esc(k) +
               "</span></span>"
-          )
+            );
+          })
           .join("") +
         "</div>";
   return (

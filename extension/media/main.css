@@ -2447,6 +2447,15 @@ html.bright .traj-legend-chip {
   background: #fff;
   border-color: rgba(60, 60, 67, 0.18);
 }
+.traj-page.has-focus .traj-legend-chip.dim {
+  opacity: 0.32;
+  filter: grayscale(0.35);
+}
+.traj-page.has-focus .traj-legend-chip.on-path {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 28%, transparent);
+}
 .traj-page.has-focus .traj-edge.dim { opacity: 0.22; }
 .traj-page.has-focus .traj-edge.on-path {
   stroke: var(--vscode-focusBorder, #2f81f7);
