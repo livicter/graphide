@@ -9212,6 +9212,243 @@ async function main() {
     });
     await page.waitForTimeout(60);
 
+    // ADE residual-filter count-chip Enter/Space toast hint (CCT1–CCT3) — non-clearing; Clear/R/Esc remain
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    // Clear Residuals-on toast from toggle before asserting count-chip hint
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.waitForTimeout(20);
+    const cctTrace = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const filterBefore = document
+        .getElementById("trajEdgeLegend")
+        ?.getAttribute("data-residual-filter");
+      chip.focus({ focusVisible: true });
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      const filterAfterEnter = document
+        .getElementById("trajEdgeLegend")
+        ?.getAttribute("data-residual-filter");
+      // Space + click must also toast without clearing
+      if (toast) {
+        toast.classList.remove("on");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true })
+      );
+      const toastAfterSpace = document.getElementById("toast");
+      const spaceText = toastAfterSpace ? (toastAfterSpace.textContent || "").trim() : "";
+      const spaceOn = !!(
+        toastAfterSpace &&
+        !toastAfterSpace.hidden &&
+        toastAfterSpace.classList.contains("on")
+      );
+      if (toastAfterSpace) {
+        toastAfterSpace.classList.remove("on");
+        toastAfterSpace.hidden = true;
+        toastAfterSpace.textContent = "";
+      }
+      chip.click();
+      const toastAfterClick = document.getElementById("toast");
+      const clickText = toastAfterClick ? (toastAfterClick.textContent || "").trim() : "";
+      const clickOn = !!(
+        toastAfterClick &&
+        !toastAfterClick.hidden &&
+        toastAfterClick.classList.contains("on")
+      );
+      const filterAfter = document
+        .getElementById("trajEdgeLegend")
+        ?.getAttribute("data-residual-filter");
+      return {
+        present: true,
+        focused: document.activeElement === chip,
+        role: chip.getAttribute("role"),
+        filterBefore,
+        filterAfterEnter,
+        filterAfter,
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastSkip: !!(toast && toast.classList.contains("skip")),
+        spaceText,
+        spaceOn,
+        clickText,
+        clickOn,
+        staysOnCopy: /Residual filter stays ON/i.test(toastText),
+        howToClear: /Clear/i.test(toastText) && /Escape/i.test(toastText),
+      };
+    });
+    // Re-read toast after Enter path left it on from click (last action)
+    const cct1ok = !!(
+      cctTrace &&
+      cctTrace.present &&
+      cctTrace.role === "status" &&
+      cctTrace.filterBefore === "on" &&
+      cctTrace.filterAfterEnter === "on" &&
+      cctTrace.filterAfter === "on" &&
+      cctTrace.staysOnCopy &&
+      cctTrace.howToClear &&
+      cctTrace.spaceOn &&
+      /Residual filter stays ON/i.test(cctTrace.spaceText || "") &&
+      cctTrace.clickOn &&
+      /Residual filter stays ON/i.test(cctTrace.clickText || "")
+    );
+    record(
+      "CCT1",
+      "Trace legend residual-filter count chip Enter/Space/click toasts non-clearing hint; filter stays ON",
+      !!cct1ok,
+      JSON.stringify(cctTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    const cctPass = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const host = document.querySelector("#passportSign .passport-residual");
+      const filterBefore = host ? host.getAttribute("data-residual-filter") : "";
+      chip.focus({ focusVisible: true });
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      const filterAfter = host ? host.getAttribute("data-residual-filter") : "";
+      return {
+        present: true,
+        focused: document.activeElement === chip,
+        role: chip.getAttribute("role"),
+        cls: chip.classList.contains("passport-residual-filter-count"),
+        filterBefore,
+        filterAfter,
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastSkip: !!(toast && toast.classList.contains("skip")),
+        staysOnCopy: /Residual filter stays ON/i.test(toastText),
+        howToClear: /Clear/i.test(toastText) && /Escape/i.test(toastText),
+      };
+    });
+    const cct2ok = !!(
+      cctPass &&
+      cctPass.present &&
+      cctPass.cls &&
+      cctPass.role === "status" &&
+      cctPass.filterBefore === "on" &&
+      cctPass.filterAfter === "on" &&
+      cctPass.toastOn &&
+      cctPass.toastSkip &&
+      cctPass.staysOnCopy &&
+      cctPass.howToClear
+    );
+    record(
+      "CCT2",
+      "Passport sticky residual-filter count chip Enter toasts non-clearing hint; filter stays ON",
+      !!cct2ok,
+      JSON.stringify(cctPass)
+    );
+
+    await shot(page, "residual-filter-count-chip-toast-hint.png");
+    const cctShot = checks.find(
+      (c) => c.id === "shot:residual-filter-count-chip-toast-hint.png"
+    );
+    record(
+      "CCT3",
+      "screenshot residual-filter-count-chip-toast-hint.png is not a black frame",
+      !!(cctShot && cctShot.pass),
+      cctShot ? cctShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CCT4",
+      "Residual-filter count-chip toast hint step did not write .graphide/stamps/"
+    );
+
+    // Leave filter OFF for later IR/PR residual chrome (match CAF restore).
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const clear =
+        document.querySelector('#passportSign [data-passport-clear-filter="1"]') ||
+        document.querySelector('[data-residual-filter-clear="1"]') ||
+        document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (clear) clear.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const sticky = document.querySelector("#passportSign .passport-residual");
+        const legendOff = !legend || legend.getAttribute("data-residual-filter") !== "on";
+        const stickyOff = !sticky || sticky.getAttribute("data-residual-filter") !== "on";
+        return legendOff && stickyOff;
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

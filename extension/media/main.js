@@ -28292,6 +28292,28 @@
       if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
       paint({ animate: "none" });
     }
+    const RESIDUAL_FILTER_COUNT_CHIP_TOAST = "Residual filter stays ON — use Clear, R, or Escape to clear";
+    function hintResidualFilterCountChip(ev) {
+      if (ev) {
+        if (typeof ev.preventDefault === "function") ev.preventDefault();
+        if (typeof ev.stopPropagation === "function") ev.stopPropagation();
+      }
+      if (typeof flashToast === "function") {
+        flashToast(RESIDUAL_FILTER_COUNT_CHIP_TOAST, "skip");
+      }
+    }
+    function bindResidualFilterCountChipHints() {
+      document.querySelectorAll(
+        '.residual-filter-count[data-residual-filter-count="1"], .passport-residual-filter-count[data-residual-filter-count="1"]'
+      ).forEach((chip) => {
+        const onActivate = (ev) => {
+          if (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ") return;
+          hintResidualFilterCountChip(ev);
+        };
+        chip.onclick = onActivate;
+        chip.onkeydown = onActivate;
+      });
+    }
     function renderResidualFilterEmptyChrome(surface) {
       if (!trajResidualFilter) return "";
       const bearingN = passportResidualTrajIds().size;
@@ -28782,6 +28804,7 @@
           clearTrajResidualFilter();
         };
       });
+      if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
       bindAdeHopButtons();
       bindAdePassportHlHops();
       const detail = document.getElementById("trajDetail");
@@ -29637,6 +29660,7 @@
           clearTrajResidualFilter();
         };
       });
+      if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
       bindPassportImpactRows();
       bindAdeHopButtons();
       bindAdeTrajHops();

@@ -10442,6 +10442,36 @@ function clearTrajResidualFilter() {
   paint({ animate: "none" });
 }
 
+
+/** ADE count-chip Enter/Space/click toast hint (CCT1–CCT3) — informational; never clears. */
+const RESIDUAL_FILTER_COUNT_CHIP_TOAST =
+  "Residual filter stays ON — use Clear, R, or Escape to clear";
+
+function hintResidualFilterCountChip(ev) {
+  if (ev) {
+    if (typeof ev.preventDefault === "function") ev.preventDefault();
+    if (typeof ev.stopPropagation === "function") ev.stopPropagation();
+  }
+  if (typeof flashToast === "function") {
+    flashToast(RESIDUAL_FILTER_COUNT_CHIP_TOAST, "skip");
+  }
+}
+
+function bindResidualFilterCountChipHints() {
+  document
+    .querySelectorAll(
+      '.residual-filter-count[data-residual-filter-count="1"], .passport-residual-filter-count[data-residual-filter-count="1"]'
+    )
+    .forEach((chip) => {
+      const onActivate = (ev) => {
+        if (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ") return;
+        hintResidualFilterCountChip(ev);
+      };
+      chip.onclick = onActivate;
+      chip.onkeydown = onActivate;
+    });
+}
+
 /** Empty chrome when filter ON and zero residual-bearing trajs (e.g. gate approved). */
 function renderResidualFilterEmptyChrome(surface) {
   if (!trajResidualFilter) return "";
@@ -11606,6 +11636,7 @@ function bindTrajectoryPage() {
       clearTrajResidualFilter();
     };
   });
+  if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
   bindAdeHopButtons();
   bindAdePassportHlHops();
   const detail = document.getElementById("trajDetail");
@@ -13020,6 +13051,7 @@ function bindPassportPage() {
       clearTrajResidualFilter();
     };
   });
+  if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
   bindPassportImpactRows();
   bindAdeHopButtons();
   bindAdeTrajHops();

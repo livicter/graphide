@@ -713,6 +713,12 @@ assert(keysMap.includes("CAF1") && keysMap.includes(":active") && keysMap.includ
 assert(traceMap.includes("CAF1") && traceMap.includes(":active") && traceMap.includes("residual-filter-clear-active-flash.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-filter active flash CAF / proof");
 assert(passportMap.includes("CAF1") && passportMap.includes(":active") && passportMap.includes("residual-filter-clear-active-flash.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-filter active flash CAF / proof");
 
+assert(driver.includes("CCT1") && driver.includes("CCT3") && driver.includes("residual-filter-count-chip-toast-hint.png") && driver.includes("Residual filter stays ON") && driver.includes("data-residual-filter-count"), "verify driver must prove residual-filter count-chip toast hint CCT1–CCT3");
+assert(js.includes("hintResidualFilterCountChip") && js.includes("bindResidualFilterCountChipHints") && js.includes("RESIDUAL_FILTER_COUNT_CHIP_TOAST") && js.includes("Residual filter stays ON"), "count-chip non-clearing toast hint bind missing");
+assert(keysMap.includes("CCT1") && keysMap.includes("non-clearing toast") && keysMap.includes("residual-filter-count-chip-toast-hint.png"), "keys feature map must name residual-filter count-chip toast hint CCT / proof");
+assert(traceMap.includes("CCT1") && traceMap.includes("non-clearing toast") && traceMap.includes("residual-filter-count-chip-toast-hint.png"), "trace feature map must name residual-filter count-chip toast hint CCT / proof");
+assert(passportMap.includes("CCT1") && passportMap.includes("non-clearing toast") && passportMap.includes("residual-filter-count-chip-toast-hint.png"), "passport feature map must name residual-filter count-chip toast hint CCT / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
