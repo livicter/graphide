@@ -28203,6 +28203,20 @@
       }
       return near;
     }
+    function trajOutgoingIds(fix, id2) {
+      const src = String(id2 || "");
+      if (!src) return [];
+      const out = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const e of fix.edges || []) {
+        if (e.from !== src) continue;
+        const to = e.to;
+        if (!to || seen.has(to)) continue;
+        seen.add(to);
+        out.push(to);
+      }
+      return out;
+    }
     function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
       const byId = new Map(nodes.map((n) => [n.id, n]));
       const focusOn = !!selectedId;
@@ -28236,7 +28250,7 @@
     function renderTrajectoryDetail(fix, selectedId) {
       const n = (fix.nodes || []).find((x) => x.id === selectedId);
       if (!n) {
-        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step.</div></aside>';
+        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, next hops, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step · next → to hop.</div></aside>';
       }
       const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
       const artCls = pin === "artifact" ? " pin-focus" : "";
@@ -28248,7 +28262,13 @@
       const depHtml = deps.length ? '<ul class="traj-dep-list" data-traj-deps="1">' + deps.map(
         (d) => '<li class="traj-dep" role="button" tabindex="0" data-traj-dep="' + esc(d) + '" data-ade-dep-focus="1" title="Focus dependency ' + esc(d) + '"><code>' + esc(d) + "</code></li>"
       ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
-      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or pin to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
+      const nextHops = trajOutgoingIds(fix, n.id).slice(0, 3);
+      const nextHopHtml = nextHops.length ? '<ul class="traj-next-list" data-traj-nexts="1">' + nextHops.map((to) => {
+        const tgt = (fix.nodes || []).find((x) => x.id === to);
+        const label = tgt && (tgt.label || tgt.id) || to;
+        return '<li class="traj-next" role="button" tabindex="0" data-traj-next="' + esc(to) + '" data-ade-hop-next="1" title="Hop to ' + esc(label) + '"><span class="traj-next-arrow" aria-hidden="true">→</span><code>' + esc(to) + "</code></li>";
+      }).join("") + "</ul>" : '<span class="traj-next-empty" data-traj-nexts="0">none</span>';
+      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt>Next hops</dt><dd data-traj-next-block="1">' + nextHopHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or next → hop to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
     }
     function trajZoomPctLabel(scale) {
       return Math.round((Number(scale) || 1) * 100) + "%";
@@ -28320,6 +28340,15 @@
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
+      const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
+      const nextOut = selectedNode ? trajOutgoingIds(fix, selectedId).slice(0, 3) : [];
+      const hopChipHtml = nextOut.map((to, i) => {
+        const tgt = nodes.find((n) => n.id === to);
+        const label = tgt && (tgt.label || tgt.id) || to;
+        const left = selectedNode.x + nodeW - 6;
+        const top = selectedNode.y + 10 + i * 24;
+        return '<button type="button" class="traj-hop-next" data-traj-next="' + esc(to) + '" data-ade-hop-next="1" data-from="' + esc(selectedId) + '" title="Hop to ' + esc(label) + '" aria-label="Next hop ' + esc(label) + '" style="left:' + left + "px;top:" + top + 'px"><span class="traj-next-arrow" aria-hidden="true">→</span><span class="traj-hop-next-label">' + esc(to) + "</span></button>";
+      }).join("");
       const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
       const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
       const done = nodes.filter((n) => n.status === "done").length;
@@ -28340,7 +28369,7 @@
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + "</div>";
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div></div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div></div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -28462,6 +28491,9 @@
       paint({ animate: "none" });
       return true;
     }
+    function hopTrajectoryNext(nextId) {
+      return focusTrajectoryDep(nextId);
+    }
     function bindTrajectoryPage() {
       const host = document.getElementById("trajCanvas");
       if (!host) return;
@@ -28543,6 +28575,22 @@
           };
         });
       }
+      const onNextActivate = (ev) => {
+        const chip = ev.target && ev.target.closest ? ev.target.closest("[data-traj-next]") : null;
+        if (!chip) return;
+        const id2 = chip.getAttribute("data-traj-next") || "";
+        if (!id2) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        hopTrajectoryNext(id2);
+      };
+      document.querySelectorAll("[data-traj-next]").forEach((chip) => {
+        chip.onclick = onNextActivate;
+        chip.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          onNextActivate(ev);
+        };
+      });
     }
     const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
     const PASSPORT_FIXTURE = Object.freeze({

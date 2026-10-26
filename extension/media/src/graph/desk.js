@@ -10350,6 +10350,22 @@ function trajNeighborIds(fix, selectedId) {
   return near;
 }
 
+/** Directed successors along fixture edges (order preserved; HA hop-affordance). */
+function trajOutgoingIds(fix, id) {
+  const src = String(id || "");
+  if (!src) return [];
+  const out = [];
+  const seen = new Set();
+  for (const e of fix.edges || []) {
+    if (e.from !== src) continue;
+    const to = e.to;
+    if (!to || seen.has(to)) continue;
+    seen.add(to);
+    out.push(to);
+  }
+  return out;
+}
+
 function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const focusOn = !!selectedId;
@@ -10425,7 +10441,7 @@ function renderTrajectoryDetail(fix, selectedId) {
   if (!n) {
     return (
       '<aside id="trajDetail" class="traj-detail" data-empty="1">' +
-      '<div class="traj-detail-empty">Select a subtask to inspect deps, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step.</div>' +
+      '<div class="traj-detail-empty">Select a subtask to inspect deps, next hops, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step · next → to hop.</div>' +
       "</aside>"
     );
   }
@@ -10452,6 +10468,26 @@ function renderTrajectoryDetail(fix, selectedId) {
         .join("") +
       "</ul>"
     : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
+  const nextHops = trajOutgoingIds(fix, n.id).slice(0, 3);
+  const nextHopHtml = nextHops.length
+    ? '<ul class="traj-next-list" data-traj-nexts="1">' +
+      nextHops
+        .map((to) => {
+          const tgt = (fix.nodes || []).find((x) => x.id === to);
+          const label = (tgt && (tgt.label || tgt.id)) || to;
+          return (
+            '<li class="traj-next" role="button" tabindex="0" data-traj-next="' +
+            esc(to) +
+            '" data-ade-hop-next="1" title="Hop to ' +
+            esc(label) +
+            '"><span class="traj-next-arrow" aria-hidden="true">→</span><code>' +
+            esc(to) +
+            "</code></li>"
+          );
+        })
+        .join("") +
+      "</ul>"
+    : '<span class="traj-next-empty" data-traj-nexts="0">none</span>';
   return (
     '<aside id="trajDetail" class="traj-detail" data-selected="' +
     esc(n.id) +
@@ -10507,6 +10543,9 @@ function renderTrajectoryDetail(fix, selectedId) {
     "<dt>Deps</dt><dd>" +
     depHtml +
     "</dd>" +
+    '<dt>Next hops</dt><dd data-traj-next-block="1">' +
+    nextHopHtml +
+    "</dd>" +
     '<dt class="' +
     (pin === "artifact" ? "on" : "") +
     '">Artifact</dt><dd class="' +
@@ -10548,7 +10587,7 @@ function renderTrajectoryDetail(fix, selectedId) {
     "<dt>Note</dt><dd>" +
     esc(n.note || "—") +
     "</dd></dl>" +
-    '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or pin to focus it</div>' +
+    '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or next → hop to focus it</div>' +
     '<div class="traj-detail-ade-hop">' +
     '<button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' +
     esc(n.id) +
@@ -10789,6 +10828,33 @@ function renderTrajectoryBody() {
       );
     })
     .join("");
+  const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
+  const nextOut = selectedNode ? trajOutgoingIds(fix, selectedId).slice(0, 3) : [];
+  const hopChipHtml = nextOut
+    .map((to, i) => {
+      const tgt = nodes.find((n) => n.id === to);
+      const label = (tgt && (tgt.label || tgt.id)) || to;
+      const left = selectedNode.x + nodeW - 6;
+      const top = selectedNode.y + 10 + i * 24;
+      return (
+        '<button type="button" class="traj-hop-next" data-traj-next="' +
+        esc(to) +
+        '" data-ade-hop-next="1" data-from="' +
+        esc(selectedId) +
+        '" title="Hop to ' +
+        esc(label) +
+        '" aria-label="Next hop ' +
+        esc(label) +
+        '" style="left:' +
+        left +
+        "px;top:" +
+        top +
+        'px"><span class="traj-next-arrow" aria-hidden="true">→</span><span class="traj-hop-next-label">' +
+        esc(to) +
+        "</span></button>"
+      );
+    })
+    .join("");
   const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
   const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
   const done = nodes.filter((n) => n.status === "done").length;
@@ -10899,6 +10965,7 @@ function renderTrajectoryBody() {
     edgeLines +
     "</svg>" +
     nodeHtml +
+    hopChipHtml +
     "</div>" +
     "</div>" +
     renderTrajectoryDetail(fix, selectedId) +
@@ -10912,7 +10979,7 @@ function renderTrajectoryBody() {
     " deps · fixture " +
     esc(fix.id) +
     (fix.version ? " v" + esc(String(fix.version)) : "") +
-    " · click node / pin · [ ] / ←→ / jk step · +/−/0 zoom</div>" +
+    " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div>" +
     "</div>"
   );
 }
@@ -11075,6 +11142,11 @@ function focusTrajectoryDep(depId) {
   return true;
 }
 
+/** HA: hop to a directed successor (same focus path as dep-list). */
+function hopTrajectoryNext(nextId) {
+  return focusTrajectoryDep(nextId);
+}
+
 function bindTrajectoryPage() {
   const host = document.getElementById("trajCanvas");
   if (!host) return;
@@ -11148,6 +11220,23 @@ function bindTrajectoryPage() {
       };
     });
   }
+  const onNextActivate = (ev) => {
+    const chip =
+      ev.target && ev.target.closest ? ev.target.closest("[data-traj-next]") : null;
+    if (!chip) return;
+    const id = chip.getAttribute("data-traj-next") || "";
+    if (!id) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    hopTrajectoryNext(id);
+  };
+  document.querySelectorAll("[data-traj-next]").forEach((chip) => {
+    chip.onclick = onNextActivate;
+    chip.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      onNextActivate(ev);
+    };
+  });
 }
 
 

@@ -572,6 +572,11 @@ assert(driver.includes("TM1") && driver.includes("TM3") && driver.includes("pass
 assert(js.includes("data-ade-test-traj") && js.includes("resolvePassportTrajId"), "Passport test-strategy traj mapping attrs missing");
 assert(passportMap.includes("TM1") && passportMap.includes("test-strategy") && passportMap.includes("passport-test-strategy-traj-map.png") && passportMap.includes("data-ade-test-traj"), "passport feature map must name test-strategy traj map TM / proof");
 
+assert(driver.includes("HA1") && driver.includes("HA3") && driver.includes("trajectory-hop-affordance.png") && driver.includes("data-ade-hop-next"), "verify driver must prove Trace hop-affordance HA1–HA3");
+assert(js.includes("trajOutgoingIds") && js.includes("hopTrajectoryNext") && js.includes("data-ade-hop-next") && js.includes("data-traj-next"), "Trace hop-affordance trajOutgoingIds / hopTrajectoryNext missing");
+assert(css.includes("traj-hop-next") && css.includes("data-ade-hop-next") && css.includes("traj-next-list"), "Trace hop-affordance CSS missing");
+assert(traceMap.includes("HA1") && traceMap.includes("hop-affordance") && traceMap.includes("trajectory-hop-affordance.png") && traceMap.includes("data-ade-hop-next"), "trace feature map must name hop-affordance HA / proof");
+
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
 assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");

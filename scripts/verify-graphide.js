@@ -28161,6 +28161,191 @@ async function main() {
     );
     assertNoStampDir("TM4", "Passport test-strategy traj map did not write .graphide/stamps/");
 
+    // ADE Trace hop-affordance (HA1–HA3) — directed next-hop chrome; ids HA* avoid KS/DF/DL collisions
+    const hopAffUrl =
+      origin +
+      "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-verify&gate=approved&probe=0&ws=trace";
+    console.log("ade-hop-affordance " + hopAffUrl);
+    await page.goto(hopAffUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector('[data-testid="trajectory-dag"]', { timeout: 20000 });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const nodeHops = host ? host.querySelectorAll("[data-ade-hop-next]") : [];
+        const detailHops = detail ? detail.querySelectorAll("[data-traj-next]") : [];
+        return (
+          host &&
+          host.getAttribute("data-focus") === "sub-verify" &&
+          detail &&
+          detail.getAttribute("data-selected") === "sub-verify" &&
+          nodeHops.length >= 2 &&
+          detailHops.length >= 2
+        );
+      },
+      null,
+      { timeout: 20000 }
+    );
+    const haBefore = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const nodeNexts = host
+        ? [...host.querySelectorAll(".traj-hop-next[data-traj-next]")].map(
+            (el) => el.getAttribute("data-traj-next") || ""
+          )
+        : [];
+      const detailNexts = detail
+        ? [...detail.querySelectorAll("[data-traj-next]")].map(
+            (el) => el.getAttribute("data-traj-next") || ""
+          )
+        : [];
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        nodeNexts,
+        detailNexts,
+        nodeHopCount: host ? host.querySelectorAll("[data-ade-hop-next]").length : 0,
+        detailHopCount: detail ? detail.querySelectorAll("[data-ade-hop-next]").length : 0,
+      };
+    });
+    const firstNext = haBefore.nodeNexts[0] || haBefore.detailNexts[0] || "";
+    const secondNext = haBefore.nodeNexts[1] || haBefore.detailNexts[1] || "";
+    await page.evaluate((id) => {
+      const chip =
+        document.querySelector(
+          '[data-testid="trajectory-dag"] .traj-hop-next[data-traj-next="' + id + '"]'
+        ) || document.querySelector('#trajDetail [data-traj-next="' + id + '"]');
+      if (!chip) throw new Error("missing next-hop chip " + id);
+      chip.click();
+    }, firstNext);
+    await page.waitForFunction(
+      (id) => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const on = host && host.querySelector('.traj-node.on[data-id="' + id + '"]');
+        return (
+          host &&
+          host.getAttribute("data-focus") === id &&
+          detail &&
+          detail.getAttribute("data-selected") === id &&
+          !!on
+        );
+      },
+      firstNext,
+      { timeout: 10000 }
+    );
+    const ha1 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const q = new URLSearchParams(location.search);
+      const onPath = host ? host.querySelectorAll(".traj-edge[data-on-path='1']").length : 0;
+      const dimNodes = host ? host.querySelectorAll(".traj-node.dim").length : 0;
+      const legendOn = document.querySelectorAll(".traj-legend-chip.on-path").length;
+      const legendDim = document.querySelectorAll(".traj-legend-chip.dim").length;
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        trajParam: q.get("traj") || "",
+        pinFocus: detail ? detail.getAttribute("data-pin-focus") || "" : "",
+        onPath,
+        dimNodes,
+        legendOn,
+        legendDim,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "HA1",
+      "Click Trace next-hop chip focuses directed successor; on-path / legend dim sync",
+      haBefore.focus === "sub-verify" &&
+        haBefore.nodeHopCount >= 2 &&
+        haBefore.detailHopCount >= 2 &&
+        haBefore.nodeNexts.includes("sub-passport") &&
+        haBefore.nodeNexts.includes("sub-pr") &&
+        firstNext &&
+        ha1.focus === firstNext &&
+        ha1.selected === firstNext &&
+        ha1.trajParam === firstNext &&
+        ha1.winFocus === firstNext &&
+        !ha1.pinFocus &&
+        ha1.onPath > 0 &&
+        ha1.dimNodes > 0,
+      JSON.stringify({ before: haBefore, after: ha1, firstNext })
+    );
+
+    // Restore sub-verify, hop via detail list to the other successor
+    await page.evaluate(() => {
+      const node = document.querySelector(
+        '[data-testid="trajectory-dag"] .traj-node[data-id="sub-verify"]'
+      );
+      if (!node) throw new Error("missing sub-verify node to restore");
+      node.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return host && host.getAttribute("data-focus") === "sub-verify";
+      },
+      null,
+      { timeout: 10000 }
+    );
+    await page.evaluate((id) => {
+      const chip = document.querySelector('#trajDetail [data-traj-next="' + id + '"]');
+      if (!chip) throw new Error("missing detail next-hop " + id);
+      chip.click();
+    }, secondNext);
+    await page.waitForFunction(
+      (id) => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detail = document.getElementById("trajDetail");
+        const on = host && host.querySelector('.traj-node.on[data-id="' + id + '"]');
+        return (
+          host &&
+          host.getAttribute("data-focus") === id &&
+          detail &&
+          detail.getAttribute("data-selected") === id &&
+          !!on
+        );
+      },
+      secondNext,
+      { timeout: 10000 }
+    );
+    const ha2 = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const detail = document.getElementById("trajDetail");
+      const q = new URLSearchParams(location.search);
+      const onPath = host ? host.querySelectorAll(".traj-edge[data-on-path='1']").length : 0;
+      return {
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+        selected: detail ? detail.getAttribute("data-selected") || "" : "",
+        trajParam: q.get("traj") || "",
+        onPath,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "HA2",
+      "Detail Next-hops list hops to the other directed successor",
+      secondNext &&
+        secondNext !== firstNext &&
+        ha2.focus === secondNext &&
+        ha2.selected === secondNext &&
+        ha2.trajParam === secondNext &&
+        ha2.winFocus === secondNext &&
+        ha2.onPath > 0,
+      JSON.stringify({ firstNext, secondNext, after: ha2 })
+    );
+
+    await shot(page, "trajectory-hop-affordance.png");
+    const haShot = checks.find((c) => c.id === "shot:trajectory-hop-affordance.png");
+    record(
+      "HA3",
+      "screenshot trajectory-hop-affordance.png is not a black frame",
+      !!(haShot && haShot.pass),
+      haShot ? haShot.detail : "missing shot"
+    );
+    assertNoStampDir("HA4", "Trace hop-affordance did not write .graphide/stamps/");
+
 
   } finally {
     await browser.close();
@@ -28184,7 +28369,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map + Trace hop-affordance) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -28199,7 +28384,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

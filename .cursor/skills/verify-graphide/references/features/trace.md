@@ -32,7 +32,7 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
   kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
-  click-focus (KS1–KS3) and dep-list click→focus (DF1–DF3).
+  click-focus (KS1–KS3), dep-list click→focus (DF1–DF3), and directed hop-affordance next → chips (HA1–HA3).
 - Empty-state (ES1–ES3): when the fixture has no nodes (`nodes: []` or
   harness `?traceEmpty=1` / `TRAJECTORY_EMPTY_FIXTURE`), `#trajCanvas`
   shows `.traj-empty` chrome (copy + Open Passport `data-ade-hop`) instead
@@ -54,6 +54,8 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 4. Hover a diff pin to read +adds/−dels and the artifact path in the tip.
 5. Click a pin to focus it; use `[` / `]` / `←` / `→` / `j` / `k` to step
    subtasks. Neighbors stay lit; off-path deps dim (same as click-focus).
+   Selected nodes show → next-hop chips; click one (or a detail Next hop) to
+   follow a directed edge (HA1–HA3).
 6. Use the Trace zoom chrome (`+` / `−` / Fit) or keys `+` / `=` / `−` / `0`
    to scale the DAG; Fit returns to 100%.
 
@@ -85,6 +87,7 @@ Driver assertions:
 - FLD1–FLD3: legend focus-dim — selected node dims off-path `.traj-legend-chip` (keeps on-path chips readable); screenshot `verification/trajectory-legend-focus-dim.png`
 - KS1–KS3: keyboard node-step (ArrowRight / `]`) advances focus; on-path edges + legend chips stay in sync with click-focus; screenshot `verification/trajectory-keyboard-step.png`
 - DF1–DF3: Trace detail dep-list click→focus — `[data-traj-dep]` / `data-ade-dep-focus` sets `trajSelectedId` via `focusTrajectoryDep`; on-path / legend dim / keyboard step stay in sync; screenshot `verification/trajectory-dep-list-focus.png`
+- HA1–HA3: Trace hop-affordance — selected-node `.traj-hop-next` / detail Next hops `[data-traj-next]` / `data-ade-hop-next` hop along directed edges via `hopTrajectoryNext` / `trajOutgoingIds` (does not change `stepTrajectory` array-order); screenshot `verification/trajectory-hop-affordance.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
@@ -94,7 +97,8 @@ Driver assertions:
   `verification/trajectory-legend-focus-dim.png`, and
   `verification/trajectory-keyboard-step.png`, and
   `verification/trajectory-empty-state.png`, and
-  `verification/trajectory-zoom-chrome.png` are not black frames
+  `verification/trajectory-zoom-chrome.png`, and
+  `verification/trajectory-hop-affordance.png` are not black frames
 - ZC1–ZC3: `#trajZoomBar` visible; zoom in changes `data-traj-scale` / `#trajZoomPct` off 100%; Fit resets to 1 / 100%; screenshot `verification/trajectory-zoom-chrome.png`
 - `.graphide/stamps/` is still empty
 
@@ -109,6 +113,7 @@ Driver assertions:
 - Product hooks: `[data-ws="trace"]`, `#trajCanvas`,
   `data-testid="trajectory-dag"`, `.traj-node`, `.traj-edge`,
   `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]` / `data-ade-dep-focus` / `focusTrajectoryDep`,
+  `.traj-hop-next` / `[data-traj-next]` / `data-ade-hop-next` / `hopTrajectoryNext` / `trajOutgoingIds`,
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
   `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`
