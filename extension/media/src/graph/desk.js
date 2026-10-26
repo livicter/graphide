@@ -10347,6 +10347,54 @@ function toggleTrajResidualFilter() {
   paint({ animate: "none" });
 }
 
+/** Clear residual filter (empty-chrome affordance); no-op when already off. */
+function clearTrajResidualFilter() {
+  if (!trajResidualFilter) return;
+  trajResidualFilter = false;
+  paint({ animate: "none" });
+}
+
+/** Empty chrome when filter ON and zero residual-bearing trajs (e.g. gate approved). */
+function renderResidualFilterEmptyChrome(surface) {
+  if (!trajResidualFilter) return "";
+  const bearingN = passportResidualTrajIds().size;
+  if (bearingN > 0) return "";
+  const isTrace = surface === "trace";
+  const hostClass = isTrace
+    ? "traj-empty residual-filter-empty desk-empty"
+    : "passport-empty passport-residual-filter-empty desk-empty";
+  const hostAttr = isTrace
+    ? ' data-traj-residual-filter-empty="1" data-residual-filter-empty="1"'
+    : ' data-passport-residual-filter-empty="1" data-residual-filter-empty="1"';
+  const title = isTrace ? "No residual-bearing nodes" : "No residual paths match";
+  const copy = isTrace
+    ? "Residual filter is on, but no trajectory nodes bear residual gated writes. Clear the filter to show the full DAG."
+    : "Residual filter is on, but no gate paths bear residual writes (gate may be approved). Clear the filter to show all paths.";
+  return (
+    '<div class="' +
+    hostClass +
+    '"' +
+    hostAttr +
+    ' role="status">' +
+    '<b class="' +
+    (isTrace ? "traj-empty-title" : "passport-empty-title") +
+    '">' +
+    esc(title) +
+    "</b>" +
+    '<div class="' +
+    (isTrace ? "traj-empty-copy" : "passport-empty-copy") +
+    '">' +
+    esc(copy) +
+    "</div>" +
+    '<div class="' +
+    (isTrace ? "traj-empty-action" : "passport-empty-action") +
+    ' residual-filter-empty-action">' +
+    '<button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
 const TRAJ_SCALE_MIN = 0.35;
 const TRAJ_SCALE_MAX = 3;
 const TRAJ_SCALE_STEP = 1.25;
@@ -11086,6 +11134,9 @@ function renderTrajectoryBody() {
     esc(String(Number(trajScale) || 1)) +
     '"' +
     (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") +
+    (trajResidualFilter && residualTrajs.size === 0
+      ? ' data-residual-filter-empty="1"'
+      : "") +
     ' tabindex="0" style="min-width:' +
     Math.ceil(maxX * (Number(trajScale) || 1)) +
     "px;min-height:" +
@@ -11114,6 +11165,7 @@ function renderTrajectoryBody() {
     nodeHtml +
     hopChipHtml +
     "</div>" +
+    renderResidualFilterEmptyChrome("trace") +
     "</div>" +
     renderTrajectoryDetail(fix, selectedId) +
     "</div>" +
@@ -11419,6 +11471,13 @@ function bindTrajectoryPage() {
       toggleTrajResidualFilter();
     };
   }
+  document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearTrajResidualFilter();
+    };
+  });
   bindAdeHopButtons();
   bindAdePassportHlHops();
   const detail = document.getElementById("trajDetail");
@@ -12279,7 +12338,11 @@ function renderPassportGate(fx, state) {
   return (
     '<div id="passportGate" class="passport-gate" data-passport-state="' +
     esc(state) +
-    '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' +
+    '"' +
+    (trajResidualFilter && residualTrajs.size === 0
+      ? ' data-residual-filter-empty="1"'
+      : "") +
+    '><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' +
     esc(chip) +
     '">' +
     esc(chip) +
@@ -12287,7 +12350,9 @@ function renderPassportGate(fx, state) {
     esc(label) +
     '</div></div></div><ul class="passport-gate-paths">' +
     paths +
-    "</ul></div>"
+    "</ul>" +
+    renderResidualFilterEmptyChrome("passport") +
+    "</div>"
   );
 }
 
@@ -12782,6 +12847,13 @@ function bindPassportPage() {
         toggleTrajResidualFilter();
       };
   }
+  document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearTrajResidualFilter();
+    };
+  });
   bindPassportImpactRows();
   bindAdeHopButtons();
   bindAdeTrajHops();

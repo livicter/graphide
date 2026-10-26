@@ -28191,6 +28191,22 @@
       trajResidualFilter = !trajResidualFilter;
       paint({ animate: "none" });
     }
+    function clearTrajResidualFilter() {
+      if (!trajResidualFilter) return;
+      trajResidualFilter = false;
+      paint({ animate: "none" });
+    }
+    function renderResidualFilterEmptyChrome(surface) {
+      if (!trajResidualFilter) return "";
+      const bearingN = passportResidualTrajIds().size;
+      if (bearingN > 0) return "";
+      const isTrace = surface === "trace";
+      const hostClass = isTrace ? "traj-empty residual-filter-empty desk-empty" : "passport-empty passport-residual-filter-empty desk-empty";
+      const hostAttr = isTrace ? ' data-traj-residual-filter-empty="1" data-residual-filter-empty="1"' : ' data-passport-residual-filter-empty="1" data-residual-filter-empty="1"';
+      const title = isTrace ? "No residual-bearing nodes" : "No residual paths match";
+      const copy = isTrace ? "Residual filter is on, but no trajectory nodes bear residual gated writes. Clear the filter to show the full DAG." : "Residual filter is on, but no gate paths bear residual writes (gate may be approved). Clear the filter to show all paths.";
+      return '<div class="' + hostClass + '"' + hostAttr + ' role="status"><b class="' + (isTrace ? "traj-empty-title" : "passport-empty-title") + '">' + esc(title) + '</b><div class="' + (isTrace ? "traj-empty-copy" : "passport-empty-copy") + '">' + esc(copy) + '</div><div class="' + (isTrace ? "traj-empty-action" : "passport-empty-action") + ' residual-filter-empty-action"><button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button></div></div>';
+    }
     const TRAJ_SCALE_MIN = 0.35;
     const TRAJ_SCALE_MAX = 3;
     const TRAJ_SCALE_STEP = 1.25;
@@ -28419,7 +28435,7 @@
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + "</div>";
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div></div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -28650,6 +28666,13 @@
           toggleTrajResidualFilter();
         };
       }
+      document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter();
+        };
+      });
       bindAdeHopButtons();
       bindAdePassportHlHops();
       const detail = document.getElementById("trajDetail");
@@ -29316,7 +29339,7 @@
         const adjCue = isAdj ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>' : "";
         return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + residualFilteredClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + residualBearingAttr + residualFilteredAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
       }).join("");
-      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
+      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"' + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + '><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul>" + renderResidualFilterEmptyChrome("passport") + "</div>";
     }
     function renderPassportSection(key, title, body, count) {
       const countHtml = typeof count === "number" ? '<span class="passport-section-count">' + count + "</span>" : "";
@@ -29483,6 +29506,13 @@
             toggleTrajResidualFilter();
           };
       }
+      document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter();
+        };
+      });
       bindPassportImpactRows();
       bindAdeHopButtons();
       bindAdeTrajHops();

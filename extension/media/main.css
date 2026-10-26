@@ -3254,6 +3254,45 @@ html.bright .traj-node { background: #fff; }
   filter: grayscale(0.35);
 }
 
+/* ADE residual-filter empty chrome (FE1–FE3) — filter ON + zero bearings */
+#trajCanvas[data-residual-filter-empty="1"],
+#passportGate[data-residual-filter-empty="1"] {
+  position: relative;
+}
+.traj-empty.residual-filter-empty,
+.passport-empty.passport-residual-filter-empty {
+  margin: 12px 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, var(--vscode-editorWidget-background, #1e1e1e));
+  max-width: 420px;
+  z-index: 2;
+}
+#trajCanvas .traj-empty.residual-filter-empty {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  pointer-events: auto;
+}
+.residual-filter-clear,
+button.residual-filter-clear[data-residual-filter-clear="1"] {
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-background, #0e639c);
+  border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 70%, transparent);
+}
+.residual-filter-clear:hover,
+button.residual-filter-clear[data-residual-filter-clear="1"]:hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }

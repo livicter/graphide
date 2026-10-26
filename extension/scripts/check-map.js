@@ -625,6 +625,11 @@ assert(driver.includes("WL1") && driver.includes("WL3") && driver.includes("resi
 assert(js.includes("ADE_RESIDUAL_WS") && js.includes("trajResidualFilter = false") && /ADE_RESIDUAL_WS\[prevWs\]/.test(js) && /!ADE_RESIDUAL_WS\[name\]/.test(js), "residual-filter clear-on-ws-leave setWorkspace guard missing");
 assert(traceMap.includes("WL1") && traceMap.includes("clear-on-ws-leave") && traceMap.includes("residual-filter-ws-leave.png"), "trace feature map must name residual-filter clear-on-ws-leave WL / proof");
 assert(passportMap.includes("WL1") && passportMap.includes("clear-on-ws-leave") && passportMap.includes("residual-filter-ws-leave.png"), "passport feature map must name residual-filter clear-on-ws-leave WL / proof");
+assert(driver.includes("FE1") && driver.includes("FE3") && driver.includes("residual-filter-empty.png") && driver.includes("data-residual-filter-clear"), "verify driver must prove residual-filter empty chrome FE1–FE3");
+assert(js.includes("renderResidualFilterEmptyChrome") && js.includes("clearTrajResidualFilter") && js.includes("data-residual-filter-clear") && js.includes("data-traj-residual-filter-empty") && js.includes("data-passport-residual-filter-empty"), "residual-filter empty chrome markup/helpers missing");
+assert(css.includes("residual-filter-empty") && css.includes("residual-filter-clear") && (css.includes("data-residual-filter-empty") || css.includes('data-residual-filter-empty="1"')), "residual-filter empty chrome CSS missing");
+assert(traceMap.includes("FE1") && traceMap.includes("residual-filter empty") && traceMap.includes("residual-filter-empty.png") && traceMap.includes("data-traj-residual-filter-empty"), "trace feature map must name residual-filter empty FE / proof");
+assert(passportMap.includes("FE1") && passportMap.includes("residual-filter empty") && passportMap.includes("residual-filter-empty.png") && passportMap.includes("data-passport-residual-filter-empty"), "passport feature map must name residual-filter empty FE / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

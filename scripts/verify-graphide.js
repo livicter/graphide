@@ -5515,6 +5515,222 @@ async function main() {
     );
     assertNoStampDir("WL4", "Residual-filter ws-leave step did not write .graphide/stamps/");
 
+    // ADE residual-filter empty chrome (FE1–FE3) — filter ON + zero bearings
+    // WL left Trace with filter OFF. Turn ON, Approve gate → bearingN=0 → empty chrome.
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        return legend && legend.getAttribute("data-residual-filter") === "on";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Hop Passport + Approve so residualTrajs empties while filter stays ON (shared).
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="approve"]', {
+      timeout: 8000,
+    });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "approved";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+    const fe1Pass = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const gate = document.getElementById("passportGate");
+      const empty = document.querySelector(
+        '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"]'
+      );
+      const clearBtn = empty && empty.querySelector('[data-residual-filter-clear="1"]');
+      const title = empty && empty.querySelector(".passport-empty-title");
+      const bearingN = document.querySelectorAll(
+        '#passportGate [data-residual-bearing="1"]'
+      ).length;
+      const filteredN = document.querySelectorAll(
+        '#passportGate [data-residual-filtered="1"]'
+      ).length;
+      return {
+        filterAttr: residual ? residual.getAttribute("data-residual-filter") || "" : "",
+        gateState: gate ? gate.getAttribute("data-passport-state") || "" : "",
+        gateEmptyAttr: gate ? gate.getAttribute("data-residual-filter-empty") || "" : "",
+        empty: !!empty,
+        clear: !!clearBtn,
+        title: title ? (title.textContent || "").trim() : "",
+        bearingN,
+        filteredN,
+        pathN: document.querySelectorAll("#passportGate .passport-gate-path").length,
+      };
+    });
+    // Also assert Trace empty chrome after hop back (shared filter still ON, gate approved).
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector(
+      '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const fe1Trace = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const host = document.getElementById("trajCanvas");
+      const empty = document.querySelector(
+        '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"]'
+      );
+      const clearBtn = empty && empty.querySelector('[data-residual-filter-clear="1"]');
+      const title = empty && empty.querySelector(".traj-empty-title");
+      const bearingN = document.querySelectorAll(
+        '.traj-node[data-residual-bearing="1"]'
+      ).length;
+      const filteredN = document.querySelectorAll(
+        '.traj-node[data-residual-filtered="1"]'
+      ).length;
+      const emptyBox = empty ? empty.getBoundingClientRect() : null;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        hostEmptyAttr: host ? host.getAttribute("data-residual-filter-empty") || "" : "",
+        empty: !!empty,
+        clear: !!clearBtn,
+        title: title ? (title.textContent || "").trim() : "",
+        bearingN,
+        filteredN,
+        nodeN: document.querySelectorAll(".traj-node").length,
+        emptyH: emptyBox ? emptyBox.height : 0,
+        emptyW: emptyBox ? emptyBox.width : 0,
+      };
+    });
+    const fe1 = {
+      passport: fe1Pass,
+      trace: fe1Trace,
+    };
+    const fe1ok =
+      fe1.passport.filterAttr === "on" &&
+      fe1.passport.gateState === "approved" &&
+      fe1.passport.gateEmptyAttr === "1" &&
+      fe1.passport.empty &&
+      fe1.passport.clear &&
+      /No residual/i.test(fe1.passport.title) &&
+      fe1.passport.bearingN === 0 &&
+      fe1.passport.filteredN === fe1.passport.pathN &&
+      fe1.passport.pathN >= 1 &&
+      fe1.trace.filterAttr === "on" &&
+      fe1.trace.hostEmptyAttr === "1" &&
+      fe1.trace.empty &&
+      fe1.trace.clear &&
+      /No residual-bearing nodes/i.test(fe1.trace.title) &&
+      fe1.trace.bearingN === 0 &&
+      fe1.trace.filteredN === fe1.trace.nodeN &&
+      fe1.trace.nodeN >= 1 &&
+      fe1.trace.emptyH > 40 &&
+      fe1.trace.emptyW > 120;
+    record(
+      "FE1",
+      "Residual filter ON + gate approved shows Trace/Passport empty chrome + clear affordance",
+      !!fe1ok,
+      JSON.stringify(fe1)
+    );
+
+    await shot(page, "residual-filter-empty.png");
+    const feShot = checks.find((c) => c.id === "shot:residual-filter-empty.png");
+    record(
+      "FE3",
+      "screenshot residual-filter-empty.png is not a black frame",
+      !!(feShot && feShot.pass),
+      feShot ? feShot.detail : "missing shot"
+    );
+
+    await page.click(
+      '.traj-empty.residual-filter-empty [data-residual-filter-clear="1"]'
+    );
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const empty = document.querySelector(
+          '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+        );
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") !== "on" &&
+          !empty &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const fe2 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const host = document.getElementById("trajCanvas");
+      const empty = document.querySelector(
+        '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+      );
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        hostEmptyAttr: host ? host.getAttribute("data-residual-filter-empty") || "" : "",
+        empty: !!empty,
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+        bearingN: document.querySelectorAll(
+          '.traj-node[data-residual-bearing="1"]'
+        ).length,
+      };
+    });
+    // After clear with gate still approved, bearings stay 0 but filter OFF → no empty chrome.
+    const fe2ok =
+      fe2.filterAttr !== "on" &&
+      fe2.pressed === "false" &&
+      fe2.hostEmptyAttr !== "1" &&
+      !fe2.empty &&
+      fe2.filteredN === 0;
+    record(
+      "FE2",
+      "Clear residual filter affordance turns filter OFF and hides empty chrome",
+      !!fe2ok,
+      JSON.stringify(fe2)
+    );
+    assertNoStampDir("FE4", "Residual-filter empty chrome step did not write .graphide/stamps/");
+
+    // Restore gate to pending so later IR/PR residual chrome still sees bearings.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="reject"]', {
+      timeout: 8000,
+    });
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "rejected";
+      },
+      null,
+      { timeout: 8000 }
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

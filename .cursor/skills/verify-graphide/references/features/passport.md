@@ -102,7 +102,7 @@ Hop residual badge: each `#passportGate .passport-gate-path` carries `.passport-
 Adjacent residual: when a Trace traj is focused, neighboring Passport gate paths that still have residual carry `.passport-adj-residual` / `data-passport-adj-residual` (AR1–AR3). Trace legend mirrors residual-adjacent node kinds via AL1–AL3 (`verification/trajectory-adj-residual-legend.png`).
 Focus residual count: when Trace/Passport focus is set, sticky `#passportSign .passport-residual` scopes the badge/copy to the active focused path (`data-residual-scope="focus"` / `data-residual-focus` / `data-focus-residual-count`) while `data-residual-count` stays global (FC1–FC3). Trace legend mirrors the same focusN via LC1–LC3 (`.focus-residual` / `verification/trajectory-legend-focus-residual.png`).
 Clear-focus cue: when sticky residual is focus-scoped, `.passport-clear-focus` / `[data-passport-clear-focus="1"]` clears Trace/Passport focus and restores global residual count (CF1–CF3). Screenshot `verification/passport-clear-focus-cue.png`.
-Residual-filter mirror: sticky `#passportSign .passport-residual` carries `.passport-residual-filter-toggle` / `[data-passport-residual-filter-toggle="1"]` sharing Trace `trajResidualFilter` / `toggleTrajResidualFilter` (PM1–PM3). Host `data-residual-filter="on"` when pressed; gate paths mark `data-residual-bearing` from `passportResidualTrajIds`; non-bearing get `.residual-filtered` / `data-residual-filtered`. Passport `R`/`r` flips the same filter. Screenshot `verification/passport-residual-filter-mirror.png`. Leaving Passport/Trace for another desk clears the shared filter (WL1–WL3); Trace↔Passport hops keep sync.
+Residual-filter mirror: sticky `#passportSign .passport-residual` carries `.passport-residual-filter-toggle` / `[data-passport-residual-filter-toggle="1"]` sharing Trace `trajResidualFilter` / `toggleTrajResidualFilter` (PM1–PM3). Host `data-residual-filter="on"` when pressed; gate paths mark `data-residual-bearing` from `passportResidualTrajIds`; non-bearing get `.residual-filtered` / `data-residual-filtered`. Passport `R`/`r` flips the same filter. Screenshot `verification/passport-residual-filter-mirror.png`. Leaving Passport/Trace for another desk clears the shared filter (WL1–WL3); Trace↔Passport hops keep sync. When filter ON and zero residual-bearing gate paths (gate approved), Passport shows residual-filter empty chrome (`.passport-residual-filter-empty` / `data-passport-residual-filter-empty`) with Clear residual filter (`data-residual-filter-clear`) (FE1–FE3).
 
 
 `passport=1` fetches `passport-fixture.json` into
@@ -136,6 +136,7 @@ Driver assertions:
 - CF1–CF3: sticky clear-focus cue (`.passport-clear-focus` / `data-passport-clear-focus`) restores `data-residual-scope="global"` + global residual count; screenshot `verification/passport-clear-focus-cue.png`
 - PM1–PM3: residual-filter mirror on sticky `#passportSign` (`.passport-residual-filter-toggle` / `data-passport-residual-filter-toggle` / shared `trajResidualFilter`); gate paths `data-residual-bearing` / `.residual-filtered`; Passport `R` flips same filter; screenshot `verification/passport-residual-filter-mirror.png`
 - WL1–WL3: residual-filter clear-on-ws-leave — leave Passport/Trace for Map/Slice/etc. clears shared `trajResidualFilter`; Trace↔Passport hops keep it; screenshot `verification/residual-filter-ws-leave.png`
+- FE1–FE3: residual-filter empty chrome — filter ON + zero residual-bearing paths shows `.passport-residual-filter-empty` / `data-passport-residual-filter-empty` + Clear affordance; screenshot `verification/residual-filter-empty.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -160,7 +161,7 @@ Driver assertions:
   `[data-focus-residual-count]`, `[data-passport-clear-focus]`, `.passport-clear-focus`,
   `[data-passport-residual-filter-toggle]`, `.passport-residual-filter-toggle`,
   `[data-residual-bearing]`, `[data-residual-filtered]`, `.residual-filtered`,
-  residual-filter clear-on-ws-leave (`ADE_RESIDUAL_WS` in `setWorkspace`) are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
+  residual-filter clear-on-ws-leave (`ADE_RESIDUAL_WS` in `setWorkspace`), residual-filter empty chrome (`renderResidualFilterEmptyChrome` / `clearTrajResidualFilter`) are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.
 - Semantic impact is a stub. Do not mount live Architecture Delta here.

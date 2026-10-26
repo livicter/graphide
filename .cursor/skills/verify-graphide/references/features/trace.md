@@ -33,7 +33,7 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Edges carry `data-from` / `data-to` / `data-kind` (`seq|fork|join`) and
   optional `data-label`. Focus dims off-path deps. Edge-legend chips
   (`#trajEdgeLegend` / `.traj-legend-chip`) mirror that focus: on-path
-  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3). When residual neighbors exist, adj-residual node-kind chips (`.adj-residual` / `data-adj-residual`) append after edge chips (AL1–AL3). When traj focus scopes residual gatedWrites (same N as Passport FC), a focus-residual count chip (`.focus-residual` / `data-focus-residual` / `data-focus-residual-count`) appends and the legend host mirrors `data-residual-scope` (LC1–LC3); clear-focus restores `data-residual-scope="global"`. A residual filter toggle (`.residual-filter-toggle` / `data-residual-filter-toggle`) on the legend dims non-residual-bearing nodes when `data-residual-filter="on"` (RF1–RF3); Trace `R` / `r` flips the same filter via `toggleTrajResidualFilter` (RK1–RK3; Map keeps PATH). Passport mirrors the same shared `trajResidualFilter` on sticky residual chrome (PM1–PM3). Leaving Trace/Passport for another desk clears the filter so it does not leak (WL1–WL3); Trace↔Passport hops keep shared sync.
+  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3). When residual neighbors exist, adj-residual node-kind chips (`.adj-residual` / `data-adj-residual`) append after edge chips (AL1–AL3). When traj focus scopes residual gatedWrites (same N as Passport FC), a focus-residual count chip (`.focus-residual` / `data-focus-residual` / `data-focus-residual-count`) appends and the legend host mirrors `data-residual-scope` (LC1–LC3); clear-focus restores `data-residual-scope="global"`. A residual filter toggle (`.residual-filter-toggle` / `data-residual-filter-toggle`) on the legend dims non-residual-bearing nodes when `data-residual-filter="on"` (RF1–RF3); Trace `R` / `r` flips the same filter via `toggleTrajResidualFilter` (RK1–RK3; Map keeps PATH). Passport mirrors the same shared `trajResidualFilter` on sticky residual chrome (PM1–PM3). Leaving Trace/Passport for another desk clears the filter so it does not leak (WL1–WL3); Trace↔Passport hops keep shared sync. When the filter is ON and zero nodes bear residual gated writes (e.g. Passport gate approved), Trace shows residual-filter empty chrome (`.traj-empty.residual-filter-empty` / `data-traj-residual-filter-empty`) with a Clear residual filter affordance (`data-residual-filter-clear`) (FE1–FE3).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
   click-focus (KS1–KS3), dep-list click→focus (DF1–DF3), and directed hop-affordance next → chips (HA1–HA3).
@@ -99,6 +99,7 @@ Driver assertions:
 - RF1–RF3: Trace legend residual filter/toggle — `#trajEdgeLegend` `[data-residual-filter-toggle]` dims non-`[data-residual-bearing]` nodes when host `data-residual-filter="on"`; proof `verification/trajectory-legend-residual-filter.png`
 - RK1–RK3: Trace residual-filter key — on Trace, `R` / `r` calls `toggleTrajResidualFilter` (same chrome as click); Map keeps `R` PATH; proof `verification/trajectory-residual-filter-key.png`
 - WL1–WL3: residual-filter clear-on-ws-leave — leaving Trace/Passport for Map/Slice/etc. clears `trajResidualFilter`; Trace↔Passport hops keep it; proof `verification/residual-filter-ws-leave.png`
+- FE1–FE3: residual-filter empty chrome — filter ON + zero residual-bearing nodes shows `.traj-empty.residual-filter-empty` / `data-traj-residual-filter-empty` + Clear affordance; proof `verification/residual-filter-empty.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
@@ -138,6 +139,7 @@ Driver assertions:
   `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
   `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome
   (`+` / `−` / `0`), residual filter toggle + Trace `R`/`r` → `toggleTrajResidualFilter`,
-  residual-filter clear-on-ws-leave via `setWorkspace` / `ADE_RESIDUAL_WS`.
+  residual-filter clear-on-ws-leave via `setWorkspace` / `ADE_RESIDUAL_WS`,
+  residual-filter empty chrome via `renderResidualFilterEmptyChrome` / `clearTrajResidualFilter`.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).
