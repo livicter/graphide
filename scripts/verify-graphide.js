@@ -3675,6 +3675,100 @@ async function main() {
     );
     assertNoStampDir("PR4", "Passport residual chrome did not write .graphide/stamps/");
 
+    // ADE Passport hop residual badge on gate path rows — HB1–HB3
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportGate .passport-hop-residual[data-passport-hop-residual]", {
+      timeout: 8000,
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(180);
+    const hb1 = await page.evaluate(() => {
+      const paths = [...document.querySelectorAll("#passportGate .passport-gate-path[data-passport-path]")];
+      const hops = [...document.querySelectorAll("#passportGate .passport-hop-residual[data-passport-hop-residual]")];
+      const sample = hops[0] || null;
+      const badge = sample ? sample.querySelector(".passport-hop-residual-badge") : null;
+      const states = hops.map((el) => el.getAttribute("data-hop-residual-state") || "");
+      const badges = hops.map((el) => {
+        const b = el.querySelector(".passport-hop-residual-badge");
+        return b ? (b.textContent || "").trim() : "";
+      });
+      const hopPaths = hops.map((el) => el.getAttribute("data-hop-path") || "");
+      const pathAttrs = paths.map((el) => el.getAttribute("data-passport-path") || "");
+      return {
+        pathCount: paths.length,
+        hopCount: hops.length,
+        everyPathHasHop: paths.every((li) => !!li.querySelector(".passport-hop-residual[data-passport-hop-residual]")),
+        states,
+        badges,
+        hopPaths,
+        pathAttrs,
+        sampleState: sample ? sample.getAttribute("data-hop-residual-state") || "" : "",
+        sampleBadge: badge ? (badge.textContent || "").trim() : "",
+        samplePath: sample ? sample.getAttribute("data-hop-path") || "" : "",
+      };
+    });
+    record(
+      "HB1",
+      "Each Passport gate path row shows hop residual badge (incomplete/blocked)",
+      hb1.pathCount >= 1 &&
+        hb1.hopCount === hb1.pathCount &&
+        hb1.everyPathHasHop &&
+        hb1.states.every((s) => s === "rejected" || s === "pending") &&
+        hb1.badges.every((b) => /^(blocked|incomplete)$/i.test(b)) &&
+        hb1.hopPaths.every((p) => !!p) &&
+        hb1.hopPaths.join("|") === hb1.pathAttrs.join("|"),
+      JSON.stringify(hb1)
+    );
+
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(180);
+    const hb2Approve = await page.evaluate(() => {
+      const hops = [...document.querySelectorAll("#passportGate .passport-hop-residual[data-passport-hop-residual]")];
+      return {
+        hopCount: hops.length,
+        states: hops.map((el) => el.getAttribute("data-hop-residual-state") || ""),
+        badges: hops.map((el) => {
+          const b = el.querySelector(".passport-hop-residual-badge");
+          return b ? (b.textContent || "").trim() : "";
+        }),
+      };
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(180);
+    const hb2Reject = await page.evaluate(() => {
+      const hops = [...document.querySelectorAll("#passportGate .passport-hop-residual[data-passport-hop-residual]")];
+      return {
+        hopCount: hops.length,
+        states: hops.map((el) => el.getAttribute("data-hop-residual-state") || ""),
+        badges: hops.map((el) => {
+          const b = el.querySelector(".passport-hop-residual-badge");
+          return b ? (b.textContent || "").trim() : "";
+        }),
+      };
+    });
+    record(
+      "HB2",
+      "Approve flips hop residual badges to open; Reject restores blocked/incomplete",
+      hb2Approve.hopCount === hb1.hopCount &&
+        hb2Approve.states.length >= 1 &&
+        hb2Approve.states.every((s) => s === "approved") &&
+        hb2Approve.badges.every((b) => /^(open|cleared)$/i.test(b)) &&
+        hb2Reject.hopCount === hb1.hopCount &&
+        hb2Reject.states.every((s) => s === "rejected") &&
+        hb2Reject.badges.every((b) => /^(blocked|incomplete)$/i.test(b)),
+      JSON.stringify({ approve: hb2Approve, reject: hb2Reject, base: hb1.hopCount })
+    );
+
+    await shot(page, "passport-hop-residual-badge.png");
+    const hbShot = checks.find((c) => c.id === "shot:passport-hop-residual-badge.png");
+    record(
+      "HB3",
+      "screenshot passport-hop-residual-badge.png is not a black frame",
+      !!(hbShot && hbShot.pass),
+      hbShot ? hbShot.detail : "missing shot"
+    );
+    assertNoStampDir("HB4", "Passport hop residual badge did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
@@ -28586,7 +28680,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

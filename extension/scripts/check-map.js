@@ -584,6 +584,10 @@ assert(driver.includes("TP1") && driver.includes("TP3") && driver.includes("traj
 assert(js.includes("data-tip-residual") && js.includes("data-residual-hops") && js.includes("traj-pin-tip-residual"), "Trace pin residual tip markup missing");
 assert(css.includes("traj-pin-tip-residual") && css.includes("traj-pin-tip-residual-badge") && css.includes('data-residual-status="running"'), "Trace pin residual CSS missing");
 assert(traceMap.includes("TP1") && traceMap.includes("pin residual") && traceMap.includes("trajectory-pin-residual.png") && traceMap.includes("data-tip-residual"), "trace feature map must name pin residual TP / proof");
+assert(driver.includes("HB1") && driver.includes("HB3") && driver.includes("passport-hop-residual-badge.png") && driver.includes("data-passport-hop-residual"), "verify driver must prove Passport hop residual badge HB1–HB3");
+assert(js.includes("data-passport-hop-residual") && js.includes("data-hop-residual-state") && js.includes("passport-hop-residual"), "Passport hop residual badge markup missing");
+assert(css.includes("passport-hop-residual") && css.includes("passport-hop-residual-badge") && css.includes('data-hop-residual-state="approved"'), "Passport hop residual badge CSS missing");
+assert(passportMap.includes("HB1") && passportMap.includes("hop residual") && passportMap.includes("passport-hop-residual-badge.png") && passportMap.includes("data-passport-hop-residual"), "passport feature map must name hop residual badge HB / proof");
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

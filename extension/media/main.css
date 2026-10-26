@@ -3011,6 +3011,26 @@ html.bright .traj-node { background: #fff; }
 .passport-gate[data-passport-state="approved"] .passport-path-state { color: var(--passport-state); }
 .passport-gate:not([data-passport-state="approved"]) .passport-path-state { color: var(--passport-state); }
 .passport-path-reason { font-size: 11px; opacity: 0.75; }
+
+/* Passport hop residual badge on gate path rows (HB1–HB3) */
+.passport-hop-residual {
+  --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));
+  display: inline-flex; align-items: center; gap: 4px;
+  flex: 0 0 auto;
+  padding: 1px 2px;
+  color: var(--passport-hop-residual);
+  font-size: 10px; line-height: 1.2;
+}
+.passport-hop-residual[data-hop-residual-state="pending"] { --passport-hop-residual: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-hop-residual[data-hop-residual-state="rejected"] { --passport-hop-residual: var(--vscode-errorForeground, #f14c4c); }
+.passport-hop-residual[data-hop-residual-state="approved"] { --passport-hop-residual: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-hop-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 1.15rem; padding: 0 6px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--passport-hop-residual) 20%, transparent);
+}
 .passport-sign {
   position: sticky; bottom: 0; z-index: 6;
   display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;

@@ -11987,6 +11987,16 @@ function renderPassportGate(fx, state) {
     .map((w) => {
       const blocked = unlocked ? "" : ' data-blocked="1"';
       const trajId = resolvePassportTrajId(w);
+      const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
+      const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
+      const hopResidual =
+        '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' +
+        esc(hopState) +
+        '" data-hop-path="' +
+        esc(w.path || "") +
+        '"><span class="passport-hop-residual-badge">' +
+        esc(hopBadge) +
+        "</span></span>";
       return (
         '<li class="passport-gate-path' +
         passportRowActiveClass(trajId) +
@@ -11998,7 +12008,9 @@ function renderPassportGate(fx, state) {
         blocked +
         '><span class="passport-path-state">' +
         (unlocked ? "open" : "blocked") +
-        "</span><code>" +
+        "</span>" +
+        hopResidual +
+        "<code>" +
         esc(w.path || "") +
         "</code>" +
         (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") +
