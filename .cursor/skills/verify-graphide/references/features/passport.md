@@ -36,6 +36,13 @@ is a stub that reuses Delta vocabulary only).
   `[data-passport-fixture]` / `[data-passport-covers]`. Impact cards
   render structured `[data-impact-row]` entries with Delta status/class
   chips (strings still accepted).
+- Impact-row chrome (IR1–IR3): each structured row is
+  `.passport-impact-row` with `.passport-impact-head` (chips + label) and
+  sibling `.passport-impact-detail` collapsed by default via
+  `data-impact-expanded="false"` / `aria-expanded="false"`; click or
+  Enter/Space expands. Hover/focus-visible highlight. String items use
+  `.passport-impact-row--static` (no expand). Screenshot
+  `verification/passport-impact-rows.png`.
 - Engine: embedded `PASSPORT_FIXTURE` in desk.js, overridable by
   `window.__graphidePassport` when `isPassport()` passes (harness
   `?passport=1` loads `passport-fixture.json`). Impact may carry
@@ -83,6 +90,7 @@ Driver assertions:
   `verification/passport-fixtures.png` are not black frames
 - PF1–PF5: richer architecture/API/risk/test/impact row hooks
 - GS1–GS3: Sticky Decision Rail — `#passportGate` / `#passportSign` stay readable while scrolling; filled `data-gate-chip`; `.passport-gate-summary` + `.passport-sign-actions`; screenshot `verification/passport-gate-signoff.png`
+- IR1–IR3: impact-row head/detail hierarchy + expand/hover; static string fallback; screenshot `verification/passport-impact-rows.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -100,6 +108,8 @@ Driver assertions:
   `[data-passport-delta-class]`, `[data-passport-breaking]`,
   `[data-passport-mitigation]`, `[data-passport-blast]`,
   `[data-passport-fixture]`, `[data-passport-covers]`, `[data-impact-row]`,
+  `[data-impact-expanded]`, `.passport-impact-head`, `.passport-impact-detail`,
+  `.passport-impact-row--static`,
   `[data-vocab-chip]`, `[data-impact-region]` are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.

@@ -11188,7 +11188,8 @@ const PASSPORT_FIXTURE = Object.freeze({
         detail: "Structured rows + Delta vocab chips",
         deltaStatus: "Added",
         deltaClass: "Presentation"
-      }
+      },
+      "legacy string impact row (static chrome)"
     ],
     apiContracts: [
       {
@@ -11523,28 +11524,43 @@ function renderPassportDeltaChip(kind, value) {
 function renderPassportImpactItem(item) {
   if (item == null) return "";
   if (typeof item === "string") {
-    return "<li><code>" + esc(item) + "</code></li>";
+    return (
+      '<li class="passport-impact-row passport-impact-row--static" data-impact-row="">' +
+      '<div class="passport-impact-head">' +
+      '<span class="passport-impact-label"><code>' +
+      esc(item) +
+      "</code></span></div></li>"
+    );
   }
   const status = item.deltaStatus || "";
   const klass = item.deltaClass || "";
   const cluster = item.clusterKind || "";
   const id = item.id || "";
+  const hasDetail = !!item.detail;
+  const staticClass = hasDetail ? "" : " passport-impact-row--static";
+  const expandAttrs = hasDetail
+    ? ' data-impact-expanded="false" aria-expanded="false" tabindex="0"'
+    : "";
   return (
-    '<li class="passport-impact-row" data-impact-row="' +
+    '<li class="passport-impact-row' +
+    staticClass +
+    '" data-impact-row="' +
     esc(id) +
     '"' +
     (status ? ' data-delta-status="' + esc(status) + '"' : "") +
     (klass ? ' data-delta-class="' + esc(klass) + '"' : "") +
     (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
+    expandAttrs +
     ">" +
+    '<div class="passport-impact-head">' +
     renderPassportDeltaChip("status", status) +
     renderPassportDeltaChip("class", klass) +
     renderPassportDeltaChip("cluster", cluster) +
     '<strong class="passport-impact-label">' +
     esc(item.label || id) +
-    "</strong>" +
-    (item.detail
-      ? '<span class="passport-impact-detail">' + esc(item.detail) + "</span>"
+    "</strong></div>" +
+    (hasDetail
+      ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>"
       : "") +
     "</li>"
   );
@@ -11783,6 +11799,33 @@ function setPassportGate(state) {
   paint({ animate: "none" });
 }
 
+function togglePassportImpactRow(row) {
+  if (!row || !row.hasAttribute("data-impact-expanded")) return;
+  const next = row.getAttribute("data-impact-expanded") !== "true";
+  row.setAttribute("data-impact-expanded", next ? "true" : "false");
+  row.setAttribute("aria-expanded", next ? "true" : "false");
+}
+
+function bindPassportImpactRows() {
+  const root = document.getElementById("passportImpact");
+  if (!root) return;
+  root.addEventListener("click", (ev) => {
+    if (ev.target.closest("a, button")) return;
+    const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
+    if (!row || !root.contains(row)) return;
+    ev.preventDefault();
+    togglePassportImpactRow(row);
+  });
+  root.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    if (ev.target.closest("a, button")) return;
+    const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
+    if (!row || !root.contains(row)) return;
+    ev.preventDefault();
+    togglePassportImpactRow(row);
+  });
+}
+
 function bindPassportPage() {
   const sign = document.getElementById("passportSign");
   if (sign) {
@@ -11799,6 +11842,7 @@ function bindPassportPage() {
         setPassportGate("rejected");
       };
   }
+  bindPassportImpactRows();
   bindAdeHopButtons();
 }
 

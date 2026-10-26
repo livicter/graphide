@@ -3007,6 +3007,163 @@ async function main() {
     );
     await shot(page, "passport-gate-signoff.png");
 
+    // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportImpact", { timeout: 8000 });
+    await page.evaluate(() => {
+      const impact = document.getElementById("passportImpact");
+      if (impact) impact.scrollIntoView({ block: "start" });
+    });
+    await page.waitForTimeout(120);
+    const ir1 = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll("#passportImpact .passport-impact-card")];
+      const rows = [...document.querySelectorAll("#passportImpact [data-impact-row]")];
+      const objectRows = rows.filter((el) => el.hasAttribute("data-impact-expanded"));
+      const staticRows = rows.filter((el) => el.classList.contains("passport-impact-row--static"));
+      const sample = objectRows[0] || null;
+      const head = sample && sample.querySelector(":scope > .passport-impact-head");
+      const detail = sample && sample.querySelector(":scope > .passport-impact-detail");
+      const labelInHead = !!(head && head.querySelector(".passport-impact-label"));
+      const chipInHead = !!(
+        head &&
+        (head.querySelector("[data-vocab-chip]") || head.querySelector(".passport-vocab-chip"))
+      );
+      const detailSibling =
+        !!(head && detail && head.nextElementSibling === detail);
+      const staticOk = staticRows.some(
+        (el) =>
+          !el.hasAttribute("data-impact-expanded") &&
+          !el.querySelector(".passport-impact-detail") &&
+          !!el.querySelector(".passport-impact-head .passport-impact-label")
+      );
+      return {
+        cards: cards.length,
+        rows: rows.length,
+        objectRows: objectRows.length,
+        staticRows: staticRows.length,
+        labelInHead,
+        chipInHead,
+        detailSibling,
+        staticOk,
+        defaultExpanded: sample ? sample.getAttribute("data-impact-expanded") : "",
+        defaultAria: sample ? sample.getAttribute("aria-expanded") : "",
+      };
+    });
+    const ir1ok =
+      ir1.cards === 3 &&
+      ir1.objectRows >= 1 &&
+      ir1.staticRows >= 1 &&
+      ir1.labelInHead &&
+      ir1.chipInHead &&
+      ir1.detailSibling &&
+      ir1.staticOk &&
+      ir1.defaultExpanded === "false" &&
+      ir1.defaultAria === "false";
+    record(
+      "IR1",
+      "Passport impact rows expose head/detail hierarchy + static string fallback",
+      ir1ok,
+      JSON.stringify(ir1)
+    );
+
+    const ir2 = await page.evaluate(async () => {
+      const root = document.getElementById("passportImpact");
+      const row = root && root.querySelector("[data-impact-row][data-impact-expanded]");
+      const staticRow = root && root.querySelector(".passport-impact-row--static");
+      if (!row) return { ok: false, reason: "no expandable row" };
+      const detail = row.querySelector(".passport-impact-detail");
+      const cs0 = detail ? getComputedStyle(detail).display : "";
+      const bg0 = getComputedStyle(row).backgroundColor;
+      row.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      // hover style is CSS :hover — approximate via classless computed after focus
+      row.focus();
+      const bgFocus = getComputedStyle(row).backgroundColor;
+      const cursor = getComputedStyle(row).cursor;
+      row.click();
+      const expanded1 = row.getAttribute("data-impact-expanded");
+      const aria1 = row.getAttribute("aria-expanded");
+      const cs1 = detail ? getComputedStyle(detail).display : "";
+      const h1 = row.getBoundingClientRect().height;
+      row.click();
+      const expanded2 = row.getAttribute("data-impact-expanded");
+      const aria2 = row.getAttribute("aria-expanded");
+      const cs2 = detail ? getComputedStyle(detail).display : "";
+      row.click(); // leave expanded for screenshot
+      row.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      const afterEnter = row.getAttribute("data-impact-expanded");
+      // re-expand for proof shot
+      if (row.getAttribute("data-impact-expanded") !== "true") row.click();
+      let staticChanged = false;
+      if (staticRow) {
+        const before = staticRow.getAttribute("data-impact-expanded");
+        staticRow.click();
+        staticChanged = staticRow.getAttribute("data-impact-expanded") !== before;
+      }
+      return {
+        ok: true,
+        cs0,
+        cs1,
+        cs2,
+        expanded1,
+        aria1,
+        expanded2,
+        aria2,
+        afterEnter,
+        h1,
+        cursor,
+        bg0,
+        bgFocus,
+        staticChanged,
+        finalExpanded: row.getAttribute("data-impact-expanded"),
+      };
+    });
+    // Also exercise page.hover for computed :hover background change
+    const hoverSel = await page.evaluate(() => {
+      const row = document.querySelector("#passportImpact [data-impact-row][data-impact-expanded]");
+      if (!row) return "";
+      const id = row.getAttribute("data-impact-row") || "";
+      return id ? `#passportImpact [data-impact-row="${id}"]` : "#passportImpact [data-impact-row][data-impact-expanded]";
+    });
+    let hoverBg = { before: "", after: "" };
+    if (hoverSel) {
+      hoverBg.before = await page.$eval(hoverSel, (el) => getComputedStyle(el).backgroundColor);
+      await page.hover(hoverSel);
+      await page.waitForTimeout(80);
+      hoverBg.after = await page.$eval(hoverSel, (el) => getComputedStyle(el).backgroundColor);
+    }
+    const ir2ok =
+      ir2.ok &&
+      ir2.cs0 === "none" &&
+      ir2.expanded1 === "true" &&
+      ir2.aria1 === "true" &&
+      ir2.cs1 !== "none" &&
+      ir2.expanded2 === "false" &&
+      ir2.aria2 === "false" &&
+      ir2.cs2 === "none" &&
+      ir2.cursor === "pointer" &&
+      ir2.finalExpanded === "true" &&
+      !ir2.staticChanged &&
+      hoverBg.after &&
+      hoverBg.after !== "rgba(0, 0, 0, 0)";
+    record(
+      "IR2",
+      "Passport impact-row expand/collapse + hover affordance; static rows inert",
+      ir2ok,
+      JSON.stringify({ ir2, hoverBg })
+    );
+
+    await shot(page, "passport-impact-rows.png");
+    const ir3Shot = checks.find((c) => c.id === "shot:passport-impact-rows.png");
+    record(
+      "IR3",
+      "screenshot passport-impact-rows.png is not a black frame",
+      !!(ir3Shot && ir3Shot.pass),
+      ir3Shot ? ir3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("IR4", "Passport impact-row chrome did not write .graphide/stamps/");
+
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });
     await page.waitForTimeout(250);
