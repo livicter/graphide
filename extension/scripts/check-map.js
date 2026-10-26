@@ -657,6 +657,13 @@ assert(js.includes("syncKeysAdeSection") && js.includes("keysAdeSection") && js.
 assert(chrome.includes('id="keysAdeSection"') && chrome.includes("keys-section") && chrome.includes('data-keys-section="ade"') && chrome.includes("data-keys-section-title"), "KeysPane ADE section header hooks missing from chrome");
 assert(css.includes("keys-section") && (css.includes("data-keys-section") || css.includes('data-keys-section="ade"')), "Keys ADE section CSS missing");
 assert(keysMap.includes("KA1") && keysMap.includes("section header") && keysMap.includes("keys-ade-section.png") && keysMap.includes("data-keys-section") && keysMap.includes("syncKeysAdeSection"), "keys feature map must name ADE section header KA / proof");
+assert(driver.includes("ALR1") && driver.includes("ALR3") && driver.includes("residual-filter-aria-live.png") && driver.includes("data-residual-filter-live") && driver.includes("Residual filter on"), "verify driver must prove residual-filter aria-live ALR1–ALR3");
+assert(js.includes("syncResidualFilterLive") && js.includes("residualFilterLive") && js.includes("data-residual-filter-live") && /function toggleTrajResidualFilter\([\s\S]*?syncResidualFilterLive/.test(js) && /function clearTrajResidualFilter\([\s\S]*?syncResidualFilterLive/.test(js), "residual-filter aria-live syncResidualFilterLive hooks missing from desk");
+assert(chrome.includes('id="residualFilterLive"') && chrome.includes("data-residual-filter-live") && chrome.includes('aria-live="polite"') && chrome.includes("sr-only"), "App residualFilterLive aria-live hooks missing from chrome");
+assert(css.includes("sr-only") && (css.includes("residualFilterLive") || css.includes("#residualFilterLive")), "residual-filter aria-live sr-only CSS missing");
+assert(keysMap.includes("ALR1") && keysMap.includes("aria-live") && keysMap.includes("residual-filter-aria-live.png") && keysMap.includes("syncResidualFilterLive") && keysMap.includes("data-residual-filter-live"), "keys feature map must name residual-filter aria-live ALR / proof");
+assert(traceMap.includes("ALR1") && traceMap.includes("aria-live") && traceMap.includes("residual-filter-aria-live.png") && traceMap.includes("residualFilterLive"), "trace feature map must name residual-filter aria-live ALR / proof");
+assert(passportMap.includes("ALR1") && passportMap.includes("aria-live") && passportMap.includes("residual-filter-aria-live.png") && passportMap.includes("residualFilterLive"), "passport feature map must name residual-filter aria-live ALR / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

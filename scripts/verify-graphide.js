@@ -7010,6 +7010,209 @@ async function main() {
     );
     assertNoStampDir("KA4", "Keys ADE section header step did not write .graphide/stamps/");
 
+    // ADE residual-filter dedicated aria-live (ALR1–ALR3) — persistent #residualFilterLive beyond toast
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        const live = document.getElementById("residualFilterLive");
+        return (
+          !!(btn && btn.getAttribute("aria-pressed") === "false") &&
+          !!(live && live.getAttribute("data-residual-filter-live") === "1")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // ALR1: toggle ON → live region "Residual filter on, N matching"
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        const text = live ? (live.textContent || "").trim() : "";
+        return !!(
+          live &&
+          live.getAttribute("aria-live") === "polite" &&
+          live.getAttribute("role") === "status" &&
+          live.getAttribute("data-residual-filter-live") === "1" &&
+          live.getAttribute("data-residual-filter-live-state") === "on" &&
+          /^Residual filter on, \d+ matching$/.test(text) &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const alr1 = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const toast = document.getElementById("toast");
+      const countChip = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-count="1"]'
+      );
+      const text = live ? (live.textContent || "").trim() : "";
+      const m = /^Residual filter on, (\d+) matching$/.exec(text);
+      const n = m ? Number(m[1]) : -1;
+      const chipN = countChip
+        ? Number(countChip.getAttribute("data-filter-residual-count") || "-1")
+        : -1;
+      return {
+        text,
+        n,
+        chipN,
+        liveAttr: live ? live.getAttribute("data-residual-filter-live") || "" : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        ariaLive: live ? live.getAttribute("aria-live") || "" : "",
+        role: live ? live.getAttribute("role") || "" : "",
+        atomic: live ? live.getAttribute("aria-atomic") || "" : "",
+        srOnly: !!(live && live.classList.contains("sr-only")),
+        hidden: !!(live && live.hidden),
+        toastOn: !!(toast && toast.classList.contains("on")),
+        toastText: toast ? (toast.textContent || "").trim() : "",
+      };
+    });
+    const alr1ok =
+      alr1.liveAttr === "1" &&
+      alr1.state === "on" &&
+      alr1.ariaLive === "polite" &&
+      alr1.role === "status" &&
+      alr1.atomic === "true" &&
+      alr1.srOnly &&
+      !alr1.hidden &&
+      alr1.n >= 0 &&
+      (alr1.chipN < 0 || alr1.n === alr1.chipN) &&
+      /^Residual filter on, \d+ matching$/.test(alr1.text) &&
+      /Residuals on/i.test(alr1.toastText);
+    record(
+      "ALR1",
+      "Trace residual ON → #residualFilterLive on+N (toast still Residuals on)",
+      !!alr1ok,
+      JSON.stringify(alr1)
+    );
+    await shot(page, "residual-filter-aria-live.png");
+    const alrShot = checks.find((c) => c.id === "shot:residual-filter-aria-live.png");
+
+    // ALR2: toggle OFF → "Residual filter off"
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        const text = live ? (live.textContent || "").trim() : "";
+        return !!(
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "off" &&
+          text === "Residual filter off" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const alr2 = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const toast = document.getElementById("toast");
+      return {
+        text: live ? (live.textContent || "").trim() : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        countAttr: live ? live.getAttribute("data-filter-residual-count") : null,
+        toastText: toast ? (toast.textContent || "").trim() : "",
+        toastSkip: !!(toast && toast.classList.contains("skip")),
+      };
+    });
+    const alr2ok =
+      alr2.text === "Residual filter off" &&
+      alr2.state === "off" &&
+      (alr2.countAttr === null || alr2.countAttr === "") &&
+      /Residuals off/i.test(alr2.toastText) &&
+      alr2.toastSkip;
+    record(
+      "ALR2",
+      "Trace residual OFF → #residualFilterLive off (toast Residuals off)",
+      !!alr2ok,
+      JSON.stringify(alr2)
+    );
+
+    // ALR3: ON then clear-filter cue → live off; proof shot quality
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const clear = document.querySelector(
+          '#trajEdgeLegend [data-legend-clear-filter="1"]'
+        );
+        return !!(
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "on" &&
+          clear
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#trajEdgeLegend [data-legend-clear-filter="1"]');
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!(
+          live &&
+          (live.textContent || "").trim() === "Residual filter off" &&
+          live.getAttribute("data-residual-filter-live-state") === "off" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const alr3 = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      return {
+        text: live ? (live.textContent || "").trim() : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+      };
+    });
+    const alr3ok =
+      alr3.text === "Residual filter off" &&
+      alr3.state === "off" &&
+      !!(alrShot && alrShot.pass);
+    record(
+      "ALR3",
+      "Clear-filter cue → live off; residual-filter-aria-live.png not a black frame",
+      !!alr3ok,
+      JSON.stringify({ clear: alr3, shot: alrShot ? alrShot.detail : "missing" })
+    );
+    assertNoStampDir("ALR4", "Residual-filter aria-live step did not write .graphide/stamps/");
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');

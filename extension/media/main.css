@@ -1813,6 +1813,23 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
   background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
 }
+/* ADE residual-filter dedicated aria-live (ALR) — visually hidden, always in a11y tree */
+.sr-only,
+#residualFilterLive.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+#residualFilterLive {
+  /* never hide with display/visibility — AT must read aria-live updates */
+  pointer-events: none;
+}
 #toast {
   position: fixed;
   left: 50%;

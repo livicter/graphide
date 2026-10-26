@@ -7857,6 +7857,19 @@
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "tip", hidden: true }),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "trajPinTip", hidden: true, "data-traj-pin-tip": "1", role: "tooltip" }),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "toast", hidden: true, role: "status" }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "div",
+        {
+          id: "residualFilterLive",
+          "data-residual-filter-live": "1",
+          "data-residual-filter-live-state": "off",
+          role: "status",
+          "aria-live": "polite",
+          "aria-atomic": "true",
+          className: "sr-only",
+          children: "Residual filter off"
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(KeysPane, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ExportMenu, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Progress, {}),
@@ -23629,6 +23642,7 @@
       const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
       if (prevWs !== name && ADE_RESIDUAL_WS[prevWs] && !ADE_RESIDUAL_WS[name] && trajResidualFilter) {
         trajResidualFilter = false;
+        if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
       }
       explorerWs = name;
       if (typeof syncKeysRRow === "function") syncKeysRRow(name);
@@ -28234,6 +28248,25 @@
     let trajFocusSeeded = false;
     let trajScale = 1;
     let trajResidualFilter = false;
+    function residualFilterMatchingCount() {
+      try {
+        if (typeof passportResidualTrajIds === "function") return passportResidualTrajIds().size;
+      } catch (e) {
+      }
+      return 0;
+    }
+    function syncResidualFilterLive(on2) {
+      const el2 = document.getElementById("residualFilterLive");
+      if (!el2) return;
+      const active = !!on2;
+      const n = active ? residualFilterMatchingCount() : 0;
+      const text = active ? "Residual filter on, " + n + " matching" : "Residual filter off";
+      el2.setAttribute("data-residual-filter-live", "1");
+      el2.setAttribute("data-residual-filter-live-state", active ? "on" : "off");
+      if (active) el2.setAttribute("data-filter-residual-count", String(n));
+      else el2.removeAttribute("data-filter-residual-count");
+      if (el2.textContent !== text) el2.textContent = text;
+    }
     function toggleTrajResidualFilter() {
       trajResidualFilter = !trajResidualFilter;
       if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
@@ -28243,6 +28276,7 @@
           trajResidualFilter ? "ok" : "skip"
         );
       }
+      if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
       paint({ animate: "none" });
     }
     function clearTrajResidualFilter() {
@@ -28250,6 +28284,7 @@
       trajResidualFilter = false;
       if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
       if (typeof flashToast === "function") flashToast("Residuals off", "skip");
+      if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
       paint({ animate: "none" });
     }
     function renderResidualFilterEmptyChrome(surface) {

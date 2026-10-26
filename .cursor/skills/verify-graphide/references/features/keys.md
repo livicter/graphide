@@ -35,6 +35,14 @@ second command palette and not an agent stamp.
   `syncKeysRRow`). Map and other desks hide/clear the section (`hidden`, no `data-keys-ws`).
   Proof: `verification/keys-ade-section.png` (Trace Keys). Prefer KA ids — KS is Trace keyboard
   node-step.
+- ADE residual-filter dedicated aria-live (ALR1–ALR3): `#residualFilterLive`
+  (`[data-residual-filter-live]` / `role="status"` / `aria-live="polite"` / `.sr-only`) is a
+  persistent AT live region updated by `syncResidualFilterLive` from
+  `toggleTrajResidualFilter` / `clearTrajResidualFilter` (and ws-leave clear). Copy:
+  `Residual filter on, N matching` / `Residual filter off` (N from
+  `passportResidualTrajIds().size`). Does **not** replace `#toast` / `flashToast` Residuals
+  on/off. Proof: `verification/residual-filter-aria-live.png` (Trace + filter ON). Prefer ALR —
+  AL is Trace adj-residual legend.
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
@@ -123,6 +131,7 @@ Driver assertions:
 - screenshot `verification/keys.png` is not a black frame
 - ADE KH1–KH3: Trace Keys open → `[data-keys-row="r"]` has `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and text includes `residual filter` (not sole PATH); Passport same; Map Keys → `path` / `0` / `PATH`. Screenshot `verification/keys-residual-filter.png` is not a black frame. No stamps.
 - ADE KP1–KP3: Trace residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed`) and `#toast` shows `Residuals on` (`ok`); toggle OFF → pressed cleared + `Residuals off` (`skip`); Map / leave clears pressed; no-op clear does not toast. Screenshot `verification/keys-residual-pressed.png` is not a black frame. No stamps.
+- ADE ALR1–ALR3: Trace residual ON → `#residualFilterLive[data-residual-filter-live]` (`aria-live="polite"` / `role="status"`) text matches `Residual filter on, N matching` (N = bearing count); OFF / clear → `Residual filter off`; `#toast` Residuals on/off still works separately. Screenshot `verification/residual-filter-aria-live.png` is not a black frame. No stamps. Prefer ALR (AL is adj-residual).
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
@@ -155,6 +164,8 @@ Driver assertions:
   stays closed.
 - Do not add `data-component` / `data-testid`. `#keysBtn`, `#keysPane`,
   `#keysClose` are the hooks.
+- Residual-filter AT live region is `#residualFilterLive` / `[data-residual-filter-live]`
+  (`syncResidualFilterLive`); do not overload `#toast` for persistent filter state (ALR1–ALR3).
 - Do not invent a second drawing tool or a Mermaid cheatsheet.
 - `#keysPane` must stack above the desk (`z-index`) and start `hidden`.
 - Agents never stamp. The sheet is a reminder that `S` / `X` are human.

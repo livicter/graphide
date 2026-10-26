@@ -4506,6 +4506,7 @@ function setWorkspace(name, pin) {
     trajResidualFilter
   ) {
     trajResidualFilter = false;
+    if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
   }
   explorerWs = name;
   // Keep #keysPane R row in sync even while closed (RK1 keysDoc + KH workspace-aware).
@@ -10383,6 +10384,29 @@ let trajFocusSeeded = false;
 let trajScale = 1;
 let trajResidualFilter = false;
 
+/** ADE residual-filter dedicated aria-live (ALR1–ALR3) — persistent AT region; does not replace flashToast. */
+function residualFilterMatchingCount() {
+  try {
+    if (typeof passportResidualTrajIds === "function") return passportResidualTrajIds().size;
+  } catch (e) {}
+  return 0;
+}
+
+function syncResidualFilterLive(on) {
+  const el = document.getElementById("residualFilterLive");
+  if (!el) return;
+  const active = !!on;
+  const n = active ? residualFilterMatchingCount() : 0;
+  const text = active
+    ? "Residual filter on, " + n + " matching"
+    : "Residual filter off";
+  el.setAttribute("data-residual-filter-live", "1");
+  el.setAttribute("data-residual-filter-live-state", active ? "on" : "off");
+  if (active) el.setAttribute("data-filter-residual-count", String(n));
+  else el.removeAttribute("data-filter-residual-count");
+  if (el.textContent !== text) el.textContent = text;
+}
+
 /** Flip Trace/Passport residual filter; shared by legend/Passport toggles + R key. */
 function toggleTrajResidualFilter() {
   trajResidualFilter = !trajResidualFilter;
@@ -10393,6 +10417,7 @@ function toggleTrajResidualFilter() {
       trajResidualFilter ? "ok" : "skip"
     );
   }
+  if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
   paint({ animate: "none" });
 }
 
@@ -10402,6 +10427,7 @@ function clearTrajResidualFilter() {
   trajResidualFilter = false;
   if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
   if (typeof flashToast === "function") flashToast("Residuals off", "skip");
+  if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
   paint({ animate: "none" });
 }
 
