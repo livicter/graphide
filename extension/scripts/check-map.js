@@ -664,6 +664,9 @@ assert(css.includes("sr-only") && (css.includes("residualFilterLive") || css.inc
 assert(keysMap.includes("ALR1") && keysMap.includes("aria-live") && keysMap.includes("residual-filter-aria-live.png") && keysMap.includes("syncResidualFilterLive") && keysMap.includes("data-residual-filter-live"), "keys feature map must name residual-filter aria-live ALR / proof");
 assert(traceMap.includes("ALR1") && traceMap.includes("aria-live") && traceMap.includes("residual-filter-aria-live.png") && traceMap.includes("residualFilterLive"), "trace feature map must name residual-filter aria-live ALR / proof");
 assert(passportMap.includes("ALR1") && passportMap.includes("aria-live") && passportMap.includes("residual-filter-aria-live.png") && passportMap.includes("residualFilterLive"), "passport feature map must name residual-filter aria-live ALR / proof");
+assert(driver.includes("PKP1") && driver.includes("PKP3") && driver.includes("passport-keys-residual-pressed.png") && driver.includes("data-keys-r-pressed"), "verify driver must prove Passport Keys pressed-state PKP1–PKP3");
+assert(keysMap.includes("PKP1") && keysMap.includes("passport-keys-residual-pressed.png") && keysMap.includes("Passport Keys pressed") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Passport Keys pressed PKP / proof");
+assert(passportMap.includes("PKP1") && passportMap.includes("passport-keys-residual-pressed.png") && passportMap.includes("Keys pressed") && passportMap.includes("data-keys-r-pressed"), "passport feature map must name Passport Keys pressed PKP / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

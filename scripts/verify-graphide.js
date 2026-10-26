@@ -7213,6 +7213,245 @@ async function main() {
     );
     assertNoStampDir("ALR4", "Residual-filter aria-live step did not write .graphide/stamps/");
 
+    // ADE Passport Keys pressed-state proof parity (PKP1–PKP3) — Passport path for syncKeysRRow pressed chrome
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign, #passportImpact", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        const pane = document.getElementById("keysPane");
+        return (
+          !!(btn && btn.getAttribute("aria-pressed") === "false") &&
+          !!(pane && pane.hidden)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // PKP1: Passport residual ON → open Keys → R row pressed + residual binding
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return !!(btn && btn.getAttribute("aria-pressed") === "true");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "1" &&
+          row.getAttribute("aria-pressed") === "true" &&
+          row.classList.contains("on") &&
+          row.classList.contains("pressed") &&
+          row.getAttribute("data-keys-r-binding") === "residual-filter"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const pkp1 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      const box = row ? row.getBoundingClientRect() : null;
+      const sec = pane && pane.querySelector('#keysAdeSection');
+      return {
+        open: !!(pane && !pane.hidden),
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+        pressedCls: !!(row && row.classList.contains("pressed")),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        hint: row ? row.getAttribute("data-keys-residual-hint") || "" : "",
+        ws: sec ? sec.getAttribute("data-keys-ws") || "" : "",
+        rowH: box ? box.height : 0,
+        rowW: box ? box.width : 0,
+      };
+    });
+    const pkp1ok =
+      pkp1.open &&
+      pkp1.pressed === "1" &&
+      pkp1.aria === "true" &&
+      pkp1.onCls &&
+      pkp1.pressedCls &&
+      pkp1.binding === "residual-filter" &&
+      pkp1.hint === "1" &&
+      pkp1.ws === "passport" &&
+      pkp1.rowH > 8 &&
+      pkp1.rowW > 40;
+    record(
+      "PKP1",
+      "Passport residual ON → Keys R row pressed (residual-filter binding)",
+      !!pkp1ok,
+      JSON.stringify(pkp1)
+    );
+    await shot(page, "passport-keys-residual-pressed.png");
+    const pkpShot = checks.find((c) => c.id === "shot:passport-keys-residual-pressed.png");
+
+    // PKP2: toggle OFF → pressed cleared
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return !!(btn && btn.getAttribute("aria-pressed") === "false");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "0" &&
+          row.getAttribute("aria-pressed") === "false" &&
+          !row.classList.contains("on") &&
+          !row.classList.contains("pressed")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pkp2 = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane [data-keys-row="r"]');
+      return {
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+        pressedCls: !!(row && row.classList.contains("pressed")),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+      };
+    });
+    const pkp2ok =
+      pkp2.pressed === "0" &&
+      pkp2.aria === "false" &&
+      !pkp2.onCls &&
+      !pkp2.pressedCls &&
+      pkp2.binding === "residual-filter";
+    record(
+      "PKP2",
+      "Passport residual OFF → Keys R pressed cleared (binding stays residual-filter)",
+      !!pkp2ok,
+      JSON.stringify(pkp2)
+    );
+
+    // PKP3: filter ON + pressed, leave to Map → pressed cleared; proof shot quality
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r"); // ON
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return !!(btn && btn.getAttribute("aria-pressed") === "true");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const row = document.querySelector('#keysPane [data-keys-row="r"]');
+        return !!(row && row.getAttribute("data-keys-r-pressed") === "1");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(120);
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "0" &&
+          row.getAttribute("aria-pressed") === "false" &&
+          row.getAttribute("data-keys-r-binding") === "path"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pkp3map = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane [data-keys-row="r"]');
+      return {
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+      };
+    });
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const pkp3ok =
+      pkp3map.pressed === "0" &&
+      pkp3map.aria === "false" &&
+      pkp3map.binding === "path" &&
+      !pkp3map.onCls &&
+      !!(pkpShot && pkpShot.pass);
+    record(
+      "PKP3",
+      "Map leave clears Passport Keys R pressed; passport-keys-residual-pressed.png ok",
+      !!pkp3ok,
+      JSON.stringify({ map: pkp3map, shot: pkpShot ? pkpShot.detail : "missing" })
+    );
+    assertNoStampDir("PKP4", "Passport Keys pressed proof step did not write .graphide/stamps/");
+
+
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
