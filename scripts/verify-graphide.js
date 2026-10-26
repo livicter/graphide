@@ -2251,6 +2251,113 @@ async function main() {
     record("PH3", "Leaving Trace pin hides #trajPinTip", tipGone, "hidden=" + tipGone);
     assertNoStampDir("PH4", "Trace pin-hover step did not write .graphide/stamps/");
 
+    // ADE Trace pin residual / status cue on #trajPinTip — TP1–TP3
+    await page.$eval(pinTarget, (el) => el.scrollIntoView({ block: "center", inline: "center" }));
+    await page.waitForTimeout(80);
+    await page.hover(pinTarget);
+    await page.waitForTimeout(180);
+    const tp1 = await page.evaluate(() => {
+      const tip = document.getElementById("trajPinTip");
+      const residual = tip && tip.querySelector(".traj-pin-tip-residual[data-tip-residual]");
+      const copy = residual
+        ? ((residual.querySelector(".traj-pin-tip-residual-copy") || residual).textContent || "").trim()
+        : "";
+      const badge = residual
+        ? ((residual.querySelector(".traj-pin-tip-residual-badge") || residual).textContent || "").trim()
+        : "";
+      return {
+        tip: !!tip && !tip.hidden,
+        present: !!residual,
+        tipResidual: tip ? tip.getAttribute("data-tip-residual") || "" : "",
+        status: residual ? residual.getAttribute("data-residual-status") || "" : "",
+        tipStatus: tip ? tip.getAttribute("data-residual-status") || "" : "",
+        deps: residual ? residual.getAttribute("data-residual-deps") || "" : "",
+        hops: residual ? residual.getAttribute("data-residual-hops") || "" : "",
+        seal: residual ? residual.getAttribute("data-residual-seal") || "" : "",
+        badge,
+        copy,
+        nodeId: tip ? tip.getAttribute("data-node-id") || "" : "",
+      };
+    });
+    // sub-diff: status=done, unmet deps=0 (edit+fixture done), hops=2 (verify+seal)
+    const tp1ok =
+      tp1.tip &&
+      tp1.present &&
+      tp1.tipResidual === "1" &&
+      tp1.nodeId === "sub-diff" &&
+      tp1.status === "done" &&
+      tp1.tipStatus === "done" &&
+      tp1.deps === "0" &&
+      tp1.hops === "2" &&
+      tp1.seal === "" &&
+      /done/i.test(tp1.badge) &&
+      /0 deps? left/i.test(tp1.copy) &&
+      /2 hops?/i.test(tp1.copy) &&
+      !/seal/i.test(tp1.copy);
+    record(
+      "TP1",
+      "Pin tip residual cue shows status + unmet deps + hop residual for sub-diff",
+      tp1ok,
+      JSON.stringify(tp1)
+    );
+
+    await page.mouse.move(8, 8);
+    await page.waitForTimeout(100);
+    const sealPin = '.traj-node[data-id="sub-seal"] .traj-pin[data-traj-pin="diff"], .traj-node[data-id="sub-seal"] .traj-pin[data-traj-pin="artifact"]';
+    await page.waitForSelector('.traj-node[data-id="sub-seal"] .traj-pin', { timeout: 5000 });
+    await page.$eval('.traj-node[data-id="sub-seal"] .traj-pin', (el) =>
+      el.scrollIntoView({ block: "center", inline: "center" })
+    );
+    await page.waitForTimeout(80);
+    await page.hover('.traj-node[data-id="sub-seal"] .traj-pin[data-traj-pin="diff"]');
+    await page.waitForTimeout(180);
+    const tp2 = await page.evaluate(() => {
+      const tip = document.getElementById("trajPinTip");
+      const residual = tip && tip.querySelector(".traj-pin-tip-residual[data-tip-residual]");
+      const copy = residual
+        ? ((residual.querySelector(".traj-pin-tip-residual-copy") || residual).textContent || "").trim()
+        : "";
+      return {
+        tip: !!tip && !tip.hidden,
+        present: !!residual,
+        status: residual ? residual.getAttribute("data-residual-status") || "" : "",
+        deps: residual ? residual.getAttribute("data-residual-deps") || "" : "",
+        hops: residual ? residual.getAttribute("data-residual-hops") || "" : "",
+        seal: residual ? residual.getAttribute("data-residual-seal") || "" : "",
+        tipSeal: tip ? tip.getAttribute("data-residual-seal") || "" : "",
+        copy,
+        nodeId: tip ? tip.getAttribute("data-node-id") || "" : "",
+        kind: tip ? tip.getAttribute("data-pin-kind") || "" : "",
+      };
+    });
+    // sub-seal: status=done, unmet=0, hops=1 (pr), seal hint from kind=harness / immutable artifact
+    const tp2ok =
+      tp2.tip &&
+      tp2.present &&
+      tp2.nodeId === "sub-seal" &&
+      tp2.status === "done" &&
+      tp2.deps === "0" &&
+      tp2.hops === "1" &&
+      tp2.seal === "1" &&
+      tp2.tipSeal === "1" &&
+      /seal/i.test(tp2.copy);
+    record(
+      "TP2",
+      "Pin tip residual on sub-seal shows seal hint with coherent status/deps/hops",
+      tp2ok,
+      JSON.stringify(tp2)
+    );
+
+    await shot(page, "trajectory-pin-residual.png");
+    const tpShot = checks.find((c) => c.id === "shot:trajectory-pin-residual.png");
+    record(
+      "TP3",
+      "screenshot trajectory-pin-residual.png is not a black frame",
+      !!(tpShot && tpShot.pass),
+      tpShot ? tpShot.detail : "missing shot"
+    );
+    assertNoStampDir("TP4", "Trace pin residual step did not write .graphide/stamps/");
+
     // ADE Trace edge-legend chips (seq / fork / join) — EL1–EL3
     // Clear traj focus so .on-path stroke overrides do not pollute kind-* samples.
     await page.evaluate(() => {
@@ -28464,7 +28571,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map + Trace hop-affordance + Passport residual chrome) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight + Trace dep-list focus + Passport contract/risk traj map + Passport test-strategy traj map + Trace hop-affordance + Passport residual chrome + Trace pin residual) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -28479,7 +28586,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

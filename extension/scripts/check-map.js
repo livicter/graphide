@@ -580,6 +580,10 @@ assert(driver.includes("PR1") && driver.includes("PR3") && driver.includes("pass
 assert(js.includes("renderPassportResidual") && js.includes("data-passport-residual") && js.includes("data-residual-count") && js.includes("data-residual-state"), "Passport residual chrome render/markup missing");
 assert(css.includes("passport-residual") && css.includes("passport-residual-badge") && css.includes('data-residual-state="approved"'), "Passport residual chrome CSS missing");
 assert(passportMap.includes("PR1") && passportMap.includes("residual") && passportMap.includes("passport-residual-chrome.png") && passportMap.includes("data-passport-residual"), "passport feature map must name residual chrome PR / proof");
+assert(driver.includes("TP1") && driver.includes("TP3") && driver.includes("trajectory-pin-residual.png") && driver.includes("data-tip-residual"), "verify driver must prove Trace pin residual TP1–TP3");
+assert(js.includes("data-tip-residual") && js.includes("data-residual-hops") && js.includes("traj-pin-tip-residual"), "Trace pin residual tip markup missing");
+assert(css.includes("traj-pin-tip-residual") && css.includes("traj-pin-tip-residual-badge") && css.includes('data-residual-status="running"'), "Trace pin residual CSS missing");
+assert(traceMap.includes("TP1") && traceMap.includes("pin residual") && traceMap.includes("trajectory-pin-residual.png") && traceMap.includes("data-tip-residual"), "trace feature map must name pin residual TP / proof");
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

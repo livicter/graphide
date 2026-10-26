@@ -22,7 +22,11 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
   `title` double-tip. Pin-tip chrome: add/del chips
   (`.traj-pin-tip-chip-add` / `.traj-pin-tip-chip-del`), path dir +
   basename (`[data-tip-art-dir]` / `[data-tip-art-base]`), and pin-anchored
-  placement (`data-tip-place=below|above`).
+  placement (`data-tip-place=below|above`). Pin residual cue
+  (`.traj-pin-tip-residual` / `data-tip-residual`): status badge,
+  unmet deps left, hop residual (`data-residual-status` /
+  `data-residual-deps` / `data-residual-hops`), and optional seal hint
+  (`data-residual-seal`) for harness/immutable nodes (TP1–TP3).
 - Inspector also shows phase / agent / duration, a deps list
   (`[data-traj-dep]` under `[data-traj-deps]`), and artifact-diff
   adds/dels (`[data-artifact-diff]`).
@@ -83,6 +87,7 @@ Driver assertions:
 - TF1–TF5: richer phase/agent/deps/artifact-diff inspector hooks
 - PH1–PH3: diff pin hover tip (`#trajPinTip`) with matching adds/dels
 - PTC1–PTC3: pin-tip chrome chips, path basename split, pin-anchored place
+- TP1–TP3: pin residual / status cue on `#trajPinTip` (unmet deps, hop residual, seal hint); screenshot `verification/trajectory-pin-residual.png`
 - EL1–EL3: `#trajEdgeLegend` / `.traj-edge-legend` seq/fork/join chips; stroke styles mirror `.traj-edge.kind-*`; screenshot `verification/trajectory-edge-legend.png`
 - FLD1–FLD3: legend focus-dim — selected node dims off-path `.traj-legend-chip` (keeps on-path chips readable); screenshot `verification/trajectory-legend-focus-dim.png`
 - KS1–KS3: keyboard node-step (ArrowRight / `]`) advances focus; on-path edges + legend chips stay in sync with click-focus; screenshot `verification/trajectory-keyboard-step.png`
@@ -93,6 +98,7 @@ Driver assertions:
   `verification/trajectory-fixtures.png`,
   `verification/trajectory-pin-hover.png`, and
   `verification/trajectory-pin-tip-chrome.png`, and
+  `verification/trajectory-pin-residual.png`, and
   `verification/trajectory-edge-legend.png`, and
   `verification/trajectory-legend-focus-dim.png`, and
   `verification/trajectory-keyboard-step.png`, and
@@ -116,7 +122,9 @@ Driver assertions:
   `.traj-hop-next` / `[data-traj-next]` / `data-ade-hop-next` / `hopTrajectoryNext` / `trajOutgoingIds`,
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
-  `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`
+  `[data-tip-art-base]`, `data-tip-place`, `.traj-pin-tip-residual` /
+  `data-tip-residual` / `data-residual-status` / `data-residual-deps` /
+  `data-residual-hops` / `data-residual-seal`, keyboard step via `stepTrajectory`
   (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
   `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
   `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome

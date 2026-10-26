@@ -11027,6 +11027,11 @@ function hideTrajPinTip() {
   el.removeAttribute("data-adds");
   el.removeAttribute("data-dels");
   el.removeAttribute("data-tip-place");
+  el.removeAttribute("data-tip-residual");
+  el.removeAttribute("data-residual-status");
+  el.removeAttribute("data-residual-deps");
+  el.removeAttribute("data-residual-hops");
+  el.removeAttribute("data-residual-seal");
   el.innerHTML = "";
 }
 
@@ -11124,6 +11129,54 @@ function showTrajPinTip(pin, node, ev) {
       esc(base) +
       "</span></code>";
   }
+  // TP: residual/status cue — unmet deps, hop residual, optional seal hint
+  const fix = trajectoryFixture();
+  const nodes = fix.nodes || [];
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const fxNode = byId.get(id) || null;
+  const status = (fxNode && fxNode.status) || "pending";
+  const depIds = fxNode && Array.isArray(fxNode.deps) ? fxNode.deps : [];
+  let unmetDeps = 0;
+  for (const d of depIds) {
+    const dep = byId.get(d);
+    const st = (dep && dep.status) || "pending";
+    if (st !== "done") unmetDeps += 1;
+  }
+  const hops = trajOutgoingIds(fix, id).length;
+  const artPath = (fxNode && fxNode.artifact) || art || "";
+  const sealHint = !!(
+    (fxNode && fxNode.kind === "harness") ||
+    /seal|immutable/i.test(String(id) + " " + artPath)
+  );
+  el.setAttribute("data-tip-residual", "1");
+  el.setAttribute("data-residual-status", status);
+  el.setAttribute("data-residual-deps", String(unmetDeps));
+  el.setAttribute("data-residual-hops", String(hops));
+  if (sealHint) el.setAttribute("data-residual-seal", "1");
+  else el.removeAttribute("data-residual-seal");
+  const residualCopy =
+    unmetDeps +
+    " dep" +
+    (unmetDeps === 1 ? "" : "s") +
+    " left · " +
+    hops +
+    " hop" +
+    (hops === 1 ? "" : "s") +
+    (sealHint ? " · seal" : "");
+  html +=
+    '<div class="traj-pin-tip-residual" data-tip-residual="1" data-residual-status="' +
+    esc(status) +
+    '" data-residual-deps="' +
+    esc(String(unmetDeps)) +
+    '" data-residual-hops="' +
+    esc(String(hops)) +
+    '"' +
+    (sealHint ? ' data-residual-seal="1"' : "") +
+    '><span class="traj-pin-tip-residual-badge">' +
+    esc(status) +
+    '</span><span class="traj-pin-tip-residual-copy">' +
+    esc(residualCopy) +
+    "</span></div>";
   el.innerHTML = html;
   el.hidden = false;
   positionTrajPinTip(el, ev, pin);

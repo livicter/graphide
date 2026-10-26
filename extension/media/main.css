@@ -2767,6 +2767,56 @@ html.bright .traj-hop-next {
 }
 .traj-pin-tip-art-dir { opacity: 0.55; }
 .traj-pin-tip-art-base { opacity: 0.96; font-weight: 650; }
+/* ADE Trace pin residual (TP1–TP3) — status / unmet deps / hop residual / seal hint */
+.traj-pin-tip-residual {
+  --traj-pin-residual: var(--vscode-editorWarning-foreground, #cca700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--traj-pin-residual) 50%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--traj-pin-residual) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--traj-pin-residual);
+  font-size: 10.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.traj-pin-tip-residual[data-residual-status="done"] {
+  --traj-pin-residual: var(--vscode-testing-iconPassed, #3fb950);
+}
+.traj-pin-tip-residual[data-residual-status="running"] {
+  --traj-pin-residual: var(--vscode-focusBorder, #2f81f7);
+}
+.traj-pin-tip-residual[data-residual-status="pending"] {
+  --traj-pin-residual: var(--vscode-editorWarning-foreground, #cca700);
+}
+.traj-pin-tip-residual[data-residual-seal="1"] {
+  border-style: dashed;
+}
+.traj-pin-tip-residual-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  min-height: 1.2rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--traj-pin-residual) 20%, transparent);
+}
+.traj-pin-tip-residual-copy {
+  font-weight: 600;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
   border-radius: 10px;
