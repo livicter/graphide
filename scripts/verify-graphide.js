@@ -6810,6 +6810,206 @@ async function main() {
     );
     assertNoStampDir("KP4", "Keys R pressed + residual toast step did not write .graphide/stamps/");
 
+    // ADE Keys Trace/Passport section header (KA1–KA3) — #keysAdeSection on Trace/Passport Keys
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+        return !!(
+          pane &&
+          !pane.hidden &&
+          pane.classList.contains("open") &&
+          sec &&
+          !sec.hidden &&
+          sec.getAttribute("data-keys-section") === "ade" &&
+          sec.getAttribute("data-keys-ws") === "trace"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ka1 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+      const titleEl =
+        sec &&
+        (sec.querySelector("[data-keys-section-title]") || sec.querySelector(".keys-section-title"));
+      const title = titleEl ? (titleEl.textContent || "").trim() : "";
+      const box = sec ? sec.getBoundingClientRect() : null;
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      return {
+        open: !!(pane && !pane.hidden && pane.classList.contains("open")),
+        section: sec ? sec.getAttribute("data-keys-section") || "" : "",
+        ws: sec ? sec.getAttribute("data-keys-ws") || "" : "",
+        hidden: !!(sec && sec.hidden),
+        title,
+        secH: box ? box.height : 0,
+        secW: box ? box.width : 0,
+        rowBinding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+      };
+    });
+    const ka1ok =
+      ka1.open &&
+      !ka1.hidden &&
+      ka1.section === "ade" &&
+      ka1.ws === "trace" &&
+      /^Trace/i.test(ka1.title) &&
+      /residual/i.test(ka1.title) &&
+      ka1.rowBinding === "residual-filter" &&
+      ka1.secH > 6 &&
+      ka1.secW > 40;
+    record(
+      "KA1",
+      "Trace Keys shows ADE section header (data-keys-ws=trace)",
+      !!ka1ok,
+      JSON.stringify(ka1)
+    );
+    await shot(page, "keys-ade-section.png");
+    const kaShot = checks.find((c) => c.id === "shot:keys-ade-section.png");
+
+    // KA2: Passport Keys → data-keys-ws=passport
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign, #passportImpact", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+        return !!(
+          pane &&
+          !pane.hidden &&
+          sec &&
+          !sec.hidden &&
+          sec.getAttribute("data-keys-ws") === "passport"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ka2 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+      const titleEl =
+        sec &&
+        (sec.querySelector("[data-keys-section-title]") || sec.querySelector(".keys-section-title"));
+      const title = titleEl ? (titleEl.textContent || "").trim() : "";
+      return {
+        open: !!(pane && !pane.hidden),
+        section: sec ? sec.getAttribute("data-keys-section") || "" : "",
+        ws: sec ? sec.getAttribute("data-keys-ws") || "" : "",
+        hidden: !!(sec && sec.hidden),
+        title,
+      };
+    });
+    const ka2ok =
+      ka2.open &&
+      !ka2.hidden &&
+      ka2.section === "ade" &&
+      ka2.ws === "passport" &&
+      /^Passport/i.test(ka2.title) &&
+      /residual/i.test(ka2.title);
+    record(
+      "KA2",
+      "Passport Keys shows ADE section header (data-keys-ws=passport)",
+      !!ka2ok,
+      JSON.stringify(ka2)
+    );
+
+    // KA3: Map → section hidden/cleared + proof shot quality
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(120);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          sec &&
+          sec.hidden === true &&
+          !sec.getAttribute("data-keys-ws") &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "path"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ka3 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const sec = pane && (pane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection"));
+      const titleEl =
+        sec &&
+        (sec.querySelector("[data-keys-section-title]") || sec.querySelector(".keys-section-title"));
+      const title = titleEl ? (titleEl.textContent || "").trim() : "";
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      return {
+        open: !!(pane && !pane.hidden),
+        hidden: !!(sec && sec.hidden),
+        ws: sec ? sec.getAttribute("data-keys-ws") : null,
+        title,
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+      };
+    });
+    const ka3ok =
+      ka3.open &&
+      ka3.hidden &&
+      (ka3.ws === null || ka3.ws === "") &&
+      ka3.title === "" &&
+      ka3.binding === "path" &&
+      !!(kaShot && kaShot.pass);
+    record(
+      "KA3",
+      "Map Keys hides ADE section; keys-ade-section.png not a black frame",
+      !!ka3ok,
+      JSON.stringify({ map: ka3, shot: kaShot ? kaShot.detail : "missing" })
+    );
+    assertNoStampDir("KA4", "Keys ADE section header step did not write .graphide/stamps/");
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');

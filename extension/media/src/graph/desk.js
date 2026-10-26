@@ -3675,9 +3675,30 @@ function flashCanvas() {
   canvas.classList.add("swap");
 }
 
-/** ADE Keys residual-filter hint (KH1–KH3) + pressed-state (KP1–KP3): workspace-aware R row on #keysPane. */
+/** ADE Keys Trace/Passport section header (KA1–KA3): show/hide #keysAdeSection by workspace. */
+function syncKeysAdeSection(ws) {
+  if (!keysPane) return;
+  const el = keysPane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection");
+  if (!el) return;
+  const titleEl = el.querySelector("[data-keys-section-title]") || el.querySelector(".keys-section-title");
+  const on = ws === "trace" || ws === "passport";
+  el.hidden = !on;
+  if (!on) {
+    el.removeAttribute("data-keys-ws");
+    if (titleEl) titleEl.textContent = "";
+    return;
+  }
+  el.setAttribute("data-keys-ws", ws);
+  if (titleEl) {
+    titleEl.textContent =
+      ws === "trace" ? "Trace · residual bindings" : "Passport · residual bindings";
+  }
+}
+
+/** ADE Keys residual-filter hint (KH1–KH3) + pressed-state (KP1–KP3) + ADE section (KA1–KA3): workspace-aware R row on #keysPane. */
 function syncKeysRRow(ws) {
   if (!keysPane) return;
+  if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
   const row = keysPane.querySelector('[data-keys-row="r"]');
   if (!row) return;
   const textEl = row.querySelector("[data-keys-r-binding-text]");

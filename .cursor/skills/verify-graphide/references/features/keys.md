@@ -28,6 +28,13 @@ second command palette and not an agent stamp.
   with `Residuals on` (`ok`) / `Residuals off` (`skip`); no-op clear when already off does
   not toast. Covers R key, legend toggle, Passport sticky toggle, and clear affordances.
   Proof: `verification/keys-residual-pressed.png` (Trace Keys + filter ON).
+- ADE Keys Trace/Passport section header (KA1–KA3): when Trace/Passport (and Keys open /
+  sync path), `#keysPane` shows `#keysAdeSection` (`.keys-section` / `data-keys-section="ade"` /
+  `data-keys-ws="trace|passport"`) labeled **Trace · residual bindings** / **Passport · residual
+  bindings** immediately above the R residual row via `syncKeysAdeSection` (called from
+  `syncKeysRRow`). Map and other desks hide/clear the section (`hidden`, no `data-keys-ws`).
+  Proof: `verification/keys-ade-section.png` (Trace Keys). Prefer KA ids — KS is Trace keyboard
+  node-step.
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it

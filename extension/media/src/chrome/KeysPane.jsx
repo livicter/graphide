@@ -20,6 +20,14 @@ export function KeysPane() {
         <li>
           <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> / <kbd>←</kbd> <kbd>→</kbd> / <kbd>j</kbd> <kbd>k</kbd> step
         </li>
+        <li
+          id="keysAdeSection"
+          className="keys-section"
+          data-keys-section="ade"
+          hidden
+        >
+          <span className="keys-section-title" data-keys-section-title />
+        </li>
         <li data-keys-row="r" data-keys-r-binding="path" data-keys-residual-hint="0" data-keys-r-pressed="0" aria-pressed="false">
           <kbd>R</kbd> <span data-keys-r-binding-text>PATH</span> · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
         </li>

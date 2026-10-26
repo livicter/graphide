@@ -7707,6 +7707,16 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "k" }),
           " step"
         ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "li",
+          {
+            id: "keysAdeSection",
+            className: "keys-section",
+            "data-keys-section": "ade",
+            hidden: true,
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "keys-section-title", "data-keys-section-title": true })
+          }
+        ),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", "data-keys-r-pressed": "0", "aria-pressed": "false", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
           " ",
@@ -22926,8 +22936,26 @@
       void canvas.offsetWidth;
       canvas.classList.add("swap");
     }
+    function syncKeysAdeSection(ws) {
+      if (!keysPane) return;
+      const el2 = keysPane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection");
+      if (!el2) return;
+      const titleEl = el2.querySelector("[data-keys-section-title]") || el2.querySelector(".keys-section-title");
+      const on2 = ws === "trace" || ws === "passport";
+      el2.hidden = !on2;
+      if (!on2) {
+        el2.removeAttribute("data-keys-ws");
+        if (titleEl) titleEl.textContent = "";
+        return;
+      }
+      el2.setAttribute("data-keys-ws", ws);
+      if (titleEl) {
+        titleEl.textContent = ws === "trace" ? "Trace · residual bindings" : "Passport · residual bindings";
+      }
+    }
     function syncKeysRRow(ws) {
       if (!keysPane) return;
+      if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
       const row = keysPane.querySelector('[data-keys-row="r"]');
       if (!row) return;
       const textEl = row.querySelector("[data-keys-r-binding-text]");

@@ -652,6 +652,11 @@ assert(driver.includes("KP1") && driver.includes("KP3") && driver.includes("keys
 assert(js.includes("data-keys-r-pressed") && js.includes("Residuals on") && js.includes("Residuals off") && /function toggleTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function clearTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function syncKeysRRow\([\s\S]*?data-keys-r-pressed/.test(js), "Keys R pressed + residual toast hooks missing from desk");
 assert(chrome.includes("data-keys-r-pressed") && chrome.includes('aria-pressed="false"'), "KeysPane R row pressed hooks missing from chrome");
 assert(keysMap.includes("KP1") && keysMap.includes("pressed-state") && keysMap.includes("keys-residual-pressed.png") && keysMap.includes("Residuals on") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Keys R pressed + toast KP / proof");
+assert(driver.includes("KA1") && driver.includes("KA3") && driver.includes("keys-ade-section.png") && driver.includes("data-keys-section") && driver.includes("data-keys-ws"), "verify driver must prove Keys ADE section header KA1–KA3");
+assert(js.includes("syncKeysAdeSection") && js.includes("keysAdeSection") && js.includes("data-keys-section") && js.includes("data-keys-ws") && /function syncKeysRRow\([\s\S]*?syncKeysAdeSection/.test(js), "Keys ADE section syncKeysAdeSection / data attrs missing");
+assert(chrome.includes('id="keysAdeSection"') && chrome.includes("keys-section") && chrome.includes('data-keys-section="ade"') && chrome.includes("data-keys-section-title"), "KeysPane ADE section header hooks missing from chrome");
+assert(css.includes("keys-section") && (css.includes("data-keys-section") || css.includes('data-keys-section="ade"')), "Keys ADE section CSS missing");
+assert(keysMap.includes("KA1") && keysMap.includes("section header") && keysMap.includes("keys-ade-section.png") && keysMap.includes("data-keys-section") && keysMap.includes("syncKeysAdeSection"), "keys feature map must name ADE section header KA / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

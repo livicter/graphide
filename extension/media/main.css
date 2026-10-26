@@ -1937,6 +1937,28 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   border-radius: 5px;
   border: 1px solid var(--vscode-panel-border);
 }
+/* ADE KA: Trace/Passport residual section header on #keysPane */
+#keysPane li.keys-section,
+#keysPane li[data-keys-section="ade"] {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 4px 2px 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground, inherit);
+}
+#keysPane li.keys-section[hidden],
+#keysPane li[data-keys-section="ade"][hidden] {
+  display: none;
+}
+#keysPane .keys-section-title,
+#keysPane [data-keys-section-title] {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
 /* ADE KP: Keys R row pressed when residual filter ON on Trace/Passport */
 #keysPane li[data-keys-row="r"].on,
 #keysPane li[data-keys-row="r"].pressed,
