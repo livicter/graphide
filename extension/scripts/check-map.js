@@ -588,6 +588,13 @@ assert(css.includes("passport-empty") && css.includes("passport-page--empty") &&
 assert(passportMap.includes("PE1") && passportMap.includes("empty-state") && passportMap.includes("passport-empty-state.png"), "passport feature map must name empty-state PE / proof");
 assert(harness.includes("passportEmpty"), "harness ?passportEmpty=1 inject missing");
 
+assert(driver.includes("ZC1") && driver.includes("ZC3") && driver.includes("trajectory-zoom-chrome.png"), "verify driver must prove Trace zoom chrome ZC1–ZC3");
+assert(js.includes("trajZoomBy") && js.includes("trajZoomFit") && js.includes("renderTrajZoomBar") && js.includes("trajScaleLayer"), "Trace zoom chrome render/handlers missing");
+assert(js.includes("TRAJ_SCALE_STEP") && js.includes('data-traj-scale') && js.includes("traj-zoom-bar"), "Trace zoom scale state / markup missing");
+assert(js.includes('explorerWs === "trace"') && js.includes("trajZoomBy(TRAJ_SCALE_STEP)"), "Trace zoom key intercept before Map zoom missing");
+assert(css.includes("traj-zoom-bar") && css.includes("traj-scale-layer") && css.includes("traj-zoom-pct"), "Trace zoom chrome CSS missing");
+assert(traceMap.includes("ZC1") && traceMap.includes("zoom chrome") && traceMap.includes("trajectory-zoom-chrome.png"), "trace feature map must name zoom chrome ZC / proof");
+
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {
   const immutableFs = require("fs");

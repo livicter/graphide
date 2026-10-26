@@ -480,6 +480,24 @@ document.addEventListener("keydown", (e) => {
       return;
     }
   }
+  // ADE Trace zoom chrome (ZC): +/=/−/0 drive trajScale before Map zoomBy/fitChart.
+  if (explorerWs === "trace") {
+    if (e.key === "+" || e.key === "=") {
+      e.preventDefault();
+      trajZoomBy(TRAJ_SCALE_STEP);
+      return;
+    }
+    if (e.key === "-" || e.key === "_") {
+      e.preventDefault();
+      trajZoomBy(1 / TRAJ_SCALE_STEP);
+      return;
+    }
+    if (e.key === "0") {
+      e.preventDefault();
+      trajZoomFit();
+      return;
+    }
+  }
   if (e.key === "+" || e.key === "=") {
     e.preventDefault();
     zoomBy(1.18);
@@ -10300,6 +10318,10 @@ function trajectoryFixture() {
 let trajSelectedId = "";
 let trajPinFocus = "";
 let trajFocusSeeded = false;
+let trajScale = 1;
+const TRAJ_SCALE_MIN = 0.35;
+const TRAJ_SCALE_MAX = 3;
+const TRAJ_SCALE_STEP = 1.25;
 
 function seedTrajectoryFocus() {
   if (trajFocusSeeded) return;
@@ -10526,6 +10548,48 @@ function renderTrajectoryDetail(fix, selectedId) {
     "</dd></dl>" +
     '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div>' +
     "</aside>"
+  );
+}
+
+function trajZoomPctLabel(scale) {
+  return Math.round((Number(scale) || 1) * 100) + "%";
+}
+
+function trajZoomBy(factor) {
+  const nodes = trajectoryFixture().nodes || [];
+  if (!nodes.length) return;
+  const next = Math.min(
+    TRAJ_SCALE_MAX,
+    Math.max(TRAJ_SCALE_MIN, (Number(trajScale) || 1) * (Number(factor) || 1))
+  );
+  if (Math.abs(next - trajScale) < 1e-6) return;
+  trajScale = next;
+  paint({ animate: "none" });
+}
+
+function trajZoomFit() {
+  const nodes = trajectoryFixture().nodes || [];
+  if (!nodes.length) {
+    trajScale = 1;
+    return;
+  }
+  if (Math.abs((Number(trajScale) || 1) - 1) < 1e-6) return;
+  trajScale = 1;
+  paint({ animate: "none" });
+}
+
+function renderTrajZoomBar() {
+  const scale = Number(trajScale) || 1;
+  const pct = trajZoomPctLabel(scale);
+  return (
+    '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom">' +
+    '<button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button>' +
+    '<span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1">' +
+    pct +
+    "</span>" +
+    '<button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button>' +
+    '<button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button>' +
+    "</span>"
   );
 }
 
@@ -10791,19 +10855,29 @@ function renderTrajectoryBody() {
     "</b> deps</span>" +
     "</span>" +
     edgeLegend +
+    renderTrajZoomBar() +
     renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
     '<div class="traj-layout">' +
     '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
     esc(fix.id) +
+    '" data-traj-scale="' +
+    esc(String(Number(trajScale) || 1)) +
     '"' +
     (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") +
     ' tabindex="0" style="min-width:' +
-    maxX +
+    Math.ceil(maxX * (Number(trajScale) || 1)) +
     "px;min-height:" +
-    maxY +
+    Math.ceil(maxY * (Number(trajScale) || 1)) +
     'px">' +
+    '<div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' +
+    maxX +
+    "px;height:" +
+    maxY +
+    "px;transform:scale(" +
+    (Number(trajScale) || 1) +
+    ');transform-origin:0 0">' +
     '<svg class="traj-edges" width="' +
     maxX +
     '" height="' +
@@ -10819,6 +10893,7 @@ function renderTrajectoryBody() {
     "</svg>" +
     nodeHtml +
     "</div>" +
+    "</div>" +
     renderTrajectoryDetail(fix, selectedId) +
     "</div>" +
     '<div class="traj-meta" data-fixture-version="' +
@@ -10830,7 +10905,7 @@ function renderTrajectoryBody() {
     " deps · fixture " +
     esc(fix.id) +
     (fix.version ? " v" + esc(String(fix.version)) : "") +
-    " · click node / pin · [ ] / ←→ / jk step</div>" +
+    " · click node / pin · [ ] / ←→ / jk step · +/−/0 zoom</div>" +
     "</div>"
   );
 }
@@ -11025,6 +11100,12 @@ function bindTrajectoryPage() {
   host.onclick = () => {
     if (document.activeElement !== host) host.focus({ preventScroll: true });
   };
+  const zin = document.getElementById("trajZoomIn");
+  const zout = document.getElementById("trajZoomOut");
+  const zfit = document.getElementById("trajZoomFit");
+  if (zin) zin.onclick = (ev) => { ev.preventDefault(); trajZoomBy(TRAJ_SCALE_STEP); };
+  if (zout) zout.onclick = (ev) => { ev.preventDefault(); trajZoomBy(1 / TRAJ_SCALE_STEP); };
+  if (zfit) zfit.onclick = (ev) => { ev.preventDefault(); trajZoomFit(); };
   bindAdeHopButtons();
 }
 

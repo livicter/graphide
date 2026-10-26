@@ -2946,6 +2946,131 @@ async function main() {
       window.__graphidePassport = null;
     });
 
+    // ADE Trace zoom chrome — ZC1–ZC3 (local DAG scale; not Map #zoomBar)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas[data-testid='trajectory-dag']", { timeout: 8000 });
+    await page.waitForSelector("#trajZoomBar[data-traj-zoom-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const zc1 = await page.evaluate(() => {
+      const bar = document.getElementById("trajZoomBar");
+      const host = document.getElementById("trajCanvas");
+      const layer = document.getElementById("trajScaleLayer");
+      const pct = document.getElementById("trajZoomPct");
+      const mapZoom = document.getElementById("zoomBar");
+      const scaleAttr = host ? host.getAttribute("data-traj-scale") : "";
+      const transform = layer ? layer.getAttribute("style") || layer.style.transform || "" : "";
+      return {
+        bar: !!bar,
+        zin: !!document.getElementById("trajZoomIn"),
+        zout: !!document.getElementById("trajZoomOut"),
+        zfit: !!document.getElementById("trajZoomFit"),
+        pct: pct ? (pct.textContent || "").trim() : "",
+        scaleAttr,
+        transform,
+        mapZoomHidden: !mapZoom || mapZoom.hidden === true || mapZoom.getAttribute("hidden") !== null,
+        nodes: document.querySelectorAll(".traj-node").length,
+      };
+    });
+    const zc1ok =
+      zc1.bar &&
+      zc1.zin &&
+      zc1.zout &&
+      zc1.zfit &&
+      /^100%$/.test(zc1.pct) &&
+      (zc1.scaleAttr === "1" || zc1.scaleAttr === "1.0") &&
+      /scale\(\s*1(\.0+)?\s*\)/i.test(zc1.transform) &&
+      zc1.mapZoomHidden &&
+      zc1.nodes >= 3;
+    record(
+      "ZC1",
+      "Trace shows #trajZoomBar at 100% with scale layer; Map #zoomBar stays hidden",
+      zc1ok,
+      JSON.stringify(zc1)
+    );
+
+    await page.click("#trajZoomIn");
+    await page.waitForTimeout(80);
+    await page.click("#trajZoomIn");
+    await page.waitForTimeout(80);
+    const zc2a = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      const pct = document.getElementById("trajZoomPct");
+      const layer = document.getElementById("trajScaleLayer");
+      return {
+        scaleAttr: host ? host.getAttribute("data-traj-scale") : "",
+        pct: pct ? (pct.textContent || "").trim() : "",
+        transform: layer ? layer.getAttribute("style") || "" : "",
+      };
+    });
+    const zc2aScale = Number(zc2a.scaleAttr);
+    const zc2aOk = zc2aScale > 1.01 && !/^100%$/.test(zc2a.pct) && /scale\(/i.test(zc2a.transform);
+
+    await page.click("#trajZoomOut");
+    await page.waitForTimeout(80);
+    const zc2b = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      return { scaleAttr: host ? host.getAttribute("data-traj-scale") : "" };
+    });
+    const zc2bOk = Number(zc2b.scaleAttr) < zc2aScale - 0.01;
+
+    await page.click("#trajZoomFit");
+    await page.waitForTimeout(80);
+    const zc2c = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      const pct = document.getElementById("trajZoomPct");
+      const mapZoom = document.getElementById("zoomBar");
+      return {
+        scaleAttr: host ? host.getAttribute("data-traj-scale") : "",
+        pct: pct ? (pct.textContent || "").trim() : "",
+        mapZoomHidden: !mapZoom || mapZoom.hidden === true || mapZoom.getAttribute("hidden") !== null,
+      };
+    });
+    const zc2cOk =
+      (zc2c.scaleAttr === "1" || zc2c.scaleAttr === "1.0") &&
+      /^100%$/.test(zc2c.pct) &&
+      zc2c.mapZoomHidden;
+
+    // Keyboard path: zoom in via +, fit via 0
+    await page.keyboard.press("+");
+    await page.waitForTimeout(60);
+    const zc2k = await page.evaluate(() => {
+      const host = document.getElementById("trajCanvas");
+      const pct = document.getElementById("trajZoomPct");
+      return {
+        scaleAttr: host ? host.getAttribute("data-traj-scale") : "",
+        pct: pct ? (pct.textContent || "").trim() : "",
+      };
+    });
+    const zc2kOk = Number(zc2k.scaleAttr) > 1.01 && !/^100%$/.test(zc2k.pct);
+    await page.keyboard.press("0");
+    await page.waitForTimeout(60);
+
+    const zc2ok = zc2aOk && zc2bOk && zc2cOk && zc2kOk;
+    record(
+      "ZC2",
+      "Trace zoom in/out/Fit + keyboard +/-/0 update data-traj-scale; Map zoom untouched",
+      zc2ok,
+      JSON.stringify({ zc2a, zc2b, zc2c, zc2k, zc2aOk, zc2bOk, zc2cOk, zc2kOk })
+    );
+
+    // Leave zoomed in for a readable proof PNG
+    await page.click("#trajZoomIn");
+    await page.waitForTimeout(80);
+    await page.click("#trajZoomIn");
+    await page.waitForTimeout(80);
+    await shot(page, "trajectory-zoom-chrome.png");
+    const zc3Shot = checks.find((c) => c.id === "shot:trajectory-zoom-chrome.png");
+    record(
+      "ZC3",
+      "screenshot trajectory-zoom-chrome.png is not a black frame",
+      !!(zc3Shot && zc3Shot.pass),
+      zc3Shot ? zc3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("ZC4", "Trace zoom chrome step did not write .graphide/stamps/");
+    // Reset scale for later Trace/deeplink paths
+    await page.click("#trajZoomFit");
+    await page.waitForTimeout(40);
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(

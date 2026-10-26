@@ -16,7 +16,7 @@ owns this folder.
 | [sequence.md](sequence.md) | Sequence workspace | `?sequence=1` · `verification/sequence.png` |
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
-| [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 |
+| [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 · ZC1–ZC3 zoom chrome |
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` · `passport-fixtures.png` · PF1–PF5 |
 | [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` · `#adeSealChip` · SC1–SC3 · `seal-status-chip.png` |
 | [fs-sandbox.md](fs-sandbox.md) | Product-path FS sandbox stub (ADE) | `--gate-write` · I6–I8 |

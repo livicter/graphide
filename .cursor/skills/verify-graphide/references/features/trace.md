@@ -54,6 +54,8 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 4. Hover a diff pin to read +adds/−dels and the artifact path in the tip.
 5. Click a pin to focus it; use `[` / `]` / `←` / `→` / `j` / `k` to step
    subtasks. Neighbors stay lit; off-path deps dim (same as click-focus).
+6. Use the Trace zoom chrome (`+` / `−` / Fit) or keys `+` / `=` / `−` / `0`
+   to scale the DAG; Fit returns to 100%.
 
 The in-tree proof is the embedded fixture (`ade-a1a-fixture` v2).
 
@@ -90,7 +92,9 @@ Driver assertions:
   `verification/trajectory-edge-legend.png`, and
   `verification/trajectory-legend-focus-dim.png`, and
   `verification/trajectory-keyboard-step.png`, and
-  `verification/trajectory-empty-state.png` are not black frames
+  `verification/trajectory-empty-state.png`, and
+  `verification/trajectory-zoom-chrome.png` are not black frames
+- ZC1–ZC3: `#trajZoomBar` visible; zoom in changes `data-traj-scale` / `#trajZoomPct` off 100%; Fit resets to 1 / 100%; screenshot `verification/trajectory-zoom-chrome.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -108,6 +112,8 @@ Driver assertions:
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
   `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`
   (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
-  `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state.
+  `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
+  `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome
+  (`+` / `−` / `0`).
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).
