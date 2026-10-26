@@ -28284,11 +28284,14 @@
       if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
       paint({ animate: "none" });
     }
-    function clearTrajResidualFilter() {
+    function clearTrajResidualFilter(source) {
       if (!trajResidualFilter) return;
       trajResidualFilter = false;
       if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
-      if (typeof flashToast === "function") flashToast("Residuals off", "skip");
+      if (typeof flashToast === "function") {
+        if (source === "clear-chip") flashToast("Residual filter cleared", "ok");
+        else flashToast("Residuals off", "skip");
+      }
       if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
       paint({ animate: "none" });
     }
@@ -28794,14 +28797,14 @@
         btn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          clearTrajResidualFilter();
+          clearTrajResidualFilter("clear-chip");
         };
       });
       document.querySelectorAll('#trajEdgeLegend [data-legend-clear-filter="1"]').forEach((btn) => {
         btn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          clearTrajResidualFilter();
+          clearTrajResidualFilter("clear-chip");
         };
       });
       if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
@@ -29650,14 +29653,14 @@
           stickyClearFilter.onclick = (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
-            clearTrajResidualFilter();
+            clearTrajResidualFilter("clear-chip");
           };
       }
       document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
         btn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          clearTrajResidualFilter();
+          clearTrajResidualFilter("clear-chip");
         };
       });
       if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();

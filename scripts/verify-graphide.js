@@ -9421,6 +9421,353 @@ async function main() {
       "Residual-filter count-chip toast hint step did not write .graphide/stamps/"
     );
 
+    // ADE clear-chip confirm toast (CLT1–CLT3) — Clear → "Residual filter cleared" (ok); Escape keeps "Residuals off"
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.waitForTimeout(20);
+    const clt1 = await page.evaluate(() => {
+      const btn = document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (!btn) return { present: false };
+      const legend = document.getElementById("trajEdgeLegend");
+      const filterBefore = legend ? legend.getAttribute("data-residual-filter") : "";
+      btn.focus({ focusVisible: true });
+      btn.click();
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      const legendAfter = document.getElementById("trajEdgeLegend");
+      const filterAfter = legendAfter
+        ? legendAfter.getAttribute("data-residual-filter") || ""
+        : "";
+      return {
+        present: true,
+        filterBefore,
+        filterAfter,
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastOk: !!(toast && toast.classList.contains("ok")),
+        clearedCopy: /Residual filter cleared/i.test(toastText),
+        notResidualsOff: !/Residuals off/i.test(toastText),
+      };
+    });
+    const clt1ok = !!(
+      clt1 &&
+      clt1.present &&
+      clt1.filterBefore === "on" &&
+      clt1.filterAfter !== "on" &&
+      clt1.toastOn &&
+      clt1.toastOk &&
+      clt1.clearedCopy &&
+      clt1.notResidualsOff
+    );
+    record(
+      "CLT1",
+      "Trace legend Clear filter → toast Residual filter cleared (ok); filter OFF; not Residuals off",
+      !!clt1ok,
+      JSON.stringify(clt1)
+    );
+
+    // CLT2: Passport sticky Clear + Escape distinctness + empty FE clear
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#passportSign [data-passport-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    const cltSticky = await page.evaluate(() => {
+      const btn = document.querySelector('#passportSign [data-passport-clear-filter="1"]');
+      if (!btn) return { present: false };
+      const hostBefore = document.querySelector("#passportSign .passport-residual");
+      const filterBefore = hostBefore
+        ? hostBefore.getAttribute("data-residual-filter")
+        : "";
+      btn.click();
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      // paint() replaces sticky host — re-query after clear
+      const hostAfter = document.querySelector("#passportSign .passport-residual");
+      const filterAfter = hostAfter
+        ? hostAfter.getAttribute("data-residual-filter") || ""
+        : "";
+      return {
+        present: true,
+        filterBefore,
+        filterAfter,
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastOk: !!(toast && toast.classList.contains("ok")),
+        clearedCopy: /Residual filter cleared/i.test(toastText),
+        notResidualsOff: !/Residuals off/i.test(toastText),
+      };
+    });
+    // Re-enable filter, Escape → Residuals off (distinct)
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (toggle) toggle.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector("#passportSign .passport-residual");
+        return host && host.getAttribute("data-residual-filter") === "on";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
+    const cltEsc = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      const live = document.getElementById("residualFilterLive");
+      return {
+        filterAfter: host ? host.getAttribute("data-residual-filter") || "" : "",
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastSkip: !!(toast && toast.classList.contains("skip")),
+        residualsOff: /Residuals off/i.test(toastText),
+        notClearedCopy: !/Residual filter cleared/i.test(toastText),
+        liveOff:
+          !!live &&
+          live.getAttribute("data-residual-filter-live-state") === "off" &&
+          /Residual filter off/i.test(live.textContent || ""),
+      };
+    });
+    // FE empty Clear: Approve gate → empty chrome → clear toast
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.waitForSelector('#passportSign [data-passport-action="approve"]', {
+      timeout: 8000,
+    });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "approved";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    const cltFe = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!btn) return { present: false };
+      btn.click();
+      const toast = document.getElementById("toast");
+      const toastText = toast ? (toast.textContent || "").trim() : "";
+      const empty = document.querySelector(
+        '[data-passport-residual-filter-empty="1"]'
+      );
+      return {
+        present: true,
+        toastText,
+        toastOn: !!(toast && !toast.hidden && toast.classList.contains("on")),
+        toastOk: !!(toast && toast.classList.contains("ok")),
+        clearedCopy: /Residual filter cleared/i.test(toastText),
+        notResidualsOff: !/Residuals off/i.test(toastText),
+        emptyGone: !empty,
+      };
+    });
+    // Restore gate rejected for later residual chrome
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "rejected";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const clt2ok = !!(
+      cltSticky &&
+      cltSticky.present &&
+      cltSticky.filterBefore === "on" &&
+      cltSticky.filterAfter !== "on" &&
+      cltSticky.toastOn &&
+      cltSticky.toastOk &&
+      cltSticky.clearedCopy &&
+      cltSticky.notResidualsOff &&
+      cltEsc &&
+      cltEsc.filterAfter !== "on" &&
+      cltEsc.toastOn &&
+      cltEsc.toastSkip &&
+      cltEsc.residualsOff &&
+      cltEsc.notClearedCopy &&
+      cltEsc.liveOff &&
+      cltFe &&
+      cltFe.present &&
+      cltFe.toastOn &&
+      cltFe.toastOk &&
+      cltFe.clearedCopy &&
+      cltFe.notResidualsOff &&
+      cltFe.emptyGone
+    );
+    record(
+      "CLT2",
+      "Passport sticky Clear + empty FE → Residual filter cleared (ok); Escape → Residuals off (skip)",
+      !!clt2ok,
+      JSON.stringify({ sticky: cltSticky, esc: cltEsc, fe: cltFe })
+    );
+
+    // Re-enable filter briefly for proof PNG of clear-confirm toast
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.click('#trajEdgeLegend [data-legend-clear-filter="1"]');
+    await page.waitForTimeout(80);
+    await shot(page, "residual-filter-clear-confirm-toast.png");
+    const cltShot = checks.find(
+      (c) => c.id === "shot:residual-filter-clear-confirm-toast.png"
+    );
+    record(
+      "CLT3",
+      "screenshot residual-filter-clear-confirm-toast.png is not a black frame",
+      !!(cltShot && cltShot.pass),
+      cltShot ? cltShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CLT4",
+      "Residual-filter clear-chip confirm toast step did not write .graphide/stamps/"
+    );
+
     // Leave filter OFF for later IR/PR residual chrome (match CAF restore).
     await page.evaluate(() => {
       const toast = document.getElementById("toast");

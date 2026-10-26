@@ -719,6 +719,12 @@ assert(keysMap.includes("CCT1") && keysMap.includes("non-clearing toast") && key
 assert(traceMap.includes("CCT1") && traceMap.includes("non-clearing toast") && traceMap.includes("residual-filter-count-chip-toast-hint.png"), "trace feature map must name residual-filter count-chip toast hint CCT / proof");
 assert(passportMap.includes("CCT1") && passportMap.includes("non-clearing toast") && passportMap.includes("residual-filter-count-chip-toast-hint.png"), "passport feature map must name residual-filter count-chip toast hint CCT / proof");
 
+assert(driver.includes("CLT1") && driver.includes("CLT3") && driver.includes("residual-filter-clear-confirm-toast.png") && driver.includes("Residual filter cleared") && driver.includes("clear-chip"), "verify driver must prove clear-chip confirm toast CLT1–CLT3");
+assert(js.includes("Residual filter cleared") && js.includes('"clear-chip"') && js.includes("Residuals off"), "clear-chip confirm toast path missing from desk bundle");
+assert(keysMap.includes("CLT1") && keysMap.includes("Residual filter cleared") && keysMap.includes("residual-filter-clear-confirm-toast.png"), "keys feature map must name clear-chip confirm toast CLT / proof");
+assert(traceMap.includes("CLT1") && traceMap.includes("Residual filter cleared") && traceMap.includes("residual-filter-clear-confirm-toast.png"), "trace feature map must name clear-chip confirm toast CLT / proof");
+assert(passportMap.includes("CLT1") && passportMap.includes("Residual filter cleared") && passportMap.includes("residual-filter-clear-confirm-toast.png"), "passport feature map must name clear-chip confirm toast CLT / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
