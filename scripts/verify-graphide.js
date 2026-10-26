@@ -6480,6 +6480,336 @@ async function main() {
     );
     assertNoStampDir("KH4", "Keys residual-filter hint step did not write .graphide/stamps/");
 
+    // ADE Keys R pressed-state + residual-filter toast (KP1–KP3)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    // Ensure filter OFF + Keys closed
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        const pane = document.getElementById("keysPane");
+        return (
+          !!(btn && btn.getAttribute("aria-pressed") === "false") &&
+          !!(pane && pane.hidden)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // KP1: R toggle ON → toast Residuals on + open Keys → pressed
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const toast = document.getElementById("toast");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!(
+          toast &&
+          !toast.hidden &&
+          toast.classList.contains("on") &&
+          toast.classList.contains("ok") &&
+          /Residuals on/i.test(toast.textContent || "") &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kp1toast = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        text: toast ? (toast.textContent || "").trim() : "",
+        on: !!(toast && toast.classList.contains("on")),
+        ok: !!(toast && toast.classList.contains("ok")),
+        hidden: !!(toast && toast.hidden),
+      };
+    });
+    // Open Keys (clears toast — pressed assert after open)
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "1" &&
+          row.getAttribute("aria-pressed") === "true" &&
+          row.classList.contains("on") &&
+          row.classList.contains("pressed")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const kp1 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="r"]');
+      const box = row ? row.getBoundingClientRect() : null;
+      return {
+        open: !!(pane && !pane.hidden),
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+        pressedCls: !!(row && row.classList.contains("pressed")),
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        rowH: box ? box.height : 0,
+        rowW: box ? box.width : 0,
+      };
+    });
+    const kp1ok =
+      kp1toast.on &&
+      kp1toast.ok &&
+      /Residuals on/i.test(kp1toast.text) &&
+      kp1.open &&
+      kp1.pressed === "1" &&
+      kp1.aria === "true" &&
+      kp1.onCls &&
+      kp1.pressedCls &&
+      kp1.binding === "residual-filter" &&
+      kp1.rowH > 8 &&
+      kp1.rowW > 40;
+    record(
+      "KP1",
+      "Trace residual ON → toast Residuals on (ok) + Keys R row pressed",
+      !!kp1ok,
+      JSON.stringify({ toast: kp1toast, row: kp1 })
+    );
+    await shot(page, "keys-residual-pressed.png");
+    const kpShot = checks.find((c) => c.id === "shot:keys-residual-pressed.png");
+
+    // KP2: toggle OFF → toast Residuals off (skip) + pressed cleared
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const toast = document.getElementById("toast");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!(
+          toast &&
+          !toast.hidden &&
+          toast.classList.contains("on") &&
+          toast.classList.contains("skip") &&
+          /Residuals off/i.test(toast.textContent || "") &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kp2toast = await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      return {
+        text: toast ? (toast.textContent || "").trim() : "",
+        on: !!(toast && toast.classList.contains("on")),
+        skip: !!(toast && toast.classList.contains("skip")),
+      };
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "0" &&
+          row.getAttribute("aria-pressed") === "false" &&
+          !row.classList.contains("on") &&
+          !row.classList.contains("pressed")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kp2 = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane [data-keys-row="r"]');
+      return {
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+        pressedCls: !!(row && row.classList.contains("pressed")),
+      };
+    });
+    const kp2ok =
+      kp2toast.on &&
+      kp2toast.skip &&
+      /Residuals off/i.test(kp2toast.text) &&
+      kp2.pressed === "0" &&
+      kp2.aria === "false" &&
+      !kp2.onCls &&
+      !kp2.pressedCls;
+    record(
+      "KP2",
+      "Trace residual OFF → toast Residuals off (skip) + Keys R pressed cleared",
+      !!kp2ok,
+      JSON.stringify({ toast: kp2toast, row: kp2 })
+    );
+
+    // KP3: filter ON + pressed, leave to Map → pressed cleared; no-op clear no toast
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r"); // ON
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!(btn && btn.getAttribute("aria-pressed") === "true");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const row = document.querySelector('#keysPane [data-keys-row="r"]');
+        return !!(row && row.getAttribute("data-keys-r-pressed") === "1");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Switch to Map (ADE_RESIDUAL_WS clears filter + syncKeysRRow)
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(120);
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        // Keys may still be open; pressed must clear + binding path
+        return !!(
+          row &&
+          row.getAttribute("data-keys-r-pressed") === "0" &&
+          row.getAttribute("aria-pressed") === "false" &&
+          row.getAttribute("data-keys-r-binding") === "path"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const kp3map = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane [data-keys-row="r"]');
+      return {
+        pressed: row ? row.getAttribute("data-keys-r-pressed") || "" : "",
+        aria: row ? row.getAttribute("aria-pressed") || "" : "",
+        binding: row ? row.getAttribute("data-keys-r-binding") || "" : "",
+        onCls: !!(row && row.classList.contains("on")),
+      };
+    });
+    // Close Keys; back to Trace; no-op clear must not toast
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    // Ensure filter OFF
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(40);
+    const noop = await page.evaluate(() => {
+      // Call clear when already off — must be no-op (no toast)
+      if (typeof clearTrajResidualFilter === "function") clearTrajResidualFilter();
+      else if (window.clearTrajResidualFilter) window.clearTrajResidualFilter();
+      const toast = document.getElementById("toast");
+      return {
+        text: toast ? (toast.textContent || "").trim() : "",
+        on: !!(toast && toast.classList.contains("on") && !toast.hidden),
+        hidden: !!(toast && toast.hidden),
+      };
+    });
+    // clearTrajResidualFilter may not be on window — use DOM clear button absence / evaluate via click no-op
+    // If function is module-scoped, probe by ensuring filter stays off and toast stays quiet after a second clear attempt via exposed path
+    const noop2 = await page.evaluate(() => {
+      const btn = document.querySelector('[data-residual-filter-clear="1"]');
+      const before = {
+        text: (document.getElementById("toast") || {}).textContent || "",
+        on: !!(document.getElementById("toast") && document.getElementById("toast").classList.contains("on") && !document.getElementById("toast").hidden),
+      };
+      // Filter already off → empty chrome clear button absent; legend clear also absent when off
+      const legendClear = document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (legendClear) legendClear.click();
+      if (btn) btn.click();
+      const toast = document.getElementById("toast");
+      return {
+        before,
+        afterText: toast ? (toast.textContent || "").trim() : "",
+        afterOn: !!(toast && toast.classList.contains("on") && !toast.hidden),
+        hadClear: !!(btn || legendClear),
+        filterPressed: (() => {
+          const t = document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+          return t ? t.getAttribute("aria-pressed") || "" : "";
+        })(),
+      };
+    });
+    const kp3ok =
+      kp3map.pressed === "0" &&
+      kp3map.aria === "false" &&
+      kp3map.binding === "path" &&
+      !kp3map.onCls &&
+      !noop2.afterOn &&
+      noop2.filterPressed === "false" &&
+      !!(kpShot && kpShot.pass);
+    record(
+      "KP3",
+      "Map leave clears Keys R pressed; no-op clear does not toast; pressed PNG ok",
+      !!kp3ok,
+      JSON.stringify({ map: kp3map, noop, noop2, shot: kpShot ? kpShot.detail : "missing" })
+    );
+    assertNoStampDir("KP4", "Keys R pressed + residual toast step did not write .graphide/stamps/");
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');

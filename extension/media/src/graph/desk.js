@@ -3675,7 +3675,7 @@ function flashCanvas() {
   canvas.classList.add("swap");
 }
 
-/** ADE Keys residual-filter hint (KH1–KH3): workspace-aware R row on #keysPane. */
+/** ADE Keys residual-filter hint (KH1–KH3) + pressed-state (KP1–KP3): workspace-aware R row on #keysPane. */
 function syncKeysRRow(ws) {
   if (!keysPane) return;
   const row = keysPane.querySelector('[data-keys-row="r"]');
@@ -3685,6 +3685,12 @@ function syncKeysRRow(ws) {
   row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
   row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
   if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
+  // ADE KP: mirror trajResidualFilter as pressed/on when Trace/Passport; clear on Map/leave or filter OFF.
+  const pressed = residual && !!trajResidualFilter;
+  row.setAttribute("aria-pressed", pressed ? "true" : "false");
+  row.setAttribute("data-keys-r-pressed", pressed ? "1" : "0");
+  row.classList.toggle("on", pressed);
+  row.classList.toggle("pressed", pressed);
 }
 
 function setKeysPane(on) {
@@ -10359,6 +10365,13 @@ let trajResidualFilter = false;
 /** Flip Trace/Passport residual filter; shared by legend/Passport toggles + R key. */
 function toggleTrajResidualFilter() {
   trajResidualFilter = !trajResidualFilter;
+  if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+  if (typeof flashToast === "function") {
+    flashToast(
+      trajResidualFilter ? "Residuals on" : "Residuals off",
+      trajResidualFilter ? "ok" : "skip"
+    );
+  }
   paint({ animate: "none" });
 }
 
@@ -10366,6 +10379,8 @@ function toggleTrajResidualFilter() {
 function clearTrajResidualFilter() {
   if (!trajResidualFilter) return;
   trajResidualFilter = false;
+  if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+  if (typeof flashToast === "function") flashToast("Residuals off", "skip");
   paint({ animate: "none" });
 }
 

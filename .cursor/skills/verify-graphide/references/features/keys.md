@@ -10,7 +10,7 @@ second command palette and not an agent stamp.
   is already open (`K17`) — modal chrome must not swallow the second `?`.
   Opening Keys closes Ask (`K18`), same exclusive chrome as Export (`K18b`). Opening Ask closes Keys (`K18c`) and Export (`K18d`). Opening Export closes Keys (`K18e`). Opening Keys closes Export (`K18f`). Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`). Opening Ask closes Evidence (`K18m`). Opening Ask closes Lens (`K18n`). Opening Ask closes Route (`K18o`). Opening Keys closes Evidence (`K18p`). Opening Keys closes Lens (`K18q`). Opening Keys closes Route (`K18r`). Opening Export closes Evidence (`K18s`). Opening Export closes Lens (`K18t`). Opening Export closes Route (`K18u`). Opening Evidence closes Ask (`K18v`). Opening Lens closes Ask (`K18w`). Opening Route closes Ask (`K18x`). Opening Evidence closes Keys (`K18y`). Opening Evidence closes Export (`K18z`). Opening Lens closes Keys (`K18aa`). Opening Lens closes Export (`K18ab`). Opening Route closes Keys (`K18ac`). Opening Route closes Export (`K18ad`). Opening Evidence closes Lens (`K18ae`). Opening Evidence closes Route (`K18af`). Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find hides the hover tip (`K19`, `K19b`, `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
-  sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH on Map (and other desks); on Trace/Passport `R` residual filter (`data-keys-r-binding` / `data-keys-residual-hint`, KH1–KH3), `L` LENS,
+  sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH on Map (and other desks); on Trace/Passport `R` residual filter (`data-keys-r-binding` / `data-keys-residual-hint`, KH1–KH3; pressed + toast KP1–KP3), `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
   back. Assert the text. Do not invent shortcuts.
 - ADE Keys residual-filter hint (KH1–KH3): `#keysPane` R row is workspace-aware via
@@ -21,6 +21,13 @@ second command palette and not an agent stamp.
   Proof: `verification/keys-residual-filter.png` (Trace Keys). Existing `keys.png`
   stays the Map Review snap. Opening Keys / switching workspace while Keys is open
   refreshes the R row; no second sheet.
+- ADE Keys R pressed-state + residual-filter toast (KP1–KP3): when Trace/Passport and
+  `trajResidualFilter===true`, `[data-keys-row="r"]` mirrors ON via `aria-pressed="true"`,
+  `data-keys-r-pressed="1"`, and classes `on` / `pressed` (clears when filter OFF or leaving
+  Trace/Passport). `toggleTrajResidualFilter` / `clearTrajResidualFilter` call `flashToast`
+  with `Residuals on` (`ok`) / `Residuals off` (`skip`); no-op clear when already off does
+  not toast. Covers R key, legend toggle, Passport sticky toggle, and clear affordances.
+  Proof: `verification/keys-residual-pressed.png` (Trace Keys + filter ON).
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
@@ -108,6 +115,7 @@ Driver assertions:
   / ledger / Ask / Export suites so it does not stay on top of them
 - screenshot `verification/keys.png` is not a black frame
 - ADE KH1–KH3: Trace Keys open → `[data-keys-row="r"]` has `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and text includes `residual filter` (not sole PATH); Passport same; Map Keys → `path` / `0` / `PATH`. Screenshot `verification/keys-residual-filter.png` is not a black frame. No stamps.
+- ADE KP1–KP3: Trace residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed`) and `#toast` shows `Residuals on` (`ok`); toggle OFF → pressed cleared + `Residuals off` (`skip`); Map / leave clears pressed; no-op clear does not toast. Screenshot `verification/keys-residual-pressed.png` is not a black frame. No stamps.
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,

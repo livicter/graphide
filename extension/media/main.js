@@ -7707,7 +7707,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "k" }),
           " step"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", "data-keys-r-pressed": "0", "aria-pressed": "false", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
           " ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "data-keys-r-binding-text": true, children: "PATH" }),
@@ -22935,6 +22935,11 @@
       row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
       row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
       if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
+      const pressed = residual && !!trajResidualFilter;
+      row.setAttribute("aria-pressed", pressed ? "true" : "false");
+      row.setAttribute("data-keys-r-pressed", pressed ? "1" : "0");
+      row.classList.toggle("on", pressed);
+      row.classList.toggle("pressed", pressed);
     }
     function setKeysPane(on2) {
       if (!keysPane) return;
@@ -28203,11 +28208,20 @@
     let trajResidualFilter = false;
     function toggleTrajResidualFilter() {
       trajResidualFilter = !trajResidualFilter;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+      if (typeof flashToast === "function") {
+        flashToast(
+          trajResidualFilter ? "Residuals on" : "Residuals off",
+          trajResidualFilter ? "ok" : "skip"
+        );
+      }
       paint({ animate: "none" });
     }
     function clearTrajResidualFilter() {
       if (!trajResidualFilter) return;
       trajResidualFilter = false;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+      if (typeof flashToast === "function") flashToast("Residuals off", "skip");
       paint({ animate: "none" });
     }
     function renderResidualFilterEmptyChrome(surface) {

@@ -648,6 +648,10 @@ assert(driver.includes("KH1") && driver.includes("KH3") && driver.includes("keys
 assert(js.includes("syncKeysRRow") && js.includes("data-keys-row") && js.includes("data-keys-r-binding") && js.includes("data-keys-residual-hint") && js.includes("data-keys-r-binding-text"), "Keys residual-filter hint syncKeysRRow / data attrs missing");
 assert(chrome.includes('data-keys-row="r"') && chrome.includes("data-keys-r-binding") && chrome.includes("data-keys-residual-hint") && chrome.includes("data-keys-r-binding-text"), "KeysPane R row residual-hint hooks missing from chrome");
 assert(keysMap.includes("KH1") && keysMap.includes("residual-filter hint") && keysMap.includes("keys-residual-filter.png") && keysMap.includes("data-keys-residual-hint") && keysMap.includes("syncKeysRRow"), "keys feature map must name residual-filter hint KH / proof");
+assert(driver.includes("KP1") && driver.includes("KP3") && driver.includes("keys-residual-pressed.png") && driver.includes("data-keys-r-pressed") && driver.includes("Residuals on"), "verify driver must prove Keys R pressed-state + residual toast KP1–KP3");
+assert(js.includes("data-keys-r-pressed") && js.includes("Residuals on") && js.includes("Residuals off") && /function toggleTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function clearTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function syncKeysRRow\([\s\S]*?data-keys-r-pressed/.test(js), "Keys R pressed + residual toast hooks missing from desk");
+assert(chrome.includes("data-keys-r-pressed") && chrome.includes('aria-pressed="false"'), "KeysPane R row pressed hooks missing from chrome");
+assert(keysMap.includes("KP1") && keysMap.includes("pressed-state") && keysMap.includes("keys-residual-pressed.png") && keysMap.includes("Residuals on") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Keys R pressed + toast KP / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

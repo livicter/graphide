@@ -1937,6 +1937,21 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   border-radius: 5px;
   border: 1px solid var(--vscode-panel-border);
 }
+/* ADE KP: Keys R row pressed when residual filter ON on Trace/Passport */
+#keysPane li[data-keys-row="r"].on,
+#keysPane li[data-keys-row="r"].pressed,
+#keysPane li[data-keys-row="r"][aria-pressed="true"],
+#keysPane li[data-keys-row="r"][data-keys-r-pressed="1"] {
+  opacity: 1;
+  color: var(--vscode-textLink-foreground);
+}
+#keysPane li[data-keys-row="r"].on kbd,
+#keysPane li[data-keys-row="r"].pressed kbd,
+#keysPane li[data-keys-row="r"][aria-pressed="true"] kbd,
+#keysPane li[data-keys-row="r"][data-keys-r-pressed="1"] kbd {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+}
 #canvas.swap { animation: swapIn 180ms ease; }
 @keyframes swapIn {
   from { opacity: 0.55; }
