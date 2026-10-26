@@ -82,6 +82,7 @@ Driver assertions:
   `verification/passport-delta-vocab.png`, and
   `verification/passport-fixtures.png` are not black frames
 - PF1–PF5: richer architecture/API/risk/test/impact row hooks
+- GS1–GS3: Sticky Decision Rail — `#passportGate` / `#passportSign` stay readable while scrolling; filled `data-gate-chip`; `.passport-gate-summary` + `.passport-sign-actions`; screenshot `verification/passport-gate-signoff.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

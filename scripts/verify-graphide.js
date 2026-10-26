@@ -2476,6 +2476,160 @@ async function main() {
 
     assertNoStampDir("P8", "Passport sign-off did not write .graphide/stamps/");
 
+    // ADE Passport gate/sign-off readability (Sticky Decision Rail) — GS1–GS3
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportPage", { timeout: 8000 });
+    await page.waitForSelector("#passportGate", { timeout: 5000 });
+    await page.waitForSelector("#passportSign", { timeout: 5000 });
+    // Re-block paths so blocked-path chrome is measurable (Approve left gate approved above).
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const impact = document.getElementById("passportImpact");
+      if (impact) impact.scrollIntoView({ block: "start" });
+    });
+    await page.waitForTimeout(150);
+    const gateSticky = await page.evaluate(() => {
+      const gate = document.getElementById("passportGate");
+      const canvas = document.getElementById("canvas");
+      if (!gate || !canvas) return { ok: false, reason: "missing" };
+      const cs = getComputedStyle(gate);
+      const gr = gate.getBoundingClientRect();
+      const cr = canvas.getBoundingClientRect();
+      const chip = gate.querySelector(".passport-gate-chip[data-gate-chip]");
+      const blocked = gate.querySelectorAll('[data-blocked="1"]').length;
+      const paths = gate.querySelectorAll("[data-passport-path]").length;
+      const summary = gate.querySelector(".passport-gate-summary");
+      const visible =
+        gr.bottom > cr.top + 4 &&
+        gr.top < cr.bottom - 4 &&
+        gr.height > 12;
+      return {
+        ok: true,
+        position: cs.position,
+        state: gate.getAttribute("data-passport-state") || "",
+        chip: chip ? chip.getAttribute("data-gate-chip") || "" : "",
+        chipBg: chip ? getComputedStyle(chip).backgroundColor : "",
+        summary: !!summary,
+        blocked,
+        paths,
+        visible,
+        top: Math.round(gr.top - cr.top),
+      };
+    });
+    record(
+      "GS1",
+      "Passport gate stays sticky/visible while scrolling long sections; chip + blocked path hooks intact",
+      gateSticky.ok &&
+        gateSticky.position === "sticky" &&
+        gateSticky.visible &&
+        gateSticky.summary &&
+        (gateSticky.state === "rejected" || gateSticky.state === "pending") &&
+        !!gateSticky.chip &&
+        gateSticky.blocked >= 1 &&
+        gateSticky.paths >= 1 &&
+        gateSticky.chipBg &&
+        gateSticky.chipBg !== "rgba(0, 0, 0, 0)" &&
+        gateSticky.chipBg !== "transparent",
+      JSON.stringify(gateSticky)
+    );
+
+    const signSticky = await page.evaluate(() => {
+      const sign = document.getElementById("passportSign");
+      const canvas = document.getElementById("canvas");
+      if (!sign || !canvas) return { ok: false, reason: "missing" };
+      const impact = document.getElementById("passportImpact");
+      if (impact) impact.scrollIntoView({ block: "end" });
+      const cs = getComputedStyle(sign);
+      const sr = sign.getBoundingClientRect();
+      const cr = canvas.getBoundingClientRect();
+      const approve = sign.querySelector('[data-passport-action="approve"]');
+      const reject = sign.querySelector('[data-passport-action="reject"]');
+      const actions = sign.querySelector(".passport-sign-actions");
+      const hint = sign.querySelector(".passport-sign-hint");
+      const approveBg = approve ? getComputedStyle(approve).backgroundColor : "";
+      const rejectBorder = reject ? getComputedStyle(reject).borderTopColor : "";
+      const hintColor = hint ? getComputedStyle(hint).color : "";
+      const visible =
+        sr.bottom > cr.top + 4 &&
+        sr.top < cr.bottom - 4 &&
+        sr.height > 12;
+      const nearBottom = sr.bottom >= cr.bottom - 24;
+      return {
+        ok: true,
+        position: cs.position,
+        visible,
+        nearBottom,
+        hasActions: !!actions,
+        approveBg,
+        rejectBorder,
+        hintOpacity: hint ? getComputedStyle(hint).opacity : "",
+        hintOrder: hint ? getComputedStyle(hint).order : "",
+        hintMuted: !!(hint && hintColor),
+      };
+    });
+    record(
+      "GS2",
+      "Passport sign rail stays sticky at canvas bottom; Approve primary, Reject secondary, hint muted",
+      signSticky.ok &&
+        signSticky.position === "sticky" &&
+        signSticky.visible &&
+        signSticky.nearBottom &&
+        signSticky.hasActions &&
+        !!signSticky.approveBg &&
+        signSticky.approveBg !== "rgba(0, 0, 0, 0)" &&
+        !!signSticky.rejectBorder &&
+        Number(signSticky.hintOrder || 0) >= 2,
+      JSON.stringify(signSticky)
+    );
+
+    // Cycle states for filled chip + path border readability without hook loss
+    const states = [];
+    for (const action of ["approve", "reject"]) {
+      await page.click('[data-passport-action="' + action + '"]');
+      await page.waitForTimeout(180);
+      states.push(
+        await page.evaluate(() => {
+          const gate = document.getElementById("passportGate");
+          const chip = gate && gate.querySelector("[data-gate-chip]");
+          const row = gate && gate.querySelector("[data-passport-path]");
+          const csChip = chip ? getComputedStyle(chip) : null;
+          const csRow = row ? getComputedStyle(row) : null;
+          return {
+            state: gate ? gate.getAttribute("data-passport-state") : "",
+            chip: chip ? chip.getAttribute("data-gate-chip") : "",
+            chipBg: csChip ? csChip.backgroundColor : "",
+            rowBorder: csRow ? csRow.borderLeftColor : "",
+            hooks:
+              !!document.getElementById("passportGate") &&
+              !!document.getElementById("passportSign") &&
+              !!document.querySelector("[data-passport-action=\"approve\"]") &&
+              document.querySelectorAll("[data-passport-path]").length >= 1,
+          };
+        })
+      );
+    }
+    const gs3ok =
+      states.length === 2 &&
+      states[0].state === "approved" &&
+      states[1].state === "rejected" &&
+      states.every(
+        (s) =>
+          s.hooks &&
+          s.chip &&
+          s.chipBg &&
+          s.chipBg !== "rgba(0, 0, 0, 0)" &&
+          s.chipBg !== "transparent" &&
+          s.rowBorder &&
+          s.rowBorder !== "rgba(0, 0, 0, 0)"
+      );
+    record(
+      "GS3",
+      "approved/rejected gate chrome keeps filled chip + solid path border without hook loss",
+      gs3ok,
+      JSON.stringify(states)
+    );
+    await shot(page, "passport-gate-signoff.png");
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector(".bubble-card", { timeout: 10000 });

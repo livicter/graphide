@@ -28804,7 +28804,7 @@
         const blocked = unlocked ? "" : ' data-blocked="1"';
         return '<li data-passport-path="' + esc(w.path || "") + '"' + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span><code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + "</li>";
       }).join("");
-      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
+      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
     }
     function renderPassportSection(key, title, body, count) {
       const countHtml = typeof count === "number" ? '<span class="passport-section-count">' + count + "</span>" : "";
@@ -28881,7 +28881,7 @@
         "Test strategy",
         "<ul>" + tests + "</ul>",
         (fx.testStrategy || []).length
-      ) + renderPassportImpact(fx) + '<div id="passportSign" class="passport-sign"><button type="button" data-passport-action="approve">Approve</button><button type="button" data-passport-action="reject">Reject</button><span class="passport-sign-hint">Fixture gate only — never writes .graphide/stamps/</span></div></div>';
+      ) + renderPassportImpact(fx) + '<div id="passportSign" class="passport-sign"><div class="passport-sign-actions"><button type="button" data-passport-action="approve">Approve</button><button type="button" data-passport-action="reject">Reject</button></div><span class="passport-sign-hint">Fixture gate only — never writes .graphide/stamps/</span></div></div>';
     }
     function paintPassportWorkspace(title) {
       unmountAllReviewCanvases();

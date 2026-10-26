@@ -521,6 +521,10 @@ assert(driver.includes("passport.png") && driver.includes("data-passport-action"
 assert(driver.includes("PF1") && driver.includes("PF5") && driver.includes("passport-fixtures.png") && driver.includes("data-passport-layer"), "verify driver must prove richer Passport fixtures PF1–PF5");
 assert(js.includes("renderPassportImpactItem") && js.includes("data-passport-mitigation") && js.includes("data-impact-row"), "Passport richer fixture row render missing");
 assert(passportMap.includes("data-passport-layer") && passportMap.includes("PF1") && passportMap.includes("passport-fixtures.png"), "passport feature map must name richer fixture hooks / PF1 / passport-fixtures.png");
+assert(driver.includes("GS1") && driver.includes("GS3") && driver.includes("passport-gate-signoff.png") && driver.includes("passport-gate-summary"), "verify driver must prove Passport gate/sign GS1–GS3");
+assert(css.includes("passport-gate-summary") && css.includes("passport-sign-actions") && css.includes("position: sticky") && css.includes("--passport-state"), "Passport gate/sign sticky Decision Rail CSS missing");
+assert(js.includes("passport-gate-summary") && js.includes("passport-sign-actions"), "Passport gate/sign summary/actions markup missing");
+assert(passportMap.includes("GS1") && passportMap.includes("passport-gate-signoff.png") && passportMap.includes("Sticky Decision Rail"), "passport feature map must name GS1 / sticky rail / screenshot");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md")), "trace feature map missing");
 const traceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md"), "utf8");
 assert(
