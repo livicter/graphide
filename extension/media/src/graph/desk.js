@@ -10617,17 +10617,52 @@ function bindTrajectoryPage() {
 
 const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
 const PASSPORT_FIXTURE = Object.freeze({
-  version: 1,
-  id: "passport-ade-phase-1.2",
-  title: "Plan Passport — ADE Phase 1.2 Trajectory gate",
+  version: 2,
+  id: "passport-ade-phase-1.2-fixtures",
+  title: "Plan Passport \u2014 ADE Phase 1.2 richer fixtures",
   status: "pending",
-  summary:
-    "Semantic structural delta for Plan Passport workspace v0 (upstream sign-off before agent writes).",
+  summary: "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
   targets: [
-    { id: "t1", label: "Passport paint + bind", path: "extension/media/src/graph/desk.js" },
-    { id: "t2", label: "Explorer Passport tab", path: "extension/media/src/chrome/GraphBar.jsx" },
-    { id: "t3", label: "Harness + verify gate", path: "scripts/verify-graphide.js" },
-    { id: "t4", label: "Trace DAG polish", path: "extension/media/src/graph/trajectory-fixture.js" },
+    {
+      id: "t1",
+      label: "Passport paint + bind",
+      path: "extension/media/src/graph/desk.js",
+      layer: "architecture",
+      deltaStatus: "Changed",
+      impact: "Richer row chrome + impact cards"
+    },
+    {
+      id: "t2",
+      label: "Explorer Passport tab",
+      path: "extension/media/src/chrome/GraphBar.jsx",
+      layer: "chrome",
+      impact: "Sibling tab order unchanged",
+      clusterKind: "Stable"
+    },
+    {
+      id: "t3",
+      label: "Harness + verify gate",
+      path: "scripts/verify-graphide.js",
+      layer: "harness",
+      deltaStatus: "Added",
+      impact: "PF1\u2013PF5 fixture drivers"
+    },
+    {
+      id: "t4",
+      label: "Trace DAG polish",
+      path: "extension/media/src/graph/trajectory-fixture.js",
+      layer: "trace",
+      impact: "A1a semantics preserved",
+      clusterKind: "Stable"
+    },
+    {
+      id: "t5",
+      label: "Passport fixture JSON",
+      path: "extension/scripts/passport-fixture.json",
+      layer: "harness",
+      deltaStatus: "Changed",
+      impact: "Sim rows for architecture/API/risk/test"
+    }
   ],
   contracts: [
     {
@@ -10636,6 +10671,9 @@ const PASSPORT_FIXTURE = Object.freeze({
       name: "paintPassportWorkspace",
       sig: "(title) => void",
       stability: "draft",
+      deltaClass: "Presentation",
+      breaking: false,
+      change: "Renders enriched fixture rows"
     },
     {
       id: "c2",
@@ -10643,6 +10681,9 @@ const PASSPORT_FIXTURE = Object.freeze({
       name: "getPassport",
       sig: "() => PassportFixture",
       stability: "draft",
+      deltaClass: "Semantic",
+      breaking: false,
+      change: "Accepts version-2 richer fields"
     },
     {
       id: "c3",
@@ -10650,6 +10691,9 @@ const PASSPORT_FIXTURE = Object.freeze({
       name: "setPassportGate",
       sig: "(state) => void",
       stability: "draft",
+      deltaClass: "Topology",
+      breaking: false,
+      change: "Gate state fixture-only"
     },
     {
       id: "c4",
@@ -10657,44 +10701,219 @@ const PASSPORT_FIXTURE = Object.freeze({
       name: "bindTrajectoryPage",
       sig: "() => void",
       stability: "draft",
+      deltaClass: "Topology",
+      breaking: false,
+      change: "Trace bind unchanged (A1a)"
     },
+    {
+      id: "c5",
+      kind: "function",
+      name: "renderPassportImpact",
+      sig: "(fx) => string",
+      stability: "draft",
+      deltaClass: "Presentation",
+      breaking: false,
+      change: "Structured impact rows + Delta chips"
+    }
   ],
   risks: [
-    { id: "r1", level: "high", area: "gate-state writes", note: "must never touch .graphide/stamps/" },
-    { id: "r2", level: "med", area: "agent write ordering", note: "file writes stay blocked until Approve" },
-    { id: "r3", level: "low", area: "explorer tab ordering" },
-    { id: "r4", level: "med", area: "A1a semantics", note: "Trace polish must keep trajectory-dag host + pin attrs" },
+    {
+      id: "r1",
+      level: "high",
+      area: "gate-state writes",
+      note: "must never touch .graphide/stamps/",
+      mitigation: "setPassportGate is in-memory only",
+      blast: ".graphide/stamps/"
+    },
+    {
+      id: "r2",
+      level: "med",
+      area: "agent write ordering",
+      note: "file writes stay blocked until Approve",
+      mitigation: "gatedWrites stay data-blocked until approved",
+      blast: "extension/media/**"
+    },
+    {
+      id: "r3",
+      level: "low",
+      area: "explorer tab ordering",
+      note: "Passport remains click-only",
+      mitigation: "no digit-key binding",
+      blast: "#workspaces"
+    },
+    {
+      id: "r4",
+      level: "med",
+      area: "A1a semantics",
+      note: "Trace polish must keep trajectory-dag host + pin attrs",
+      mitigation: "This slice does not edit Trace paint/bind",
+      blast: "#trajCanvas"
+    },
+    {
+      id: "r5",
+      level: "med",
+      area: "live Delta mount",
+      note: "Impact must stay vocabulary stub",
+      mitigation: "No #deltaCanvas under #passportPage",
+      blast: "#passportImpact"
+    }
   ],
   testStrategy: [
-    { id: "p1", kind: "assert", desc: "tab present, click-only (no digit key)" },
-    { id: "p2", kind: "assert", desc: "gate banner starts pending with blocked paths" },
-    { id: "p3", kind: "e2e", desc: "Approve unlocks gate fixture state; Reject re-blocks" },
-    { id: "p4", kind: "assert", desc: "impact stub keeps Architecture Delta vocabulary text" },
-    { id: "p5", kind: "assert", desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount" },
+    {
+      id: "p1",
+      kind: "assert",
+      desc: "tab present, click-only (no digit key)",
+      fixture: "?passport=1&ws=passport",
+      covers: "chrome"
+    },
+    {
+      id: "p2",
+      kind: "assert",
+      desc: "gate banner starts pending with blocked paths",
+      fixture: "P3",
+      covers: "gate"
+    },
+    {
+      id: "p3",
+      kind: "e2e",
+      desc: "Approve unlocks gate fixture state; Reject re-blocks",
+      fixture: "P6",
+      covers: "gate"
+    },
+    {
+      id: "p4",
+      kind: "assert",
+      desc: "impact stub keeps Architecture Delta vocabulary text",
+      fixture: "P5",
+      covers: "impact"
+    },
+    {
+      id: "p5",
+      kind: "assert",
+      desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
+      fixture: "P5b",
+      covers: "impact"
+    },
+    {
+      id: "p6",
+      kind: "assert",
+      desc: "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
+      fixture: "PF1\u2013PF5",
+      covers: "targets,contracts,risks,tests,impact"
+    }
   ],
   gatedWrites: [
-    { path: "extension/media/src/graph/desk.js", reason: "agent would edit paint/bind" },
-    { path: "extension/media/src/chrome/GraphBar.jsx", reason: "agent would add chrome" },
-    { path: "extension/media/main.css", reason: "agent would restyle passport" },
-    { path: "extension/media/src/graph/trajectory-fixture.js", reason: "agent would reshape Trace fixture" },
+    {
+      path: "extension/media/src/graph/desk.js",
+      reason: "agent would edit paint/bind"
+    },
+    {
+      path: "extension/media/src/chrome/GraphBar.jsx",
+      reason: "agent would add chrome"
+    },
+    {
+      path: "extension/media/main.css",
+      reason: "agent would restyle passport"
+    },
+    {
+      path: "extension/media/src/graph/trajectory-fixture.js",
+      reason: "agent would reshape Trace fixture"
+    },
+    {
+      path: "extension/scripts/passport-fixture.json",
+      reason: "agent would reshape Passport sim"
+    }
   ],
   impact: {
     callGraphs: [
-      "paintPassportWorkspace ← renderExplorerList(ws)",
-      "setPassportGate ← #passportSign Approve/Reject",
-      "bindTrajectoryPage ← renderExplorerList(trace)",
+      {
+        id: "cg1",
+        label: "paintPassportWorkspace \u2190 renderExplorerList(ws)",
+        detail: "Explorer list paint owns Passport page mount",
+        deltaStatus: "Changed",
+        deltaClass: "Topology"
+      },
+      {
+        id: "cg2",
+        label: "setPassportGate \u2190 #passportSign Approve/Reject",
+        detail: "Sign-off flips gate without disk writes",
+        deltaClass: "Semantic",
+        clusterKind: "Stable"
+      },
+      {
+        id: "cg3",
+        label: "bindTrajectoryPage \u2190 renderExplorerList(trace)",
+        detail: "Trace bind stays on A1a path",
+        deltaClass: "Topology",
+        clusterKind: "Stable"
+      },
+      {
+        id: "cg4",
+        label: "renderPassportImpact \u2190 renderPassportBody",
+        detail: "Structured rows + Delta vocab chips",
+        deltaStatus: "Added",
+        deltaClass: "Presentation"
+      }
     ],
     apiContracts: [
-      "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
-      "PASSPORT_GATE ∈ pending|approved|rejected",
-      "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
+      {
+        id: "ac1",
+        label: "getPassport() \u2192 PASSPORT_FIXTURE | window.__graphidePassport",
+        detail: "Harness ?passport=1 may override embedded fixture",
+        deltaStatus: "Changed",
+        deltaClass: "Semantic"
+      },
+      {
+        id: "ac2",
+        label: "PASSPORT_GATE \u2208 pending|approved|rejected",
+        detail: "URL ?gate= seeds + replaceState sync",
+        deltaClass: "Semantic",
+        clusterKind: "Stable"
+      },
+      {
+        id: "ac3",
+        label: "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
+        detail: "A1a pin attrs untouched by Passport enrich",
+        deltaClass: "Topology",
+        clusterKind: "Stable"
+      }
     ],
     invariants: [
-      "no digit-key binding for passport",
-      "gate state fixture-only (no .graphide/stamps/)",
-      "Architecture Delta vocabulary in #passportDeltaVocab stub only",
-      "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
-      "no live #deltaCanvas mount on Passport",
+      {
+        id: "inv1",
+        label: "no digit-key binding for passport",
+        detail: "Click-only workspace tab",
+        deltaClass: "Presentation",
+        clusterKind: "Stable"
+      },
+      {
+        id: "inv2",
+        label: "gate state fixture-only (no .graphide/stamps/)",
+        detail: "Approve never posts stamps",
+        deltaClass: "Semantic",
+        clusterKind: "Stable"
+      },
+      {
+        id: "inv3",
+        label: "Architecture Delta vocabulary in #passportDeltaVocab stub only",
+        detail: "No live #deltaCanvas mount on Passport",
+        deltaClass: "Presentation",
+        clusterKind: "Stable"
+      },
+      {
+        id: "inv4",
+        label: "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
+        detail: "A1a host preserved",
+        deltaClass: "Topology",
+        clusterKind: "Stable"
+      },
+      {
+        id: "inv5",
+        label: "no live #deltaCanvas mount on Passport",
+        detail: "Impact readability uses vocabulary chips only",
+        deltaClass: "Presentation",
+        clusterKind: "Stable"
+      }
     ],
     deltaVocab: {
       statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
@@ -10704,21 +10923,21 @@ const PASSPORT_FIXTURE = Object.freeze({
         {
           id: "structural",
           label: "Structural delta",
-          detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety.",
+          detail: "Pair by (kind, fqn). Exact facts only \u2014 no blast radius or merge safety."
         },
         {
           id: "impact",
           label: "Impact regions",
-          detail: "Plan-projected call graphs, API contracts, and invariants before agent writes.",
+          detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
         },
         {
           id: "community",
           label: "Cluster continuity",
-          detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel.",
-        },
-      ],
-    },
-  },
+          detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+        }
+      ]
+    }
+  }
 });
 
 const DELTA_VOCAB_DEFAULT = Object.freeze({
@@ -10953,6 +11172,49 @@ function renderDeltaVocabStub(impact) {
   );
 }
 
+function renderPassportDeltaChip(kind, value) {
+  if (!value) return "";
+  return (
+    '<span class="passport-vocab-chip" data-vocab-chip="' +
+    esc(kind) +
+    '" data-vocab-value="' +
+    esc(value) +
+    '">' +
+    esc(value) +
+    "</span>"
+  );
+}
+
+function renderPassportImpactItem(item) {
+  if (item == null) return "";
+  if (typeof item === "string") {
+    return "<li><code>" + esc(item) + "</code></li>";
+  }
+  const status = item.deltaStatus || "";
+  const klass = item.deltaClass || "";
+  const cluster = item.clusterKind || "";
+  const id = item.id || "";
+  return (
+    '<li class="passport-impact-row" data-impact-row="' +
+    esc(id) +
+    '"' +
+    (status ? ' data-delta-status="' + esc(status) + '"' : "") +
+    (klass ? ' data-delta-class="' + esc(klass) + '"' : "") +
+    (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
+    ">" +
+    renderPassportDeltaChip("status", status) +
+    renderPassportDeltaChip("class", klass) +
+    renderPassportDeltaChip("cluster", cluster) +
+    '<strong class="passport-impact-label">' +
+    esc(item.label || id) +
+    "</strong>" +
+    (item.detail
+      ? '<span class="passport-impact-detail">' + esc(item.detail) + "</span>"
+      : "") +
+    "</li>"
+  );
+}
+
 function renderPassportImpact(fx) {
   const impact = fx.impact || {};
   const card = (key, title, items) =>
@@ -10961,7 +11223,7 @@ function renderPassportImpact(fx) {
     '"><h4>' +
     esc(title) +
     "</h4><ul>" +
-    (items || []).map((s) => "<li><code>" + esc(s) + "</code></li>").join("") +
+    (items || []).map((s) => renderPassportImpactItem(s)).join("") +
     "</ul></div>";
   return (
     '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact">' +
@@ -10983,43 +11245,85 @@ function renderPassportBody() {
   const fx = getPassport();
   const state = passportGateState();
   const targets = (fx.targets || [])
-    .map(
-      (t) =>
-        '<li data-passport-target="' +
+    .map((t) => {
+      const layer = t.layer || "";
+      const status = t.deltaStatus || "";
+      const cluster = t.clusterKind || "";
+      return (
+        '<li class="passport-row" data-passport-target="' +
         esc(t.id || "") +
-        '"><span class="passport-target-label">' +
+        '"' +
+        (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") +
+        (status ? ' data-passport-delta="' + esc(status) + '"' : "") +
+        (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
+        '><div class="passport-row-head">' +
+        (layer
+          ? '<span class="passport-layer-chip" data-passport-layer-chip="' +
+            esc(layer) +
+            '">' +
+            esc(layer) +
+            "</span>"
+          : "") +
+        renderPassportDeltaChip("status", status) +
+        renderPassportDeltaChip("cluster", cluster) +
+        '<span class="passport-target-label">' +
         esc(t.label || t.id || "") +
         "</span> <code>" +
         esc(t.path || "") +
-        "</code></li>"
-    )
+        "</code></div>" +
+        (t.impact
+          ? '<div class="passport-row-impact" data-passport-impact="' +
+            esc(t.id || "") +
+            '">' +
+            esc(t.impact) +
+            "</div>"
+          : "") +
+        "</li>"
+      );
+    })
     .join("");
   const contracts = (fx.contracts || [])
-    .map(
-      (c) =>
-        '<li data-passport-contract="' +
+    .map((c) => {
+      const klass = c.deltaClass || "";
+      const breaking = !!c.breaking;
+      return (
+        '<li class="passport-row" data-passport-contract="' +
         esc(c.id || "") +
-        '"><code class="passport-kind">' +
+        '"' +
+        (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") +
+        (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') +
+        '><div class="passport-row-head">' +
+        '<code class="passport-kind">' +
         esc(c.kind || "") +
         "</code> <strong>" +
         esc(c.name || "") +
         '</strong> <code class="passport-sig">' +
         esc(c.sig || "") +
-        '</code> <em data-stability="' +
+        "</code>" +
+        renderPassportDeltaChip("class", klass) +
+        (breaking
+          ? '<span class="passport-breaking-pill" data-passport-breaking-pill="1">breaking</span>'
+          : '<span class="passport-breaking-pill" data-passport-breaking-pill="0">compat</span>') +
+        ' <em data-stability="' +
         esc(c.stability || "") +
         '">' +
         esc(c.stability || "") +
-        "</em></li>"
-    )
+        "</em></div>" +
+        (c.change
+          ? '<div class="passport-row-impact">' + esc(c.change) + "</div>"
+          : "") +
+        "</li>"
+      );
+    })
     .join("");
   const risks = (fx.risks || [])
-    .map(
-      (r) =>
-        '<li data-passport-risk="' +
+    .map((r) => {
+      return (
+        '<li class="passport-row" data-passport-risk="' +
         esc(r.id || "") +
         '" data-level="' +
         esc(r.level || "") +
-        '"><span class="passport-risk-pill" data-level="' +
+        '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' +
         esc(r.level || "") +
         '">' +
         esc(r.level || "") +
@@ -11027,20 +11331,52 @@ function renderPassportBody() {
         esc(r.area || "") +
         "</b>" +
         (r.note ? " — " + esc(r.note) : "") +
+        "</div>" +
+        (r.mitigation
+          ? '<div class="passport-row-meta" data-passport-mitigation="' +
+            esc(r.id || "") +
+            '"><span class="passport-meta-k">mitigation</span> ' +
+            esc(r.mitigation) +
+            "</div>"
+          : "") +
+        (r.blast
+          ? '<div class="passport-row-meta" data-passport-blast="' +
+            esc(r.id || "") +
+            '"><span class="passport-meta-k">blast</span> <code>' +
+            esc(r.blast) +
+            "</code></div>"
+          : "") +
         "</li>"
-    )
+      );
+    })
     .join("");
   const tests = (fx.testStrategy || [])
-    .map(
-      (x) =>
-        '<li data-passport-test="' +
+    .map((x) => {
+      return (
+        '<li class="passport-row" data-passport-test="' +
         esc(x.id || "") +
-        '"><code class="passport-test-kind">' +
+        '"><div class="passport-row-head"><code class="passport-test-kind">' +
         esc(x.kind || "") +
         "</code> " +
         esc(x.desc || "") +
+        "</div>" +
+        (x.fixture
+          ? '<div class="passport-row-meta" data-passport-fixture="' +
+            esc(x.id || "") +
+            '"><span class="passport-meta-k">fixture</span> <code>' +
+            esc(x.fixture) +
+            "</code></div>"
+          : "") +
+        (x.covers
+          ? '<div class="passport-row-meta" data-passport-covers="' +
+            esc(x.id || "") +
+            '"><span class="passport-meta-k">covers</span> ' +
+            esc(x.covers) +
+            "</div>"
+          : "") +
         "</li>"
-    )
+      );
+    })
     .join("");
   return (
     '<div id="passportPage" class="passport-page">' +

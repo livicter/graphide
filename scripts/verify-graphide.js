@@ -2092,6 +2092,118 @@ async function main() {
     record("P7", "Passport page does not introduce data-testid / data-component", !passDesk.badHooks, "");
     await shot(page, "passport.png");
     await shot(page, "passport-delta-vocab.png");
+
+    // ADE Passport richer fixtures (architecture / API / risk / test + impact rows)
+    const passFixtures = await page.evaluate(() => {
+      const targets = [...document.querySelectorAll('[data-passport="targets"] [data-passport-target]')].map((el) => ({
+        id: el.getAttribute("data-passport-target") || "",
+        layer: el.getAttribute("data-passport-layer") || "",
+        delta: el.getAttribute("data-passport-delta") || "",
+        cluster: el.getAttribute("data-cluster-kind") || "",
+        impact: !!(el.querySelector("[data-passport-impact]") || el.querySelector(".passport-row-impact")),
+      }));
+      const contracts = [...document.querySelectorAll('[data-passport="contracts"] [data-passport-contract]')].map((el) => ({
+        id: el.getAttribute("data-passport-contract") || "",
+        klass: el.getAttribute("data-passport-delta-class") || "",
+        breaking: el.getAttribute("data-passport-breaking") || "",
+      }));
+      const risks = [...document.querySelectorAll('[data-passport="risks"] [data-passport-risk]')].map((el) => ({
+        id: el.getAttribute("data-passport-risk") || "",
+        mitigation: !!(el.querySelector("[data-passport-mitigation]")),
+        blast: !!(el.querySelector("[data-passport-blast]")),
+      }));
+      const tests = [...document.querySelectorAll('[data-passport="tests"] [data-passport-test]')].map((el) => ({
+        id: el.getAttribute("data-passport-test") || "",
+        fixture: !!(el.querySelector("[data-passport-fixture]")),
+        covers: !!(el.querySelector("[data-passport-covers]")),
+      }));
+      const impactRows = [...document.querySelectorAll("#passportImpact [data-impact-row]")].map((el) => ({
+        id: el.getAttribute("data-impact-row") || "",
+        status: el.getAttribute("data-delta-status") || "",
+        klass: el.getAttribute("data-delta-class") || "",
+        cluster: el.getAttribute("data-cluster-kind") || "",
+        label: ((el.querySelector(".passport-impact-label") || {}).textContent || "").trim(),
+      }));
+      const vocab = document.getElementById("passportDeltaVocab");
+      return {
+        targets,
+        contracts,
+        risks,
+        tests,
+        impactRows,
+        hasDeltaVocab: !!(vocab && vocab.getAttribute("data-delta-stub") === "1"),
+        liveDelta: !!document.querySelector("#passportPage #deltaCanvas, #passportPage .delta-page"),
+      };
+    });
+
+    const pf1ok =
+      passFixtures.targets.length >= 4 &&
+      passFixtures.targets.some((t) => t.layer === "architecture" && t.delta === "Changed") &&
+      passFixtures.targets.some((t) => t.layer === "harness" && t.delta === "Added") &&
+      passFixtures.targets.every((t) => t.layer);
+    record(
+      "PF1",
+      "Passport architecture target rows expose layer + delta/cluster chips",
+      pf1ok,
+      "targets=" +
+        passFixtures.targets.map((t) => t.id + ":" + t.layer + "/" + (t.delta || t.cluster)).join(",")
+    );
+
+    const pf2ok =
+      passFixtures.contracts.length >= 4 &&
+      passFixtures.contracts.every((c) => c.klass && (c.breaking === "0" || c.breaking === "1")) &&
+      passFixtures.contracts.some((c) => c.klass === "Semantic") &&
+      passFixtures.contracts.some((c) => c.klass === "Presentation");
+    record(
+      "PF2",
+      "Passport API contract rows expose deltaClass + breaking/compat",
+      pf2ok,
+      "contracts=" +
+        passFixtures.contracts.map((c) => c.id + ":" + c.klass + "/b" + c.breaking).join(",")
+    );
+
+    const pf3ok =
+      passFixtures.risks.length >= 4 &&
+      passFixtures.risks.filter((r) => r.mitigation && r.blast).length >= 3;
+    record(
+      "PF3",
+      "Passport risk rows expose mitigation + blast",
+      pf3ok,
+      "risks=" +
+        passFixtures.risks.map((r) => r.id + ":m" + (r.mitigation ? 1 : 0) + "b" + (r.blast ? 1 : 0)).join(",")
+    );
+
+    const pf4ok =
+      passFixtures.tests.length >= 5 &&
+      passFixtures.tests.filter((t) => t.fixture && t.covers).length >= 4;
+    record(
+      "PF4",
+      "Passport test rows expose fixture + covers",
+      pf4ok,
+      "tests=" +
+        passFixtures.tests.map((t) => t.id + ":f" + (t.fixture ? 1 : 0) + "c" + (t.covers ? 1 : 0)).join(",")
+    );
+
+    const pf5ok =
+      passFixtures.impactRows.length >= 6 &&
+      passFixtures.impactRows.some((r) => r.status === "Added" || r.status === "Changed") &&
+      passFixtures.impactRows.some((r) => r.klass === "Semantic" || r.klass === "Presentation") &&
+      passFixtures.hasDeltaVocab &&
+      !passFixtures.liveDelta;
+    record(
+      "PF5",
+      "Passport impact cards render structured rows with Delta chips (no live Delta)",
+      pf5ok,
+      "rows=" +
+        passFixtures.impactRows.length +
+        " sample=" +
+        passFixtures.impactRows
+          .slice(0, 3)
+          .map((r) => r.id + ":" + (r.status || r.cluster) + "/" + r.klass)
+          .join(",")
+    );
+    await shot(page, "passport-fixtures.png");
+
     assertNoStampDir("P8", "Passport sign-off did not write .graphide/stamps/");
 
 
@@ -25779,7 +25891,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · ade-deeplink · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · ade-deeplink · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

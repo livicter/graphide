@@ -27,6 +27,15 @@ is a stub that reuses Delta vocabulary only).
   cluster chips (`Stable|Split|Merge|Relabel|Added|Removed`),
   and impact regions (`[data-impact-region="structural|impact|community"]`).
   Fixture-only copy — never mounts `#deltaCanvas` / live Delta workspace.
+- Richer simulation rows (v2 fixture): architecture targets carry
+  `[data-passport-layer]` + optional `[data-passport-delta]` /
+  `[data-cluster-kind]` chips and a `.passport-row-impact` note;
+  API contracts carry `[data-passport-delta-class]` +
+  `[data-passport-breaking]`; risks expose
+  `[data-passport-mitigation]` / `[data-passport-blast]`; tests expose
+  `[data-passport-fixture]` / `[data-passport-covers]`. Impact cards
+  render structured `[data-impact-row]` entries with Delta status/class
+  chips (strings still accepted).
 - Engine: embedded `PASSPORT_FIXTURE` in desk.js, overridable by
   `window.__graphidePassport` when `isPassport()` passes (harness
   `?passport=1` loads `passport-fixture.json`). Impact may carry
@@ -38,9 +47,10 @@ is a stub that reuses Delta vocabulary only).
    Overview.
 2. Click **Passport** (`#workspaces [data-ws="passport"]`).
 3. You should see the fixture Plan Passport: gate banner (pending /
-   blocked paths), architecture targets, contracts, risks, test
-   strategy, a semantic impact stub, and the Architecture Delta
-   vocabulary strip (status/class/cluster chips + impact regions).
+   blocked paths), architecture targets (layer + delta chips),
+   contracts (class + breaking), risks (mitigation/blast), test
+   strategy (fixture/covers), a semantic impact stub with structured
+   rows, and the Architecture Delta vocabulary strip.
 4. Click **Approve** to unlock gated write paths (fixture only), or
    **Reject** to keep them blocked. Stamp / Skip remain human
    attestation for flows — they are not this gate.
@@ -68,8 +78,10 @@ Driver assertions:
   chips and `[data-impact-region]` rows; no `#deltaCanvas` under Passport
 - `#passportGate[data-passport-state="pending"]` shows blocked paths
 - Approve flips state to `approved` and clears `data-blocked`
-- screenshots `verification/passport.png` and
-  `verification/passport-delta-vocab.png` are not black frames
+- screenshots `verification/passport.png`,
+  `verification/passport-delta-vocab.png`, and
+  `verification/passport-fixtures.png` are not black frames
+- PF1–PF5: richer architecture/API/risk/test/impact row hooks
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -83,8 +95,11 @@ Driver assertions:
 - Do not add `data-testid` / `data-component` on the Passport page.
   `[data-ws="passport"]`, `#passportPage`, `#passportGate`, `#passportSign`,
   `#passportImpact`, `#passportDeltaVocab`, `[data-passport-action]`,
-  `[data-passport-path]`, `[data-vocab-chip]`, `[data-impact-region]` are
-  the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
+  `[data-passport-path]`, `[data-passport-layer]`, `[data-passport-delta]`,
+  `[data-passport-delta-class]`, `[data-passport-breaking]`,
+  `[data-passport-mitigation]`, `[data-passport-blast]`,
+  `[data-passport-fixture]`, `[data-passport-covers]`, `[data-impact-row]`,
+  `[data-vocab-chip]`, `[data-impact-region]` are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.
 - Semantic impact is a stub. Do not mount live Architecture Delta here.

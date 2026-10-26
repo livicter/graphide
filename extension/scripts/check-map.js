@@ -513,6 +513,9 @@ assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") &&
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
 assert(driver.includes("passport.png") && driver.includes("data-passport-action"), "verify driver must drive Plan Passport fixture");
+assert(driver.includes("PF1") && driver.includes("PF5") && driver.includes("passport-fixtures.png") && driver.includes("data-passport-layer"), "verify driver must prove richer Passport fixtures PF1–PF5");
+assert(js.includes("renderPassportImpactItem") && js.includes("data-passport-mitigation") && js.includes("data-impact-row"), "Passport richer fixture row render missing");
+assert(passportMap.includes("data-passport-layer") && passportMap.includes("PF1") && passportMap.includes("passport-fixtures.png"), "passport feature map must name richer fixture hooks / PF1 / passport-fixtures.png");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {
