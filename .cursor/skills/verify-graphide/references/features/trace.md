@@ -16,6 +16,10 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Pins `.traj-pin[data-traj-pin="artifact|diff"]` on nodes; inspector
   `#trajDetail` mirrors focus via `data-pin-focus` and
   `[data-traj-artifact]` / `[data-traj-diff]`.
+- Diff pins carry `data-adds` / `data-dels`. Hover shows `#trajPinTip`
+  (`data-traj-pin-tip`) with matching counts (`[data-tip-counts]`,
+  `[data-tip-adds]` / `[data-tip-dels]`) and artifact path — no native
+  `title` double-tip.
 - Inspector also shows phase / agent / duration, a deps list
   (`[data-traj-dep]` under `[data-traj-deps]`), and artifact-diff
   adds/dels (`[data-artifact-diff]`).
@@ -35,7 +39,8 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 3. You should see the fixture Trajectory DAG: strip stats, subtask nodes
    with phase/role/agent chrome, artifact + diff pins (adds/dels), and an
    inspector that fills when you select a node.
-4. Click a pin to focus it; use `[` / `]` to step subtasks. Neighbors stay
+4. Hover a diff pin to read +adds/−dels and the artifact path in the tip.
+5. Click a pin to focus it; use `[` / `]` to step subtasks. Neighbors stay
    lit; off-path deps dim.
 
 The in-tree proof is the embedded fixture (`ade-a1a-fixture` v2).
@@ -59,9 +64,11 @@ Driver assertions:
 - `#trajCanvas[data-testid="trajectory-dag"]` mounts with ≥3 nodes / ≥2 edges
 - A1a–A1a3: host + pins; Map LOD idle (`xy=0`)
 - TF1–TF5: richer phase/agent/deps/artifact-diff inspector hooks
+- PH1–PH3: diff pin hover tip (`#trajPinTip`) with matching adds/dels
 - screenshots `verification/trajectory-dag.png`,
-  `verification/trajectory-focus.png`, and
-  `verification/trajectory-fixtures.png` are not black frames
+  `verification/trajectory-focus.png`,
+  `verification/trajectory-fixtures.png`, and
+  `verification/trajectory-pin-hover.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -75,6 +82,7 @@ Driver assertions:
 - Product hooks: `[data-ws="trace"]`, `#trajCanvas`,
   `data-testid="trajectory-dag"`, `.traj-node`, `.traj-edge`,
   `[data-traj-pin]`, `#trajDetail`, `[data-traj-dep]`,
-  `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`.
+  `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
+  `#trajPinTip` / `[data-traj-pin-tip]`.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).

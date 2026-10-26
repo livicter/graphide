@@ -7835,6 +7835,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Header, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "tip", hidden: true }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "trajPinTip", hidden: true, "data-traj-pin-tip": "1", role: "tooltip" }),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "toast", hidden: true, role: "status" }),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(KeysPane, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ExportMenu, {}),
@@ -28213,7 +28214,9 @@
         const adds = Number(n.adds);
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + dim + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" title="artifact">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" title="diff">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + dim + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+          "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
+        ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
       const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
       const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
@@ -28240,9 +28243,73 @@
       syncAdeDeepLink("trace");
       paint({ animate: "none" });
     }
+    function trajPinTipEl() {
+      let el2 = document.getElementById("trajPinTip");
+      if (!el2) {
+        el2 = document.createElement("div");
+        el2.id = "trajPinTip";
+        el2.hidden = true;
+        el2.setAttribute("data-traj-pin-tip", "1");
+        el2.setAttribute("role", "tooltip");
+        document.body.appendChild(el2);
+      }
+      return el2;
+    }
+    function hideTrajPinTip() {
+      const el2 = document.getElementById("trajPinTip");
+      if (!el2) return;
+      el2.hidden = true;
+      el2.removeAttribute("data-pin-kind");
+      el2.removeAttribute("data-node-id");
+      el2.removeAttribute("data-adds");
+      el2.removeAttribute("data-dels");
+      el2.innerHTML = "";
+    }
+    function positionTrajPinTip(el2, ev) {
+      const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - el2.offsetWidth);
+      const y = Math.min(ev.clientY + 14, window.innerHeight - 16 - el2.offsetHeight);
+      el2.style.left = x + "px";
+      el2.style.top = y + "px";
+    }
+    function showTrajPinTip(pin, node, ev) {
+      if (!pin || !node || !ev) return;
+      const el2 = trajPinTipEl();
+      const kind = pin.getAttribute("data-traj-pin") || "";
+      const id2 = node.getAttribute("data-id") || "";
+      const art = node.getAttribute("data-artifact") || "";
+      const diff = node.getAttribute("data-diff") || "";
+      const addsRaw = pin.getAttribute("data-adds");
+      const delsRaw = pin.getAttribute("data-dels");
+      const addsAttr = addsRaw !== null && addsRaw !== "" ? addsRaw : node.getAttribute("data-adds") || "";
+      const delsAttr = delsRaw !== null && delsRaw !== "" ? delsRaw : node.getAttribute("data-dels") || "";
+      const adds = Number(addsAttr);
+      const dels = Number(delsAttr);
+      const hasCounts = Number.isFinite(adds) || Number.isFinite(dels);
+      el2.setAttribute("data-pin-kind", kind);
+      el2.setAttribute("data-node-id", id2);
+      if (Number.isFinite(adds)) el2.setAttribute("data-adds", String(adds));
+      else el2.removeAttribute("data-adds");
+      if (Number.isFinite(dels)) el2.setAttribute("data-dels", String(dels));
+      else el2.removeAttribute("data-dels");
+      let html = '<div class="traj-pin-tip-head"><span class="traj-pin-tip-kind">' + esc(kind || "pin") + "</span>";
+      if (kind === "diff" && diff) {
+        html += '<code class="traj-pin-tip-diff-label" data-tip-diff="' + esc(diff) + '">' + esc(diff) + "</code>";
+      }
+      html += "</div>";
+      if (kind === "diff" || hasCounts) {
+        html += '<div class="traj-pin-tip-counts" data-tip-counts="1"><span class="traj-diff-adds" data-tip-adds="1">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels" data-tip-dels="1">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span></div>";
+      }
+      if (art) {
+        html += '<code class="traj-pin-tip-art" data-tip-artifact="1">' + esc(art) + "</code>";
+      }
+      el2.innerHTML = html;
+      el2.hidden = false;
+      positionTrajPinTip(el2, ev);
+    }
     function bindTrajectoryPage() {
       const host = document.getElementById("trajCanvas");
       if (!host) return;
+      hideTrajPinTip();
       host.querySelectorAll(".traj-node").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();
@@ -28263,9 +28330,23 @@
             trajSelectedId = id2;
             trajPinFocus = "";
           }
+          hideTrajPinTip();
           syncAdeDeepLink("trace");
           paint({ animate: "none" });
         };
+      });
+      host.querySelectorAll(".traj-pin[data-tip-ready]").forEach((pin) => {
+        const node = pin.closest(".traj-node");
+        if (!node) return;
+        pin.onpointerenter = (ev) => {
+          ev.stopPropagation();
+          showTrajPinTip(pin, node, ev);
+        };
+        pin.onpointermove = (ev) => {
+          const tipEl = document.getElementById("trajPinTip");
+          if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev);
+        };
+        pin.onpointerleave = () => hideTrajPinTip();
       });
       host.onclick = () => {
         if (document.activeElement !== host) host.focus({ preventScroll: true });

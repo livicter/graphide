@@ -533,6 +533,10 @@ assert(
 assert(driver.includes("TF1") && driver.includes("TF5") && driver.includes("trajectory-fixtures.png") && driver.includes("data-phase"), "verify driver must prove richer Trace fixtures TF1–TF5");
 assert(js.includes("trajNodeDeps") && js.includes("data-traj-dep") && js.includes("data-artifact-diff"), "Trace richer fixture inspector render missing");
 assert(traceMap.includes("data-phase") && traceMap.includes("TF1") && traceMap.includes("trajectory-fixtures.png"), "trace feature map must name richer fixture hooks / TF1 / trajectory-fixtures.png");
+assert(driver.includes("PH1") && driver.includes("PH3") && driver.includes("trajectory-pin-hover.png") && driver.includes("trajPinTip"), "verify driver must prove Trace pin-hover tip PH1–PH3");
+assert(js.includes("showTrajPinTip") && js.includes("hideTrajPinTip") && js.includes("data-traj-pin-tip") && js.includes("data-tip-ready"), "Trace pin-hover tip render/bind missing");
+assert(css.includes("#trajPinTip") && css.includes("traj-pin-tip-counts"), "Trace pin-hover tip CSS missing");
+assert(traceMap.includes("trajPinTip") && traceMap.includes("PH1") && traceMap.includes("trajectory-pin-hover.png"), "trace feature map must name pin-hover tip / PH1 / trajectory-pin-hover.png");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

@@ -2519,6 +2519,36 @@ html.bright .route-hop {
   text-overflow: ellipsis;
 }
 .traj-pin.diff { color: #3fb950; }
+#trajPinTip {
+  position: fixed;
+  z-index: 30;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: var(--g-radius-sm, 7px);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  box-shadow: var(--g-lift, 0 6px 18px rgba(0,0,0,0.28));
+  backdrop-filter: blur(10px);
+}
+#trajPinTip[hidden] { display: none !important; }
+.traj-pin-tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.traj-pin-tip-kind {
+  font-size: 10px; font-weight: 650; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, transparent);
+  color: var(--vscode-focusBorder, #2f81f7);
+}
+#trajPinTip[data-pin-kind="diff"] .traj-pin-tip-kind {
+  color: #3fb950;
+  border-color: color-mix(in srgb, #3fb950 55%, transparent);
+}
+.traj-pin-tip-diff-label { color: #3fb950; font-size: 11px; }
+.traj-pin-tip-counts { font-variant-numeric: tabular-nums; margin: 2px 0 4px; }
+.traj-pin-tip-art { display: block; font-size: 10px; opacity: 0.78; word-break: break-all; }
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
   border-radius: 10px;

@@ -13,6 +13,7 @@ export function App() {
     <>
       <Header />
       <div id="tip" hidden />
+      <div id="trajPinTip" hidden data-traj-pin-tip="1" role="tooltip" />
       <div id="toast" hidden role="status" />
       <KeysPane />
       <ExportMenu />

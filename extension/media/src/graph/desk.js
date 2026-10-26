@@ -10599,14 +10599,26 @@ function renderTrajectoryBody() {
         (art
           ? '<div class="traj-pin artifact' +
             pinArt +
-            '" data-traj-pin="artifact" title="artifact">' +
+            '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' +
+            esc("artifact · " + art) +
+            '">' +
             esc(art) +
             "</div>"
           : "") +
         (diff || diffMeta
           ? '<div class="traj-pin diff' +
             pinDiff +
-            '" data-traj-pin="diff" title="diff">' +
+            '" data-traj-pin="diff" data-tip-ready="1"' +
+            (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
+            (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
+            ' aria-label="' +
+            esc(
+              "diff" +
+                (diff ? " " + diff : "") +
+                (Number.isFinite(adds) ? " +" + adds : "") +
+                (Number.isFinite(dels) ? " −" + dels : "")
+            ) +
+            '">' +
             esc((diff || "Δ") + diffMeta) +
             "</div>"
           : "") +
@@ -10708,9 +10720,100 @@ function stepTrajectory(dir) {
   paint({ animate: "none" });
 }
 
+function trajPinTipEl() {
+  let el = document.getElementById("trajPinTip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "trajPinTip";
+    el.hidden = true;
+    el.setAttribute("data-traj-pin-tip", "1");
+    el.setAttribute("role", "tooltip");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function hideTrajPinTip() {
+  const el = document.getElementById("trajPinTip");
+  if (!el) return;
+  el.hidden = true;
+  el.removeAttribute("data-pin-kind");
+  el.removeAttribute("data-node-id");
+  el.removeAttribute("data-adds");
+  el.removeAttribute("data-dels");
+  el.innerHTML = "";
+}
+
+function positionTrajPinTip(el, ev) {
+  const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - el.offsetWidth);
+  const y = Math.min(ev.clientY + 14, window.innerHeight - 16 - el.offsetHeight);
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+}
+
+function showTrajPinTip(pin, node, ev) {
+  if (!pin || !node || !ev) return;
+  const el = trajPinTipEl();
+  const kind = pin.getAttribute("data-traj-pin") || "";
+  const id = node.getAttribute("data-id") || "";
+  const art = node.getAttribute("data-artifact") || "";
+  const diff = node.getAttribute("data-diff") || "";
+  const addsRaw = pin.getAttribute("data-adds");
+  const delsRaw = pin.getAttribute("data-dels");
+  const addsAttr =
+    addsRaw !== null && addsRaw !== ""
+      ? addsRaw
+      : node.getAttribute("data-adds") || "";
+  const delsAttr =
+    delsRaw !== null && delsRaw !== ""
+      ? delsRaw
+      : node.getAttribute("data-dels") || "";
+  const adds = Number(addsAttr);
+  const dels = Number(delsAttr);
+  const hasCounts = Number.isFinite(adds) || Number.isFinite(dels);
+  el.setAttribute("data-pin-kind", kind);
+  el.setAttribute("data-node-id", id);
+  if (Number.isFinite(adds)) el.setAttribute("data-adds", String(adds));
+  else el.removeAttribute("data-adds");
+  if (Number.isFinite(dels)) el.setAttribute("data-dels", String(dels));
+  else el.removeAttribute("data-dels");
+  let html =
+    '<div class="traj-pin-tip-head"><span class="traj-pin-tip-kind">' +
+    esc(kind || "pin") +
+    "</span>";
+  if (kind === "diff" && diff) {
+    html +=
+      '<code class="traj-pin-tip-diff-label" data-tip-diff="' +
+      esc(diff) +
+      '">' +
+      esc(diff) +
+      "</code>";
+  }
+  html += "</div>";
+  if (kind === "diff" || hasCounts) {
+    html +=
+      '<div class="traj-pin-tip-counts" data-tip-counts="1">' +
+      '<span class="traj-diff-adds" data-tip-adds="1">+' +
+      esc(String(Number.isFinite(adds) ? adds : 0)) +
+      '</span> <span class="traj-diff-dels" data-tip-dels="1">−' +
+      esc(String(Number.isFinite(dels) ? dels : 0)) +
+      "</span></div>";
+  }
+  if (art) {
+    html +=
+      '<code class="traj-pin-tip-art" data-tip-artifact="1">' +
+      esc(art) +
+      "</code>";
+  }
+  el.innerHTML = html;
+  el.hidden = false;
+  positionTrajPinTip(el, ev);
+}
+
 function bindTrajectoryPage() {
   const host = document.getElementById("trajCanvas");
   if (!host) return;
+  hideTrajPinTip();
   host.querySelectorAll(".traj-node").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
@@ -10731,9 +10834,23 @@ function bindTrajectoryPage() {
         trajSelectedId = id;
         trajPinFocus = "";
       }
+      hideTrajPinTip();
       syncAdeDeepLink("trace");
       paint({ animate: "none" });
     };
+  });
+  host.querySelectorAll(".traj-pin[data-tip-ready]").forEach((pin) => {
+    const node = pin.closest(".traj-node");
+    if (!node) return;
+    pin.onpointerenter = (ev) => {
+      ev.stopPropagation();
+      showTrajPinTip(pin, node, ev);
+    };
+    pin.onpointermove = (ev) => {
+      const tipEl = document.getElementById("trajPinTip");
+      if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev);
+    };
+    pin.onpointerleave = () => hideTrajPinTip();
   });
   host.onclick = () => {
     if (document.activeElement !== host) host.focus({ preventScroll: true });

@@ -2101,6 +2101,78 @@ async function main() {
     await shot(page, "trajectory-fixtures.png");
     assertNoStampDir("TF6", "Trace fixtures step did not write .graphide/stamps/");
 
+    // ADE Trace artifact-diff pin hover tooltip (Phase 1 polish).
+    const pinTarget = '.traj-node[data-id="sub-diff"] .traj-pin[data-traj-pin="diff"]';
+    await page.waitForSelector(pinTarget, { timeout: 5000 });
+    // Ensure sub-diff is in view before hover (canvas may scroll).
+    await page.$eval(pinTarget, (el) => el.scrollIntoView({ block: "center", inline: "center" }));
+    await page.waitForTimeout(80);
+    await page.hover(pinTarget);
+    await page.waitForTimeout(180);
+    const pinHover = await page.evaluate(() => {
+      const tip = document.getElementById("trajPinTip");
+      const pin =
+        document.querySelector('.traj-node[data-id="sub-diff"] .traj-pin[data-traj-pin="diff"]') ||
+        document.querySelector('.traj-pin[data-traj-pin="diff"][data-adds]');
+      const addsEl = tip ? tip.querySelector("[data-tip-adds]") : null;
+      const delsEl = tip ? tip.querySelector("[data-tip-dels]") : null;
+      return {
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        kind: tip ? tip.getAttribute("data-pin-kind") || "" : "",
+        nodeId: tip ? tip.getAttribute("data-node-id") || "" : "",
+        tipAdds: tip ? tip.getAttribute("data-adds") || "" : "",
+        tipDels: tip ? tip.getAttribute("data-dels") || "" : "",
+        pinAdds: pin ? pin.getAttribute("data-adds") || "" : "",
+        pinDels: pin ? pin.getAttribute("data-dels") || "" : "",
+        counts: !!(tip && tip.querySelector("[data-tip-counts]")),
+        addsText: addsEl ? (addsEl.textContent || "").trim() : "",
+        delsText: delsEl ? (delsEl.textContent || "").trim() : "",
+        art: tip && tip.querySelector("[data-tip-artifact]")
+          ? (tip.querySelector("[data-tip-artifact]").textContent || "").trim()
+          : "",
+      };
+    });
+    const ph1ok =
+      pinHover.tip &&
+      !pinHover.tipHidden &&
+      pinHover.kind === "diff" &&
+      pinHover.tipAdds !== "" &&
+      pinHover.tipDels !== "" &&
+      pinHover.tipAdds === pinHover.pinAdds &&
+      pinHover.tipDels === pinHover.pinDels;
+    record(
+      "PH1",
+      "Hovering Trace diff pin shows #trajPinTip with matching adds/dels",
+      ph1ok,
+      JSON.stringify(pinHover)
+    );
+    const ph2ok =
+      pinHover.counts &&
+      /^\+\d+$/.test(pinHover.addsText) &&
+      /^[−-]\d+$/.test(pinHover.delsText) &&
+      !!pinHover.art;
+    record(
+      "PH2",
+      "Pin tip shows +adds/−dels chrome and artifact path",
+      ph2ok,
+      JSON.stringify({
+        addsText: pinHover.addsText,
+        delsText: pinHover.delsText,
+        art: pinHover.art,
+        counts: pinHover.counts,
+      })
+    );
+    await shot(page, "trajectory-pin-hover.png");
+    await page.mouse.move(8, 8);
+    await page.waitForTimeout(120);
+    const tipGone = await page.evaluate(() => {
+      const tip = document.getElementById("trajPinTip");
+      return !tip || tip.hidden === true || tip.getAttribute("hidden") !== null;
+    });
+    record("PH3", "Leaving Trace pin hides #trajPinTip", tipGone, "hidden=" + tipGone);
+    assertNoStampDir("PH4", "Trace pin-hover step did not write .graphide/stamps/");
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(
