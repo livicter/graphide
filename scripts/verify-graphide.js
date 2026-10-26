@@ -4865,6 +4865,164 @@ async function main() {
     );
     assertNoStampDir("RF4", "Trace legend residual filter step did not write .graphide/stamps/");
 
+    // ADE Trace residual-filter keyboard shortcut (RK1–RK3) — pairs with RF click toggle
+    // RF left us on Trace with filter OFF; press R to toggle ON then OFF.
+    await page.waitForSelector("#trajEdgeLegend [data-residual-filter-toggle=\"1\"]", {
+      timeout: 8000,
+    });
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        return (
+          legend &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          legend.getAttribute("data-residual-filter") !== "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Blur any focused control so R hits the desk keydown (not an input).
+    await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      if (host && typeof host.focus === "function") host.focus({ preventScroll: true });
+      else if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rk1 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      const nodes = host
+        ? [...host.querySelectorAll(".traj-node")].map((n) => ({
+            id: n.getAttribute("data-id") || "",
+            bearing: n.getAttribute("data-residual-bearing") === "1",
+            filtered: n.getAttribute("data-residual-filtered") === "1",
+            filteredClass: n.classList.contains("residual-filtered"),
+          }))
+        : [];
+      const bearing = nodes.filter((n) => n.bearing);
+      const filtered = nodes.filter((n) => n.filtered);
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? ((btn.textContent || "").trim()) : "",
+        bearingN: bearing.length,
+        filteredN: filtered.length,
+        filteredClassN: nodes.filter((n) => n.filteredClass).length,
+        bearingAlsoFiltered: bearing.filter((n) => n.filtered).length,
+        nonBearingUnfiltered: nodes.filter((n) => !n.bearing && !n.filtered).length,
+        keysDoc:
+          !!(
+            document.getElementById("keysPane") &&
+            /residual filter/i.test(
+              (document.getElementById("keysPane").textContent || "")
+            )
+          ),
+      };
+    });
+    record(
+      "RK1",
+      "Trace R key turns residual filter ON (same chrome as click toggle)",
+      !!(
+        rk1.filterAttr === "on" &&
+        rk1.pressed === "true" &&
+        /residuals on/i.test(rk1.label) &&
+        rk1.bearingN >= 1 &&
+        rk1.filteredN >= 1 &&
+        rk1.filteredClassN === rk1.filteredN &&
+        rk1.bearingAlsoFiltered === 0 &&
+        rk1.nonBearingUnfiltered === 0 &&
+        rk1.keysDoc
+      ),
+      JSON.stringify(rk1)
+    );
+
+    await shot(page, "trajectory-residual-filter-key.png");
+    const rkShot = checks.find((c) => c.id === "shot:trajectory-residual-filter-key.png");
+    record(
+      "RK3",
+      "screenshot trajectory-residual-filter-key.png is not a black frame",
+      !!(rkShot && rkShot.pass),
+      rkShot ? rkShot.detail : "missing shot"
+    );
+
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") !== "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const rk2 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const filtered = document.querySelectorAll(
+        '.traj-node[data-residual-filtered="1"]'
+      ).length;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? ((btn.textContent || "").trim()) : "",
+        filteredN: filtered,
+      };
+    });
+    record(
+      "RK2",
+      "Trace R key again turns residual filter OFF (sync with click chrome)",
+      !!(
+        rk2.filterAttr !== "on" &&
+        rk2.pressed === "false" &&
+        /residuals/i.test(rk2.label) &&
+        !/residuals on/i.test(rk2.label) &&
+        rk2.filteredN === 0
+      ),
+      JSON.stringify(rk2)
+    );
+    assertNoStampDir("RK4", "Trace residual-filter key step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

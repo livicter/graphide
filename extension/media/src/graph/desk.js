@@ -574,6 +574,12 @@ document.addEventListener("keydown", (e) => {
     setEgoMode(!egoMode);
     return;
   }
+  // ADE Trace residual-filter key (RK): R remaps to residual filter on Trace (Map keeps PATH).
+  if (explorerWs === "trace" && (e.key === "r" || e.key === "R")) {
+    e.preventDefault();
+    toggleTrajResidualFilter();
+    return;
+  }
   if (e.key === "r" || e.key === "R") {
     e.preventDefault();
     toggleRoute();
@@ -10320,6 +10326,13 @@ let trajPinFocus = "";
 let trajFocusSeeded = false;
 let trajScale = 1;
 let trajResidualFilter = false;
+
+/** Flip Trace residual filter; shared by legend click + Trace R key. */
+function toggleTrajResidualFilter() {
+  trajResidualFilter = !trajResidualFilter;
+  paint({ animate: "none" });
+}
+
 const TRAJ_SCALE_MIN = 0.35;
 const TRAJ_SCALE_MAX = 3;
 const TRAJ_SCALE_STEP = 1.25;
@@ -11389,8 +11402,7 @@ function bindTrajectoryPage() {
     residualFilterBtn.onclick = (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      trajResidualFilter = !trajResidualFilter;
-      paint({ animate: "none" });
+      toggleTrajResidualFilter();
     };
   }
   bindAdeHopButtons();

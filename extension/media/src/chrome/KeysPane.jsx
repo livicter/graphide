@@ -21,7 +21,7 @@ export function KeysPane() {
           <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> / <kbd>←</kbd> <kbd>→</kbd> / <kbd>j</kbd> <kbd>k</kbd> step
         </li>
         <li>
-          <kbd>R</kbd> PATH · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
+          <kbd>R</kbd> PATH / Trace residual filter · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
         </li>
         <li>
           <kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint

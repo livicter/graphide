@@ -7709,7 +7709,7 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
-          " PATH · ",
+          " PATH / Trace residual filter · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "L" }),
           " LENS · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "E" }),
@@ -20343,6 +20343,11 @@
         setEgoMode(!egoMode);
         return;
       }
+      if (explorerWs === "trace" && (e.key === "r" || e.key === "R")) {
+        e.preventDefault();
+        toggleTrajResidualFilter();
+        return;
+      }
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         toggleRoute();
@@ -28178,6 +28183,10 @@
     let trajFocusSeeded = false;
     let trajScale = 1;
     let trajResidualFilter = false;
+    function toggleTrajResidualFilter() {
+      trajResidualFilter = !trajResidualFilter;
+      paint({ animate: "none" });
+    }
     const TRAJ_SCALE_MIN = 0.35;
     const TRAJ_SCALE_MAX = 3;
     const TRAJ_SCALE_STEP = 1.25;
@@ -28634,8 +28643,7 @@
         residualFilterBtn.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          trajResidualFilter = !trajResidualFilter;
-          paint({ animate: "none" });
+          toggleTrajResidualFilter();
         };
       }
       bindAdeHopButtons();

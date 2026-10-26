@@ -33,7 +33,7 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Edges carry `data-from` / `data-to` / `data-kind` (`seq|fork|join`) and
   optional `data-label`. Focus dims off-path deps. Edge-legend chips
   (`#trajEdgeLegend` / `.traj-legend-chip`) mirror that focus: on-path
-  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3). When residual neighbors exist, adj-residual node-kind chips (`.adj-residual` / `data-adj-residual`) append after edge chips (AL1–AL3). When traj focus scopes residual gatedWrites (same N as Passport FC), a focus-residual count chip (`.focus-residual` / `data-focus-residual` / `data-focus-residual-count`) appends and the legend host mirrors `data-residual-scope` (LC1–LC3); clear-focus restores `data-residual-scope="global"`. A residual filter toggle (`.residual-filter-toggle` / `data-residual-filter-toggle`) on the legend dims non-residual-bearing nodes when `data-residual-filter="on"` (RF1–RF3).
+  kinds stay readable; off-path kinds get `.dim` (FLD1–FLD3). When residual neighbors exist, adj-residual node-kind chips (`.adj-residual` / `data-adj-residual`) append after edge chips (AL1–AL3). When traj focus scopes residual gatedWrites (same N as Passport FC), a focus-residual count chip (`.focus-residual` / `data-focus-residual` / `data-focus-residual-count`) appends and the legend host mirrors `data-residual-scope` (LC1–LC3); clear-focus restores `data-residual-scope="global"`. A residual filter toggle (`.residual-filter-toggle` / `data-residual-filter-toggle`) on the legend dims non-residual-bearing nodes when `data-residual-filter="on"` (RF1–RF3); Trace `R` / `r` flips the same filter via `toggleTrajResidualFilter` (RK1–RK3; Map keeps PATH).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
   click-focus (KS1–KS3), dep-list click→focus (DF1–DF3), and directed hop-affordance next → chips (HA1–HA3).
@@ -97,6 +97,7 @@ Driver assertions:
 - AL1–AL3: Trace adj-residual legend chips — when focus has residual neighbors, `#trajEdgeLegend` appends `.traj-legend-chip.adj-residual` / `data-adj-residual="1"` / `data-node-kind` for those node kinds (`data-adj-residual-count`); Approve clears; proof `verification/trajectory-adj-residual-legend.png`
 - LC1–LC3: Trace legend focus-residual count chip — `#trajEdgeLegend` host + `.traj-legend-chip.focus-residual` / `data-focus-residual` / `data-residual-scope="focus"` / `data-focus-residual-count` matching Passport sticky focusN; clear-focus restores global; proof `verification/trajectory-legend-focus-residual.png`
 - RF1–RF3: Trace legend residual filter/toggle — `#trajEdgeLegend` `[data-residual-filter-toggle]` dims non-`[data-residual-bearing]` nodes when host `data-residual-filter="on"`; proof `verification/trajectory-legend-residual-filter.png`
+- RK1–RK3: Trace residual-filter key — on Trace, `R` / `r` calls `toggleTrajResidualFilter` (same chrome as click); Map keeps `R` PATH; proof `verification/trajectory-residual-filter-key.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
@@ -108,7 +109,9 @@ Driver assertions:
   `verification/trajectory-keyboard-step.png`, and
   `verification/trajectory-empty-state.png`, and
   `verification/trajectory-zoom-chrome.png`, and
-  `verification/trajectory-hop-affordance.png` are not black frames
+  `verification/trajectory-hop-affordance.png`, and
+  `verification/trajectory-legend-residual-filter.png`, and
+  `verification/trajectory-residual-filter-key.png` are not black frames
 - ZC1–ZC3: `#trajZoomBar` visible; zoom in changes `data-traj-scale` / `#trajZoomPct` off 100%; Fit resets to 1 / 100%; screenshot `verification/trajectory-zoom-chrome.png`
 - `.graphide/stamps/` is still empty
 
@@ -132,6 +135,6 @@ Driver assertions:
   (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
   `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
   `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome
-  (`+` / `−` / `0`).
+  (`+` / `−` / `0`), residual filter toggle + Trace `R`/`r` → `toggleTrajResidualFilter`.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).

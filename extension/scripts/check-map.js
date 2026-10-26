@@ -613,6 +613,9 @@ assert(js.includes("trajResidualFilter") && js.includes("data-residual-filter-to
 assert(css.includes("residual-filter-toggle") || css.includes('[data-residual-filter-toggle="1"]') || css.includes("data-residual-filter"), "Trace legend residual filter CSS missing");
 assert(css.includes("residual-filtered") || css.includes('[data-residual-filtered="1"]'), "Trace residual-filtered node CSS missing");
 assert(traceMap.includes("RF1") && traceMap.includes("residual filter") && traceMap.includes("trajectory-legend-residual-filter.png") && traceMap.includes("data-residual-filter-toggle"), "trace feature map must name residual filter RF / proof");
+assert(driver.includes("RK1") && driver.includes("RK3") && driver.includes("trajectory-residual-filter-key.png") && driver.includes("data-residual-filter"), "verify driver must prove Trace residual-filter key RK1–RK3");
+assert(js.includes("toggleTrajResidualFilter") && js.includes('explorerWs === "trace"') && /explorerWs === "trace"[\s\S]*?key === "r"[\s\S]*?toggleTrajResidualFilter/.test(js), "Trace residual-filter R key binding/helper missing");
+assert(traceMap.includes("RK1") && traceMap.includes("residual-filter key") && traceMap.includes("trajectory-residual-filter-key.png") && traceMap.includes("toggleTrajResidualFilter"), "trace feature map must name residual-filter key RK / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
