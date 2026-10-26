@@ -11163,11 +11163,11 @@ function renderTrajectoryBody() {
   const residualFilterCountChip = hasResidualFilterCount
     ? '<span class="traj-legend-chip residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
       esc(String(filterResidualN)) +
-      '" title="Residual filter matches ' +
+      '" tabindex="0" role="status" title="Residual filter matches ' +
       esc(String(filterResidualN)) +
-      '" aria-label="Residual filter matches ' +
+      '. Clear filter or Escape to clear" aria-label="Residual filter matches ' +
       esc(String(filterResidualN)) +
-      '">' +
+      '. Clear filter or Escape to clear">' +
       '<span class="traj-legend-filter-residual-badge">' +
       esc(String(filterResidualN)) +
       "</span>" +
@@ -12382,11 +12382,11 @@ function renderPassportResidual(fx, state) {
   const residualFilterCountChip = hasPassportFilterCount
     ? '<span class="passport-residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
       esc(String(filterBearingN)) +
-      '" title="Residual filter matches ' +
+      '" tabindex="0" role="status" title="Residual filter matches ' +
       esc(String(filterBearingN)) +
-      '" aria-label="Residual filter matches ' +
+      '. Clear filter or Escape to clear" aria-label="Residual filter matches ' +
       esc(String(filterBearingN)) +
-      '">filter · ' +
+      '. Clear filter or Escape to clear">filter · ' +
       esc(String(filterBearingN)) +
       "</span>"
     : "";

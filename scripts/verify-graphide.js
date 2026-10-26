@@ -8365,6 +8365,165 @@ async function main() {
       "Residual-filter Escape clear step did not write .graphide/stamps/"
     );
 
+    // ADE residual-filter count-chip keyboard focus (CCF1–CCF3) — role="status" + focus-visible; Enter/Space does not clear
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    // Ensure filter ON + bearings so count chip exists
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const ccfTrace = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const filterBefore = document
+        .getElementById("trajEdgeLegend")
+        ?.getAttribute("data-residual-filter");
+      chip.focus({ focusVisible: true });
+      const cs = getComputedStyle(chip);
+      const pe = cs.pointerEvents;
+      // Enter/Space must not clear
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true })
+      );
+      const filterAfter = document
+        .getElementById("trajEdgeLegend")
+        ?.getAttribute("data-residual-filter");
+      const name = (chip.getAttribute("aria-label") || chip.getAttribute("title") || "").trim();
+      return {
+        present: true,
+        focused: document.activeElement === chip,
+        focusVisible:
+          typeof chip.matches === "function" ? chip.matches(":focus-visible") : false,
+        tabindex: chip.getAttribute("tabindex"),
+        role: chip.getAttribute("role"),
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        pointerEvents: pe,
+        nAttr: chip.getAttribute("data-filter-residual-count") || "",
+        name,
+        filterBefore,
+        filterAfter,
+        cls: chip.classList.contains("residual-filter-count"),
+      };
+    });
+    const ccfOutlineOk = (o) =>
+      !!(
+        o &&
+        o.present &&
+        o.focused &&
+        o.focusVisible &&
+        o.tabindex === "0" &&
+        o.role === "status" &&
+        o.cls &&
+        o.filterBefore === "on" &&
+        o.filterAfter === "on" &&
+        /\d/.test(o.nAttr) &&
+        /Residual filter matches/i.test(o.name) &&
+        o.outlineStyle === "solid" &&
+        (o.outlineWidth === "1px" || o.outlineWidth === "1") &&
+        (o.outlineOffset === "1px" || o.outlineOffset === "1") &&
+        o.pointerEvents === "auto"
+      );
+    const ccf1ok = ccfOutlineOk(ccfTrace);
+    record(
+      "CCF1",
+      "Trace legend residual-filter count chip is keyboard-reachable status with :focus-visible; Enter/Space does not clear",
+      !!ccf1ok,
+      JSON.stringify(ccfTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const ccfPass = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const host = document.querySelector("#passportSign .passport-residual");
+      const filterBefore = host ? host.getAttribute("data-residual-filter") : "";
+      chip.focus({ focusVisible: true });
+      const cs = getComputedStyle(chip);
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+      );
+      chip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true })
+      );
+      const filterAfter = host ? host.getAttribute("data-residual-filter") : "";
+      const name = (chip.getAttribute("aria-label") || chip.getAttribute("title") || "").trim();
+      return {
+        present: true,
+        focused: document.activeElement === chip,
+        focusVisible:
+          typeof chip.matches === "function" ? chip.matches(":focus-visible") : false,
+        tabindex: chip.getAttribute("tabindex"),
+        role: chip.getAttribute("role"),
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        pointerEvents: cs.pointerEvents,
+        nAttr: chip.getAttribute("data-filter-residual-count") || "",
+        name,
+        filterBefore,
+        filterAfter,
+        cls: chip.classList.contains("passport-residual-filter-count"),
+      };
+    });
+    const ccf2ok = ccfOutlineOk(ccfPass);
+    record(
+      "CCF2",
+      "Passport sticky residual-filter count chip is keyboard-reachable status with :focus-visible; Enter/Space does not clear",
+      !!ccf2ok,
+      JSON.stringify(ccfPass)
+    );
+
+    await shot(page, "residual-filter-count-chip-focus.png");
+    const ccfShot = checks.find(
+      (c) => c.id === "shot:residual-filter-count-chip-focus.png"
+    );
+    record(
+      "CCF3",
+      "screenshot residual-filter-count-chip-focus.png is not a black frame",
+      !!(ccfShot && ccfShot.pass),
+      ccfShot ? ccfShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CCF4",
+      "Residual-filter count-chip focus step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

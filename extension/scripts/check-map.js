@@ -688,6 +688,13 @@ assert(keysMap.includes("ESC1") && keysMap.includes("Escape") && keysMap.include
 assert(traceMap.includes("ESC1") && traceMap.includes("Escape") && traceMap.includes("residual-filter-escape-clear.png"), "trace feature map must name residual-filter Escape clear ESC / proof");
 assert(passportMap.includes("ESC1") && passportMap.includes("Escape") && passportMap.includes("residual-filter-escape-clear.png"), "passport feature map must name residual-filter Escape clear ESC / proof");
 
+assert(driver.includes("CCF1") && driver.includes("CCF3") && driver.includes("residual-filter-count-chip-focus.png") && driver.includes("data-residual-filter-count") && driver.includes("focus-visible") && driver.includes('role="status"'), "verify driver must prove residual-filter count-chip focus CCF1–CCF3");
+assert(js.includes('tabindex="0"') && js.includes('role="status"') && js.includes("residual-filter-count") && js.includes("passport-residual-filter-count") && /residual-filter-count[\s\S]*?tabindex="0"[\s\S]*?role="status"/.test(js), "residual-filter count-chip tabindex/role=status missing from desk");
+assert(css.includes('residual-filter-count[tabindex="0"]:focus-visible') && css.includes('passport-residual-filter-count[tabindex="0"]:focus-visible') && css.includes("outline-offset: 1px"), "residual-filter count-chip focus-visible CSS missing");
+assert(keysMap.includes("CCF1") && keysMap.includes("count-chip") && keysMap.includes("residual-filter-count-chip-focus.png") && keysMap.includes('role="status"'), "keys feature map must name residual-filter count-chip focus CCF / proof");
+assert(traceMap.includes("CCF1") && traceMap.includes("count chip keyboard") && traceMap.includes("residual-filter-count-chip-focus.png") && traceMap.includes('role="status"'), "trace feature map must name residual-filter count-chip focus CCF / proof");
+assert(passportMap.includes("CCF1") && passportMap.includes("count chip keyboard") && passportMap.includes("residual-filter-count-chip-focus.png") && passportMap.includes('role="status"'), "passport feature map must name residual-filter count-chip focus CCF / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

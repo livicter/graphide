@@ -3215,6 +3215,17 @@ html.bright .traj-node { background: #fff; }
   color: inherit;
   text-transform: lowercase;
 }
+/* ADE Trace legend residual-filter count-chip focus (CCF1–CCF3) — keyboard-reachable status; no clear handler */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"],
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"] {
+  pointer-events: auto;
+  cursor: help;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"]:focus-visible,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--traj-filter-residual) 80%, transparent);
+  outline-offset: 1px;
+}
 .traj-node.residual-filtered,
 .traj-node[data-residual-filtered="1"] {
   opacity: 0.22;
@@ -3407,6 +3418,17 @@ html.bright .traj-node { background: #fff; }
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+/* ADE Passport sticky residual-filter count-chip focus (CCF1–CCF3) — keyboard-reachable status; no clear handler */
+.passport-residual .passport-residual-filter-count[tabindex="0"],
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"] {
+  pointer-events: auto;
+  cursor: help;
+}
+.passport-residual .passport-residual-filter-count[tabindex="0"]:focus-visible,
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--passport-filter-residual) 80%, transparent);
+  outline-offset: 1px;
 }
 
 .passport-gate-path.residual-filtered,
