@@ -8,6 +8,7 @@
 "use strict";
 
 const fs = require("fs");
+const os = require("os");
 const http = require("http");
 const path = require("path");
 const zlib = require("zlib");
@@ -1167,6 +1168,112 @@ function runImmutableSealChecks() {
     gateUnlockOut.trim().slice(0, 240)
   );
   if (!i8ok) failFast("fs-sandbox I8 unlock allow failed — " + gateUnlockOut.slice(-400));
+
+  // I9–I11: agent write-bus stub (classifyWrite → optional scratch write)
+  const writeBus = path.join(ROOT, "extension/scripts/agent-write-bus.js");
+  const busTmp = fs.mkdtempSync(path.join(os.tmpdir(), "graphide-write-bus-"));
+  try {
+    const denyOut = path.join(busTmp, "deny-out");
+    const busDeny = spawnSync(
+      process.execPath,
+      [
+        writeBus,
+        "--path",
+        ".cursor/skills/verify-graphide/references/features/immutable-harness.md",
+        "--content",
+        "denied",
+        "--out",
+        denyOut,
+      ],
+      { cwd: ROOT, encoding: "utf8", env: { ...process.env, ADE_ALLOW_SPEC_MUTATION: "" } }
+    );
+    const busDenyOut = String(busDeny.stdout || "") + String(busDeny.stderr || "");
+    let busDenyJson = null;
+    try {
+      busDenyJson = JSON.parse(busDenyOut.trim().split("\n").filter(Boolean).pop());
+    } catch (e) {}
+    const i9ok =
+      busDeny.status !== 0 &&
+      busDenyJson &&
+      busDenyJson.ok === false &&
+      busDenyJson.wrote === false &&
+      busDenyJson.decision &&
+      busDenyJson.decision.class === "sealed" &&
+      !fs.existsSync(denyOut);
+    record(
+      "I9",
+      "write-bus denies sealed path and does not create --out",
+      i9ok,
+      busDenyOut.trim().slice(0, 240)
+    );
+    if (!i9ok) failFast("write-bus I9 deny failed — " + busDenyOut.slice(-400));
+
+    const mediaOut = path.join(busTmp, "media-out");
+    const busMedia = spawnSync(
+      process.execPath,
+      [
+        writeBus,
+        "--path",
+        "extension/media/main.js",
+        "--content",
+        "bus-media",
+        "--out",
+        mediaOut,
+      ],
+      { cwd: ROOT, encoding: "utf8", env: { ...process.env, ADE_ALLOW_SPEC_MUTATION: "" } }
+    );
+    const busMediaOut = String(busMedia.stdout || "") + String(busMedia.stderr || "");
+    let busMediaJson = null;
+    try {
+      busMediaJson = JSON.parse(busMediaOut.trim().split("\n").filter(Boolean).pop());
+    } catch (e) {}
+    const mediaBody = fs.existsSync(mediaOut) ? fs.readFileSync(mediaOut, "utf8") : "";
+    const i10ok =
+      busMedia.status === 0 &&
+      busMediaJson &&
+      busMediaJson.ok === true &&
+      busMediaJson.wrote === true &&
+      busMediaJson.decision &&
+      busMediaJson.decision.class === "agent" &&
+      mediaBody === "bus-media";
+    record(
+      "I10",
+      "write-bus allows extension/media/** into --out",
+      i10ok,
+      busMediaOut.trim().slice(0, 240)
+    );
+    if (!i10ok) failFast("write-bus I10 media allow failed — " + busMediaOut.slice(-400));
+
+    const unlockOut = path.join(busTmp, "unlock-out");
+    const busUnlock = spawnSync(
+      process.execPath,
+      [writeBus, "--path", "package.json", "--content", "bus-unlock", "--out", unlockOut],
+      { cwd: ROOT, encoding: "utf8", env: { ...process.env, ADE_ALLOW_SPEC_MUTATION: "1" } }
+    );
+    const busUnlockOut = String(busUnlock.stdout || "") + String(busUnlock.stderr || "");
+    let busUnlockJson = null;
+    try {
+      busUnlockJson = JSON.parse(busUnlockOut.trim().split("\n").filter(Boolean).pop());
+    } catch (e) {}
+    const unlockBody = fs.existsSync(unlockOut) ? fs.readFileSync(unlockOut, "utf8") : "";
+    const i11ok =
+      busUnlock.status === 0 &&
+      busUnlockJson &&
+      busUnlockJson.ok === true &&
+      busUnlockJson.wrote === true &&
+      busUnlockJson.decision &&
+      busUnlockJson.decision.class === "unlock" &&
+      unlockBody === "bus-unlock";
+    record(
+      "I11",
+      "write-bus allows sealed path with ADE_ALLOW_SPEC_MUTATION=1 into --out",
+      i11ok,
+      busUnlockOut.trim().slice(0, 240)
+    );
+    if (!i11ok) failFast("write-bus I11 unlock allow failed — " + busUnlockOut.slice(-400));
+  } finally {
+    fs.rmSync(busTmp, { recursive: true, force: true });
+  }
 }
 
 
@@ -25481,7 +25588,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · immutable · fs-sandbox · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

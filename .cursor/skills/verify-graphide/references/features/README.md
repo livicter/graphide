@@ -19,6 +19,7 @@ owns this folder.
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` |
 | [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` |
 | [fs-sandbox.md](fs-sandbox.md) | Product-path FS sandbox stub (ADE) | `--gate-write` · I6–I8 |
+| [write-bus.md](write-bus.md) | Agent write-bus stub (ADE) | `agent-write-bus.js` · I9–I11 |
 | [lineage.md](lineage.md) | Lineage workspace | `?lineage=1` · `verification/lineage.png` |
 | [export.md](export.md) | PNG / SVG / Share Card | explorer Map · `export-share.png` |
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |

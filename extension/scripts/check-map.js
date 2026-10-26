@@ -608,6 +608,38 @@ assert(driver.includes("passport.png") && driver.includes("data-passport-action"
       checkerSrc.includes("AGENT_WRITABLE_PREFIX"),
     "immutable checker must export classifyWrite / --gate-write stub"
   );
+
+  assert(driver.includes("I9") && driver.includes("I10") && driver.includes("I11") && driver.includes("agent-write-bus"), "verify driver must prove write-bus I9–I11");
+  const writeBusMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/write-bus.md"
+  );
+  assert(immutableFs.existsSync(writeBusMapPath), "write-bus.md missing");
+  const writeBusMap = immutableFs.readFileSync(writeBusMapPath, "utf8");
+  assert(
+    writeBusMap.includes("## Sub-features") &&
+      writeBusMap.includes("## How to get to it (user POV)") &&
+      writeBusMap.includes("## Driving it with the harness") &&
+      writeBusMap.includes("## Gotchas") &&
+      writeBusMap.includes("proposeWrite") &&
+      writeBusMap.includes("--out"),
+    "write-bus feature map must use the four headings and name proposeWrite / --out"
+  );
+  assert(featReadme.includes("write-bus.md"), "feature README must list write-bus.md");
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["write-bus"]) || "").includes("agent-write-bus"),
+    "write-bus script missing"
+  );
+  const writeBusSrcPath = immutablePath.join(immutableRoot, "extension/scripts/agent-write-bus.js");
+  assert(immutableFs.existsSync(writeBusSrcPath), "agent-write-bus.js missing");
+  const writeBusSrc = immutableFs.readFileSync(writeBusSrcPath, "utf8");
+  assert(
+    writeBusSrc.includes("proposeWrite") &&
+      writeBusSrc.includes("classifyWrite") &&
+      writeBusSrc.includes("--out") &&
+      writeBusSrc.includes("--apply"),
+    "agent-write-bus must export proposeWrite and consult classifyWrite"
+  );
 }
 
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");

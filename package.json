@@ -11,7 +11,8 @@
     "verify:immutable": "node extension/scripts/check-immutable-specs.js",
     "verify:immutable:self-test": "node extension/scripts/check-immutable-specs.js --self-test",
     "immutable:write": "node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation",
-    "fs-sandbox:gate": "node extension/scripts/check-immutable-specs.js --gate-write"
+    "fs-sandbox:gate": "node extension/scripts/check-immutable-specs.js --gate-write",
+    "write-bus": "node extension/scripts/agent-write-bus.js"
   },
   "engines": {
     "node": ">=20"

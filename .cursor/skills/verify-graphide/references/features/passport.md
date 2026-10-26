@@ -76,7 +76,7 @@ Driver assertions:
 
 - Passport is the ADE upstream sign-off gate. Trace (A1a) is the cognition
   DAG. Delta is parent vs head. Do not merge them.
-- Fixture-only in v0. Do not invent a live agent write bus here.
+- Fixture-only in v0. Do not invent a live agent write bus on Passport; the consultable stub lives in [write-bus.md](write-bus.md).
 - Immutable verification harness is a later Phase 1 slice — out of scope.
 - Do not add `data-testid` / `data-component` on the Passport page.
   `[data-ws="passport"]`, `#passportPage`, `#passportGate`, `#passportSign`,

@@ -55,3 +55,5 @@ Driver / script assertions (I6–I8):
 - New feature maps join the sealed set automatically once present on disk
   and locked via human `--write`.
 - Docker/Wasm isolation and required CI branch protection stay deferred.
+- Agent writes that need a consultable apply path use
+  [write-bus.md](write-bus.md) (`proposeWrite` / `--out` / `--apply`).
