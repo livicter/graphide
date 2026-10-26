@@ -5023,6 +5023,243 @@ async function main() {
     );
     assertNoStampDir("RK4", "Trace residual-filter key step did not write .graphide/stamps/");
 
+    // ADE Passport residual-filter mirror (PM1–PM3) — shared trajResidualFilter with Trace RF/RK
+    // RK left Trace with filter OFF; hop Passport and assert sticky toggle + gate path bearing/filter.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("#passportGate .passport-gate-path", { timeout: 8000 });
+    await page.waitForTimeout(120);
+    // Ensure filter starts OFF (shared state with Trace)
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        return (
+          residual &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          residual.getAttribute("data-residual-filter") !== "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pm1 = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const btn =
+        residual &&
+        residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+      const paths = [...document.querySelectorAll("#passportGate .passport-gate-path")].map(
+        (el) => ({
+          path: el.getAttribute("data-passport-path") || "",
+          traj: el.getAttribute("data-ade-traj") || "",
+          bearing: el.getAttribute("data-residual-bearing") === "1",
+          filtered: el.getAttribute("data-residual-filtered") === "1",
+          filteredClass: el.classList.contains("residual-filtered"),
+        })
+      );
+      const bearingN = paths.filter((p) => p.bearing).length;
+      const filteredN = paths.filter((p) => p.filtered).length;
+      const gate = document.getElementById("passportGate");
+      return {
+        residual: !!residual,
+        filterAttr: residual ? residual.getAttribute("data-residual-filter") || "" : "",
+        toggle: !!btn,
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? (btn.textContent || "").trim() : "",
+        isToggleClass: !!(btn && btn.classList.contains("passport-residual-filter-toggle")),
+        bearingN,
+        filteredN,
+        pathN: paths.length,
+        gateState: gate ? gate.getAttribute("data-passport-state") || "" : "",
+        paths,
+      };
+    });
+    record(
+      "PM1",
+      "Passport sticky residual-filter toggle present; bearing gate paths marked while filter off",
+      !!(
+        pm1.residual &&
+        pm1.toggle &&
+        pm1.isToggleClass &&
+        pm1.pressed === "false" &&
+        pm1.filterAttr !== "on" &&
+        /residuals/i.test(pm1.label) &&
+        !/residuals on/i.test(pm1.label) &&
+        pm1.bearingN >= 1 &&
+        pm1.filteredN === 0 &&
+        pm1.pathN > pm1.bearingN &&
+        pm1.gateState !== "approved"
+      ),
+      JSON.stringify(pm1)
+    );
+
+    await page.click('#passportSign [data-passport-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '#passportGate .passport-gate-path[data-residual-filtered="1"]'
+        ).length;
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pm2on = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const btn =
+        residual &&
+        residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+      const paths = [...document.querySelectorAll("#passportGate .passport-gate-path")].map(
+        (el) => ({
+          bearing: el.getAttribute("data-residual-bearing") === "1",
+          filtered: el.getAttribute("data-residual-filtered") === "1",
+          filteredClass: el.classList.contains("residual-filtered"),
+        })
+      );
+      const bearing = paths.filter((p) => p.bearing);
+      const filtered = paths.filter((p) => p.filtered);
+      return {
+        filterAttr: residual ? residual.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? (btn.textContent || "").trim() : "",
+        bearingN: bearing.length,
+        filteredN: filtered.length,
+        filteredClassN: paths.filter((p) => p.filteredClass).length,
+        bearingAlsoFiltered: bearing.filter((p) => p.filtered).length,
+        nonBearingUnfiltered: paths.filter((p) => !p.bearing && !p.filtered).length,
+      };
+    });
+
+    // Shared-state sync: Trace legend should also show filter ON
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajEdgeLegend [data-residual-filter-toggle=\"1\"]", {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(100);
+    const pm2trace = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      const filtered = document.querySelectorAll(
+        '.traj-node[data-residual-filtered="1"]'
+      ).length;
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        filteredN: filtered,
+      };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+
+    await shot(page, "passport-residual-filter-mirror.png");
+    const pmShot = checks.find((c) => c.id === "shot:passport-residual-filter-mirror.png");
+    record(
+      "PM3",
+      "screenshot passport-residual-filter-mirror.png is not a black frame",
+      !!(pmShot && pmShot.pass),
+      pmShot ? pmShot.detail : "missing shot"
+    );
+
+    await page.click('#passportSign [data-passport-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '#passportGate .passport-gate-path[data-residual-filtered="1"]'
+        ).length;
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") !== "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pm2off = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const btn =
+        residual &&
+        residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+      const filtered = document.querySelectorAll(
+        '#passportGate .passport-gate-path[data-residual-filtered="1"]'
+      ).length;
+      return {
+        filterAttr: residual ? residual.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? (btn.textContent || "").trim() : "",
+        filteredN: filtered,
+      };
+    });
+    record(
+      "PM2",
+      "Passport residual filter toggles on (dims non-bearing paths, syncs Trace) then off",
+      !!(
+        pm2on.filterAttr === "on" &&
+        pm2on.pressed === "true" &&
+        /residuals on/i.test(pm2on.label) &&
+        pm2on.bearingN >= 1 &&
+        pm2on.filteredN >= 1 &&
+        pm2on.filteredClassN === pm2on.filteredN &&
+        pm2on.bearingAlsoFiltered === 0 &&
+        pm2on.nonBearingUnfiltered === 0 &&
+        pm2trace.filterAttr === "on" &&
+        pm2trace.pressed === "true" &&
+        pm2trace.filteredN >= 1 &&
+        pm2off.filterAttr !== "on" &&
+        pm2off.pressed === "false" &&
+        /residuals/i.test(pm2off.label) &&
+        !/residuals on/i.test(pm2off.label) &&
+        pm2off.filteredN === 0
+      ),
+      JSON.stringify({ on: pm2on, trace: pm2trace, off: pm2off })
+    );
+    assertNoStampDir("PM4", "Passport residual-filter mirror step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

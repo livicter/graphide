@@ -7709,7 +7709,7 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
-          " PATH / Trace residual filter · ",
+          " PATH / Trace·Passport residual filter · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "L" }),
           " LENS · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "E" }),
@@ -20343,7 +20343,7 @@
         setEgoMode(!egoMode);
         return;
       }
-      if (explorerWs === "trace" && (e.key === "r" || e.key === "R")) {
+      if ((explorerWs === "trace" || explorerWs === "passport") && (e.key === "r" || e.key === "R")) {
         e.preventDefault();
         toggleTrajResidualFilter();
         return;
@@ -29283,7 +29283,9 @@
       const copy = scoped ? residualState === "approved" ? "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " blocked" : residualState === "approved" ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
       const scopeAttrs = scoped ? ' data-residual-scope="focus" data-residual-focus="' + esc(focusId) + '" data-focus-residual-count="' + esc(String(focusN)) + '"' : ' data-residual-scope="global"';
       const clearCue = scoped ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>' : "";
-      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + clearCue + "</div>";
+      const residualFilterAttr = trajResidualFilter ? ' data-residual-filter="on"' : "";
+      const residualFilterToggle = '<button type="button" class="passport-residual-filter-toggle" data-passport-residual-filter-toggle="1" aria-pressed="' + (trajResidualFilter ? "true" : "false") + '" title="Show residual-bearing gate paths only" aria-label="Toggle residual-bearing filter">' + (trajResidualFilter ? "residuals on" : "residuals") + "</button>";
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + residualFilterToggle + clearCue + "</div>";
     }
     function renderPassportGate(fx, state) {
       const unlocked = state === "approved";
@@ -29292,9 +29294,15 @@
       const trajFix = trajectoryFixture();
       const focusId = trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
       const near = trajNeighborIds(trajFix, focusId);
+      const residualTrajs = passportResidualTrajIds();
       const paths = (fx.gatedWrites || []).map((w) => {
         const blocked = unlocked ? "" : ' data-blocked="1"';
         const trajId = resolvePassportTrajId(w);
+        const residualBearing = !!(trajId && residualTrajs.has(trajId));
+        const residualBearingAttr = residualBearing ? ' data-residual-bearing="1"' : "";
+        const residualFiltered = trajResidualFilter && !residualBearing;
+        const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
+        const residualFilteredAttr = residualFiltered ? ' data-residual-filtered="1"' : "";
         const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
         const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
         const hopResidual = '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' + esc(hopState) + '" data-hop-path="' + esc(w.path || "") + '"><span class="passport-hop-residual-badge">' + esc(hopBadge) + "</span></span>";
@@ -29302,7 +29310,7 @@
         const adjClass = isAdj ? " passport-adj-residual" : "";
         const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
         const adjCue = isAdj ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>' : "";
-        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
+        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + residualFilteredClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + residualBearingAttr + residualFilteredAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
       }).join("");
       return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
     }
@@ -29460,6 +29468,15 @@
             ev.preventDefault();
             ev.stopPropagation();
             clearTrajFocus();
+          };
+        const residualFilterBtn = sign.querySelector(
+          '[data-passport-residual-filter-toggle="1"]'
+        );
+        if (residualFilterBtn)
+          residualFilterBtn.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleTrajResidualFilter();
           };
       }
       bindPassportImpactRows();

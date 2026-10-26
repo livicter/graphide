@@ -616,6 +616,11 @@ assert(traceMap.includes("RF1") && traceMap.includes("residual filter") && trace
 assert(driver.includes("RK1") && driver.includes("RK3") && driver.includes("trajectory-residual-filter-key.png") && driver.includes("data-residual-filter"), "verify driver must prove Trace residual-filter key RK1–RK3");
 assert(js.includes("toggleTrajResidualFilter") && js.includes('explorerWs === "trace"') && /explorerWs === "trace"[\s\S]*?key === "r"[\s\S]*?toggleTrajResidualFilter/.test(js), "Trace residual-filter R key binding/helper missing");
 assert(traceMap.includes("RK1") && traceMap.includes("residual-filter key") && traceMap.includes("trajectory-residual-filter-key.png") && traceMap.includes("toggleTrajResidualFilter"), "trace feature map must name residual-filter key RK / proof");
+assert(driver.includes("PM1") && driver.includes("PM3") && driver.includes("passport-residual-filter-mirror.png") && driver.includes("data-passport-residual-filter-toggle"), "verify driver must prove Passport residual-filter mirror PM1–PM3");
+assert(js.includes("data-passport-residual-filter-toggle") && js.includes("passport-residual-filter-toggle") && js.includes('explorerWs === "passport"') && /explorerWs === "trace" \|\| explorerWs === "passport"/.test(js) && js.includes("toggleTrajResidualFilter"), "Passport residual-filter toggle / shared R key missing");
+assert(css.includes("passport-residual-filter-toggle") || css.includes('[data-passport-residual-filter-toggle="1"]'), "Passport residual-filter toggle CSS missing");
+assert(css.includes(".passport-gate-path.residual-filtered") || css.includes('data-residual-filtered'), "Passport residual-filtered gate path CSS missing");
+assert(passportMap.includes("PM1") && passportMap.includes("residual-filter mirror") && passportMap.includes("passport-residual-filter-mirror.png") && passportMap.includes("data-passport-residual-filter-toggle"), "passport feature map must name residual-filter mirror PM / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
