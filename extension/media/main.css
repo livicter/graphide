@@ -3142,7 +3142,9 @@ html.bright .traj-node { background: #fff; }
   --traj-focus-residual: var(--vscode-errorForeground, #f14c4c);
 }
 /* Trace legend residual filter/toggle (RF1–RF3) — pairs with #404/#406 residual legend chrome */
-#trajEdgeLegend[data-residual-filter="on"] {
+/* ADE Trace↔Passport residual-filter host ON cue cross-parity (HOP1–HOP3) — shared outline language */
+#trajEdgeLegend[data-residual-filter="on"],
+.passport-residual[data-residual-filter="on"] {
   outline: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, transparent);
   outline-offset: 2px;
 }
@@ -3346,9 +3348,7 @@ html.bright .traj-node { background: #fff; }
 }
 
 /* ADE Passport residual-filter mirror (PM) — pairs with Trace RF/RK shared trajResidualFilter */
-.passport-residual[data-residual-filter="on"] {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual) 45%, transparent);
-}
+/* Passport residual-filter host ON cue: shared outline with Trace (HOP); inset removed */
 .passport-residual .passport-residual-filter-toggle,
 .passport-residual [data-passport-residual-filter-toggle="1"] {
   --passport-residual-filter: var(--vscode-editorWarning-foreground, #cca700);

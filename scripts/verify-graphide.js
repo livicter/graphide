@@ -8641,6 +8641,9 @@ async function main() {
       const chipBg = csChip.backgroundColor || "";
       const toggleBg = csToggle.backgroundColor || "";
       const hostShadow = csHost.boxShadow || "";
+      const hostOutlineStyle = csHost.outlineStyle || "";
+      const hostOutlineWidth = csHost.outlineWidth || "";
+      const hostOutlineOffset = csHost.outlineOffset || "";
       const filterBefore = host.getAttribute("data-residual-filter");
       chip.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
@@ -8656,6 +8659,9 @@ async function main() {
         chipInset: /inset/i.test(chipShadow),
         toggleInset: /inset/i.test(toggleShadow),
         hostInset: /inset/i.test(hostShadow),
+        hostOutlineSolid: hostOutlineStyle === "solid",
+        hostOutline1px: hostOutlineWidth === "1px",
+        hostOutlineOffset2: hostOutlineOffset === "2px",
         chipShadow,
         toggleShadow,
         chipBg,
@@ -8675,7 +8681,10 @@ async function main() {
       fhpPass.hostOn &&
       fhpPass.chipInset &&
       fhpPass.toggleInset &&
-      fhpPass.hostInset &&
+      fhpPass.hostOutlineSolid &&
+      fhpPass.hostOutline1px &&
+      fhpPass.hostOutlineOffset2 &&
+      !fhpPass.hostInset &&
       fhpPass.bgParity &&
       fhpPass.shadowParity &&
       fhpPass.tabindex === "0" &&
@@ -8686,7 +8695,7 @@ async function main() {
     );
     record(
       "FHP2",
-      "Passport sticky residual-filter count chip has pressed/ON chrome parity with toggle; host ON inset retained",
+      "Passport sticky residual-filter count chip has pressed/ON chrome parity with toggle; host ON outline cue retained",
       !!fhp2ok,
       JSON.stringify(fhpPass)
     );
@@ -8704,6 +8713,307 @@ async function main() {
     assertNoStampDir(
       "FHP4",
       "Residual-filter count host parity step did not write .graphide/stamps/"
+    );
+
+    // ADE Trace↔Passport residual-filter host ON cue cross-parity (HOP1–HOP3) — shared outline
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend[data-residual-filter="on"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const hopTrace = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (!host) return { present: false };
+      const cs = getComputedStyle(host);
+      return {
+        present: true,
+        hostOn: host.getAttribute("data-residual-filter") === "on",
+        outlineStyle: cs.outlineStyle || "",
+        outlineWidth: cs.outlineWidth || "",
+        outlineOffset: cs.outlineOffset || "",
+        outlineColor: cs.outlineColor || "",
+        boxShadow: cs.boxShadow || "",
+        hostInset: /inset/i.test(cs.boxShadow || ""),
+      };
+    });
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const hopPass = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (!host) return { present: false };
+      const cs = getComputedStyle(host);
+      // Toggle OFF briefly to compare host box-shadow ON vs OFF (must not gain ON inset)
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      const shadowOn = cs.boxShadow || "";
+      let shadowOff = "";
+      if (toggle) {
+        toggle.click();
+      }
+      const hostAfter = document.querySelector("#passportSign .passport-residual");
+      if (hostAfter) {
+        shadowOff = getComputedStyle(hostAfter).boxShadow || "";
+        // restore ON
+        if (hostAfter.getAttribute("data-residual-filter") !== "on" && toggle) {
+          toggle.click();
+        }
+      }
+      const csOn = getComputedStyle(
+        document.querySelector("#passportSign .passport-residual")
+      );
+      return {
+        present: true,
+        hostOn: host.getAttribute("data-residual-filter") === "on" ||
+          (document.querySelector("#passportSign .passport-residual") || {}).getAttribute?.("data-residual-filter") === "on",
+        outlineStyle: csOn.outlineStyle || "",
+        outlineWidth: csOn.outlineWidth || "",
+        outlineOffset: csOn.outlineOffset || "",
+        outlineColor: csOn.outlineColor || "",
+        boxShadowOn: shadowOn,
+        boxShadowOff: shadowOff,
+        hostInsetOn: /inset/i.test(shadowOn),
+        shadowUnchanged: shadowOn === shadowOff,
+      };
+    });
+    // Re-read Passport host ON after restore
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"]',
+      { timeout: 8000 }
+    );
+    const hopPassOn = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (!host) return { present: false };
+      const cs = getComputedStyle(host);
+      return {
+        present: true,
+        hostOn: host.getAttribute("data-residual-filter") === "on",
+        outlineStyle: cs.outlineStyle || "",
+        outlineWidth: cs.outlineWidth || "",
+        outlineOffset: cs.outlineOffset || "",
+        outlineColor: cs.outlineColor || "",
+        boxShadow: cs.boxShadow || "",
+        hostInset: /inset/i.test(cs.boxShadow || ""),
+      };
+    });
+
+    const hop1ok = !!(
+      hopTrace &&
+      hopTrace.present &&
+      hopTrace.hostOn &&
+      hopTrace.outlineStyle === "solid" &&
+      hopTrace.outlineWidth === "1px" &&
+      hopTrace.outlineOffset === "2px" &&
+      hopPassOn &&
+      hopPassOn.present &&
+      hopPassOn.hostOn &&
+      hopPassOn.outlineStyle === "solid" &&
+      hopPassOn.outlineWidth === "1px" &&
+      hopPassOn.outlineOffset === "2px" &&
+      hopTrace.outlineColor === hopPassOn.outlineColor &&
+      !hopPassOn.hostInset &&
+      hopPass &&
+      hopPass.shadowUnchanged
+    );
+    record(
+      "HOP1",
+      "Trace + Passport residual-filter hosts share ON outline cue (1px solid / offset 2px); Passport has no ON inset",
+      !!hop1ok,
+      JSON.stringify({ hopTrace, hopPass, hopPassOn })
+    );
+
+    // Dual-panel proof: Trace legend host ON + Passport sticky host ON (shared outline)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend[data-residual-filter="on"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(80);
+    const hopTraceVisible = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const cs = host ? getComputedStyle(host) : null;
+      return {
+        visible: !!(host && host.getClientRects().length),
+        hostOn: !!(host && host.getAttribute("data-residual-filter") === "on"),
+        outlineSolid: !!(cs && cs.outlineStyle === "solid"),
+        stampNodes: document.querySelectorAll(".graphide-stamp, [data-verify-stamp]").length,
+      };
+    });
+    const hopTracePng = await page.screenshot({ type: "png", fullPage: false });
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(80);
+    const hopPassVisible = await page.evaluate(() => {
+      const host = document.querySelector(
+        '#passportSign .passport-residual[data-residual-filter="on"]'
+      );
+      const cs = host ? getComputedStyle(host) : null;
+      return {
+        visible: !!(host && host.getClientRects().length),
+        hostOn: !!(host && host.getAttribute("data-residual-filter") === "on"),
+        outlineSolid: !!(cs && cs.outlineStyle === "solid"),
+        stampNodes: document.querySelectorAll(".graphide-stamp, [data-verify-stamp]").length,
+      };
+    });
+    const hopPassPng = await page.screenshot({ type: "png", fullPage: false });
+
+    // Stitch Trace (top) + Passport (bottom) via PIL so proof shows both hosts ON
+    const hopProofName = "residual-filter-host-on-cue-parity.png";
+    const hopProofPath = path.join(OUT, hopProofName);
+    const hopTmpA = path.join(OUT, ".hop-trace-tmp.png");
+    const hopTmpB = path.join(OUT, ".hop-passport-tmp.png");
+    fs.writeFileSync(hopTmpA, hopTracePng);
+    fs.writeFileSync(hopTmpB, hopPassPng);
+    const hopStitch = spawnSync(
+      "python3",
+      [
+        "-c",
+        "from PIL import Image; import sys; a=Image.open(sys.argv[1]).convert('RGB'); b=Image.open(sys.argv[2]).convert('RGB'); w=max(a.width,b.width); h=a.height+b.height; o=Image.new('RGB',(w,h),(20,20,20)); o.paste(a,(0,0)); o.paste(b,(0,a.height)); o.save(sys.argv[3])",
+        hopTmpA,
+        hopTmpB,
+        hopProofPath,
+      ],
+      { encoding: "utf8" }
+    );
+    try { fs.unlinkSync(hopTmpA); } catch (_) {}
+    try { fs.unlinkSync(hopTmpB); } catch (_) {}
+    if (hopStitch.status !== 0) {
+      // fallback: keep Passport panel alone if stitch fails
+      fs.writeFileSync(hopProofPath, hopPassPng);
+    }
+    noteArtifact(hopProofName);
+    const hopProofBuf = fs.readFileSync(hopProofPath);
+    const hopMeta = pngMeanLuma(hopProofBuf);
+    const hopShotOk =
+      hopMeta.luma >= 0.15 &&
+      hopMeta.w >= 400 &&
+      hopMeta.h >= 300 &&
+      hopProofBuf.length > 8000;
+    record(
+      "shot:" + hopProofName,
+      "screenshot " + hopProofName + " is not a black frame",
+      hopShotOk,
+      "luma=" +
+        hopMeta.luma.toFixed(3) +
+        " " +
+        hopMeta.w +
+        "x" +
+        hopMeta.h +
+        " bytes=" +
+        hopProofBuf.length +
+        (hopStitch.status === 0 ? " stitch=ok" : " stitch=fallback")
+    );
+    const hopShot = checks.find(
+      (c) => c.id === "shot:residual-filter-host-on-cue-parity.png"
+    );
+    const hop2ok = !!(
+      hopShot &&
+      hopShot.pass &&
+      hopTraceVisible &&
+      hopTraceVisible.visible &&
+      hopTraceVisible.hostOn &&
+      hopTraceVisible.outlineSolid &&
+      hopTraceVisible.stampNodes === 0 &&
+      hopPassVisible &&
+      hopPassVisible.visible &&
+      hopPassVisible.hostOn &&
+      hopPassVisible.outlineSolid &&
+      hopPassVisible.stampNodes === 0
+    );
+    record(
+      "HOP2",
+      "screenshot residual-filter-host-on-cue-parity.png shows Trace+Passport hosts ON with shared outline; no stamps",
+      !!hop2ok,
+      JSON.stringify({
+        hopShot: hopShot && hopShot.detail,
+        hopTraceVisible,
+        hopPassVisible,
+        stitchStatus: hopStitch.status,
+      })
+    );
+
+    // HOP3: FHP count-chip chrome still intact under shared outline hosts
+    const hop3 = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      const chip = document.querySelector(
+        '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]'
+      );
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!host || !chip || !toggle) return { present: false };
+      const csChip = getComputedStyle(chip);
+      const csToggle = getComputedStyle(toggle);
+      const csHost = getComputedStyle(host);
+      return {
+        present: true,
+        hostOn: host.getAttribute("data-residual-filter") === "on",
+        chipInset: /inset/i.test(csChip.boxShadow || ""),
+        toggleInset: /inset/i.test(csToggle.boxShadow || ""),
+        bgParity: csChip.backgroundColor === csToggle.backgroundColor,
+        hostOutline: csHost.outlineStyle === "solid" && csHost.outlineWidth === "1px",
+        hostNoInset: !/inset/i.test(csHost.boxShadow || ""),
+      };
+    });
+    const hop3ok = !!(
+      hop3 &&
+      hop3.present &&
+      hop3.hostOn &&
+      hop3.chipInset &&
+      hop3.toggleInset &&
+      hop3.bgParity &&
+      hop3.hostOutline &&
+      hop3.hostNoInset
+    );
+    record(
+      "HOP3",
+      "Under shared host outline, FHP count-chip inset/28% pressed chrome remains; host has outline not inset",
+      !!hop3ok,
+      JSON.stringify(hop3)
+    );
+    assertNoStampDir(
+      "HOP4",
+      "Residual-filter host ON cue parity step did not write .graphide/stamps/"
     );
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3

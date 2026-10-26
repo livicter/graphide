@@ -701,6 +701,12 @@ assert(keysMap.includes("FHP1") && keysMap.includes("pressed/ON") && keysMap.inc
 assert(traceMap.includes("FHP1") && traceMap.includes("pressed/ON visual parity") && traceMap.includes("residual-filter-count-host-parity.png"), "trace feature map must name residual-filter count host parity FHP / proof");
 assert(passportMap.includes("FHP1") && passportMap.includes("pressed/ON visual parity") && passportMap.includes("residual-filter-count-host-parity.png"), "passport feature map must name residual-filter count host parity FHP / proof");
 
+assert(driver.includes("HOP1") && driver.includes("HOP3") && driver.includes("residual-filter-host-on-cue-parity.png") && driver.includes("outlineStyle") && driver.includes("outlineOffset"), "verify driver must prove residual-filter host ON cue parity HOP1–HOP3");
+assert(css.includes('#trajEdgeLegend[data-residual-filter="on"],') && css.includes('.passport-residual[data-residual-filter="on"]') && css.includes("outline-offset: 2px") && !css.includes("box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual) 45%"), "residual-filter host ON cue shared outline CSS missing or Passport ON inset still present");
+assert(keysMap.includes("HOP1") && keysMap.includes("host ON cue") && keysMap.includes("residual-filter-host-on-cue-parity.png"), "keys feature map must name residual-filter host ON cue parity HOP / proof");
+assert(traceMap.includes("HOP1") && traceMap.includes("host ON cue cross-parity") && traceMap.includes("residual-filter-host-on-cue-parity.png"), "trace feature map must name residual-filter host ON cue parity HOP / proof");
+assert(passportMap.includes("HOP1") && passportMap.includes("host ON cue cross-parity") && passportMap.includes("residual-filter-host-on-cue-parity.png"), "passport feature map must name residual-filter host ON cue parity HOP / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
