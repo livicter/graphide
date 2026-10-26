@@ -40,6 +40,8 @@ const LIFECYCLE_HARNESS = "/scripts/webview-harness.html?lifecycle=1&probe=0&req
 const PASSPORT_HARNESS = "/scripts/webview-harness.html?passport=1&probe=0&ws=passport";
 const DEEPLINK_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-verify&gate=approved&probe=0&ws=trace";
+const TRACE_EMPTY_HARNESS =
+  "/scripts/webview-harness.html?trace=1&traceEmpty=1&passport=1&probe=0&ws=trace";
 const PYTHON_HARNESS = "/scripts/webview-harness.html?python=1&probe=0&require=1&ws=dataflow";
 const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=dataflow";
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
@@ -2612,6 +2614,113 @@ async function main() {
       ks3Shot ? ks3Shot.detail : "missing shot"
     );
     assertNoStampDir("KS4", "Trace keyboard node-step did not write .graphide/stamps/");
+
+    // ADE Trace empty-state — ES1–ES3 (blank DAG chrome when fixture has no nodes)
+    await page.evaluate(() => {
+      window.__graphideTrajectory = {
+        version: 2,
+        id: "ade-empty-fixture",
+        title: "Execution trajectory",
+        subtitle: "No subtasks yet — empty fixture",
+        nodes: [],
+        edges: [],
+      };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportPage", { timeout: 8000 });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector(".traj-empty[data-traj-empty-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    const es1 = await page.evaluate(() => {
+      const pageEl = document.querySelector(".traj-page");
+      const host = document.getElementById("trajCanvas");
+      const empty = document.querySelector(".traj-empty[data-traj-empty-chrome]");
+      const title = empty && empty.querySelector(".traj-empty-title");
+      const copy = empty && empty.querySelector(".traj-empty-copy");
+      const action = empty && empty.querySelector('.traj-empty-action [data-ade-hop="passport"]');
+      const strip = document.querySelector(".traj-strip");
+      const nodes = document.querySelectorAll(".traj-node");
+      const edges = document.querySelectorAll(".traj-edge");
+      const emptyBox = empty ? empty.getBoundingClientRect() : null;
+      return {
+        pageEmpty: !!(pageEl && pageEl.getAttribute("data-traj-empty") === "1"),
+        hostEmpty: !!(host && host.getAttribute("data-empty") === "1"),
+        fixture: host ? host.getAttribute("data-fixture") : "",
+        title: title ? (title.textContent || "").trim() : "",
+        copy: copy ? (copy.textContent || "").trim() : "",
+        hasAction: !!action,
+        stripVisible: !!(strip && strip.getBoundingClientRect().height > 0),
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        emptyH: emptyBox ? emptyBox.height : 0,
+        emptyW: emptyBox ? emptyBox.width : 0,
+      };
+    });
+    const es1ok =
+      es1.pageEmpty &&
+      es1.hostEmpty &&
+      es1.fixture === "ade-empty-fixture" &&
+      /No trajectory nodes/i.test(es1.title) &&
+      /no DAG subtasks/i.test(es1.copy) &&
+      es1.hasAction &&
+      es1.stripVisible &&
+      es1.nodeCount === 0 &&
+      es1.edgeCount === 0 &&
+      es1.emptyH > 40 &&
+      es1.emptyW > 120;
+    record(
+      "ES1",
+      "Trace empty fixture shows empty-state chrome (copy + Open Passport); no DAG nodes/edges",
+      es1ok,
+      JSON.stringify(es1)
+    );
+
+    await page.click('.traj-empty-action [data-ade-hop="passport"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return (
+          on &&
+          on.getAttribute("data-ws") === "passport" &&
+          !!document.getElementById("passportPage")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const es2 = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        passport: !!document.getElementById("passportPage"),
+        gate: !!document.getElementById("passportGate"),
+      };
+    });
+    const es2ok = es2.ws === "passport" && es2.passport && es2.gate;
+    record(
+      "ES2",
+      "Trace empty-state Open Passport affordance hops to Passport gate",
+      es2ok,
+      JSON.stringify(es2)
+    );
+
+    // Return to empty Trace for proof PNG (fixture still empty until cleared below).
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector(".traj-empty[data-traj-empty-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    await shot(page, "trajectory-empty-state.png");
+    const es3Shot = checks.find((c) => c.id === "shot:trajectory-empty-state.png");
+    record(
+      "ES3",
+      "screenshot trajectory-empty-state.png is not a black frame",
+      !!(es3Shot && es3Shot.pass),
+      es3Shot ? es3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("ES4", "Trace empty-state step did not write .graphide/stamps/");
+    // Clear empty override so later Trace/deeplink paths use the embedded/full fixture again.
+    await page.evaluate(() => {
+      window.__graphideTrajectory = null;
+    });
 
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');

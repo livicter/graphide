@@ -10249,19 +10249,46 @@ function bindLifecyclePage() {
 
 
 function isTrajectoryFixture(v) {
-  return !!(
-    v &&
-    typeof v === "object" &&
-    typeof v.id === "string" &&
-    Array.isArray(v.nodes) &&
+  if (
+    !(
+      v &&
+      typeof v === "object" &&
+      typeof v.id === "string" &&
+      Array.isArray(v.nodes) &&
+      Array.isArray(v.edges)
+    )
+  ) {
+    return false;
+  }
+  // Empty fixture (ES): no nodes and no edges — blank DAG shows empty-state chrome.
+  if (v.nodes.length === 0) return v.edges.length === 0;
+  return (
     v.nodes.length >= 3 &&
-    Array.isArray(v.edges) &&
     v.edges.length >= 2 &&
     v.nodes.every((n) => n && typeof n.id === "string")
   );
 }
 
+const TRAJECTORY_EMPTY_FIXTURE = Object.freeze({
+  version: 2,
+  id: "ade-empty-fixture",
+  title: "Execution trajectory",
+  subtitle: "No subtasks yet — empty fixture",
+  nodes: Object.freeze([]),
+  edges: Object.freeze([]),
+});
+
+function wantTrajectoryEmpty() {
+  if (typeof window === "undefined" || typeof location === "undefined") return false;
+  try {
+    return new URLSearchParams(location.search || "").get("traceEmpty") === "1";
+  } catch (_err) {
+    return false;
+  }
+}
+
 function getTrajectory() {
+  if (wantTrajectoryEmpty()) return TRAJECTORY_EMPTY_FIXTURE;
   const o = typeof window !== "undefined" ? window.__graphideTrajectory : null;
   return isTrajectoryFixture(o) ? o : TRAJECTORY_FIXTURE;
 }
@@ -10502,12 +10529,61 @@ function renderTrajectoryDetail(fix, selectedId) {
   );
 }
 
+function renderTrajectoryEmptyBody(fix) {
+  const title = fix.title || "Execution trajectory";
+  const sub = fix.subtitle || "No subtasks yet";
+  return (
+    '<div class="traj-page traj-page--empty" data-traj-empty="1">' +
+    '<div class="traj-strip">' +
+    '<span class="traj-strip-title">' +
+    esc(title) +
+    "</span>" +
+    '<span class="traj-strip-sub">' +
+    esc(sub) +
+    "</span>" +
+    '<span class="traj-strip-stats">' +
+    '<span class="traj-stat" data-stat="done"><b>0</b> done</span>' +
+    '<span class="traj-stat" data-stat="running"><b>0</b> running</span>' +
+    '<span class="traj-stat" data-stat="pending"><b>0</b> pending</span>' +
+    '<span class="traj-stat" data-stat="deps"><b>0</b> deps</span>' +
+    "</span>" +
+    renderAdeHop("passport", "Open Passport →") +
+    "</div>" +
+    '<div class="traj-layout">' +
+    '<div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' +
+    esc(fix.id || "ade-empty-fixture") +
+    '" data-empty="1" tabindex="0">' +
+    '<div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status">' +
+    '<b class="traj-empty-title">No trajectory nodes</b>' +
+    '<div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div>' +
+    '<div class="traj-empty-action">' +
+    renderAdeHop("passport", "Open Passport →") +
+    "</div>" +
+    "</div>" +
+    "</div>" +
+    renderTrajectoryDetail(fix, "") +
+    "</div>" +
+    '<div class="traj-meta" data-fixture-version="' +
+    esc(String(fix.version || 1)) +
+    '" data-empty="1">0 subtasks · 0 deps · empty fixture ' +
+    esc(fix.id || "ade-empty-fixture") +
+    (fix.version ? " v" + esc(String(fix.version)) : "") +
+    " · Open Passport to continue</div>" +
+    "</div>"
+  );
+}
+
 function renderTrajectoryBody() {
   seedTrajectoryFocus();
   seedPassportGate();
   const fix = trajectoryFixture();
   const nodes = fix.nodes || [];
   const edges = fix.edges || [];
+  if (!nodes.length) {
+    trajSelectedId = "";
+    trajPinFocus = "";
+    return renderTrajectoryEmptyBody(fix);
+  }
   const nodeW = 188;
   const nodeH = 96;
   const selectedId =

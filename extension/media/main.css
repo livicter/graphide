@@ -2649,6 +2649,26 @@ html.bright .traj-legend-chip {
 }
 .traj-detail[data-empty="1"] { display: flex; align-items: center; }
 .traj-detail-empty { opacity: 0.7; font-size: 12px; line-height: 1.45; }
+
+/* ADE Trace empty-state (ES1–ES3) — blank DAG chrome */
+.traj-page--empty .traj-layout { min-height: 260px; }
+.traj-canvas--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+}
+.traj-empty.desk-empty {
+  max-width: 420px;
+  margin: 18px auto;
+  text-align: left;
+  opacity: 1;
+}
+.traj-empty-title { display: block; font-size: 14px; font-weight: 650; }
+.traj-empty-copy { margin-top: 8px; font-size: 12px; line-height: 1.45; opacity: 0.82; }
+.traj-empty-action { margin-top: 14px; }
+.traj-empty-action .ade-hop { pointer-events: auto; }
+.traj-page--empty .traj-meta[data-empty="1"] { opacity: 0.78; }
 .traj-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .traj-detail-id { font-size: 11px; opacity: 0.7; }
 .traj-detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 10px; margin: 0; font-size: 12px; }

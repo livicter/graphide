@@ -484,6 +484,19 @@
   function loadTrajectoryFixture(done) {
     const focus = params.get("traj") || "";
     if (focus) window.__graphideTrajectoryFocus = focus;
+    if (params.get("traceEmpty") === "1") {
+      window.__graphideTrajectory = {
+        version: 2,
+        id: "ade-empty-fixture",
+        title: "Execution trajectory",
+        subtitle: "No subtasks yet — empty fixture",
+        nodes: [],
+        edges: [],
+      };
+      window.__graphideTrajectoryError = "";
+      done();
+      return;
+    }
     fetch("./trajectory-fixture.json", { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error("no trajectory-fixture.json (" + r.status + ")");

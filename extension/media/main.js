@@ -28126,9 +28126,30 @@
       if (play) play.onclick = () => toggleLcReview();
     }
     function isTrajectoryFixture(v) {
-      return !!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.nodes) && v.nodes.length >= 3 && Array.isArray(v.edges) && v.edges.length >= 2 && v.nodes.every((n) => n && typeof n.id === "string"));
+      if (!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.nodes) && Array.isArray(v.edges))) {
+        return false;
+      }
+      if (v.nodes.length === 0) return v.edges.length === 0;
+      return v.nodes.length >= 3 && v.edges.length >= 2 && v.nodes.every((n) => n && typeof n.id === "string");
+    }
+    const TRAJECTORY_EMPTY_FIXTURE = Object.freeze({
+      version: 2,
+      id: "ade-empty-fixture",
+      title: "Execution trajectory",
+      subtitle: "No subtasks yet — empty fixture",
+      nodes: Object.freeze([]),
+      edges: Object.freeze([])
+    });
+    function wantTrajectoryEmpty() {
+      if (typeof window === "undefined" || typeof location === "undefined") return false;
+      try {
+        return new URLSearchParams(location.search || "").get("traceEmpty") === "1";
+      } catch (_err) {
+        return false;
+      }
     }
     function getTrajectory() {
+      if (wantTrajectoryEmpty()) return TRAJECTORY_EMPTY_FIXTURE;
       const o = typeof window !== "undefined" ? window.__graphideTrajectory : null;
       return isTrajectoryFixture(o) ? o : TRAJECTORY_FIXTURE;
     }
@@ -28208,12 +28229,22 @@
       ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
       return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div></aside>';
     }
+    function renderTrajectoryEmptyBody(fix) {
+      const title = fix.title || "Execution trajectory";
+      const sub = fix.subtitle || "No subtasks yet";
+      return '<div class="traj-page traj-page--empty" data-traj-empty="1"><div class="traj-strip"><span class="traj-strip-title">' + esc(title) + '</span><span class="traj-strip-sub">' + esc(sub) + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>0</b> done</span><span class="traj-stat" data-stat="running"><b>0</b> running</span><span class="traj-stat" data-stat="pending"><b>0</b> pending</span><span class="traj-stat" data-stat="deps"><b>0</b> deps</span></span>' + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' + esc(fix.id || "ade-empty-fixture") + '" data-empty="1" tabindex="0"><div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status"><b class="traj-empty-title">No trajectory nodes</b><div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div><div class="traj-empty-action">' + renderAdeHop("passport", "Open Passport →") + "</div></div></div>" + renderTrajectoryDetail(fix, "") + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '" data-empty="1">0 subtasks · 0 deps · empty fixture ' + esc(fix.id || "ade-empty-fixture") + (fix.version ? " v" + esc(String(fix.version)) : "") + " · Open Passport to continue</div></div>";
+    }
     function renderTrajectoryBody() {
       seedTrajectoryFocus();
       seedPassportGate();
       const fix = trajectoryFixture();
       const nodes = fix.nodes || [];
       const edges = fix.edges || [];
+      if (!nodes.length) {
+        trajSelectedId = "";
+        trajPinFocus = "";
+        return renderTrajectoryEmptyBody(fix);
+      }
       const nodeW = 188;
       const nodeH = 96;
       const selectedId = trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";

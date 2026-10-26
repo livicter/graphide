@@ -561,6 +561,11 @@ assert(driver.includes("KS1") && driver.includes("KS3") && driver.includes("traj
 assert(js.includes('e.key === "ArrowRight" || e.key === "j" || e.key === "J"') && js.includes("stepTrajectory"), "Trace keyboard step ArrowRight/j → stepTrajectory missing");
 assert(js.includes('e.key === "ArrowLeft" || e.key === "k" || e.key === "K"') && js.includes('explorerWs === "trace"'), "Trace keyboard step ArrowLeft/k under explorerWs===trace missing");
 assert(traceMap.includes("KS1") && traceMap.includes("keyboard") && traceMap.includes("trajectory-keyboard-step.png"), "trace feature map must name keyboard step KS / proof");
+assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
+assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
+assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");
+assert(css.includes("traj-empty") && css.includes("traj-canvas--empty") && css.includes("traj-empty-action"), "Trace empty-state CSS missing");
+assert(traceMap.includes("ES1") && traceMap.includes("empty-state") && traceMap.includes("trajectory-empty-state.png"), "trace feature map must name empty-state ES / proof");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

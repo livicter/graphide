@@ -33,11 +33,15 @@ Trace. Not a live agent wire and not Plan Passport (sign-off gate).
 - Keyboard node-step: `[` / `]` / `←` / `→` / `j` / `k` call the same
   `stepTrajectory` so focus / on-path edges / legend dim stay in sync with
   click-focus (KS1–KS3).
+- Empty-state (ES1–ES3): when the fixture has no nodes (`nodes: []` or
+  harness `?traceEmpty=1` / `TRAJECTORY_EMPTY_FIXTURE`), `#trajCanvas`
+  shows `.traj-empty` chrome (copy + Open Passport `data-ade-hop`) instead
+  of a blank DAG. Proof `verification/trajectory-empty-state.png`.
 - Engine: embedded `TRAJECTORY_FIXTURE` (`trajectory-fixture.js`),
   overridable by `window.__graphideTrajectory` when
   `isTrajectoryFixture()` passes (harness `?trace=1` loads
-  `trajectory-fixture.json`). `?traj=<id>` seeds focus via
-  `window.__graphideTrajectoryFocus`.
+  `trajectory-fixture.json`; `?traceEmpty=1` forces the empty fixture).
+  `?traj=<id>` seeds focus via `window.__graphideTrajectoryFocus`.
 
 ## How to get to it (user POV)
 
@@ -58,6 +62,7 @@ The in-tree proof is the embedded fixture (`ade-a1a-fixture` v2).
 ```
 extension/scripts/webview-harness.html?trace=1&probe=0&ws=trace
 extension/scripts/webview-harness.html?trace=1&traj=sub-verify&probe=0
+extension/scripts/webview-harness.html?trace=1&traceEmpty=1&probe=0&ws=trace
 ```
 
 `trace=1` fetches `trajectory-fixture.json` into
@@ -84,7 +89,8 @@ Driver assertions:
   `verification/trajectory-pin-tip-chrome.png`, and
   `verification/trajectory-edge-legend.png`, and
   `verification/trajectory-legend-focus-dim.png`, and
-  `verification/trajectory-keyboard-step.png` are not black frames
+  `verification/trajectory-keyboard-step.png`, and
+  `verification/trajectory-empty-state.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -101,6 +107,7 @@ Driver assertions:
   `[data-artifact-diff]`, `[data-phase]`, `[data-agent]`, `[data-deps]`,
   `#trajPinTip` / `[data-traj-pin-tip]`, `.traj-pin-tip-chip`,
   `[data-tip-art-base]`, `data-tip-place`, keyboard step via `stepTrajectory`
-  (`[` / `]` / arrows / `j` `k`).
+  (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
+  `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).
