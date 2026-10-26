@@ -336,8 +336,8 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
 assert(
-  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381") && rootReadme.includes("#385"),
-  "root README must document ADE Phase 1 tip stack #371…#385"
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381") && rootReadme.includes("#386"),
+  "root README must document ADE Phase 1 tip stack #371…#386"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -544,6 +544,10 @@ assert(js.includes("traj-pin-tip-chip-add") && js.includes("data-tip-art-base") 
 assert(css.includes("#trajPinTip") && css.includes("traj-pin-tip-counts") && css.includes("traj-pin-tip-chip-add") && css.includes("traj-pin-tip-art-base"), "Trace pin-tip chrome CSS missing");
 assert(traceMap.includes("trajPinTip") && traceMap.includes("PH1") && traceMap.includes("trajectory-pin-hover.png"), "trace feature map must name pin-hover tip / PH1 / trajectory-pin-hover.png");
 assert(traceMap.includes("PTC1") && traceMap.includes("traj-pin-tip-chip") && traceMap.includes("trajectory-pin-tip-chrome.png"), "trace feature map must name pin-tip chrome PTC / chips / proof");
+assert(driver.includes("EL1") && driver.includes("EL3") && driver.includes("trajectory-edge-legend.png") && driver.includes("trajEdgeLegend"), "verify driver must prove Trace edge-legend EL1–EL3");
+assert(css.includes("traj-edge-legend") && css.includes("traj-legend-chip") && css.includes("kind-fork") && css.includes("stroke-dasharray: 5 4"), "Trace edge-legend CSS missing");
+assert(js.includes("trajEdgeLegend") && js.includes("traj-legend-chip") && js.includes("traj-edge-legend"), "Trace edge-legend markup missing");
+assert(traceMap.includes("EL1") && traceMap.includes("trajEdgeLegend") && traceMap.includes("trajectory-edge-legend.png"), "trace feature map must name edge-legend EL / trajEdgeLegend / proof");
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {

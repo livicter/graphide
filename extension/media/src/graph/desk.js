@@ -10631,6 +10631,30 @@ function renderTrajectoryBody() {
   const done = nodes.filter((n) => n.status === "done").length;
   const running = nodes.filter((n) => n.status === "running").length;
   const pending = nodes.filter((n) => n.status === "pending").length;
+  const edgeKinds = ["seq", "fork", "join"].filter((k) =>
+    edges.some((e) => (e.kind || "seq") === k)
+  );
+  const edgeLegend =
+    edgeKinds.length === 0
+      ? ""
+      : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds">' +
+        edgeKinds
+          .map(
+            (k) =>
+              '<span class="traj-legend-chip kind-' +
+              esc(k) +
+              '" data-kind="' +
+              esc(k) +
+              '">' +
+              '<svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">' +
+              '<line x1="1" y1="5" x2="21" y2="5"></line>' +
+              "</svg>" +
+              '<span class="traj-legend-label">' +
+              esc(k) +
+              "</span></span>"
+          )
+          .join("") +
+        "</div>";
   return (
     '<div class="traj-page' +
     (focusOn ? " has-focus" : "") +
@@ -10656,6 +10680,7 @@ function renderTrajectoryBody() {
     edges.length +
     "</b> deps</span>" +
     "</span>" +
+    edgeLegend +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
     '<div class="traj-layout">' +

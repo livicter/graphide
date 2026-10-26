@@ -2237,6 +2237,131 @@ async function main() {
     record("PH3", "Leaving Trace pin hides #trajPinTip", tipGone, "hidden=" + tipGone);
     assertNoStampDir("PH4", "Trace pin-hover step did not write .graphide/stamps/");
 
+    // ADE Trace edge-legend chips (seq / fork / join) — EL1–EL3
+    // Clear traj focus so .on-path stroke overrides do not pollute kind-* samples.
+    await page.evaluate(() => {
+      const pageEl = document.querySelector(".traj-page");
+      if (pageEl) pageEl.classList.remove("has-focus");
+      const host = document.getElementById("trajCanvas");
+      if (host) host.removeAttribute("data-focus");
+      document.querySelectorAll(".traj-edge.on-path, .traj-edge.dim").forEach((el) => {
+        el.classList.remove("on-path", "dim");
+        el.removeAttribute("data-on-path");
+      });
+      document.querySelectorAll(".traj-node.on, .traj-node.neighbor").forEach((el) => {
+        el.classList.remove("on", "neighbor");
+        el.setAttribute("aria-pressed", "false");
+      });
+    });
+    await page.waitForTimeout(80);
+    const edgeLegend = await page.evaluate(() => {
+      const normDash = (val) => {
+        if (!val || val === "none" || val === "0px" || val === "0") return "";
+        return (String(val).match(/-?\d+(?:\.\d+)?/g) || []).join(" ");
+      };
+      const legend = document.getElementById("trajEdgeLegend");
+      if (!legend) return { ok: false, reason: "missing" };
+      const chips = [...legend.querySelectorAll(".traj-legend-chip[data-kind]")].map((chip) => {
+        const kind = chip.getAttribute("data-kind") || "";
+        const line = chip.querySelector("svg.traj-legend-stroke line");
+        const label = ((chip.querySelector(".traj-legend-label") || {}).textContent || "").trim();
+        const cs = line ? getComputedStyle(line) : null;
+        return {
+          kind,
+          label,
+          hasLine: !!line,
+          stroke: cs ? cs.stroke : "",
+          dash: cs ? normDash(cs.strokeDasharray) : "",
+          classKind: chip.classList.contains("kind-" + kind),
+        };
+      });
+      const byKind = Object.fromEntries(chips.map((c) => [c.kind, c]));
+      const edgeStyles = {};
+      for (const kind of ["seq", "fork", "join"]) {
+        const edge =
+          document.querySelector(".traj-edge.kind-" + kind + ":not(.on-path)") ||
+          document.querySelector(".traj-edge.kind-" + kind);
+        if (!edge) {
+          edgeStyles[kind] = null;
+          continue;
+        }
+        const cs = getComputedStyle(edge);
+        edgeStyles[kind] = {
+          stroke: cs.stroke,
+          dash: normDash(cs.strokeDasharray),
+          onPath: edge.classList.contains("on-path"),
+        };
+      }
+      return {
+        ok: true,
+        classOk: legend.classList.contains("traj-edge-legend"),
+        chips,
+        byKind,
+        edgeStyles,
+        kinds: chips.map((c) => c.kind).sort().join(","),
+      };
+    });
+    const el1ok =
+      edgeLegend.ok &&
+      edgeLegend.classOk &&
+      edgeLegend.kinds === "fork,join,seq" &&
+      edgeLegend.chips.length === 3 &&
+      edgeLegend.chips.every((c) => c.hasLine && c.label === c.kind && c.classKind);
+    record(
+      "EL1",
+      "Trace edge legend mounts with seq / fork / join chips",
+      el1ok,
+      JSON.stringify({
+        kinds: edgeLegend.kinds,
+        classOk: edgeLegend.classOk,
+        labels: (edgeLegend.chips || []).map((c) => c.label),
+      })
+    );
+    const seq = edgeLegend.byKind && edgeLegend.byKind.seq;
+    const fork = edgeLegend.byKind && edgeLegend.byKind.fork;
+    const join = edgeLegend.byKind && edgeLegend.byKind.join;
+    const eSeq = edgeLegend.edgeStyles && edgeLegend.edgeStyles.seq;
+    const eFork = edgeLegend.edgeStyles && edgeLegend.edgeStyles.fork;
+    const eJoin = edgeLegend.edgeStyles && edgeLegend.edgeStyles.join;
+    const el2ok =
+      !!seq &&
+      !!fork &&
+      !!join &&
+      !!eSeq &&
+      !!eFork &&
+      !!eJoin &&
+      (!seq.dash || seq.dash === "") &&
+      (!eSeq.dash || eSeq.dash === "") &&
+      seq.dash === eSeq.dash &&
+      fork.dash.replace(/\s+/g, " ") === "5 4" &&
+      eFork.dash.replace(/\s+/g, " ") === "5 4" &&
+      fork.dash === eFork.dash &&
+      !!join.stroke &&
+      join.stroke !== seq.stroke &&
+      !!eJoin.stroke &&
+      eJoin.stroke !== eSeq.stroke &&
+      join.stroke === eJoin.stroke;
+    record(
+      "EL2",
+      "Edge-legend chip strokes match .traj-edge.kind-* (solid / dasharray / join tint)",
+      el2ok,
+      JSON.stringify({
+        seq,
+        fork,
+        join,
+        edgeStyles: edgeLegend.edgeStyles,
+      })
+    );
+    await shot(page, "trajectory-edge-legend.png");
+    const el3Shot = checks.find((c) => c.id === "shot:trajectory-edge-legend.png");
+    record(
+      "EL3",
+      "screenshot trajectory-edge-legend.png is not a black frame",
+      !!(el3Shot && el3Shot.pass),
+      el3Shot ? el3Shot.detail : "missing shot"
+    );
+    assertNoStampDir("EL4", "Trace edge-legend step did not write .graphide/stamps/");
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(

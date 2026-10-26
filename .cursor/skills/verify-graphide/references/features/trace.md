@@ -69,11 +69,13 @@ Driver assertions:
 - TF1–TF5: richer phase/agent/deps/artifact-diff inspector hooks
 - PH1–PH3: diff pin hover tip (`#trajPinTip`) with matching adds/dels
 - PTC1–PTC3: pin-tip chrome chips, path basename split, pin-anchored place
+- EL1–EL3: `#trajEdgeLegend` / `.traj-edge-legend` seq/fork/join chips; stroke styles mirror `.traj-edge.kind-*`; screenshot `verification/trajectory-edge-legend.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,
   `verification/trajectory-pin-hover.png`, and
-  `verification/trajectory-pin-tip-chrome.png` are not black frames
+  `verification/trajectory-pin-tip-chrome.png`, and
+  `verification/trajectory-edge-legend.png` are not black frames
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

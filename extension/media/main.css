@@ -2406,6 +2406,47 @@ html.bright .route-hop {
 }
 .traj-edge.kind-fork { stroke-dasharray: 5 4; opacity: 0.8; }
 .traj-edge.kind-join { stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e)); }
+.traj-edge-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.92;
+}
+.traj-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  white-space: nowrap;
+}
+.traj-legend-label { opacity: 0.88; text-transform: lowercase; letter-spacing: 0.02em; }
+.traj-legend-stroke {
+  display: block;
+  overflow: visible;
+  color: var(--g-line, #8b949e);
+}
+.traj-legend-stroke line {
+  fill: none;
+  stroke: var(--g-line, #8b949e);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+.traj-legend-chip.kind-fork .traj-legend-stroke line { stroke-dasharray: 5 4; opacity: 0.8; }
+.traj-legend-chip.kind-join .traj-legend-stroke line {
+  stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+}
+html.bright .traj-edge-legend { opacity: 0.95; }
+html.bright .traj-legend-chip {
+  background: #fff;
+  border-color: rgba(60, 60, 67, 0.18);
+}
 .traj-page.has-focus .traj-edge.dim { opacity: 0.22; }
 .traj-page.has-focus .traj-edge.on-path {
   stroke: var(--vscode-focusBorder, #2f81f7);
