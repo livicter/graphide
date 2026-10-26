@@ -1,7 +1,7 @@
 {
   "version": 2,
   "id": "passport-ade-phase-1.2-fixtures",
-  "title": "Plan Passport — ADE Phase 1.2 richer fixtures",
+  "title": "Plan Passport \u2014 ADE Phase 1.2 richer fixtures",
   "status": "pending",
   "summary": "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
   "targets": [
@@ -11,7 +11,8 @@
       "path": "extension/media/src/graph/desk.js",
       "layer": "architecture",
       "deltaStatus": "Changed",
-      "impact": "Richer row chrome + impact cards"
+      "impact": "Richer row chrome + impact cards",
+      "traj": "sub-edit"
     },
     {
       "id": "t2",
@@ -27,7 +28,8 @@
       "path": "scripts/verify-graphide.js",
       "layer": "harness",
       "deltaStatus": "Added",
-      "impact": "PF1–PF5 fixture drivers"
+      "impact": "PF1\u2013PF5 fixture drivers",
+      "traj": "sub-verify"
     },
     {
       "id": "t4",
@@ -35,7 +37,8 @@
       "path": "extension/media/src/graph/trajectory-fixture.js",
       "layer": "trace",
       "impact": "A1a semantics preserved",
-      "clusterKind": "Stable"
+      "clusterKind": "Stable",
+      "traj": "sub-fixture"
     },
     {
       "id": "t5",
@@ -43,7 +46,8 @@
       "path": "extension/scripts/passport-fixture.json",
       "layer": "harness",
       "deltaStatus": "Changed",
-      "impact": "Sim rows for architecture/API/risk/test"
+      "impact": "Sim rows for architecture/API/risk/test",
+      "traj": "sub-passport"
     }
   ],
   "contracts": [
@@ -179,15 +183,16 @@
     {
       "id": "p6",
       "kind": "assert",
-      "desc": "architecture/API/risk/test rows expose layer·delta·mitigation·fixture fields",
-      "fixture": "PF1–PF5",
+      "desc": "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
+      "fixture": "PF1\u2013PF5",
       "covers": "targets,contracts,risks,tests,impact"
     }
   ],
   "gatedWrites": [
     {
       "path": "extension/media/src/graph/desk.js",
-      "reason": "agent would edit paint/bind"
+      "reason": "agent would edit paint/bind",
+      "traj": "sub-edit"
     },
     {
       "path": "extension/media/src/chrome/GraphBar.jsx",
@@ -199,39 +204,42 @@
     },
     {
       "path": "extension/media/src/graph/trajectory-fixture.js",
-      "reason": "agent would reshape Trace fixture"
+      "reason": "agent would reshape Trace fixture",
+      "traj": "sub-fixture"
     },
     {
       "path": "extension/scripts/passport-fixture.json",
-      "reason": "agent would reshape Passport sim"
+      "reason": "agent would reshape Passport sim",
+      "traj": "sub-passport"
     }
   ],
   "impact": {
     "callGraphs": [
       {
         "id": "cg1",
-        "label": "paintPassportWorkspace ← renderExplorerList(ws)",
+        "label": "paintPassportWorkspace \u2190 renderExplorerList(ws)",
         "detail": "Explorer list paint owns Passport page mount",
         "deltaStatus": "Changed",
-        "deltaClass": "Topology"
+        "deltaClass": "Topology",
+        "traj": "sub-edit"
       },
       {
         "id": "cg2",
-        "label": "setPassportGate ← #passportSign Approve/Reject",
+        "label": "setPassportGate \u2190 #passportSign Approve/Reject",
         "detail": "Sign-off flips gate without disk writes",
         "deltaClass": "Semantic",
         "clusterKind": "Stable"
       },
       {
         "id": "cg3",
-        "label": "bindTrajectoryPage ← renderExplorerList(trace)",
+        "label": "bindTrajectoryPage \u2190 renderExplorerList(trace)",
         "detail": "Trace bind stays on A1a path",
         "deltaClass": "Topology",
         "clusterKind": "Stable"
       },
       {
         "id": "cg4",
-        "label": "renderPassportImpact ← renderPassportBody",
+        "label": "renderPassportImpact \u2190 renderPassportBody",
         "detail": "Structured rows + Delta vocab chips",
         "deltaStatus": "Added",
         "deltaClass": "Presentation"
@@ -241,14 +249,15 @@
     "apiContracts": [
       {
         "id": "ac1",
-        "label": "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
+        "label": "getPassport() \u2192 PASSPORT_FIXTURE | window.__graphidePassport",
         "detail": "Harness ?passport=1 may override embedded fixture",
         "deltaStatus": "Changed",
-        "deltaClass": "Semantic"
+        "deltaClass": "Semantic",
+        "traj": "sub-verify"
       },
       {
         "id": "ac2",
-        "label": "PASSPORT_GATE ∈ pending|approved|rejected",
+        "label": "PASSPORT_GATE \u2208 pending|approved|rejected",
         "detail": "URL ?gate= seeds + replaceState sync",
         "deltaClass": "Semantic",
         "clusterKind": "Stable"
@@ -323,7 +332,7 @@
         {
           "id": "structural",
           "label": "Structural delta",
-          "detail": "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+          "detail": "Pair by (kind, fqn). Exact facts only \u2014 no blast radius or merge safety."
         },
         {
           "id": "impact",

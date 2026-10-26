@@ -2762,6 +2762,20 @@ html.bright .traj-node { background: #fff; }
 .traj-strip .ade-hop { margin-left: 4px; }
 .ade-hop-hint { font-size: 11px; opacity: 0.68; }
 
+.ade-traj-hop {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.passport-row-head .ade-traj-hop,
+.passport-impact-head .ade-traj-hop,
+.passport-gate-paths .ade-traj-hop {
+  margin-left: auto;
+}
+/* data-ade-traj is marker-only; do not override impact-row pointer cursor */
+
 /* ADE immutable seal / write-gate status chip (fixture stub; not live FS) */
 .ade-seal-chip {
   display: inline-flex; align-items: center; gap: 4px;

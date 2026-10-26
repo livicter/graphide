@@ -726,6 +726,9 @@ assert(traceMap.includes("ZC1") && traceMap.includes("zoom chrome") && traceMap.
 
 assert(driver.includes("DEEPLINK_HARNESS") && driver.includes("DL1") && driver.includes("DL4") && driver.includes("data-ade-hop"), "verify driver must prove Trace↔Passport deep-link DL1–DL4");
 assert(driver.includes("trajectory-deeplink.png") && driver.includes("passport-deeplink.png"), "verify driver must capture deep-link screenshots");
+assert(driver.includes("DR1") && driver.includes("DR3") && driver.includes("passport-trace-deeplink.png") && driver.includes("data-ade-traj-hop"), "verify driver must prove Passport→Trace row deeplink DR1–DR3");
+assert(js.includes("hopAdeTraj") && js.includes("bindAdeTrajHops") && js.includes("resolvePassportTrajId") && js.includes("data-ade-traj-hop"), "Passport→Trace row hop helpers missing");
+assert(css.includes("ade-traj-hop"), "Passport→Trace row hop CSS missing");
 assert(harness.includes("loadAdePair") && harness.includes("__graphidePassportGate"), "harness must dual-load ADE fixtures and seed gate");
 const deeplinkMapPath = path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md");
 assert(fs.existsSync(deeplinkMapPath), "trace-passport-deeplink.md missing");
@@ -736,8 +739,11 @@ assert(
     deeplinkMap.includes("## Driving it with the harness") &&
     deeplinkMap.includes("## Gotchas") &&
     deeplinkMap.includes("data-ade-hop") &&
-    deeplinkMap.includes("traj="),
-  "trace-passport-deeplink feature map must use the four headings and name hops/traj"
+    deeplinkMap.includes("traj=") &&
+    deeplinkMap.includes("DR1") &&
+    deeplinkMap.includes("data-ade-traj-hop") &&
+    deeplinkMap.includes("passport-trace-deeplink.png"),
+  "trace-passport-deeplink feature map must use the four headings and name hops/traj/DR reverse"
 );
 assert(featReadme.includes("trace-passport-deeplink.md"), "feature README must list trace-passport-deeplink.md");
 

@@ -12,6 +12,9 @@ passport gate state via URL params. No live Architecture Delta mount.
   `?gate=pending|approved|rejected` seeds Passport gate.
 - Hop chrome: `[data-ade-hop="passport"]` on Trace,
   `[data-ade-hop="trace"]` on Passport. Sibling tabs stay intact.
+- Reverse row hops (DR1–DR3): Passport rows with `traj` (or path→artifact
+  match) expose `[data-ade-traj-hop]` **Open in Trace**; click focuses the
+  matching Trace node and preserves gate.
 - `history.replaceState` keeps `trace=1`, `passport=1`, `traj`, `gate`,
   and `ws` in sync as the operator selects nodes or signs the gate.
 
@@ -22,6 +25,8 @@ passport gate state via URL params. No live Architecture Delta mount.
 2. Trace lands focused on the named subtask; click **Open Passport →**.
 3. Passport shows the seeded gate; click **← Open Trace** to return with
    the same traj focus.
+4. Or click **Open in Trace** on a Passport target / gated-write / impact
+   row (`data-ade-traj-hop`) to focus that row's matching Trace node.
 
 ## Driving it with the harness
 
@@ -36,9 +41,13 @@ Driver assertions (DL1–DL5):
 - DL3: hop to Passport keeps gate approved + traj in URL; no live Delta
 - DL4: hop back restores traj focus; gate remains in URL
 - DL5: no `.graphide/stamps/` writes
+- DR1: Passport row hop `data-ade-traj-hop=sub-verify` lands Trace focused
+- DR2: Passport row hop `data-ade-traj-hop=sub-edit` lands Trace focused; gate preserved
+- DR3: empty Passport emits no `data-ade-traj-hop` (strip hop only)
 
 Screenshots: `verification/trajectory-deeplink.png`,
-`verification/passport-deeplink.png`.
+`verification/passport-deeplink.png`,
+`verification/passport-trace-deeplink.png`.
 
 ## Gotchas
 
