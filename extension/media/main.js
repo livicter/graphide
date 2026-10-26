@@ -29222,10 +29222,21 @@
       return PASSPORT_STATES[passportGate] ? passportGate : "pending";
     }
     function renderPassportResidual(fx, state) {
-      const n = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites.length : 0;
+      const writes = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites : [];
+      const globalN = writes.length;
       const residualState = PASSPORT_STATES[state] ? state : "pending";
-      const copy = residualState === "approved" ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
-      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(n)) + '"><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span></div>";
+      const trajFix = trajectoryFixture();
+      const focusId = trajSelectedId && (trajFix.nodes || []).some((n2) => n2.id === trajSelectedId) ? trajSelectedId : "";
+      const focusIds = focusId ? trajNeighborIds(trajFix, focusId) : null;
+      const focusN = focusIds ? writes.filter((w) => {
+        const tid = resolvePassportTrajId(w);
+        return !!(tid && focusIds.has(tid));
+      }).length : 0;
+      const scoped = !!focusId;
+      const n = scoped ? focusN : globalN;
+      const copy = scoped ? residualState === "approved" ? "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " blocked" : residualState === "approved" ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
+      const scopeAttrs = scoped ? ' data-residual-scope="focus" data-residual-focus="' + esc(focusId) + '" data-focus-residual-count="' + esc(String(focusN)) + '"' : ' data-residual-scope="global"';
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span></div>";
     }
     function renderPassportGate(fx, state) {
       const unlocked = state === "approved";

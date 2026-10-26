@@ -3129,6 +3129,13 @@ html.bright .traj-node { background: #fff; }
   background: color-mix(in srgb, var(--passport-residual) 22%, transparent);
 }
 .passport-residual-copy { font-weight: 600; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.passport-residual[data-residual-scope="focus"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 70%, transparent);
+  outline-offset: 2px;
+}
+.passport-residual[data-residual-scope="focus"] .passport-residual-badge {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 45%, transparent);
+}
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }

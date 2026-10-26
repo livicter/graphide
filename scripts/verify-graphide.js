@@ -4036,6 +4036,155 @@ async function main() {
     );
     assertNoStampDir("AL4", "Trace adj-residual legend step did not write .graphide/stamps/");
 
+    // ADE Passport focus-scoped residual count on sticky sign rail — FC1–FC3
+    // AL left Trace focused on sub-diff + gate rejected; hop Passport and assert scoped count.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+      timeout: 8000,
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(160);
+    // Ensure Trace focus is still sub-diff (paintPassport reuses trajSelectedId)
+    const fcFocusProbe = await page.evaluate(() => window.__graphideTrajectoryFocus || "");
+    if (fcFocusProbe !== "sub-diff") {
+      await page.click('#workspaces [data-ws="trace"]');
+      await page.waitForSelector('[data-testid="trajectory-dag"] .traj-node[data-id="sub-diff"]', {
+        timeout: 10000,
+      });
+      await page.evaluate(() => {
+        const n = document.querySelector('.traj-node[data-id="sub-diff"]');
+        if (!n) throw new Error("missing sub-diff for FC");
+        if (!n.classList.contains("on")) n.click();
+        else {
+          n.click();
+          n.click();
+        }
+      });
+      await page.waitForFunction(
+        () => {
+          const host = document.querySelector('[data-testid="trajectory-dag"]');
+          return host && host.getAttribute("data-focus") === "sub-diff";
+        },
+        null,
+        { timeout: 8000 }
+      );
+      await page.click('#workspaces [data-ws="passport"]');
+      await page.waitForSelector("#passportSign .passport-residual[data-passport-residual]", {
+        timeout: 8000,
+      });
+      await page.click('[data-passport-action="reject"]');
+      await page.waitForTimeout(140);
+    }
+    const fc1 = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      const badge = residual ? residual.querySelector(".passport-residual-badge") : null;
+      const copy = residual
+        ? ((residual.querySelector(".passport-residual-copy") || residual).textContent || "")
+        : "";
+      const paths = document.querySelectorAll("#passportGate [data-passport-path]").length;
+      const adj = document.querySelectorAll("#passportGate [data-passport-adj-residual]").length;
+      return {
+        present: !!residual,
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") || "" : "",
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        badge: badge ? (badge.textContent || "").trim() : "",
+        copy,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+        paths,
+        adj,
+        winFocus: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "FC1",
+      "Focused traj scopes sticky Passport residual count to active focused path",
+      fc1.present &&
+        fc1.scope === "focus" &&
+        fc1.focus === "sub-diff" &&
+        fc1.winFocus === "sub-diff" &&
+        (fc1.state === "rejected" || fc1.state === "pending") &&
+        Number(fc1.focusCount) >= 1 &&
+        Number(fc1.focusCount) < Number(fc1.globalCount) &&
+        fc1.badge === fc1.focusCount &&
+        fc1.globalCount === String(fc1.paths) &&
+        /Focus path/i.test(fc1.copy) &&
+        /paths? blocked/i.test(fc1.copy) &&
+        fc1.adj >= 1,
+      JSON.stringify(fc1)
+    );
+
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(160);
+    const fc2Approve = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      const badge = residual ? residual.querySelector(".passport-residual-badge") : null;
+      const copy = residual
+        ? ((residual.querySelector(".passport-residual-copy") || residual).textContent || "")
+        : "";
+      return {
+        present: !!residual,
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") || "" : "",
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        badge: badge ? (badge.textContent || "").trim() : "",
+        copy,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+      };
+    });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(140);
+    const fc2Reject = await page.evaluate(() => {
+      const residual = document.querySelector("#passportSign .passport-residual[data-passport-residual]");
+      const copy = residual
+        ? ((residual.querySelector(".passport-residual-copy") || residual).textContent || "")
+        : "";
+      return {
+        present: !!residual,
+        scope: residual ? residual.getAttribute("data-residual-scope") || "" : "",
+        focus: residual ? residual.getAttribute("data-residual-focus") || "" : "",
+        focusCount: residual ? residual.getAttribute("data-focus-residual-count") || "" : "",
+        globalCount: residual ? residual.getAttribute("data-residual-count") || "" : "",
+        copy,
+        state: residual ? residual.getAttribute("data-residual-state") || "" : "",
+      };
+    });
+    record(
+      "FC2",
+      "Approve/Reject flips focus-scoped residual copy; scope + focus count persist",
+      fc2Approve.present &&
+        fc2Approve.scope === "focus" &&
+        fc2Approve.focus === "sub-diff" &&
+        fc2Approve.state === "approved" &&
+        fc2Approve.focusCount === fc1.focusCount &&
+        fc2Approve.badge === fc1.focusCount &&
+        fc2Approve.globalCount === fc1.globalCount &&
+        /Focus path/i.test(fc2Approve.copy) &&
+        /paths? open/i.test(fc2Approve.copy) &&
+        fc2Reject.present &&
+        fc2Reject.scope === "focus" &&
+        fc2Reject.focus === "sub-diff" &&
+        fc2Reject.state === "rejected" &&
+        fc2Reject.focusCount === fc1.focusCount &&
+        fc2Reject.globalCount === fc1.globalCount &&
+        /Focus path/i.test(fc2Reject.copy) &&
+        /paths? blocked/i.test(fc2Reject.copy),
+      JSON.stringify({ approve: fc2Approve, reject: fc2Reject, base: fc1 })
+    );
+
+    await shot(page, "passport-focus-residual-count.png");
+    const fcShot = checks.find((c) => c.id === "shot:passport-focus-residual-count.png");
+    record(
+      "FC3",
+      "screenshot passport-focus-residual-count.png is not a black frame",
+      !!(fcShot && fcShot.pass),
+      fcShot ? fcShot.detail : "missing shot"
+    );
+    assertNoStampDir("FC4", "Passport focus residual count did not write .graphide/stamps/");
+
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
@@ -28948,7 +29097,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

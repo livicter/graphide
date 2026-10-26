@@ -100,6 +100,7 @@ Test-strategy traj map: same harness; click
 Residual / incomplete-signoff cue: sticky `#passportSign .passport-residual` (PR1–PR3) shows blocked/open path count while scrolling.
 Hop residual badge: each `#passportGate .passport-gate-path` carries `.passport-hop-residual` (HB1–HB3) per-hop incomplete/blocked/open cue.
 Adjacent residual: when a Trace traj is focused, neighboring Passport gate paths that still have residual carry `.passport-adj-residual` / `data-passport-adj-residual` (AR1–AR3). Trace legend mirrors residual-adjacent node kinds via AL1–AL3 (`verification/trajectory-adj-residual-legend.png`).
+Focus residual count: when Trace/Passport focus is set, sticky `#passportSign .passport-residual` scopes the badge/copy to the active focused path (`data-residual-scope="focus"` / `data-residual-focus` / `data-focus-residual-count`) while `data-residual-count` stays global (FC1–FC3).
 
 
 `passport=1` fetches `passport-fixture.json` into
@@ -129,6 +130,7 @@ Driver assertions:
 - PR1–PR3: sticky `#passportSign` residual / incomplete-signoff cue (`.passport-residual` / `data-passport-residual` / `data-residual-count`); screenshot `verification/passport-residual-chrome.png`
 - HB1–HB3: per-hop residual badge on `#passportGate .passport-gate-path` (`.passport-hop-residual` / `data-passport-hop-residual` / `data-hop-residual-state`); screenshot `verification/passport-hop-residual-badge.png`
 - AR1–AR3: traj-hop adjacent residual cue on residual neighbor gate paths (`.passport-adj-residual` / `data-passport-adj-residual` / `.passport-adj-residual-cue`) + Trace neighbor `data-traj-adj-residual`; screenshot `verification/passport-traj-adjacent-residual.png`
+- FC1–FC3: focus-scoped residual count on sticky `#passportSign` (`.passport-residual` / `data-residual-scope="focus"` / `data-residual-focus` / `data-focus-residual-count`); screenshot `verification/passport-focus-residual-count.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -149,7 +151,8 @@ Driver assertions:
   `[data-impact-expanded]`, `.passport-impact-head`, `.passport-impact-detail`,
   `.passport-impact-row--static`, `[data-ade-contract-traj]`, `[data-ade-risk-traj]`,
   `[data-vocab-chip]`, `[data-impact-region]`, `[data-passport-adj-residual]`,
-  `.passport-adj-residual-cue` are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
+  `.passport-adj-residual-cue`, `[data-residual-scope]`, `[data-residual-focus]`,
+  `[data-focus-residual-count]` are the product hooks. (Trace may use `data-testid="trajectory-dag"` — that
   is A1a, not Passport.)
 - Digit keys stay 1–9 on the first nine workspaces. Passport is click-only.
 - Semantic impact is a stub. Do not mount live Architecture Delta here.
