@@ -334,6 +334,11 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
+const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
+assert(
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381"),
+  "root README must document ADE Phase 1 tip stack #371…#381"
+);
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
