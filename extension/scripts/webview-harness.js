@@ -374,6 +374,10 @@
     if (p) p.hidden = true;
   }
 
+  if (params.get("traj") && params.get("trace") !== "1") {
+    window.__graphideTrajectoryFocus = params.get("traj");
+  }
+
   function afterPaint() {
     setTimeout(function () {
       if (clickProgram) clickMainProgram();
@@ -468,7 +472,40 @@
       });
   }
 
-  if (params.get("passport") === "1") {
+  function loadTrajectoryFixture(done) {
+    const focus = params.get("traj") || "";
+    if (focus) window.__graphideTrajectoryFocus = focus;
+    fetch("./trajectory-fixture.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no trajectory-fixture.json (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (fx) {
+        const ok =
+          fx &&
+          Array.isArray(fx.nodes) &&
+          fx.nodes.length >= 3 &&
+          Array.isArray(fx.edges) &&
+          fx.edges.length >= 2;
+        if (!ok) throw new Error("trajectory-fixture.json is not a trajectory fixture");
+        window.__graphideTrajectory = fx;
+        window.__graphideTrajectoryError = "";
+        done();
+      })
+      .catch(function (err) {
+        window.__graphideTrajectory = null;
+        window.__graphideTrajectoryError = String(err && err.message ? err.message : err);
+        done();
+      });
+  }
+
+  if (params.get("trace") === "1") {
+    loadTrajectoryFixture(function () {
+      window.postMessage(msg, "*");
+      afterPaint();
+    });
+  } else if (params.get("passport") === "1") {
+
     loadPassportFixture(function () {
       window.postMessage(msg, "*");
       afterPaint();

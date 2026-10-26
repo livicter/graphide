@@ -2,7 +2,9 @@
  * ADE A1a — fixture-backed read-only execution Trajectory DAG.
  * Subtask nodes + dependency edges + artifact/diff pins for the Trace workspace.
  * Not live agent state; harness-stable for verify A1a*.
- * Polish: richer branch (parallel fixture load / seal) + role/kind metadata for inspector.
+ * Polish: richer branch + role/kind metadata for inspector.
+ * Explorer: harness ?trace=1 may override via window.__graphideTrajectory;
+ * ?traj=<id> seeds subtask focus (window.__graphideTrajectoryFocus).
  */
 export const TRAJECTORY_FIXTURE = {
   id: "ade-a1a-fixture",

@@ -2406,6 +2406,28 @@ html.bright .route-hop {
 }
 .traj-edge.kind-fork { stroke-dasharray: 5 4; opacity: 0.8; }
 .traj-edge.kind-join { stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e)); }
+.traj-page.has-focus .traj-edge.dim { opacity: 0.22; }
+.traj-page.has-focus .traj-edge.on-path {
+  stroke: var(--vscode-focusBorder, #2f81f7);
+  stroke-width: 2.4;
+  opacity: 1;
+  marker-end: url(#trajArrowHot);
+}
+.traj-node.neighbor {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 35%, transparent);
+}
+.traj-page.has-focus .traj-node.dim { opacity: 0.38; filter: grayscale(0.25); }
+.traj-pin.pin-focus,
+.traj-pin-target.pin-focus {
+  outline: 1px solid var(--vscode-focusBorder, #2f81f7);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  border-radius: 3px;
+}
+.traj-detail-grid dt.on,
+.traj-detail-grid dd.on { color: var(--vscode-focusBorder, #2f81f7); }
+.traj-detail-hint { margin-top: 10px; font-size: 11px; opacity: 0.68; line-height: 1.4; }
+.traj-canvas:focus { outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent); outline-offset: 2px; }
 .traj-node {
   position: absolute;
   width: 176px;
@@ -2454,6 +2476,7 @@ html.bright .route-hop {
 .traj-kind { font-size: 10px; opacity: 0.65; margin-left: auto; }
 .traj-label { font-weight: 650; margin-bottom: 4px; }
 .traj-pin {
+  cursor: pointer;
   font-size: 11px;
   opacity: 0.88;
   white-space: nowrap;
