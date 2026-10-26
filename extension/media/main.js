@@ -28539,6 +28539,7 @@
       canvas.className = "play explorer-list traj";
       canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
       setZoomUi(false);
+      if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
     }
     function stepTrajectory(dir) {
       const nodes = trajectoryFixture().nodes || [];
@@ -29551,6 +29552,7 @@
       canvas.className = "play explorer-list passport";
       canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
       setZoomUi(false);
+      if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
     }
     function setPassportGate(state) {
       passportGate = PASSPORT_STATES[state] ? state : "pending";

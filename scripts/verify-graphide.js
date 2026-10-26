@@ -7450,6 +7450,329 @@ async function main() {
     );
     assertNoStampDir("PKP4", "Passport Keys pressed proof step did not write .graphide/stamps/");
 
+    // ADE residual-filter live count paint refresh (LRP1–LRP3) — syncResidualFilterLive on Trace/Passport paint while ON
+    // Prior FE may have left gate approved; restore pending so bearings are non-zero.
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="reject"], #passportSign [data-passport-action="approve"]', {
+      timeout: 8000,
+    });
+    await page.evaluate(() => {
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      if (reject) reject.click();
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip", "err");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return (
+          !!(gate && gate.getAttribute("data-passport-state") !== "approved") &&
+          !!(btn && btn.getAttribute("aria-pressed") === "false")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+
+    // LRP1: Trace filter ON with N>0; Approve on Passport (shared filter); Trace paint shows live N=0 (no Residuals toast)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', { timeout: 8000 });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const text = live ? (live.textContent || "").trim() : "";
+        const m = /^Residual filter on, (\d+) matching$/.exec(text);
+        return !!(
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "on" &&
+          m &&
+          Number(m[1]) > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrp1Before = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const text = live ? (live.textContent || "").trim() : "";
+      const m = /^Residual filter on, (\d+) matching$/.exec(text);
+      return {
+        text,
+        n: m ? Number(m[1]) : -1,
+        countAttr: live ? live.getAttribute("data-filter-residual-count") || "" : "",
+      };
+    });
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip", "err");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    // Approve without toggling filter (shared trajResidualFilter stays ON) → bearings → 0
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="approve"]', { timeout: 8000 });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return !!(gate && gate.getAttribute("data-passport-state") === "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Hop Trace: paintTrajectoryWorkspace must refresh live count to 0
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const text = live ? (live.textContent || "").trim() : "";
+        const empty = document.querySelector(
+          '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"]'
+        );
+        return !!(
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "on" &&
+          text === "Residual filter on, 0 matching" &&
+          live.getAttribute("data-filter-residual-count") === "0" &&
+          empty
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrp1 = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const toast = document.getElementById("toast");
+      const empty = document.querySelector(
+        '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"]'
+      );
+      return {
+        text: live ? (live.textContent || "").trim() : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        countAttr: live ? live.getAttribute("data-filter-residual-count") || "" : "",
+        toastOn: !!(toast && toast.classList.contains("on") && !toast.hidden),
+        toastText: toast ? (toast.textContent || "").trim() : "",
+        empty: !!empty,
+      };
+    });
+    const lrp1ok =
+      lrp1Before.n > 0 &&
+      lrp1.text === "Residual filter on, 0 matching" &&
+      lrp1.state === "on" &&
+      lrp1.countAttr === "0" &&
+      !lrp1.toastOn &&
+      !/Residuals on|Residuals off/i.test(lrp1.toastText) &&
+      lrp1.empty;
+    record(
+      "LRP1",
+      "Trace filter ON + Approve → Trace paint refreshes #residualFilterLive to 0 matching (no toast)",
+      !!lrp1ok,
+      JSON.stringify({ before: lrp1Before, after: lrp1 })
+    );
+
+    // LRP2: reset pending, Passport ON N>0, Approve → live 0; no toast
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-action="reject"]', { timeout: 8000 });
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return !!(gate && gate.getAttribute("data-passport-state") !== "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Filter may still be ON from LRP1 (shared). Ensure ON with N>0.
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip", "err");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const text = live ? (live.textContent || "").trim() : "";
+        const m = /^Residual filter on, (\d+) matching$/.exec(text);
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        return !!(
+          residual &&
+          residual.getAttribute("data-residual-filter") === "on" &&
+          m &&
+          Number(m[1]) > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrp2Before = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const text = live ? (live.textContent || "").trim() : "";
+      const m = /^Residual filter on, (\d+) matching$/.exec(text);
+      return { text, n: m ? Number(m[1]) : -1 };
+    });
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip", "err");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const text = live ? (live.textContent || "").trim() : "";
+        return !!(
+          live &&
+          text === "Residual filter on, 0 matching" &&
+          live.getAttribute("data-filter-residual-count") === "0"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrp2 = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      const toast = document.getElementById("toast");
+      const chip = document.querySelector(
+        '#passportSign [data-residual-filter-count="1"]'
+      );
+      const empty = document.querySelector(
+        '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"]'
+      );
+      return {
+        text: live ? (live.textContent || "").trim() : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        countAttr: live ? live.getAttribute("data-filter-residual-count") || "" : "",
+        toastOn: !!(toast && toast.classList.contains("on") && !toast.hidden),
+        toastText: toast ? (toast.textContent || "").trim() : "",
+        chipPresent: !!chip,
+        empty: !!empty,
+      };
+    });
+    const lrp2ok =
+      lrp2Before.n > 0 &&
+      lrp2.text === "Residual filter on, 0 matching" &&
+      lrp2.state === "on" &&
+      lrp2.countAttr === "0" &&
+      !lrp2.toastOn &&
+      !/Residuals on|Residuals off/i.test(lrp2.toastText) &&
+      !lrp2.chipPresent &&
+      lrp2.empty;
+    record(
+      "LRP2",
+      "Passport filter ON + Approve paint refreshes live N to 0 (no toast; count chip hidden)",
+      !!lrp2ok,
+      JSON.stringify({ before: lrp2Before, after: lrp2 })
+    );
+    await shot(page, "residual-filter-live-paint-refresh.png");
+    const lrpShot = checks.find((c) => c.id === "shot:residual-filter-live-paint-refresh.png");
+
+    // LRP3: filter OFF across Trace/Passport paint stays off; toggle still announces; shot quality
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        return !!(
+          live &&
+          (live.textContent || "").trim() === "Residual filter off" &&
+          live.getAttribute("data-residual-filter-live-state") === "off"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const lrp3off = await page.evaluate(() => {
+      const live = document.getElementById("residualFilterLive");
+      return {
+        text: live ? (live.textContent || "").trim() : "",
+        state: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        countAttr: live ? live.getAttribute("data-filter-residual-count") : null,
+      };
+    });
+    // ALR toggle path still works after paint-refresh hooks
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        const text = live ? (live.textContent || "").trim() : "";
+        return !!(
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "on" &&
+          /^Residual filter on, \d+ matching$/.test(text)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const live = document.getElementById("residualFilterLive");
+        return !!(
+          live &&
+          (live.textContent || "").trim() === "Residual filter off" &&
+          live.getAttribute("data-residual-filter-live-state") === "off"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const lrp3ok =
+      lrp3off.text === "Residual filter off" &&
+      lrp3off.state === "off" &&
+      (lrp3off.countAttr === null || lrp3off.countAttr === "") &&
+      !!(lrpShot && lrpShot.pass);
+    record(
+      "LRP3",
+      "Filter OFF stays off across Trace/Passport paint; ALR toggle intact; proof shot ok",
+      !!lrp3ok,
+      JSON.stringify({ offPaint: lrp3off, shot: lrpShot ? lrpShot.detail : "missing" })
+    );
+    assertNoStampDir("LRP4", "Residual-filter live paint refresh step did not write .graphide/stamps/");
+
 
 
 

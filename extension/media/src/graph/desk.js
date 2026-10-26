@@ -11298,6 +11298,8 @@ function paintTrajectoryWorkspace(title) {
   canvas.innerHTML =
     '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
   setZoomUi(false);
+  // ADE LRP: while residual filter stays ON, refresh live-region N on paint (Approve/focus/fixture) without toast.
+  if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
 }
 
 function stepTrajectory(dir) {
@@ -12921,6 +12923,8 @@ function paintPassportWorkspace(title) {
   canvas.innerHTML =
     '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
   setZoomUi(false);
+  // ADE LRP: while residual filter stays ON, refresh live-region N on paint (Approve/focus/fixture) without toast.
+  if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
 }
 
 function setPassportGate(state) {

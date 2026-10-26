@@ -667,6 +667,11 @@ assert(passportMap.includes("ALR1") && passportMap.includes("aria-live") && pass
 assert(driver.includes("PKP1") && driver.includes("PKP3") && driver.includes("passport-keys-residual-pressed.png") && driver.includes("data-keys-r-pressed"), "verify driver must prove Passport Keys pressed-state PKP1–PKP3");
 assert(keysMap.includes("PKP1") && keysMap.includes("passport-keys-residual-pressed.png") && keysMap.includes("Passport Keys pressed") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Passport Keys pressed PKP / proof");
 assert(passportMap.includes("PKP1") && passportMap.includes("passport-keys-residual-pressed.png") && passportMap.includes("Keys pressed") && passportMap.includes("data-keys-r-pressed"), "passport feature map must name Passport Keys pressed PKP / proof");
+assert(driver.includes("LRP1") && driver.includes("LRP3") && driver.includes("residual-filter-live-paint-refresh.png") && driver.includes("syncResidualFilterLive"), "verify driver must prove residual-filter live paint refresh LRP1–LRP3");
+assert(js.includes("syncResidualFilterLive") && /function paintTrajectoryWorkspace\([\s\S]*?syncResidualFilterLive/.test(js) && /function paintPassportWorkspace\([\s\S]*?syncResidualFilterLive/.test(js), "residual-filter live paint refresh hooks missing from Trace/Passport paint");
+assert(keysMap.includes("LRP1") && keysMap.includes("live-paint-refresh") && keysMap.includes("residual-filter-live-paint-refresh.png") && keysMap.includes("paintTrajectoryWorkspace"), "keys feature map must name residual-filter live paint refresh LRP / proof");
+assert(traceMap.includes("LRP1") && traceMap.includes("live count paint refresh") && traceMap.includes("residual-filter-live-paint-refresh.png"), "trace feature map must name residual-filter live paint refresh LRP / proof");
+assert(passportMap.includes("LRP1") && passportMap.includes("live count paint refresh") && passportMap.includes("residual-filter-live-paint-refresh.png"), "passport feature map must name residual-filter live paint refresh LRP / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

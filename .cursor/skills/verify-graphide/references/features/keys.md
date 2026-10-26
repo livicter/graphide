@@ -50,6 +50,11 @@ second command palette and not an agent stamp.
   `passportResidualTrajIds().size`). Does **not** replace `#toast` / `flashToast` Residuals
   on/off. Proof: `verification/residual-filter-aria-live.png` (Trace + filter ON). Prefer ALR —
   AL is Trace adj-residual legend.
+- ADE residual-filter live count paint refresh (LRP1–LRP3): while `trajResidualFilter` stays ON,
+  Trace/Passport paint paths (`paintTrajectoryWorkspace` / `paintPassportWorkspace`) call
+  `syncResidualFilterLive(true)` so `#residualFilterLive` `data-filter-residual-count` + text
+  stay current when bearings change without a toggle (Approve / focus / fixture). No toast on
+  paint refresh. Proof: `verification/residual-filter-live-paint-refresh.png`. Prefer LRP.
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
@@ -140,6 +145,7 @@ Driver assertions:
 - ADE KP1–KP3: Trace residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed`) and `#toast` shows `Residuals on` (`ok`); toggle OFF → pressed cleared + `Residuals off` (`skip`); Map / leave clears pressed; no-op clear does not toast. Screenshot `verification/keys-residual-pressed.png` is not a black frame. No stamps.
 - ADE PKP1–PKP3: Passport residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed` / residual-filter binding); OFF clears pressed; Map leave clears pressed + binding → PATH. Screenshot `verification/passport-keys-residual-pressed.png` is not a black frame. No stamps. Prefer PKP (KP is Trace).
 - ADE ALR1–ALR3: Trace residual ON → `#residualFilterLive[data-residual-filter-live]` (`aria-live="polite"` / `role="status"`) text matches `Residual filter on, N matching` (N = bearing count); OFF / clear → `Residual filter off`; `#toast` Residuals on/off still works separately. Screenshot `verification/residual-filter-aria-live.png` is not a black frame. No stamps. Prefer ALR (AL is adj-residual).
+- ADE LRP1–LRP3: residual filter ON → Approve/paint changes bearing N without toggle → `#residualFilterLive` text/`data-filter-residual-count` refresh to new N (no Residuals toast); filter OFF across Trace/Passport paint stays off; ALR toggle path still works. Screenshot `verification/residual-filter-live-paint-refresh.png` is not a black frame. No stamps. Prefer LRP.
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
@@ -174,6 +180,7 @@ Driver assertions:
   `#keysClose` are the hooks.
 - Residual-filter AT live region is `#residualFilterLive` / `[data-residual-filter-live]`
   (`syncResidualFilterLive`); do not overload `#toast` for persistent filter state (ALR1–ALR3).
+  Paint refresh while filter ON must update live count without toast spam (LRP1–LRP3).
 - Do not invent a second drawing tool or a Mermaid cheatsheet.
 - `#keysPane` must stack above the desk (`z-index`) and start `hidden`.
 - Agents never stamp. The sheet is a reminder that `S` / `X` are human.
