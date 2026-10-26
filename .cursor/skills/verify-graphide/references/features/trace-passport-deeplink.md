@@ -15,6 +15,10 @@ passport gate state via URL params. No live Architecture Delta mount.
 - Reverse row hops (DR1–DR3): Passport rows with `traj` (or path→artifact
   match) expose `[data-ade-traj-hop]` **Open in Trace**; click focuses the
   matching Trace node and preserves gate.
+- Trace→Passport row highlight (TH1–TH3): focused Trace `trajSelectedId`
+  paints matching Passport rows with `data-ade-traj-active="1"` /
+  `.ade-traj-active`. Trace detail exposes `[data-ade-passport-hl-hop]`
+  **Show in Passport** to hop while preserving gate.
 - `history.replaceState` keeps `trace=1`, `passport=1`, `traj`, `gate`,
   and `ws` in sync as the operator selects nodes or signs the gate.
 
@@ -27,6 +31,8 @@ passport gate state via URL params. No live Architecture Delta mount.
    the same traj focus.
 4. Or click **Open in Trace** on a Passport target / gated-write / impact
    row (`data-ade-traj-hop`) to focus that row's matching Trace node.
+5. From Trace detail, click **Show in Passport** (`data-ade-passport-hl-hop`)
+   to hop and see matching rows highlighted (`data-ade-traj-active`).
 
 ## Driving it with the harness
 
@@ -44,10 +50,14 @@ Driver assertions (DL1–DL5):
 - DR1: Passport row hop `data-ade-traj-hop=sub-verify` lands Trace focused
 - DR2: Passport row hop `data-ade-traj-hop=sub-edit` lands Trace focused; gate preserved
 - DR3: empty Passport emits no `data-ade-traj-hop` (strip hop only)
+- TH1: Trace focus `sub-verify` → Passport rows `[data-ade-traj-active]`
+- TH2: focus moves to `sub-edit` → highlight moves; gate preserved
+- TH3: no traj focus → zero `[data-ade-traj-active]`
 
 Screenshots: `verification/trajectory-deeplink.png`,
 `verification/passport-deeplink.png`,
-`verification/passport-trace-deeplink.png`.
+`verification/passport-trace-deeplink.png`,
+`verification/trace-passport-row-highlight.png`.
 
 ## Gotchas
 

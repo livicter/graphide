@@ -28248,7 +28248,7 @@
       const depHtml = deps.length ? '<ul class="traj-dep-list" data-traj-deps="1">' + deps.map(
         (d) => '<li class="traj-dep" data-traj-dep="' + esc(d) + '"><code>' + esc(d) + "</code></li>"
       ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
-      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div></aside>';
+      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
     }
     function trajZoomPctLabel(scale) {
       return Math.round((Number(scale) || 1) * 100) + "%";
@@ -28512,6 +28512,7 @@
         trajZoomFit();
       };
       bindAdeHopButtons();
+      bindAdePassportHlHops();
     }
     const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
     const PASSPORT_FIXTURE = Object.freeze({
@@ -28988,6 +28989,12 @@
       const hit = nodes.find((n) => n && n.artifact === path);
       return hit && hit.id ? hit.id : "";
     }
+    function passportRowActiveAttr(trajId) {
+      return trajId && trajSelectedId && trajId === trajSelectedId ? ' data-ade-traj-active="1"' : "";
+    }
+    function passportRowActiveClass(trajId) {
+      return trajId && trajSelectedId && trajId === trajSelectedId ? " ade-traj-active" : "";
+    }
     function renderAdeTrajHop(trajId) {
       if (!trajIdExists(trajId)) return "";
       return '<button type="button" class="ade-hop ade-traj-hop" data-ade-traj-hop="' + esc(trajId) + '" title="Open matching Trace node from Passport row">Open in Trace</button>';
@@ -28999,6 +29006,23 @@
       if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
       syncAdeDeepLink("trace");
       hopAdeWorkspace("trace");
+    }
+    function hopAdePassportHighlight(trajId) {
+      if (trajId && trajIdExists(trajId)) {
+        trajSelectedId = trajId;
+        trajPinFocus = "";
+        if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
+      }
+      syncAdeDeepLink("passport");
+      hopAdeWorkspace("passport");
+    }
+    function bindAdePassportHlHops() {
+      document.querySelectorAll("[data-ade-passport-hl-hop]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          hopAdePassportHighlight(btn.getAttribute("data-ade-passport-hl-hop") || "");
+        };
+      });
     }
     function bindAdeTrajHops() {
       document.querySelectorAll("[data-ade-traj-hop]").forEach((btn) => {
@@ -29058,7 +29082,7 @@
       const paths = (fx.gatedWrites || []).map((w) => {
         const blocked = unlocked ? "" : ' data-blocked="1"';
         const trajId = resolvePassportTrajId(w);
-        return '<li data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span><code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
+        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span><code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
       }).join("");
       return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
     }
@@ -29093,7 +29117,7 @@
       const staticClass = hasDetail ? "" : " passport-impact-row--static";
       const expandAttrs = hasDetail ? ' data-impact-expanded="false" aria-expanded="false" tabindex="0"' : "";
       const trajId = resolvePassportTrajId(item);
-      return '<li class="passport-impact-row' + staticClass + '" data-impact-row="' + esc(id2) + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + (status2 ? ' data-delta-status="' + esc(status2) + '"' : "") + (klass ? ' data-delta-class="' + esc(klass) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + expandAttrs + '><div class="passport-impact-head">' + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("class", klass) + renderPassportDeltaChip("cluster", cluster) + '<strong class="passport-impact-label">' + esc(item.label || id2) + "</strong>" + renderAdeTrajHop(trajId) + "</div>" + (hasDetail ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>" : "") + "</li>";
+      return '<li class="passport-impact-row' + staticClass + passportRowActiveClass(trajId) + '" data-impact-row="' + esc(id2) + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + (status2 ? ' data-delta-status="' + esc(status2) + '"' : "") + (klass ? ' data-delta-class="' + esc(klass) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + expandAttrs + '><div class="passport-impact-head">' + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("class", klass) + renderPassportDeltaChip("cluster", cluster) + '<strong class="passport-impact-label">' + esc(item.label || id2) + "</strong>" + renderAdeTrajHop(trajId) + "</div>" + (hasDetail ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>" : "") + "</li>";
     }
     function renderPassportImpact(fx) {
       const impact = fx.impact || {};
@@ -29120,7 +29144,7 @@
         const cluster = t.clusterKind || "";
         return (() => {
           const trajId = resolvePassportTrajId(t);
-          return '<li class="passport-row" data-passport-target="' + esc(t.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") + (status2 ? ' data-passport-delta="' + esc(status2) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + '><div class="passport-row-head">' + (layer ? '<span class="passport-layer-chip" data-passport-layer-chip="' + esc(layer) + '">' + esc(layer) + "</span>" : "") + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("cluster", cluster) + '<span class="passport-target-label">' + esc(t.label || t.id || "") + "</span> <code>" + esc(t.path || "") + "</code>" + renderAdeTrajHop(trajId) + "</div>" + (t.impact ? '<div class="passport-row-impact" data-passport-impact="' + esc(t.id || "") + '">' + esc(t.impact) + "</div>" : "") + "</li>";
+          return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-target="' + esc(t.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") + (status2 ? ' data-passport-delta="' + esc(status2) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + '><div class="passport-row-head">' + (layer ? '<span class="passport-layer-chip" data-passport-layer-chip="' + esc(layer) + '">' + esc(layer) + "</span>" : "") + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("cluster", cluster) + '<span class="passport-target-label">' + esc(t.label || t.id || "") + "</span> <code>" + esc(t.path || "") + "</code>" + renderAdeTrajHop(trajId) + "</div>" + (t.impact ? '<div class="passport-row-impact" data-passport-impact="' + esc(t.id || "") + '">' + esc(t.impact) + "</div>" : "") + "</li>";
         })();
       }).join("");
       const contracts = (fx.contracts || []).map((c) => {

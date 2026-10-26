@@ -10547,6 +10547,11 @@ function renderTrajectoryDetail(fix, selectedId) {
     esc(n.note || "—") +
     "</dd></dl>" +
     '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a pin to focus it</div>' +
+    '<div class="traj-detail-ade-hop">' +
+    '<button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' +
+    esc(n.id) +
+    '" title="Show matching Passport rows for this Trace node">Show in Passport</button>' +
+    "</div>" +
     "</aside>"
   );
 }
@@ -11107,6 +11112,7 @@ function bindTrajectoryPage() {
   if (zout) zout.onclick = (ev) => { ev.preventDefault(); trajZoomBy(1 / TRAJ_SCALE_STEP); };
   if (zfit) zfit.onclick = (ev) => { ev.preventDefault(); trajZoomFit(); };
   bindAdeHopButtons();
+  bindAdePassportHlHops();
 }
 
 
@@ -11624,6 +11630,19 @@ function resolvePassportTrajId(row) {
   return hit && hit.id ? hit.id : "";
 }
 
+
+function passportRowActiveAttr(trajId) {
+  return trajId && trajSelectedId && trajId === trajSelectedId
+    ? ' data-ade-traj-active="1"'
+    : "";
+}
+
+function passportRowActiveClass(trajId) {
+  return trajId && trajSelectedId && trajId === trajSelectedId
+    ? " ade-traj-active"
+    : "";
+}
+
 function renderAdeTrajHop(trajId) {
   if (!trajIdExists(trajId)) return "";
   return (
@@ -11642,6 +11661,26 @@ function hopAdeTraj(trajId) {
   if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
   syncAdeDeepLink("trace");
   hopAdeWorkspace("trace");
+}
+
+
+function hopAdePassportHighlight(trajId) {
+  if (trajId && trajIdExists(trajId)) {
+    trajSelectedId = trajId;
+    trajPinFocus = "";
+    if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
+  }
+  syncAdeDeepLink("passport");
+  hopAdeWorkspace("passport");
+}
+
+function bindAdePassportHlHops() {
+  document.querySelectorAll("[data-ade-passport-hl-hop]").forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      hopAdePassportHighlight(btn.getAttribute("data-ade-passport-hl-hop") || "");
+    };
+  });
 }
 
 function bindAdeTrajHops() {
@@ -11739,10 +11778,13 @@ function renderPassportGate(fx, state) {
       const blocked = unlocked ? "" : ' data-blocked="1"';
       const trajId = resolvePassportTrajId(w);
       return (
-        "<li data-passport-path=\"" +
+        '<li class="passport-gate-path' +
+        passportRowActiveClass(trajId) +
+        '" data-passport-path="' +
         esc(w.path || "") +
-        "\"" +
+        '"' +
         (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
+        passportRowActiveAttr(trajId) +
         blocked +
         '><span class="passport-path-state">' +
         (unlocked ? "open" : "blocked") +
@@ -11875,10 +11917,12 @@ function renderPassportImpactItem(item) {
   return (
     '<li class="passport-impact-row' +
     staticClass +
+    passportRowActiveClass(trajId) +
     '" data-impact-row="' +
     esc(id) +
     '"' +
     (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
+    passportRowActiveAttr(trajId) +
     (status ? ' data-delta-status="' + esc(status) + '"' : "") +
     (klass ? ' data-delta-class="' + esc(klass) + '"' : "") +
     (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
@@ -11969,10 +12013,13 @@ function renderPassportBody() {
         (() => {
           const trajId = resolvePassportTrajId(t);
           return (
-        '<li class="passport-row" data-passport-target="' +
+        '<li class="passport-row' +
+        passportRowActiveClass(trajId) +
+        '" data-passport-target="' +
         esc(t.id || "") +
         '"' +
         (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
+        passportRowActiveAttr(trajId) +
         (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") +
         (status ? ' data-passport-delta="' + esc(status) + '"' : "") +
         (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +

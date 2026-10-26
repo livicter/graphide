@@ -2776,6 +2776,24 @@ html.bright .traj-node { background: #fff; }
 }
 /* data-ade-traj is marker-only; do not override impact-row pointer cursor */
 
+/* Trace focus → matching Passport row highlight (TH1–TH3) */
+.ade-traj-active,
+[data-ade-traj-active="1"] {
+  outline: 1px solid var(--vscode-focusBorder, #2f81f7);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent);
+}
+.traj-detail-ade-hop {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.ade-passport-hl-hop {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* ADE immutable seal / write-gate status chip (fixture stub; not live FS) */
 .ade-seal-chip {
   display: inline-flex; align-items: center; gap: 4px;

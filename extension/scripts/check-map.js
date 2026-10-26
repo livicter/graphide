@@ -729,6 +729,9 @@ assert(driver.includes("trajectory-deeplink.png") && driver.includes("passport-d
 assert(driver.includes("DR1") && driver.includes("DR3") && driver.includes("passport-trace-deeplink.png") && driver.includes("data-ade-traj-hop"), "verify driver must prove Passport→Trace row deeplink DR1–DR3");
 assert(js.includes("hopAdeTraj") && js.includes("bindAdeTrajHops") && js.includes("resolvePassportTrajId") && js.includes("data-ade-traj-hop"), "Passport→Trace row hop helpers missing");
 assert(css.includes("ade-traj-hop"), "Passport→Trace row hop CSS missing");
+assert(driver.includes("TH1") && driver.includes("TH3") && driver.includes("trace-passport-row-highlight.png") && driver.includes("data-ade-traj-active"), "verify driver must prove Trace→Passport row highlight TH1–TH3");
+assert(js.includes("passportRowActiveAttr") && js.includes("passportRowActiveClass") && js.includes("hopAdePassportHighlight") && js.includes("data-ade-traj-active"), "Trace→Passport row highlight helpers missing");
+assert(css.includes("ade-traj-active") && css.includes("data-ade-traj-active"), "Trace→Passport row highlight CSS missing");
 assert(harness.includes("loadAdePair") && harness.includes("__graphidePassportGate"), "harness must dual-load ADE fixtures and seed gate");
 const deeplinkMapPath = path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md");
 assert(fs.existsSync(deeplinkMapPath), "trace-passport-deeplink.md missing");
@@ -742,8 +745,11 @@ assert(
     deeplinkMap.includes("traj=") &&
     deeplinkMap.includes("DR1") &&
     deeplinkMap.includes("data-ade-traj-hop") &&
-    deeplinkMap.includes("passport-trace-deeplink.png"),
-  "trace-passport-deeplink feature map must use the four headings and name hops/traj/DR reverse"
+    deeplinkMap.includes("passport-trace-deeplink.png") &&
+    deeplinkMap.includes("TH1") &&
+    deeplinkMap.includes("data-ade-traj-active") &&
+    deeplinkMap.includes("trace-passport-row-highlight.png"),
+  "trace-passport-deeplink feature map must use the four headings and name hops/traj/DR reverse/TH highlight"
 );
 assert(featReadme.includes("trace-passport-deeplink.md"), "feature README must list trace-passport-deeplink.md");
 

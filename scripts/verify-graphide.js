@@ -42,6 +42,8 @@ const DEEPLINK_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-verify&gate=approved&probe=0&ws=trace";
 const DEEPLINK_REVERSE_HARNESS =
   "/scripts/webview-harness.html?trace=1&passport=1&gate=approved&probe=0&ws=passport";
+const TRACE_PASSPORT_HL_HARNESS =
+  "/scripts/webview-harness.html?trace=1&passport=1&traj=sub-verify&gate=approved&probe=0&ws=trace";
 const TRACE_EMPTY_HARNESS =
   "/scripts/webview-harness.html?trace=1&traceEmpty=1&passport=1&probe=0&ws=trace";
 const SEAL_CHIP_HARNESS =
@@ -27410,6 +27412,202 @@ async function main() {
     );
     assertNoStampDir("DR4", "Passport→Trace reverse deeplink did not write .graphide/stamps/");
 
+    // ADE Trace→Passport row highlight (TH1–TH3)
+    const tracePassportHlUrl = origin + TRACE_PASSPORT_HL_HARNESS;
+    console.log("ade-trace-passport-hl " + tracePassportHlUrl);
+    await page.goto(tracePassportHlUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const detailHop = document.querySelector("[data-ade-passport-hl-hop]");
+        return (
+          on &&
+          on.getAttribute("data-ws") === "trace" &&
+          host &&
+          host.getAttribute("data-focus") === "sub-verify" &&
+          detailHop
+        );
+      },
+      null,
+      { timeout: 20000 }
+    );
+    await page.evaluate(() => {
+      const btn =
+        document.querySelector('[data-ade-passport-hl-hop="sub-verify"]') ||
+        document.querySelector("[data-ade-passport-hl-hop]") ||
+        document.querySelector('[data-ade-hop="passport"]');
+      if (!btn) throw new Error("missing Trace→Passport highlight hop");
+      btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const active = document.querySelectorAll('[data-ade-traj-active="1"]');
+        return (
+          on &&
+          on.getAttribute("data-ws") === "passport" &&
+          active.length > 0 &&
+          [...active].every((el) => el.getAttribute("data-ade-traj") === "sub-verify")
+        );
+      },
+      null,
+      { timeout: 10000 }
+    );
+    const th1 = await page.evaluate(() => {
+      const q = new URLSearchParams(location.search);
+      const active = [...document.querySelectorAll('[data-ade-traj-active="1"]')].map((el) => ({
+        traj: el.getAttribute("data-ade-traj") || "",
+        tag: el.tagName,
+        cls: el.className,
+      }));
+      const verifyRows = document.querySelectorAll('[data-ade-traj="sub-verify"]').length;
+      const verifyActive = document.querySelectorAll(
+        '[data-ade-traj="sub-verify"][data-ade-traj-active="1"]'
+      ).length;
+      const otherActive = document.querySelectorAll(
+        '[data-ade-traj-active="1"]:not([data-ade-traj="sub-verify"])'
+      ).length;
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+        activeCount: active.length,
+        verifyRows,
+        verifyActive,
+        otherActive,
+        focusWin: window.__graphideTrajectoryFocus || "",
+      };
+    });
+    record(
+      "TH1",
+      "Trace focus sub-verify highlights matching Passport rows; gate preserved",
+      th1.ws === "passport" &&
+        th1.trajParam === "sub-verify" &&
+        th1.gateParam === "approved" &&
+        th1.focusWin === "sub-verify" &&
+        th1.verifyActive > 0 &&
+        th1.verifyActive === th1.activeCount &&
+        th1.otherActive === 0,
+      JSON.stringify(th1)
+    );
+    await shot(page, "trace-passport-row-highlight.png");
+    const th1Shot = checks.find((c) => c.id === "shot:trace-passport-row-highlight.png");
+    record(
+      "TH1-shot",
+      "screenshot trace-passport-row-highlight.png is not a black frame",
+      !!(th1Shot && th1Shot.pass),
+      th1Shot ? th1Shot.detail : "missing shot"
+    );
+
+    // TH2: change Trace focus to sub-edit, hop Passport again
+    await page.goto(origin + TRACE_PASSPORT_HL_HARNESS, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
+    await page.waitForSelector('[data-testid="trajectory-dag"][data-focus="sub-verify"]', {
+      timeout: 15000,
+    });
+    await page.evaluate(() => {
+      const node = document.querySelector('.traj-node[data-id="sub-edit"]');
+      if (!node) throw new Error("missing traj node sub-edit");
+      node.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        return host && host.getAttribute("data-focus") === "sub-edit";
+      },
+      null,
+      { timeout: 10000 }
+    );
+    await page.evaluate(() => {
+      const btn =
+        document.querySelector('[data-ade-passport-hl-hop="sub-edit"]') ||
+        document.querySelector("[data-ade-passport-hl-hop]") ||
+        document.querySelector('[data-ade-hop="passport"]');
+      if (!btn) throw new Error("missing hop after sub-edit focus");
+      btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        const active = document.querySelector(
+          '[data-ade-traj="sub-edit"][data-ade-traj-active="1"]'
+        );
+        const stale = document.querySelector(
+          '[data-ade-traj="sub-verify"][data-ade-traj-active="1"]'
+        );
+        return on && on.getAttribute("data-ws") === "passport" && !!active && !stale;
+      },
+      null,
+      { timeout: 10000 }
+    );
+    const th2 = await page.evaluate(() => {
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        trajParam: q.get("traj") || "",
+        gateParam: q.get("gate") || "",
+        editActive: document.querySelectorAll(
+          '[data-ade-traj="sub-edit"][data-ade-traj-active="1"]'
+        ).length,
+        verifyActive: document.querySelectorAll(
+          '[data-ade-traj="sub-verify"][data-ade-traj-active="1"]'
+        ).length,
+        activeCount: document.querySelectorAll('[data-ade-traj-active="1"]').length,
+      };
+    });
+    record(
+      "TH2",
+      "Trace focus move to sub-edit moves Passport highlight; gate stays approved",
+      th2.ws === "passport" &&
+        th2.trajParam === "sub-edit" &&
+        th2.gateParam === "approved" &&
+        th2.editActive > 0 &&
+        th2.verifyActive === 0 &&
+        th2.activeCount === th2.editActive,
+      JSON.stringify(th2)
+    );
+
+    // TH3: no traj → zero active highlights
+    const th3Url =
+      origin +
+      "/scripts/webview-harness.html?trace=1&passport=1&gate=approved&probe=0&ws=passport";
+    await page.goto(th3Url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForSelector("#passportPage", { timeout: 15000 });
+    const th3 = await page.evaluate(() => {
+      const q = new URLSearchParams(location.search);
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        trajParam: q.get("traj") || "",
+        activeCount: document.querySelectorAll('[data-ade-traj-active="1"]').length,
+        mappedRows: document.querySelectorAll("[data-ade-traj]").length,
+        empty: !!document.querySelector("#passportPage[data-passport-empty]"),
+      };
+    });
+    record(
+      "TH3",
+      "Passport with no traj focus emits zero data-ade-traj-active",
+      th3.ws === "passport" &&
+        !th3.trajParam &&
+        th3.activeCount === 0 &&
+        !th3.empty &&
+        th3.mappedRows > 0,
+      JSON.stringify(th3)
+    );
+    assertNoStampDir("TH4", "Trace→Passport row highlight did not write .graphide/stamps/");
+
+
   } finally {
     await browser.close();
     await new Promise((r) => server.close(r));
@@ -27432,7 +27630,7 @@ async function main() {
       PASSPORT_HARNESS +
       "` (Plan Passport fixture) then `" +
       DEEPLINK_HARNESS +
-      "` (Trace↔Passport deep-link + Passport→Trace row reverse) then `" +
+      "` (Trace↔Passport deep-link + Passport→Trace row reverse + Trace→Passport row highlight) then `" +
       LINEAGE_HARNESS +
       "` (Lineage on fixtures/demo) then `" +
       SEQUENCE_HARNESS +
@@ -27447,7 +27645,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
