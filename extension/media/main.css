@@ -3492,6 +3492,23 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE clear-filter :active/pressed flash parity (CAF1–CAF3) — themed press beyond global scale(0.97) */
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter:active,
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter.press,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:active,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"].press,
+.passport-residual .passport-sticky-clear-filter:active,
+.passport-residual .passport-sticky-clear-filter.press,
+.passport-residual [data-passport-clear-filter="1"]:active,
+.passport-residual [data-passport-clear-filter="1"].press,
+.residual-filter-clear:active,
+.residual-filter-clear.press,
+button.residual-filter-clear[data-residual-filter-clear="1"]:active,
+button.residual-filter-clear[data-residual-filter-clear="1"].press {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 78%, #000 22%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 55%, #000 45%);
+}
+
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }

@@ -707,6 +707,12 @@ assert(keysMap.includes("HOP1") && keysMap.includes("host ON cue") && keysMap.in
 assert(traceMap.includes("HOP1") && traceMap.includes("host ON cue cross-parity") && traceMap.includes("residual-filter-host-on-cue-parity.png"), "trace feature map must name residual-filter host ON cue parity HOP / proof");
 assert(passportMap.includes("HOP1") && passportMap.includes("host ON cue cross-parity") && passportMap.includes("residual-filter-host-on-cue-parity.png"), "passport feature map must name residual-filter host ON cue parity HOP / proof");
 
+assert(driver.includes("CAF1") && driver.includes("CAF3") && driver.includes("residual-filter-clear-active-flash.png") && driver.includes("legend-clear-filter") && driver.includes("passport-sticky-clear-filter") && driver.includes("residual-filter-clear"), "verify driver must prove clear-filter active flash CAF1–CAF3");
+assert(css.includes("legend-clear-filter:active") && css.includes("passport-sticky-clear-filter:active") && css.includes("residual-filter-clear:active") && css.includes("legend-clear-filter.press") && css.includes("box-shadow: inset 0 0 0 1px") && css.includes("78%"), "clear-filter :active/.press flash CSS missing");
+assert(keysMap.includes("CAF1") && keysMap.includes(":active") && keysMap.includes("residual-filter-clear-active-flash.png"), "keys feature map must name clear-filter active flash CAF / proof");
+assert(traceMap.includes("CAF1") && traceMap.includes(":active") && traceMap.includes("residual-filter-clear-active-flash.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-filter active flash CAF / proof");
+assert(passportMap.includes("CAF1") && passportMap.includes(":active") && passportMap.includes("residual-filter-clear-active-flash.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-filter active flash CAF / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");

@@ -9016,6 +9016,202 @@ async function main() {
       "Residual-filter host ON cue parity step did not write .graphide/stamps/"
     );
 
+    // ADE clear-filter :active/pressed flash parity (CAF1–CAF3) — themed press beyond global scale
+    // Filter should still be ON + bearings from HOP; ensure CC + PCF clears exist, then .press.
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend[data-residual-filter="on"]', { timeout: 8000 });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      // Ensure gate not approved so bearings exist (legend clear visible).
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    const cafTrace = await page.evaluate(() => {
+      const btn = document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("legend-clear-filter"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+      btn.classList.remove("press");
+      return out;
+    });
+    const caf1ok = !!(
+      cafTrace &&
+      cafTrace.present &&
+      cafTrace.cls &&
+      cafTrace.bgChanged &&
+      cafTrace.pressInset &&
+      !cafTrace.restInset
+    );
+    record(
+      "CAF1",
+      "Trace legend clear-filter shows themed :active/.press flash (darker bg + inset) beyond resting chrome",
+      !!caf1ok,
+      JSON.stringify(cafTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"] [data-passport-clear-filter="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const cafPass = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-clear-filter="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("passport-sticky-clear-filter"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+      // Keep .press for proof shot, then remove after shot below.
+      return out;
+    });
+    // Leave Passport sticky clear pressed for proof PNG, then also sample FE empty clear.
+    await page.waitForTimeout(30);
+    // FE empty clear: approve gate → empty chrome → .press (do not click clear)
+    await page.evaluate(() => {
+      // Remove press from sticky before approving (sticky clear leaves when empty).
+      const sticky = document.querySelector('#passportSign [data-passport-clear-filter="1"]');
+      if (sticky) sticky.classList.remove("press");
+      const approve = document.querySelector('#passportSign [data-passport-action="approve"]');
+      const gate = document.getElementById("passportGate");
+      if (approve && gate && gate.getAttribute("data-passport-state") !== "approved") {
+        approve.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"] [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const cafFe = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("residual-filter-clear"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+      // keep .press for shot
+      return out;
+    });
+    const caf2ok = !!(
+      cafPass &&
+      cafPass.present &&
+      cafPass.cls &&
+      cafPass.bgChanged &&
+      cafPass.pressInset &&
+      !cafPass.restInset &&
+      cafFe &&
+      cafFe.present &&
+      cafFe.cls &&
+      cafFe.bgChanged &&
+      cafFe.pressInset &&
+      !cafFe.restInset
+    );
+    record(
+      "CAF2",
+      "Passport sticky clear + empty Clear show themed :active/.press flash (darker bg + inset)",
+      !!caf2ok,
+      JSON.stringify({ passport: cafPass, fe: cafFe })
+    );
+
+    await shot(page, "residual-filter-clear-active-flash.png");
+    const cafShot = checks.find(
+      (c) => c.id === "shot:residual-filter-clear-active-flash.png"
+    );
+    record(
+      "CAF3",
+      "screenshot residual-filter-clear-active-flash.png is not a black frame",
+      !!(cafShot && cafShot.pass),
+      cafShot ? cafShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CAF4",
+      "Clear-filter active flash step did not write .graphide/stamps/"
+    );
+
+    // Restore: drop press, clear filter, reject gate so later IR/PR residual chrome sees bearings.
+    await page.evaluate(() => {
+      document.querySelectorAll(".press").forEach((el) => el.classList.remove("press"));
+      const clear = document.querySelector('[data-residual-filter-clear="1"]');
+      if (clear) clear.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const empty = document.querySelector(
+          '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+        );
+        return (
+          (!legend || legend.getAttribute("data-residual-filter") !== "on") && !empty
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForTimeout(60);
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
