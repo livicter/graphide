@@ -23580,6 +23580,10 @@
         stageFitRo.disconnect();
         stageFitRo = null;
       }
+      const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
+      if (prevWs !== name && ADE_RESIDUAL_WS[prevWs] && !ADE_RESIDUAL_WS[name] && trajResidualFilter) {
+        trajResidualFilter = false;
+      }
       explorerWs = name;
       if (pin) explorerPinned = true;
       if (name === "lineage" && !egoMode) egoMode = true;

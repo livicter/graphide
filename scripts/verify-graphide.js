@@ -5260,6 +5260,261 @@ async function main() {
     );
     assertNoStampDir("PM4", "Passport residual-filter mirror step did not write .graphide/stamps/");
 
+    // ADE residual-filter clear-on-ws-leave (WL1–WL3) — clear when leaving Trace/Passport family
+    // PM left filter OFF; turn ON on Trace, leave to Map (clears), return Trace OFF; Trace↔Passport keeps ON.
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(100);
+    // Ensure OFF then click ON
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn =
+          legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        return (
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          legend.getAttribute("data-residual-filter") !== "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn =
+          legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const wl1on = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+      };
+    });
+
+    // Leave Trace → Map: residual filter must clear
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForTimeout(120);
+
+    // Return Trace: chrome must be OFF / filteredN=0
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn =
+          legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          legend.getAttribute("data-residual-filter") !== "on" &&
+          filtered === 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const wl1 = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      return {
+        onBefore: null,
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        label: btn ? (btn.textContent || "").trim() : "",
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+      };
+    });
+    wl1.onBefore = wl1on;
+    record(
+      "WL1",
+      "Leaving Trace/Passport for Map clears residual filter (return Trace OFF)",
+      !!(
+        wl1on.filterAttr === "on" &&
+        wl1on.pressed === "true" &&
+        wl1on.filteredN >= 1 &&
+        wl1.filterAttr !== "on" &&
+        wl1.pressed === "false" &&
+        /residuals/i.test(wl1.label) &&
+        !/residuals on/i.test(wl1.label) &&
+        wl1.filteredN === 0
+      ),
+      JSON.stringify(wl1)
+    );
+
+    // WL2: Trace↔Passport hop must KEEP shared filter ON
+    await page.click('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        return legend && legend.getAttribute("data-residual-filter") === "on";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForFunction(
+      () => {
+        const residual = document.querySelector(
+          "#passportSign .passport-residual[data-passport-residual]"
+        );
+        const btn =
+          residual &&
+          residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '#passportGate .passport-gate-path[data-residual-filtered="1"]'
+        ).length;
+        return (
+          residual &&
+          residual.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const wl2pass = await page.evaluate(() => {
+      const residual = document.querySelector(
+        "#passportSign .passport-residual[data-passport-residual]"
+      );
+      const btn =
+        residual &&
+        residual.querySelector('[data-passport-residual-filter-toggle="1"]');
+      return {
+        filterAttr: residual ? residual.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        filteredN: document.querySelectorAll(
+          '#passportGate .passport-gate-path[data-residual-filtered="1"]'
+        ).length,
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn =
+          legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        const filtered = document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length;
+        return (
+          legend &&
+          legend.getAttribute("data-residual-filter") === "on" &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "true" &&
+          filtered > 0
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const wl2trace = await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      const btn =
+        legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+      return {
+        filterAttr: legend ? legend.getAttribute("data-residual-filter") || "" : "",
+        pressed: btn ? btn.getAttribute("aria-pressed") || "" : "",
+        filteredN: document.querySelectorAll(
+          '.traj-node[data-residual-filtered="1"]'
+        ).length,
+      };
+    });
+    record(
+      "WL2",
+      "Trace↔Passport hop keeps residual filter ON (shared sync intact)",
+      !!(
+        wl2pass.filterAttr === "on" &&
+        wl2pass.pressed === "true" &&
+        wl2pass.filteredN >= 1 &&
+        wl2trace.filterAttr === "on" &&
+        wl2trace.pressed === "true" &&
+        wl2trace.filteredN >= 1
+      ),
+      JSON.stringify({ passport: wl2pass, trace: wl2trace })
+    );
+
+    // Leave to Map again to clear, return Trace OFF, then proof shot
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForTimeout(100);
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn =
+          legend && legend.querySelector('[data-residual-filter-toggle="1"]');
+        return (
+          legend &&
+          btn &&
+          btn.getAttribute("aria-pressed") === "false" &&
+          legend.getAttribute("data-residual-filter") !== "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await shot(page, "residual-filter-ws-leave.png");
+    const wlShot = checks.find((c) => c.id === "shot:residual-filter-ws-leave.png");
+    record(
+      "WL3",
+      "screenshot residual-filter-ws-leave.png is not a black frame",
+      !!(wlShot && wlShot.pass),
+      wlShot ? wlShot.detail : "missing shot"
+    );
+    assertNoStampDir("WL4", "Residual-filter ws-leave step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

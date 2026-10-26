@@ -621,6 +621,10 @@ assert(js.includes("data-passport-residual-filter-toggle") && js.includes("passp
 assert(css.includes("passport-residual-filter-toggle") || css.includes('[data-passport-residual-filter-toggle="1"]'), "Passport residual-filter toggle CSS missing");
 assert(css.includes(".passport-gate-path.residual-filtered") || css.includes('data-residual-filtered'), "Passport residual-filtered gate path CSS missing");
 assert(passportMap.includes("PM1") && passportMap.includes("residual-filter mirror") && passportMap.includes("passport-residual-filter-mirror.png") && passportMap.includes("data-passport-residual-filter-toggle"), "passport feature map must name residual-filter mirror PM / proof");
+assert(driver.includes("WL1") && driver.includes("WL3") && driver.includes("residual-filter-ws-leave.png") && driver.includes("clear-on-ws-leave"), "verify driver must prove residual-filter clear-on-ws-leave WL1–WL3");
+assert(js.includes("ADE_RESIDUAL_WS") && js.includes("trajResidualFilter = false") && /ADE_RESIDUAL_WS\[prevWs\]/.test(js) && /!ADE_RESIDUAL_WS\[name\]/.test(js), "residual-filter clear-on-ws-leave setWorkspace guard missing");
+assert(traceMap.includes("WL1") && traceMap.includes("clear-on-ws-leave") && traceMap.includes("residual-filter-ws-leave.png"), "trace feature map must name residual-filter clear-on-ws-leave WL / proof");
+assert(passportMap.includes("WL1") && passportMap.includes("clear-on-ws-leave") && passportMap.includes("residual-filter-ws-leave.png"), "passport feature map must name residual-filter clear-on-ws-leave WL / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

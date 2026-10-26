@@ -4456,6 +4456,17 @@ function setWorkspace(name, pin) {
     stageFitRo.disconnect();
     stageFitRo = null;
   }
+  // ADE residual-filter clear-on-ws-leave (WL1–WL3) — don't leak filter into Map/Slice/etc.
+  // Trace↔Passport keep shared trajResidualFilter (both in ADE_RESIDUAL_WS).
+  const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
+  if (
+    prevWs !== name &&
+    ADE_RESIDUAL_WS[prevWs] &&
+    !ADE_RESIDUAL_WS[name] &&
+    trajResidualFilter
+  ) {
+    trajResidualFilter = false;
+  }
   explorerWs = name;
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
