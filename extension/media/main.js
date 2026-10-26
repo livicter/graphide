@@ -20250,6 +20250,11 @@
         applyPresent(false);
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && trajResidualFilter) {
+        e.preventDefault();
+        clearTrajResidualFilter();
+        return;
+      }
       if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (e.target && e.target.closest && e.target.closest("select")) return;
       if (e.repeat && !/^(\+|=|-|_|\[|\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;

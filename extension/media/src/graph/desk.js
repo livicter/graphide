@@ -429,6 +429,17 @@ document.addEventListener("keydown", (e) => {
     applyPresent(false);
     return;
   }
+  // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    (explorerWs === "trace" || explorerWs === "passport") &&
+    trajResidualFilter
+  ) {
+    e.preventDefault();
+    clearTrajResidualFilter();
+    return;
+  }
   // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
   if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
   // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.

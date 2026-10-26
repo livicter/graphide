@@ -8026,6 +8026,345 @@ async function main() {
       "Residual-filter toggle focus-visible step did not write .graphide/stamps/"
     );
 
+    // ADE residual-filter Escape clear (ESC1–ESC3) — after chrome owners, Escape clears ON filter on Trace/Passport
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    // Ensure Keys/Export closed and blur inputs so Escape reaches residual clear
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      const exp = document.getElementById("exportMenu");
+      if (exp && !exp.hidden) {
+        const btn = document.getElementById("exportBtn");
+        if (btn) btn.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const keys = document.getElementById("keysPane");
+        const exp = document.getElementById("exportMenu");
+        return !!(keys && keys.hidden) && !(exp && !exp.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Turn filter ON via R
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        const live = document.getElementById("residualFilterLive");
+        return !!(
+          host &&
+          host.getAttribute("data-residual-filter") === "on" &&
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        const live = document.getElementById("residualFilterLive");
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!(
+          host &&
+          host.getAttribute("data-residual-filter") !== "on" &&
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "off" &&
+          /Residual filter off/i.test(live.textContent || "") &&
+          toggle &&
+          toggle.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const esc1 = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const live = document.getElementById("residualFilterLive");
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      return {
+        filterAttr: host ? host.getAttribute("data-residual-filter") || "" : "",
+        liveState: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        liveText: live ? (live.textContent || "").trim() : "",
+        pressed: toggle ? toggle.getAttribute("aria-pressed") || "" : "",
+        keysHidden: !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      };
+    });
+    const esc1ok =
+      esc1.filterAttr !== "on" &&
+      esc1.liveState === "off" &&
+      /Residual filter off/i.test(esc1.liveText) &&
+      esc1.pressed === "false" &&
+      esc1.keysHidden;
+    record(
+      "ESC1",
+      "Trace residual ON + Escape (no chrome) clears filter + live off",
+      !!esc1ok,
+      JSON.stringify(esc1)
+    );
+
+    // ESC2: Keys owns Escape first — filter stays ON; second Escape clears
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        return !!(host && host.getAttribute("data-residual-filter") === "on");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden && pane.classList.contains("open"));
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const host = document.getElementById("trajEdgeLegend");
+        return !!(
+          pane &&
+          pane.hidden &&
+          host &&
+          host.getAttribute("data-residual-filter") === "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const esc2mid = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const pane = document.getElementById("keysPane");
+      const live = document.getElementById("residualFilterLive");
+      return {
+        keysHidden: !!(pane && pane.hidden),
+        filterOn: !!(host && host.getAttribute("data-residual-filter") === "on"),
+        liveState: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+      };
+    });
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        const live = document.getElementById("residualFilterLive");
+        return !!(
+          host &&
+          host.getAttribute("data-residual-filter") !== "on" &&
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "off"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Passport: filter ON, open Keys, Escape closes Keys keeps ON, Escape clears
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector("#passportSign .passport-residual");
+        return !!(host && host.getAttribute("data-residual-filter") === "on");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const host = document.querySelector("#passportSign .passport-residual");
+        return !!(
+          pane &&
+          pane.hidden &&
+          host &&
+          host.getAttribute("data-residual-filter") === "on"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector("#passportSign .passport-residual");
+        const live = document.getElementById("residualFilterLive");
+        return !!(
+          host &&
+          host.getAttribute("data-residual-filter") !== "on" &&
+          live &&
+          live.getAttribute("data-residual-filter-live-state") === "off"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const esc2 = await page.evaluate(() => {
+      const host = document.querySelector("#passportSign .passport-residual");
+      const live = document.getElementById("residualFilterLive");
+      const pane = document.getElementById("keysPane");
+      return {
+        mid: null,
+        filterAttr: host ? host.getAttribute("data-residual-filter") || "" : "",
+        liveState: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        keysHidden: !!(pane && pane.hidden),
+      };
+    });
+    esc2.mid = esc2mid;
+    const esc2ok =
+      esc2mid.keysHidden &&
+      esc2mid.filterOn &&
+      esc2mid.liveState === "on" &&
+      esc2.filterAttr !== "on" &&
+      esc2.liveState === "off" &&
+      esc2.keysHidden;
+    record(
+      "ESC2",
+      "Keys Escape closes pane first (filter stays ON); next Escape clears on Trace+Passport",
+      !!esc2ok,
+      JSON.stringify(esc2)
+    );
+
+    // ESC3: filter OFF Escape is no-op; proof shot; no stamps
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    const beforeOff = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const live = document.getElementById("residualFilterLive");
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      return {
+        filterAttr: host ? host.getAttribute("data-residual-filter") || "" : "",
+        liveState: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        liveText: live ? (live.textContent || "").trim() : "",
+        pressed: toggle ? toggle.getAttribute("aria-pressed") || "" : "",
+        ws: document.body && document.body.getAttribute("data-ws")
+          ? document.body.getAttribute("data-ws")
+          : (document.querySelector('#workspaces [data-ws].on, #workspaces [aria-pressed="true"]') || {}).getAttribute
+            ? (document.querySelector('#workspaces [data-ws].on, #workspaces [aria-pressed="true"]') || {}).getAttribute("data-ws")
+            : "",
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
+    const afterOff = await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      const live = document.getElementById("residualFilterLive");
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      return {
+        filterAttr: host ? host.getAttribute("data-residual-filter") || "" : "",
+        liveState: live ? live.getAttribute("data-residual-filter-live-state") || "" : "",
+        liveText: live ? (live.textContent || "").trim() : "",
+        pressed: toggle ? toggle.getAttribute("aria-pressed") || "" : "",
+      };
+    });
+    // Ensure ON again briefly for proof PNG of Escape-clear affordance path (filter off settled after ESC1/2)
+    await page.keyboard.press("r");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        return !!(host && host.getAttribute("data-residual-filter") === "on");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const host = document.getElementById("trajEdgeLegend");
+        return !!(host && host.getAttribute("data-residual-filter") !== "on");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await shot(page, "residual-filter-escape-clear.png");
+    const escShot = checks.find(
+      (c) => c.id === "shot:residual-filter-escape-clear.png"
+    );
+    const esc3ok =
+      beforeOff.filterAttr !== "on" &&
+      beforeOff.liveState === "off" &&
+      afterOff.filterAttr === beforeOff.filterAttr &&
+      afterOff.liveState === beforeOff.liveState &&
+      afterOff.pressed === beforeOff.pressed &&
+      !!(escShot && escShot.pass);
+    record(
+      "ESC3",
+      "Trace filter OFF Escape is no-op; residual-filter-escape-clear.png not a black frame",
+      !!esc3ok,
+      JSON.stringify({ beforeOff, afterOff, shot: escShot ? escShot.detail : "missing" })
+    );
+    assertNoStampDir(
+      "ESC4",
+      "Residual-filter Escape clear step did not write .graphide/stamps/"
+    );
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

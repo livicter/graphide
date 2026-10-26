@@ -682,6 +682,11 @@ assert(css.includes("residual-filter-toggle:focus-visible") && css.includes('dat
 assert(keysMap.includes("TFV1") && keysMap.includes("focus-visible") && keysMap.includes("residual-filter-toggle-focus-visible.png"), "keys feature map must name residual-filter toggle focus-visible TFV / proof");
 assert(traceMap.includes("TFV1") && traceMap.includes("focus-visible") && traceMap.includes("residual-filter-toggle-focus-visible.png") && traceMap.includes("data-residual-filter-toggle"), "trace feature map must name residual-filter toggle focus-visible TFV / proof");
 assert(passportMap.includes("TFV1") && passportMap.includes("focus-visible") && passportMap.includes("residual-filter-toggle-focus-visible.png") && passportMap.includes("data-passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle focus-visible TFV / proof");
+assert(driver.includes("ESC1") && driver.includes("ESC3") && driver.includes("residual-filter-escape-clear.png") && driver.includes("clearTrajResidualFilter"), "verify driver must prove residual-filter Escape clear ESC1–ESC3");
+assert(js.includes("clearTrajResidualFilter") && /Escape[\s\S]*?clearTrajResidualFilter/.test(js) && js.includes('explorerWs === "trace"') && js.includes('explorerWs === "passport"'), "residual-filter Escape clear hook missing from desk Escape stack");
+assert(keysMap.includes("ESC1") && keysMap.includes("Escape") && keysMap.includes("residual-filter-escape-clear.png") && keysMap.includes("clearTrajResidualFilter"), "keys feature map must name residual-filter Escape clear ESC / proof");
+assert(traceMap.includes("ESC1") && traceMap.includes("Escape") && traceMap.includes("residual-filter-escape-clear.png"), "trace feature map must name residual-filter Escape clear ESC / proof");
+assert(passportMap.includes("ESC1") && passportMap.includes("Escape") && passportMap.includes("residual-filter-escape-clear.png"), "passport feature map must name residual-filter Escape clear ESC / proof");
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
