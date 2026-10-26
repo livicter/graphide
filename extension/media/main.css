@@ -3012,6 +3012,28 @@ html.bright .traj-node { background: #fff; }
 .passport-gate:not([data-passport-state="approved"]) .passport-path-state { color: var(--passport-state); }
 .passport-path-reason { font-size: 11px; opacity: 0.75; }
 
+
+/* Passport traj-hop adjacent residual (AR1–AR3) — neighbors of focused traj that still have residual */
+.passport-gate-path.passport-adj-residual,
+.passport-gate-path[data-passport-adj-residual="1"] {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 70%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent);
+}
+.passport-adj-residual-cue {
+  display: inline-flex; align-items: center;
+  flex: 0 0 auto;
+  margin-left: 4px; padding: 0 6px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 16%, transparent);
+}
+.traj-node.neighbor.traj-adj-residual,
+.traj-node.neighbor[data-traj-adj-residual="1"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 65%, transparent),
+    0 0 10px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 28%, transparent);
+}
 /* Passport hop residual badge on gate path rows (HB1–HB3) */
 .passport-hop-residual {
   --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));

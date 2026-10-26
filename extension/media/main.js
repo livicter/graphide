@@ -28321,6 +28321,7 @@
       const selectedId = trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
       if (!selectedId) trajPinFocus = "";
       const near = trajNeighborIds(fix, selectedId);
+      const residualTrajs = passportResidualTrajIds();
       const focusOn = !!selectedId;
       const edgeLines = renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId);
       const nodeHtml = nodes.map((n) => {
@@ -28328,6 +28329,8 @@
         const diff = n.diff || "";
         const on2 = selectedId === n.id ? " on" : "";
         const neighbor = focusOn && near.has(n.id) && selectedId !== n.id ? " neighbor" : "";
+        const adjResidual = focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id) ? " traj-adj-residual" : "";
+        const adjResidualAttr = focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id) ? ' data-traj-adj-residual="1"' : "";
         const dim = focusOn && !near.has(n.id) ? " dim" : "";
         const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
         const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
@@ -28336,7 +28339,7 @@
         const adds = Number(n.adds);
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + dim + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
@@ -29107,6 +29110,16 @@
       const hit = nodes.find((n) => n && n.artifact === path);
       return hit && hit.id ? hit.id : "";
     }
+    function passportResidualTrajIds() {
+      const ids = /* @__PURE__ */ new Set();
+      if (passportGateState() === "approved") return ids;
+      const fx = getPassport();
+      for (const w of fx.gatedWrites || []) {
+        const tid = resolvePassportTrajId(w);
+        if (tid) ids.add(tid);
+      }
+      return ids;
+    }
     function passportRowActiveAttr(trajId) {
       return trajId && trajSelectedId && trajId === trajSelectedId ? ' data-ade-traj-active="1"' : "";
     }
@@ -29203,13 +29216,20 @@
       const unlocked = state === "approved";
       const label = unlocked ? "Writes unlocked — agent-style file writes may proceed (fixture)" : state === "rejected" ? "Rejected — gated write paths stay blocked" : "Gated write paths blocked until approved";
       const chip = state === "approved" ? "approved" : state === "rejected" ? "rejected" : "pending";
+      const trajFix = trajectoryFixture();
+      const focusId = trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
+      const near = trajNeighborIds(trajFix, focusId);
       const paths = (fx.gatedWrites || []).map((w) => {
         const blocked = unlocked ? "" : ' data-blocked="1"';
         const trajId = resolvePassportTrajId(w);
         const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
         const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
         const hopResidual = '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' + esc(hopState) + '" data-hop-path="' + esc(w.path || "") + '"><span class="passport-hop-residual-badge">' + esc(hopBadge) + "</span></span>";
-        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
+        const isAdj = !!focusId && !unlocked && !!trajId && trajId !== focusId && near.has(trajId);
+        const adjClass = isAdj ? " passport-adj-residual" : "";
+        const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
+        const adjCue = isAdj ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>' : "";
+        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
       }).join("");
       return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul></div>";
     }

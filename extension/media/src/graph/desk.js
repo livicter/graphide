@@ -10702,6 +10702,7 @@ function renderTrajectoryBody() {
     trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
   if (!selectedId) trajPinFocus = "";
   const near = trajNeighborIds(fix, selectedId);
+  const residualTrajs = passportResidualTrajIds();
   const focusOn = !!selectedId;
   const edgeLines = renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId);
   const nodeHtml = nodes
@@ -10710,6 +10711,14 @@ function renderTrajectoryBody() {
       const diff = n.diff || "";
       const on = selectedId === n.id ? " on" : "";
       const neighbor = focusOn && near.has(n.id) && selectedId !== n.id ? " neighbor" : "";
+      const adjResidual =
+        focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id)
+          ? " traj-adj-residual"
+          : "";
+      const adjResidualAttr =
+        focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id)
+          ? ' data-traj-adj-residual="1"'
+          : "";
       const dim = focusOn && !near.has(n.id) ? " dim" : "";
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
@@ -10726,10 +10735,13 @@ function renderTrajectoryBody() {
         esc(n.status || "pending") +
         on +
         neighbor +
+        adjResidual +
         dim +
         '" data-id="' +
         esc(n.id) +
-        '" data-artifact="' +
+        '"' +
+        adjResidualAttr +
+        ' data-artifact="' +
         esc(art) +
         '" data-diff="' +
         esc(diff) +
@@ -11820,6 +11832,19 @@ function resolvePassportTrajId(row) {
 }
 
 
+
+/** Traj ids mapped from still-residual Passport gatedWrites (AR adjacent residual). */
+function passportResidualTrajIds() {
+  const ids = new Set();
+  if (passportGateState() === "approved") return ids;
+  const fx = getPassport();
+  for (const w of fx.gatedWrites || []) {
+    const tid = resolvePassportTrajId(w);
+    if (tid) ids.add(tid);
+  }
+  return ids;
+}
+
 function passportRowActiveAttr(trajId) {
   return trajId && trajSelectedId && trajId === trajSelectedId
     ? ' data-ade-traj-active="1"'
@@ -11983,6 +12008,12 @@ function renderPassportGate(fx, state) {
       : "Gated write paths blocked until approved";
   const chip =
     state === "approved" ? "approved" : state === "rejected" ? "rejected" : "pending";
+  const trajFix = trajectoryFixture();
+  const focusId =
+    trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId)
+      ? trajSelectedId
+      : "";
+  const near = trajNeighborIds(trajFix, focusId);
   const paths = (fx.gatedWrites || [])
     .map((w) => {
       const blocked = unlocked ? "" : ' data-blocked="1"';
@@ -11997,19 +12028,33 @@ function renderPassportGate(fx, state) {
         '"><span class="passport-hop-residual-badge">' +
         esc(hopBadge) +
         "</span></span>";
+      const isAdj =
+        !!focusId &&
+        !unlocked &&
+        !!trajId &&
+        trajId !== focusId &&
+        near.has(trajId);
+      const adjClass = isAdj ? " passport-adj-residual" : "";
+      const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
+      const adjCue = isAdj
+        ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>'
+        : "";
       return (
         '<li class="passport-gate-path' +
         passportRowActiveClass(trajId) +
+        adjClass +
         '" data-passport-path="' +
         esc(w.path || "") +
         '"' +
         (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
         passportRowActiveAttr(trajId) +
+        adjAttr +
         blocked +
         '><span class="passport-path-state">' +
         (unlocked ? "open" : "blocked") +
         "</span>" +
         hopResidual +
+        adjCue +
         "<code>" +
         esc(w.path || "") +
         "</code>" +

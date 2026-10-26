@@ -93,6 +93,7 @@ Driver assertions:
 - KS1–KS3: keyboard node-step (ArrowRight / `]`) advances focus; on-path edges + legend chips stay in sync with click-focus; screenshot `verification/trajectory-keyboard-step.png`
 - DF1–DF3: Trace detail dep-list click→focus — `[data-traj-dep]` / `data-ade-dep-focus` sets `trajSelectedId` via `focusTrajectoryDep`; on-path / legend dim / keyboard step stay in sync; screenshot `verification/trajectory-dep-list-focus.png`
 - HA1–HA3: Trace hop-affordance — selected-node `.traj-hop-next` / detail Next hops `[data-traj-next]` / `data-ade-hop-next` hop along directed edges via `hopTrajectoryNext` / `trajOutgoingIds` (does not change `stepTrajectory` array-order); screenshot `verification/trajectory-hop-affordance.png`
+- AR1–AR3 (shared with Passport): focused-traj neighbor nodes mapped to residual Passport gatedWrites carry `data-traj-adj-residual` / `.traj-adj-residual`; proof `verification/passport-traj-adjacent-residual.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,

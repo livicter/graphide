@@ -3769,6 +3769,128 @@ async function main() {
     );
     assertNoStampDir("HB4", "Passport hop residual badge did not write .graphide/stamps/");
 
+    // ADE Passport traj-hop adjacent residual (AR1–AR3)
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(180);
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('[data-testid="trajectory-dag"] .traj-node[data-id="sub-diff"]', {
+      timeout: 10000,
+    });
+    await page.evaluate(() => {
+      const n = document.querySelector('.traj-node[data-id="sub-diff"]');
+      if (!n) throw new Error("missing sub-diff traj node");
+      if (n.classList.contains("on")) n.click();
+      n.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const host = document.querySelector('[data-testid="trajectory-dag"]');
+        const n = document.querySelector('.traj-node[data-id="sub-diff"].on');
+        return host && host.getAttribute("data-focus") === "sub-diff" && !!n;
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const arTrace = await page.evaluate(() => {
+      const adj = [...document.querySelectorAll(".traj-node.neighbor[data-traj-adj-residual]")].map(
+        (el) => el.getAttribute("data-id") || ""
+      );
+      const on = document.querySelector(".traj-node.on");
+      const selected = on ? on.getAttribute("data-id") || "" : "";
+      const selectedHasAdj = !!(on && on.hasAttribute("data-traj-adj-residual"));
+      return { adj, selected, selectedHasAdj, adjCount: adj.length };
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportGate .passport-hop-residual[data-passport-hop-residual]", {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(180);
+    const ar1 = await page.evaluate(() => {
+      const adj = [
+        ...document.querySelectorAll("#passportGate .passport-gate-path[data-passport-adj-residual]"),
+      ];
+      const rows = adj.map((li) => ({
+        traj: li.getAttribute("data-ade-traj") || "",
+        path: li.getAttribute("data-passport-path") || "",
+        cls: li.classList.contains("passport-adj-residual"),
+        cue: !!li.querySelector(".passport-adj-residual-cue"),
+        cueText: ((li.querySelector(".passport-adj-residual-cue") || {}).textContent || "").trim(),
+        hop: !!li.querySelector(".passport-hop-residual[data-passport-hop-residual]"),
+      }));
+      const focusWin = window.__graphideTrajectoryFocus || "";
+      const selectedAdj = rows.some((r) => r.traj && r.traj === focusWin);
+      const gateEl = document.getElementById("passportGate");
+      const gate = gateEl ? gateEl.getAttribute("data-passport-state") || "" : "";
+      return {
+        adjCount: adj.length,
+        rows,
+        focusWin,
+        selectedAdj,
+        gate,
+        everyCue: rows.every((r) => r.cls && r.cue && r.hop && /adj residual/i.test(r.cueText)),
+      };
+    });
+    record(
+      "AR1",
+      "Focused traj marks residual neighbor Passport gate paths + Trace neighbor residual attrs",
+      ar1.adjCount >= 1 &&
+        ar1.everyCue &&
+        !ar1.selectedAdj &&
+        (ar1.gate === "rejected" || ar1.gate === "pending") &&
+        ar1.rows.every((r) => r.traj === "sub-edit" || r.traj === "sub-fixture") &&
+        arTrace.adjCount >= 1 &&
+        !arTrace.selectedHasAdj &&
+        arTrace.selected === "sub-diff" &&
+        arTrace.adj.every((id) => id === "sub-edit" || id === "sub-fixture"),
+      JSON.stringify({ ar1, arTrace })
+    );
+
+    await page.click('[data-passport-action="approve"]');
+    await page.waitForTimeout(180);
+    const ar2Clear = await page.evaluate(() => {
+      const gateEl = document.getElementById("passportGate");
+      return {
+        passportAdj: document.querySelectorAll("#passportGate [data-passport-adj-residual]").length,
+        cues: document.querySelectorAll("#passportGate .passport-adj-residual-cue").length,
+        gate: gateEl ? gateEl.getAttribute("data-passport-state") || "" : "",
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('[data-testid="trajectory-dag"]', { timeout: 8000 });
+    await page.waitForTimeout(120);
+    const ar2TraceClear = await page.evaluate(() => {
+      const host = document.querySelector('[data-testid="trajectory-dag"]');
+      return {
+        trajAdj: document.querySelectorAll("[data-traj-adj-residual]").length,
+        focus: host ? host.getAttribute("data-focus") || "" : "",
+      };
+    });
+    record(
+      "AR2",
+      "Approve clears Passport + Trace adjacent residual cues",
+      ar2Clear.passportAdj === 0 &&
+        ar2Clear.cues === 0 &&
+        ar2Clear.gate === "approved" &&
+        ar2TraceClear.trajAdj === 0,
+      JSON.stringify({ passport: ar2Clear, trace: ar2TraceClear })
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('[data-passport-action="reject"]', { timeout: 8000 });
+    await page.click('[data-passport-action="reject"]');
+    await page.waitForTimeout(120);
+
+    await shot(page, "passport-traj-adjacent-residual.png");
+    const arShot = checks.find((c) => c.id === "shot:passport-traj-adjacent-residual.png");
+    record(
+      "AR3",
+      "screenshot passport-traj-adjacent-residual.png is not a black frame",
+      !!(arShot && arShot.pass),
+      arShot ? arShot.detail : "missing shot"
+    );
+    assertNoStampDir("AR4", "Passport traj-hop adjacent residual did not write .graphide/stamps/");
+
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
@@ -28680,7 +28802,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

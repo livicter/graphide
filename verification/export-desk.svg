@@ -771,6 +771,10 @@ html.bright .traj-node { background: rgb(255, 255, 255); }
 .passport-gate[data-passport-state="approved"] .passport-path-state { color: var(--passport-state); }
 .passport-gate:not([data-passport-state="approved"]) .passport-path-state { color: var(--passport-state); }
 .passport-path-reason { font-size: 11px; opacity: 0.75; }
+.passport-gate-path.passport-adj-residual, .passport-gate-path[data-passport-adj-residual="1"] { outline: 1px dashed color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 70%, transparent); outline-offset: 1px; background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent); }
+.passport-adj-residual-cue { display: inline-flex; align-items: center; flex: 0 0 auto; margin-left: 4px; padding: 0px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--vscode-editorWarning-foreground, #cca700); border: 1px solid; background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 16%, transparent); }
+.traj-node.neighbor.traj-adj-residual, .traj-node.neighbor[data-traj-adj-residual="1"] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 65%, transparent),
+    0 0 10px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 28%, transparent); }
 .passport-hop-residual { --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)); display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; padding: 1px 2px; color: var(--passport-hop-residual); font-size: 10px; line-height: 1.2; }
 .passport-hop-residual[data-hop-residual-state="pending"] { --passport-hop-residual: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-hop-residual[data-hop-residual-state="rejected"] { --passport-hop-residual: var(--vscode-errorForeground, #f14c4c); }
