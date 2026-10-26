@@ -2503,6 +2503,30 @@ html.bright .route-hop {
 html.bright .traj-canvas { background: rgba(0,0,0,0.03); }
 html.bright .traj-node { background: #fff; }
 
+
+/* ADE Trace↔Passport deep-link hops */
+.ade-hop-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-bottom: 2px;
+}
+.ade-hop {
+  appearance: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+  color: var(--vscode-focusBorder, #2f81f7);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent);
+}
+.ade-hop:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 22%, transparent);
+}
+.traj-strip .ade-hop { margin-left: 4px; }
+.ade-hop-hint { font-size: 11px; opacity: 0.68; }
+
 .passport-page { display: flex; flex-direction: column; gap: 12px; max-width: 980px; }
 .passport-outcome { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
 .passport-outcome-counts { font-size: 11px; opacity: 0.75; margin-left: auto; }

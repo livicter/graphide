@@ -382,10 +382,19 @@
     setTimeout(function () {
       if (clickProgram) clickMainProgram();
       if (search) applySearch(search);
-      if (ws) {
+      // Prefer live location.search so Trace↔Passport deep-link replaceState
+      // is not clobbered by a stale boot-time ws= closure.
+      const liveWs = (function () {
+        try {
+          return new URLSearchParams(location.search).get("ws") || ws;
+        } catch (_err) {
+          return ws;
+        }
+      })();
+      if (liveWs) {
         const on = document.querySelector("#workspaces [data-ws].on");
-        if (!on || on.getAttribute("data-ws") !== ws) {
-          const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+        if (!on || on.getAttribute("data-ws") !== liveWs) {
+          const tab = document.querySelector('#workspaces [data-ws="' + liveWs + '"]');
           if (tab) tab.click();
         }
       }
@@ -499,17 +508,29 @@
       });
   }
 
-  if (params.get("trace") === "1") {
-    loadTrajectoryFixture(function () {
+  function loadAdePair(done) {
+    const focus = params.get("traj") || "";
+    if (focus) window.__graphideTrajectoryFocus = focus;
+    const gate = params.get("gate") || "";
+    if (gate === "pending" || gate === "approved" || gate === "rejected") {
+      window.__graphidePassportGate = gate;
+    }
+    let left = 2;
+    const finishOne = function () {
+      left -= 1;
+      if (left > 0) return;
       window.postMessage(msg, "*");
       afterPaint();
-    });
-  } else if (params.get("passport") === "1") {
+      if (typeof done === "function") done();
+    };
+    loadTrajectoryFixture(finishOne);
+    loadPassportFixture(finishOne);
+  }
 
-    loadPassportFixture(function () {
-      window.postMessage(msg, "*");
-      afterPaint();
-    });
+  // Trace↔Passport deep-link: either flag loads BOTH fixtures so tab hops
+  // keep traj focus + passport gate without a live Delta mount.
+  if (params.get("trace") === "1" || params.get("passport") === "1") {
+    loadAdePair();
   } else if (params.get("lifecycle") === "1") {
     loadNamedSnap("lifecycle-snap.json", "__graphideLifecycle", "__graphideLifecycleError", afterPaint, params.get("require") === "1");
   } else if (params.get("lineage") === "1") {

@@ -10416,6 +10416,7 @@ function renderTrajectoryDetail(fix, selectedId) {
 
 function renderTrajectoryBody() {
   seedTrajectoryFocus();
+  seedPassportGate();
   const fix = trajectoryFixture();
   const nodes = fix.nodes || [];
   const edges = fix.edges || [];
@@ -10518,7 +10519,9 @@ function renderTrajectoryBody() {
     '<span class="traj-stat" data-stat="deps"><b>' +
     edges.length +
     "</b> deps</span>" +
-    "</span></div>" +
+    "</span>" +
+    renderAdeHop("passport", "Open Passport →") +
+    "</div>" +
     '<div class="traj-layout">' +
     '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
     esc(fix.id) +
@@ -10574,6 +10577,7 @@ function stepTrajectory(dir) {
   i = (i + dir + nodes.length) % nodes.length;
   trajSelectedId = nodes[i].id;
   trajPinFocus = "";
+  syncAdeDeepLink("trace");
   paint({ animate: "none" });
 }
 
@@ -10600,12 +10604,14 @@ function bindTrajectoryPage() {
         trajSelectedId = id;
         trajPinFocus = "";
       }
+      syncAdeDeepLink("trace");
       paint({ animate: "none" });
     };
   });
   host.onclick = () => {
     if (document.activeElement !== host) host.focus({ preventScroll: true });
   };
+  bindAdeHopButtons();
 }
 
 
@@ -10738,6 +10744,80 @@ const DELTA_VOCAB_DEFAULT = Object.freeze({
   ],
 });
 let passportGate = "pending";
+let passportGateSeeded = false;
+
+function seedPassportGate() {
+  if (passportGateSeeded) return;
+  passportGateSeeded = true;
+  let want =
+    (typeof window !== "undefined" && window.__graphidePassportGate) || "";
+  if (!want && typeof location !== "undefined") {
+    try {
+      want = new URLSearchParams(location.search || "").get("gate") || "";
+    } catch (_err) {
+      want = "";
+    }
+  }
+  if (PASSPORT_STATES[want]) passportGate = want;
+}
+
+function renderAdeHop(target, label) {
+  return (
+    '<button type="button" class="ade-hop" data-ade-hop="' +
+    esc(target) +
+    '" title="Hop Trace↔Passport with traj/gate context">' +
+    esc(label) +
+    "</button>"
+  );
+}
+
+function syncAdeDeepLink(wsOverride) {
+  seedPassportGate();
+  if (typeof history === "undefined" || !history.replaceState) return;
+  if (typeof location === "undefined") return;
+  let cur;
+  try {
+    cur = new URLSearchParams(location.search || "");
+  } catch (_err) {
+    return;
+  }
+  const onAde =
+    cur.get("trace") === "1" ||
+    cur.get("passport") === "1" ||
+    explorerWs === "trace" ||
+    explorerWs === "passport";
+  if (!onAde) return;
+  const q = new URLSearchParams(location.search || "");
+  q.set("trace", "1");
+  q.set("passport", "1");
+  const ws = wsOverride || explorerWs;
+  if (ws === "trace" || ws === "passport") q.set("ws", ws);
+  if (trajSelectedId) q.set("traj", trajSelectedId);
+  else q.delete("traj");
+  q.set("gate", passportGateState());
+  const next = location.pathname + "?" + q.toString() + (location.hash || "");
+  const prev = location.pathname + location.search + (location.hash || "");
+  if (next !== prev) history.replaceState(null, "", next);
+  if (typeof window !== "undefined") {
+    window.__graphideTrajectoryFocus = trajSelectedId || "";
+    window.__graphidePassportGate = passportGateState();
+  }
+}
+
+function hopAdeWorkspace(target) {
+  if (target !== "trace" && target !== "passport") return;
+  syncAdeDeepLink(target);
+  setWorkspace(target);
+}
+
+function bindAdeHopButtons() {
+  document.querySelectorAll("[data-ade-hop]").forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      hopAdeWorkspace(btn.getAttribute("data-ade-hop") || "");
+    };
+  });
+}
 
 function isPassport(v) {
   return !!(
@@ -10899,6 +10979,7 @@ function renderPassportImpact(fx) {
 }
 
 function renderPassportBody() {
+  seedPassportGate();
   const fx = getPassport();
   const state = passportGateState();
   const targets = (fx.targets || [])
@@ -10963,6 +11044,10 @@ function renderPassportBody() {
     .join("");
   return (
     '<div id="passportPage" class="passport-page">' +
+    '<div class="ade-hop-row">' +
+    renderAdeHop("trace", "← Open Trace") +
+    '<span class="ade-hop-hint">preserves traj focus · gate state · no live Delta</span>' +
+    "</div>" +
     '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
     esc(fx.title || "Plan Passport") +
     " · " +
@@ -11021,24 +11106,27 @@ function paintPassportWorkspace(title) {
 function setPassportGate(state) {
   // Fixture-only gate. Never write .graphide/stamps/. Never touch disk.
   passportGate = PASSPORT_STATES[state] ? state : "pending";
+  syncAdeDeepLink("passport");
   paint({ animate: "none" });
 }
 
 function bindPassportPage() {
   const sign = document.getElementById("passportSign");
-  if (!sign) return;
-  const approve = sign.querySelector('[data-passport-action="approve"]');
-  const reject = sign.querySelector('[data-passport-action="reject"]');
-  if (approve)
-    approve.onclick = (ev) => {
-      ev.stopPropagation();
-      setPassportGate("approved");
-    };
-  if (reject)
-    reject.onclick = (ev) => {
-      ev.stopPropagation();
-      setPassportGate("rejected");
-    };
+  if (sign) {
+    const approve = sign.querySelector('[data-passport-action="approve"]');
+    const reject = sign.querySelector('[data-passport-action="reject"]');
+    if (approve)
+      approve.onclick = (ev) => {
+        ev.stopPropagation();
+        setPassportGate("approved");
+      };
+    if (reject)
+      reject.onclick = (ev) => {
+        ev.stopPropagation();
+        setPassportGate("rejected");
+      };
+  }
+  bindAdeHopButtons();
 }
 
 

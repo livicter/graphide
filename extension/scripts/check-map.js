@@ -642,6 +642,24 @@ assert(driver.includes("passport.png") && driver.includes("data-passport-action"
   );
 }
 
+
+assert(driver.includes("DEEPLINK_HARNESS") && driver.includes("DL1") && driver.includes("DL4") && driver.includes("data-ade-hop"), "verify driver must prove Trace↔Passport deep-link DL1–DL4");
+assert(driver.includes("trajectory-deeplink.png") && driver.includes("passport-deeplink.png"), "verify driver must capture deep-link screenshots");
+assert(harness.includes("loadAdePair") && harness.includes("__graphidePassportGate"), "harness must dual-load ADE fixtures and seed gate");
+const deeplinkMapPath = path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md");
+assert(fs.existsSync(deeplinkMapPath), "trace-passport-deeplink.md missing");
+const deeplinkMap = fs.readFileSync(deeplinkMapPath, "utf8");
+assert(
+  deeplinkMap.includes("## Sub-features") &&
+    deeplinkMap.includes("## How to get to it (user POV)") &&
+    deeplinkMap.includes("## Driving it with the harness") &&
+    deeplinkMap.includes("## Gotchas") &&
+    deeplinkMap.includes("data-ade-hop") &&
+    deeplinkMap.includes("traj="),
+  "trace-passport-deeplink feature map must use the four headings and name hops/traj"
+);
+assert(featReadme.includes("trace-passport-deeplink.md"), "feature README must list trace-passport-deeplink.md");
+
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");

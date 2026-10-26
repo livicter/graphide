@@ -28092,6 +28092,7 @@
     }
     function renderTrajectoryBody() {
       seedTrajectoryFocus();
+      seedPassportGate();
       const fix = trajectoryFixture();
       const nodes = fix.nodes || [];
       const edges = fix.edges || [];
@@ -28117,7 +28118,7 @@
       const done = nodes.filter((n) => n.status === "done").length;
       const running = nodes.filter((n) => n.status === "running").length;
       const pending = nodes.filter((n) => n.status === "pending").length;
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + '</b> deps</span></span></div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + " · click node / pin · [ ] step</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + ' tabindex="0" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + " · click node / pin · [ ] step</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -28134,6 +28135,7 @@
       i = (i + dir + nodes.length) % nodes.length;
       trajSelectedId = nodes[i].id;
       trajPinFocus = "";
+      syncAdeDeepLink("trace");
       paint({ animate: "none" });
     }
     function bindTrajectoryPage() {
@@ -28159,12 +28161,14 @@
             trajSelectedId = id2;
             trajPinFocus = "";
           }
+          syncAdeDeepLink("trace");
           paint({ animate: "none" });
         };
       });
       host.onclick = () => {
         if (document.activeElement !== host) host.focus({ preventScroll: true });
       };
+      bindAdeHopButtons();
     }
     const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
     const PASSPORT_FIXTURE = Object.freeze({
@@ -28293,6 +28297,64 @@
       ]
     });
     let passportGate = "pending";
+    let passportGateSeeded = false;
+    function seedPassportGate() {
+      if (passportGateSeeded) return;
+      passportGateSeeded = true;
+      let want = typeof window !== "undefined" && window.__graphidePassportGate || "";
+      if (!want && typeof location !== "undefined") {
+        try {
+          want = new URLSearchParams(location.search || "").get("gate") || "";
+        } catch (_err) {
+          want = "";
+        }
+      }
+      if (PASSPORT_STATES[want]) passportGate = want;
+    }
+    function renderAdeHop(target, label) {
+      return '<button type="button" class="ade-hop" data-ade-hop="' + esc(target) + '" title="Hop Trace↔Passport with traj/gate context">' + esc(label) + "</button>";
+    }
+    function syncAdeDeepLink(wsOverride) {
+      seedPassportGate();
+      if (typeof history === "undefined" || !history.replaceState) return;
+      if (typeof location === "undefined") return;
+      let cur;
+      try {
+        cur = new URLSearchParams(location.search || "");
+      } catch (_err) {
+        return;
+      }
+      const onAde = cur.get("trace") === "1" || cur.get("passport") === "1" || explorerWs === "trace" || explorerWs === "passport";
+      if (!onAde) return;
+      const q2 = new URLSearchParams(location.search || "");
+      q2.set("trace", "1");
+      q2.set("passport", "1");
+      const ws = wsOverride || explorerWs;
+      if (ws === "trace" || ws === "passport") q2.set("ws", ws);
+      if (trajSelectedId) q2.set("traj", trajSelectedId);
+      else q2.delete("traj");
+      q2.set("gate", passportGateState());
+      const next = location.pathname + "?" + q2.toString() + (location.hash || "");
+      const prev = location.pathname + location.search + (location.hash || "");
+      if (next !== prev) history.replaceState(null, "", next);
+      if (typeof window !== "undefined") {
+        window.__graphideTrajectoryFocus = trajSelectedId || "";
+        window.__graphidePassportGate = passportGateState();
+      }
+    }
+    function hopAdeWorkspace(target) {
+      if (target !== "trace" && target !== "passport") return;
+      syncAdeDeepLink(target);
+      setWorkspace(target);
+    }
+    function bindAdeHopButtons() {
+      document.querySelectorAll("[data-ade-hop]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          hopAdeWorkspace(btn.getAttribute("data-ade-hop") || "");
+        };
+      });
+    }
     function isPassport(v) {
       return !!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.targets) && Array.isArray(v.contracts) && Array.isArray(v.risks) && Array.isArray(v.testStrategy) && Array.isArray(v.gatedWrites) && v.impact && typeof v.impact === "object");
     }
@@ -28333,6 +28395,7 @@
       return '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' + esc(fx.summary || "") + " — Architecture Delta vocabulary (structural delta / impact regions / call graphs / API contracts / invariants):</p>" + renderDeltaVocabStub(impact) + '<div class="passport-impact-grid">' + card("callGraphs", "Call graphs", impact.callGraphs) + card("apiContracts", "API contracts", impact.apiContracts) + card("invariants", "Invariants", impact.invariants) + "</div></section>";
     }
     function renderPassportBody() {
+      seedPassportGate();
       const fx = getPassport();
       const state = passportGateState();
       const targets = (fx.targets || []).map(
@@ -28347,7 +28410,7 @@
       const tests = (fx.testStrategy || []).map(
         (x) => '<li data-passport-test="' + esc(x.id || "") + '"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + "</li>"
       ).join("");
-      return '<div id="passportPage" class="passport-page"><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
+      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + '<span class="ade-hop-hint">preserves traj focus · gate state · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
         "targets",
         "Architecture targets",
         "<ul>" + targets + "</ul>",
@@ -28377,23 +28440,26 @@
     }
     function setPassportGate(state) {
       passportGate = PASSPORT_STATES[state] ? state : "pending";
+      syncAdeDeepLink("passport");
       paint({ animate: "none" });
     }
     function bindPassportPage() {
       const sign = document.getElementById("passportSign");
-      if (!sign) return;
-      const approve = sign.querySelector('[data-passport-action="approve"]');
-      const reject = sign.querySelector('[data-passport-action="reject"]');
-      if (approve)
-        approve.onclick = (ev) => {
-          ev.stopPropagation();
-          setPassportGate("approved");
-        };
-      if (reject)
-        reject.onclick = (ev) => {
-          ev.stopPropagation();
-          setPassportGate("rejected");
-        };
+      if (sign) {
+        const approve = sign.querySelector('[data-passport-action="approve"]');
+        const reject = sign.querySelector('[data-passport-action="reject"]');
+        if (approve)
+          approve.onclick = (ev) => {
+            ev.stopPropagation();
+            setPassportGate("approved");
+          };
+        if (reject)
+          reject.onclick = (ev) => {
+            ev.stopPropagation();
+            setPassportGate("rejected");
+          };
+      }
+      bindAdeHopButtons();
     }
     function countMap(items, keyFn) {
       const m = /* @__PURE__ */ new Map();

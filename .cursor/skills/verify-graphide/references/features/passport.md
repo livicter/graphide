@@ -73,6 +73,8 @@ Driver assertions:
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
+- Trace↔Passport context hops: see [trace-passport-deeplink.md](trace-passport-deeplink.md) (`?traj=` / `?gate=` / `data-ade-hop`).
+
 
 - Passport is the ADE upstream sign-off gate. Trace (A1a) is the cognition
   DAG. Delta is parent vs head. Do not merge them.
