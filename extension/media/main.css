@@ -3537,6 +3537,20 @@ button.residual-filter-clear[data-residual-filter-clear="1"].press {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
 }
 
+/* ADE residual-filter count-chip hover cue (CHC1–CHC3) — warning lift above FHP 28%; cursor:help; not Clear blue; :active/.press still win */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"]:hover:not(:active):not(.press),
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 70%, var(--g-line, #8b949e));
+  cursor: help;
+}
+.passport-residual .passport-residual-filter-count[tabindex="0"]:hover:not(:active):not(.press),
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 70%, var(--g-line, #8b949e));
+  cursor: help;
+}
+
 /* ADE Keys R row :active/pressed flash parity (KAF1–KAF3) — momentary darker flash distinct from KP resting ON (color/opacity/kbd); residual-bound only */
 #keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"]:active,
 #keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"].press,

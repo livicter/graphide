@@ -750,6 +750,12 @@ assert(keysMap.includes("KAF1") && keysMap.includes(":active") && keysMap.includ
 assert(traceMap.includes("KAF1") && traceMap.includes(":active") && traceMap.includes("keys-r-active-flash.png") && traceMap.includes("data-keys-row"), "trace feature map must name Keys R active flash KAF / proof");
 assert(passportMap.includes("KAF1") && passportMap.includes(":active") && passportMap.includes("keys-r-active-flash.png") && passportMap.includes("data-keys-row"), "passport feature map must name Keys R active flash KAF / proof");
 
+assert(driver.includes("CHC1") && driver.includes("CHC3") && driver.includes("residual-filter-count-hover-cue.png") && driver.includes("residual-filter-count") && driver.includes("passport-residual-filter-count"), "verify driver must prove residual-filter count-chip hover cue CHC1–CHC3");
+assert(css.includes("residual-filter-count[tabindex=\"0\"]:hover") && css.includes("passport-residual-filter-count[tabindex=\"0\"]:hover") && css.includes("cursor: help") && /residual-filter-count\[tabindex="0"\]:hover[\s\S]*?38%/.test(css), "main.css must theme residual-filter count-chip :hover cue (warning lift + cursor:help)");
+assert(keysMap.includes("CHC1") && keysMap.includes(":hover") && keysMap.includes("residual-filter-count-hover-cue.png"), "keys feature map must name residual-filter count-chip hover cue CHC / proof");
+assert(traceMap.includes("CHC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-count-hover-cue.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip hover cue CHC / proof");
+assert(passportMap.includes("CHC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-count-hover-cue.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip hover cue CHC / proof");
+
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
