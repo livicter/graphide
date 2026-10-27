@@ -26,10 +26,9 @@ Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`inst
 
 After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Imports plugin match (**349 nodes · 1222 edges · 57 files**, **457 Imports**, harness **PASS 57/57**). The desk has **Day** and **Night** appearance (header control, key `D`, or `graphide.appearance`: `auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. The object rail is a source list of names; the footer is one caption. Endpoint / pub-sub hops match Rust on the same derivers; SolarSim’s edge mix did not change from Endpoints. More in [`UIUX_sample/`](UIUX_sample/).
 
-**ADE Phase 1 (v0.2)** tip stack (drafts): [#371](https://github.com/livicter/graphide/pull/371) Trajectory → [#372](https://github.com/livicter/graphide/pull/372) Passport → [#373](https://github.com/livicter/graphide/pull/373) Immutable → polish through [#443](https://github.com/livicter/graphide/pull/443) → [#444](https://github.com/livicter/graphide/pull/444) → [#446](https://github.com/livicter/graphide/pull/446) → [#447](https://github.com/livicter/graphide/pull/447) → [#448](https://github.com/livicter/graphide/pull/448) → [#449](https://github.com/livicter/graphide/pull/449) → [#450](https://github.com/livicter/graphide/pull/450) → [#451](https://github.com/livicter/graphide/pull/451) → [#452](https://github.com/livicter/graphide/pull/452) → [#453](https://github.com/livicter/graphide/pull/453) → [#454](https://github.com/livicter/graphide/pull/454) → [#455](https://github.com/livicter/graphide/pull/455) → [#456](https://github.com/livicter/graphide/pull/456) → [#457](https://github.com/livicter/graphide/pull/457) → [#458](https://github.com/livicter/graphide/pull/458) → [#459](https://github.com/livicter/graphide/pull/459) (residual-filter / Keys / seal / zoom / Passport sticky + ZPK + SGR + ZAL + KZH + PSE + SGH + ZPH + PGC + TEH + FTE + OMC + SBC + RDF + SSR + CSC; draft-only). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness; Trace↔Passport deep-link (`?trace=1&passport=1&traj=&gate=`).
+**ADE Phase 1 (v0.2)** is on `main`. Goal: learn what the program does from graphs and interactive charts alone — no source pane required for the walk.
 
-**Tip (draft stack):** [#458](https://github.com/livicter/graphide/pull/458) Sequence story richness (SSR) → [#459](https://github.com/livicter/graphide/pull/459) Overview community-size chart (CSC); draft-only.
-
+Landed history (squash merges): Trajectory [#371](https://github.com/livicter/graphide/pull/371) · Passport [#372](https://github.com/livicter/graphide/pull/372) · Immutable [#373](https://github.com/livicter/graphide/pull/373) · residual-filter / Keys / seal / zoom polish through tip stack · OMC [#455](https://github.com/livicter/graphide/pull/455) · SBC [#456](https://github.com/livicter/graphide/pull/456) · RDF [#457](https://github.com/livicter/graphide/pull/457) · SSR [#458](https://github.com/livicter/graphide/pull/458) · CSC [#459](https://github.com/livicter/graphide/pull/459) · Map enter behavior captions (MBE, this tip). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness. Trace↔Passport deep-link: `?trace=1&passport=1&traj=&gate=`.
 
 ![Live V1–V57](UIUX_sample/live-suite.png)
 
@@ -39,15 +38,33 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 
 ![Overview night](UIUX_sample/overview-desk-night.png)
 
-**Overview** — scorecard, Play / Prev / Next, Evidence on the current hop:
+**Overview** — scorecard, Play / Prev / Next. Story captions name behavior (kind · role/channel · verb), not file:line. Interactive mix and community-size charts filter the CFG graph-only:
 
 ![Overview desk](UIUX_sample/overview-desk.png)
 
-**Map** — communities on the walk (this checkout after Review); click a bubble to Enter. **Slice** — Steiner control-flow:
+![Story behavior captions](UIUX_sample/story-behavior-captions.png)
+
+![Overview mix chart](UIUX_sample/overview-mix-chart.png)
+
+![Overview community-size chart](UIUX_sample/overview-community-size.png)
+
+**Map** — communities on the walk; click a bubble to Enter. Enter members show behavior captions; leaf browse stays graph-only (Evidence stays on the object rail). **Slice** — Steiner control-flow:
 
 ![Map communities](UIUX_sample/map-communities.png)
 
+![Map enter behavior](UIUX_sample/map-enter-behavior.png)
+
 ![Slice control-flow](UIUX_sample/slice-control-flow.png)
+
+**Sequence** — story-rich hops and participant highlight. **Data-flow** — richer lanes. Both stay graph-only on Play / focus:
+
+![Sequence story richness](UIUX_sample/sequence-story-richness.png)
+
+**Trace / Passport** — agent trajectory DAG and plan gate (ADE Phase 1 chrome):
+
+![Trajectory DAG](UIUX_sample/trajectory-dag.png)
+
+![Passport](UIUX_sample/passport.png)
 
 **Lineage** — ego of the start hop, Used / Informed / Generated. **Registry** — snapshot audit:
 
