@@ -756,6 +756,12 @@ assert(keysMap.includes("CHC1") && keysMap.includes(":hover") && keysMap.include
 assert(traceMap.includes("CHC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-count-hover-cue.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip hover cue CHC / proof");
 assert(passportMap.includes("CHC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-count-hover-cue.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip hover cue CHC / proof");
 
+assert(driver.includes("THC1") && driver.includes("THC3") && driver.includes("residual-filter-toggle-hover-cue.png") && driver.includes("residual-filter-toggle") && driver.includes("passport-residual-filter-toggle"), "verify driver must prove residual-filter toggle hover cue THC1–THC3");
+assert(css.includes("residual-filter-toggle:hover") && css.includes("passport-residual-filter-toggle:hover") && /residual-filter-toggle:hover[\s\S]*?42%/.test(css) && /passport-residual-filter-toggle:hover[\s\S]*?cursor:\s*pointer/.test(css), "main.css must theme residual-filter toggle :hover cue (warning 42% lift + cursor:pointer)");
+assert(keysMap.includes("THC1") && keysMap.includes(":hover") && keysMap.includes("residual-filter-toggle-hover-cue.png"), "keys feature map must name residual-filter toggle hover cue THC / proof");
+assert(traceMap.includes("THC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-toggle-hover-cue.png") && traceMap.includes("residual-filter-toggle"), "trace feature map must name residual-filter toggle hover cue THC / proof");
+assert(passportMap.includes("THC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-toggle-hover-cue.png") && passportMap.includes("passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle hover cue THC / proof");
+
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

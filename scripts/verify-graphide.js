@@ -10925,6 +10925,186 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE residual-filter toggle hover cue (THC1–THC3) — warning lift above ON 28%; cursor:pointer; not Clear blue / not CHC help
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (legend && legend.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend[data-residual-filter="on"] [data-residual-filter-toggle="1"][aria-pressed="true"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const thcTraceRest = await page.evaluate(() => {
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      const clear = document.querySelector(
+        '#trajEdgeLegend .legend-clear-filter, #trajEdgeLegend [data-legend-clear-filter="1"]'
+      );
+      if (!toggle) return { present: false };
+      const rest = getComputedStyle(toggle);
+      return {
+        present: true,
+        cls: toggle.classList.contains("residual-filter-toggle"),
+        pressed: toggle.getAttribute("aria-pressed"),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+        clearRestBg: clear ? getComputedStyle(clear).backgroundColor : "",
+      };
+    });
+    await page.hover('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+    await page.waitForTimeout(40);
+    const thcTraceHover = await page.evaluate(() => {
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (!toggle) return { present: false };
+      const hover = getComputedStyle(toggle);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    const thc1ok = !!(
+      thcTraceRest &&
+      thcTraceRest.present &&
+      thcTraceRest.cls &&
+      thcTraceRest.pressed === "true" &&
+      thcTraceHover &&
+      thcTraceHover.present &&
+      thcTraceHover.hoverBg &&
+      thcTraceHover.hoverBg !== thcTraceRest.restBg &&
+      thcTraceHover.hoverCursor === "pointer" &&
+      thcTraceRest.clearRestBg &&
+      thcTraceHover.hoverBg !== thcTraceRest.clearRestBg
+    );
+    record(
+      "THC1",
+      "Trace legend residual-filter toggle :hover lifts warning bg above ON 28%, cursor:pointer, not Clear blue",
+      !!thc1ok,
+      JSON.stringify({ rest: thcTraceRest, hover: thcTraceHover })
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"] [data-passport-residual-filter-toggle="1"][aria-pressed="true"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const thcPassRest = await page.evaluate(() => {
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      const clear = document.querySelector(
+        '#passportSign .passport-sticky-clear-filter, #passportSign [data-passport-clear-filter="1"]'
+      );
+      if (!toggle) return { present: false };
+      const rest = getComputedStyle(toggle);
+      return {
+        present: true,
+        cls: toggle.classList.contains("passport-residual-filter-toggle"),
+        pressed: toggle.getAttribute("aria-pressed"),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+        clearRestBg: clear ? getComputedStyle(clear).backgroundColor : "",
+      };
+    });
+    await page.hover('#passportSign [data-passport-residual-filter-toggle="1"]');
+    await page.waitForTimeout(40);
+    const thcPassHover = await page.evaluate(() => {
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!toggle) return { present: false };
+      const hover = getComputedStyle(toggle);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    const thc2ok = !!(
+      thcPassRest &&
+      thcPassRest.present &&
+      thcPassRest.cls &&
+      thcPassRest.pressed === "true" &&
+      thcPassHover &&
+      thcPassHover.present &&
+      thcPassHover.hoverBg &&
+      thcPassHover.hoverBg !== thcPassRest.restBg &&
+      thcPassHover.hoverCursor === "pointer" &&
+      thcPassRest.clearRestBg &&
+      thcPassHover.hoverBg !== thcPassRest.clearRestBg
+    );
+    record(
+      "THC2",
+      "Passport sticky residual-filter toggle :hover lifts warning bg above ON 28%, cursor:pointer, not Clear blue",
+      !!thc2ok,
+      JSON.stringify({ rest: thcPassRest, hover: thcPassHover })
+    );
+
+    await shot(page, "residual-filter-toggle-hover-cue.png");
+    const thcShot = checks.find(
+      (c) => c.id === "shot:residual-filter-toggle-hover-cue.png"
+    );
+    record(
+      "THC3",
+      "screenshot residual-filter-toggle-hover-cue.png is not a black frame",
+      !!(thcShot && thcShot.pass),
+      thcShot ? thcShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "THC4",
+      "Residual-filter toggle hover cue step did not write .graphide/stamps/"
+    );
+
+    // Restore again: leave filter OFF for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const passToggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (passToggle && passToggle.getAttribute("aria-pressed") === "true") {
+        passToggle.click();
+      } else {
+        const legend = document.getElementById("trajEdgeLegend");
+        if (legend && legend.getAttribute("data-residual-filter") === "on") {
+          const toggle = document.querySelector(
+            '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+          );
+          if (toggle) toggle.click();
+        }
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(40);
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
