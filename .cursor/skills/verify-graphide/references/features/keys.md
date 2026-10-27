@@ -12,7 +12,8 @@ second command palette and not an agent stamp.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
   sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH on Map (and other desks); on Trace/Passport `R` residual filter (`data-keys-r-binding` / `data-keys-residual-hint`, KH1–KH3; pressed + toast KP1–KP3; Passport pressed proof PKP1–PKP3), `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
-  back. Assert the text. Do not invent shortcuts.
+  back; on Trace Keys also ↑/↓ Trace zoom pct · Home fit (`data-keys-row="traj-zoom"`,
+  KZH1–KZH3). Assert the text. Do not invent shortcuts.
 - ADE Keys residual-filter hint (KH1–KH3): `#keysPane` R row is workspace-aware via
   `syncKeysRRow` in `desk.js`. Trace/Passport open Keys → `data-keys-row="r"` with
   `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and binding
@@ -42,6 +43,12 @@ second command palette and not an agent stamp.
   `syncKeysRRow`). Map and other desks hide/clear the section (`hidden`, no `data-keys-ws`).
   Proof: `verification/keys-ade-section.png` (Trace Keys). Prefer KA ids — KS is Trace keyboard
   node-step.
+- ADE Keys Trace zoom pct keyboard hint (KZH1–KZH3): Trace-only `#keysPane` row
+  `[data-keys-row="traj-zoom"]` / `data-keys-traj-zoom-hint` documents `#trajZoomPct`
+  ArrowUp/Down step + Home fit (ZPK), via `syncKeysTrajZoomHint`. Map and Passport keep the
+  row `hidden` / hint `0` (no Passport traj zoom bar). Does **not** replace Map `+` `−` / `0`
+  zoom line. Proof: `verification/keys-zoom-pct-hint.png` (Trace Keys). Prefer KZH — ZPK is
+  the slider behavior; ZAL is aria-live.
 - ADE residual-filter dedicated aria-live (ALR1–ALR3): `#residualFilterLive`
   (`[data-residual-filter-live]` / `role="status"` / `aria-live="polite"` / `.sr-only`) is a
   persistent AT live region updated by `syncResidualFilterLive` from
@@ -142,6 +149,7 @@ Driver assertions:
   / ledger / Ask / Export suites so it does not stay on top of them
 - screenshot `verification/keys.png` is not a black frame
 - ADE KH1–KH3: Trace Keys open → `[data-keys-row="r"]` has `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and text includes `residual filter` (not sole PATH); Passport same; Map Keys → `path` / `0` / `PATH`. Screenshot `verification/keys-residual-filter.png` is not a black frame. No stamps.
+- ADE KZH1–KZH3: Trace Keys open → `[data-keys-row="traj-zoom"]` visible with `data-keys-traj-zoom-hint="1"` / `data-keys-workspace="trace"` and text includes Trace zoom pct + Home; Map/Passport Keys → row hidden / hint `0`; residual R row unchanged. Screenshot `verification/keys-zoom-pct-hint.png` is not a black frame. No stamps. Prefer KZH (ZPK is slider; ZAL is live).
 - ADE KP1–KP3: Trace residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed`) and `#toast` shows `Residuals on` (`ok`); toggle OFF → pressed cleared + `Residuals off` (`skip`); Map / leave clears pressed; no-op clear does not toast. Screenshot `verification/keys-residual-pressed.png` is not a black frame. No stamps.
 - ADE PKP1–PKP3: Passport residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed` / residual-filter binding); OFF clears pressed; Map leave clears pressed + binding → PATH. Screenshot `verification/passport-keys-residual-pressed.png` is not a black frame. No stamps. Prefer PKP (KP is Trace).
 - ADE ALR1–ALR3: Trace residual ON → `#residualFilterLive[data-residual-filter-live]` (`aria-live="polite"` / `role="status"`) text matches `Residual filter on, N matching` (N = bearing count); OFF / clear → `Residual filter off`; `#toast` Residuals on/off still works separately. Screenshot `verification/residual-filter-aria-live.png` is not a black frame. No stamps. Prefer ALR (AL is adj-residual).

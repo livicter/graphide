@@ -147,7 +147,7 @@ Driver assertions:
 
 - Trace↔Passport context hops: see [trace-passport-deeplink.md](trace-passport-deeplink.md)
   (`?traj=` / `?gate=` / `data-ade-hop`).
-- Trace is the cognition DAG. Passport is the upstream sign-off gate.
+- Trace is the cognition DAG. Keys sheet documents Trace-only ↑/↓ / Home for `#trajZoomPct` via `[data-keys-row="traj-zoom"]` (KZH1–KZH3); proof `verification/keys-zoom-pct-hint.png`. Passport is the upstream sign-off gate.
   Delta is parent vs head. Do not merge them.
 - Fixture-only in v0. Do not invent a live agent write bus on Trace.
 - Keep existing A1a node ids used by deep-link (`sub-verify`, etc.).

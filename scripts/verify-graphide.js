@@ -7010,6 +7010,196 @@ async function main() {
     );
     assertNoStampDir("KA4", "Keys ADE section header step did not write .graphide/stamps/");
 
+    // ADE Keys Trace zoom pct keyboard hint (KZH1–KZH3) — Trace-only Keys row for ↑/↓/Home on #trajZoomPct
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, #trajEdgeLegend, #trajZoomPct", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      if (pane && !pane.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          pane.classList.contains("open") &&
+          row &&
+          !row.hidden &&
+          row.getAttribute("data-keys-traj-zoom-hint") === "1" &&
+          row.getAttribute("data-keys-workspace") === "trace"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const kzh1 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+      const text = row ? (row.textContent || "").replace(/\s+/g, " ").trim() : "";
+      const rRow = pane && pane.querySelector('[data-keys-row="r"]');
+      const box = row ? row.getBoundingClientRect() : null;
+      return {
+        open: !!(pane && !pane.hidden && pane.classList.contains("open")),
+        hint: row ? row.getAttribute("data-keys-traj-zoom-hint") || "" : "",
+        ws: row ? row.getAttribute("data-keys-workspace") || "" : "",
+        hidden: !!(row && row.hidden),
+        text,
+        hasUp: !!(row && row.querySelector("kbd") && /↑|ArrowUp|Up/i.test(text)),
+        hasDown: /↓/.test(text),
+        hasHome: /Home/i.test(text),
+        hasZoom: /zoom pct/i.test(text),
+        rBinding: rRow ? rRow.getAttribute("data-keys-r-binding") || "" : "",
+        h: box ? box.height : 0,
+        w: box ? box.width : 0,
+      };
+    });
+    const kzh1ok =
+      kzh1.open &&
+      !kzh1.hidden &&
+      kzh1.hint === "1" &&
+      kzh1.ws === "trace" &&
+      kzh1.hasDown &&
+      kzh1.hasHome &&
+      kzh1.hasZoom &&
+      kzh1.rBinding === "residual-filter" &&
+      kzh1.h > 6 &&
+      kzh1.w > 40;
+    record(
+      "KZH1",
+      "Trace Keys shows traj zoom pct ↑/↓/Home hint (data-keys-traj-zoom-hint=1)",
+      !!kzh1ok,
+      JSON.stringify(kzh1)
+    );
+    await shot(page, "keys-zoom-pct-hint.png");
+    const kzhShot = checks.find((c) => c.id === "shot:keys-zoom-pct-hint.png");
+
+    // KZH2: Map Keys → traj-zoom hint hidden; Map +/−/0 line still present; residual PATH
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForTimeout(120);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+        return !!(pane && !pane.hidden && row && (row.hidden || row.getAttribute("data-keys-traj-zoom-hint") === "0"));
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const kzh2 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+      const rRow = pane && pane.querySelector('[data-keys-row="r"]');
+      const body = pane ? (pane.textContent || "") : "";
+      return {
+        open: !!(pane && !pane.hidden),
+        hidden: !!(row && row.hidden),
+        hint: row ? row.getAttribute("data-keys-traj-zoom-hint") || "" : "",
+        ws: row ? row.getAttribute("data-keys-workspace") : null,
+        rBinding: rRow ? rRow.getAttribute("data-keys-r-binding") || "" : "",
+        hasMapZoom: /\+\s*.*zoom|zoom.*0|fit/i.test(body),
+      };
+    });
+    const kzh2ok =
+      kzh2.open &&
+      kzh2.hidden &&
+      kzh2.hint === "0" &&
+      (kzh2.ws === null || kzh2.ws === "") &&
+      kzh2.rBinding === "path" &&
+      kzh2.hasMapZoom;
+    record(
+      "KZH2",
+      "Map Keys hides traj zoom pct hint; Map +/−/0 zoom line remains",
+      !!kzh2ok,
+      JSON.stringify(kzh2)
+    );
+
+    // KZH3: Passport Keys → traj-zoom hint hidden; residual R still residual-filter; shot quality
+    await page.click("#keysClose");
+    await page.waitForFunction(
+      () => !!(document.getElementById("keysPane") && document.getElementById("keysPane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign, #passportImpact", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+        const rRow = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          (row.hidden || row.getAttribute("data-keys-traj-zoom-hint") === "0") &&
+          rRow &&
+          rRow.getAttribute("data-keys-r-binding") === "residual-filter"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(60);
+    const kzh3 = await page.evaluate(() => {
+      const pane = document.getElementById("keysPane");
+      const row = pane && pane.querySelector('[data-keys-row="traj-zoom"]');
+      const rRow = pane && pane.querySelector('[data-keys-row="r"]');
+      return {
+        open: !!(pane && !pane.hidden),
+        hidden: !!(row && row.hidden),
+        hint: row ? row.getAttribute("data-keys-traj-zoom-hint") || "" : "",
+        ws: row ? row.getAttribute("data-keys-workspace") : null,
+        rBinding: rRow ? rRow.getAttribute("data-keys-r-binding") || "" : "",
+      };
+    });
+    const kzh3ok =
+      kzh3.open &&
+      kzh3.hidden &&
+      kzh3.hint === "0" &&
+      (kzh3.ws === null || kzh3.ws === "") &&
+      kzh3.rBinding === "residual-filter" &&
+      !!(kzhShot && kzhShot.pass);
+    record(
+      "KZH3",
+      "Passport Keys hides traj zoom pct hint; residual R unchanged; keys-zoom-pct-hint.png not black",
+      !!kzh3ok,
+      JSON.stringify({ passport: kzh3, shot: kzhShot ? kzhShot.detail : "missing" })
+    );
+    assertNoStampDir("KZH4", "Keys Trace zoom pct hint step did not write .graphide/stamps/");
+
     // ADE residual-filter dedicated aria-live (ALR1–ALR3) — persistent #residualFilterLive beyond toast
     await page.click('#workspaces [data-ws="trace"]');
     await page.waitForSelector("#trajCanvas, #trajEdgeLegend", { timeout: 8000 });

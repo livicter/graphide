@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: 81deb7e97057223a7bae4bfbe051177f72b3956b16cfda2ec75d96058683abf9
+# seal-sha256: c3dcea9ed4b374ec3038fd71368788479ae2c46e96429b0d95a8a2247818af3e
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -28,7 +28,7 @@ eeaf3f1800edaea32aea639a450e7d32983b69a825f1f5d5a7a4120d75cfee91  .cursor/skills
 2e276299da41dd069354c5a82740c01cc8cd23d81ce3b7a9d3e3e8860b68cd6d  .cursor/skills/verify-graphide/references/features/host-adapter.md
 16862206925b83edbe39f5794bdb5778f6b6e350f40186d2753183908e263091  .cursor/skills/verify-graphide/references/features/immutable-harness.md
 e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills/verify-graphide/references/features/js-desk.md
-28b859d0b4cd8a0fcf839ad0ff5b0da5e866a60e123a8524291490c05ff1ef07  .cursor/skills/verify-graphide/references/features/keys.md
+08c5569648fd786010093dbc3d92309ca9bf50b26cb441e4821c969f9e690b66  .cursor/skills/verify-graphide/references/features/keys.md
 4e2fb6953bc376033ffae18f36d2a38fac3219ea719d241e682b76481d37cddc  .cursor/skills/verify-graphide/references/features/kind-filters.md
 1888d708ce13f3a3f35fef139f76af48a79c1125e2eb16f768a06d606eb20254  .cursor/skills/verify-graphide/references/features/lens.md
 ef11d6896efb00ac302bccb41242f1fceea9b31cc7ea3cad5e96582a69161011  .cursor/skills/verify-graphide/references/features/lifecycle.md
@@ -60,13 +60,13 @@ b7bdab4c9df6790939e0136b51c1f5f2829d5bbce092d58af7e6ecb5336d615d  .cursor/skills
 337da263ea618b1d06ac38e19fc8ab43b80327e9b7dd990e93214ad49882d83e  .cursor/skills/verify-graphide/references/features/sticky-clusters.md
 393a56de71e2fc3881fd97d7b7d4ba2b99168fbc68927347c55a21747d41e319  .cursor/skills/verify-graphide/references/features/timeline.md
 f0f44e6459997186c6a3f86d12c92f92c8936eb8a5e57423896f6c9b13777dd7  .cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md
-ac92df6a3684b8ff518d11b9c2db4d115371e4ea75d4ad51c152543759e780dc  .cursor/skills/verify-graphide/references/features/trace.md
+61626ca8678521a625194887e13384bf78f29b598c30db96546832053148db19  .cursor/skills/verify-graphide/references/features/trace.md
 d1b4d25b7cb1ad2d70e87890b15b38be51d8a59ff9c3cfe04a2ee78f946bfdfd  .cursor/skills/verify-graphide/references/features/ts-desk.md
 39cd70db2c410041a6a9952c1b046294ffe8b3245400163ae21ec3f8afa3da58  .cursor/skills/verify-graphide/references/features/uncovered-node.md
 f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills/verify-graphide/references/features/unmatched-hint.md
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-ecc0c182742462979de199b4aac030c1654b8ea37bbf7ec3b44faf9a6becbde0  extension/scripts/check-map.js
+78b26ce0f2a720c09958af349793d77a28a8bf4c195af0fdfc44f54c7fb0337e  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-160847c514030229d9e82fb3a198b99296978ffbba8c2909629ec842d87c8e81  scripts/verify-graphide.js
+263c846bb62ea248af7f545d7d8df296e1057905472c361a9639f597eaefb264  scripts/verify-graphide.js

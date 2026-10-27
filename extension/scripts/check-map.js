@@ -847,6 +847,13 @@ assert(js.includes("announceTrajZoom") && js.includes("trajZoomLive") && js.incl
 assert(css.includes("traj-zoom-live") && css.includes("#trajZoomLive"), "main.css must theme #trajZoomLive / .traj-zoom-live");
 assert(traceMap.includes("ZAL1") && traceMap.includes("trajZoomLive") && traceMap.includes("trajectory-zoom-pct-aria-live.png"), "trace feature map must name ZAL1 / trajZoomLive / proof");
 
+assert(driver.includes("KZH1") && driver.includes("KZH3") && driver.includes("keys-zoom-pct-hint.png") && driver.includes("data-keys-traj-zoom-hint"), "verify driver must prove Keys Trace zoom pct hint KZH1–KZH3");
+assert(js.includes("syncKeysTrajZoomHint") && js.includes("data-keys-traj-zoom-hint") && js.includes('data-keys-row="traj-zoom"') && /function syncKeysRRow\([\s\S]*?syncKeysTrajZoomHint/.test(js), "desk.js Keys Trace zoom pct hint syncKeysTrajZoomHint missing");
+assert(chrome.includes('data-keys-row="traj-zoom"') && chrome.includes("data-keys-traj-zoom-hint") && chrome.includes("Trace zoom pct") && chrome.includes("Home"), "KeysPane Trace zoom pct hint row missing from chrome");
+assert(css.includes('data-keys-row="traj-zoom"') && css.includes("data-keys-traj-zoom-hint"), "main.css must theme Keys traj-zoom hint row");
+assert(keysMap.includes("KZH1") && keysMap.includes("zoom pct") && keysMap.includes("keys-zoom-pct-hint.png") && keysMap.includes("syncKeysTrajZoomHint"), "keys feature map must name KZH / zoom pct hint / proof");
+assert(traceMap.includes("KZH1") && traceMap.includes("keys-zoom-pct-hint.png") && traceMap.includes("traj-zoom"), "trace feature map must name KZH1 / keys-zoom-pct-hint proof");
+
 assert(driver.includes("PSS1") && driver.includes("PSS3") && driver.includes("passport-sticky-summary.png") && driver.includes("data-passport-summary"), "verify driver must prove Passport sticky plan summary PSS1–PSS3");
 assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-summary") && js.includes("data-passport-gate") && js.includes('data-passport-count="contracts"') && js.includes('data-passport-count="impact"') && js.includes("passportImpactRowCount"), "Passport sticky summary render/markup missing");
 assert(css.includes("passport-sticky-summary") && css.includes("passport-sticky-gate") && css.includes("passport-sticky-counts"), "Passport sticky summary CSS missing");

@@ -1981,6 +1981,15 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   font-weight: 600;
   letter-spacing: 0.08em;
 }
+
+/* ADE KZH: Trace zoom pct keyboard hint row on #keysPane (Trace-only) */
+#keysPane li[data-keys-row="traj-zoom"][hidden],
+#keysPane li[data-keys-traj-zoom-hint="0"][hidden] {
+  display: none;
+}
+#keysPane li[data-keys-row="traj-zoom"][data-keys-traj-zoom-hint="1"] {
+  opacity: 0.95;
+}
 /* ADE KP: Keys R row pressed when residual filter ON on Trace/Passport */
 #keysPane li[data-keys-row="r"].on,
 #keysPane li[data-keys-row="r"].pressed,

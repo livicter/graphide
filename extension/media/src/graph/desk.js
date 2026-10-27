@@ -3706,10 +3706,23 @@ function syncKeysAdeSection(ws) {
   }
 }
 
+/** ADE Keys Trace zoom pct keyboard hint (KZH1–KZH3): show Trace-only Keys row for ↑/↓/Home on #trajZoomPct. */
+function syncKeysTrajZoomHint(ws) {
+  if (!keysPane) return;
+  const row = keysPane.querySelector('[data-keys-row="traj-zoom"]');
+  if (!row) return;
+  const on = ws === "trace";
+  row.hidden = !on;
+  row.setAttribute("data-keys-traj-zoom-hint", on ? "1" : "0");
+  if (on) row.setAttribute("data-keys-workspace", "trace");
+  else row.removeAttribute("data-keys-workspace");
+}
+
 /** ADE Keys residual-filter hint (KH1–KH3) + pressed-state (KP1–KP3) + ADE section (KA1–KA3): workspace-aware R row on #keysPane. */
 function syncKeysRRow(ws) {
   if (!keysPane) return;
   if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
+  if (typeof syncKeysTrajZoomHint === "function") syncKeysTrajZoomHint(ws);
   const row = keysPane.querySelector('[data-keys-row="r"]');
   if (!row) return;
   const textEl = row.querySelector("[data-keys-r-binding-text]");

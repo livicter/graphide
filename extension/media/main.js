@@ -7717,6 +7717,22 @@
             children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "keys-section-title", "data-keys-section-title": true })
           }
         ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+          "li",
+          {
+            "data-keys-row": "traj-zoom",
+            "data-keys-traj-zoom-hint": "0",
+            hidden: true,
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "↑" }),
+              " ",
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "↓" }),
+              " Trace zoom pct · ",
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "Home" }),
+              " fit"
+            ]
+          }
+        ),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", "data-keys-r-pressed": "0", "aria-pressed": "false", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
           " ",
@@ -22982,9 +22998,20 @@
         titleEl.textContent = ws === "trace" ? "Trace · residual bindings" : "Passport · residual bindings";
       }
     }
+    function syncKeysTrajZoomHint(ws) {
+      if (!keysPane) return;
+      const row = keysPane.querySelector('[data-keys-row="traj-zoom"]');
+      if (!row) return;
+      const on2 = ws === "trace";
+      row.hidden = !on2;
+      row.setAttribute("data-keys-traj-zoom-hint", on2 ? "1" : "0");
+      if (on2) row.setAttribute("data-keys-workspace", "trace");
+      else row.removeAttribute("data-keys-workspace");
+    }
     function syncKeysRRow(ws) {
       if (!keysPane) return;
       if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
+      if (typeof syncKeysTrajZoomHint === "function") syncKeysTrajZoomHint(ws);
       const row = keysPane.querySelector('[data-keys-row="r"]');
       if (!row) return;
       const textEl = row.querySelector("[data-keys-r-binding-text]");
