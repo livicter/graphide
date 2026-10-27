@@ -12665,6 +12665,129 @@ async function main() {
     );
     assertNoStampDir("CSC5", "Overview community-size chart step did not write .graphide/stamps/");
 
+    // ADE Map enter Behavior captions (MBE1–MBE3) — derived member captions; graph-only browse
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const mbeEnter = await page.evaluate(() => {
+      const card =
+        document.querySelector('.bubble-card[data-bubble="b-physics"]') ||
+        document.querySelector(".bubble-card[data-bubble]");
+      if (!card) return { clicked: false };
+      card.click();
+      return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+    });
+    await page
+      .waitForFunction(
+        () => document.querySelectorAll("#enterCanvas .vnode[data-id]").length > 1,
+        null,
+        { timeout: 10000 }
+      )
+      .catch(() => failFast("MBE enter-bubble did not mount — " + JSON.stringify(mbeEnter)));
+    await page.waitForTimeout(120);
+    const mbe1 = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-id]")];
+      const captioned = nodes.filter((el) => el.getAttribute("data-mbe-caption") === "1");
+      const metas = captioned
+        .map((el) => {
+          const meta = el.querySelector(".meta");
+          return (meta && meta.textContent) || "";
+        })
+        .filter(Boolean);
+      const sample = metas[0] || "";
+      const looksDerived =
+        /Function|Type|Endpoint|Calls|Reads|Writes|Publishes|Subscribes|Sink|Source|Http|Channel|Queue|Table/i.test(
+          sample
+        );
+      const fileLinePrimary = captioned.some((el) => {
+        const meta = ((el.querySelector(".meta") || {}).textContent || "").trim();
+        return /^\S+\.\w+:\d+/.test(meta);
+      });
+      return {
+        nodes: nodes.length,
+        captioned: captioned.length,
+        metas: metas.length,
+        sample,
+        looksDerived,
+        fileLinePrimary,
+        title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 80),
+      };
+    });
+    const mbe1ok = !!(
+      mbeEnter &&
+      mbeEnter.clicked &&
+      mbe1 &&
+      mbe1.captioned >= 1 &&
+      mbe1.metas >= 1 &&
+      mbe1.looksDerived &&
+      !mbe1.fileLinePrimary
+    );
+    record(
+      "MBE1",
+      "Map enter members show derived .meta behavior captions (data-mbe-caption; not file:line)",
+      !!mbe1ok,
+      JSON.stringify(mbe1)
+    );
+
+    const mbe2Before = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      return (window.__vscodePosts || []).length;
+    });
+    const mbe2 = await page.evaluate((before) => {
+      const leaf =
+        document.querySelector("#enterCanvas .vnode[data-leaf='1'][data-mbe-caption='1']") ||
+        document.querySelector("#enterCanvas .vnode[data-leaf='1']") ||
+        document.querySelector("#enterCanvas .vnode[data-id]");
+      if (!leaf) return { ok: false, reason: "no leaf" };
+      const id = leaf.getAttribute("data-id") || "";
+      leaf.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const pane = document.getElementById("sourcePane");
+      const vnode = document.querySelector("#enterCanvas .vnode[data-id='" + id + "']");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        ok: true,
+        id,
+        srcHidden: !pane || pane.hidden,
+        selected: !!(vnode && vnode.classList.contains("selected")),
+        caption: vnode ? vnode.getAttribute("data-mbe-caption") || "" : "",
+        peekPosted: posts.some((m) => m && m.type === "peekSource"),
+      };
+    }, mbe2Before);
+    const mbe2ok = !!(mbe2 && mbe2.ok && mbe2.srcHidden && mbe2.selected && !mbe2.peekPosted);
+    record(
+      "MBE2",
+      "Enter member click highlights graph-only without peekSource / Evidence",
+      !!mbe2ok,
+      JSON.stringify(mbe2)
+    );
+
+    await shot(page, "map-enter-behavior.png");
+    const mbeShot = checks.find((c) => c.id === "shot:map-enter-behavior.png");
+    const mbe3ok = !!(mbe1ok && mbe2ok && mbeShot && mbeShot.pass);
+    record(
+      "MBE3",
+      "screenshot map-enter-behavior.png not black; Map enter behavior captions proven",
+      !!mbe3ok,
+      JSON.stringify({
+        shot: mbeShot ? mbeShot.detail : "missing",
+        mbe1: !!mbe1ok,
+        mbe2: !!mbe2ok,
+      })
+    );
+    assertNoStampDir("MBE4", "Map enter behavior captions step did not write .graphide/stamps/");
+    // Return to Map cards so later Map suite sees community LOD
+    await page.evaluate(() => {
+      const back = document.getElementById("backBtn");
+      if (back && !back.disabled) back.click();
+      else {
+        const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+        if (crumb) crumb.click();
+      }
+    });
+    await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(80);
 
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
@@ -17958,12 +18081,40 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
-    await page.evaluate(() => {
+    // ADE MBE — enter leaf browse is graph-only; Evidence stays on ledger / hop.
+    const enterLeafId = await page.evaluate(() => {
       const leaf =
-        document.querySelector("#enterCanvas .vnode[data-leaf='1']") ||
-        document.querySelector("#enterCanvas .react-flow__node");
+        document.querySelector("#enterCanvas .vnode[data-leaf='1'][data-id]") ||
+        document.querySelector("#enterCanvas .vnode[data-id]");
+      const id = leaf ? leaf.getAttribute("data-id") || "" : "";
       if (leaf) leaf.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return id;
     });
+    await page.waitForTimeout(80);
+    const enterBrowse = await page.evaluate((id) => {
+      const pane = document.getElementById("sourcePane");
+      const vnode = id
+        ? document.querySelector("#enterCanvas .vnode[data-id='" + id + "']")
+        : document.querySelector("#enterCanvas .vnode.selected");
+      return {
+        srcHidden: !pane || pane.hidden,
+        selected: !!(vnode && vnode.classList.contains("selected")),
+        id: vnode ? vnode.getAttribute("data-id") || "" : "",
+        caption: vnode ? vnode.getAttribute("data-mbe-caption") || "" : "",
+      };
+    }, enterLeafId);
+    record(
+      "E2a",
+      "Leaf click on enter-bubble highlights graph-only (no Evidence)",
+      !!(enterBrowse && enterBrowse.srcHidden && enterBrowse.selected),
+      JSON.stringify(enterBrowse)
+    );
+    await page.evaluate((id) => {
+      const cell =
+        (id && document.querySelector('#ledgerGrid .cell[data-id="' + id + '"]')) ||
+        document.querySelector("#ledgerGrid .cell[data-id]");
+      if (cell) cell.click();
+    }, enterLeafId || enterBrowse.id);
     await page.waitForFunction(
       () => {
         const pane = document.getElementById("sourcePane");
@@ -17981,7 +18132,7 @@ async function main() {
     });
     record(
       "E2",
-      "Leaf click on enter-bubble opens Evidence",
+      "Enter Evidence still opens from object rail after graph-only leaf browse",
       enterEvidence.open && !!enterEvidence.title,
       enterEvidence.title.slice(0, 80)
     );

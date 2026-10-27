@@ -461,6 +461,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
+const mapMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
 const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
@@ -905,6 +906,12 @@ assert(js.includes("communitySizeChartHtml") && js.includes("applyOverviewCommun
 assert(css.includes(".csc-chart") && css.includes(".csc-bar") && css.includes("csc-hit") && css.includes("csc-dim"), "main.css must theme Overview community-size chart + csc-hit/csc-dim");
 assert(overviewMap.includes("CSC1") && overviewMap.includes("csc-chart") && overviewMap.includes("overview-community-size.png") && overviewMap.includes("peekSource"), "overview feature map must name CSC / csc-chart / proof / no peekSource");
 
+
+assert(driver.includes("MBE1") && driver.includes("MBE3") && driver.includes("map-enter-behavior.png") && driver.includes("data-mbe-caption"), "verify driver must prove Map enter behavior captions MBE1–MBE3");
+assert(js.includes("enterBehaviorCaption") && js.includes("enterCanvasProps") && js.includes('data-mbe-caption') && js.includes("peek: false"), "desk.js must derive enterBehaviorCaption and graph-only enter browse");
+assert(/selectNode\(\w+,\s*\{\s*peek:\s*false\s*\}\)/.test(js) && js.includes("ADE MBE"), "enter browse must selectNode with peek:false (MBE)");
+assert(css.includes("data-mbe-caption") && css.includes("#enterCanvas .vnode .meta"), "main.css must theme Map enter behavior captions");
+assert(mapMap.includes("MBE1") && mapMap.includes("data-mbe-caption") && mapMap.includes("map-enter-behavior.png") && mapMap.includes("peekSource"), "map feature map must name MBE / data-mbe-caption / proof / no peekSource");
 
 assert(driver.includes("SBC1") && driver.includes("SBC3") && driver.includes("story-behavior-captions.png") && driver.includes("data-sbc-caption"), "verify driver must prove story behavior captions SBC1–SBC3");
 assert(js.includes("storyBehaviorCaption") && js.includes("primaryIncidentVerb") && js.includes("feat-chip-caption") && js.includes('data-sbc-caption="1"'), "desk.js must derive storyBehaviorCaption / primaryIncidentVerb and render feat-chip-caption");

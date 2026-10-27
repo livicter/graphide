@@ -7844,6 +7844,13 @@
   var import_jsx_runtime8 = __toESM(require_jsx_runtime());
   function Workspace() {
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { id: "workspace", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "herd", hidden: true, "aria-label": "Herd", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "herd-head", children: [
+          "Herd ",
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { id: "herdCount" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: "herdList" })
+      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("section", { id: "canvas" }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "ledgerPane", hidden: true, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "led-head", children: "SLICE" }),
@@ -17048,6 +17055,7 @@
     if (d.hops) attrs["data-hops"] = d.hops;
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
     if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
+    if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
     if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
     const style2 = d.depth != null ? { "--d": d.depth } : void 0;
@@ -19659,7 +19667,7 @@
         nodeCap: ENTER_NODE_CAP,
         hopCap: ENTER_HOP_CAP,
         nodeW: 176,
-        nodeH: 64
+        nodeH: 78
       })
     );
     const hotIds = new Set([...props.hotIds || []].map(String));
@@ -19671,6 +19679,10 @@
         kindClass: n.kindClass || "kind-Function",
         label: n.label || n.fqn || String(n.id),
         kindLine: n.kindLine || n.kind || "Function",
+        // ADE MBE — behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
+        meta: n.meta || n.caption || "",
+        caption: n.caption || n.meta || "",
+        mbeCaption: !!(n.mbeCaption || n.meta || n.caption),
         lit: !!n.lit,
         grey: !!n.grey,
         steiner: n.steiner || "",
@@ -31767,6 +31779,49 @@
       }
       return hops;
     }
+    function enterBehaviorCaption(nid, hops, kindHint) {
+      const sid = idVal(nid);
+      if (!sid) return "";
+      let next = "";
+      for (const h of hops || []) {
+        if (idVal(h.from) === sid || idVal(h.hopFrom) === sid) {
+          next = idVal(h.hopTo || h.to);
+          break;
+        }
+      }
+      if (!next) {
+        for (const h of hops || []) {
+          if (idVal(h.to) === sid || idVal(h.hopTo) === sid) {
+            next = idVal(h.hopFrom || h.from);
+            break;
+          }
+        }
+      }
+      let cap = storyBehaviorCaption(sid, next);
+      if (cap) return cap;
+      const parts = [];
+      if (kindHint) parts.push(String(kindHint));
+      const ep = endpointOf(sid);
+      if (ep) {
+        if (ep.role) parts.push(String(ep.role));
+        if (ep.channel) parts.push(String(ep.channel));
+      }
+      if (next) {
+        const verb = primaryIncidentVerb(sid, next);
+        if (verb) parts.push(verb);
+        else {
+          for (const h of hops || []) {
+            if (idVal(h.from) === sid || idVal(h.hopFrom) === sid || idVal(h.to) === sid || idVal(h.hopTo) === sid) {
+              if (h.kind) {
+                parts.push(String(h.kind));
+                break;
+              }
+            }
+          }
+        }
+      }
+      return parts.join(" · ");
+    }
     function enterCanvasProps(inner) {
       const nodes = (inner.nodes || []).slice(0, 24);
       noteShownMembers(nodes);
@@ -31783,6 +31838,7 @@
         const file = node && node.span ? node.span.file : "";
         const steiner = leaf && n.lit ? steinerOfWalk(walk, nid) : "";
         const hopRole = steiner === "start" ? "START · " : steiner === "end" ? "END · " : "";
+        const caption = enterBehaviorCaption(nid, hops, kind);
         return {
           id: nid,
           fqn,
@@ -31799,6 +31855,9 @@
           changed: !!flags.changed,
           surface: "enter-node",
           ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
+          meta: caption,
+          caption,
+          mbeCaption: !!caption,
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance
         };
@@ -31815,7 +31874,7 @@
             return;
           }
           selectedNodeId = id2;
-          selectNode(id2);
+          selectNode(id2, { peek: false });
         },
         onHopClick: (iOrHop) => {
           const hop = typeof iOrHop === "number" ? hops[iOrHop] : iOrHop;

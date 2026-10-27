@@ -581,7 +581,7 @@ export function renderEnterCanvas(host, props) {
       nodeCap: ENTER_NODE_CAP,
       hopCap: ENTER_HOP_CAP,
       nodeW: 176,
-      nodeH: 64,
+      nodeH: 78,
     })
   );
   const hotIds = new Set([...(props.hotIds || [])].map(String));
@@ -593,6 +593,10 @@ export function renderEnterCanvas(host, props) {
       kindClass: n.kindClass || "kind-Function",
       label: n.label || n.fqn || String(n.id),
       kindLine: n.kindLine || n.kind || "Function",
+      // ADE MBE — behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
+      meta: n.meta || n.caption || "",
+      caption: n.caption || n.meta || "",
+      mbeCaption: !!(n.mbeCaption || n.meta || n.caption),
       lit: !!n.lit,
       grey: !!n.grey,
       steiner: n.steiner || "",
