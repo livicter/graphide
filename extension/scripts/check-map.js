@@ -110,6 +110,8 @@ assert(chrome.includes('data-ws="delta"'), "delta workspace tab missing");
 assert(chrome.includes('data-ws="sequence"'), "sequence workspace tab missing");
 assert(chrome.includes('data-ws="dataflow"'), "dataflow workspace tab missing");
 assert(chrome.includes('data-ws="lifecycle"'), "lifecycle workspace tab missing");
+assert(chrome.includes('data-ws="trace"'), "trace workspace tab missing");
+assert(chrome.includes('data-ws="passport"'), "passport workspace tab missing");
 assert(css.includes(".workspaces"), "workspace tab styles missing");
 assert(css.includes(".expl-card"), "explorer card styles missing");
 assert(!/sigma|forceatlas|ForceAtlas/i.test(js), "must not embed Sigma/ForceAtlas2");
@@ -123,7 +125,7 @@ assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not ste
 assert(js.includes("if (e.metaKey || e.ctrlKey && !e.altKey) return;"), "Cmd / Ctrl chords must not fire desk keys (Cmd+S must not stamp)");
 assert(js.includes('if (e.target && e.target.closest && e.target.closest("select")) return;'), "a focused <select> must keep its typeahead keys (no workspace switch / stamp)");
 assert((js.match(/if \(e\.isComposing\) return;/g) || []).length >= 2, "IME-composing Enter must not send Ask or start a review");
-assert(js.includes("if (e.repeat && !/^(\\+|=|-|_|\\[|\\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;"), "holding a toggle / action key must fire it once (auto-repeat ignored)");
+assert(js.includes("if (e.repeat && !/^(\\+|=|-|_|\\[|\\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;"), "holding a toggle / action key must fire it once (auto-repeat ignored)");
 assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
 assert(js.includes("function enterMapBubble"), "Map enter must use the same bubble stack as Slice");
@@ -174,6 +176,17 @@ assert(js.includes("function renderDataflowBody"), "Data-flow workspace missing"
 assert(js.includes('id="dfPlay"') && js.includes('id="dfHops"') && js.includes('id="dfStages"'), "Data-flow Play walk and pipeline missing");
 assert(js.includes("function flow_dataflow") || js.includes("function dataflowOf"), "Data-flow must read Steiner data hops");
 assert(js.includes("function renderLifecycleBody"), "Lifecycle workspace missing");
+assert(js.includes("PASSPORT_FIXTURE") && js.includes("function paintPassportWorkspace") && js.includes("function getPassport") && js.includes("function bindPassportPage"), "Plan Passport workspace missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport.md")), "passport feature map missing");
+const passportMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport.md"), "utf8");
+assert(
+  passportMap.includes("## Sub-features") &&
+    passportMap.includes("## How to get to it (user POV)") &&
+    passportMap.includes("## Driving it with the harness") &&
+    passportMap.includes("## Gotchas"),
+  "passport feature map must use the four headings"
+);
+assert(js.includes("function paintTrajectoryWorkspace") && js.includes("TRAJECTORY_FIXTURE"), "Trace trajectory workspace missing");
 assert(js.includes('id="lcPlay"') && js.includes('id="lcTrans"') && js.includes('id="lcCanvas"'), "Lifecycle Play walk and machine missing");
 assert(js.includes("function flow_lifecycle") || js.includes("function lifecycleOf"), "Lifecycle must read the derived review machine");
 assert(js.includes('from: "broken"') && js.includes('to: "walking"'), "Lifecycle recover must be a real broken → walking transition");
@@ -266,6 +279,7 @@ assert(harness.includes("delta-snap.json") && harness.includes("__graphideDelta"
 assert(harness.includes("sequence-snap.json") && harness.includes("__graphideSequence"), "sequence fixture snap loader missing");
 assert(harness.includes("dataflow-snap.json") && harness.includes("__graphideDataflow"), "dataflow fixture snap loader missing");
 assert(harness.includes("lifecycle-snap.json") && harness.includes("__graphideLifecycle"), "lifecycle fixture snap loader missing");
+assert(harness.includes("passport-fixture.json") && harness.includes("__graphidePassport"), "passport fixture loader missing");
 assert(harness.includes("python-snap.json") && harness.includes("__graphidePython"), "python fixture snap loader missing");
 assert(harness.includes("js-snap.json") && harness.includes("__graphideJs"), "javascript fixture snap loader missing");
 assert(harness.includes("ts-snap.json") && harness.includes("__graphideTs"), "typescript fixture snap loader missing");
@@ -302,6 +316,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/search.md")), "search feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ask.md")), "ask feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md")), "keys feature map missing");
+const keysMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/keys.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/path-walk.md")), "path-walk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/appearance.md")), "appearance feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome.md")), "apple-chrome feature map missing");
@@ -319,6 +334,12 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/flow-tabs.md")), "flow-tabs feature map missing");
 const featReadme = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/README.md"), "utf8");
 assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "feature README must list zoom.md");
+assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
+const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
+assert(
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#443"),
+  "root README must document ADE Phase 1 landed history #371…#443"
+);
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
 assert(featReadme.includes("map-offview.md") && featReadme.includes("map-offview.png"), "feature README must list map-offview.md");
@@ -439,6 +460,10 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
+const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
+const mapMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map.md"), "utf8");
+const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
+const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
@@ -497,6 +522,648 @@ assert(driver.includes("sequence.png") && driver.includes("SEQUENCE_HARNESS") &&
 assert(driver.includes("dataflow.png") && driver.includes("DATAFLOW_HARNESS") && driver.includes("data-df-role"), "verify driver must drive Data-flow on the demo fixture");
 assert(driver.includes("F6b") && driver.includes("#dfCanvas .react-flow__node"), "verify driver must prove Data-flow XYFlow");
 assert(driver.includes("lifecycle.png") && driver.includes("LIFECYCLE_HARNESS") && driver.includes("data-lc-type"), "verify driver must drive Lifecycle on the demo fixture");
+assert(driver.includes("passport.png") && driver.includes("data-passport-action"), "verify driver must drive Plan Passport fixture");
+assert(driver.includes("PF1") && driver.includes("PF5") && driver.includes("passport-fixtures.png") && driver.includes("data-passport-layer"), "verify driver must prove richer Passport fixtures PF1–PF5");
+assert(js.includes("renderPassportImpactItem") && js.includes("data-passport-mitigation") && js.includes("data-impact-row"), "Passport richer fixture row render missing");
+assert(passportMap.includes("data-passport-layer") && passportMap.includes("PF1") && passportMap.includes("passport-fixtures.png"), "passport feature map must name richer fixture hooks / PF1 / passport-fixtures.png");
+assert(driver.includes("GS1") && driver.includes("GS3") && driver.includes("passport-gate-signoff.png") && driver.includes("passport-gate-summary"), "verify driver must prove Passport gate/sign GS1–GS3");
+assert(css.includes("passport-gate-summary") && css.includes("passport-sign-actions") && css.includes("position: sticky") && css.includes("--passport-state"), "Passport gate/sign sticky Decision Rail CSS missing");
+assert(js.includes("passport-gate-summary") && js.includes("passport-sign-actions"), "Passport gate/sign summary/actions markup missing");
+assert(passportMap.includes("GS1") && passportMap.includes("passport-gate-signoff.png") && passportMap.includes("Sticky Decision Rail"), "passport feature map must name GS1 / sticky rail / screenshot");
+assert(driver.includes("IR1") && driver.includes("IR3") && driver.includes("passport-impact-rows.png") && driver.includes("data-impact-expanded"), "verify driver must prove Passport impact-row chrome IR1–IR3");
+assert(css.includes("passport-impact-head") && css.includes("data-impact-expanded") && css.includes("passport-impact-row--static"), "Passport impact-row hierarchy/expand CSS missing");
+assert(js.includes("bindPassportImpactRows") && js.includes("togglePassportImpactRow") && js.includes("data-impact-expanded") && js.includes("passport-impact-head"), "Passport impact-row expand bind/markup missing");
+assert(passportMap.includes("IR1") && passportMap.includes("passport-impact-rows.png") && passportMap.includes("data-impact-expanded"), "passport feature map must name IR1 / expand hooks / screenshot");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md")), "trace feature map missing");
+const traceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace.md"), "utf8");
+assert(
+  traceMap.includes("## Sub-features") &&
+    traceMap.includes("## How to get to it (user POV)") &&
+    traceMap.includes("## Driving it with the harness") &&
+    traceMap.includes("## Gotchas"),
+  "trace feature map must use the four headings"
+);
+assert(driver.includes("TF1") && driver.includes("TF5") && driver.includes("trajectory-fixtures.png") && driver.includes("data-phase"), "verify driver must prove richer Trace fixtures TF1–TF5");
+assert(js.includes("trajNodeDeps") && js.includes("data-traj-dep") && js.includes("data-artifact-diff"), "Trace richer fixture inspector render missing");
+assert(traceMap.includes("data-phase") && traceMap.includes("TF1") && traceMap.includes("trajectory-fixtures.png"), "trace feature map must name richer fixture hooks / TF1 / trajectory-fixtures.png");
+assert(driver.includes("PH1") && driver.includes("PH3") && driver.includes("trajectory-pin-hover.png") && driver.includes("trajPinTip"), "verify driver must prove Trace pin-hover tip PH1–PH3");
+assert(driver.includes("PTC1") && driver.includes("PTC3") && driver.includes("trajectory-pin-tip-chrome.png") && driver.includes("traj-pin-tip-chip-add"), "verify driver must prove pin-tip chrome PTC1–PTC3");
+assert(js.includes("showTrajPinTip") && js.includes("hideTrajPinTip") && js.includes("data-traj-pin-tip") && js.includes("data-tip-ready"), "Trace pin-hover tip render/bind missing");
+assert(js.includes("traj-pin-tip-chip-add") && js.includes("data-tip-art-base") && js.includes("data-tip-place"), "Trace pin-tip chrome chips/path/place missing");
+assert(css.includes("#trajPinTip") && css.includes("traj-pin-tip-counts") && css.includes("traj-pin-tip-chip-add") && css.includes("traj-pin-tip-art-base"), "Trace pin-tip chrome CSS missing");
+assert(traceMap.includes("trajPinTip") && traceMap.includes("PH1") && traceMap.includes("trajectory-pin-hover.png"), "trace feature map must name pin-hover tip / PH1 / trajectory-pin-hover.png");
+assert(traceMap.includes("PTC1") && traceMap.includes("traj-pin-tip-chip") && traceMap.includes("trajectory-pin-tip-chrome.png"), "trace feature map must name pin-tip chrome PTC / chips / proof");
+assert(driver.includes("EL1") && driver.includes("EL3") && driver.includes("trajectory-edge-legend.png") && driver.includes("trajEdgeLegend"), "verify driver must prove Trace edge-legend EL1–EL3");
+assert(css.includes("traj-edge-legend") && css.includes("traj-legend-chip") && css.includes("kind-fork") && css.includes("stroke-dasharray: 5 4"), "Trace edge-legend CSS missing");
+assert(js.includes("trajEdgeLegend") && js.includes("traj-legend-chip") && js.includes("traj-edge-legend"), "Trace edge-legend markup missing");
+assert(traceMap.includes("EL1") && traceMap.includes("trajEdgeLegend") && traceMap.includes("trajectory-edge-legend.png"), "trace feature map must name edge-legend EL / trajEdgeLegend / proof");
+assert(driver.includes("FLD1") && driver.includes("FLD3") && driver.includes("trajectory-legend-focus-dim.png"), "verify driver must prove Trace legend focus-dim FLD1–FLD3");
+assert(css.includes("traj-legend-chip.on-path") || css.includes(".traj-legend-chip.on-path") || css.includes("has-focus .traj-legend-chip.on-path"), "Trace legend focus-dim CSS missing on-path chip");
+assert(css.includes("traj-legend-chip.dim") || css.includes(".traj-legend-chip.dim") || css.includes("has-focus .traj-legend-chip.dim"), "Trace legend focus-dim CSS missing dim chip");
+assert(js.includes("onPathKinds") && js.includes("data-dim") && js.includes("traj-legend-chip"), "Trace legend focus-dim markup missing onPathKinds/data-dim");
+assert(traceMap.includes("FLD1") && traceMap.includes("focus-dim") && traceMap.includes("trajectory-legend-focus-dim.png"), "trace feature map must name legend focus-dim FLD / proof");
+assert(driver.includes("KS1") && driver.includes("KS3") && driver.includes("trajectory-keyboard-step.png"), "verify driver must prove Trace keyboard node-step KS1–KS3");
+assert(js.includes('e.key === "ArrowRight" || e.key === "j" || e.key === "J"') && js.includes("stepTrajectory"), "Trace keyboard step ArrowRight/j → stepTrajectory missing");
+assert(js.includes('e.key === "ArrowLeft" || e.key === "k" || e.key === "K"') && js.includes('explorerWs === "trace"'), "Trace keyboard step ArrowLeft/k under explorerWs===trace missing");
+assert(traceMap.includes("KS1") && traceMap.includes("keyboard") && traceMap.includes("trajectory-keyboard-step.png"), "trace feature map must name keyboard step KS / proof");
+assert(driver.includes("DF1") && driver.includes("DF3") && driver.includes("trajectory-dep-list-focus.png") && driver.includes("data-ade-dep-focus"), "verify driver must prove Trace dep-list focus DF1–DF3");
+assert(js.includes("focusTrajectoryDep") && js.includes("data-ade-dep-focus") && js.includes("data-traj-dep"), "Trace dep-list focusTrajectoryDep / data-ade-dep-focus missing");
+assert(css.includes("data-ade-dep-focus") && css.includes(".traj-dep:hover code"), "Trace dep-list focus CSS missing");
+assert(traceMap.includes("DF1") && traceMap.includes("dep-list") && traceMap.includes("trajectory-dep-list-focus.png"), "trace feature map must name dep-list focus DF / proof");
+assert(driver.includes("CX1") && driver.includes("CX3") && driver.includes("passport-risk-traj-map.png") && driver.includes("data-ade-contract-traj") && driver.includes("data-ade-risk-traj"), "verify driver must prove Passport contract/risk traj map CX1–CX3");
+assert(js.includes("data-ade-contract-traj") && js.includes("data-ade-risk-traj") && js.includes("resolvePassportTrajId"), "Passport contract/risk traj mapping attrs missing");
+assert(passportMap.includes("CX1") && passportMap.includes("contract/risk") && passportMap.includes("passport-risk-traj-map.png") && passportMap.includes("data-ade-contract-traj"), "passport feature map must name contract/risk traj map CX / proof");
+assert(driver.includes("TM1") && driver.includes("TM3") && driver.includes("passport-test-strategy-traj-map.png") && driver.includes("data-ade-test-traj"), "verify driver must prove Passport test-strategy traj map TM1–TM3");
+assert(js.includes("data-ade-test-traj") && js.includes("resolvePassportTrajId"), "Passport test-strategy traj mapping attrs missing");
+assert(passportMap.includes("TM1") && passportMap.includes("test-strategy") && passportMap.includes("passport-test-strategy-traj-map.png") && passportMap.includes("data-ade-test-traj"), "passport feature map must name test-strategy traj map TM / proof");
+
+assert(driver.includes("HA1") && driver.includes("HA3") && driver.includes("trajectory-hop-affordance.png") && driver.includes("data-ade-hop-next"), "verify driver must prove Trace hop-affordance HA1–HA3");
+assert(js.includes("trajOutgoingIds") && js.includes("hopTrajectoryNext") && js.includes("data-ade-hop-next") && js.includes("data-traj-next"), "Trace hop-affordance trajOutgoingIds / hopTrajectoryNext missing");
+assert(css.includes("traj-hop-next") && css.includes("data-ade-hop-next") && css.includes("traj-next-list"), "Trace hop-affordance CSS missing");
+assert(traceMap.includes("HA1") && traceMap.includes("hop-affordance") && traceMap.includes("trajectory-hop-affordance.png") && traceMap.includes("data-ade-hop-next"), "trace feature map must name hop-affordance HA / proof");
+assert(driver.includes("PR1") && driver.includes("PR3") && driver.includes("passport-residual-chrome.png") && driver.includes("data-passport-residual"), "verify driver must prove Passport residual chrome PR1–PR3");
+assert(js.includes("renderPassportResidual") && js.includes("data-passport-residual") && js.includes("data-residual-count") && js.includes("data-residual-state"), "Passport residual chrome render/markup missing");
+assert(css.includes("passport-residual") && css.includes("passport-residual-badge") && css.includes('data-residual-state="approved"'), "Passport residual chrome CSS missing");
+assert(passportMap.includes("PR1") && passportMap.includes("residual") && passportMap.includes("passport-residual-chrome.png") && passportMap.includes("data-passport-residual"), "passport feature map must name residual chrome PR / proof");
+assert(driver.includes("TP1") && driver.includes("TP3") && driver.includes("trajectory-pin-residual.png") && driver.includes("data-tip-residual"), "verify driver must prove Trace pin residual TP1–TP3");
+assert(js.includes("data-tip-residual") && js.includes("data-residual-hops") && js.includes("traj-pin-tip-residual"), "Trace pin residual tip markup missing");
+assert(css.includes("traj-pin-tip-residual") && css.includes("traj-pin-tip-residual-badge") && css.includes('data-residual-status="running"'), "Trace pin residual CSS missing");
+assert(traceMap.includes("TP1") && traceMap.includes("pin residual") && traceMap.includes("trajectory-pin-residual.png") && traceMap.includes("data-tip-residual"), "trace feature map must name pin residual TP / proof");
+assert(driver.includes("HB1") && driver.includes("HB3") && driver.includes("passport-hop-residual-badge.png") && driver.includes("data-passport-hop-residual"), "verify driver must prove Passport hop residual badge HB1–HB3");
+assert(js.includes("data-passport-hop-residual") && js.includes("data-hop-residual-state") && js.includes("passport-hop-residual"), "Passport hop residual badge markup missing");
+assert(css.includes("passport-hop-residual") && css.includes("passport-hop-residual-badge") && css.includes('data-hop-residual-state="approved"'), "Passport hop residual badge CSS missing");
+assert(passportMap.includes("HB1") && passportMap.includes("hop residual") && passportMap.includes("passport-hop-residual-badge.png") && passportMap.includes("data-passport-hop-residual"), "passport feature map must name hop residual badge HB / proof");
+assert(driver.includes("AR1") && driver.includes("AR3") && driver.includes("passport-traj-adjacent-residual.png") && driver.includes("data-passport-adj-residual"), "verify driver must prove Passport traj-hop adjacent residual AR1–AR3");
+assert(js.includes("data-passport-adj-residual") && js.includes("passport-adj-residual") && js.includes("data-traj-adj-residual") && js.includes("passportResidualTrajIds"), "Passport traj-hop adjacent residual markup missing");
+assert(css.includes("passport-adj-residual") && css.includes("passport-adj-residual-cue") && css.includes("data-traj-adj-residual"), "Passport traj-hop adjacent residual CSS missing");
+assert(passportMap.includes("AR1") && passportMap.includes("adjacent residual") && passportMap.includes("passport-traj-adjacent-residual.png") && passportMap.includes("data-passport-adj-residual"), "passport feature map must name adjacent residual AR / proof");
+assert(driver.includes("AL1") && driver.includes("AL3") && driver.includes("trajectory-adj-residual-legend.png") && driver.includes("data-adj-residual"), "verify driver must prove Trace adj-residual legend AL1–AL3");
+assert(js.includes("adjResidualKinds") && js.includes("data-adj-residual") && js.includes("data-adj-residual-count") && js.includes("data-node-kind") && js.includes("adj-residual"), "Trace adj-residual legend markup missing");
+assert(css.includes("traj-legend-chip.adj-residual") || css.includes(".traj-legend-chip.adj-residual") || css.includes('[data-adj-residual="1"]'), "Trace adj-residual legend CSS missing");
+assert(traceMap.includes("AL1") && traceMap.includes("adj-residual") && traceMap.includes("trajectory-adj-residual-legend.png") && traceMap.includes("data-adj-residual"), "trace feature map must name adj-residual legend AL / proof");
+assert(driver.includes("FC1") && driver.includes("FC3") && driver.includes("passport-focus-residual-count.png") && driver.includes("data-focus-residual-count"), "verify driver must prove Passport focus residual count FC1–FC3");
+assert(js.includes("data-residual-scope") && js.includes("data-residual-focus") && js.includes("data-focus-residual-count") && js.includes("Focus path"), "Passport focus residual count markup missing");
+assert(css.includes('data-residual-scope="focus"') || css.includes("[data-residual-scope=\"focus\"]") || css.includes('[data-residual-scope="focus"]'), "Passport focus residual count CSS missing");
+assert(passportMap.includes("FC1") && passportMap.includes("focus-scoped residual") && passportMap.includes("passport-focus-residual-count.png") && passportMap.includes("data-focus-residual-count"), "passport feature map must name focus residual count FC / proof");
+assert(driver.includes("LC1") && driver.includes("LC3") && driver.includes("trajectory-legend-focus-residual.png") && driver.includes("data-focus-residual"), "verify driver must prove Trace legend focus-residual LC1–LC3");
+assert(js.includes("focus-residual") && js.includes("data-focus-residual") && js.includes("focus residual") && js.includes("traj-legend-focus-residual-badge"), "Trace legend focus-residual markup missing");
+assert(css.includes("traj-legend-chip.focus-residual") || css.includes(".traj-legend-chip.focus-residual") || css.includes('[data-focus-residual="1"]'), "Trace legend focus-residual CSS missing");
+assert(traceMap.includes("LC1") && traceMap.includes("focus-residual") && traceMap.includes("trajectory-legend-focus-residual.png") && traceMap.includes("data-focus-residual"), "trace feature map must name focus-residual legend LC / proof");
+assert(driver.includes("CF1") && driver.includes("CF3") && driver.includes("passport-clear-focus-cue.png") && driver.includes("data-passport-clear-focus"), "verify driver must prove Passport clear-focus cue CF1–CF3");
+assert(js.includes("data-passport-clear-focus") && js.includes("passport-clear-focus") && js.includes("clearTrajFocus") && js.includes("Clear focus"), "Passport clear-focus cue markup/helper missing");
+assert(css.includes("passport-clear-focus") || css.includes('[data-passport-clear-focus="1"]'), "Passport clear-focus cue CSS missing");
+assert(passportMap.includes("CF1") && passportMap.includes("clear-focus") && passportMap.includes("passport-clear-focus-cue.png") && passportMap.includes("data-passport-clear-focus"), "passport feature map must name clear-focus cue CF / proof");
+assert(driver.includes("RF1") && driver.includes("RF3") && driver.includes("trajectory-legend-residual-filter.png") && driver.includes("data-residual-filter-toggle"), "verify driver must prove Trace legend residual filter RF1–RF3");
+assert(js.includes("trajResidualFilter") && js.includes("data-residual-filter-toggle") && js.includes("data-residual-bearing") && js.includes("data-residual-filtered") && js.includes("residual-filter-toggle"), "Trace legend residual filter markup/state missing");
+assert(css.includes("residual-filter-toggle") || css.includes('[data-residual-filter-toggle="1"]') || css.includes("data-residual-filter"), "Trace legend residual filter CSS missing");
+assert(css.includes("residual-filtered") || css.includes('[data-residual-filtered="1"]'), "Trace residual-filtered node CSS missing");
+assert(traceMap.includes("RF1") && traceMap.includes("residual filter") && traceMap.includes("trajectory-legend-residual-filter.png") && traceMap.includes("data-residual-filter-toggle"), "trace feature map must name residual filter RF / proof");
+assert(driver.includes("RK1") && driver.includes("RK3") && driver.includes("trajectory-residual-filter-key.png") && driver.includes("data-residual-filter"), "verify driver must prove Trace residual-filter key RK1–RK3");
+assert(js.includes("toggleTrajResidualFilter") && js.includes('explorerWs === "trace"') && /explorerWs === "trace"[\s\S]*?key === "r"[\s\S]*?toggleTrajResidualFilter/.test(js), "Trace residual-filter R key binding/helper missing");
+assert(traceMap.includes("RK1") && traceMap.includes("residual-filter key") && traceMap.includes("trajectory-residual-filter-key.png") && traceMap.includes("toggleTrajResidualFilter"), "trace feature map must name residual-filter key RK / proof");
+assert(driver.includes("PM1") && driver.includes("PM3") && driver.includes("passport-residual-filter-mirror.png") && driver.includes("data-passport-residual-filter-toggle"), "verify driver must prove Passport residual-filter mirror PM1–PM3");
+assert(js.includes("data-passport-residual-filter-toggle") && js.includes("passport-residual-filter-toggle") && js.includes('explorerWs === "passport"') && /explorerWs === "trace" \|\| explorerWs === "passport"/.test(js) && js.includes("toggleTrajResidualFilter"), "Passport residual-filter toggle / shared R key missing");
+assert(css.includes("passport-residual-filter-toggle") || css.includes('[data-passport-residual-filter-toggle="1"]'), "Passport residual-filter toggle CSS missing");
+assert(css.includes(".passport-gate-path.residual-filtered") || css.includes('data-residual-filtered'), "Passport residual-filtered gate path CSS missing");
+assert(passportMap.includes("PM1") && passportMap.includes("residual-filter mirror") && passportMap.includes("passport-residual-filter-mirror.png") && passportMap.includes("data-passport-residual-filter-toggle"), "passport feature map must name residual-filter mirror PM / proof");
+assert(driver.includes("WL1") && driver.includes("WL3") && driver.includes("residual-filter-ws-leave.png") && driver.includes("clear-on-ws-leave"), "verify driver must prove residual-filter clear-on-ws-leave WL1–WL3");
+assert(js.includes("ADE_RESIDUAL_WS") && js.includes("trajResidualFilter = false") && /ADE_RESIDUAL_WS\[prevWs\]/.test(js) && /!ADE_RESIDUAL_WS\[name\]/.test(js), "residual-filter clear-on-ws-leave setWorkspace guard missing");
+assert(traceMap.includes("WL1") && traceMap.includes("clear-on-ws-leave") && traceMap.includes("residual-filter-ws-leave.png"), "trace feature map must name residual-filter clear-on-ws-leave WL / proof");
+assert(passportMap.includes("WL1") && passportMap.includes("clear-on-ws-leave") && passportMap.includes("residual-filter-ws-leave.png"), "passport feature map must name residual-filter clear-on-ws-leave WL / proof");
+assert(driver.includes("FE1") && driver.includes("FE3") && driver.includes("residual-filter-empty.png") && driver.includes("data-residual-filter-clear"), "verify driver must prove residual-filter empty chrome FE1–FE3");
+assert(js.includes("renderResidualFilterEmptyChrome") && js.includes("clearTrajResidualFilter") && js.includes("data-residual-filter-clear") && js.includes("data-traj-residual-filter-empty") && js.includes("data-passport-residual-filter-empty"), "residual-filter empty chrome markup/helpers missing");
+assert(css.includes("residual-filter-empty") && css.includes("residual-filter-clear") && (css.includes("data-residual-filter-empty") || css.includes('data-residual-filter-empty="1"')), "residual-filter empty chrome CSS missing");
+assert(traceMap.includes("FE1") && traceMap.includes("residual-filter empty") && traceMap.includes("residual-filter-empty.png") && traceMap.includes("data-traj-residual-filter-empty"), "trace feature map must name residual-filter empty FE / proof");
+assert(passportMap.includes("FE1") && passportMap.includes("residual-filter empty") && passportMap.includes("residual-filter-empty.png") && passportMap.includes("data-passport-residual-filter-empty"), "passport feature map must name residual-filter empty FE / proof");
+assert(driver.includes("CC1") && driver.includes("CC3") && driver.includes("trajectory-legend-clear-filter.png") && driver.includes("data-legend-clear-filter"), "verify driver must prove Trace legend clear-filter cue CC1–CC3");
+assert(js.includes("data-legend-clear-filter") && js.includes("legend-clear-filter") && js.includes("clearTrajResidualFilter") && /legendClearFilterCue|data-legend-clear-filter/.test(js), "Trace legend clear-filter cue markup/helpers missing");
+assert(css.includes("legend-clear-filter") && (css.includes("data-legend-clear-filter") || css.includes('data-legend-clear-filter="1"')), "Trace legend clear-filter cue CSS missing");
+assert(traceMap.includes("CC1") && traceMap.includes("clear-filter cue") && traceMap.includes("trajectory-legend-clear-filter.png") && traceMap.includes("data-legend-clear-filter"), "trace feature map must name legend clear-filter cue CC / proof");
+assert(driver.includes("PCF1") && driver.includes("PCF3") && driver.includes("passport-sticky-clear-filter.png") && driver.includes("data-passport-clear-filter"), "verify driver must prove Passport sticky clear-filter cue PCF1–PCF3");
+assert(js.includes("data-passport-clear-filter") && js.includes("passport-sticky-clear-filter") && js.includes("clearTrajResidualFilter") && /stickyClearFilterCue|data-passport-clear-filter/.test(js), "Passport sticky clear-filter cue markup/helpers missing");
+assert(css.includes("passport-sticky-clear-filter") && (css.includes("data-passport-clear-filter") || css.includes('data-passport-clear-filter="1"')), "Passport sticky clear-filter cue CSS missing");
+assert(passportMap.includes("PCF1") && passportMap.includes("clear-filter cue") && passportMap.includes("passport-sticky-clear-filter.png") && passportMap.includes("data-passport-clear-filter"), "passport feature map must name sticky clear-filter cue PCF / proof");
+assert(driver.includes("RFC1") && driver.includes("RFC3") && driver.includes("trajectory-legend-residual-filter-count.png") && driver.includes("passport-residual-filter-count.png") && driver.includes("data-filter-residual-count"), "verify driver must prove residual-filter count RFC1–RFC3");
+assert(js.includes("residual-filter-count") && js.includes("data-residual-filter-count") && js.includes("data-filter-residual-count") && js.includes("passport-residual-filter-count") && /filter ·/.test(js), "residual-filter count chip markup missing");
+assert(css.includes("residual-filter-count") && css.includes("passport-residual-filter-count") && (css.includes("data-residual-filter-count") || css.includes('data-residual-filter-count="1"')), "residual-filter count CSS missing");
+assert(traceMap.includes("RFC1") && traceMap.includes("residual-filter count") && traceMap.includes("trajectory-legend-residual-filter-count.png") && traceMap.includes("data-filter-residual-count"), "trace feature map must name residual-filter count RFC / proof");
+assert(passportMap.includes("RFC1") && passportMap.includes("residual-filter count") && passportMap.includes("passport-residual-filter-count.png") && passportMap.includes("data-filter-residual-count"), "passport feature map must name residual-filter count RFC / proof");
+assert(driver.includes("KH1") && driver.includes("KH3") && driver.includes("keys-residual-filter.png") && driver.includes("data-keys-residual-hint"), "verify driver must prove Keys residual-filter hint KH1–KH3");
+assert(js.includes("syncKeysRRow") && js.includes("data-keys-row") && js.includes("data-keys-r-binding") && js.includes("data-keys-residual-hint") && js.includes("data-keys-r-binding-text"), "Keys residual-filter hint syncKeysRRow / data attrs missing");
+assert(chrome.includes('data-keys-row="r"') && chrome.includes("data-keys-r-binding") && chrome.includes("data-keys-residual-hint") && chrome.includes("data-keys-r-binding-text"), "KeysPane R row residual-hint hooks missing from chrome");
+assert(keysMap.includes("KH1") && keysMap.includes("residual-filter hint") && keysMap.includes("keys-residual-filter.png") && keysMap.includes("data-keys-residual-hint") && keysMap.includes("syncKeysRRow"), "keys feature map must name residual-filter hint KH / proof");
+assert(driver.includes("KP1") && driver.includes("KP3") && driver.includes("keys-residual-pressed.png") && driver.includes("data-keys-r-pressed") && driver.includes("Residuals on"), "verify driver must prove Keys R pressed-state + residual toast KP1–KP3");
+assert(js.includes("data-keys-r-pressed") && js.includes("Residuals on") && js.includes("Residuals off") && /function toggleTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function clearTrajResidualFilter\([\s\S]*?flashToast/.test(js) && /function syncKeysRRow\([\s\S]*?data-keys-r-pressed/.test(js), "Keys R pressed + residual toast hooks missing from desk");
+assert(chrome.includes("data-keys-r-pressed") && chrome.includes('aria-pressed="false"'), "KeysPane R row pressed hooks missing from chrome");
+assert(keysMap.includes("KP1") && keysMap.includes("pressed-state") && keysMap.includes("keys-residual-pressed.png") && keysMap.includes("Residuals on") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Keys R pressed + toast KP / proof");
+assert(driver.includes("KA1") && driver.includes("KA3") && driver.includes("keys-ade-section.png") && driver.includes("data-keys-section") && driver.includes("data-keys-ws"), "verify driver must prove Keys ADE section header KA1–KA3");
+assert(js.includes("syncKeysAdeSection") && js.includes("keysAdeSection") && js.includes("data-keys-section") && js.includes("data-keys-ws") && /function syncKeysRRow\([\s\S]*?syncKeysAdeSection/.test(js), "Keys ADE section syncKeysAdeSection / data attrs missing");
+assert(chrome.includes('id="keysAdeSection"') && chrome.includes("keys-section") && chrome.includes('data-keys-section="ade"') && chrome.includes("data-keys-section-title"), "KeysPane ADE section header hooks missing from chrome");
+assert(css.includes("keys-section") && (css.includes("data-keys-section") || css.includes('data-keys-section="ade"')), "Keys ADE section CSS missing");
+assert(keysMap.includes("KA1") && keysMap.includes("section header") && keysMap.includes("keys-ade-section.png") && keysMap.includes("data-keys-section") && keysMap.includes("syncKeysAdeSection"), "keys feature map must name ADE section header KA / proof");
+assert(driver.includes("ALR1") && driver.includes("ALR3") && driver.includes("residual-filter-aria-live.png") && driver.includes("data-residual-filter-live") && driver.includes("Residual filter on"), "verify driver must prove residual-filter aria-live ALR1–ALR3");
+assert(js.includes("syncResidualFilterLive") && js.includes("residualFilterLive") && js.includes("data-residual-filter-live") && /function toggleTrajResidualFilter\([\s\S]*?syncResidualFilterLive/.test(js) && /function clearTrajResidualFilter\([\s\S]*?syncResidualFilterLive/.test(js), "residual-filter aria-live syncResidualFilterLive hooks missing from desk");
+assert(chrome.includes('id="residualFilterLive"') && chrome.includes("data-residual-filter-live") && chrome.includes('aria-live="polite"') && chrome.includes("sr-only"), "App residualFilterLive aria-live hooks missing from chrome");
+assert(css.includes("sr-only") && (css.includes("residualFilterLive") || css.includes("#residualFilterLive")), "residual-filter aria-live sr-only CSS missing");
+assert(keysMap.includes("ALR1") && keysMap.includes("aria-live") && keysMap.includes("residual-filter-aria-live.png") && keysMap.includes("syncResidualFilterLive") && keysMap.includes("data-residual-filter-live"), "keys feature map must name residual-filter aria-live ALR / proof");
+assert(traceMap.includes("ALR1") && traceMap.includes("aria-live") && traceMap.includes("residual-filter-aria-live.png") && traceMap.includes("residualFilterLive"), "trace feature map must name residual-filter aria-live ALR / proof");
+assert(passportMap.includes("ALR1") && passportMap.includes("aria-live") && passportMap.includes("residual-filter-aria-live.png") && passportMap.includes("residualFilterLive"), "passport feature map must name residual-filter aria-live ALR / proof");
+assert(driver.includes("PKP1") && driver.includes("PKP3") && driver.includes("passport-keys-residual-pressed.png") && driver.includes("data-keys-r-pressed"), "verify driver must prove Passport Keys pressed-state PKP1–PKP3");
+assert(keysMap.includes("PKP1") && keysMap.includes("passport-keys-residual-pressed.png") && keysMap.includes("Passport Keys pressed") && keysMap.includes("data-keys-r-pressed"), "keys feature map must name Passport Keys pressed PKP / proof");
+assert(passportMap.includes("PKP1") && passportMap.includes("passport-keys-residual-pressed.png") && passportMap.includes("Keys pressed") && passportMap.includes("data-keys-r-pressed"), "passport feature map must name Passport Keys pressed PKP / proof");
+assert(driver.includes("LRP1") && driver.includes("LRP3") && driver.includes("residual-filter-live-paint-refresh.png") && driver.includes("syncResidualFilterLive"), "verify driver must prove residual-filter live paint refresh LRP1–LRP3");
+assert(js.includes("syncResidualFilterLive") && /function paintTrajectoryWorkspace\([\s\S]*?syncResidualFilterLive/.test(js) && /function paintPassportWorkspace\([\s\S]*?syncResidualFilterLive/.test(js), "residual-filter live paint refresh hooks missing from Trace/Passport paint");
+assert(keysMap.includes("LRP1") && keysMap.includes("live-paint-refresh") && keysMap.includes("residual-filter-live-paint-refresh.png") && keysMap.includes("paintTrajectoryWorkspace"), "keys feature map must name residual-filter live paint refresh LRP / proof");
+assert(traceMap.includes("LRP1") && traceMap.includes("live count paint refresh") && traceMap.includes("residual-filter-live-paint-refresh.png"), "trace feature map must name residual-filter live paint refresh LRP / proof");
+assert(passportMap.includes("LRP1") && passportMap.includes("live count paint refresh") && passportMap.includes("residual-filter-live-paint-refresh.png"), "passport feature map must name residual-filter live paint refresh LRP / proof");
+assert(driver.includes("CFV1") && driver.includes("CFV3") && driver.includes("residual-filter-clear-focus-visible.png") && driver.includes("data-residual-filter-clear") && driver.includes("focus-visible"), "verify driver must prove residual-filter clear focus-visible CFV1–CFV3");
+assert(css.includes("residual-filter-clear:focus-visible") && css.includes('data-residual-filter-clear="1"]:focus-visible') && css.includes("outline-offset: 1px"), "residual-filter-clear focus-visible CSS missing");
+assert(keysMap.includes("CFV1") && keysMap.includes("focus-visible") && keysMap.includes("residual-filter-clear-focus-visible.png"), "keys feature map must name residual-filter clear focus-visible CFV / proof");
+assert(traceMap.includes("CFV1") && traceMap.includes("focus-visible") && traceMap.includes("residual-filter-clear-focus-visible.png") && traceMap.includes("data-residual-filter-clear"), "trace feature map must name residual-filter clear focus-visible CFV / proof");
+assert(passportMap.includes("CFV1") && passportMap.includes("focus-visible") && passportMap.includes("residual-filter-clear-focus-visible.png") && passportMap.includes("data-residual-filter-clear"), "passport feature map must name residual-filter clear focus-visible CFV / proof");
+assert(driver.includes("TFV1") && driver.includes("TFV3") && driver.includes("residual-filter-toggle-focus-visible.png") && driver.includes("data-residual-filter-toggle") && driver.includes("data-passport-residual-filter-toggle") && driver.includes("focus-visible"), "verify driver must prove residual-filter toggle focus-visible TFV1–TFV3");
+assert(css.includes("residual-filter-toggle:focus-visible") && css.includes('data-residual-filter-toggle="1"]:focus-visible') && css.includes("passport-residual-filter-toggle:focus-visible") && css.includes('data-passport-residual-filter-toggle="1"]:focus-visible') && css.includes("outline-offset: 1px"), "residual-filter-toggle focus-visible CSS missing");
+assert(keysMap.includes("TFV1") && keysMap.includes("focus-visible") && keysMap.includes("residual-filter-toggle-focus-visible.png"), "keys feature map must name residual-filter toggle focus-visible TFV / proof");
+assert(traceMap.includes("TFV1") && traceMap.includes("focus-visible") && traceMap.includes("residual-filter-toggle-focus-visible.png") && traceMap.includes("data-residual-filter-toggle"), "trace feature map must name residual-filter toggle focus-visible TFV / proof");
+assert(passportMap.includes("TFV1") && passportMap.includes("focus-visible") && passportMap.includes("residual-filter-toggle-focus-visible.png") && passportMap.includes("data-passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle focus-visible TFV / proof");
+assert(driver.includes("ESC1") && driver.includes("ESC3") && driver.includes("residual-filter-escape-clear.png") && driver.includes("clearTrajResidualFilter"), "verify driver must prove residual-filter Escape clear ESC1–ESC3");
+assert(js.includes("clearTrajResidualFilter") && /Escape[\s\S]*?clearTrajResidualFilter/.test(js) && js.includes('explorerWs === "trace"') && js.includes('explorerWs === "passport"'), "residual-filter Escape clear hook missing from desk Escape stack");
+assert(keysMap.includes("ESC1") && keysMap.includes("Escape") && keysMap.includes("residual-filter-escape-clear.png") && keysMap.includes("clearTrajResidualFilter"), "keys feature map must name residual-filter Escape clear ESC / proof");
+assert(traceMap.includes("ESC1") && traceMap.includes("Escape") && traceMap.includes("residual-filter-escape-clear.png"), "trace feature map must name residual-filter Escape clear ESC / proof");
+assert(passportMap.includes("ESC1") && passportMap.includes("Escape") && passportMap.includes("residual-filter-escape-clear.png"), "passport feature map must name residual-filter Escape clear ESC / proof");
+
+assert(driver.includes("CCF1") && driver.includes("CCF3") && driver.includes("residual-filter-count-chip-focus.png") && driver.includes("data-residual-filter-count") && driver.includes("focus-visible") && driver.includes('role="status"'), "verify driver must prove residual-filter count-chip focus CCF1–CCF3");
+assert(js.includes('tabindex="0"') && js.includes('role="status"') && js.includes("residual-filter-count") && js.includes("passport-residual-filter-count") && /residual-filter-count[\s\S]*?tabindex="0"[\s\S]*?role="status"/.test(js), "residual-filter count-chip tabindex/role=status missing from desk");
+assert(css.includes('residual-filter-count[tabindex="0"]:focus-visible') && css.includes('passport-residual-filter-count[tabindex="0"]:focus-visible') && css.includes("outline-offset: 1px"), "residual-filter count-chip focus-visible CSS missing");
+assert(keysMap.includes("CCF1") && keysMap.includes("count-chip") && keysMap.includes("residual-filter-count-chip-focus.png") && keysMap.includes('role="status"'), "keys feature map must name residual-filter count-chip focus CCF / proof");
+assert(traceMap.includes("CCF1") && traceMap.includes("count chip keyboard") && traceMap.includes("residual-filter-count-chip-focus.png") && traceMap.includes('role="status"'), "trace feature map must name residual-filter count-chip focus CCF / proof");
+assert(passportMap.includes("CCF1") && passportMap.includes("count chip keyboard") && passportMap.includes("residual-filter-count-chip-focus.png") && passportMap.includes('role="status"'), "passport feature map must name residual-filter count-chip focus CCF / proof");
+
+assert(driver.includes("FHP1") && driver.includes("FHP3") && driver.includes("residual-filter-count-host-parity.png") && driver.includes("data-residual-filter") && driver.includes("boxShadow"), "verify driver must prove residual-filter count host parity FHP1–FHP3");
+assert(css.includes('#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip.residual-filter-count') && css.includes('.passport-residual[data-residual-filter="on"] .passport-residual-filter-count') && css.includes("box-shadow: inset 0 0 0 1px") && css.includes("28%"), "residual-filter count pressed/host parity CSS missing");
+assert(keysMap.includes("FHP1") && keysMap.includes("pressed/ON") && keysMap.includes("residual-filter-count-host-parity.png"), "keys feature map must name residual-filter count host parity FHP / proof");
+assert(traceMap.includes("FHP1") && traceMap.includes("pressed/ON visual parity") && traceMap.includes("residual-filter-count-host-parity.png"), "trace feature map must name residual-filter count host parity FHP / proof");
+assert(passportMap.includes("FHP1") && passportMap.includes("pressed/ON visual parity") && passportMap.includes("residual-filter-count-host-parity.png"), "passport feature map must name residual-filter count host parity FHP / proof");
+
+assert(driver.includes("HOP1") && driver.includes("HOP3") && driver.includes("residual-filter-host-on-cue-parity.png") && driver.includes("outlineStyle") && driver.includes("outlineOffset"), "verify driver must prove residual-filter host ON cue parity HOP1–HOP3");
+assert(css.includes('#trajEdgeLegend[data-residual-filter="on"],') && css.includes('.passport-residual[data-residual-filter="on"]') && css.includes("outline-offset: 2px") && !css.includes("box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual) 45%"), "residual-filter host ON cue shared outline CSS missing or Passport ON inset still present");
+assert(keysMap.includes("HOP1") && keysMap.includes("host ON cue") && keysMap.includes("residual-filter-host-on-cue-parity.png"), "keys feature map must name residual-filter host ON cue parity HOP / proof");
+assert(traceMap.includes("HOP1") && traceMap.includes("host ON cue cross-parity") && traceMap.includes("residual-filter-host-on-cue-parity.png"), "trace feature map must name residual-filter host ON cue parity HOP / proof");
+assert(passportMap.includes("HOP1") && passportMap.includes("host ON cue cross-parity") && passportMap.includes("residual-filter-host-on-cue-parity.png"), "passport feature map must name residual-filter host ON cue parity HOP / proof");
+
+assert(driver.includes("CAF1") && driver.includes("CAF3") && driver.includes("residual-filter-clear-active-flash.png") && driver.includes("legend-clear-filter") && driver.includes("passport-sticky-clear-filter") && driver.includes("residual-filter-clear"), "verify driver must prove clear-filter active flash CAF1–CAF3");
+assert(css.includes("legend-clear-filter:active") && css.includes("passport-sticky-clear-filter:active") && css.includes("residual-filter-clear:active") && css.includes("legend-clear-filter.press") && css.includes("box-shadow: inset 0 0 0 1px") && css.includes("78%"), "clear-filter :active/.press flash CSS missing");
+assert(keysMap.includes("CAF1") && keysMap.includes(":active") && keysMap.includes("residual-filter-clear-active-flash.png"), "keys feature map must name clear-filter active flash CAF / proof");
+assert(traceMap.includes("CAF1") && traceMap.includes(":active") && traceMap.includes("residual-filter-clear-active-flash.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-filter active flash CAF / proof");
+assert(passportMap.includes("CAF1") && passportMap.includes(":active") && passportMap.includes("residual-filter-clear-active-flash.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-filter active flash CAF / proof");
+
+assert(driver.includes("CCT1") && driver.includes("CCT3") && driver.includes("residual-filter-count-chip-toast-hint.png") && driver.includes("Residual filter stays ON") && driver.includes("data-residual-filter-count"), "verify driver must prove residual-filter count-chip toast hint CCT1–CCT3");
+assert(js.includes("hintResidualFilterCountChip") && js.includes("bindResidualFilterCountChipHints") && js.includes("RESIDUAL_FILTER_COUNT_CHIP_TOAST") && js.includes("Residual filter stays ON"), "count-chip non-clearing toast hint bind missing");
+assert(keysMap.includes("CCT1") && keysMap.includes("non-clearing toast") && keysMap.includes("residual-filter-count-chip-toast-hint.png"), "keys feature map must name residual-filter count-chip toast hint CCT / proof");
+assert(traceMap.includes("CCT1") && traceMap.includes("non-clearing toast") && traceMap.includes("residual-filter-count-chip-toast-hint.png"), "trace feature map must name residual-filter count-chip toast hint CCT / proof");
+assert(passportMap.includes("CCT1") && passportMap.includes("non-clearing toast") && passportMap.includes("residual-filter-count-chip-toast-hint.png"), "passport feature map must name residual-filter count-chip toast hint CCT / proof");
+
+assert(driver.includes("CLT1") && driver.includes("CLT3") && driver.includes("residual-filter-clear-confirm-toast.png") && driver.includes("Residual filter cleared") && driver.includes("clear-chip"), "verify driver must prove clear-chip confirm toast CLT1–CLT3");
+assert(js.includes("Residual filter cleared") && js.includes('"clear-chip"') && js.includes("Residuals off"), "clear-chip confirm toast path missing from desk bundle");
+assert(keysMap.includes("CLT1") && keysMap.includes("Residual filter cleared") && keysMap.includes("residual-filter-clear-confirm-toast.png"), "keys feature map must name clear-chip confirm toast CLT / proof");
+assert(traceMap.includes("CLT1") && traceMap.includes("Residual filter cleared") && traceMap.includes("residual-filter-clear-confirm-toast.png"), "trace feature map must name clear-chip confirm toast CLT / proof");
+assert(passportMap.includes("CLT1") && passportMap.includes("Residual filter cleared") && passportMap.includes("residual-filter-clear-confirm-toast.png"), "passport feature map must name clear-chip confirm toast CLT / proof");
+
+assert(driver.includes("TAF1") && driver.includes("TAF3") && driver.includes("residual-filter-toggle-active-flash.png") && driver.includes("residual-filter-toggle") && driver.includes("passport-residual-filter-toggle"), "verify driver must prove residual-filter toggle active flash TAF1–TAF3");
+assert(css.includes("residual-filter-toggle:active") && css.includes("passport-residual-filter-toggle:active") && css.includes(".press") && /residual-filter-toggle[\s\S]*?58%[\s\S]*?#000/.test(css), "main.css must theme residual-filter toggle :active/.press flash (darker warning mix)");
+assert(keysMap.includes("TAF1") && keysMap.includes(":active") && keysMap.includes("residual-filter-toggle-active-flash.png"), "keys feature map must name residual-filter toggle active flash TAF / proof");
+assert(traceMap.includes("TAF1") && traceMap.includes(":active") && traceMap.includes("residual-filter-toggle-active-flash.png") && traceMap.includes("residual-filter-toggle"), "trace feature map must name residual-filter toggle active flash TAF / proof");
+assert(passportMap.includes("TAF1") && passportMap.includes(":active") && passportMap.includes("residual-filter-toggle-active-flash.png") && passportMap.includes("passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle active flash TAF / proof");
+
+assert(driver.includes("CFR1") && driver.includes("CFR3") && driver.includes("residual-filter-clear-focus-return.png") && driver.includes("focusResidualToggleAfterClear") && driver.includes("data-residual-filter-toggle") && driver.includes("data-passport-residual-filter-toggle"), "verify driver must prove clear-chip focus return CFR1–CFR3");
+assert(js.includes("focusResidualToggleAfterClear") && js.includes('"clear-chip"') && js.includes("preventScroll"), "clear-chip focus return helper missing from desk bundle");
+assert(keysMap.includes("CFR1") && keysMap.includes("focus return") && keysMap.includes("residual-filter-clear-focus-return.png"), "keys feature map must name clear-chip focus return CFR / proof");
+assert(traceMap.includes("CFR1") && traceMap.includes("focus return") && traceMap.includes("residual-filter-clear-focus-return.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-chip focus return CFR / proof");
+assert(passportMap.includes("CFR1") && passportMap.includes("focus return") && passportMap.includes("residual-filter-clear-focus-return.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-chip focus return CFR / proof");
+
+
+assert(driver.includes("CNA1") && driver.includes("CNA3") && driver.includes("residual-filter-count-active-flash.png") && driver.includes("residual-filter-count") && driver.includes("passport-residual-filter-count"), "verify driver must prove residual-filter count-chip active flash CNA1–CNA3");
+assert(css.includes("residual-filter-count:active") && css.includes("passport-residual-filter-count:active") && css.includes(".press") && /residual-filter-count[\s\S]*?58%[\s\S]*?#000/.test(css), "main.css must theme residual-filter count-chip :active/.press flash (darker warning mix)");
+assert(keysMap.includes("CNA1") && keysMap.includes(":active") && keysMap.includes("residual-filter-count-active-flash.png"), "keys feature map must name residual-filter count-chip active flash CNA / proof");
+assert(traceMap.includes("CNA1") && traceMap.includes(":active") && traceMap.includes("residual-filter-count-active-flash.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip active flash CNA / proof");
+assert(passportMap.includes("CNA1") && passportMap.includes(":active") && passportMap.includes("residual-filter-count-active-flash.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip active flash CNA / proof");
+
+assert(driver.includes("KAF1") && driver.includes("KAF3") && driver.includes("keys-r-active-flash.png") && driver.includes("data-keys-row") && driver.includes("data-keys-r-binding"), "verify driver must prove Keys R active flash KAF1–KAF3");
+assert(css.includes('data-keys-row="r"][data-keys-r-binding="residual-filter"]:active') && css.includes('data-keys-residual-hint="1"].press') && /data-keys-row="r"[\s\S]*?58%[\s\S]*?#000/.test(css), "main.css must theme Keys R residual-bound :active/.press flash (darker warning mix)");
+assert(keysMap.includes("KAF1") && keysMap.includes(":active") && keysMap.includes("keys-r-active-flash.png"), "keys feature map must name Keys R active flash KAF / proof");
+assert(traceMap.includes("KAF1") && traceMap.includes(":active") && traceMap.includes("keys-r-active-flash.png") && traceMap.includes("data-keys-row"), "trace feature map must name Keys R active flash KAF / proof");
+assert(passportMap.includes("KAF1") && passportMap.includes(":active") && passportMap.includes("keys-r-active-flash.png") && passportMap.includes("data-keys-row"), "passport feature map must name Keys R active flash KAF / proof");
+
+assert(driver.includes("CHC1") && driver.includes("CHC3") && driver.includes("residual-filter-count-hover-cue.png") && driver.includes("residual-filter-count") && driver.includes("passport-residual-filter-count"), "verify driver must prove residual-filter count-chip hover cue CHC1–CHC3");
+assert(css.includes("residual-filter-count[tabindex=\"0\"]:hover") && css.includes("passport-residual-filter-count[tabindex=\"0\"]:hover") && css.includes("cursor: help") && /residual-filter-count\[tabindex="0"\]:hover[\s\S]*?38%/.test(css), "main.css must theme residual-filter count-chip :hover cue (warning lift + cursor:help)");
+assert(keysMap.includes("CHC1") && keysMap.includes(":hover") && keysMap.includes("residual-filter-count-hover-cue.png"), "keys feature map must name residual-filter count-chip hover cue CHC / proof");
+assert(traceMap.includes("CHC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-count-hover-cue.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip hover cue CHC / proof");
+assert(passportMap.includes("CHC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-count-hover-cue.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip hover cue CHC / proof");
+
+assert(driver.includes("THC1") && driver.includes("THC3") && driver.includes("residual-filter-toggle-hover-cue.png") && driver.includes("residual-filter-toggle") && driver.includes("passport-residual-filter-toggle"), "verify driver must prove residual-filter toggle hover cue THC1–THC3");
+assert(css.includes("residual-filter-toggle:hover") && css.includes("passport-residual-filter-toggle:hover") && /residual-filter-toggle:hover[\s\S]*?42%/.test(css) && /passport-residual-filter-toggle:hover[\s\S]*?cursor:\s*pointer/.test(css), "main.css must theme residual-filter toggle :hover cue (warning 42% lift + cursor:pointer)");
+assert(keysMap.includes("THC1") && keysMap.includes(":hover") && keysMap.includes("residual-filter-toggle-hover-cue.png"), "keys feature map must name residual-filter toggle hover cue THC / proof");
+assert(traceMap.includes("THC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-toggle-hover-cue.png") && traceMap.includes("residual-filter-toggle"), "trace feature map must name residual-filter toggle hover cue THC / proof");
+assert(passportMap.includes("THC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-toggle-hover-cue.png") && passportMap.includes("passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle hover cue THC / proof");
+
+assert(driver.includes("CLC1") && driver.includes("CLC3") && driver.includes("residual-filter-clear-hover-cue.png") && driver.includes("legend-clear-filter") && driver.includes("passport-sticky-clear-filter") && driver.includes("residual-filter-clear"), "verify driver must prove clear-filter hover cue CLC1–CLC3");
+assert(css.includes("legend-clear-filter:hover") && css.includes("passport-sticky-clear-filter:hover") && css.includes("residual-filter-clear:hover") && /legend-clear-filter:hover[\s\S]*?86%/.test(css) && /legend-clear-filter:hover[\s\S]*?cursor:\s*pointer/.test(css), "main.css must theme clear-filter :hover cue (blue 86% lift + cursor:pointer) for CC/PCF/FE");
+assert(keysMap.includes("CLC1") && keysMap.includes(":hover") && keysMap.includes("residual-filter-clear-hover-cue.png"), "keys feature map must name clear-filter hover cue CLC / proof");
+assert(traceMap.includes("CLC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-clear-hover-cue.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-filter hover cue CLC / proof");
+assert(passportMap.includes("CLC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-clear-hover-cue.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-filter hover cue CLC / proof");
+
+assert(driver.includes("EKH1") && driver.includes("EKH3") && driver.includes("residual-filter-empty-kbd-hints.png") && driver.includes("residual-filter-empty-keys") && driver.includes("data-residual-filter-empty-keys"), "verify driver must prove residual-filter empty keyboard hints EKH1–EKH3");
+assert(js.includes("residual-filter-empty-keys") && js.includes("data-residual-filter-empty-keys") && js.includes("<kbd>R</kbd>") && js.includes("<kbd>Esc</kbd>") && js.includes("renderResidualFilterEmptyChrome"), "desk.js residual empty must render desk-keys R/Esc hint strip (EKH)");
+assert(css.includes("residual-filter-empty-keys") && /residual-filter-empty-keys[\s\S]*?margin-top:\s*8px/.test(css), "main.css must scope residual-filter-empty-keys spacing (EKH)");
+assert(keysMap.includes("EKH1") && keysMap.includes("desk-keys") && keysMap.includes("residual-filter-empty-kbd-hints.png"), "keys feature map must name residual empty kbd hints EKH / proof");
+assert(traceMap.includes("EKH1") && traceMap.includes("desk-keys") && traceMap.includes("residual-filter-empty-kbd-hints.png") && traceMap.includes("data-residual-filter-empty-keys"), "trace feature map must name residual empty kbd hints EKH / proof");
+assert(passportMap.includes("EKH1") && passportMap.includes("desk-keys") && passportMap.includes("residual-filter-empty-kbd-hints.png") && passportMap.includes("data-residual-filter-empty-keys"), "passport feature map must name residual empty kbd hints EKH / proof");
+
+
+assert(driver.includes("TNI1") && driver.includes("TNI3") && driver.includes("trajectory-node-info.png") && driver.includes("data-traj-node-info"), "verify driver must prove Trace traj node info TNI1–TNI3");
+assert(js.includes("trajNodeInfoLabel") && js.includes("data-traj-node-info") && js.includes('data-traj-node-info="1"'), "desk.js traj nodes must set title/aria-label via trajNodeInfoLabel (TNI)");
+assert(traceMap.includes("TNI1") && traceMap.includes("data-traj-node-info") && traceMap.includes("trajectory-node-info.png") && traceMap.includes("aria-label"), "trace feature map must name traj node info TNI / proof");
+
+
+assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
+assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
+assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");
+assert(css.includes("traj-empty") && css.includes("traj-canvas--empty") && css.includes("traj-empty-action"), "Trace empty-state CSS missing");
+assert(traceMap.includes("ES1") && traceMap.includes("empty-state") && traceMap.includes("trajectory-empty-state.png"), "trace feature map must name empty-state ES / proof");
+assert(driver.includes("SC1") && driver.includes("SC3") && driver.includes("seal-status-chip.png") && driver.includes("adeSealChip"), "verify driver must prove seal status chip SC1–SC3");
+assert(js.includes("renderSealStatusChip") && js.includes("adeSealChip") && js.includes("data-seal-state") && js.includes("seedSealStatus"), "Seal status chip render/seed markup missing");
+assert(js.includes("__graphideSealStatus") && js.includes('get("seal")'), "Seal status ?seal= / window seed hook missing");
+assert(css.includes("ade-seal-chip") && css.includes('data-seal-state="sealed"') && css.includes('data-seal-state="unlock"'), "Seal status chip CSS missing");
+{
+  const sealMap = fs.readFileSync(
+    path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/immutable-harness.md"),
+    "utf8"
+  );
+  assert(
+    sealMap.includes("SC1") && sealMap.includes("adeSealChip") && sealMap.includes("seal-status-chip.png"),
+    "immutable-harness feature map must name SC1 / adeSealChip / proof"
+  );
+  assert(
+    driver.includes("SCH1") && driver.includes("SCH3") && driver.includes("seal-chip-hover-cue.png") && driver.includes("adeSealChip"),
+    "verify driver must prove seal-chip hover cue SCH1–SCH3"
+  );
+  assert(
+    css.includes(".ade-seal-chip:hover") && css.includes("cursor: help") && /ade-seal-chip:hover[\s\S]*?34%/.test(css),
+    "main.css must theme .ade-seal-chip:hover seal-tint lift (34%) + cursor:help"
+  );
+  assert(
+    js.includes("sealStatusInfoLabel") && js.includes("data-seal-info") && js.includes('aria-label="') &&
+      /renderSealStatusChip[\s\S]*?data-seal-info[\s\S]*?aria-label/.test(js),
+    "Seal chip must expose matching title/aria-label/data-seal-info via sealStatusInfoLabel"
+  );
+  assert(
+    sealMap.includes("SCH1") && sealMap.includes(":hover") && sealMap.includes("seal-chip-hover-cue.png") &&
+      sealMap.includes("data-seal-info"),
+    "immutable-harness feature map must name SCH1 / :hover / data-seal-info / proof"
+  );
+}
+
+assert(driver.includes("PE1") && driver.includes("PE3") && driver.includes("passport-empty-state.png"), "verify driver must prove Passport empty-state PE1–PE3");
+assert(js.includes("renderPassportEmptyBody") && js.includes("passport-empty") && js.includes("data-passport-empty-chrome") && js.includes("PASSPORT_EMPTY_FIXTURE"), "Passport empty-state render/markup missing");
+assert(js.includes("wantPassportEmpty") && js.includes("passportEmpty") && js.includes("hasPassportPlanRows"), "Passport empty-state ?passportEmpty=1 hook missing");
+assert(css.includes("passport-empty") && css.includes("passport-page--empty") && css.includes("passport-empty-action"), "Passport empty-state CSS missing");
+assert(passportMap.includes("PE1") && passportMap.includes("empty-state") && passportMap.includes("passport-empty-state.png"), "passport feature map must name empty-state PE / proof");
+assert(harness.includes("passportEmpty"), "harness ?passportEmpty=1 inject missing");
+
+assert(driver.includes("ZC1") && driver.includes("ZC3") && driver.includes("trajectory-zoom-chrome.png"), "verify driver must prove Trace zoom chrome ZC1–ZC3");
+assert(js.includes("trajZoomBy") && js.includes("trajZoomFit") && js.includes("renderTrajZoomBar") && js.includes("trajScaleLayer"), "Trace zoom chrome render/handlers missing");
+assert(js.includes("TRAJ_SCALE_STEP") && js.includes('data-traj-scale') && js.includes("traj-zoom-bar"), "Trace zoom scale state / markup missing");
+assert(js.includes('explorerWs === "trace"') && js.includes("trajZoomBy(TRAJ_SCALE_STEP)"), "Trace zoom key intercept before Map zoom missing");
+assert(css.includes("traj-zoom-bar") && css.includes("traj-scale-layer") && css.includes("traj-zoom-pct"), "Trace zoom chrome CSS missing");
+assert(traceMap.includes("ZC1") && traceMap.includes("zoom chrome") && traceMap.includes("trajectory-zoom-chrome.png"), "trace feature map must name zoom chrome ZC / proof");
+
+assert(driver.includes("ZFV1") && driver.includes("ZFV3") && driver.includes("trajectory-zoom-focus-visible.png") && driver.includes("trajZoomIn"), "verify driver must prove traj zoom-bar focus-visible ZFV1–ZFV3");
+assert(css.includes(".traj-zoom-btn:focus-visible") && /traj-zoom-btn:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-btn:focus-visible 1px ADE ring");
+assert(traceMap.includes("ZFV1") && traceMap.includes(":focus-visible") && traceMap.includes("trajectory-zoom-focus-visible.png"), "trace feature map must name ZFV1 / :focus-visible / proof");
+
+assert(driver.includes("ZPK1") && driver.includes("ZPK3") && driver.includes("trajectory-zoom-pct-keyboard.png") && driver.includes("trajZoomPct"), "verify driver must prove traj zoom pct keyboard ZPK1–ZPK3");
+assert(js.includes('role="slider"') && js.includes("aria-valuenow") && js.includes("aria-keyshortcuts") && js.includes("trajZoomPct") && js.includes("ArrowUp") && js.includes("Home"), "desk.js traj zoom pct must be keyboard slider (ZPK)");
+assert(css.includes(".traj-zoom-pct:focus-visible") && /traj-zoom-pct:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-pct:focus-visible 1px ADE ring");
+assert(traceMap.includes("ZPK1") && traceMap.includes("zoom percentage") && traceMap.includes("trajectory-zoom-pct-keyboard.png"), "trace feature map must name ZPK1 / zoom percentage keyboard / proof");
+
+assert(driver.includes("ZPH1") && driver.includes("ZPH3") && driver.includes("trajectory-zoom-pct-hover-cue.png") && driver.includes("trajZoomPct"), "verify driver must prove traj zoom pct hover cue ZPH1–ZPH3");
+assert(css.includes(".traj-zoom-pct:hover") && /traj-zoom-pct:hover[\s\S]*?18%/.test(css) && css.includes(".traj-zoom-btn:hover"), "main.css must theme .traj-zoom-pct:hover lift matching zoom-btn hover 18%");
+assert(traceMap.includes("ZPH1") && traceMap.includes(":hover") && traceMap.includes("trajectory-zoom-pct-hover-cue.png"), "trace feature map must name ZPH1 / :hover / proof");
+
+
+assert(driver.includes("ZAL1") && driver.includes("ZAL3") && driver.includes("trajectory-zoom-pct-aria-live.png") && driver.includes("trajZoomLive"), "verify driver must prove traj zoom pct aria-live ZAL1–ZAL3");
+assert(js.includes("announceTrajZoom") && js.includes("trajZoomLive") && js.includes("data-traj-zoom-live") && js.includes("Trajectory zoom"), "desk.js traj zoom pct aria-live announceTrajZoom / #trajZoomLive missing");
+assert(css.includes("traj-zoom-live") && css.includes("#trajZoomLive"), "main.css must theme #trajZoomLive / .traj-zoom-live");
+assert(traceMap.includes("ZAL1") && traceMap.includes("trajZoomLive") && traceMap.includes("trajectory-zoom-pct-aria-live.png"), "trace feature map must name ZAL1 / trajZoomLive / proof");
+
+assert(driver.includes("KZH1") && driver.includes("KZH3") && driver.includes("keys-zoom-pct-hint.png") && driver.includes("data-keys-traj-zoom-hint"), "verify driver must prove Keys Trace zoom pct hint KZH1–KZH3");
+assert(js.includes("syncKeysTrajZoomHint") && js.includes("data-keys-traj-zoom-hint") && js.includes('data-keys-row="traj-zoom"') && /function syncKeysRRow\([\s\S]*?syncKeysTrajZoomHint/.test(js), "desk.js Keys Trace zoom pct hint syncKeysTrajZoomHint missing");
+assert(chrome.includes('data-keys-row="traj-zoom"') && chrome.includes("data-keys-traj-zoom-hint") && chrome.includes("Trace zoom pct") && chrome.includes("Home"), "KeysPane Trace zoom pct hint row missing from chrome");
+assert(css.includes('data-keys-row="traj-zoom"') && css.includes("data-keys-traj-zoom-hint"), "main.css must theme Keys traj-zoom hint row");
+assert(keysMap.includes("KZH1") && keysMap.includes("zoom pct") && keysMap.includes("keys-zoom-pct-hint.png") && keysMap.includes("syncKeysTrajZoomHint"), "keys feature map must name KZH / zoom pct hint / proof");
+assert(traceMap.includes("KZH1") && traceMap.includes("keys-zoom-pct-hint.png") && traceMap.includes("traj-zoom"), "trace feature map must name KZH1 / keys-zoom-pct-hint proof");
+
+assert(driver.includes("PSS1") && driver.includes("PSS3") && driver.includes("passport-sticky-summary.png") && driver.includes("data-passport-summary"), "verify driver must prove Passport sticky plan summary PSS1–PSS3");
+assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-summary") && js.includes("data-passport-gate") && js.includes('data-passport-count="contracts"') && js.includes('data-passport-count="impact"') && js.includes("passportImpactRowCount"), "Passport sticky summary render/markup missing");
+assert(css.includes("passport-sticky-summary") && css.includes("passport-sticky-gate") && css.includes("passport-sticky-counts"), "Passport sticky summary CSS missing");
+assert(passportMap.includes("PSS1") && passportMap.includes("Sticky plan summary") && passportMap.includes("passport-sticky-summary.png") && passportMap.includes("data-passport-summary"), "passport feature map must name sticky plan summary PSS / proof");
+
+assert(driver.includes("SGR1") && driver.includes("SGR3") && driver.includes("passport-sticky-gate-live-refresh.png") && driver.includes("syncPassportStickyGate"), "verify driver must prove Passport sticky gate live-refresh SGR1–SGR3");
+assert(js.includes("syncPassportStickyGate") && /function setPassportGate\([\s\S]*?syncPassportStickyGate/.test(js) && js.includes("__graphideSetPassportGate") && js.includes("__graphideSyncPassportStickyGate"), "Passport sticky gate live-refresh syncPassportStickyGate hook missing from setPassportGate");
+assert(css.includes('.passport-sticky-gate[data-passport-gate="approved"]') && css.includes('.passport-sticky-gate[data-passport-gate="rejected"]') && css.includes('.passport-sticky-gate[data-passport-gate="pending"]'), "Passport sticky gate data-passport-gate state tint CSS missing");
+assert(passportMap.includes("SGR1") && passportMap.includes("live-refresh") && passportMap.includes("passport-sticky-gate-live-refresh.png") && passportMap.includes("syncPassportStickyGate"), "passport feature map must name sticky gate live-refresh SGR / proof");
+
+assert(driver.includes("PSE1") && driver.includes("PSE3") && driver.includes("passport-sticky-summary-empty.png") && driver.includes("data-passport-summary-empty"), "verify driver must prove Passport sticky summary empty/zero-count PSE1–PSE3");
+assert(js.includes("data-passport-summary-empty") && js.includes("passport-sticky-summary--zero") && js.includes("passport-sticky-zero-cue") && js.includes("No contracts, risks, tests, or impact yet"), "desk.js Passport sticky zero-count empty chrome missing");
+assert(css.includes("data-passport-summary-empty") && css.includes("passport-sticky-zero-cue") && css.includes("passport-sticky-summary--zero"), "main.css must theme Passport sticky zero-count empty chrome");
+assert(passportMap.includes("PSE1") && passportMap.includes("zero-count") && passportMap.includes("passport-sticky-summary-empty.png") && passportMap.includes("data-passport-summary-empty"), "passport feature map must name sticky zero-count PSE / proof");
+
+assert(driver.includes("SGH1") && driver.includes("SGH3") && driver.includes("passport-sticky-gate-hover-cue.png") && driver.includes("passport-sticky-gate"), "verify driver must prove Passport sticky gate hover cue SGH1–SGH3");
+assert(css.includes(".passport-sticky-gate[data-passport-gate]:hover") && css.includes("cursor: help") && /passport-sticky-gate\[data-passport-gate\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-sticky-gate[data-passport-gate]:hover state-tint lift (34%) + cursor:help");
+assert(passportMap.includes("SGH1") && passportMap.includes(":hover") && passportMap.includes("passport-sticky-gate-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name sticky gate hover SGH / proof");
+
+assert(driver.includes("PGC1") && driver.includes("PGC3") && driver.includes("passport-gate-chip-hover-cue.png") && driver.includes("passport-gate-chip"), "verify driver must prove Passport gate-chip hover cue PGC1–PGC3");
+assert(css.includes(".passport-gate-chip[data-gate-chip]:hover") && css.includes("cursor: help") && /passport-gate-chip\[data-gate-chip\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-gate-chip[data-gate-chip]:hover state-tint lift (34%) + cursor:help");
+assert(passportMap.includes("PGC1") && passportMap.includes(":hover") && passportMap.includes("passport-gate-chip-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name gate-chip hover PGC / proof");
+
+assert(driver.includes("TEH1") && driver.includes("TEH3") && driver.includes("trajectory-edge-tip.png") && driver.includes("trajEdgeTip"), "verify driver must prove traj-edge hover tip TEH1–TEH3");
+assert(js.includes("showTrajEdgeTip") && js.includes("hideTrajEdgeTip") && js.includes("trajEdgeTipEl") && js.includes('data-traj-edge-tip'), "desk.js traj-edge tip helpers missing");
+assert(css.includes("pointer-events: stroke") && css.includes("#trajEdgeTip") && /\.traj-edge\s*\{[\s\S]*?pointer-events:\s*stroke/.test(css) && css.includes("cursor: help"), "main.css must set .traj-edge pointer-events:stroke + #trajEdgeTip + cursor:help");
+assert(traceMap.includes("TEH1") && traceMap.includes("traj-edge") && traceMap.includes("trajectory-edge-tip.png") && traceMap.includes("#trajEdgeTip"), "trace feature map must name TEH / traj-edge tip / proof");
+
+assert(driver.includes("FTE1") && driver.includes("FTE3") && driver.includes("trajectory-edge-latency.png") && driver.includes("data-latency"), "verify driver must prove fixture edge latency FTE1–FTE3");
+assert(js.includes("latencyMs") && js.includes("data-tip-edge-latency") && js.includes("data-latency"), "desk/fixture must paint edge latencyMs into data-latency + tip chip");
+assert(css.includes(".traj-edge-tip-chip--latency"), "main.css must theme .traj-edge-tip-chip--latency");
+assert(traceMap.includes("FTE1") && traceMap.includes("latencyMs") && traceMap.includes("trajectory-edge-latency.png"), "trace feature map must name FTE / latencyMs / proof");
+
+assert(driver.includes("OMC1") && driver.includes("OMC3") && driver.includes("overview-mix-chart.png") && driver.includes("omc-bar"), "verify driver must prove Overview mix chart OMC1–OMC3");
+assert(js.includes("overviewMixFilter") && js.includes("mixChartHtml") && js.includes("applyOverviewMixPaint") && js.includes("bindOverviewMixChart"), "desk.js must own Overview mix filter helpers");
+assert(css.includes(".omc-chart") && css.includes(".omc-bar") && css.includes("omc-hit") && css.includes("omc-dim"), "main.css must theme Overview mix chart + omc-hit/omc-dim");
+assert(overviewMap.includes("OMC1") && overviewMap.includes("omc-chart") && overviewMap.includes("overview-mix-chart.png") && overviewMap.includes("peekSource"), "overview feature map must name OMC / omc-chart / proof / no peekSource");
+
+assert(driver.includes("CSC1") && driver.includes("CSC3") && driver.includes("overview-community-size.png") && driver.includes("csc-bar"), "verify driver must prove Overview community-size chart CSC1–CSC3");
+assert(js.includes("communitySizeChartHtml") && js.includes("applyOverviewCommunityPaint") && js.includes("overviewCommunityFilter") && js.includes('data-csc-bubble'), "Overview community-size chart missing in desk.js");
+assert(css.includes(".csc-chart") && css.includes(".csc-bar") && css.includes("csc-hit") && css.includes("csc-dim"), "main.css must theme Overview community-size chart + csc-hit/csc-dim");
+assert(overviewMap.includes("CSC1") && overviewMap.includes("csc-chart") && overviewMap.includes("overview-community-size.png") && overviewMap.includes("peekSource"), "overview feature map must name CSC / csc-chart / proof / no peekSource");
+
+
+assert(driver.includes("MBE1") && driver.includes("MBE3") && driver.includes("map-enter-behavior.png") && driver.includes("data-mbe-caption"), "verify driver must prove Map enter behavior captions MBE1–MBE3");
+assert(js.includes("enterBehaviorCaption") && js.includes("enterCanvasProps") && js.includes('data-mbe-caption') && js.includes("peek: false"), "desk.js must derive enterBehaviorCaption and graph-only enter browse");
+assert(/selectNode\(\w+,\s*\{\s*peek:\s*false\s*\}\)/.test(js) && js.includes("ADE MBE"), "enter browse must selectNode with peek:false (MBE)");
+assert(css.includes("data-mbe-caption") && css.includes("#enterCanvas .vnode .meta"), "main.css must theme Map enter behavior captions");
+assert(mapMap.includes("MBE1") && mapMap.includes("data-mbe-caption") && mapMap.includes("map-enter-behavior.png") && mapMap.includes("peekSource"), "map feature map must name MBE / data-mbe-caption / proof / no peekSource");
+
+assert(driver.includes("SBC1") && driver.includes("SBC3") && driver.includes("story-behavior-captions.png") && driver.includes("data-sbc-caption"), "verify driver must prove story behavior captions SBC1–SBC3");
+assert(js.includes("storyBehaviorCaption") && js.includes("primaryIncidentVerb") && js.includes("feat-chip-caption") && js.includes('data-sbc-caption="1"'), "desk.js must derive storyBehaviorCaption / primaryIncidentVerb and render feat-chip-caption");
+assert((() => {
+  const start = js.indexOf("function focusWalkStop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noSelectPeek = !/selectNode\s*\([^)]*peek\s*:\s*true/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noSelectPeek && setsSelection;
+})(), "focusWalkStop must stay graph-only (selectedNodeId; no peekSource)");
+assert(css.includes(".feat-chip-caption") && css.includes('data-sbc-caption'), "main.css must theme .feat-chip-caption / data-sbc-caption");
+assert(overviewMap.includes("SBC1") && overviewMap.includes("feat-chip-caption") && overviewMap.includes("story-behavior-captions.png") && overviewMap.includes("peekSource"), "overview feature map must name SBC / feat-chip-caption / proof / no peekSource");
+
+assert(driver.includes("RDF1") && driver.includes("RDF3") && driver.includes("dataflow-richer-lanes.png") && driver.includes("df-lane-head"), "verify driver must prove richer Data-flow lanes RDF1–RDF3");
+assert(js.includes("dfRoleFilter") && js.includes("toggleDfRoleFilter") && js.includes("dfNodeMeta") && js.includes("df-lane-head") && js.includes('data-rdf-meta="1"'), "desk.js must own dfRoleFilter / toggleDfRoleFilter / dfNodeMeta / lane heads");
+assert((() => {
+  const start = js.indexOf("function focusDfHop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noShowHop = !/showHop\s*\(/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noShowHop && setsSelection;
+})(), "focusDfHop must stay graph-only (selectedNodeId; no peekSource / showHop)");
+assert(css.includes(".df-lane-head") && css.includes(".df-lane-count") && css.includes("df-lane-dim"), "main.css must theme .df-lane-head / counts / dim");
+assert(dataflowMap.includes("RDF1") && dataflowMap.includes("df-lane-head") && dataflowMap.includes("dataflow-richer-lanes.png") && dataflowMap.includes("peekSource"), "dataflow feature map must name RDF / df-lane-head / proof / no peekSource");
+
+
+assert(driver.includes("SSR1") && driver.includes("SSR3") && driver.includes("sequence-story-richness.png") && driver.includes("data-ssr-caption"), "verify driver must prove Sequence story richness SSR1–SSR3");
+assert(js.includes("seqHopCaption") && js.includes("seqPartCaption") && js.includes("toggleSeqPartFocus") && js.includes('data-ssr-caption="1"') && js.includes("withSequenceCaptions"), "desk.js must own seqHopCaption / seqPartCaption / toggleSeqPartFocus / withSequenceCaptions");
+assert((() => {
+  const start = js.indexOf("function focusSeqHop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noShowHop = !/showHop\s*\(/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noShowHop && setsSelection;
+})(), "focusSeqHop must stay graph-only (selectedNodeId; no peekSource / showHop)");
+assert(css.includes(".seq-part-caption") && css.includes(".seq-hop-caption") && css.includes("ssr-hit") && css.includes("ssr-dim"), "main.css must theme Sequence SSR captions + ssr-hit/ssr-dim");
+assert(sequenceMap.includes("SSR1") && sequenceMap.includes("seq-part-caption") && sequenceMap.includes("sequence-story-richness.png") && sequenceMap.includes("peekSource"), "sequence feature map must name SSR / seq-part-caption / proof / no peekSource");
+
+
+
+
+
+
+
+
+
+
+
+
+// --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
+{
+  const immutableFs = require("fs");
+  const immutablePath = require("path");
+  const immutableRoot = immutablePath.resolve(__dirname, "..", "..");
+  const immutableLockRel = ".cursor/skills/verify-graphide/references/immutable-specs.lock";
+  const immutableLockPath = immutablePath.join(immutableRoot, immutableLockRel);
+  const immutableScriptPath = immutablePath.join(immutableRoot, "extension/scripts/check-immutable-specs.js");
+  const immutableMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/immutable-harness.md"
+  );
+
+  assert(immutableFs.existsSync(immutableScriptPath), "immutable checker missing");
+  assert(immutableFs.existsSync(immutableLockPath), "immutable lock missing");
+  assert(immutableFs.existsSync(immutableMapPath), "immutable-harness.md missing");
+
+  const immutablePkg = JSON.parse(
+    immutableFs.readFileSync(immutablePath.join(immutableRoot, "package.json"), "utf8")
+  );
+  const immutableVerify = String((immutablePkg.scripts && immutablePkg.scripts.verify) || "");
+
+  assert(
+    immutableVerify.includes("check-immutable-specs.js"),
+    "npm verify must call check-immutable-specs.js"
+  );
+  assert(
+    immutableVerify.indexOf("check-immutable-specs.js") < immutableVerify.indexOf("check-map.js"),
+    "immutable checker must run before check-map"
+  );
+  assert(immutableVerify.includes("check-map.js"), "npm verify must call check-map.js");
+  assert(
+    immutableVerify.indexOf("check-map.js") < immutableVerify.indexOf("verify-graphide.js"),
+    "check-map must run before verify-graphide"
+  );
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["verify:immutable"]) || "").includes(
+      "check-immutable-specs.js"
+    ),
+    "verify:immutable script missing"
+  );
+
+  const immutableLock = immutableFs.readFileSync(immutableLockPath, "utf8");
+  assert(/^#\s*seal-sha256:\s*[a-f0-9]{64}$/m.test(immutableLock), "immutable lock seal missing");
+
+  for (const rel of [
+    "package.json",
+    "extension/scripts/check-map.js",
+    "extension/scripts/check-immutable-specs.js",
+    "scripts/verify-graphide.js",
+    ".cursor/skills/verify-graphide/references/features/immutable-harness.md",
+  ]) {
+    assert(immutableLock.includes("  " + rel + "\n") || immutableLock.includes("  " + rel + "\r\n") || new RegExp("  " + rel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$", "m").test(immutableLock), "immutable lock missing " + rel);
+  }
+
+  const immutableMap = immutableFs.readFileSync(immutableMapPath, "utf8");
+  assert(
+    immutableMap.includes("## Sub-features") &&
+      immutableMap.includes("## How to get to it (user POV)") &&
+      immutableMap.includes("## Driving it with the harness") &&
+      immutableMap.includes("## Gotchas"),
+    "immutable-harness feature map must use the four headings"
+  );
+  assert(featReadme.includes("immutable-harness.md"), "feature README must list immutable-harness.md");
+  assert(driver.includes("I1") && driver.includes("check-immutable-specs") && driver.includes("Immutable specs"), "verify driver must prove immutable seal I1–I5");
+  assert(driver.includes("I6") && driver.includes("I7") && driver.includes("I8") && driver.includes("--gate-write"), "verify driver must prove fs-sandbox gate I6–I8");
+
+  const fsSandboxMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/fs-sandbox.md"
+  );
+  assert(immutableFs.existsSync(fsSandboxMapPath), "fs-sandbox.md missing");
+  const fsSandboxMap = immutableFs.readFileSync(fsSandboxMapPath, "utf8");
+  assert(
+    fsSandboxMap.includes("## Sub-features") &&
+      fsSandboxMap.includes("## How to get to it (user POV)") &&
+      fsSandboxMap.includes("## Driving it with the harness") &&
+      fsSandboxMap.includes("## Gotchas") &&
+      fsSandboxMap.includes("--gate-write") &&
+      fsSandboxMap.includes("extension/media"),
+    "fs-sandbox feature map must use the four headings and name --gate-write / media"
+  );
+  assert(featReadme.includes("fs-sandbox.md"), "feature README must list fs-sandbox.md");
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["fs-sandbox:gate"]) || "").includes("--gate-write"),
+    "fs-sandbox:gate script missing"
+  );
+  const checkerSrc = immutableFs.readFileSync(immutableScriptPath, "utf8");
+  assert(
+    checkerSrc.includes("classifyWrite") &&
+      checkerSrc.includes("--gate-write") &&
+      checkerSrc.includes("AGENT_WRITABLE_PREFIX"),
+    "immutable checker must export classifyWrite / --gate-write stub"
+  );
+
+  assert(driver.includes("I9") && driver.includes("I10") && driver.includes("I11") && driver.includes("agent-write-bus"), "verify driver must prove write-bus I9–I11");
+  const writeBusMapPath = immutablePath.join(
+    immutableRoot,
+    ".cursor/skills/verify-graphide/references/features/write-bus.md"
+  );
+  assert(immutableFs.existsSync(writeBusMapPath), "write-bus.md missing");
+  const writeBusMap = immutableFs.readFileSync(writeBusMapPath, "utf8");
+  assert(
+    writeBusMap.includes("## Sub-features") &&
+      writeBusMap.includes("## How to get to it (user POV)") &&
+      writeBusMap.includes("## Driving it with the harness") &&
+      writeBusMap.includes("## Gotchas") &&
+      writeBusMap.includes("proposeWrite") &&
+      writeBusMap.includes("--out"),
+    "write-bus feature map must use the four headings and name proposeWrite / --out"
+  );
+  assert(featReadme.includes("write-bus.md"), "feature README must list write-bus.md");
+  assert(
+    String((immutablePkg.scripts && immutablePkg.scripts["write-bus"]) || "").includes("agent-write-bus"),
+    "write-bus script missing"
+  );
+  const writeBusSrcPath = immutablePath.join(immutableRoot, "extension/scripts/agent-write-bus.js");
+  assert(immutableFs.existsSync(writeBusSrcPath), "agent-write-bus.js missing");
+  const writeBusSrc = immutableFs.readFileSync(writeBusSrcPath, "utf8");
+  assert(
+    writeBusSrc.includes("proposeWrite") &&
+      writeBusSrc.includes("classifyWrite") &&
+      writeBusSrc.includes("--out") &&
+      writeBusSrc.includes("--apply"),
+    "agent-write-bus must export proposeWrite and consult classifyWrite"
+  );
+}
+
+
+assert(driver.includes("DEEPLINK_HARNESS") && driver.includes("DL1") && driver.includes("DL4") && driver.includes("data-ade-hop"), "verify driver must prove Trace↔Passport deep-link DL1–DL4");
+assert(driver.includes("trajectory-deeplink.png") && driver.includes("passport-deeplink.png"), "verify driver must capture deep-link screenshots");
+assert(driver.includes("DR1") && driver.includes("DR3") && driver.includes("passport-trace-deeplink.png") && driver.includes("data-ade-traj-hop"), "verify driver must prove Passport→Trace row deeplink DR1–DR3");
+assert(js.includes("hopAdeTraj") && js.includes("bindAdeTrajHops") && js.includes("resolvePassportTrajId") && js.includes("data-ade-traj-hop"), "Passport→Trace row hop helpers missing");
+assert(css.includes("ade-traj-hop"), "Passport→Trace row hop CSS missing");
+assert(driver.includes("TH1") && driver.includes("TH3") && driver.includes("trace-passport-row-highlight.png") && driver.includes("data-ade-traj-active"), "verify driver must prove Trace→Passport row highlight TH1–TH3");
+assert(js.includes("passportRowActiveAttr") && js.includes("passportRowActiveClass") && js.includes("hopAdePassportHighlight") && js.includes("data-ade-traj-active"), "Trace→Passport row highlight helpers missing");
+assert(css.includes("ade-traj-active") && css.includes("data-ade-traj-active"), "Trace→Passport row highlight CSS missing");
+assert(harness.includes("loadAdePair") && harness.includes("__graphidePassportGate"), "harness must dual-load ADE fixtures and seed gate");
+const deeplinkMapPath = path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md");
+assert(fs.existsSync(deeplinkMapPath), "trace-passport-deeplink.md missing");
+const deeplinkMap = fs.readFileSync(deeplinkMapPath, "utf8");
+assert(
+  deeplinkMap.includes("## Sub-features") &&
+    deeplinkMap.includes("## How to get to it (user POV)") &&
+    deeplinkMap.includes("## Driving it with the harness") &&
+    deeplinkMap.includes("## Gotchas") &&
+    deeplinkMap.includes("data-ade-hop") &&
+    deeplinkMap.includes("traj=") &&
+    deeplinkMap.includes("DR1") &&
+    deeplinkMap.includes("data-ade-traj-hop") &&
+    deeplinkMap.includes("passport-trace-deeplink.png") &&
+    deeplinkMap.includes("TH1") &&
+    deeplinkMap.includes("data-ade-traj-active") &&
+    deeplinkMap.includes("trace-passport-row-highlight.png"),
+  "trace-passport-deeplink feature map must use the four headings and name hops/traj/DR reverse/TH highlight"
+);
+assert(featReadme.includes("trace-passport-deeplink.md"), "feature README must list trace-passport-deeplink.md");
+
 assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") && driver.includes("PY0") && driver.includes("python@"), "verify driver must drive the Python desk on fixtures/python");
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");

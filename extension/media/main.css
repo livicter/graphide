@@ -4212,10 +4212,13 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 }
 #deltaCanvas .react-flow__node-deltaVnode,
 #sliceCanvas .react-flow__node-sliceVnode,
-#lineageCanvas .react-flow__node-lineageVnode,
-#enterCanvas .react-flow__node-enterVnode {
+#lineageCanvas .react-flow__node-lineageVnode {
   width: 176px;
   height: 64px;
+}
+#enterCanvas .react-flow__node-enterVnode {
+  width: 176px;
+  height: 78px;
 }
 #seqCanvas .react-flow__handle,
 #deltaCanvas .react-flow__handle,
@@ -5098,6 +5101,25 @@ body.desk #workspace.has-source #canvas {
 }
 .story-rail .feat-chip {
   animation: none;
+}
+
+/* ADE MBE — Map enter behavior captions (graph-only comprehension) */
+#enterCanvas .vnode .meta {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  font-weight: 500;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  margin-top: 1px;
+}
+#enterCanvas .vnode[data-mbe-caption="1"].selected {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
 }
 
 /* ADE SBC — derived behavior caption under hop/feature name (graph-only comprehension) */
