@@ -12094,6 +12094,124 @@ async function main() {
     );
     assertNoStampDir("ZPK4", "Traj zoom pct keyboard step did not write .graphide/stamps/");
 
+    // ADE traj zoom pct aria-live announce (ZAL1–ZAL3) — polite #trajZoomLive outside paint-replaced slider
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajZoomPct[data-traj-zoom-pct][role=\"slider\"]", { timeout: 8000 });
+    await page.waitForSelector("#trajZoomLive[data-traj-zoom-live]", { timeout: 8000 });
+    const zalLiveMeta = await page.evaluate(() => {
+      const live = document.getElementById("trajZoomLive");
+      const residual = document.getElementById("residualFilterLive");
+      return {
+        livePresent: !!live,
+        livePolite: live ? live.getAttribute("aria-live") || "" : "",
+        liveAtomic: live ? live.getAttribute("aria-atomic") || "" : "",
+        liveCls: live ? live.className || "" : "",
+        residualPresent: !!residual,
+        residualPolite: residual ? residual.getAttribute("aria-live") || "" : "",
+        residualState: residual ? residual.getAttribute("data-residual-filter-live-state") || "" : "",
+      };
+    });
+    await page.focus("#trajZoomPct");
+    const zalBefore = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      return {
+        now: pct ? Number(pct.getAttribute("aria-valuenow") || "0") : 0,
+        text: pct ? (pct.textContent || "").trim() : "",
+      };
+    });
+    await page.keyboard.press("ArrowUp");
+    await page.waitForFunction(
+      (prev) => {
+        const pct = document.getElementById("trajZoomPct");
+        const live = document.getElementById("trajZoomLive");
+        const now = pct ? Number(pct.getAttribute("aria-valuenow") || "0") : 0;
+        const t = live ? (live.textContent || "").trim() : "";
+        return now > prev && /^Trajectory zoom \d+%$/.test(t);
+      },
+      zalBefore.now,
+      { timeout: 8000 }
+    );
+    const zalAfterUp = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const live = document.getElementById("trajZoomLive");
+      return {
+        now: pct ? Number(pct.getAttribute("aria-valuenow") || "0") : 0,
+        focused: document.activeElement === pct,
+        liveText: live ? (live.textContent || "").trim() : "",
+        livePct: live ? live.getAttribute("data-traj-zoom-live-pct") || "" : "",
+      };
+    });
+    const zal1ok =
+      !!zalLiveMeta.livePresent &&
+      zalLiveMeta.livePolite === "polite" &&
+      zalLiveMeta.liveAtomic === "true" &&
+      /\btraj-zoom-live\b/.test(zalLiveMeta.liveCls || "") &&
+      zalAfterUp.now > zalBefore.now &&
+      zalAfterUp.focused &&
+      zalAfterUp.liveText === "Trajectory zoom " + zalAfterUp.now + "%" &&
+      zalAfterUp.livePct === String(zalAfterUp.now);
+    record(
+      "ZAL1",
+      "Trace #trajZoomLive polite announce after ArrowUp matches new zoom pct; focus restored",
+      !!zal1ok,
+      JSON.stringify({ meta: zalLiveMeta, before: zalBefore, afterUp: zalAfterUp })
+    );
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("Home");
+    await page.waitForFunction(
+      () => {
+        const pct = document.getElementById("trajZoomPct");
+        const live = document.getElementById("trajZoomLive");
+        const now = pct ? Number(pct.getAttribute("aria-valuenow") || "0") : 0;
+        const t = live ? (live.textContent || "").trim() : "";
+        return now === 100 && /^Trajectory zoom fit, 100%$/.test(t);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const zalAfterHome = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const live = document.getElementById("trajZoomLive");
+      const residual = document.getElementById("residualFilterLive");
+      return {
+        now: pct ? Number(pct.getAttribute("aria-valuenow") || "0") : 0,
+        focused: document.activeElement === pct,
+        liveText: live ? (live.textContent || "").trim() : "",
+        liveFit: live ? live.getAttribute("data-traj-zoom-live-fit") || "" : "",
+        residualPolite: residual ? residual.getAttribute("aria-live") || "" : "",
+        residualState: residual ? residual.getAttribute("data-residual-filter-live-state") || "" : "",
+        residualText: residual ? (residual.textContent || "").trim() : "",
+      };
+    });
+    const zal2ok =
+      zalAfterHome.now === 100 &&
+      zalAfterHome.focused &&
+      zalAfterHome.liveText === "Trajectory zoom fit, 100%" &&
+      zalAfterHome.liveFit === "1" &&
+      zalAfterHome.residualPolite === "polite";
+    record(
+      "ZAL2",
+      "Home fit announces via #trajZoomLive; residualFilterLive polite region untouched",
+      !!zal2ok,
+      JSON.stringify(zalAfterHome)
+    );
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(80);
+    await shot(page, "trajectory-zoom-pct-aria-live.png");
+    const zalShot = checks.find((c) => c.id === "shot:trajectory-zoom-pct-aria-live.png");
+    const zal3ok =
+      !!(zalShot && zalShot.pass) &&
+      zalLiveMeta.residualPresent &&
+      zalLiveMeta.residualPolite === "polite";
+    record(
+      "ZAL3",
+      "screenshot trajectory-zoom-pct-aria-live.png is not a black frame; ZAL live announce proven; ALR intact",
+      !!zal3ok,
+      JSON.stringify({ shot: zalShot ? zalShot.detail : "missing", residual: { present: zalLiveMeta.residualPresent, polite: zalLiveMeta.residualPolite } })
+    );
+    assertNoStampDir("ZAL4", "Traj zoom pct aria-live step did not write .graphide/stamps/");
+
     // ADE Passport sticky plan summary (PSS1–PSS3) — gate + contracts/risks/tests/impact on sticky sign
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportSign[data-passport-sign-state]", { timeout: 8000 });

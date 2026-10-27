@@ -28,7 +28,7 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 
 **ADE Phase 1 (v0.2)** tip stack (drafts): [#371](https://github.com/livicter/graphide/pull/371) Trajectory → [#372](https://github.com/livicter/graphide/pull/372) Passport → [#373](https://github.com/livicter/graphide/pull/373) Immutable → polish through [#443](https://github.com/livicter/graphide/pull/443) → [#444](https://github.com/livicter/graphide/pull/444) → [#446](https://github.com/livicter/graphide/pull/446) (residual-filter / Keys / seal / zoom / Passport sticky summary + ZPK + SGR restack; draft-only). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness; Trace↔Passport deep-link (`?trace=1&passport=1&traj=&gate=`).
 
-**Tip (draft stack):** [#444](https://github.com/livicter/graphide/pull/444) traj zoom pct keyboard (ZPK) → [#446](https://github.com/livicter/graphide/pull/446) Passport sticky gate live-refresh restack (SGR; supersedes parallel #445); draft-only soft wall.
+**Tip (draft stack):** [#446](https://github.com/livicter/graphide/pull/446) Passport sticky gate live-refresh restack (SGR) → traj zoom pct aria-live (ZAL); draft-only soft wall.
 
 
 ![Live V1–V57](UIUX_sample/live-suite.png)

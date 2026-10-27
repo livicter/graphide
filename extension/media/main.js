@@ -7870,6 +7870,17 @@
           children: "Residual filter off"
         }
       ),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "div",
+        {
+          id: "trajZoomLive",
+          "data-traj-zoom-live": "1",
+          role: "status",
+          "aria-live": "polite",
+          "aria-atomic": "true",
+          className: "sr-only traj-zoom-live"
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(KeysPane, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ExportMenu, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Progress, {}),
@@ -28461,6 +28472,22 @@
       }).join("") + "</ul>" : '<span class="traj-next-empty" data-traj-nexts="0">none</span>';
       return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt>Next hops</dt><dd data-traj-next-block="1">' + nextHopHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or next → hop to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
     }
+    function announceTrajZoom(isFit) {
+      const live = document.getElementById("trajZoomLive");
+      if (!live) return;
+      const pctEl = document.getElementById("trajZoomPct");
+      const now2 = pctEl && pctEl.getAttribute("aria-valuenow") || String(Math.round((Number(trajScale) || 1) * 100));
+      const text = isFit ? "Trajectory zoom fit, " + now2 + "%" : "Trajectory zoom " + now2 + "%";
+      live.setAttribute("data-traj-zoom-live", "1");
+      live.setAttribute("data-traj-zoom-live-pct", now2);
+      if (isFit) live.setAttribute("data-traj-zoom-live-fit", "1");
+      else live.removeAttribute("data-traj-zoom-live-fit");
+      live.textContent = "";
+      requestAnimationFrame(() => {
+        const el2 = document.getElementById("trajZoomLive");
+        if (el2) el2.textContent = text;
+      });
+    }
     function trajZoomPctLabel(scale) {
       return Math.round((Number(scale) || 1) * 100) + "%";
     }
@@ -28854,6 +28881,9 @@
               el2.focus({ preventScroll: true });
             } catch (_err) {
             }
+          }
+          if (typeof announceTrajZoom === "function") {
+            announceTrajZoom(ev.key === "Home");
           }
         };
       }

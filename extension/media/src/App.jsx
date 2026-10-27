@@ -26,6 +26,14 @@ export function App() {
       >
         Residual filter off
       </div>
+      <div
+        id="trajZoomLive"
+        data-traj-zoom-live="1"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only traj-zoom-live"
+      />
       <KeysPane />
       <ExportMenu />
       <Progress />

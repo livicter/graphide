@@ -842,6 +842,11 @@ assert(js.includes('role="slider"') && js.includes("aria-valuenow") && js.includ
 assert(css.includes(".traj-zoom-pct:focus-visible") && /traj-zoom-pct:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-pct:focus-visible 1px ADE ring");
 assert(traceMap.includes("ZPK1") && traceMap.includes("zoom percentage") && traceMap.includes("trajectory-zoom-pct-keyboard.png"), "trace feature map must name ZPK1 / zoom percentage keyboard / proof");
 
+assert(driver.includes("ZAL1") && driver.includes("ZAL3") && driver.includes("trajectory-zoom-pct-aria-live.png") && driver.includes("trajZoomLive"), "verify driver must prove traj zoom pct aria-live ZAL1–ZAL3");
+assert(js.includes("announceTrajZoom") && js.includes("trajZoomLive") && js.includes("data-traj-zoom-live") && js.includes("Trajectory zoom"), "desk.js traj zoom pct aria-live announceTrajZoom / #trajZoomLive missing");
+assert(css.includes("traj-zoom-live") && css.includes("#trajZoomLive"), "main.css must theme #trajZoomLive / .traj-zoom-live");
+assert(traceMap.includes("ZAL1") && traceMap.includes("trajZoomLive") && traceMap.includes("trajectory-zoom-pct-aria-live.png"), "trace feature map must name ZAL1 / trajZoomLive / proof");
+
 assert(driver.includes("PSS1") && driver.includes("PSS3") && driver.includes("passport-sticky-summary.png") && driver.includes("data-passport-summary"), "verify driver must prove Passport sticky plan summary PSS1–PSS3");
 assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-summary") && js.includes("data-passport-gate") && js.includes('data-passport-count="contracts"') && js.includes('data-passport-count="impact"') && js.includes("passportImpactRowCount"), "Passport sticky summary render/markup missing");
 assert(css.includes("passport-sticky-summary") && css.includes("passport-sticky-gate") && css.includes("passport-sticky-counts"), "Passport sticky summary CSS missing");

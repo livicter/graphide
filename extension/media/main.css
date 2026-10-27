@@ -1830,6 +1830,11 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   /* never hide with display/visibility — AT must read aria-live updates */
   pointer-events: none;
 }
+/* ADE ZAL: traj zoom pct polite aria-live (keyboard zoom announce); persistent outside paint */
+#trajZoomLive.traj-zoom-live,
+.traj-zoom-live {
+  pointer-events: none;
+}
 #toast {
   position: fixed;
   left: 50%;

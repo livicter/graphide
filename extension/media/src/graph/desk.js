@@ -10863,6 +10863,29 @@ function renderTrajectoryDetail(fix, selectedId) {
   );
 }
 
+function announceTrajZoom(isFit) {
+  // ADE ZAL: polite live-region outside paint-replaced #trajZoomPct so SR hears keyboard zoom.
+  const live = document.getElementById("trajZoomLive");
+  if (!live) return;
+  const pctEl = document.getElementById("trajZoomPct");
+  const now =
+    (pctEl && pctEl.getAttribute("aria-valuenow")) ||
+    String(Math.round((Number(trajScale) || 1) * 100));
+  const text = isFit
+    ? "Trajectory zoom fit, " + now + "%"
+    : "Trajectory zoom " + now + "%";
+  live.setAttribute("data-traj-zoom-live", "1");
+  live.setAttribute("data-traj-zoom-live-pct", now);
+  if (isFit) live.setAttribute("data-traj-zoom-live-fit", "1");
+  else live.removeAttribute("data-traj-zoom-live-fit");
+  // Clear then set on next frame so polite live re-announces even when pct repeats.
+  live.textContent = "";
+  requestAnimationFrame(() => {
+    const el = document.getElementById("trajZoomLive");
+    if (el) el.textContent = text;
+  });
+}
+
 function trajZoomPctLabel(scale) {
   return Math.round((Number(scale) || 1) * 100) + "%";
 }
@@ -11730,6 +11753,10 @@ function bindTrajectoryPage() {
         } catch (_err) {
           /* ignore */
         }
+      }
+      // ADE ZAL1–ZAL3: announce pct via persistent #trajZoomLive after paint/focus restore
+      if (typeof announceTrajZoom === "function") {
+        announceTrajZoom(ev.key === "Home");
       }
     };
   }
