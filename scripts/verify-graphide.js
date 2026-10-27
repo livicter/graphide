@@ -11977,6 +11977,98 @@ async function main() {
     );
     assertNoStampDir("ZFV4", "Traj zoom-bar focus-visible step did not write .graphide/stamps/");
 
+    // ADE Passport sticky plan summary (PSS1–PSS3) — gate + contracts/risks/tests/impact on sticky sign
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign[data-passport-sign-state]", { timeout: 8000 });
+    await page.waitForSelector("#passportSign [data-passport-summary]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const pssProbe = await page.evaluate(() => {
+      const sign = document.getElementById("passportSign");
+      const summary = sign && sign.querySelector("[data-passport-summary]");
+      const gateEl = summary && summary.querySelector("[data-passport-gate]");
+      const count = (k) => {
+        const el = summary && summary.querySelector('[data-passport-count="' + k + '"]');
+        return el ? (el.textContent || "").trim() : null;
+      };
+      // Expected from painted Passport body (embedded or harness fixture).
+      const sectionCount = (key) => {
+        const el = document.querySelector('[data-passport="' + key + '"] .passport-section-count');
+        return el ? (el.textContent || "").trim() : null;
+      };
+      const impactRows = document.querySelectorAll("#passportImpact [data-impact-row]").length;
+      const expected = {
+        contracts: sectionCount("contracts"),
+        risks: sectionCount("risks"),
+        tests: sectionCount("tests"),
+        impact: String(impactRows),
+      };
+      // Gate chip on sticky vs sign state + gate banner chip
+      const signState = sign ? sign.getAttribute("data-passport-sign-state") : "";
+      const gateBanner = document.querySelector("#passportGate [data-gate-chip]");
+      const bannerChip = gateBanner ? (gateBanner.getAttribute("data-gate-chip") || gateBanner.textContent || "").trim() : "";
+      const residual = sign && sign.querySelector(".passport-residual[data-passport-residual]");
+      const firstChildIsSummary =
+        !!(sign && summary && sign.firstElementChild === summary);
+      return {
+        present: !!summary,
+        cls: !!(summary && summary.classList.contains("passport-sticky-summary")),
+        gateText: gateEl ? (gateEl.textContent || "").trim() : "",
+        gateAttr: gateEl ? gateEl.getAttribute("data-passport-gate") || "" : "",
+        signState,
+        bannerChip,
+        counts: {
+          contracts: count("contracts"),
+          risks: count("risks"),
+          tests: count("tests"),
+          impact: count("impact"),
+        },
+        expected,
+        residual: !!residual,
+        firstChildIsSummary,
+        orderOk: !!(summary && residual && summary.nextElementSibling === residual),
+      };
+    });
+    const pss1ok =
+      !!pssProbe.present &&
+      !!pssProbe.cls &&
+      !!pssProbe.firstChildIsSummary &&
+      !!pssProbe.orderOk &&
+      !!pssProbe.residual &&
+      pssProbe.gateText === pssProbe.signState &&
+      pssProbe.gateAttr === pssProbe.signState &&
+      pssProbe.bannerChip === pssProbe.signState &&
+      /^(pending|approved|rejected)$/.test(pssProbe.gateText || "");
+    record(
+      "PSS1",
+      "Sticky #passportSign plan summary shows gate chip matching sign/gate state above residual",
+      !!pss1ok,
+      JSON.stringify(pssProbe)
+    );
+    const pss2ok =
+      !!pssProbe.expected &&
+      pssProbe.counts.contracts === pssProbe.expected.contracts &&
+      pssProbe.counts.risks === pssProbe.expected.risks &&
+      pssProbe.counts.tests === pssProbe.expected.tests &&
+      pssProbe.counts.impact === pssProbe.expected.impact &&
+      Number(pssProbe.counts.contracts) > 0 &&
+      Number(pssProbe.counts.impact) > 0;
+    record(
+      "PSS2",
+      "Sticky summary counts match fixture contracts · risks · tests · impact rows",
+      !!pss2ok,
+      JSON.stringify({ counts: pssProbe.counts, expected: pssProbe.expected })
+    );
+
+    await shot(page, "passport-sticky-summary.png");
+    const pssShot = checks.find((c) => c.id === "shot:passport-sticky-summary.png");
+    record(
+      "PSS3",
+      "screenshot passport-sticky-summary.png is not a black frame; PSS sticky summary proven",
+      !!(pssShot && pssShot.pass),
+      pssShot ? pssShot.detail : "missing shot"
+    );
+    assertNoStampDir("PSS4", "Passport sticky summary step did not write .graphide/stamps/");
+
 
 
 

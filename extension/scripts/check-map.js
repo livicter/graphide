@@ -838,6 +838,13 @@ assert(css.includes(".traj-zoom-btn:focus-visible") && /traj-zoom-btn:focus-visi
 assert(traceMap.includes("ZFV1") && traceMap.includes(":focus-visible") && traceMap.includes("trajectory-zoom-focus-visible.png"), "trace feature map must name ZFV1 / :focus-visible / proof");
 
 
+assert(driver.includes("PSS1") && driver.includes("PSS3") && driver.includes("passport-sticky-summary.png") && driver.includes("data-passport-summary"), "verify driver must prove Passport sticky plan summary PSS1–PSS3");
+assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-summary") && js.includes("data-passport-gate") && js.includes('data-passport-count="contracts"') && js.includes('data-passport-count="impact"') && js.includes("passportImpactRowCount"), "Passport sticky summary render/markup missing");
+assert(css.includes("passport-sticky-summary") && css.includes("passport-sticky-gate") && css.includes("passport-sticky-counts"), "Passport sticky summary CSS missing");
+assert(passportMap.includes("PSS1") && passportMap.includes("Sticky plan summary") && passportMap.includes("passport-sticky-summary.png") && passportMap.includes("data-passport-summary"), "passport feature map must name sticky plan summary PSS / proof");
+
+
+
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {
   const immutableFs = require("fs");

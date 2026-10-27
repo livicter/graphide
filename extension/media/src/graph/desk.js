@@ -12443,6 +12443,46 @@ function passportGateState() {
 }
 
 
+
+function passportImpactRowCount(fx) {
+  const impact = (fx && fx.impact) || {};
+  return (
+    (impact.callGraphs || []).length +
+    (impact.apiContracts || []).length +
+    (impact.invariants || []).length
+  );
+}
+
+function renderPassportStickySummary(fx, state) {
+  const gate = PASSPORT_STATES[state] ? state : "pending";
+  const contracts = (fx && fx.contracts) || [];
+  const risks = (fx && fx.risks) || [];
+  const tests = (fx && fx.testStrategy) || [];
+  const impactN = passportImpactRowCount(fx);
+  return (
+    '<div class="passport-sticky-summary" data-passport-summary="1" role="status" aria-label="Passport plan summary">' +
+    '<span class="passport-sticky-gate" data-passport-gate="' +
+    esc(gate) +
+    '">' +
+    esc(gate) +
+    "</span>" +
+    '<span class="passport-sticky-counts">' +
+    '<span class="passport-sticky-count"><b data-passport-count="contracts">' +
+    esc(String(contracts.length)) +
+    "</b> contracts</span>" +
+    '<span class="passport-sticky-count"><b data-passport-count="risks">' +
+    esc(String(risks.length)) +
+    "</b> risks</span>" +
+    '<span class="passport-sticky-count"><b data-passport-count="tests">' +
+    esc(String(tests.length)) +
+    "</b> tests</span>" +
+    '<span class="passport-sticky-count"><b data-passport-count="impact">' +
+    esc(String(impactN)) +
+    "</b> impact</span>" +
+    "</span></div>"
+  );
+}
+
 function renderPassportResidual(fx, state) {
   const writes = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites : [];
   const globalN = writes.length;
@@ -13039,6 +13079,7 @@ function renderPassportBody() {
     '<div id="passportSign" class="passport-sign" data-passport-sign-state="' +
     esc(state) +
     '">' +
+    renderPassportStickySummary(fx, state) +
     renderPassportResidual(fx, state) +
     '<div class="passport-sign-actions">' +
     '<button type="button" data-passport-action="approve">Approve</button>' +

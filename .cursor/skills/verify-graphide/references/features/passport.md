@@ -97,6 +97,7 @@ then click `[data-ade-contract-traj] [data-ade-traj-hop]` /
 
 Test-strategy traj map: same harness; click
 `[data-ade-test-traj] [data-ade-traj-hop]` (TM1–TM3).
+Sticky plan summary: `#passportSign .passport-sticky-summary` / `[data-passport-summary]` shows gate chip (`[data-passport-gate]`) plus compact fixture counts (`[data-passport-count]` for contracts · risks · tests · impact = callGraphs+apiContracts+invariants) above residual chrome (PSS1–PSS3). Screenshot `verification/passport-sticky-summary.png`.
 Residual / incomplete-signoff cue: sticky `#passportSign .passport-residual` (PR1–PR3) shows blocked/open path count while scrolling.
 Hop residual badge: each `#passportGate .passport-gate-path` carries `.passport-hop-residual` (HB1–HB3) per-hop incomplete/blocked/open cue.
 Adjacent residual: when a Trace traj is focused, neighboring Passport gate paths that still have residual carry `.passport-adj-residual` / `data-passport-adj-residual` (AR1–AR3). Trace legend mirrors residual-adjacent node kinds via AL1–AL3 (`verification/trajectory-adj-residual-legend.png`).
