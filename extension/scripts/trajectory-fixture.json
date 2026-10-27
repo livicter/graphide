@@ -2,7 +2,7 @@
   "version": 2,
   "id": "ade-a1a-fixture",
   "title": "Execution trajectory",
-  "subtitle": "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins",
+  "subtitle": "Phase 1 Trace \u2014 richer subtasks, deps, and artifact-diff pins \u00b7 edge handoff latencyMs",
   "nodes": [
     {
       "id": "sub-plan",
@@ -163,7 +163,7 @@
       "diff": "",
       "adds": 0,
       "dels": 0,
-      "note": "Draft only — no undraft / merge",
+      "note": "Draft only \u2014 no undraft / merge",
       "x": 900,
       "y": 200
     }
@@ -174,84 +174,96 @@
       "from": "sub-plan",
       "to": "sub-edit",
       "kind": "seq",
-      "label": "scope→edit"
+      "label": "scope\u2192edit",
+      "latencyMs": 48
     },
     {
       "id": "e-plan-fixture",
       "from": "sub-plan",
       "to": "sub-fixture",
       "kind": "fork",
-      "label": "scope→sim"
+      "label": "scope\u2192sim",
+      "latencyMs": 36
     },
     {
       "id": "e-edit-diff",
       "from": "sub-edit",
       "to": "sub-diff",
       "kind": "seq",
-      "label": "edit→diff"
+      "label": "edit\u2192diff",
+      "latencyMs": 72
     },
     {
       "id": "e-fixture-diff",
       "from": "sub-fixture",
       "to": "sub-diff",
       "kind": "join",
-      "label": "sim→diff"
+      "label": "sim\u2192diff",
+      "latencyMs": 54
     },
     {
       "id": "e-diff-verify",
       "from": "sub-diff",
       "to": "sub-verify",
       "kind": "seq",
-      "label": "diff→prove"
+      "label": "diff\u2192prove",
+      "latencyMs": 90
     },
     {
       "id": "e-edit-verify",
       "from": "sub-edit",
       "to": "sub-verify",
       "kind": "seq",
-      "label": "edit→prove"
+      "label": "edit\u2192prove",
+      "latencyMs": 110
     },
     {
       "id": "e-fixture-seal",
       "from": "sub-fixture",
       "to": "sub-seal",
       "kind": "seq",
-      "label": "sim→seal"
+      "label": "sim\u2192seal",
+      "latencyMs": 40
     },
     {
       "id": "e-diff-seal",
       "from": "sub-diff",
       "to": "sub-seal",
       "kind": "join",
-      "label": "diff→seal"
+      "label": "diff\u2192seal",
+      "latencyMs": 45
     },
     {
       "id": "e-verify-passport",
       "from": "sub-verify",
       "to": "sub-passport",
       "kind": "seq",
-      "label": "prove→sign"
+      "label": "prove\u2192sign",
+      "latencyMs": 140
     },
     {
       "id": "e-verify-pr",
       "from": "sub-verify",
       "to": "sub-pr",
       "kind": "fork",
-      "label": "prove→ship"
+      "label": "prove\u2192ship",
+      "latencyMs": 95
     },
     {
       "id": "e-seal-pr",
       "from": "sub-seal",
       "to": "sub-pr",
       "kind": "join",
-      "label": "seal→ship"
+      "label": "seal\u2192ship",
+      "latencyMs": 28
     },
     {
       "id": "e-passport-pr",
       "from": "sub-passport",
       "to": "sub-pr",
       "kind": "join",
-      "label": "sign→ship"
+      "label": "sign\u2192ship",
+      "latencyMs": 22
     }
   ]
 }

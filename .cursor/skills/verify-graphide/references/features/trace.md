@@ -123,6 +123,7 @@ Driver assertions:
 - EKH1–EKH3: residual-filter empty keyboard hints — Trace empty `desk-keys` / `data-residual-filter-empty-keys` (`<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear`); Clear remains; proof `verification/residual-filter-empty-kbd-hints.png`
 - TNI1–TNI3: traj DAG node hover/focus info — every `.traj-node` has matching `title` + `aria-label` + `data-traj-node-info` (id · kind · status · residual deps/hops); proof `verification/trajectory-node-info.png`
 - TEH1–TEH3: `#trajCanvas svg.traj-edges path.traj-edge` uses `pointer-events:stroke` (parent `.traj-edges` stays `none`); hover shows floating `#trajEdgeTip` / `[data-traj-edge-tip]` (`role=tooltip`) with kind · label · from→to; tip `pointer-events:none`; no SVG `<title>`; screenshot `verification/trajectory-edge-tip.png`
+- FTE1–FTE3: traj edges carry fixture `latencyMs` (handoff cue); painted as `data-latency` on `path.traj-edge`; `#trajEdgeTip` shows `Nms` chip `[data-tip-edge-latency]`; JSON+JS fixture parity; screenshot `verification/trajectory-edge-latency.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,

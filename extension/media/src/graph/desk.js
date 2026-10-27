@@ -10693,6 +10693,9 @@ function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
         esc(kind) +
         '"' +
         (e.label ? ' data-label="' + esc(e.label) + '"' : "") +
+        (Number.isFinite(Number(e.latencyMs)) && Number(e.latencyMs) > 0
+          ? ' data-latency="' + esc(String(e.latencyMs)) + '"'
+          : "") +
         (onPath ? ' data-on-path="1"' : "") +
         ' d="' +
         d +
@@ -11685,6 +11688,7 @@ function hideTrajEdgeTip() {
   el.removeAttribute("data-to");
   el.removeAttribute("data-kind");
   el.removeAttribute("data-label");
+  el.removeAttribute("data-latency");
   el.removeAttribute("data-tip-place");
   el.innerHTML = "";
 }
@@ -11736,6 +11740,18 @@ function showTrajEdgeTip(edge, ev) {
   el.setAttribute("data-kind", kind);
   if (label) el.setAttribute("data-label", label);
   else el.removeAttribute("data-label");
+  let latencyRaw = edge.getAttribute("data-latency") || "";
+  if (!latencyRaw) {
+    const fix = typeof trajectoryFixture === "function" ? trajectoryFixture() : null;
+    const fxEdge = ((fix && fix.edges) || []).find((x) => x && x.id === id);
+    if (fxEdge && Number.isFinite(Number(fxEdge.latencyMs)) && Number(fxEdge.latencyMs) > 0) {
+      latencyRaw = String(fxEdge.latencyMs);
+    }
+  }
+  const latencyMs = Number(latencyRaw);
+  const hasLatency = Number.isFinite(latencyMs) && latencyMs > 0;
+  if (hasLatency) el.setAttribute("data-latency", String(latencyMs));
+  else el.removeAttribute("data-latency");
   const headBits = [];
   if (kind) headBits.push(kind);
   if (label) headBits.push(label);
@@ -11760,7 +11776,17 @@ function showTrajEdgeTip(edge, ev) {
       esc(to) +
       "</code></div>";
   }
-  el.setAttribute("data-tip-copy", head + (hop ? " · " + hop : ""));
+  if (hasLatency) {
+    html +=
+      '<div class="traj-edge-tip-meta" data-tip-edge-meta="1">' +
+      '<span class="traj-edge-tip-chip traj-edge-tip-chip--latency" data-tip-edge-latency="1">' +
+      esc(String(latencyMs)) +
+      "ms</span></div>";
+  }
+  el.setAttribute(
+    "data-tip-copy",
+    head + (hop ? " · " + hop : "") + (hasLatency ? " · " + latencyMs + "ms" : "")
+  );
   el.innerHTML = html;
   el.hidden = false;
   positionTrajEdgeTip(el, ev, edge);

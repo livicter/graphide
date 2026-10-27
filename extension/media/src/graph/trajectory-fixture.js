@@ -3,6 +3,7 @@
  * Subtask nodes + dependency edges + artifact/diff pins for the Trace workspace.
  * Not live agent state; harness-stable for verify A1a* / TF1–TF5.
  * v2: richer phase/agent/duration/deps + artifact-diff adds/dels for inspector.
+ * FTE: edges carry latencyMs handoff cue (surfaced on #trajEdgeTip).
  * Explorer: harness ?trace=1 may override via window.__graphideTrajectory;
  * ?traj=<id> seeds subtask focus (window.__graphideTrajectoryFocus).
  */
@@ -10,7 +11,7 @@ export const TRAJECTORY_FIXTURE = {
   version: 2,
   id: "ade-a1a-fixture",
   title: "Execution trajectory",
-  subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins",
+  subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins · edge handoff latencyMs",
   nodes: [
     {
       id: "sub-plan",
@@ -158,18 +159,18 @@ export const TRAJECTORY_FIXTURE = {
     },
   ],
   edges: [
-    { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit" },
-    { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim" },
-    { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff" },
-    { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff" },
-    { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove" },
-    { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove" },
-    { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal" },
-    { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal" },
-    { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign" },
-    { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship" },
-    { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship" },
-    { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship" },
+    { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit" , latencyMs: 48},
+    { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim" , latencyMs: 36},
+    { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff" , latencyMs: 72},
+    { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff" , latencyMs: 54},
+    { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove" , latencyMs: 90},
+    { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove" , latencyMs: 110},
+    { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal" , latencyMs: 40},
+    { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal" , latencyMs: 45},
+    { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign" , latencyMs: 140},
+    { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship" , latencyMs: 95},
+    { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship" , latencyMs: 28},
+    { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship" , latencyMs: 22},
   ],
 };
 

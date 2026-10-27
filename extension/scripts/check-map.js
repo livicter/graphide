@@ -887,6 +887,13 @@ assert(js.includes("showTrajEdgeTip") && js.includes("hideTrajEdgeTip") && js.in
 assert(css.includes("pointer-events: stroke") && css.includes("#trajEdgeTip") && /\.traj-edge\s*\{[\s\S]*?pointer-events:\s*stroke/.test(css) && css.includes("cursor: help"), "main.css must set .traj-edge pointer-events:stroke + #trajEdgeTip + cursor:help");
 assert(traceMap.includes("TEH1") && traceMap.includes("traj-edge") && traceMap.includes("trajectory-edge-tip.png") && traceMap.includes("#trajEdgeTip"), "trace feature map must name TEH / traj-edge tip / proof");
 
+assert(driver.includes("FTE1") && driver.includes("FTE3") && driver.includes("trajectory-edge-latency.png") && driver.includes("data-latency"), "verify driver must prove fixture edge latency FTE1–FTE3");
+assert(js.includes("latencyMs") && js.includes("data-tip-edge-latency") && js.includes("data-latency"), "desk/fixture must paint edge latencyMs into data-latency + tip chip");
+assert(css.includes(".traj-edge-tip-chip--latency"), "main.css must theme .traj-edge-tip-chip--latency");
+assert(traceMap.includes("FTE1") && traceMap.includes("latencyMs") && traceMap.includes("trajectory-edge-latency.png"), "trace feature map must name FTE / latencyMs / proof");
+
+
+
 
 
 

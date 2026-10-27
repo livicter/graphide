@@ -12107,6 +12107,175 @@ async function main() {
     );
     assertNoStampDir("TEH5", "Traj edge tip step did not write .graphide/stamps/");
 
+    // ADE fixture edge latencyMs enrich (FTE1–FTE3) — handoff cue on edges + #trajEdgeTip chip
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas svg.traj-edges path.traj-edge[data-latency]", {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    const fte1 = await page.evaluate(async () => {
+      const edges = [...document.querySelectorAll("#trajCanvas path.traj-edge[data-edge-id]")];
+      const infos = edges.map((el) => ({
+        id: el.getAttribute("data-edge-id") || "",
+        latency: el.getAttribute("data-latency") || "",
+        n: Number(el.getAttribute("data-latency")),
+      }));
+      const allLat =
+        infos.length >= 12 &&
+        infos.every((e) => e.latency && Number.isFinite(e.n) && e.n > 0);
+      // JSON/JS parity via harness-exposed fixture when present
+      let parity = { ok: false };
+      try {
+        const fx =
+          (typeof window.__graphideTrajectory === "object" && window.__graphideTrajectory) ||
+          null;
+        // Read painted attrs vs tip source: every edge id unique + latency painted
+        const ids = new Set(infos.map((e) => e.id));
+        parity = {
+          ok: ids.size === infos.length && allLat,
+          count: infos.length,
+          sample: infos.slice(0, 3),
+        };
+      } catch (_e) {
+        parity = { ok: allLat, err: true };
+      }
+      return { allLat, parity, count: infos.length, sample: infos[0] || null };
+    });
+    // Also assert fixture files on disk via Node in driver
+    const fteFs = (() => {
+      const path = require("path");
+      const fs = require("fs");
+      const root = path.resolve(__dirname, "..");
+      const jsonPath = path.join(root, "extension/scripts/trajectory-fixture.json");
+      const jsPath = path.join(root, "extension/media/src/graph/trajectory-fixture.js");
+      const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+      const jsSrc = fs.readFileSync(jsPath, "utf8");
+      const jEdges = json.edges || [];
+      const jsLat = {};
+      for (const e of jEdges) {
+        const re = new RegExp(
+          'id:\\\\s*"' + e.id + '"[\\\\s\\\\S]*?latencyMs:\\\\s*(\\\\d+)'
+        );
+        // simpler: every json edge id appears with latencyMs near it in js
+      }
+      const missing = [];
+      const zero = [];
+      const jsMissing = [];
+      for (const e of jEdges) {
+        if (!Number.isFinite(Number(e.latencyMs)) || Number(e.latencyMs) <= 0) {
+          zero.push(e.id);
+        }
+        if (!new RegExp('id: "' + e.id + '"[\\s\\S]{0,120}latencyMs: ' + String(e.latencyMs)).test(jsSrc)) {
+          jsMissing.push(e.id);
+        }
+      }
+      return {
+        jsonCount: jEdges.length,
+        zero,
+        jsMissing,
+        sample: jEdges.slice(0, 2).map((e) => ({ id: e.id, latencyMs: e.latencyMs })),
+      };
+    })();
+    const fte1ok = !!(
+      fte1 &&
+      fte1.allLat &&
+      fte1.count >= 12 &&
+      fteFs.jsonCount >= 12 &&
+      fteFs.zero.length === 0 &&
+      fteFs.jsMissing.length === 0
+    );
+    record(
+      "FTE1",
+      "All 12 traj edges paint data-latency; JSON+JS fixture latencyMs parity; every latencyMs > 0",
+      !!fte1ok,
+      JSON.stringify({ paint: fte1, fs: fteFs })
+    );
+
+    const fte2 = await page.evaluate(() => {
+      const edge =
+        document.querySelector('#trajCanvas path.traj-edge[data-edge-id="e-plan-edit"]') ||
+        document.querySelector("#trajCanvas path.traj-edge[data-latency]");
+      if (!edge) return { ok: false, reason: "no edge" };
+      const expectLat = edge.getAttribute("data-latency") || "";
+      const rect = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 11,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("trajEdgeTip");
+      const chip = tip && tip.querySelector("[data-tip-edge-latency]");
+      const tipLat = tip ? tip.getAttribute("data-latency") || "" : "";
+      const chipText = chip ? (chip.textContent || "").trim() : "";
+      return {
+        ok: true,
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        tipLat,
+        expectLat,
+        chip: !!chip,
+        chipText,
+        matchAttr: tipLat === expectLat,
+        matchChip: chipText === expectLat + "ms",
+        kind: tip ? tip.getAttribute("data-kind") || "" : "",
+        hop: tip && tip.querySelector("[data-tip-edge-hop]")
+          ? (tip.querySelector("[data-tip-edge-hop]").textContent || "").replace(/\s+/g, " ").trim()
+          : "",
+      };
+    });
+    const fte2ok = !!(
+      fte2 &&
+      fte2.ok &&
+      fte2.tip &&
+      !fte2.tipHidden &&
+      fte2.chip &&
+      fte2.matchAttr &&
+      fte2.matchChip &&
+      Number(fte2.expectLat) > 0
+    );
+    record(
+      "FTE2",
+      "#trajEdgeTip shows data-latency + Nms chip matching edge data-latency; TEH kind/hop intact",
+      !!fte2ok,
+      JSON.stringify(fte2)
+    );
+
+    await page.evaluate(() => {
+      const edge =
+        document.querySelector('#trajCanvas path.traj-edge[data-edge-id="e-plan-edit"]') ||
+        document.querySelector("#trajCanvas path.traj-edge[data-latency]");
+      if (!edge) return;
+      const rect = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 12,
+          pointerType: "mouse",
+        })
+      );
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "trajectory-edge-latency.png");
+    const fteShot = checks.find((c) => c.id === "shot:trajectory-edge-latency.png");
+    const fte3ok = !!(fte1ok && fte2ok && fteShot && fteShot.pass);
+    record(
+      "FTE3",
+      "screenshot trajectory-edge-latency.png not black; fixture edge latency tip proven",
+      !!fte3ok,
+      JSON.stringify({
+        shot: fteShot ? fteShot.detail : "missing",
+        fte1: !!fte1ok,
+        fte2: !!fte2ok,
+      })
+    );
+    assertNoStampDir("FTE4", "Fixture edge latency step did not write .graphide/stamps/");
+
     // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift; cursor:help; state-aware title/aria/data-seal-info
     await page.evaluate(() => {
       window.__graphideSealStatus = "sealed";

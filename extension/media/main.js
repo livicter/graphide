@@ -19716,7 +19716,7 @@
     version: 2,
     id: "ade-a1a-fixture",
     title: "Execution trajectory",
-    subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins",
+    subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins · edge handoff latencyMs",
     nodes: [
       {
         id: "sub-plan",
@@ -19864,18 +19864,18 @@
       }
     ],
     edges: [
-      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit" },
-      { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim" },
-      { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff" },
-      { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff" },
-      { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove" },
-      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove" },
-      { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal" },
-      { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal" },
-      { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign" },
-      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship" },
-      { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship" },
-      { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship" }
+      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit", latencyMs: 48 },
+      { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim", latencyMs: 36 },
+      { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff", latencyMs: 72 },
+      { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff", latencyMs: 54 },
+      { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove", latencyMs: 90 },
+      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove", latencyMs: 110 },
+      { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal", latencyMs: 40 },
+      { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal", latencyMs: 45 },
+      { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign", latencyMs: 140 },
+      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship", latencyMs: 95 },
+      { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship", latencyMs: 28 },
+      { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship", latencyMs: 22 }
     ]
   };
 
@@ -28462,7 +28462,7 @@
         const onPath = focusOn && (e.from === selectedId || e.to === selectedId);
         const dim = focusOn && !onPath;
         const d = "M" + x1 + " " + y1 + " C" + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2;
-        return '<path class="traj-edge kind-' + esc(kind) + (onPath ? " on-path" : "") + (dim ? " dim" : "") + '" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(kind) + '"' + (e.label ? ' data-label="' + esc(e.label) + '"' : "") + (onPath ? ' data-on-path="1"' : "") + ' d="' + d + '" />';
+        return '<path class="traj-edge kind-' + esc(kind) + (onPath ? " on-path" : "") + (dim ? " dim" : "") + '" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(kind) + '"' + (e.label ? ' data-label="' + esc(e.label) + '"' : "") + (Number.isFinite(Number(e.latencyMs)) && Number(e.latencyMs) > 0 ? ' data-latency="' + esc(String(e.latencyMs)) + '"' : "") + (onPath ? ' data-on-path="1"' : "") + ' d="' + d + '" />';
       }).join("");
     }
     function trajNodeDeps(fix, n) {
@@ -28822,6 +28822,7 @@
       el2.removeAttribute("data-to");
       el2.removeAttribute("data-kind");
       el2.removeAttribute("data-label");
+      el2.removeAttribute("data-latency");
       el2.removeAttribute("data-tip-place");
       el2.innerHTML = "";
     }
@@ -28870,6 +28871,18 @@
       el2.setAttribute("data-kind", kind);
       if (label) el2.setAttribute("data-label", label);
       else el2.removeAttribute("data-label");
+      let latencyRaw = edge.getAttribute("data-latency") || "";
+      if (!latencyRaw) {
+        const fix = typeof trajectoryFixture === "function" ? trajectoryFixture() : null;
+        const fxEdge = (fix && fix.edges || []).find((x) => x && x.id === id2);
+        if (fxEdge && Number.isFinite(Number(fxEdge.latencyMs)) && Number(fxEdge.latencyMs) > 0) {
+          latencyRaw = String(fxEdge.latencyMs);
+        }
+      }
+      const latencyMs = Number(latencyRaw);
+      const hasLatency = Number.isFinite(latencyMs) && latencyMs > 0;
+      if (hasLatency) el2.setAttribute("data-latency", String(latencyMs));
+      else el2.removeAttribute("data-latency");
       const headBits = [];
       if (kind) headBits.push(kind);
       if (label) headBits.push(label);
@@ -28883,7 +28896,13 @@
       if (hop) {
         html += '<div class="traj-edge-tip-hop" data-tip-edge-hop="1"><code data-tip-from="1">' + esc(from) + '</code><span class="traj-edge-tip-arrow" aria-hidden="true">→</span><code data-tip-to="1">' + esc(to) + "</code></div>";
       }
-      el2.setAttribute("data-tip-copy", head + (hop ? " · " + hop : ""));
+      if (hasLatency) {
+        html += '<div class="traj-edge-tip-meta" data-tip-edge-meta="1"><span class="traj-edge-tip-chip traj-edge-tip-chip--latency" data-tip-edge-latency="1">' + esc(String(latencyMs)) + "ms</span></div>";
+      }
+      el2.setAttribute(
+        "data-tip-copy",
+        head + (hop ? " · " + hop : "") + (hasLatency ? " · " + latencyMs + "ms" : "")
+      );
       el2.innerHTML = html;
       el2.hidden = false;
       positionTrajEdgeTip(el2, ev, edge);

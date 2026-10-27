@@ -2967,6 +2967,28 @@ html.bright .traj-hop-next {
   opacity: 0.55;
   font-weight: 700;
 }
+
+.traj-edge-tip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.traj-edge-tip-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.traj-edge-tip-chip--latency {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 42%, transparent);
+  color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 90%, var(--vscode-foreground));
+}
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
   border-radius: 10px;
