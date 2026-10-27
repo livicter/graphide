@@ -11105,6 +11105,225 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE clear-filter hover cue (CLC1–CLC3) — blue lift above resting; cursor:pointer; not CHC help / THC warning
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (legend && legend.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    const clcTraceRest = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '#trajEdgeLegend .legend-clear-filter, #trajEdgeLegend [data-legend-clear-filter="1"]'
+      );
+      const count = document.querySelector(
+        '#trajEdgeLegend .residual-filter-count[tabindex="0"]'
+      );
+      if (!clear) return { present: false };
+      const rest = getComputedStyle(clear);
+      return {
+        present: true,
+        cls: clear.classList.contains("legend-clear-filter"),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+        countRestBg: count ? getComputedStyle(count).backgroundColor : "",
+      };
+    });
+    await page.hover('#trajEdgeLegend [data-legend-clear-filter="1"]');
+    await page.waitForTimeout(40);
+    const clcTraceHover = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '#trajEdgeLegend .legend-clear-filter, #trajEdgeLegend [data-legend-clear-filter="1"]'
+      );
+      if (!clear) return { present: false };
+      const hover = getComputedStyle(clear);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    const clc1ok = !!(
+      clcTraceRest &&
+      clcTraceRest.present &&
+      clcTraceRest.cls &&
+      clcTraceHover &&
+      clcTraceHover.present &&
+      clcTraceHover.hoverBg &&
+      clcTraceHover.hoverBg !== clcTraceRest.restBg &&
+      clcTraceHover.hoverCursor === "pointer" &&
+      (!clcTraceRest.countRestBg || clcTraceHover.hoverBg !== clcTraceRest.countRestBg)
+    );
+    record(
+      "CLC1",
+      "Trace legend clear-filter :hover lifts blue bg above resting, cursor:pointer, not count-chip warning",
+      !!clc1ok,
+      JSON.stringify({ rest: clcTraceRest, hover: clcTraceHover })
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"] [data-passport-clear-filter="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const clcPassRest = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '#passportSign .passport-sticky-clear-filter, #passportSign [data-passport-clear-filter="1"]'
+      );
+      if (!clear) return { present: false };
+      const rest = getComputedStyle(clear);
+      return {
+        present: true,
+        cls: clear.classList.contains("passport-sticky-clear-filter"),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+      };
+    });
+    await page.hover('#passportSign [data-passport-clear-filter="1"]');
+    await page.waitForTimeout(40);
+    const clcPassHover = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '#passportSign .passport-sticky-clear-filter, #passportSign [data-passport-clear-filter="1"]'
+      );
+      if (!clear) return { present: false };
+      const hover = getComputedStyle(clear);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    // FE empty clear: approve gate → empty chrome → hover (do not click clear)
+    await page.evaluate(() => {
+      const approve = document.querySelector('#passportSign [data-passport-action="approve"]');
+      const gate = document.getElementById("passportGate");
+      if (approve && gate && gate.getAttribute("data-passport-state") !== "approved") {
+        approve.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"] [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const clcFeRest = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!clear) return { present: false };
+      const rest = getComputedStyle(clear);
+      return {
+        present: true,
+        cls: clear.classList.contains("residual-filter-clear"),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+      };
+    });
+    await page.hover(
+      '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+    );
+    await page.waitForTimeout(40);
+    const clcFeHover = await page.evaluate(() => {
+      const clear = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!clear) return { present: false };
+      const hover = getComputedStyle(clear);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    const clc2ok = !!(
+      clcPassRest &&
+      clcPassRest.present &&
+      clcPassRest.cls &&
+      clcPassHover &&
+      clcPassHover.present &&
+      clcPassHover.hoverBg &&
+      clcPassHover.hoverBg !== clcPassRest.restBg &&
+      clcPassHover.hoverCursor === "pointer" &&
+      clcFeRest &&
+      clcFeRest.present &&
+      clcFeRest.cls &&
+      clcFeHover &&
+      clcFeHover.present &&
+      clcFeHover.hoverBg &&
+      clcFeHover.hoverBg !== clcFeRest.restBg &&
+      clcFeHover.hoverCursor === "pointer"
+    );
+    record(
+      "CLC2",
+      "Passport sticky clear + empty Clear :hover lift blue bg above resting, cursor:pointer",
+      !!clc2ok,
+      JSON.stringify({
+        passport: { rest: clcPassRest, hover: clcPassHover },
+        fe: { rest: clcFeRest, hover: clcFeHover },
+      })
+    );
+
+    await shot(page, "residual-filter-clear-hover-cue.png");
+    const clcShot = checks.find(
+      (c) => c.id === "shot:residual-filter-clear-hover-cue.png"
+    );
+    record(
+      "CLC3",
+      "screenshot residual-filter-clear-hover-cue.png is not a black frame",
+      !!(clcShot && clcShot.pass),
+      clcShot ? clcShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CLC4",
+      "Clear-filter hover cue step did not write .graphide/stamps/"
+    );
+
+    // Restore: clear filter, reject gate so later IR/PR residual chrome sees bearings.
+    await page.evaluate(() => {
+      const clear = document.querySelector('[data-residual-filter-clear="1"]');
+      if (clear) clear.click();
+      else {
+        const legend = document.getElementById("trajEdgeLegend");
+        if (legend && legend.getAttribute("data-residual-filter") === "on") {
+          const toggle = document.querySelector(
+            '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+          );
+          if (toggle) toggle.click();
+        }
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(40);
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

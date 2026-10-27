@@ -3185,8 +3185,6 @@ html.bright .traj-node { background: #fff; }
   font-weight: 650;
   letter-spacing: 0.01em;
 }
-#trajEdgeLegend .traj-legend-chip.legend-clear-filter:hover,
-#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:hover,
 #trajEdgeLegend .traj-legend-chip.legend-clear-filter:focus-visible,
 #trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:focus-visible {
   background: var(--vscode-button-hoverBackground, #1177bb);
@@ -3396,9 +3394,7 @@ html.bright .traj-node { background: #fff; }
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.passport-residual .passport-sticky-clear-filter:hover,
 .passport-residual .passport-sticky-clear-filter:focus-visible,
-.passport-residual [data-passport-clear-filter="1"]:hover,
 .passport-residual [data-passport-clear-filter="1"]:focus-visible {
   background: var(--vscode-button-hoverBackground, #1177bb);
   outline: 1px solid color-mix(in srgb, var(--passport-sticky-clear) 80%, transparent);
@@ -3483,8 +3479,6 @@ button.residual-filter-clear[data-residual-filter-clear="1"] {
   background: var(--vscode-button-background, #0e639c);
   border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 70%, transparent);
 }
-.residual-filter-clear:hover,
-button.residual-filter-clear[data-residual-filter-clear="1"]:hover,
 .residual-filter-clear:focus-visible,
 button.residual-filter-clear[data-residual-filter-clear="1"]:focus-visible {
   background: var(--vscode-button-hoverBackground, #1177bb);
@@ -3562,6 +3556,26 @@ button.residual-filter-clear[data-residual-filter-clear="1"].press {
 .passport-residual [data-passport-residual-filter-toggle="1"]:hover:not(:active):not(.press) {
   background: color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 42%, var(--vscode-editorWidget-background, #1e1e1e));
   border-color: color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 72%, var(--g-line, #8b949e));
+  cursor: pointer;
+}
+
+/* ADE clear-filter hover cue (CLC1–CLC3) — blue lift above resting button-background; cursor:pointer (activatable); distinct from CHC help / THC warning; CAF :active/.press still win */
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter:hover:not(:active):not(.press),
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
+  cursor: pointer;
+}
+.passport-residual .passport-sticky-clear-filter:hover:not(:active):not(.press),
+.passport-residual [data-passport-clear-filter="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
+  cursor: pointer;
+}
+.residual-filter-clear:hover:not(:active):not(.press),
+button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
   cursor: pointer;
 }
 
