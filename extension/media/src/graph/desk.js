@@ -153,12 +153,6 @@ let viewportEl = null;
 let cam = { x: 0, y: 0, k: 1 };
 let camTo = { x: 0, y: 0, k: 1 };
 let camRaf = 0;
-/** ScrollDrive velocity → camera lerp alpha (S1g). Idle desk keeps CAM_EASE_BASE. */
-const CAM_EASE_BASE = 0.24;
-const CAM_EASE_SNAP = 0.36;
-const CAM_EASE_LOOSE = 0.12;
-const SCROLL_VEL_LOOSE = 0.45;
-let camEase = CAM_EASE_BASE;
 let progFocus = 0;
 let selectedNodeId = null;
 let pathEnds = [];
@@ -322,15 +316,7 @@ function applyPresent(on) {
     presentBtn.textContent = next ? "Exit" : "Present";
     presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
   }
-  // S1m — exit: resume ScrollDrive cleanly (camEase base, presentPaused false).
-  // S1ad — Present exit alone must not soft-restore / yank cam (resume clears justRestored only).
-  if (!next) {
-    if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
-    return;
-  }
-  // S1ad — stash last-stay BEFORE exclusive chrome closes Evidence / pause wipes base
-  // (same shape as Evidence close; sourceId + scrollDriveBase must still be live).
-  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+  if (!next) return;
   if (typeof setKeysPane === "function") setKeysPane(false);
   if (typeof setExportMenu === "function") setExportMenu(false);
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
@@ -342,9 +328,6 @@ function applyPresent(on) {
     toastEl.hidden = true;
   }
   if (tip) tip.hidden = true;
-  // S1m — stage owns the camera; pause ScrollDrive (clears residual macro timer / paint).
-  // S1ad — pause publishes presentStayStashed / data-scroll-present-stay honesty cue.
-  if (typeof pauseScrollDriveForPresent === "function") pauseScrollDriveForPresent();
 }
 
 function togglePresent() {
@@ -656,75 +639,18 @@ if (srcEditor)
 
 /** ScrollDrive — Evidence #srcBody scroll → camera lerp toward related node (S1a). */
 let scrollDriveBase = null;
-/** Last camera-lock target — soft-stay remap mid-scroll (S1t) / file hop (S1v); first lock still zoomToEl (S1h). */
-let scrollDriveTargetLocked = "";
-/** S1r — idle-settle absorbed soft camX into scrollDriveBase (harness flag). */
-let scrollDriveCamXSettled = false;
-/** S1s — idle-settle absorbed soft camY into scrollDriveBase (harness flag). */
-let scrollDriveCamYSettled = false;
-/** S1s — scrollRatio origin for Y nudge after absorb (0 until first settle). */
-let scrollDriveYNudgeOrigin = 0;
-/** S1u — prior-flush macroLod edge (enter/exit soft remap). */
-let scrollDriveWasMacro = false;
-/** S1w — in-memory last soft-stay snapshot for Present→Evidence reopen / pane close / Slice remount.
- *  S1aa also mirrors a tiny blob to sessionStorage so soft restore survives webview reload.
- *  S1ab scopes that blob by workspace folder key so a foreign folder cannot soft-restore. */
-let scrollDriveLastStay = null;
-/** S1w — soft-restore window after Present exit / Evidence close (ms) for in-memory snap. */
-const SCROLL_DRIVE_LAST_STAY_MS = 60000;
-/** S1aa/S1ab — sessionStorage key prefix for last-stay blob (no file contents / secrets).
- *  Scoped key = prefix + (ws ? "::" + encodeURIComponent(ws) : "") so folders do not share. */
-const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
-/** S1aa — stored-blob freshness (ms). sessionStorage is already session-scoped; 24h caps stale tabs. */
-const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1000;
-/** S1ab — workspace folder id / root hint for last-stay scope (from host workspaceFolder; harness may set).
- *  Empty when host has not published a folder yet — document gap; restore still works unscoped. */
-let scrollDriveWorkspaceKey = "";
-/** S1ab — last sourceId showSource actually rendered (not peekSource pre-assign).
- *  Distinguishes host re-post of the same Evidence from an S1v file hop. */
-let scrollDriveLastShownSourceId = "";
-/** S1w — next applyScrollDriveCamera soft-stays keeping restored base (no camTo reseed). */
-let scrollDriveJustRestored = false;
-/** S1ae — one-shot: soft stay just applied; next refitChartSoon rAF must not wipe it. */
-let scrollDriveSuppressNextRefit = false;
-/** S1af — short-lived honesty: Review restart / desk empty just cleared stay (not a restore). */
-let scrollDriveReviewStayCleared = false;
 
 function emptyScrollDrive() {
   return {
     scrollRatio: 0,
     activeLine: 0,
     targetNodeId: "",
-    lineMapHit: false,
-    lineMapPulse: false,
-    activeLineMarked: false,
     camX: 0,
     camY: 0,
     camK: 1,
     cfgActiveId: "",
     cfgUnroll: 0,
     cfgVisible: 0,
-    cfgSpanKind: "",
-    cfgSpanCount: 0,
-    cfgNestDepth: 0,
-    cfgNestMax: 0,
-    cfgNestExpanded: 0,
-    scrollVel: 0,
-    camEase: CAM_EASE_BASE,
-    blendMs: 180,
-    macroLod: false,
-    anchorFocus: "",
-    anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
-    detailNear: false,
-    reducedMotion: false,
-    rafCoalesce: true,
-    rafFlushes: 0,
-    rafMerged: 0,
-    presentPaused: false,
-    presentStayStashed: false,
-    reviewStayCleared: false,
-    camXSettled: false,
-    camYSettled: false,
   };
 }
 
@@ -734,830 +660,19 @@ function publishScrollDrive(drive) {
 
 function resetScrollDrive() {
   scrollDriveBase = null;
-  scrollDriveTargetLocked = "";
-  scrollDriveCamXSettled = false;
-  scrollDriveCamYSettled = false;
-  scrollDriveYNudgeOrigin = 0;
-  scrollDriveWasMacro = false;
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  // Keep scrollDriveLastStay — S1w Present/close reopen needs it across reset.
-  scrollDriveVel = { t: 0, top: 0, vel: 0 };
-  if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
-    clearTimeout(scrollDriveMacroTimer);
-    scrollDriveMacroTimer = 0;
-  }
-  if (scrollDriveRaf) {
-    cancelAnimationFrame(scrollDriveRaf);
-    scrollDriveRaf = 0;
-  }
-  scrollDriveRafPending = 0;
-  scrollDriveRafFlushes = 0;
-  scrollDriveRafMerged = 0;
-  if (scrollDriveEaseTimer) {
-    clearTimeout(scrollDriveEaseTimer);
-    scrollDriveEaseTimer = 0;
-  }
-  setCamEase(CAM_EASE_BASE);
   clearScrollDriveCfgPaint();
-  clearScrollDriveLineMapPaint();
-  clearScrollDriveActiveLinePaint();
-  clearScrollDriveMacroPaint();
-  clearScrollDriveAnchorPaint();
-  clearScrollDriveDetailPaint();
-  clearScrollDriveBlendPaint();
-  const d = emptyScrollDrive();
-  // S1m — closing Evidence under Present must keep presentPaused published.
-  // S1ad — presentStayStashed honesty: warm last-stay still available for Evidence reopen.
-  if (typeof isPresenting === "function" && isPresenting()) {
-    d.presentPaused = true;
-    d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
-  }
-  // S1af — keep Review-clear cue published until soft-stash / cold open clears it.
-  d.reviewStayCleared = !!scrollDriveReviewStayCleared;
-  publishScrollDrive(d);
-}
-
-
-/** S1v — Evidence file / sourceId hop while Slice soft-stay is live:
- *  seed scrollDriveBase from camTo (S1t/S1u style), clear CFG/lineMap/active-line
- *  paint for the old file, refresh settle flags, and let the next flush soft-follow
- *  the new vnode. First-ever open (no prior base) / Present: hard-reset path.
- *  Returns true when soft-stay applied. */
-function softStayScrollDriveAcrossSourceHop() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!scrollDriveBase) return false;
-  scrollDriveBase = {
-    x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
-    y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
-    k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
-  };
-  // Clear lock so applyScrollDriveCamera treats the new sourceId as a soft remap.
-  scrollDriveTargetLocked = "";
-  scrollDriveCamXSettled = false;
-  scrollDriveCamYSettled = false;
-  scrollDriveYNudgeOrigin = 0;
-  scrollDriveWasMacro = false;
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  // S1w/S1aa — live file hop replaces any Present/close snapshot (memory + storage).
-  if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
-  else scrollDriveLastStay = null;
-  // Drop old-file paint; next flush rebuilds for the new #srcBody (S1l coalesce ok).
-  clearScrollDriveCfgPaint();
-  clearScrollDriveLineMapPaint();
-  clearScrollDriveActiveLinePaint();
-  clearScrollDriveMacroPaint();
-  return true;
-}
-
-/** S1aa — pick sessionStorage (preferred) or localStorage fallback for last-stay blob. */
-function scrollDriveLastStayStorage() {
-  try {
-    if (typeof sessionStorage !== "undefined" && sessionStorage) return sessionStorage;
-  } catch (_) {}
-  try {
-    if (typeof localStorage !== "undefined" && localStorage) return localStorage;
-  } catch (_) {}
-  return null;
-}
-
-/** S1ab — storage key scoped by workspace folder (empty ws → unscoped S1aa key for harness/gap). */
-function scrollDriveLastStayStorageKey(ws) {
-  const scope = ws != null ? String(ws) : scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
-  if (!scope) return SCROLL_DRIVE_LAST_STAY_KEY;
-  return SCROLL_DRIVE_LAST_STAY_KEY + "::" + encodeURIComponent(scope);
-}
-
-/** S1ab — normalize workspace folder hint from host (uri / fsPath / name). No secrets. */
-function normalizeScrollDriveWorkspaceKey(raw) {
-  if (raw == null) return "";
-  const s = String(raw).trim();
-  if (!s || s === "undefined" || s === "null") return "";
-  // Cap length so storage keys stay small (folder URIs can be long).
-  return s.length > 240 ? s.slice(0, 240) : s;
-}
-
-/** S1ab — set workspace scope. Clears in-memory stay on folder change so a foreign
- *  soft-restore cannot apply; leaves the prior folder's scoped sessionStorage blob
- *  intact (returning to that folder can still restore). Current folder cannot read it.
- *  S1ag — also clear S1af Review-clear honesty cue/attr so clear-happened cannot
- *  linger across folders (same-key no-op leaves cue alone). */
-function setScrollDriveWorkspaceKey(next) {
-  const key = normalizeScrollDriveWorkspaceKey(next);
-  if (key === scrollDriveWorkspaceKey) {
-    if (typeof window !== "undefined") {
-      window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
-      window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
-    }
-    return false;
-  }
-  scrollDriveLastStay = null;
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  // S1ag — folder hop ends Review-clear cue (honesty must not stick across folders).
-  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
-    clearScrollDriveReviewStayClearedCue();
-  } else {
-    scrollDriveReviewStayCleared = false;
-    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-    if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
-    const cur =
-      typeof window !== "undefined" && window.__graphideScrollDrive
-        ? window.__graphideScrollDrive
-        : null;
-    if (cur) cur.reviewStayCleared = false;
-  }
-  scrollDriveWorkspaceKey = key;
-  if (typeof window !== "undefined") {
-    window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
-    window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
-  }
-  return true;
-}
-
-/** S1aa/S1ab — validate tiny last-stay shape (no file contents / secrets). */
-function normalizeScrollDriveLastStaySnap(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const sid = raw.sourceId != null ? String(raw.sourceId) : "";
-  if (!sid) return null;
-  const x = Number(raw.x);
-  const y = Number(raw.y);
-  const k = Number(raw.k);
-  const t = Number(raw.t);
-  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(k) || k <= 0) return null;
-  if (!Number.isFinite(t) || t <= 0) return null;
-  const out = {
-    sourceId: sid,
-    x,
-    y,
-    k,
-    t,
-  };
-  const ws = normalizeScrollDriveWorkspaceKey(raw.ws != null ? raw.ws : raw.workspaceKey);
-  if (ws) out.ws = ws;
-  if (raw.targetNodeId != null && String(raw.targetNodeId)) {
-    out.targetNodeId = String(raw.targetNodeId);
-  }
-  if (raw.scrollRatio != null && Number.isFinite(Number(raw.scrollRatio))) {
-    out.scrollRatio = Number(raw.scrollRatio);
-  }
-  return out;
-}
-
-/** S1aa/S1ab — write last-stay blob to sessionStorage (or localStorage fallback), workspace-scoped. */
-function persistScrollDriveLastStay(snap) {
-  const clean = normalizeScrollDriveLastStaySnap(snap);
-  if (!clean) return false;
-  const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
-  if (ws) clean.ws = ws;
-  else delete clean.ws;
-  const store = scrollDriveLastStayStorage();
-  if (!store) return false;
-  try {
-    store.setItem(scrollDriveLastStayStorageKey(ws), JSON.stringify(clean));
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-/** S1aa/S1ab — drop stored last-stay blob for the current workspace scope (corrupt / harness cold-frame). */
-function clearPersistedScrollDriveLastStay() {
-  const store = scrollDriveLastStayStorage();
-  if (!store) return;
-  try {
-    store.removeItem(scrollDriveLastStayStorageKey());
-  } catch (_) {}
-  // Also drop legacy unscoped S1aa key when scoped, so a foreign reopen cannot revive it.
-  if (scrollDriveWorkspaceKey) {
-    try {
-      store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
-    } catch (_) {}
-  }
-}
-
-/** S1aa/S1ab — load + validate stored last-stay; clear on stale / corrupt / workspace mismatch. */
-function loadScrollDriveLastStayFromStorage(nextSourceId) {
-  const store = scrollDriveLastStayStorage();
-  if (!store) return null;
-  const key = scrollDriveLastStayStorageKey();
-  let raw = null;
-  try {
-    raw = store.getItem(key);
-  } catch (_) {
-    return null;
-  }
-  // Migrate: unscoped S1aa blob only when current workspace key is empty.
-  if (!raw && !scrollDriveWorkspaceKey) {
-    try {
-      raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
-    } catch (_) {
-      raw = null;
-    }
-  }
-  if (!raw) return null;
-  let parsed = null;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (_) {
-    clearPersistedScrollDriveLastStay();
-    return null;
-  }
-  const snap = normalizeScrollDriveLastStaySnap(parsed);
-  if (!snap) {
-    clearPersistedScrollDriveLastStay();
-    return null;
-  }
-  const age = Date.now() - snap.t;
-  if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_STORAGE_MS) {
-    clearPersistedScrollDriveLastStay();
-    return null;
-  }
-  // S1ab — blob ws must match current workspace key (both empty OK for unscoped gap path).
-  const snapWs = snap.ws ? String(snap.ws) : "";
-  const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
-  if (snapWs !== curWs) {
-    // Foreign workspace blob under this key — ignore + clear so it cannot leak.
-    clearPersistedScrollDriveLastStay();
-    return null;
-  }
-  if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
-    // Mismatched source — leave blob for a later matching reopen; caller decides clear.
-    return null;
-  }
-  return snap;
-}
-
-/** S1w/S1aa/S1ab — resolve fresh last-stay: memory (60s) first, else sessionStorage (24h / same session).
- *  Memory must also match current workspace key (S1ab). */
-function resolveScrollDriveLastStay(nextSourceId, opts) {
-  const allowStorage = !opts || opts.allowStorage !== false;
-  const sid = nextSourceId != null ? String(nextSourceId) : "";
-  const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
-  const mem = scrollDriveLastStay;
-  if (mem && mem.sourceId) {
-    const memWs = mem.ws ? String(mem.ws) : "";
-    if (memWs !== curWs) {
-      // Foreign workspace memory — drop; try scoped storage.
-      scrollDriveLastStay = null;
-    } else if (sid && String(mem.sourceId) !== sid) {
-      // Different source — drop memory; try storage for the requested id.
-      scrollDriveLastStay = null;
-    } else {
-      const age = Date.now() - (Number(mem.t) || 0);
-      if (Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS) {
-        return { snap: mem, fromStorage: false };
-      }
-      // Memory stale — fall through to storage (S1aa reload path).
-      scrollDriveLastStay = null;
-    }
-  }
-  if (!allowStorage) return null;
-  const stored = loadScrollDriveLastStayFromStorage(sid || null);
-  if (!stored) return null;
-  // Hydrate memory so subsequent remount / hop helpers see the same snap.
-  scrollDriveLastStay = stored;
-  return { snap: stored, fromStorage: true };
-}
-
-/** S1w/S1aa/S1ab — stash lightweight last-stay before Present pause / Evidence close / hop.
- *  Memory + sessionStorage mirror (tiny cam blob only — no file contents / secrets).
- *  Includes workspace key so a different folder cannot soft-restore the same sourceId. */
-function stashScrollDriveLastStay() {
-  if (!scrollDriveBase) return false;
-  const sid = sourceId ? String(sourceId) : "";
-  if (!sid) return false;
-  const d = (typeof window !== "undefined" && window.__graphideScrollDrive) || {};
-  const x = Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x;
-  const y = Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y;
-  const k =
-    Number.isFinite(camTo.k) && camTo.k > 0
-      ? camTo.k
-      : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0
-        ? scrollDriveBase.k
-        : 1;
-  const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
-  scrollDriveLastStay = {
-    sourceId: sid,
-    x: Number.isFinite(x) ? x : 0,
-    y: Number.isFinite(y) ? y : 0,
-    k: Number.isFinite(k) && k > 0 ? k : 1,
-    scrollRatio: Number(d.scrollRatio) || 0,
-    targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
-    t: Date.now(),
-  };
-  if (ws) scrollDriveLastStay.ws = ws;
-  persistScrollDriveLastStay(scrollDriveLastStay);
-  // S1af/S1ai — building a new stay ends the Review-clear honesty cue
-  // (Present pause also clears even when stash no-ops).
-  if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
-  return true;
-}
-
-/** S1w/S1aa/S1ab — drop stale Present/close snapshot (different sourceId / TTL / harness cold-frame / workspace change). */
-function clearScrollDriveLastStay() {
-  scrollDriveLastStay = null;
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  clearPersistedScrollDriveLastStay();
-}
-
-
-/** S1af — publish / clear Review-restart stay-clear honesty cue (parity with S1ad
- *  presentStayStashed). Cue means clear ran — never implies soft-restore.
- *  Clear path mutates in place (no full republish) so mid-drive stash cannot
- *  snapshot-stomp a live ScrollDrive publish.
- *  S1an — Review clear wins over Present-stash: when turning cue on, drop
- *  presentStayStashed / data-scroll-present-stay (stay was wiped — S1ac). Mid-Present
- *  both cues must not stay true; Present pause flag itself is unchanged. */
-function setScrollDriveReviewStayClearedCue(on) {
-  scrollDriveReviewStayCleared = !!on;
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) {
-    if (on) {
-      vp.setAttribute("data-scroll-review-clear", "1");
-      // S1an — mutually exclusive with Present-stash honesty cue.
-      vp.removeAttribute("data-scroll-present-stay");
-    } else {
-      vp.removeAttribute("data-scroll-review-clear");
-    }
-  }
-  const cur =
-    typeof window !== "undefined" && window.__graphideScrollDrive
-      ? window.__graphideScrollDrive
-      : null;
-  if (cur) {
-    cur.reviewStayCleared = !!on;
-    if (on) cur.presentStayStashed = false;
-  } else if (on) {
-    // No live publish yet — seed a tiny honesty publish for harness.
-    const d = emptyScrollDrive();
-    d.reviewStayCleared = true;
-    d.presentStayStashed = false;
-    publishScrollDrive(d);
-  }
-}
-
-function clearScrollDriveReviewStayClearedCue() {
-  if (!scrollDriveReviewStayCleared) {
-    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-    if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
-    return;
-  }
-  setScrollDriveReviewStayClearedCue(false);
-}
-
-/** S1ac — Review restart / desk clear: wipe in-memory last-stay + current workspace
- *  scoped sessionStorage blob, and drop live base so closeSourcePane cannot re-stash
- *  the prior review cam. Soft-restore then finds nothing until the user builds a new
- *  stay. Leaves other folders' scoped keys alone (multi-folder polish).
- *  S1ao — same wipe mid-Present (S1an) must leave memory/sessionStorage empty so
- *  Evidence reopen takes the cold hard path (no soft-restore). */
-function clearScrollDriveLastStayOnReviewRestart() {
-  scrollDriveLastStay = null;
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  // Kill live base so a subsequent closeSourcePane stash cannot revive prior cam.
-  scrollDriveBase = null;
-  scrollDriveTargetLocked = "";
-  scrollDriveCamXSettled = false;
-  scrollDriveCamYSettled = false;
-  scrollDriveYNudgeOrigin = 0;
-  scrollDriveWasMacro = false;
-  scrollDriveLastShownSourceId = "";
-  clearPersistedScrollDriveLastStay();
-  // S1af — short-lived honesty cue (cleared on next soft-stash / cold open).
-  if (typeof setScrollDriveReviewStayClearedCue === "function") {
-    setScrollDriveReviewStayClearedCue(true);
-  } else {
-    scrollDriveReviewStayCleared = true;
-  }
-  return true;
-}
-
-/** S1ab — same-source host re-post of `source` after reload / peek reply:
- *  soft-restore from storage when base was wiped; else soft-stay without clearing last-stay
- *  (unlike S1v file-hop which drops the blob). Returns true when soft stay / restore applied. */
-function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  const sid = nextSourceId ? String(nextSourceId) : sourceId ? String(sourceId) : "";
-  if (!sid) return false;
-  if (scrollDriveBase) {
-    scrollDriveBase = {
-      x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
-      y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
-      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
-    };
-    scrollDriveTargetLocked = "";
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
-    scrollDriveWasMacro = false;
-    scrollDriveJustRestored = true;
-    // Keep last-stay warm — host re-post is not a file hop.
-    clearScrollDriveCfgPaint();
-    clearScrollDriveLineMapPaint();
-    clearScrollDriveActiveLinePaint();
-    clearScrollDriveMacroPaint();
-    return true;
-  }
-  // Base empty (post-reload host message) — soft-restore from S1aa/S1ab storage.
-  if (typeof softRestoreScrollDriveFromLastStay === "function") {
-    return softRestoreScrollDriveFromLastStay(sid);
-  }
-  return false;
-}
-
-// Harness hook — S1q cold-frames after S1p Present without consuming S1w restore.
-// S1aa: also clears sessionStorage so cold zoomToEl stays honest.
-// S1ab: workspace key + scoped storage key published for harness.
-if (typeof window !== "undefined") {
-  window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
-  window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
-  // S1aq harness — stash a fresh stay after cold open so Present→Evidence round-trip is explicit.
-  window.__graphideStashScrollDriveLastStay = stashScrollDriveLastStay;
-  // S1ai harness — plant/clear Review-clear cue without wiping last-stay (mutual-exclusion probes).
-  window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
-  window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
-  window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
-  window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
-  // Harness — S1aa/S1ab probe: load/validate storage blob (null + clear on corrupt/stale / ws mismatch).
-  window.__graphideProbeScrollDriveLastStayStorage = function (sid) {
-    return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
-  };
-  window.__graphideSoftStayScrollDriveAcrossHostSourceRepost = softStayScrollDriveAcrossHostSourceRepost;
-}
-
-/** S1w/S1aa — soft-restore scrollDriveBase from last-stay when reopening the same sourceId
- *  shortly after Present exit / Evidence close / Slice remount wipe / webview reload.
- *  Prefer in-memory snap; else seed from sessionStorage blob (S1aa). Skip hard zoomToEl.
- *  Returns true when restore applied. */
-function softRestoreScrollDriveFromLastStay(nextSourceId) {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (scrollDriveBase) return false;
-  const sid = nextSourceId ? String(nextSourceId) : "";
-  if (!sid) return false;
-  const resolved = resolveScrollDriveLastStay(sid);
-  if (!resolved || !resolved.snap) {
-    // Mismatched stored blob for another source — leave it; memory already cleared.
-    const other = loadScrollDriveLastStayFromStorage(null);
-    if (other && String(other.sourceId) !== sid) {
-      // Keep other-source blob; do not soft-restore.
-      return false;
-    }
-    if (scrollDriveLastStay && String(scrollDriveLastStay.sourceId) !== sid) {
-      clearScrollDriveLastStay();
-    }
-    return false;
-  }
-  const snap = resolved.snap;
-  if (String(snap.sourceId) !== sid) {
-    clearScrollDriveLastStay();
-    return false;
-  }
-  // Storage snaps use 24h TTL (already checked); memory used 60s. Both OK here.
-  const age = Date.now() - (Number(snap.t) || 0);
-  const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
-  if (!Number.isFinite(age) || age < 0 || age > maxAge) {
-    clearScrollDriveLastStay();
-    return false;
-  }
-  // Prefer live camTo when still close to the snapshot; else seed from snap.
-  const close =
-    Number.isFinite(camTo.x) &&
-    Number.isFinite(camTo.y) &&
-    Math.abs(camTo.x - snap.x) < 120 &&
-    Math.abs(camTo.y - snap.y) < 160 &&
-    Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
-  if (close) {
-    scrollDriveBase = {
-      x: camTo.x,
-      y: camTo.y,
-      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : snap.k || 1,
-    };
-  } else {
-    scrollDriveBase = {
-      x: Number.isFinite(snap.x) ? snap.x : 0,
-      y: Number.isFinite(snap.y) ? snap.y : 0,
-      k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1,
-    };
-  }
-  // Clear lock + mark just-restored so applyScrollDriveCamera soft-stays while
-  // KEEPING the snapshot base (do not reseed from Present leftover camTo).
-  scrollDriveTargetLocked = "";
-  scrollDriveJustRestored = true;
-  scrollDriveCamXSettled = false;
-  scrollDriveCamYSettled = false;
-  scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
-  scrollDriveWasMacro = false;
-  clearScrollDriveCfgPaint();
-  clearScrollDriveLineMapPaint();
-  clearScrollDriveActiveLinePaint();
-  clearScrollDriveMacroPaint();
-  // Ease camera toward restored stay (one path: setCamTarget / tickCam) — no zoomToEl.
-  if (typeof setCamTarget === "function") {
-    setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
-  }
-  // S1af — soft-restore ends Review-clear cue (next open owns cam again).
-  if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
-  return true;
-}
-
-/** S1w/S1aa — true when a same-source last-stay snapshot is still fresh (selectNode soft skip).
- *  Checks memory then sessionStorage so reload soft-restore also skips hard zoomEl. */
-if (typeof window !== "undefined") {
-  window.__graphideSoftRestoreScrollDriveFromLastStay = softRestoreScrollDriveFromLastStay;
-}
-
-function scrollDriveLastStayMatches(nextSourceId) {
-  const sid = nextSourceId ? String(nextSourceId) : "";
-  if (!sid) return false;
-  const resolved = resolveScrollDriveLastStay(sid);
-  if (!resolved || !resolved.snap) return false;
-  const snap = resolved.snap;
-  if (String(snap.sourceId) !== sid) return false;
-  const age = Date.now() - (Number(snap.t) || 0);
-  const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
-  return Number.isFinite(age) && age >= 0 && age <= maxAge;
-}
-
-/** S1x — desk/Slice remount while Evidence stays open (same sourceId, no Present):
- *  re-seed ScrollDrive from live camTo + warm S1w last-stay; clear settle flags;
- *  drop paint on destroyed DOM and schedule flush so lineMap / active-line rebuild
- *  (S1l). No wipe-then-zoomToEl. Returns true when soft stay / restore applied. */
-function softStayScrollDriveAcrossDeskRemount() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!sourcePane || sourcePane.hidden || !srcBody) return false;
-  const sid = sourceId ? String(sourceId) : "";
-  if (!sid) return false;
-  // Keep last-stay warm before any remount wipe (recycle or full rebuild).
-  if (scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  if (scrollDriveBase) {
-    scrollDriveBase = {
-      x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
-      y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
-      k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1,
-    };
-    // Clear lock so next flush soft-remaps to the newly painted vnode (S1t style).
-    scrollDriveTargetLocked = "";
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
-    scrollDriveWasMacro = false;
-    // Keep restored/seeded base — applyScrollDriveCamera soft-stays without zoomToEl.
-    scrollDriveJustRestored = true;
-    clearScrollDriveCfgPaint();
-    clearScrollDriveLineMapPaint();
-    clearScrollDriveActiveLinePaint();
-    clearScrollDriveMacroPaint();
-    // Skip flush while Lens/Route own dim paint — a late rAF must not override probe opacity.
-    if (lensOpen || routeOpen) {
-      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-      return true;
-    }
-    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
-    return true;
-  }
-  // Base wiped mid-remount but same-source last-stay is warm — soft restore (S1w).
-  if (
-    typeof softRestoreScrollDriveFromLastStay === "function" &&
-    softRestoreScrollDriveFromLastStay(sid)
-  ) {
-    if (lensOpen || routeOpen) {
-      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-      return true;
-    }
-    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
-    return true;
-  }
-  return false;
-}
-// Harness / desk glue — Slice remount soft stay (S1x).
-if (typeof window !== "undefined") {
-  window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
-}
-
-/** S1y/S1z — desk workspace hop remounts the canvas mid ScrollDrive while Evidence
- *  stays open (same sourceId, no Present). Covers Map↔Slice (S1y) and
- *  Lineage↔Slice / Overview↔Slice / Lineage↔Overview / Map↔Lineage|Overview (S1z).
- *  Prefer warm S1w last-stay when cam was wiped by bindStage reset / scheduleFit
- *  ResizeObserver; else re-seed from live camTo like S1x. Soft-follow mapped
- *  target on Slice / Lineage / Overview landing (S1q/S1t); skip hard zoomToEl.
- *  Map landing keeps stay warm without a flush soft-follow (no slice vnodes —
- *  avoids stacking ±80 camX). Returns true when soft stay applied. */
-function softStayScrollDriveAcrossMapSliceHop() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!sourcePane || sourcePane.hidden || !srcBody) return false;
-  const sid = sourceId ? String(sourceId) : "";
-  if (!sid) return false;
-  // Drop lingering scheduleFit ResizeObserver — workspace resize on Map↔Slice must
-  // not fitChart-yank the soft-stay camera mid-hop.
-  if (typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
-  // S1aa — prefer warm memory; else hydrate from sessionStorage last-stay blob.
-  const resolvedHop =
-    typeof resolveScrollDriveLastStay === "function" ? resolveScrollDriveLastStay(sid) : null;
-  const snap = (resolvedHop && resolvedHop.snap) || scrollDriveLastStay;
-  const snapOk =
-    snap &&
-    String(snap.sourceId) === sid &&
-    (() => {
-      const age = Date.now() - (Number(snap.t) || 0);
-      const maxAge =
-        resolvedHop && resolvedHop.fromStorage
-          ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS
-          : SCROLL_DRIVE_LAST_STAY_MS;
-      return Number.isFinite(age) && age >= 0 && age <= maxAge;
-    })();
-  const seedFromSnap = () => {
-    if (!snapOk) return false;
-    scrollDriveBase = {
-      x: Number.isFinite(snap.x) ? snap.x : 0,
-      y: Number.isFinite(snap.y) ? snap.y : 0,
-      k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1,
-    };
-    scrollDriveTargetLocked = "";
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
-    scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
-    scrollDriveWasMacro = false;
-    scrollDriveJustRestored = true;
-    clearScrollDriveCfgPaint();
-    clearScrollDriveLineMapPaint();
-    clearScrollDriveActiveLinePaint();
-    clearScrollDriveMacroPaint();
-    if (typeof setCamTarget === "function") {
-      setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
-    }
-    return true;
-  };
-  // Map landing — keep stay warm; do NOT flush soft-follow (would stack camX caps
-  // with no slice vnode, and Map fit is deferred until Evidence closes / cold remount).
-  if (explorerWs === "map") {
-    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-    if (seedFromSnap() || scrollDriveBase) {
-      if (!snapOk && scrollDriveBase && typeof setCamTarget === "function") {
-        setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
-      }
-      scrollDriveTargetLocked = "";
-      scrollDriveCamXSettled = false;
-      scrollDriveCamYSettled = false;
-      scrollDriveWasMacro = false;
-      scrollDriveJustRestored = true;
-      clearScrollDriveCfgPaint();
-      clearScrollDriveLineMapPaint();
-      clearScrollDriveActiveLinePaint();
-      clearScrollDriveMacroPaint();
-      return true;
-    }
-    return false;
-  }
-  // Slice / Lineage / Overview landing — prefer snap when cam was yanked; else
-  // desk-remount soft stay + flush (S1y Slice + S1z Lineage/Overview).
-  if (snapOk) {
-    const close =
-      Number.isFinite(camTo.x) &&
-      Number.isFinite(camTo.y) &&
-      Math.abs(camTo.x - snap.x) < 120 &&
-      Math.abs(camTo.y - snap.y) < 160 &&
-      Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
-    if (!close) {
-      if (seedFromSnap()) {
-        if (lensOpen || routeOpen) {
-          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-          return true;
-        }
-        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
-        return true;
-      }
-    } else {
-      // Cam still near pre-hop stay — re-assert snap exactly (no stacked soft-follow).
-      if (seedFromSnap()) {
-        if (lensOpen || routeOpen) {
-          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-          return true;
-        }
-        // Flush rebuilds CFG / lineMap / active-line (S1l); justRestored soft-stays.
-        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
-        return true;
-      }
-    }
-  }
-  let ok = false;
-  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    ok = softStayScrollDriveAcrossDeskRemount();
-  }
-  if (ok && scrollDriveBase && typeof setCamTarget === "function") {
-    setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
-  }
-  return ok;
-}
-// Harness / desk glue — Map↔Slice (S1y) + Lineage/Overview desk hops (S1z).
-// One soft-stay path — S1z reuses this helper (no third stay fork).
-if (typeof window !== "undefined") {
-  window.__graphideSoftStayScrollDriveAcrossMapSliceHop = softStayScrollDriveAcrossMapSliceHop;
-  window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop = softStayScrollDriveAcrossMapSliceHop;
-}
-
-/** S1m — Present stage owns the camera; freeze ScrollDrive + clear residual timers/paint.
- *  S1ad — stash before wipe (parity with Evidence close); publish presentStayStashed /
- *  data-scroll-present-stay so the restore path is honest when no prior stay exists. */
-function pauseScrollDriveForPresent() {
-  // S1w/S1ad — remember stay before wipe (applyPresent / closeSourcePane may already have stashed).
-  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
-  // S1ai — Present-stash / Present-enter and Review-clear cues are mutually exclusive.
-  // Clear lingering reviewStayCleared even when stash no-ops (no live base).
-  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
-    clearScrollDriveReviewStayClearedCue();
-  } else {
-    scrollDriveReviewStayCleared = false;
-  }
-  const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
-  if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
-    clearTimeout(scrollDriveMacroTimer);
-    scrollDriveMacroTimer = 0;
-  }
-  if (scrollDriveEaseTimer) {
-    clearTimeout(scrollDriveEaseTimer);
-    scrollDriveEaseTimer = 0;
-  }
-  if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-  scrollDriveBase = null;
-  scrollDriveTargetLocked = "";
-  scrollDriveCamXSettled = false;
-  scrollDriveCamYSettled = false;
-  scrollDriveYNudgeOrigin = 0;
-  scrollDriveWasMacro = false;
-  scrollDriveVel = { t: 0, top: 0, vel: 0 };
-  // S1ad — do not mark justRestored on pause; Present exit must not half-apply restore.
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  setCamEase(CAM_EASE_BASE);
-  clearScrollDriveCfgPaint();
-  clearScrollDriveLineMapPaint();
-  clearScrollDriveActiveLinePaint();
-  clearScrollDriveMacroPaint();
-  clearScrollDriveAnchorPaint();
-  clearScrollDriveDetailPaint();
-  clearScrollDriveBlendPaint();
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) {
-    vp.setAttribute("data-scroll-present-paused", "1");
-    if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
-    else vp.removeAttribute("data-scroll-present-stay");
-  }
-  const d = emptyScrollDrive();
-  d.presentPaused = true;
-  d.presentStayStashed = !!stayStashed;
-  // S1ai — never publish Review-clear alongside Present-stash honesty.
-  d.reviewStayCleared = false;
-  publishScrollDrive(d);
-}
-
-/** S1m — Present exit: drop pause flag, restore idle camEase; Evidence may reopen later.
- *  S1ad — exit alone must not soft-restore / yank cam; clear present-stay cue; keep
- *  lastStay warm in memory for showSource reopen (S1w).
- *  S1am — exit alone never implies Review clear: scrub reviewStayCleared memory +
- *  data-scroll-review-clear (do not re-publish a stale / mid-Present half-set cue). */
-function resumeScrollDriveAfterPresent() {
-  setCamEase(CAM_EASE_BASE);
-  // S1ad — never half-apply restore on Present exit (wait for Evidence reopen).
-  scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-  // S1am — Present exit ≠ Review clear; force-clear cue even if planted mid-Present.
-  if (typeof clearScrollDriveReviewStayClearedCue === "function") {
-    clearScrollDriveReviewStayClearedCue();
-  } else {
-    scrollDriveReviewStayCleared = false;
-  }
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) {
-    vp.removeAttribute("data-scroll-present-paused");
-    vp.removeAttribute("data-scroll-present-stay");
-    // Belt: cue clear may early-return when memory already false — still scrub DOM.
-    vp.removeAttribute("data-scroll-review-clear");
-  }
-  const d = emptyScrollDrive();
-  d.presentPaused = false;
-  d.presentStayStashed = false;
-  d.reviewStayCleared = false;
-  publishScrollDrive(d);
+  publishScrollDrive(emptyScrollDrive());
 }
 
 function readSrcActiveLine() {
   if (!srcBody) return 0;
-  // Use viewport rects — .src-line offsetParent is the desk root, not #srcBody,
-  // so offsetTop is not scroll-local (S1h needs a reliable activeLine).
-  const bodyRect = srcBody.getBoundingClientRect();
-  const midY = bodyRect.top + srcBody.clientHeight / 2;
+  const mid = srcBody.scrollTop + srcBody.clientHeight / 2;
   const lines = srcBody.querySelectorAll(".src-line");
   for (let i = 0; i < lines.length; i++) {
     const el = lines[i];
-    const r = el.getBoundingClientRect();
-    if (r.top <= midY && midY < r.bottom + 0.5) {
+    const top = el.offsetTop;
+    const bottom = top + el.offsetHeight;
+    if (top <= mid && mid < bottom + 0.5) {
       const ln = el.querySelector(".ln");
       const n = parseInt(ln && ln.textContent, 10);
       return Number.isFinite(n) ? n : 0;
@@ -1581,442 +696,16 @@ function findScrollDriveTargetEl(id) {
   );
 }
 
-/** S1n — clear lineMapHit glow/pulse paint (hit pulse vs quieter miss). */
-function clearScrollDriveLineMapPaint() {
-  if (!canvas) return;
-  canvas
-    .querySelectorAll(
-      ".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss, .vnode[data-scroll-linemap]"
-    )
-    .forEach((el) => {
-      el.classList.remove("scroll-linemap-hit", "scroll-linemap-miss");
-      el.removeAttribute("data-scroll-linemap");
-    });
-}
-
-/** S1n — when lineMapHit, pulse the mapped node (distinct from scroll-cfg-hot);
- *  miss/fallback keeps a quieter outline. Reduced-motion (S1k) → static glow,
- *  no pulse (`lineMapPulse` false). Present pause clears via reset/pause. */
-function applyScrollDriveLineMapGlow(lineMapHit, targetNodeId) {
-  clearScrollDriveLineMapPaint();
-  if (!canvas) return { lineMapPulse: false };
-  // Present owns the desk — never revive glow while stage is on.
-  if (typeof isPresenting === "function" && isPresenting()) return { lineMapPulse: false };
-  function vnodeFor(id) {
-    if (!id) return null;
-    const found = findScrollDriveTargetEl(id);
-    if (!found) return null;
-    if (found.classList && found.classList.contains("vnode")) return found;
-    return found.closest ? found.closest(".vnode") : null;
-  }
-  // Prefer the mapped target; if that Steiner/IR node is not painted on this
-  // canvas, fall back to the open Evidence sourceId so the focus cue stays visible.
-  let el = vnodeFor(targetNodeId);
-  if (!el && sourceId) el = vnodeFor(sourceId);
-  if (!el) return { lineMapPulse: false };
-  const reduced = typeof reduceMotion === "function" && reduceMotion();
-  if (lineMapHit) {
-    el.classList.add("scroll-linemap-hit");
-    el.setAttribute("data-scroll-linemap", "hit");
-    return { lineMapPulse: !reduced };
-  }
-  el.classList.add("scroll-linemap-miss");
-  el.setAttribute("data-scroll-linemap", "miss");
-  return { lineMapPulse: false };
-}
-
-
-
-/** S1p — clear Evidence mid-viewport active-line cue (dual-pane with S1n glow). */
-function clearScrollDriveActiveLinePaint() {
-  if (!srcBody) return;
-  srcBody
-    .querySelectorAll(".src-line.scroll-drive-active, .src-line[data-scroll-active]")
-    .forEach((el) => {
-      el.classList.remove("scroll-drive-active");
-      el.removeAttribute("data-scroll-active");
-    });
-}
-
-/** S1p — mark the mid-viewport Evidence `.src-line` that owns activeLine so the
- *  editor side shows which line drives the canvas (pairs with S1n lineMapHit glow).
- *  Present pause / Evidence close / reset clear via clearScrollDriveActiveLinePaint. */
-function applyScrollDriveActiveLine(activeLine) {
-  clearScrollDriveActiveLinePaint();
-  if (!srcBody) return { activeLineMarked: false };
-  if (typeof isPresenting === "function" && isPresenting()) return { activeLineMarked: false };
-  const line = Number(activeLine) || 0;
-  if (line <= 0) return { activeLineMarked: false };
-  const bodyRect = srcBody.getBoundingClientRect();
-  const midY = bodyRect.top + srcBody.clientHeight / 2;
-  const lines = srcBody.querySelectorAll(".src-line");
-  let marked = null;
-  for (let i = 0; i < lines.length; i++) {
-    const el = lines[i];
-    const r = el.getBoundingClientRect();
-    if (r.top <= midY && midY < r.bottom + 0.5) {
-      marked = el;
-      break;
-    }
-  }
-  if (!marked) {
-    for (let i = 0; i < lines.length; i++) {
-      const ln = lines[i].querySelector(".ln");
-      const n = parseInt(ln && ln.textContent, 10);
-      if (n === line) {
-        marked = lines[i];
-        break;
-      }
-    }
-  }
-  if (!marked) return { activeLineMarked: false };
-  marked.classList.add("scroll-drive-active");
-  marked.setAttribute("data-scroll-active", "1");
-  return { activeLineMarked: true };
-}
-
-/** S1q — soft ±px camX follow toward centering the mapped vnode (never yank). */
-const SCROLL_CAMX_FOLLOW_CAP = 80;
-/** S1u — lighter ±px soft follow when macro-hot remaps / macro enter soft-stay. */
-const SCROLL_MACRO_CAM_FOLLOW_CAP = 48;
-/** S1u — max |Δk| per macro setCamTarget so overview eases (skip under reduced-motion). */
-const SCROLL_MACRO_K_DELTA_CAP = 0.35;
-
-/** Content→screen math (same as zoomToEl): ideal camX to center el at scale k.
- *  Soft-clamped delta from baseX so dual-pane morph is not vertical-only. */
-function scrollDriveSoftCamX(el, baseX, k, cap) {
-  const stage = canvas && canvas.querySelector(".stage");
-  if (!stage || !el) return baseX;
-  const vr = stage.getBoundingClientRect();
-  if (vr.width < 24) return baseX;
-  const r = el.getBoundingClientRect();
-  const cx = r.left + r.width / 2 - vr.left;
-  const liveK = cam && cam.k ? cam.k : k;
-  if (!Number.isFinite(liveK) || Math.abs(liveK) < 1e-6) return baseX;
-  const contentX = (cx - cam.x) / liveK;
-  const nk = Number.isFinite(k) && k > 0 ? k : liveK;
-  const idealX = vr.width / 2 - contentX * nk;
-  let dx = idealX - baseX;
-  const lim = Math.max(0, Number(cap));
-  if (!Number.isFinite(lim)) return baseX;
-  if (dx > lim) dx = lim;
-  if (dx < -lim) dx = -lim;
-  return baseX + dx;
-}
-
-/** S1r — fold S1q soft-followed camX into scrollDriveBase on idle settle.
- *  Uses camTo.x (already soft-clamped by applyScrollDriveCamera) so the base
- *  absorbs the correction without a second RAF loop or fighting S1c macro. */
-function absorbScrollDriveSoftCamX() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!scrollDriveBase || !canvas) return false;
-  const d = window.__graphideScrollDrive;
-  if (d && d.macroLod) return false;
-  if (!Number.isFinite(camTo.x)) return false;
-  if (Math.abs(camTo.x - scrollDriveBase.x) < 0.5) {
-    scrollDriveCamXSettled = true;
-    return false;
-  }
-  scrollDriveBase.x = camTo.x;
-  scrollDriveCamXSettled = true;
-  // S1w — keep last-stay warm while Evidence soft-stay is live (Slice remount).
-  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
-  return true;
-}
-
-/** S1s — fold post-nudge soft camY into scrollDriveBase on idle settle.
- *  Rebases Y-nudge origin to the live scrollRatio so the next tiny scroll
- *  does not re-apply the full absolute nudge (parity with S1r camX absorb).
- *  No second RAF; Present pause / macro LOD no-op. */
-function absorbScrollDriveSoftCamY() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!scrollDriveBase || !canvas) return false;
-  const d = window.__graphideScrollDrive;
-  if (d && d.macroLod) return false;
-  if (!Number.isFinite(camTo.y)) return false;
-  let ratio = 0;
-  if (srcBody) {
-    const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
-    ratio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
-  } else if (d && Number.isFinite(d.scrollRatio)) {
-    ratio = Number(d.scrollRatio);
-  }
-  // Already absorbed at this ratio — keep flag hot for harness.
-  if (
-    scrollDriveCamYSettled &&
-    Math.abs(ratio - scrollDriveYNudgeOrigin) < 0.002 &&
-    Math.abs(camTo.y - scrollDriveBase.y) < 0.5
-  ) {
-    return false;
-  }
-  scrollDriveBase.y = camTo.y;
-  scrollDriveYNudgeOrigin = ratio;
-  scrollDriveCamYSettled = true;
-  // S1w — keep last-stay warm while Evidence soft-stay is live (Slice remount).
-  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
-  return true;
-}
-
 function applyScrollDriveCamera(scrollRatio, targetNodeId) {
-  // S1m — Present owns cam; never nudge while stage is on.
-  if (typeof isPresenting === "function" && isPresenting()) return;
   if (!canvas) return;
-  const lock = targetNodeId ? String(targetNodeId) : "";
-  const el = findScrollDriveTargetEl(targetNodeId);
-  if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
-    // S1t — mid-scroll nest/line remap: seed base from current camTo and soft-follow
-    // the new vnode (S1q cap). Avoid zoomToEl yank that discards S1r/S1s settle.
-    // First lock (no prior base) still uses zoomToEl as today.
-    // S1t — any mid-session lock change with an existing base soft-stays.
-    // First lock (!scrollDriveBase) still zoomToEl below.
-    const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
-    // S1w — just-restored: soft-stay but KEEP snapshot base (no camTo reseed / no zoomToEl).
-    const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
-    scrollDriveJustRestored = false;
-    const softStay = remapping || justRestored;
-    scrollDriveTargetLocked = lock;
-    if (softStay) {
-      if (!justRestored) {
-        scrollDriveBase = {
-          x: Number.isFinite(camTo.x) ? camTo.x : 0,
-          y: Number.isFinite(camTo.y) ? camTo.y : 0,
-          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1,
-        };
-        // Rebase Y-nudge origin so seeding from live camTo does not re-apply absolute nudge.
-        scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
-      }
-      // justRestored: keep snapshot base + Y origin from softRestore.
-    } else {
-      if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-      scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
-      scrollDriveYNudgeOrigin = 0;
-    }
-    // Remap / first lock — idle settle may re-absorb soft cam into the new base.
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
+  if (!scrollDriveBase) {
+    const el = findScrollDriveTargetEl(targetNodeId);
+    if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+    scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
-  // S1s — after idle absorb, nudge is relative to settled origin so Y does not re-yank.
-  const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
-  // S1q — soft camX follow toward mapped target (prefer lineMapHit el / sourceId vnode).
-  // Cap so it eases, never yanks. Macro LOD keeps its own path (no fight).
-  // S1r absorbs camTo.x into scrollDriveBase on idle settle so a missing-el /
-  // base-only path cannot spring back to the pre-follow X.
-  const camX = el
-    ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
-    : scrollDriveBase.x;
-  // S1u — soft-cap k toward micro base so macro→micro eases (S1k snaps uncapped).
-  let camK = scrollDriveBase.k;
-  if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
-    const dk = camK - camTo.k;
-    if (dk > SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
-    else if (dk < -SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
-  }
-  setCamTarget(camX, scrollDriveBase.y - nudge, camK);
-  // Keep easing k toward micro base after macro exit when no further scroll arrives.
-  if (
-    !(typeof reduceMotion === "function" && reduceMotion()) &&
-    Number.isFinite(scrollDriveBase.k) &&
-    Math.abs(scrollDriveBase.k - camK) > 0.02
-  ) {
-    if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
-    scrollDriveMacroTimer = setTimeout(() => {
-      scrollDriveMacroTimer = 0;
-      if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
-    }, 120);
-  }
-  // S1r / S1s / S1k — reduced-motion skips settle timers; snap-absorb soft cam into base.
-  if (typeof reduceMotion === "function" && reduceMotion()) {
-    if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
-      scrollDriveBase.x = camX;
-    }
-    scrollDriveCamXSettled = true;
-    if (Number.isFinite(camTo.y)) {
-      scrollDriveBase.y = camTo.y;
-      scrollDriveYNudgeOrigin = scrollRatio;
-    }
-    scrollDriveCamYSettled = true;
-  }
-}
-
-/** Scroll velocity (px/ms EMA) + age decay — fast flick → macro Map LOD (S1c). */
-let scrollDriveVel = { t: 0, top: 0, vel: 0 };
-const SCROLL_MACRO_RATIO = 0.18;
-const SCROLL_MACRO_VEL = 0.55;
-
-function noteScrollDriveVelocity(scrollTop) {
-  const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-  if (!scrollDriveVel.t) {
-    scrollDriveVel = { t: now, top: scrollTop, vel: 0 };
-    return 0;
-  }
-  const dt = Math.max(1, now - scrollDriveVel.t);
-  const dTop = Math.abs(scrollTop - scrollDriveVel.top);
-  const instant = dTop / dt;
-  scrollDriveVel.vel = scrollDriveVel.vel * 0.35 + instant * 0.65;
-  scrollDriveVel.t = now;
-  scrollDriveVel.top = scrollTop;
-  return scrollDriveVel.vel;
-}
-
-function readScrollDriveVelocity() {
-  if (!scrollDriveVel.t) return 0;
-  const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-  const age = now - scrollDriveVel.t;
-  if (age <= 120) return scrollDriveVel.vel;
-  return scrollDriveVel.vel * Math.exp(-(age - 120) / 180);
-}
-
-function scrollDriveEaseFromVel(vel) {
-  // High velocity → loose lerp (less fight with scroll); low → snappy settle.
-  const v = Math.max(0, Number(vel) || 0);
-  const t = Math.min(1, v / SCROLL_VEL_LOOSE);
-  return CAM_EASE_SNAP + (CAM_EASE_LOOSE - CAM_EASE_SNAP) * t;
-}
-
-function setCamEase(e) {
-  const n = Number(e);
-  camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
-}
-
-/** S1j — map camEase → CSS blend duration (loose → longer; snappy → shorter).
- * S1k — prefers-reduced-motion → 0ms (snap; setCamTarget already jumps). */
-function scrollDriveBlendMsFromEase(ease) {
-  if (typeof reduceMotion === "function" && reduceMotion()) return 0;
-  const a = Number(ease);
-  const e = Number.isFinite(a) ? Math.max(0.08, Math.min(0.45, a)) : CAM_EASE_BASE;
-  const span = CAM_EASE_SNAP - CAM_EASE_LOOSE;
-  const t = span > 0 ? Math.max(0, Math.min(1, (e - CAM_EASE_LOOSE) / span)) : 0.5;
-  // 0.12 → 280ms, 0.36 → 120ms (still eases; never 0 unless reduced-motion).
-  return Math.round(280 + (120 - 280) * t);
-}
-
-function clearScrollDriveBlendPaint() {
-  // Clear every .viewport — shared/singleton cam must not leave blend on Lineage etc.
-  const seen = new Set();
-  function wipe(vp) {
-    if (!vp || seen.has(vp)) return;
-    seen.add(vp);
-    vp.removeAttribute("data-scroll-blend");
-    if (vp.style) vp.style.removeProperty("--scroll-blend-ms");
-  }
-  wipe(viewportEl);
-  if (canvas) canvas.querySelectorAll(".viewport").forEach(wipe);
-  document.querySelectorAll(".viewport[data-scroll-blend]").forEach(wipe);
-}
-
-/** S1j — publish camEase-tied blend on .viewport for nest/macro CSS transitions. */
-function applyScrollDriveBlendPaint(ease) {
-  const ms = scrollDriveBlendMsFromEase(ease);
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) {
-    if (vp.getAttribute("data-scroll-blend") !== "1") vp.setAttribute("data-scroll-blend", "1");
-    if (vp.style) vp.style.setProperty("--scroll-blend-ms", ms + "ms");
-  }
-  return { blendMs: ms };
-}
-
-function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
-  if (!canScroll) return false;
-  // File top (low ratio) or a fast flick — short / unscrollable Evidence stays micro.
-  return scrollRatio <= SCROLL_MACRO_RATIO || vel >= SCROLL_MACRO_VEL;
-}
-
-function clearScrollDriveMacroPaint() {
-  if (!canvas) return;
-  canvas.querySelectorAll(".vnode.scroll-macro-hot, .vnode.scroll-macro-dim, .vnode[data-macro-hot]").forEach((el) => {
-    el.classList.remove("scroll-macro-hot", "scroll-macro-dim");
-    el.removeAttribute("data-macro-hot");
-  });
-  const vp = viewportEl || canvas.querySelector(".viewport");
-  if (vp) {
-    vp.removeAttribute("data-scroll-macro");
-    // Restore LOD from live camera — applyCam will keep it in sync.
-    if (!mapStageMounted()) {
-      const lod = String(lodOf(cam && cam.k != null ? cam.k : 1));
-      if (vp.getAttribute("data-lod") !== lod) vp.setAttribute("data-lod", lod);
-    }
-  }
-}
-
-/** S1c — high scroll velocity or file-top → Map overview LOD + focus module, dim rest.
- *  S1u — soft-stay on macro enter / macro-hot remap: seed from camTo, capped soft
- *  follow + capped k delta via setCamTarget (no zoomToEl yank mid soft-stay). */
-function applyScrollDriveMacro(scrollRatio, targetNodeId, opts) {
-  // S1m — Present owns cam; skip macro LOD camera/paint on stage.
-  if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
-  if (!canvas) return { macroLod: false };
-  const lock = targetNodeId ? String(targetNodeId) : "";
-  const el = findScrollDriveTargetEl(targetNodeId);
-  const entering = !!(opts && opts.entering);
-  const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
-  // Soft-stay when mid dual-pane soft-stay enters macro, or macro-hot remaps.
-  // First lock with no prior base still zoomToEl (S1c cold start).
-  const softStay = !!(scrollDriveBase && (remapping || entering));
-  if (!scrollDriveBase || remapping || entering) {
-    scrollDriveTargetLocked = lock;
-    if (softStay) {
-      // Keep micro base.k so exit can ease back to focus scale (do not adopt overview camTo.k).
-      const keepK =
-        Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0
-          ? scrollDriveBase.k
-          : Number.isFinite(camTo.k) && camTo.k > 0
-            ? camTo.k
-            : 1;
-      scrollDriveBase = {
-        x: Number.isFinite(camTo.x) ? camTo.x : 0,
-        y: Number.isFinite(camTo.y) ? camTo.y : 0,
-        k: keepK,
-      };
-      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
-    } else {
-      if (el) zoomToEl(el, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
-      scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
-      scrollDriveYNudgeOrigin = 0;
-    }
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
-  }
-  // Pull toward overview so lodOf(k) → 0; gentler Y nudge than micro focus.
-  const kIdeal = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
-  let kMacro = kIdeal;
-  const reduced = typeof reduceMotion === "function" && reduceMotion();
-  // S1u — cap k delta from live camTo every macro flush so overview eases; S1k snaps.
-  if (!reduced && Number.isFinite(camTo.k) && camTo.k > 0) {
-    const dk = kMacro - camTo.k;
-    if (dk > SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
-    else if (dk < -SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
-  }
-  const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 24;
-  // S1u — soft X toward new/enter hot vnode (lighter cap than S1q micro).
-  let camX = scrollDriveBase.x;
-  if (el && softStay) {
-    camX = scrollDriveSoftCamX(el, scrollDriveBase.x, kMacro, SCROLL_MACRO_CAM_FOLLOW_CAP);
-  }
-  setCamTarget(camX, scrollDriveBase.y - nudge, kMacro);
-  // Keep easing k toward overview while still capped (no more scroll needed).
-  if (!reduced && Math.abs(kIdeal - kMacro) > 0.02) {
-    if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
-    scrollDriveMacroTimer = setTimeout(() => {
-      scrollDriveMacroTimer = 0;
-      if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
-    }, 120);
-  }
-  const vp = viewportEl || canvas.querySelector(".viewport");
-  if (vp) {
-    if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
-    vp.setAttribute("data-scroll-macro", "1");
-  }
-  const hotId = targetNodeId ? String(targetNodeId) : "";
-  canvas.querySelectorAll(".vnode[data-id]").forEach((node) => {
-    const id = node.getAttribute("data-id");
-    const hot = !!(hotId && id === hotId);
-    node.classList.toggle("scroll-macro-hot", hot);
-    node.classList.toggle("scroll-macro-dim", !hot);
-    if (hot) node.setAttribute("data-macro-hot", "1");
-    else node.removeAttribute("data-macro-hot");
-  });
-  return { macroLod: true };
+  const nudge = scrollRatio * 48;
+  setCamTarget(scrollDriveBase.x, scrollDriveBase.y - nudge, scrollDriveBase.k);
 }
 
 function lineOfScrollDriveNode(id) {
@@ -2024,82 +713,6 @@ function lineOfScrollDriveNode(id) {
   if (!n || !n.span) return 0;
   if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
   return Number(n.span.line) || 0;
-}
-
-/** IR / fixture span line range — start/end or flat line/endLine (S1h). */
-function spanLinesOfScrollDriveNode(id) {
-  const n = nodeById.get(idVal(id));
-  if (!n || !n.span) return null;
-  const sp = n.span;
-  const start = Number((sp.start && sp.start.line) || sp.line) || 0;
-  if (!start) return null;
-  const endRaw = Number((sp.end && sp.end.line) || sp.endLine) || start;
-  return {
-    start: start,
-    end: Math.max(start, endRaw),
-    file: sp.file || "",
-  };
-}
-
-function evidenceScrollDriveFile() {
-  if (!sourceId) return "";
-  const n = nodeById.get(idVal(sourceId));
-  return (n && n.span && n.span.file) || "";
-}
-
-/**
- * Map Evidence activeLine → graph node via IR/fixture line spans (S1h).
- * Prefer same-file tightest containing span; else nearest within 48 lines;
- * else fall back to inspected Evidence node (sourceId).
- */
-function resolveScrollDriveTargetNode(activeLine) {
-  const fallback = sourceId ? String(sourceId) : "";
-  const line = Number(activeLine) || 0;
-  if (!line || !nodeById || typeof nodeById.forEach !== "function") {
-    return { targetNodeId: fallback, lineMapHit: false };
-  }
-  const file = evidenceScrollDriveFile();
-  const walk = new Set(scrollDriveCfgWalk());
-  let bestContain = null;
-  let bestNear = null;
-  nodeById.forEach((_n, rawId) => {
-    const id = String(idVal(rawId));
-    const span = spanLinesOfScrollDriveNode(id);
-    if (!span) return;
-    const sameFile = !file || !span.file || span.file === file;
-    if (!sameFile) return;
-    let score = 0;
-    if (walk.has(id)) score += 2;
-    if (id === fallback) score += 1;
-    if (findScrollDriveTargetEl(id)) score += 1;
-    if (line >= span.start && line <= span.end) {
-      const width = span.end - span.start;
-      const cand = { id: id, width: width, score: score };
-      if (
-        !bestContain ||
-        cand.width < bestContain.width ||
-        (cand.width === bestContain.width && cand.score > bestContain.score)
-      ) {
-        bestContain = cand;
-      }
-      return;
-    }
-    const dist = line < span.start ? span.start - line : line - span.end;
-    const cand = { id: id, dist: dist, score: score };
-    if (
-      !bestNear ||
-      cand.dist < bestNear.dist ||
-      (cand.dist === bestNear.dist && cand.score > bestNear.score)
-    ) {
-      bestNear = cand;
-    }
-  });
-  if (bestContain) return { targetNodeId: bestContain.id, lineMapHit: true };
-  // Loose nearest — harness pad lines often sit far from fixture spans.
-  if (bestNear && bestNear.dist <= 48) {
-    return { targetNodeId: bestNear.id, lineMapHit: true };
-  }
-  return { targetNodeId: fallback, lineMapHit: false };
 }
 
 /** Current flow Steiner walk — fixture CFG for micro unroll (S1b). */
@@ -2132,790 +745,70 @@ function pickScrollDriveCfgActive(walk, activeLine, scrollRatio) {
 
 function clearScrollDriveCfgPaint() {
   if (!canvas) return;
-  canvas
-    .querySelectorAll(
-      ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode.scroll-cfg-nest-hot, .vnode.scroll-cfg-nest-anc, .vnode.scroll-cfg-nest-sib, .vnode[data-cfg-active], .vnode[data-cfg-span], .vnode[data-cfg-depth]"
-    )
-    .forEach((el) => {
-      el.classList.remove(
-        "scroll-cfg-hot",
-        "scroll-cfg-dim",
-        "scroll-cfg-ahead",
-        "scroll-cfg-sib",
-        "scroll-cfg-if",
-        "scroll-cfg-loop",
-        "scroll-cfg-try",
-        "scroll-cfg-nest-hot",
-        "scroll-cfg-nest-anc",
-        "scroll-cfg-nest-sib"
-      );
-      el.removeAttribute("data-cfg-active");
-      el.removeAttribute("data-cfg-span");
-      el.removeAttribute("data-cfg-depth");
-    });
-}
-
-/** Classify Evidence source text into if / loop / try (no Tree-sitter — S1d/S1i).
- *  Strip line/block comments so pad text like "loop body" is not a false hit. */
-function classifyScrollDriveCfgSpanText(tx) {
-  let s = String(tx || "");
-  s = s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/, "");
-  if (/\btry\b|\bcatch\b|\bfinally\b|\bexcept\b/.test(s)) return "try";
-  if (/\bfor\b|\bwhile\b|\bloop\b/.test(s)) return "loop";
-  if (/\belse\s+if\b|\bif\b|\belse\b/.test(s)) return "if";
-  return "";
-}
-
-function scanScrollDriveCfgSpans() {
-  if (!srcBody) return [];
-  const lines = srcBody.querySelectorAll(".src-line");
-  const hits = [];
-  const stack = [];
-  let depth = 0;
-  let lastLn = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const el = lines[i];
-    const lnEl = el.querySelector(".ln");
-    const txEl = el.querySelector(".tx");
-    const ln = parseInt(lnEl && lnEl.textContent, 10);
-    if (!Number.isFinite(ln)) continue;
-    lastLn = ln;
-    const tx = (txEl && txEl.textContent) || "";
-    const kind = classifyScrollDriveCfgSpanText(tx);
-    if (kind) {
-      const sp = {
-        kind: kind,
-        line: ln,
-        startLine: ln,
-        endLine: ln,
-        depth: depth,
-        entered: false,
-        brace: false,
-      };
-      hits.push(sp);
-      stack.push(sp);
-    }
-    // Walk braces left→right so same-line bodies close correctly (S1i).
-    let quote = "";
-    for (let c = 0; c < tx.length; c++) {
-      const ch = tx[c];
-      if (quote) {
-        if (ch === "\\") {
-          c++;
-          continue;
-        }
-        if (ch === quote) quote = "";
-        continue;
-      }
-      if (ch === '"' || ch === "'" || ch === "`") {
-        quote = ch;
-        continue;
-      }
-      if (ch === "{") {
-        depth++;
-        if (stack.length && stack[stack.length - 1].depth === depth - 1) {
-          stack[stack.length - 1].entered = true;
-          stack[stack.length - 1].brace = true;
-        }
-      } else if (ch === "}") {
-        depth = Math.max(0, depth - 1);
-        while (stack.length && stack[stack.length - 1].entered && stack[stack.length - 1].depth === depth) {
-          const done = stack.pop();
-          done.endLine = ln;
-        }
-      }
-    }
-  }
-  // Unclosed / brace-less spans: next keyword sibling, else short pad (S1d flat).
-  for (let i = 0; i < hits.length; i++) {
-    const sp = hits[i];
-    if (sp.brace && sp.entered && sp.endLine >= sp.startLine && stack.indexOf(sp) < 0) continue;
-    const next = hits[i + 1];
-    if (next && next.depth <= sp.depth) {
-      sp.endLine = Math.max(sp.startLine, next.startLine - 1);
-    } else if (!sp.brace) {
-      sp.endLine = sp.startLine + 8;
-    } else {
-      sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
-    }
-  }
-  while (stack.length) {
-    const sp = stack.pop();
-    sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
-  }
-  assignScrollDriveCfgNestDepth(hits);
-  return hits;
-}
-
-/** Nest depth from containment (brace depth preferred when present) — S1i. */
-function assignScrollDriveCfgNestDepth(spans) {
-  if (!spans || !spans.length) return spans;
-  // Prefer brace-open depth when any span used braces; else containment.
-  let anyBrace = false;
-  for (let i = 0; i < spans.length; i++) {
-    if (spans[i].brace) anyBrace = true;
-  }
-  if (anyBrace) {
-    for (let i = 0; i < spans.length; i++) {
-      spans[i].depth = Math.max(0, Number(spans[i].depth) || 0);
-    }
-  } else {
-    for (let i = 0; i < spans.length; i++) spans[i].depth = 0;
-  }
-  // Containment refine — child strictly inside parent gets parent.depth+1 (IR/flat pads).
-  const order = spans.slice().sort((a, b) => {
-    const wa = a.endLine - a.startLine;
-    const wb = b.endLine - b.startLine;
-    if (wa !== wb) return wb - wa;
-    return a.startLine - b.startLine;
+  canvas.querySelectorAll(".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode[data-cfg-active]").forEach((el) => {
+    el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
+    el.removeAttribute("data-cfg-active");
   });
-  for (let i = 0; i < order.length; i++) {
-    const child = order[i];
-    let best = anyBrace ? Number(child.depth) || 0 : 0;
-    for (let j = 0; j < order.length; j++) {
-      if (i === j) continue;
-      const par = order[j];
-      if (par.startLine <= child.startLine && par.endLine >= child.endLine) {
-        const wider =
-          par.startLine < child.startLine || par.endLine > child.endLine;
-        if (!wider) continue;
-        best = Math.max(best, (Number(par.depth) || 0) + 1);
-      }
-    }
-    child.depth = best;
-  }
-  return spans;
 }
 
-/** Deepest span containing activeLine (S1i nest focus). */
-function pickScrollDriveCfgNestFocus(spans, activeLine) {
-  const line = Number(activeLine) || 0;
-  if (!line || !spans || !spans.length) return null;
-  let best = null;
-  for (let i = 0; i < spans.length; i++) {
-    const sp = spans[i];
-    if (line < sp.startLine || line > sp.endLine) continue;
-    if (
-      !best ||
-      (Number(sp.depth) || 0) > (Number(best.depth) || 0) ||
-      ((Number(sp.depth) || 0) === (Number(best.depth) || 0) &&
-        sp.endLine - sp.startLine < best.endLine - best.startLine)
-    ) {
-      best = sp;
-    }
-  }
-  return best;
-}
-
-/** IR/fixture walk nesting — count containing sibling spans (S1i fallback). */
-function irNestDepthScrollDriveWalk(walk) {
-  const out = Object.create(null);
-  if (!walk || !walk.length) return out;
-  const spans = [];
-  for (let i = 0; i < walk.length; i++) {
-    const id = walk[i];
-    const sp = spanLinesOfScrollDriveNode(id);
-    if (!sp) continue;
-    spans.push({ id: id, start: sp.start, end: sp.end });
-  }
-  for (let i = 0; i < spans.length; i++) {
-    let d = 0;
-    for (let j = 0; j < spans.length; j++) {
-      if (i === j) continue;
-      const a = spans[i];
-      const b = spans[j];
-      if (b.start <= a.start && b.end >= a.end && (b.start < a.start || b.end > a.end)) d++;
-    }
-    out[spans[i].id] = d;
-  }
-  return out;
-}
-
-function pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById) {
-  if (activeLine > 0 && spans.length) {
-    for (let i = 0; i < spans.length; i++) {
-      const sp = spans[i];
-      if (activeLine >= sp.startLine && activeLine <= sp.endLine) return sp.kind;
-    }
-    let best = "";
-    let bestDist = Infinity;
-    for (let i = 0; i < spans.length; i++) {
-      const sp = spans[i];
-      const d = Math.abs(sp.line - activeLine);
-      if (d < bestDist) {
-        bestDist = d;
-        best = sp.kind;
-      }
-    }
-    if (best && bestDist <= 48) return best;
-  }
-  if (activeId && kindById && kindById[activeId]) return kindById[activeId];
-  return (spans[0] && spans[0].kind) || "";
-}
-
-/** Map Steiner walk nodes → if/loop/try using Evidence spans (line match, else partition). */
-function assignScrollDriveCfgSpanKinds(walk, spans) {
-  const out = Object.create(null);
-  if (!walk.length) return out;
-  const kinds = [];
-  const seen = Object.create(null);
-  for (let i = 0; i < spans.length; i++) {
-    const k = spans[i].kind;
-    if (!seen[k]) {
-      seen[k] = 1;
-      kinds.push(k);
-    }
-  }
-  if (!kinds.length) return out;
-  for (let i = 0; i < walk.length; i++) {
-    const id = walk[i];
-    const ln = lineOfScrollDriveNode(id);
-    let kind = "";
-    if (ln > 0) {
-      let best = "";
-      let bestDist = Infinity;
-      for (let j = 0; j < spans.length; j++) {
-        const sp = spans[j];
-        if (ln >= sp.startLine && ln <= sp.endLine) {
-          kind = sp.kind;
-          break;
-        }
-        const d = Math.abs(sp.line - ln);
-        if (d < bestDist) {
-          bestDist = d;
-          best = sp.kind;
-        }
-      }
-      if (!kind && best && bestDist <= 48) kind = best;
-    }
-    if (!kind) {
-      // Stable partition when fixture spans sit far from padded Evidence lines.
-      const bucket = Math.min(kinds.length - 1, Math.floor((i * kinds.length) / walk.length));
-      kind = kinds[bucket];
-    }
-    out[id] = kind;
-  }
-  return out;
-}
-
-/** S1b + S1d + S1i — unroll Steiner CFG; glow active; if/loop/try; nest expand on activeLine.
+/** S1b — unroll Steiner CFG with scroll; glow the active block.
  *  Idle Evidence (scrollRatio 0) must not dim CFG — Slice ego / select opacity
  *  gates (EG3d etc.) open Evidence without scrolling. */
 function applyScrollDriveCfg(scrollRatio, activeLine) {
   const walk = scrollDriveCfgWalk();
   const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
-  const emptyCfg = {
-    cfgActiveId: "",
-    cfgUnroll: 0,
-    cfgVisible: 0,
-    cfgSpanKind: "",
-    cfgSpanCount: 0,
-    cfgNestDepth: 0,
-    cfgNestMax: 0,
-    cfgNestExpanded: 0,
-  };
   if (unroll <= 0 || !walk.length) {
     clearScrollDriveCfgPaint();
-    return emptyCfg;
+    return { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0 };
   }
-  const spans = scanScrollDriveCfgSpans();
-  const kindById = assignScrollDriveCfgSpanKinds(walk, spans);
-  const irNest = irNestDepthScrollDriveWalk(walk);
   const visible = 1 + Math.round(unroll * (walk.length - 1));
   const visibleWalk = walk.slice(0, Math.max(1, visible));
   const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
-  const nestFocus = pickScrollDriveCfgNestFocus(spans, activeLine);
-  const cfgSpanKind =
-    (nestFocus && nestFocus.kind) || pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
-  let cfgNestMax = 0;
-  for (let i = 0; i < spans.length; i++) {
-    cfgNestMax = Math.max(cfgNestMax, Number(spans[i].depth) || 0);
-  }
-  for (const id of walk) {
-    cfgNestMax = Math.max(cfgNestMax, Number(irNest[id]) || 0);
-  }
-  const cfgNestDepth = nestFocus ? Number(nestFocus.depth) || 0 : 0;
-  // Ancestors of nest focus stay expanded; same-depth siblings collapse (S1i).
-  const expandedSpans = [];
-  if (nestFocus) {
-    for (let i = 0; i < spans.length; i++) {
-      const sp = spans[i];
-      if (sp.startLine <= nestFocus.startLine && sp.endLine >= nestFocus.endLine) {
-        expandedSpans.push(sp);
-      }
-    }
-  }
-  const expandedSet = new Set(expandedSpans);
-  const cfgNestExpanded = expandedSpans.length;
   const walkSet = new Set(walk);
   const visibleSet = new Set(visibleWalk);
-  // Map walk node → nest role via its assigned Evidence span (kind+line) or IR depth.
-  function nestRoleForId(id) {
-    if (!nestFocus) return { role: "", depth: Number(irNest[id]) || 0 };
-    const ln = lineOfScrollDriveNode(id);
-    let hit = null;
-    if (ln > 0) {
-      for (let i = 0; i < spans.length; i++) {
-        const sp = spans[i];
-        if (ln >= sp.startLine && ln <= sp.endLine) {
-          if (
-            !hit ||
-            (Number(sp.depth) || 0) > (Number(hit.depth) || 0) ||
-            ((Number(sp.depth) || 0) === (Number(hit.depth) || 0) &&
-              sp.endLine - sp.startLine < hit.endLine - hit.startLine)
-          ) {
-            hit = sp;
-          }
-        }
-      }
-    }
-    // Fall back: kind partition match against nest focus / ancestors / siblings.
-    if (!hit) {
-      const kind = kindById[id] || "";
-      for (let i = 0; i < spans.length; i++) {
-        if (spans[i].kind === kind) {
-          hit = spans[i];
-          break;
-        }
-      }
-    }
-    const depth = hit ? Number(hit.depth) || 0 : Number(irNest[id]) || 0;
-    if (hit && hit === nestFocus) return { role: "hot", depth: depth };
-    if (hit && expandedSet.has(hit)) return { role: "anc", depth: depth };
-    if (hit && nestFocus && (Number(hit.depth) || 0) === (Number(nestFocus.depth) || 0) && hit !== nestFocus) {
-      return { role: "sib", depth: depth };
-    }
-    // Deeper than focus but not containing activeLine → collapse as sib.
-    if (hit && nestFocus && (Number(hit.depth) || 0) > (Number(nestFocus.depth) || 0) && !expandedSet.has(hit)) {
-      return { role: "sib", depth: depth };
-    }
-    return { role: "", depth: depth };
-  }
   if (canvas) {
     canvas.querySelectorAll(".vnode").forEach((el) => {
       const id = el.getAttribute("data-id");
       if (!id || !walkSet.has(id)) {
-        el.classList.remove(
-          "scroll-cfg-hot",
-          "scroll-cfg-dim",
-          "scroll-cfg-ahead",
-          "scroll-cfg-sib",
-          "scroll-cfg-if",
-          "scroll-cfg-loop",
-          "scroll-cfg-try",
-          "scroll-cfg-nest-hot",
-          "scroll-cfg-nest-anc",
-          "scroll-cfg-nest-sib"
-        );
+        el.classList.remove("scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead");
         el.removeAttribute("data-cfg-active");
-        el.removeAttribute("data-cfg-span");
-        el.removeAttribute("data-cfg-depth");
         return;
       }
-      const spanKind = kindById[id] || "";
       const ahead = !visibleSet.has(id);
-      const nest = nestRoleForId(id);
-      const kindSib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind && nest.role !== "hot" && nest.role !== "anc");
-      const nestSib = nest.role === "sib";
-      const sib = kindSib || nestSib;
-      const nestHot = nest.role === "hot";
-      const nestAnc = nest.role === "anc";
-      const hot = !!(activeId && id === activeId && !sib) || (nestHot && !ahead);
+      const hot = !!(activeId && id === activeId);
       el.classList.toggle("scroll-cfg-hot", hot);
-      el.classList.toggle("scroll-cfg-ahead", ahead && !sib && !nestAnc);
-      el.classList.toggle("scroll-cfg-sib", sib && !ahead);
-      el.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib && !nestAnc);
-      el.classList.toggle("scroll-cfg-if", spanKind === "if");
-      el.classList.toggle("scroll-cfg-loop", spanKind === "loop");
-      el.classList.toggle("scroll-cfg-try", spanKind === "try");
-      el.classList.toggle("scroll-cfg-nest-hot", nestHot && !ahead);
-      el.classList.toggle("scroll-cfg-nest-anc", nestAnc && !ahead && !nestHot);
-      el.classList.toggle("scroll-cfg-nest-sib", nestSib && !ahead);
-      if (spanKind) el.setAttribute("data-cfg-span", spanKind);
-      else el.removeAttribute("data-cfg-span");
-      el.setAttribute("data-cfg-depth", String(nest.depth || 0));
+      el.classList.toggle("scroll-cfg-ahead", ahead);
+      el.classList.toggle("scroll-cfg-dim", !hot && !ahead);
       if (hot) el.setAttribute("data-cfg-active", "1");
       else el.removeAttribute("data-cfg-active");
     });
   }
-  return {
-    cfgActiveId: activeId || "",
-    cfgUnroll: unroll,
-    cfgVisible: visible,
-    cfgSpanKind: cfgSpanKind || "",
-    cfgSpanCount: spans.length,
-    cfgNestDepth: cfgNestDepth,
-    cfgNestMax: cfgNestMax,
-    cfgNestExpanded: cfgNestExpanded,
-  };
+  return { cfgActiveId: activeId || "", cfgUnroll: unroll, cfgVisible: visible };
 }
 
-
-/** S1e — map IR kind + EndpointMeta onto API / Database / Service / Utility anchors. */
-function scrollDriveAnchorFromMeta(kind, ep, fqn) {
-  const k = String(kind || "");
-  const ch = ep && ep.channel ? String(ep.channel) : "";
-  const role = ep && ep.role ? String(ep.role) : "";
-  const name = String(fqn || "");
-  // Endpoint channel is the richest signal (Http/Table/Queue/Channel/File).
-  if (k === "Endpoint" || ep) {
-    if (ch === "Http") return "api";
-    if (ch === "Table" || ch === "File") return "db";
-    if (ch === "Queue" || ch === "Channel") return "svc";
-    if (role === "Source") return "api";
-    if (role === "Sink") return "db";
-    return "api";
-  }
-  if (k === "Type") return "svc";
-  // Function (default Utility) — light FQN heuristics only when names are obvious.
-  if (/\b(db|store|repo|sql|persist|cache)\b/i.test(name)) return "db";
-  if (/\b(api|http|rpc|handler|route)\b/i.test(name)) return "api";
-  if (/\b(service|svc|client|adapter)\b/i.test(name)) return "svc";
-  return "util";
-}
-
-function scrollDriveAnchorOf(id, el) {
-  const nid = idVal(id);
-  const kind =
-    (el && el.getAttribute && el.getAttribute("data-kind")) ||
-    (typeof kindOf === "function" ? kindOf(snapshot && snapshot.graph, nid) : "") ||
-    "Function";
-  const ep = typeof endpointOf === "function" ? endpointOf(nid) : null;
-  const fqn = typeof fqnOf === "function" ? fqnOf(snapshot && snapshot.graph, nid) : "";
-  return scrollDriveAnchorFromMeta(kind, ep, fqn);
-}
-
-function clearScrollDriveAnchorPaint() {
-  if (!canvas) return;
-  canvas
-    .querySelectorAll(
-      ".vnode[data-scroll-anchor], .vnode.scroll-anchor-api, .vnode.scroll-anchor-db, .vnode.scroll-anchor-svc, .vnode.scroll-anchor-util"
-    )
-    .forEach((el) => {
-      el.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
-      el.removeAttribute("data-scroll-anchor");
-    });
-}
-
-/** S1e — stamp color-coded kind anchors on painted nodes (no extra labels / clutter). */
-function applyScrollDriveAnchors(targetNodeId) {
-  const counts = { api: 0, db: 0, svc: 0, util: 0 };
-  let focus = "";
-  if (!canvas) return { anchorFocus: "", anchorCounts: counts };
-  canvas.querySelectorAll(".vnode[data-id]").forEach((el) => {
-    const id = el.getAttribute("data-id");
-    if (!id) return;
-    const bucket = scrollDriveAnchorOf(id, el);
-    el.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
-    if (bucket && counts[bucket] != null) {
-      counts[bucket] += 1;
-      el.setAttribute("data-scroll-anchor", bucket);
-      el.classList.add("scroll-anchor-" + bucket);
-      if (targetNodeId && id === String(targetNodeId)) focus = bucket;
-    } else {
-      el.removeAttribute("data-scroll-anchor");
-    }
-  });
-  if (!focus && targetNodeId) focus = scrollDriveAnchorOf(targetNodeId, findScrollDriveTargetEl(targetNodeId)) || "";
-  return { anchorFocus: focus || "", anchorCounts: counts };
-}
-
-
-/** S1f — hide deep clutter until scroll/mouse focus approaches the block.
- *  Macro LOD or far from focus → detailNear false (overview clean).
- *  Near focus (cfg unroll / activeLine / anchorFocus) → reveal with CSS opacity. */
-function wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors) {
-  if (macro) return false;
-  const unroll = Number(cfg && cfg.cfgUnroll) || 0;
-  const visible = Number(cfg && cfg.cfgVisible) || 0;
-  const ratio = Number(scrollRatio) || 0;
-  const line = Number(activeLine) || 0;
-  const focus = !!(anchors && anchors.anchorFocus);
-  // Mid-file micro focus — unroll / visible CFG / active line / kind-anchor focus.
-  if (visible >= 2 || unroll > 0.35) return true;
-  if (ratio > 0.25 && (line > 0 || focus)) return true;
-  return false;
-}
-
-function clearScrollDriveDetailPaint() {
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) vp.removeAttribute("data-scroll-detail");
-}
-
-/** S1f — gate viewport data-scroll-detail from ScrollDrive proximity. */
-function applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors) {
-  const near = wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors);
-  const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-  if (vp) {
-    const v = near ? "1" : "0";
-    if (vp.getAttribute("data-scroll-detail") !== v) vp.setAttribute("data-scroll-detail", v);
-  }
-  return { detailNear: near };
-}
-
-let scrollDriveMacroTimer = 0;
-let scrollDriveEaseTimer = 0;
-/** S1l — coalesce #srcBody scroll into one rAF flush per frame. */
-let scrollDriveRaf = 0;
-let scrollDriveRafPending = 0;
-let scrollDriveRafFlushes = 0;
-let scrollDriveRafMerged = 0;
-
-function refreshScrollDriveCamEase() {
-  if (!srcBody || !sourcePane || sourcePane.hidden || !scrollDriveBase) {
-    setCamEase(CAM_EASE_BASE);
-    return camEase;
-  }
-  const v = readScrollDriveVelocity();
-  const reduced = typeof reduceMotion === "function" && reduceMotion();
-  if (reduced) setCamEase(CAM_EASE_SNAP);
-  else setCamEase(scrollDriveEaseFromVel(v));
-  const blend = applyScrollDriveBlendPaint(camEase);
-  if (window.__graphideScrollDrive) {
-    window.__graphideScrollDrive.camEase = camEase;
-    window.__graphideScrollDrive.scrollVel = v;
-    window.__graphideScrollDrive.blendMs = blend.blendMs;
-    window.__graphideScrollDrive.reducedMotion = !!reduced;
-  }
-  return camEase;
-}
-
-function scheduleScrollDriveEaseSettle() {
-  // S1k — no velocity settle loop when the user asked for reduced motion.
-  if (typeof reduceMotion === "function" && reduceMotion()) return;
-  if (scrollDriveEaseTimer) clearTimeout(scrollDriveEaseTimer);
-  scrollDriveEaseTimer = setTimeout(() => {
-    scrollDriveEaseTimer = 0;
-    if (!srcBody || !sourcePane || sourcePane.hidden) return;
-    refreshScrollDriveCamEase();
-    // Keep settling until velocity ages out (snappy camEase).
-    if (readScrollDriveVelocity() > 0.08) {
-      scheduleScrollDriveEaseSettle();
-    } else {
-      // S1r / S1s — idle settle: fold soft camX/camY into scrollDriveBase (no second RAF).
-      absorbScrollDriveSoftCamX();
-      absorbScrollDriveSoftCamY();
-      if (window.__graphideScrollDrive) {
-        window.__graphideScrollDrive.camXSettled = !!scrollDriveCamXSettled;
-        window.__graphideScrollDrive.camYSettled = !!scrollDriveCamYSettled;
-        window.__graphideScrollDrive.camX = camTo.x;
-        window.__graphideScrollDrive.camY = camTo.y;
-      }
-    }
-  }, 160);
-}
-
-function cancelScrollDriveRaf() {
-  if (scrollDriveRaf) {
-    cancelAnimationFrame(scrollDriveRaf);
-    scrollDriveRaf = 0;
-  }
-  scrollDriveRafPending = 0;
-}
-
-/** S1l — one paint/publish per animation frame; burst scrolls merge into rafMerged. */
-function scheduleScrollDriveFlush() {
-  scrollDriveRafPending += 1;
-  if (scrollDriveRaf) return;
-  scrollDriveRaf = requestAnimationFrame(() => {
-    scrollDriveRaf = 0;
-    const pending = scrollDriveRafPending;
-    scrollDriveRafPending = 0;
-    const merged = Math.max(0, pending - 1);
-    scrollDriveRafMerged += merged;
-    scrollDriveRafFlushes += 1;
-    flushScrollDrive();
-  });
-}
-
-function flushScrollDrive() {
-  // S1m — Presentation Stage owns the camera; do not paint or setCamTarget.
-  if (typeof isPresenting === "function" && isPresenting()) {
-    if (scrollDriveMacroTimer) {
-      clearTimeout(scrollDriveMacroTimer);
-      scrollDriveMacroTimer = 0;
-    }
-    if (scrollDriveEaseTimer) {
-      clearTimeout(scrollDriveEaseTimer);
-      scrollDriveEaseTimer = 0;
-    }
-    cancelScrollDriveRaf();
-    // S1w/S1ad — stash before Present flush wipe when Evidence stay was still live.
-    if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
-    // S1ai — Present-stash and Review-clear cues mutually exclusive.
-    if (typeof clearScrollDriveReviewStayClearedCue === "function") {
-      clearScrollDriveReviewStayClearedCue();
-    } else {
-      scrollDriveReviewStayCleared = false;
-    }
-    const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
-    scrollDriveBase = null;
-    scrollDriveTargetLocked = "";
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
-    scrollDriveYNudgeOrigin = 0;
-    scrollDriveWasMacro = false;
-    scrollDriveVel = { t: 0, top: 0, vel: 0 };
-    scrollDriveJustRestored = false;
-  scrollDriveSuppressNextRefit = false;
-    setCamEase(CAM_EASE_BASE);
-    clearScrollDriveCfgPaint();
-    clearScrollDriveLineMapPaint();
-    clearScrollDriveActiveLinePaint();
-    clearScrollDriveMacroPaint();
-    clearScrollDriveAnchorPaint();
-    clearScrollDriveDetailPaint();
-    clearScrollDriveBlendPaint();
-    const vp = viewportEl || (canvas && canvas.querySelector(".viewport"));
-    if (vp) {
-      vp.setAttribute("data-scroll-present-paused", "1");
-      if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
-      else vp.removeAttribute("data-scroll-present-stay");
-    }
-    const paused = emptyScrollDrive();
-    paused.presentPaused = true;
-    paused.presentStayStashed = !!stayStashed;
-    // S1ai — never publish Review-clear alongside Present-stash honesty.
-    paused.reviewStayCleared = false;
-    publishScrollDrive(paused);
-    return;
-  }
+function onSrcBodyScroll() {
   if (!srcBody || !sourcePane || sourcePane.hidden) {
-    if (scrollDriveMacroTimer) {
-      clearTimeout(scrollDriveMacroTimer);
-      scrollDriveMacroTimer = 0;
-    }
-    if (scrollDriveEaseTimer) {
-      clearTimeout(scrollDriveEaseTimer);
-      scrollDriveEaseTimer = 0;
-    }
-    cancelScrollDriveRaf();
     resetScrollDrive();
     return;
   }
-  const maxScroll = srcBody.scrollHeight - srcBody.clientHeight;
-  const canScroll = maxScroll > 8;
-  const max = Math.max(1, maxScroll);
+  const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
   const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
   const activeLine = readSrcActiveLine();
-  // S1h: map activeLine → IR/fixture span owner; fall back to Evidence sourceId.
-  const lineMap = resolveScrollDriveTargetNode(activeLine);
-  const targetNodeId = lineMap.targetNodeId || (sourceId ? String(sourceId) : "");
-  const lineMapHit = !!lineMap.lineMapHit;
-  noteScrollDriveVelocity(srcBody.scrollTop);
-  const scrollVel = readScrollDriveVelocity();
-  const reduced = typeof reduceMotion === "function" && reduceMotion();
-  // S1k — reduced-motion: snap camEase; skip velocity settle timers (setCamTarget already jumps).
-  if (reduced) {
-    setCamEase(CAM_EASE_SNAP);
-  } else {
-    setCamEase(scrollDriveEaseFromVel(scrollVel));
-    if (scrollVel > 0.05) {
-      // Active scroll — settle flags clear until S1r/S1s absorb on idle.
-      scrollDriveCamXSettled = false;
-      scrollDriveCamYSettled = false;
-      scheduleScrollDriveEaseSettle();
-    }
-  }
-  const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
-  const enteringMacro = !!(macro && !scrollDriveWasMacro);
-  const exitingMacro = !!(!macro && scrollDriveWasMacro);
-  let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
-  if (macro) {
-    // S1c — overview LOD; clear micro CFG so paint does not fight.
-    // S1u — pass entering so mid soft-stay eases into overview (no zoomToEl yank).
-    clearScrollDriveCfgPaint();
-    applyScrollDriveMacro(scrollRatio, targetNodeId, { entering: enteringMacro });
-    // Velocity-driven macro must re-enter when the flick ages out (mid-file → S1b).
-    if (scrollRatio > SCROLL_MACRO_RATIO) {
-      if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
-      scrollDriveMacroTimer = setTimeout(() => {
-        scrollDriveMacroTimer = 0;
-        if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
-      }, 220);
-    }
-  } else {
-    if (scrollDriveMacroTimer) {
-      clearTimeout(scrollDriveMacroTimer);
-      scrollDriveMacroTimer = 0;
-    }
-    clearScrollDriveMacroPaint();
-    // S1u — macro→micro: re-seed X/Y from live camTo then resume S1q soft follow
-    // (S1t-style). Keep micro base.k so camK eases back (no overview stick / zoomToEl).
-    if (exitingMacro && scrollDriveBase) {
-      if (Number.isFinite(camTo.x)) scrollDriveBase.x = camTo.x;
-      if (Number.isFinite(camTo.y)) scrollDriveBase.y = camTo.y;
-      scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
-      scrollDriveCamXSettled = false;
-      scrollDriveCamYSettled = false;
-    }
-    applyScrollDriveCamera(scrollRatio, targetNodeId);
-    cfg = applyScrollDriveCfg(scrollRatio, activeLine);
-    // S1r / S1s — low scrollVel / idle path (no settle timer scheduled): absorb soft cam.
-    if (!reduced && scrollVel <= 0.05) {
-      absorbScrollDriveSoftCamX();
-      absorbScrollDriveSoftCamY();
-    }
-  }
-  scrollDriveWasMacro = !!macro;
-  const anchors = applyScrollDriveAnchors(targetNodeId);
-  const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
-  const blend = applyScrollDriveBlendPaint(camEase);
-  const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
-  const lineCue = applyScrollDriveActiveLine(activeLine);
+  // S1a: no AST line→node yet — target is the inspected Evidence node (sourceId).
+  const targetNodeId = sourceId ? String(sourceId) : "";
+  applyScrollDriveCamera(scrollRatio, targetNodeId);
+  const cfg = applyScrollDriveCfg(scrollRatio, activeLine);
   publishScrollDrive({
     scrollRatio: scrollRatio,
     activeLine: activeLine,
     targetNodeId: targetNodeId,
-    lineMapHit: lineMapHit,
-    lineMapPulse: !!lineGlow.lineMapPulse,
-    activeLineMarked: !!lineCue.activeLineMarked,
     camX: camTo.x,
     camY: camTo.y,
     camK: camTo.k,
     cfgActiveId: cfg.cfgActiveId,
     cfgUnroll: cfg.cfgUnroll,
     cfgVisible: cfg.cfgVisible,
-    cfgSpanKind: cfg.cfgSpanKind || "",
-    cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
-    cfgNestDepth: Number(cfg.cfgNestDepth) || 0,
-    cfgNestMax: Number(cfg.cfgNestMax) || 0,
-    cfgNestExpanded: Number(cfg.cfgNestExpanded) || 0,
-    scrollVel: scrollVel,
-    camEase: camEase,
-    blendMs: blend.blendMs,
-    macroLod: !!macro,
-    anchorFocus: anchors.anchorFocus || "",
-    anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
-    detailNear: !!detail.detailNear,
-    reducedMotion: !!reduced,
-    rafCoalesce: true,
-    rafFlushes: scrollDriveRafFlushes,
-    rafMerged: scrollDriveRafMerged,
-    presentPaused: false,
-    presentStayStashed: false,
-    reviewStayCleared: !!scrollDriveReviewStayCleared,
-    camXSettled: !!scrollDriveCamXSettled,
-    camYSettled: !!scrollDriveCamYSettled,
   });
-}
-
-/** Scroll listener + direct callers — S1l schedules; closed pane resets sync. */
-function onSrcBodyScroll() {
-  if (!srcBody || !sourcePane || sourcePane.hidden) {
-    if (scrollDriveMacroTimer) {
-      clearTimeout(scrollDriveMacroTimer);
-      scrollDriveMacroTimer = 0;
-    }
-    if (scrollDriveEaseTimer) {
-      clearTimeout(scrollDriveEaseTimer);
-      scrollDriveEaseTimer = 0;
-    }
-    cancelScrollDriveRaf();
-    resetScrollDrive();
-    return;
-  }
-  scheduleScrollDriveFlush();
 }
 
 if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
@@ -3017,11 +910,6 @@ if (llmAsk)
 if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
 
 function startReview() {
-  // S1ac — new Review drops stale last-stay (memory + scoped storage) so the next
-  // Evidence open does not soft-restore a previous review's cam.
-  if (typeof clearScrollDriveLastStayOnReviewRestart === "function") {
-    clearScrollDriveLastStayOnReviewRestart();
-  }
   cancelling = false;
   pendingProgress = null;
   targetPct = 0;
@@ -3049,13 +937,6 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "empty") {
-    // S1ac — desk clear: close Evidence first (may attempt stash), then wipe stay so
-    // a prior review cam cannot soft-restore. Leaves other folders' scoped keys alone.
-    if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
-    if (typeof clearScrollDriveLastStayOnReviewRestart === "function") clearScrollDriveLastStayOnReviewRestart();
-    else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
-    // S1ab — leaving analysis / no folder: drop workspace scope after stay wipe.
-    if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
     stopPathWalk();
     snapshot = null;
     finishWork();
@@ -3143,29 +1024,15 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (msg.type === "source") {
-    showSource(msg, { fromHost: true });
+    showSource(msg);
     return;
   }
   if (msg.type === "programs") {
-    if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
-      if (typeof setScrollDriveWorkspaceKey === "function") {
-        setScrollDriveWorkspaceKey(
-          msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
-        );
-      }
-    }
     clearTimeout(previewTimer);
     applyPrograms(msg);
     return;
   }
   if (msg.type === "flowchart" || msg.type === "inner") {
-    if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
-      if (typeof setScrollDriveWorkspaceKey === "function") {
-        setScrollDriveWorkspaceKey(
-          msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
-        );
-      }
-    }
     clearTimeout(previewTimer);
     applySnapshot(msg, msg.type === "inner");
   }
@@ -3601,7 +1468,7 @@ function setExportMenu(on) {
   if (exportBtn) exportBtn.classList.toggle("on", !!on);
 }
 
-const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
+const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead"];
 
 function exportDiagramRoot() {
   return (
@@ -3625,8 +1492,6 @@ function stripExportViewerState(root) {
     el.removeAttribute("data-delta-review-current");
     // Pan/zoom parks off-stage Map cards; camera reset must un-hide them in the clone.
     el.removeAttribute("data-offview");
-    el.removeAttribute("data-scroll-anchor");
-    el.removeAttribute("data-scroll-detail");
     if (el.getAttribute && el.getAttribute("aria-pressed") === "true") el.setAttribute("aria-pressed", "false");
   });
   const vp = root.querySelector && root.querySelector(".viewport");
@@ -4298,7 +2163,6 @@ function popEnterFrames() {
 
 function setWorkspace(name, pin) {
   if (WORKSPACES.indexOf(name) < 0) return;
-  const prevWs = explorerWs;
   if (name !== explorerWs) {
     const n = popEnterFrames();
     for (let i = 0; i < n; i++) vscode.postMessage({ type: "back" });
@@ -4312,38 +2176,10 @@ function setWorkspace(name, pin) {
     const selected = selectedNodeId ? idVal(selectedNodeId) : "";
     if (selected && hasLineageHops(selected)) lineageEgoId = selected;
   }
-  // S1y/S1z — desk canvas hop remount mid-drive: stash stay + keepCam while Evidence
-  // open (same sourceId). Map↔Slice (S1y); Lineage/Overview↔Slice and peer hops (S1z).
-  // Closed Evidence / sourceId change falls through to S1v/S1w.
-  const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
-  const deskCanvasHop =
-    prevWs !== name &&
-    !!DESK_SCROLL_STAY_WS[prevWs] &&
-    !!DESK_SCROLL_STAY_WS[name];
-  const evidenceStay =
-    deskCanvasHop &&
-    sourcePane &&
-    !sourcePane.hidden &&
-    !!sourceId &&
-    !(typeof isPresenting === "function" && isPresenting()) &&
-    (!!scrollDriveBase ||
-      (typeof scrollDriveLastStayMatches === "function" &&
-        scrollDriveLastStayMatches(String(sourceId))));
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  // S1y/S1z — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
-  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
   explorerWs = name;
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
-  paint({ animate: "none", keepCam: !!evidenceStay });
-  if (evidenceStay && typeof softStayScrollDriveAcrossMapSliceHop === "function") {
-    softStayScrollDriveAcrossMapSliceHop();
-  }
+  paint({ animate: "none" });
   flashCanvas();
 }
 
@@ -4442,11 +2278,9 @@ function applyCam() {
 }
 
 function tickCam() {
-  if (scrollDriveBase) refreshScrollDriveCamEase();
-  const a = camEase;
-  cam.x += (camTo.x - cam.x) * a;
-  cam.y += (camTo.y - cam.y) * a;
-  cam.k += (camTo.k - cam.k) * a;
+  cam.x += (camTo.x - cam.x) * 0.24;
+  cam.y += (camTo.y - cam.y) * 0.24;
+  cam.k += (camTo.k - cam.k) * 0.24;
   if (Math.hypot(camTo.x - cam.x, camTo.y - cam.y) < 0.35 && Math.abs(camTo.k - cam.k) < 0.004) {
     cam.x = camTo.x;
     cam.y = camTo.y;
@@ -4528,35 +2362,8 @@ function scheduleFit(stage) {
   if (ws) stageFitRo.observe(ws);
 }
 
-/** S1ae — Present→Evidence / soft-stay reopen must not wipe cam with hard fit.
- *  showSource sets `scrollDriveSuppressNextRefit` + disconnects scheduleFit RO when
- *  soft-restore / soft-hop applies; refitChartSoon honors that one-shot. Probe also
- *  reports true for warm last-stay (next reopen will soft-stay). Cold open still
- *  hard-fits. closeSourcePane always fits. Present exit alone does not half-restore
- *  (S1w). User Fit unchanged. */
-function shouldSkipRefitForScrollDriveStay() {
-  if (scrollDriveSuppressNextRefit) return true;
-  if (scrollDriveJustRestored) return true;
-  return !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
-}
-
 function refitChartSoon() {
-  requestAnimationFrame(() => {
-    // One-shot from soft stay this open — do not wipe restore / hop cam.
-    if (scrollDriveSuppressNextRefit) {
-      scrollDriveSuppressNextRefit = false;
-      return;
-    }
-    if (scrollDriveJustRestored) return;
-    fitChart();
-  });
-}
-
-// S1ae — harness probe (call-time) for skip-refit honesty.
-if (typeof window !== "undefined") {
-  window.__graphideShouldSkipRefitForScrollDriveStay = function () {
-    return typeof shouldSkipRefitForScrollDriveStay === "function" && !!shouldSkipRefitForScrollDriveStay();
-  };
+  requestAnimationFrame(() => fitChart());
 }
 
 function zoomBy(factor) {
@@ -4872,12 +2679,12 @@ function paint(opts) {
     return;
   }
   if (isListWorkspace(explorerWs) || explorerWs === "overview") {
-    renderExplorerList(explorerWs, { keepCam: !!(opts && opts.keepCam) });
+    renderExplorerList(explorerWs);
     consumeHarnessActions();
     return;
   }
   if (explorerWs === "lineage") {
-    renderLineage({ keepCam: !!(opts && opts.keepCam) });
+    renderLineage();
     consumeHarnessActions();
     return;
   }
@@ -5874,10 +3681,6 @@ function revealSourcePane() {
   if (!sourcePane) return;
   if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
   if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
-  if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
-  if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
-  if (routeOpen && typeof setRouteOpen === "function") setRouteOpen(false);
-  if (typeof applyPresent === "function") applyPresent(false);
   if (typeof hideTip === "function") hideTip();
   if (toastEl) {
     toastEl.classList.remove("on");
@@ -5885,34 +3688,18 @@ function revealSourcePane() {
   }
   sourcePane.hidden = false;
   if (workspace) workspace.classList.add("has-source");
-  // S1ae — always schedule; soft stay in showSource one-shot-suppresses the rAF
-  // fit (+ disconnects RO) so Present→Evidence restore is not wiped. Cold open fits.
   refitChartSoon();
 }
 
-function showSource(msg, opts) {
+function showSource(msg) {
   if (!sourcePane) return;
-  // S1ab — host may stamp workspaceFolder on source / flowchart posts.
-  if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
-    if (typeof setScrollDriveWorkspaceKey === "function") {
-      setScrollDriveWorkspaceKey(msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws);
-    }
-  }
   if (msg.missing) {
     revealSourcePane();
     if (srcTitle) srcTitle.textContent = "No span for this node";
     if (srcBody) srcBody.textContent = "";
     return;
   }
-  // peekSource assigns sourceId before calling showSource — track last *rendered*
-  // id separately so local file hops stay on the S1v path.
-  const nextSid = msg.id != null && String(msg.id) ? String(msg.id) : sourceId ? String(sourceId) : "";
-  const prevShown = scrollDriveLastShownSourceId ? String(scrollDriveLastShownSourceId) : "";
-  const sameSourceRepost = !!(prevShown && nextSid && prevShown === nextSid);
-  // Only the extension-host message path uses the S1ab host-repost helper; peekSource
-  // local opens keep S1v/S1w behavior unchanged.
-  const fromHost = !!(opts && opts.fromHost);
-  sourceId = nextSid || sourceId;
+  sourceId = msg.id || sourceId;
   revealSourcePane();
   const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
   if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
@@ -5920,58 +3707,10 @@ function showSource(msg, opts) {
   if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
   const hot = srcBody && srcBody.querySelector(".src-line.hot");
   if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
-  // S1v — soft stay across Evidence file switch when a prior ScrollDrive session
-  // was active; S1w/S1aa — same-source soft restore after Present/close/reload;
-  // S1ab — host re-post of `source` (post-reload peek reply) soft-restores from
-  // scoped storage even when in-memory snap is empty, without an S1v file-hop clear.
-  // First-ever open (no base / no snapshot) still clears so flush may zoomToEl.
-  // Present is already exited by revealSourcePane.
-  let softStayed = false;
-  // Prefer S1w/S1aa/S1ab same-source restore when no live base (Present/close/reload).
-  if (
-    !scrollDriveBase &&
-    typeof softRestoreScrollDriveFromLastStay === "function" &&
-    softRestoreScrollDriveFromLastStay(sourceId)
-  ) {
-    softStayed = true;
-  } else if (
-    fromHost &&
-    sameSourceRepost &&
-    typeof softStayScrollDriveAcrossHostSourceRepost === "function" &&
-    softStayScrollDriveAcrossHostSourceRepost(nextSid)
-  ) {
-    softStayed = true;
-  } else if (
-    typeof softStayScrollDriveAcrossSourceHop === "function" &&
-    softStayScrollDriveAcrossSourceHop()
-  ) {
-    softStayed = true;
-  }
-  // S1ao — harness-visible: Evidence reopen after Review-during-Present wipe
-  // must report softStayed false (cold hard path; lastStay empty).
-  if (typeof window !== "undefined") {
-    window.__graphideScrollDriveShowSourceSoftStayed = !!softStayed;
-  }
-  if (softStayed) {
-    // S1ae — suppress revealSourcePane rAF fit + drop scheduleFit RO so soft
-    // restore / hop is not wipe-then-fit (same RO disconnect pattern as S1y).
-    scrollDriveSuppressNextRefit = true;
-    if (typeof stageFitRo !== "undefined" && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
-    if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
-  } else if (typeof resetScrollDrive === "function") {
-    // S1af — cold open ends Review-clear honesty cue.
-    if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
+  if (typeof resetScrollDrive === "function") {
     scrollDriveBase = null;
-    scrollDriveTargetLocked = "";
-    scrollDriveCamXSettled = false;
-    scrollDriveCamYSettled = false;
     if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
   }
-  // S1ab — record what we rendered so a later host re-post of the same id is detected.
-  if (nextSid) scrollDriveLastShownSourceId = nextSid;
 }
 
 function showHop(from, to, kind, opts) {
@@ -6393,13 +4132,12 @@ function focusWalkStop(stop) {
   if (!stop) return;
   if (stop.kind === "hop") {
     selectedNodeId = idVal(stop.id);
-    // Stage hides #sourcePane — walk peeks must not exit Present via revealSourcePane (K18aj).
-    if (!isPresenting()) peekSource(stop.id);
+    peekSource(stop.id);
     return;
   }
   const bub = findBubble(stop.id);
   const mem = bub && (bub.members || [])[0];
-  if (mem && !isPresenting()) peekSource(mem);
+  if (mem) peekSource(mem);
 }
 
 function stopPathWalk() {
@@ -6587,10 +4325,7 @@ function closeSourcePane() {
     hopCard.hidden = true;
     hopCard.innerHTML = "";
   }
-  // S1w — stash last soft-stay before wipe so Present→Evidence / reopen can restore.
-  if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
   sourceId = null;
-  scrollDriveLastShownSourceId = "";
   if (typeof resetScrollDrive === "function") resetScrollDrive();
   return true;
 }
@@ -6693,21 +4428,7 @@ function selectNode(id, opts) {
   selectedNodeId = sid;
   highlightCommunity(sid);
   applyEgoPaint();
-  // S1v — while Evidence ScrollDrive has a live base on Slice, skip hard zoomToEl
-  // so peekSource → showSource can soft-follow the new vnode (one camera path).
-  // S1w — also skip when a same-source last-stay snapshot is fresh (Present→reopen
-  // / Evidence close→reopen) even if the pane is still hidden mid-peek.
-  if (opts && opts.zoomEl) {
-    const presenting = typeof isPresenting === "function" && isPresenting();
-    const lastStayMatch =
-      typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
-    const softHop =
-      !presenting &&
-      ((!!scrollDriveBase && sourcePane && !sourcePane.hidden) || lastStayMatch);
-    if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
-    // showSource owns S1w softRestore (do not seed base here — that would make
-    // softStayScrollDriveAcrossSourceHop treat Present→reopen as a file hop).
-  }
+  if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
   if (!opts || opts.peek !== false) peekSource(sid);
 }
 
@@ -7284,9 +5005,6 @@ function setRouteOpen(on) {
     routeCursor = -1;
   } else {
     if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
-    if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
-    if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
-    if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
     if (typeof hideTip === "function") hideTip();
     if (toastEl) {
       toastEl.classList.remove("on");
@@ -7294,11 +5012,6 @@ function setRouteOpen(on) {
     }
     resolveRoute();
     if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
-    // S1x — drop pending ScrollDrive graph paint so lineMap/CFG opacity cannot beat route-dim.
-    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-    if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
-    if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
-    if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
   }
   syncProbeDock();
   if (routeOpen) fillRouteReceipt();
@@ -7309,20 +5022,12 @@ function setLensOpen(on) {
   lensOpen = !!on;
   if (lensOpen) {
     if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
-    if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
-    if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
-    if (routeOpen && typeof setRouteOpen === "function") setRouteOpen(false);
     if (typeof hideTip === "function") hideTip();
     if (toastEl) {
       toastEl.classList.remove("on");
       toastEl.hidden = true;
     }
     if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
-    // S1x — drop pending ScrollDrive graph paint so lineMap/CFG opacity cannot beat lens-dim.
-    if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
-    if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
-    if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
-    if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
   }
   syncProbeDock();
   if (lensOpen) fillLensReceipt();
@@ -10076,8 +7781,7 @@ function statChips(map) {
     .join("");
 }
 
-function renderExplorerList(ws, opts) {
-  const keepCam = !!(opts && opts.keepCam);
+function renderExplorerList(ws) {
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
   renderStats(snapshot);
   if (ws === "overview") renderLegend();
@@ -10159,8 +7863,7 @@ function renderExplorerList(ws, opts) {
   if (ws === "overview") {
     const stage = canvas.querySelector(".stage");
     if (stage) {
-      // S1z — keepCam on Evidence soft-stay hops (no bindStage cam wipe).
-      bindStage(stage, { reset: !keepCam });
+      bindStage(stage, { reset: true });
       setZoomUi(true);
     } else {
       setZoomUi(false);
@@ -10539,8 +8242,7 @@ function mountLineageCanvas(reading, focusId) {
   stampXyFlowAttrs();
 }
 
-function renderLineage(opts) {
-  const keepCam = !!(opts && opts.keepCam);
+function renderLineage() {
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
   renderStats(snapshot);
   renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
@@ -10707,8 +8409,7 @@ function renderLineage(opts) {
       (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') +
       "</div></div></div>";
     lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
-    // S1z — keepCam on Evidence soft-stay hops (no bindStage cam wipe on full rebuild).
-    bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
+    bindStage(canvas.querySelector(".stage"), { reset: true });
   } else {
     const title = canvas.querySelector(".flow-title");
     if (title) {
@@ -11581,11 +9282,6 @@ function renderFlowchart(msg, opts) {
   applyEgoPaint();
   bindStoryRail();
   applyPathWalkPaint();
-  // S1x — Slice remount / recycle rebuilds vnodes while Evidence may stay open.
-  // Re-seed soft stay + settle honesty; next flush repaints lineMap / active-line.
-  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    softStayScrollDriveAcrossDeskRemount();
-  }
 }
 
 function stampBadge(name) {
@@ -12202,7 +9898,6 @@ function setLlmPane(on) {
     if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
     if (typeof setLensOpen === "function") setLensOpen(false);
     if (typeof setRouteOpen === "function") setRouteOpen(false);
-    if (typeof applyPresent === "function") applyPresent(false);
     if (typeof hideTip === "function") hideTip();
     if (toastEl) {
       toastEl.classList.remove("on");

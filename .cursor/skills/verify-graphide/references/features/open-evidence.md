@@ -19,16 +19,13 @@ Inspect a node or hop without covering the object rail.
 - Opening Ask closes Evidence (`K18m`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Evidence closes Ask (`K18v`), same exclusive chrome as Keys / Export / Present closing Ask.
 - Opening Evidence closes Keys (`K18y`), same exclusive chrome as Keys closing Evidence (`K18p`).
-- Opening Evidence closes Export (`K18z`), same exclusive chrome as Export closing Evidence (`K18s`).
-- Opening Evidence closes Lens (`K18ae`), same exclusive chrome as Ask / Keys / Export closing Lens.
-- Opening Evidence closes Route (`K18af`), same exclusive chrome as Ask / Keys / Export / Present closing Route.
 - Opening Keys closes Evidence (`K18p`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Opening Export closes Evidence (`K18s`), same exclusive chrome as Present closing Evidence (`K18j`).
 - Object rail `#ledgerPane` / `#ledgerGrid .cell` — source list of names on Map / Slice. Click a `.cell` inspects that node.
 - Graph open: click `.vnode[data-id]` (Slice / Overview CFG, including
   `#sliceCanvas .react-flow .vnode` and `#lineageCanvas .ego-node`) →
   `selectNode` → `peekSource`.
-- Scroll-drive camera + micro CFG + macro LOD + kind anchors + clutter gate + camEase + line→node + nest depth + blend polish + reduced-motion + rAF coalesce + Present pause + lineMapHit glow + Evidence active-line cue + soft camX follow + idle-settle camX / camY + nest remap soft-cam stay + macro-path soft remap / camK soft stay + Evidence file-hop soft stay + Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore + Review-restart clear + Present-stage soft-stay stash parity + Present-exit soft-stay vs refit + Review-clear cue + workspace-change clears Review-clear cue + soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion + macro enter/exit settle-before-sample + Lineage/Overview resettle settle-before-sample + remount resettle settle-before-sample + Present-exit Review-clear cue polish + Review-during-Present mutual exclusion + Evidence reopen after wipe no soft-restore + soft-restore round-trip after fresh stay + file-hop settle-before-sample + soft-restore settle-before-sample + nest/line remap settle-before-sample + reload/host-repost settle-before-sample + soft-restore round-trip settle-before-sample + Present-stage settle-before-sample + Review-clear cue settle-before-sample + confirm-probe atomic settle sample + warm/resettle atomic settle sample + workspace-change Review-clear cue settle-before-sample + Present-stash/Review-clear mutual-exclusion settle-before-sample + Present-exit Review-clear cue polish settle-before-sample + Review-during-Present mutual-exclusion settle-before-sample + cold-path reopen settle-before-sample (`S1a`–`S1bg`) is owned by [scroll-drive.md](scroll-drive.md). This map stays pane open / clip.
+- Scroll-drive camera (`S1a`) is owned by [scroll-drive.md](scroll-drive.md). This map stays pane open / clip.
 - Clip rules (PR #45 / `main.css`): `#sourcePane` has `overflow: hidden` and `max-width: 380px` (flex basis ~360px). Long source lines must not cover `#ledgerPane`.
 
 ## How to get to it (user POV)
@@ -61,10 +58,7 @@ Driver assertions:
 - opening Ask closes Evidence (`K18m`)
 - opening Evidence closes Ask (`K18v`)
 - opening Evidence closes Keys (`K18y`)
-- opening Evidence closes Export (`K18z`)
-- opening Evidence closes Lens (`K18ae`)
-- opening Evidence closes Route (`K18af`)
-- Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam / CFG / macro / anchors / detail / camEase / line→node / nest / blend / reduced-motion / rAF / Present pause / lineMapHit glow / active-line cue / soft camX follow / idle-settle camX / camY / nest remap soft-cam stay / macro-path soft remap / file-hop soft stay / Present→Evidence soft restore + desk remount soft stay + Map↔Slice remount soft stay + Lineage/Overview hop soft stay + persist last-stay across reload + workspace-scoped stay + host re-post restore + Review-restart clear + Present-stage soft-stay stash parity + Present-exit soft-stay vs refit + Review-clear cue + workspace-change clears Review-clear cue + soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion + macro enter/exit settle-before-sample + Lineage/Overview resettle settle-before-sample + remount resettle settle-before-sample + Present-exit Review-clear cue polish + Review-during-Present mutual exclusion + Evidence reopen after wipe no soft-restore + soft-restore round-trip after fresh stay + file-hop settle-before-sample + soft-restore settle-before-sample + nest/line remap settle-before-sample + reload/host-repost settle-before-sample + soft-restore round-trip settle-before-sample + Present-stage settle-before-sample + Review-clear cue settle-before-sample + confirm-probe atomic settle sample + warm/resettle atomic settle sample + workspace-change Review-clear cue settle-before-sample + Present-stash/Review-clear mutual-exclusion settle-before-sample + Present-exit Review-clear cue polish settle-before-sample + Review-during-Present mutual-exclusion settle-before-sample + cold-path reopen settle-before-sample (`S1a`–`S1bg`) — see [scroll-drive.md](scroll-drive.md)
+- Evidence `#srcBody` scroll updates `__graphideScrollDrive` / moves cam (`S1a`) — see [scroll-drive.md](scroll-drive.md)
 - opening Keys closes Evidence (`K18p`)
 - opening Export closes Evidence (`K18s`)
 - screenshot of the desk with Evidence open is not black

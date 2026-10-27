@@ -24,12 +24,6 @@ slice. Not an agent-drawn lens JSON.
 - Opening Keys closes Lens (`K18q`), same exclusive chrome as Present closing Lens (`K18k`).
 - Opening Export closes Lens (`K18t`), same exclusive chrome as Present closing Lens (`K18k`).
 - Opening Lens closes Ask (`K18w`), same exclusive chrome as Evidence closing Ask (`K18v`).
-- Opening Lens closes Keys (`K18aa`), same exclusive chrome as Keys closing Lens (`K18q`).
-- Opening Lens closes Export (`K18ab`), same exclusive chrome as Export closing Lens (`K18t`).
-- Opening Lens does **not** exit Presentation Stage — Lens is a stage
-  overlay (`P6s` desk `L` on stage; `K14k` Backspace closes Lens and
-  stays presenting). Ask / Evidence exit Present (`K18ai` / `K18aj`);
-  Keys / Export / Route share the same overlay rule.
 
 ## How to get to it (user POV)
 
@@ -68,9 +62,6 @@ Driver assertions:
 - opening Keys closes Lens (`K18q`)
 - opening Export closes Lens (`K18t`)
 - opening Lens closes Ask (`K18w`)
-- opening Lens closes Keys (`K18aa`)
-- opening Lens closes Export (`K18ab`)
-- opening Lens does **not** exit Present (`P6s` / `K14k` overlay)
 - screenshot `verification/lens.png` is not a black frame
 - explorer Slice: `.lens-dim` beats distance grey — off-tree non-matches
   ≤ the lit non-matches (≤ 0.28, `LN6`)
