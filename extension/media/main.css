@@ -2471,6 +2471,13 @@ html.bright .route-hop {
   stroke-width: 2.25;
   marker-end: url(#trajArrow);
   opacity: 0.9;
+  /* ADE TEH: re-enable stroke hit-testing under pointer-events:none parent svg */
+  pointer-events: stroke;
+  cursor: help;
+}
+.traj-edge:hover {
+  stroke-width: 3.1;
+  opacity: 1;
 }
 .traj-edge.kind-fork { stroke-dasharray: 5 4; opacity: 0.8; }
 .traj-edge.kind-join { stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e)); }
@@ -2907,6 +2914,58 @@ html.bright .traj-hop-next {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+/* ADE traj-edge hover tip (TEH1–TEH3) — floating tooltip; mirror #trajPinTip; tip itself non-interactive */
+#trajEdgeTip {
+  position: fixed;
+  z-index: 30;
+  min-width: 132px;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: var(--g-radius-sm, 8px);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  box-shadow: var(--g-lift, 0 8px 22px rgba(0,0,0,0.32));
+  backdrop-filter: blur(12px);
+}
+#trajEdgeTip[hidden] { display: none !important; }
+.traj-edge-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.traj-edge-tip-kind {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  opacity: 0.9;
+  color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 85%, var(--vscode-foreground));
+}
+.traj-edge-tip-label {
+  font-weight: 600;
+  opacity: 0.92;
+}
+.traj-edge-tip-hop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.traj-edge-tip-hop code {
+  font-size: 11px;
+  opacity: 0.92;
+}
+.traj-edge-tip-arrow {
+  opacity: 0.55;
+  font-weight: 700;
 }
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));

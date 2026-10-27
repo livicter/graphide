@@ -122,6 +122,7 @@ Driver assertions:
 - CLC1–CLC3: clear-filter `:hover` cue — Trace legend blue lift above resting button-background + `cursor:pointer` (Passport sticky + empty Clear mirror); proof `verification/residual-filter-clear-hover-cue.png`
 - EKH1–EKH3: residual-filter empty keyboard hints — Trace empty `desk-keys` / `data-residual-filter-empty-keys` (`<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear`); Clear remains; proof `verification/residual-filter-empty-kbd-hints.png`
 - TNI1–TNI3: traj DAG node hover/focus info — every `.traj-node` has matching `title` + `aria-label` + `data-traj-node-info` (id · kind · status · residual deps/hops); proof `verification/trajectory-node-info.png`
+- TEH1–TEH3: `#trajCanvas svg.traj-edges path.traj-edge` uses `pointer-events:stroke` (parent `.traj-edges` stays `none`); hover shows floating `#trajEdgeTip` / `[data-traj-edge-tip]` (`role=tooltip`) with kind · label · from→to; tip `pointer-events:none`; no SVG `<title>`; screenshot `verification/trajectory-edge-tip.png`
 - screenshots `verification/trajectory-dag.png`,
   `verification/trajectory-focus.png`,
   `verification/trajectory-fixtures.png`,

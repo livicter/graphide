@@ -882,6 +882,13 @@ assert(driver.includes("PGC1") && driver.includes("PGC3") && driver.includes("pa
 assert(css.includes(".passport-gate-chip[data-gate-chip]:hover") && css.includes("cursor: help") && /passport-gate-chip\[data-gate-chip\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-gate-chip[data-gate-chip]:hover state-tint lift (34%) + cursor:help");
 assert(passportMap.includes("PGC1") && passportMap.includes(":hover") && passportMap.includes("passport-gate-chip-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name gate-chip hover PGC / proof");
 
+assert(driver.includes("TEH1") && driver.includes("TEH3") && driver.includes("trajectory-edge-tip.png") && driver.includes("trajEdgeTip"), "verify driver must prove traj-edge hover tip TEH1–TEH3");
+assert(js.includes("showTrajEdgeTip") && js.includes("hideTrajEdgeTip") && js.includes("trajEdgeTipEl") && js.includes('data-traj-edge-tip'), "desk.js traj-edge tip helpers missing");
+assert(css.includes("pointer-events: stroke") && css.includes("#trajEdgeTip") && /\.traj-edge\s*\{[\s\S]*?pointer-events:\s*stroke/.test(css) && css.includes("cursor: help"), "main.css must set .traj-edge pointer-events:stroke + #trajEdgeTip + cursor:help");
+assert(traceMap.includes("TEH1") && traceMap.includes("traj-edge") && traceMap.includes("trajectory-edge-tip.png") && traceMap.includes("#trajEdgeTip"), "trace feature map must name TEH / traj-edge tip / proof");
+
+
+
 
 
 

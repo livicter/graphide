@@ -11494,6 +11494,7 @@ function trajPinTipEl() {
 }
 
 function hideTrajPinTip() {
+  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   const el = document.getElementById("trajPinTip");
   if (!el) return;
   el.hidden = true;
@@ -11539,6 +11540,7 @@ function positionTrajPinTip(el, ev, pin) {
 
 function showTrajPinTip(pin, node, ev) {
   if (!pin || !node || !ev) return;
+  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   const el = trajPinTipEl();
   const kind = pin.getAttribute("data-traj-pin") || "";
   const id = node.getAttribute("data-id") || "";
@@ -11659,11 +11661,117 @@ function showTrajPinTip(pin, node, ev) {
 
 
 
+
+/** TEH: floating traj-edge hover tip (kind · label · from→to); mirror trajPinTip; no SVG <title>. */
+function trajEdgeTipEl() {
+  let el = document.getElementById("trajEdgeTip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "trajEdgeTip";
+    el.hidden = true;
+    el.setAttribute("data-traj-edge-tip", "1");
+    el.setAttribute("role", "tooltip");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function hideTrajEdgeTip() {
+  const el = document.getElementById("trajEdgeTip");
+  if (!el) return;
+  el.hidden = true;
+  el.removeAttribute("data-edge-id");
+  el.removeAttribute("data-from");
+  el.removeAttribute("data-to");
+  el.removeAttribute("data-kind");
+  el.removeAttribute("data-label");
+  el.removeAttribute("data-tip-place");
+  el.innerHTML = "";
+}
+
+function positionTrajEdgeTip(el, ev, edge) {
+  const margin = 10;
+  const tipW = el.offsetWidth || 160;
+  const tipH = el.offsetHeight || 48;
+  let x;
+  let y;
+  if (edge && typeof edge.getBoundingClientRect === "function") {
+    const r = edge.getBoundingClientRect();
+    x = r.left + r.width / 2 - tipW / 2;
+    y = r.bottom + 8;
+    if (y + tipH > window.innerHeight - margin) {
+      y = r.top - tipH - 8;
+      el.setAttribute("data-tip-place", "above");
+    } else {
+      el.setAttribute("data-tip-place", "below");
+    }
+  } else {
+    x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+    y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+    el.setAttribute("data-tip-place", "cursor");
+  }
+  x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+  y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+}
+
+function showTrajEdgeTip(edge, ev) {
+  if (!edge || !ev) return;
+  // Mutual exclusion with pin tip
+  const pin = document.getElementById("trajPinTip");
+  if (pin && !pin.hidden) {
+    pin.hidden = true;
+    pin.innerHTML = "";
+  }
+  const el = trajEdgeTipEl();
+  const id = edge.getAttribute("data-edge-id") || "";
+  const from = edge.getAttribute("data-from") || "";
+  const to = edge.getAttribute("data-to") || "";
+  const kind = edge.getAttribute("data-kind") || "";
+  const label = edge.getAttribute("data-label") || "";
+  el.setAttribute("data-edge-id", id);
+  el.setAttribute("data-from", from);
+  el.setAttribute("data-to", to);
+  el.setAttribute("data-kind", kind);
+  if (label) el.setAttribute("data-label", label);
+  else el.removeAttribute("data-label");
+  const headBits = [];
+  if (kind) headBits.push(kind);
+  if (label) headBits.push(label);
+  const head = headBits.join(" · ") || "edge";
+  const hop = from && to ? from + " → " + to : from || to || "";
+  let html =
+    '<div class="traj-edge-tip-head"><span class="traj-edge-tip-kind" data-tip-edge-kind="1">' +
+    esc(kind || "edge") +
+    "</span>";
+  if (label) {
+    html +=
+      '<span class="traj-edge-tip-label" data-tip-edge-label="1">' +
+      esc(label) +
+      "</span>";
+  }
+  html += "</div>";
+  if (hop) {
+    html +=
+      '<div class="traj-edge-tip-hop" data-tip-edge-hop="1"><code data-tip-from="1">' +
+      esc(from) +
+      '</code><span class="traj-edge-tip-arrow" aria-hidden="true">→</span><code data-tip-to="1">' +
+      esc(to) +
+      "</code></div>";
+  }
+  el.setAttribute("data-tip-copy", head + (hop ? " · " + hop : ""));
+  el.innerHTML = html;
+  el.hidden = false;
+  positionTrajEdgeTip(el, ev, edge);
+}
+
 /** CF: clear Trace/Passport traj focus and restore global residual chrome. */
 function clearTrajFocus() {
   trajSelectedId = "";
   trajPinFocus = "";
   hideTrajPinTip();
+  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   if (typeof window !== "undefined") window.__graphideTrajectoryFocus = "";
   syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
   paint({ animate: "none" });
@@ -11690,6 +11798,7 @@ function bindTrajectoryPage() {
   const host = document.getElementById("trajCanvas");
   if (!host) return;
   hideTrajPinTip();
+  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   host.querySelectorAll(".traj-node").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
@@ -11727,6 +11836,18 @@ function bindTrajectoryPage() {
       if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev, pin);
     };
     pin.onpointerleave = () => hideTrajPinTip();
+  });
+  // ADE TEH1–TEH3: traj-edge hover tip (pointer-events:stroke on path; parent svg still none)
+  host.querySelectorAll("svg.traj-edges path.traj-edge[data-edge-id]").forEach((edge) => {
+    edge.onpointerenter = (ev) => {
+      ev.stopPropagation();
+      showTrajEdgeTip(edge, ev);
+    };
+    edge.onpointermove = (ev) => {
+      const tipEl = document.getElementById("trajEdgeTip");
+      if (tipEl && !tipEl.hidden) positionTrajEdgeTip(tipEl, ev, edge);
+    };
+    edge.onpointerleave = () => hideTrajEdgeTip();
   });
   host.onclick = () => {
     if (document.activeElement !== host) host.focus({ preventScroll: true });

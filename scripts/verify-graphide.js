@@ -11861,6 +11861,252 @@ async function main() {
     );
     assertNoStampDir("TNI4", "Trace traj node info step did not write .graphide/stamps/");
 
+    // ADE traj-edge hover tip (TEH1–TEH3) — pointer-events:stroke; #trajEdgeTip kind · label · from→to; no SVG <title>
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas svg.traj-edges path.traj-edge[data-edge-id]", {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    const teh1 = await page.evaluate(() => {
+      const svg = document.querySelector("#trajCanvas svg.traj-edges");
+      const edges = [...document.querySelectorAll("#trajCanvas svg.traj-edges path.traj-edge[data-edge-id]")];
+      const infos = edges.map((el) => ({
+        id: el.getAttribute("data-edge-id") || "",
+        from: el.getAttribute("data-from") || "",
+        to: el.getAttribute("data-to") || "",
+        kind: el.getAttribute("data-kind") || "",
+        label: el.getAttribute("data-label") || "",
+        pe: getComputedStyle(el).pointerEvents,
+        cursor: getComputedStyle(el).cursor,
+      }));
+      const svgPe = svg ? getComputedStyle(svg).pointerEvents : "";
+      const titled = !!document.querySelector(
+        "#trajCanvas svg.traj-edges title, #trajCanvas svg.traj-edges path.traj-edge title"
+      );
+      const allAttrs =
+        infos.length > 0 &&
+        infos.every((e) => e.id && e.from && e.to && e.kind);
+      const strokePe =
+        infos.length > 0 && infos.every((e) => e.pe === "stroke" || e.pe === "visibleStroke");
+      const helpCursor = infos.length > 0 && infos.every((e) => e.cursor === "help");
+      return {
+        count: infos.length,
+        svgPe,
+        titled,
+        allAttrs,
+        strokePe,
+        helpCursor,
+        sample: infos[0] || null,
+        labeled: infos.filter((e) => e.label).length,
+      };
+    });
+    const teh1ok = !!(
+      teh1 &&
+      teh1.count >= 2 &&
+      teh1.allAttrs &&
+      teh1.strokePe &&
+      teh1.helpCursor &&
+      (teh1.svgPe === "none" || teh1.svgPe === "") &&
+      !teh1.titled &&
+      teh1.labeled >= 1
+    );
+    record(
+      "TEH1",
+      "Every traj-edge has data-edge-id/from/to/kind; pointer-events:stroke under svg none; cursor:help; no SVG <title>",
+      !!teh1ok,
+      JSON.stringify(teh1)
+    );
+
+    const teh2 = await page.evaluate(() => {
+      const edge =
+        document.querySelector('#trajCanvas path.traj-edge[data-edge-id="e-plan-edit"]') ||
+        document.querySelector("#trajCanvas path.traj-edge[data-edge-id][data-label]") ||
+        document.querySelector("#trajCanvas path.traj-edge[data-edge-id]");
+      if (!edge) return { ok: false, reason: "no edge" };
+      const from = edge.getAttribute("data-from") || "";
+      const to = edge.getAttribute("data-to") || "";
+      const kind = edge.getAttribute("data-kind") || "";
+      const label = edge.getAttribute("data-label") || "";
+      const rect = edge.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: cx,
+          clientY: cy,
+          pointerId: 1,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("trajEdgeTip");
+      const tipKind = tip && tip.querySelector("[data-tip-edge-kind]");
+      const tipLabel = tip && tip.querySelector("[data-tip-edge-label]");
+      const tipHop = tip && tip.querySelector("[data-tip-edge-hop]");
+      const tipFrom = tip && tip.querySelector("[data-tip-from]");
+      const tipTo = tip && tip.querySelector("[data-tip-to]");
+      const tipCs = tip ? getComputedStyle(tip).pointerEvents : "";
+      return {
+        ok: true,
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        role: tip ? tip.getAttribute("role") || "" : "",
+        tipPe: tipCs,
+        edgeId: tip ? tip.getAttribute("data-edge-id") || "" : "",
+        tipFromAttr: tip ? tip.getAttribute("data-from") || "" : "",
+        tipToAttr: tip ? tip.getAttribute("data-to") || "" : "",
+        tipKindAttr: tip ? tip.getAttribute("data-kind") || "" : "",
+        tipLabelAttr: tip ? tip.getAttribute("data-label") || "" : "",
+        kindText: tipKind ? (tipKind.textContent || "").trim() : "",
+        labelText: tipLabel ? (tipLabel.textContent || "").trim() : "",
+        hopText: tipHop ? (tipHop.textContent || "").replace(/\s+/g, " ").trim() : "",
+        fromText: tipFrom ? (tipFrom.textContent || "").trim() : "",
+        toText: tipTo ? (tipTo.textContent || "").trim() : "",
+        expect: { from, to, kind, label, id: edge.getAttribute("data-edge-id") || "" },
+      };
+    });
+    const teh2ok = !!(
+      teh2 &&
+      teh2.ok &&
+      teh2.tip &&
+      !teh2.tipHidden &&
+      teh2.role === "tooltip" &&
+      (teh2.tipPe === "none" || teh2.tipPe === "") &&
+      teh2.edgeId === teh2.expect.id &&
+      teh2.tipFromAttr === teh2.expect.from &&
+      teh2.tipToAttr === teh2.expect.to &&
+      teh2.tipKindAttr === teh2.expect.kind &&
+      teh2.kindText.toLowerCase() === teh2.expect.kind.toLowerCase() &&
+      teh2.fromText === teh2.expect.from &&
+      teh2.toText === teh2.expect.to &&
+      (!teh2.expect.label || teh2.labelText === teh2.expect.label) &&
+      teh2.hopText.includes("→")
+    );
+    record(
+      "TEH2",
+      "pointerenter on traj-edge shows #trajEdgeTip tooltip with kind · label · from→to; tip pointer-events:none",
+      !!teh2ok,
+      JSON.stringify(teh2)
+    );
+
+    const teh3 = await page.evaluate(() => {
+      const edge =
+        document.querySelector('#trajCanvas path.traj-edge[data-edge-id="e-plan-edit"]') ||
+        document.querySelector("#trajCanvas path.traj-edge[data-edge-id]");
+      if (edge) {
+        edge.dispatchEvent(
+          new PointerEvent("pointerleave", {
+            bubbles: true,
+            pointerId: 1,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterLeave = document.getElementById("trajEdgeTip");
+      const hiddenAfterLeave = !tipAfterLeave || tipAfterLeave.hidden;
+      // Node hover must not resurrect edge tip
+      const node = document.querySelector('.traj-node[data-id="sub-diff"]');
+      if (node) {
+        node.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: 10,
+            clientY: 10,
+            pointerId: 2,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterNode = document.getElementById("trajEdgeTip");
+      const edgeTipStillHidden = !tipAfterNode || tipAfterNode.hidden;
+      // Pin tip still works (TNI/PH intact)
+      const pin = document.querySelector(
+        '.traj-node[data-id="sub-diff"] .traj-pin[data-traj-pin="diff"]'
+      );
+      let pinTipOk = false;
+      if (pin && typeof pin.onpointerenter === "function") {
+        pin.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: 20,
+            clientY: 20,
+            pointerId: 3,
+            pointerType: "mouse",
+          })
+        );
+        const pinTip = document.getElementById("trajPinTip");
+        pinTipOk = !!(pinTip && !pinTip.hidden && pinTip.getAttribute("data-pin-kind") === "diff");
+        // cleanup
+        if (typeof pin.onpointerleave === "function") pin.onpointerleave();
+      } else if (pin) {
+        pin.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: 20,
+            clientY: 20,
+            pointerId: 3,
+            pointerType: "mouse",
+          })
+        );
+        const pinTip = document.getElementById("trajPinTip");
+        pinTipOk = !!(pinTip && !pinTip.hidden);
+      }
+      const edgeTipAfterPin = document.getElementById("trajEdgeTip");
+      return {
+        hiddenAfterLeave,
+        edgeTipStillHidden,
+        pinTipOk,
+        edgeHiddenAfterPin: !edgeTipAfterPin || edgeTipAfterPin.hidden,
+      };
+    });
+    const teh3ok = !!(
+      teh3 &&
+      teh3.hiddenAfterLeave &&
+      teh3.edgeTipStillHidden &&
+      teh3.pinTipOk &&
+      teh3.edgeHiddenAfterPin
+    );
+    record(
+      "TEH3",
+      "pointerleave hides edge tip; node hover does not show it; pin tip still works and keeps edge tip hidden",
+      !!teh3ok,
+      JSON.stringify(teh3)
+    );
+
+    // Re-show edge tip for proof shot
+    await page.evaluate(() => {
+      const edge =
+        document.querySelector('#trajCanvas path.traj-edge[data-edge-id="e-plan-edit"]') ||
+        document.querySelector("#trajCanvas path.traj-edge[data-edge-id]");
+      if (!edge) return;
+      const rect = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 4,
+          pointerType: "mouse",
+        })
+      );
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "trajectory-edge-tip.png");
+    const tehShot = checks.find((c) => c.id === "shot:trajectory-edge-tip.png");
+    const teh4ok = !!(teh1ok && teh2ok && teh3ok && tehShot && tehShot.pass);
+    record(
+      "TEH4",
+      "screenshot trajectory-edge-tip.png not black; traj-edge hover tip proven",
+      !!teh4ok,
+      JSON.stringify({
+        shot: tehShot ? tehShot.detail : "missing",
+        teh1: !!teh1ok,
+        teh2: !!teh2ok,
+        teh3: !!teh3ok,
+      })
+    );
+    assertNoStampDir("TEH5", "Traj edge tip step did not write .graphide/stamps/");
+
     // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift; cursor:help; state-aware title/aria/data-seal-info
     await page.evaluate(() => {
       window.__graphideSealStatus = "sealed";
