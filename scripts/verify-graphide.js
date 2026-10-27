@@ -7723,6 +7723,328 @@ async function main() {
       evidenceClosedKeys.evidenceOpen && !evidenceClosedKeys.keysOpen,
       JSON.stringify(evidenceClosedKeys)
     );
+    // Opening Evidence must close Export (revealSourcePane exclusivity — Evidence clears Export chrome).
+    // Open Export first (closes Evidence via K18s), then reopen Evidence via ledger cell.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedExport = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18z",
+      "Opening Evidence closes Export (exclusive chrome)",
+      evidenceClosedExport.evidenceOpen && !evidenceClosedExport.exportOpen,
+      JSON.stringify(evidenceClosedExport)
+    );
+    // Opening Lens must close Keys (setLensOpen exclusivity — Lens clears Keys chrome).
+    // Evidence is open from K18z; close it first so Keys can open cleanly. Reopen after for S1a.
+    await page.keyboard.press("Escape"); // close Evidence
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Use #lensBtn: desk L is blocked while Keys is open (modal chrome early-return).
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedKeys = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18aa",
+      "Opening Lens closes Keys (exclusive chrome)",
+      lensClosedKeys.lensOpen && !lensClosedKeys.keysOpen,
+      JSON.stringify(lensClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Lens must close Export (setLensOpen exclusivity — Lens clears Export chrome).
+    // Reverse of Export closing Lens (K18t). Use #lensBtn: desk L is blocked while Export is open.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedExport = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18ab",
+      "Opening Lens closes Export (exclusive chrome)",
+      lensClosedExport.lensOpen && !lensClosedExport.exportOpen,
+      JSON.stringify(lensClosedExport)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Route must close Keys (setRouteOpen exclusivity — Route clears Keys chrome).
+    // Reverse of Keys closing Route (K18r). Use #pathBtn: desk R is blocked while Keys is open.
+    await page.click("#keysBtn");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedKeys = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      keysOpen: !!(document.getElementById("keysPane") && !document.getElementById("keysPane").hidden),
+    }));
+    record(
+      "K18ac",
+      "Opening Route closes Keys (exclusive chrome)",
+      routeClosedKeys.routeOpen && !routeClosedKeys.keysOpen,
+      JSON.stringify(routeClosedKeys)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Route must close Export (setRouteOpen exclusivity — Route clears Export chrome).
+    // Reverse of Export closing Route (K18u). Use #pathBtn: desk R is blocked while Export is open.
+    await page.click("#exportBtn");
+    await page.waitForFunction(
+      () => {
+        const menu = document.getElementById("exportMenu");
+        return !!(menu && !menu.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedExport = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      exportOpen: !!(document.getElementById("exportMenu") && !document.getElementById("exportMenu").hidden),
+    }));
+    record(
+      "K18ad",
+      "Opening Route closes Export (exclusive chrome)",
+      routeClosedExport.routeOpen && !routeClosedExport.exportOpen,
+      JSON.stringify(routeClosedExport)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Route must close Lens (setRouteOpen exclusivity — Route clears Lens chrome).
+    // Reverse of Lens staying open under Route; open Lens first, then Route via #pathBtn.
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    const routeClosedLens = await page.evaluate(() => ({
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K18ag",
+      "Opening Route closes Lens (exclusive chrome)",
+      routeClosedLens.routeOpen && !routeClosedLens.lensOpen,
+      JSON.stringify(routeClosedLens)
+    );
+    await page.keyboard.press("Escape"); // close Route
+    await page.waitForFunction(
+      () => !(window.__graphideRoute && window.__graphideRoute.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Lens must close Route (setLensOpen exclusivity — Lens clears Route chrome).
+    // Reverse of Route closing Lens (K18ag). Open Route first, then Lens via #lensBtn.
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    const lensClosedRoute = await page.evaluate(() => ({
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18ah",
+      "Opening Lens closes Route (exclusive chrome)",
+      lensClosedRoute.lensOpen && !lensClosedRoute.routeOpen,
+      JSON.stringify(lensClosedRoute)
+    );
+    await page.keyboard.press("Escape"); // close Lens
+    await page.waitForFunction(
+      () => !(window.__graphideLens && window.__graphideLens.open),
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Ask must close Present (setLlmPane exclusivity — Ask clears Presentation Stage).
+    // Reverse of Present closing Ask (K18g). #llmBtn is display:none on stage — click via evaluate.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const btn = document.getElementById("llmBtn");
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !!(pane && !pane.hidden) && !(document.body && document.body.classList.contains("present"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const askClosedPresent = await page.evaluate(() => ({
+      askOpen: !!(document.getElementById("llmPane") && !document.getElementById("llmPane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K18ai",
+      "Opening Ask closes Present (exclusive chrome)",
+      askClosedPresent.askOpen && !askClosedPresent.presenting,
+      JSON.stringify(askClosedPresent)
+    );
+    await page.keyboard.press("Escape"); // close Ask
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("llmPane");
+        return !(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // Opening Evidence must close Present (revealSourcePane exclusivity — Evidence clears Presentation Stage).
+    // Reverse of Present closing Evidence (K18j). #ledgerPane/#sourcePane are display:none on stage — cell click via evaluate.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => !!(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden) && !(document.body && document.body.classList.contains("present"));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedPresent = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      presenting: !!(document.body && document.body.classList.contains("present")),
+    }));
+    record(
+      "K18aj",
+      "Opening Evidence closes Present (exclusive chrome)",
+      evidenceClosedPresent.evidenceOpen && !evidenceClosedPresent.presenting,
+      JSON.stringify(evidenceClosedPresent)
+    );
+    // Evidence stays open for K18ae/K18af / S1a (Present already exited).
+    // Opening Evidence must close Lens (revealSourcePane exclusivity — Evidence clears Lens chrome).
+    // Reverse of Ask/Keys/Export closing Lens; open Lens first, then reopen Evidence via ledger cell.
+    await page.click("#lensBtn");
+    await page.waitForFunction(() => window.__graphideLens && window.__graphideLens.open, null, { timeout: 5000 });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedLens = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      lensOpen: !!(window.__graphideLens && window.__graphideLens.open),
+    }));
+    record(
+      "K18ae",
+      "Opening Evidence closes Lens (exclusive chrome)",
+      evidenceClosedLens.evidenceOpen && !evidenceClosedLens.lensOpen,
+      JSON.stringify(evidenceClosedLens)
+    );
+    // Opening Evidence must close Route (revealSourcePane exclusivity — Evidence clears Route chrome).
+    // Reverse of Ask/Keys/Export/Present closing Route; open Route via #pathBtn, then reopen Evidence via ledger cell.
+    await page.click("#pathBtn");
+    await page.waitForFunction(() => window.__graphideRoute && window.__graphideRoute.open, null, { timeout: 5000 });
+    await page.evaluate(() => {
+      const cell = document.querySelector("#ledgerGrid .cell");
+      if (cell) cell.click();
+    });
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
+    const evidenceClosedRoute = await page.evaluate(() => ({
+      evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      routeOpen: !!(window.__graphideRoute && window.__graphideRoute.open),
+    }));
+    record(
+      "K18af",
+      "Opening Evidence closes Route (exclusive chrome)",
+      evidenceClosedRoute.evidenceOpen && !evidenceClosedRoute.routeOpen,
+      JSON.stringify(evidenceClosedRoute)
+    );
+    // Evidence is open for S1a scroll-drive suite (opened above for K18ae/K18af).
+    await page.waitForFunction(
+      () => !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      null,
+      { timeout: 5000 }
+    );
     // S1a — Evidence #srcBody scroll publishes ScrollDrive and moves camTo (lerp via setCamTarget).
     const beforeScrollDrive = await page.evaluate(() => {
       const d = window.__graphideScrollDrive || {};
@@ -7873,7 +8195,7885 @@ async function main() {
         (s1bOpened.top.cfgVisible < afterCfg.cfgVisible || s1bOpened.top.ahead > afterCfg.ahead || afterCfg.cfgUnroll > s1bOpened.top.cfgUnroll),
       "opened=" + JSON.stringify(s1bOpened) + " after=" + JSON.stringify(afterCfg)
     );
-    await page.keyboard.press("Escape"); // close Evidence
+    // S1c — file-top (low scrollRatio) → macro Map LOD; focus Evidence node, dim siblings.
+    const s1cTop = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (300 + i) + '</span><span class="tx">macro-lod pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return {
+        ok: true,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#canvas .viewport, #sliceCanvas") 
+          ? document.querySelector("#canvas .viewport")
+          : null;
+        return !!(
+          d &&
+          d.macroLod &&
+          Number(d.scrollRatio) <= 0.18 &&
+          vp &&
+          vp.getAttribute("data-lod") === "0" &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(150);
+    const afterMacro = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        scrollVel: Number(d.scrollVel) || 0,
+        macroLod: !!d.macroLod,
+        lod: (vp && vp.getAttribute("data-lod")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+        dim: document.querySelectorAll(".vnode.scroll-macro-dim").length,
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot"),
+        camK: Number(d.camK),
+        targetNodeId: d.targetNodeId || "",
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Mid-file slow scroll must leave macro and restore micro CFG (velocity aged out).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(280); // past velocity recheck timer
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      // Second tick after age decay — settle mid-file micro mode.
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && Number(d.cfgUnroll) > 0.35);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const afterMid = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macroHot: !!document.querySelector(".vnode.scroll-macro-hot"),
+      };
+    });
+    record(
+      "S1c",
+      "Evidence file-top / fast scroll enters macro Map LOD; mid-file returns to CFG",
+      s1cTop.ok &&
+        afterMacro.evidenceOpen &&
+        afterMacro.macroLod &&
+        afterMacro.lod === "0" &&
+        afterMacro.macroAttr === "1" &&
+        afterMacro.hot &&
+        afterMacro.dim >= 1 &&
+        !afterMacro.cfgHot &&
+        !afterMid.macroLod &&
+        afterMid.cfgUnroll > 0.35 &&
+        afterMid.cfgHot,
+      "top=" +
+        JSON.stringify(s1cTop) +
+        " macro=" +
+        JSON.stringify(afterMacro) +
+        " mid=" +
+        JSON.stringify(afterMid)
+    );
+    // S1d — Evidence if / loop / try lines annotate Steiner CFG spans; active kind glows, siblings collapse.
+    const s1dPad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      // Mid-file micro mode — inject distinct control-flow anchors then scroll into them.
+      const anchors = [
+        { ln: 410, tx: "if (ready) { open_gate(); }" },
+        { ln: 430, tx: "for (let i = 0; i < n; i++) { step(i); }" },
+        { ln: 450, tx: "try { flush(); } catch (e) { recover(e); }" },
+      ];
+      for (const a of anchors) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.innerHTML = '<span class="ln">' + a.ln + '</span><span class="tx">' + a.tx + "</span>";
+        body.appendChild(row);
+      }
+      for (let i = 0; i < 24; i++) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.innerHTML =
+          '<span class="ln">' + (460 + i) + '</span><span class="tx">cfg-span pad ' + i + "</span>";
+        body.appendChild(row);
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.62);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, max: max, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.35 && Number(d.cfgSpanCount) >= 3)) return false;
+        const kinds = new Set();
+        document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
+          kinds.add(el.getAttribute("data-cfg-span"));
+        });
+        return kinds.has("if") && kinds.has("loop") && kinds.has("try") && !!(d.cfgSpanKind);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(150);
+    const afterSpans = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const kinds = [];
+      document.querySelectorAll("#sliceCanvas .vnode[data-cfg-span]").forEach((el) => {
+        kinds.push(el.getAttribute("data-cfg-span"));
+      });
+      const uniq = Array.from(new Set(kinds));
+      const hot = document.querySelector(
+        "#sliceCanvas .vnode.scroll-cfg-hot[data-cfg-span], #sliceCanvas .vnode[data-cfg-active='1'][data-cfg-span]"
+      );
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgSpanKind: d.cfgSpanKind || "",
+        cfgSpanCount: Number(d.cfgSpanCount) || 0,
+        uniq: uniq,
+        hotSpan: (hot && hot.getAttribute("data-cfg-span")) || "",
+        sib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-sib").length,
+        ifN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-if, #sliceCanvas .vnode[data-cfg-span='if']").length,
+        loopN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-loop, #sliceCanvas .vnode[data-cfg-span='loop']").length,
+        tryN: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-try, #sliceCanvas .vnode[data-cfg-span='try']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1d",
+      "Evidence if/loop/try lines annotate CFG spans; active kind glows, siblings collapse",
+      s1dPad.ok &&
+        afterSpans.evidenceOpen &&
+        !afterSpans.macroLod &&
+        afterSpans.cfgUnroll > 0.35 &&
+        afterSpans.cfgSpanCount >= 3 &&
+        ["if", "loop", "try"].includes(afterSpans.cfgSpanKind) &&
+        afterSpans.uniq.includes("if") &&
+        afterSpans.uniq.includes("loop") &&
+        afterSpans.uniq.includes("try") &&
+        !!afterSpans.hotSpan &&
+        afterSpans.sib >= 1 &&
+        afterSpans.ifN >= 1 &&
+        afterSpans.loopN >= 1 &&
+        afterSpans.tryN >= 1,
+      "pad=" + JSON.stringify(s1dPad) + " after=" + JSON.stringify(afterSpans)
+    );
+
+    // S1e — IR kind + EndpointMeta → API / Database / Service / Utility color anchors.
+    const s1ePad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      // Ensure mid-file micro mode (not macro) so CFG + anchors both paint.
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (500 + i) + '</span><span class="tx">kind-anchor pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      // Force a spread of IR kinds on painted Slice nodes so all four buckets appear.
+      const nodes = Array.from(document.querySelectorAll("#sliceCanvas .vnode[data-id]"));
+      const kinds = ["Function", "Type", "Endpoint", "Endpoint"];
+      nodes.forEach((el, i) => {
+        el.setAttribute("data-kind", kinds[i % kinds.length]);
+      });
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, vnodes: nodes.length, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35)) return false;
+        const counts = d.anchorCounts || {};
+        const stamped = document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").length;
+        const buckets = new Set();
+        document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
+          buckets.add(el.getAttribute("data-scroll-anchor"));
+        });
+        return (
+          stamped >= 2 &&
+          buckets.has("util") &&
+          buckets.has("svc") &&
+          (buckets.has("api") || buckets.has("db")) &&
+          !!d.anchorFocus &&
+          (Number(counts.util) || 0) + (Number(counts.svc) || 0) + (Number(counts.api) || 0) + (Number(counts.db) || 0) >= 2
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(120);
+    const afterAnchors = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const buckets = [];
+      document.querySelectorAll("#sliceCanvas .vnode[data-scroll-anchor]").forEach((el) => {
+        buckets.push(el.getAttribute("data-scroll-anchor"));
+      });
+      const uniq = Array.from(new Set(buckets));
+      const counts = d.anchorCounts || {};
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        anchorFocus: d.anchorFocus || "",
+        counts: counts,
+        uniq: uniq,
+        stamped: buckets.length,
+        apiCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-api, #sliceCanvas .vnode[data-scroll-anchor='api']").length,
+        dbCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-db, #sliceCanvas .vnode[data-scroll-anchor='db']").length,
+        svcCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-svc, #sliceCanvas .vnode[data-scroll-anchor='svc']").length,
+        utilCls: document.querySelectorAll("#sliceCanvas .vnode.scroll-anchor-util, #sliceCanvas .vnode[data-scroll-anchor='util']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1e",
+      "Evidence scroll stamps API/DB/Service/Utility kind anchors from IR kinds",
+      s1ePad.ok &&
+        afterAnchors.evidenceOpen &&
+        !afterAnchors.macroLod &&
+        afterAnchors.stamped >= 2 &&
+        afterAnchors.uniq.includes("util") &&
+        afterAnchors.uniq.includes("svc") &&
+        (afterAnchors.uniq.includes("api") || afterAnchors.uniq.includes("db")) &&
+        !!afterAnchors.anchorFocus &&
+        afterAnchors.utilCls >= 1 &&
+        afterAnchors.svcCls >= 1 &&
+        afterAnchors.apiCls + afterAnchors.dbCls >= 1,
+      "pad=" + JSON.stringify(s1ePad) + " after=" + JSON.stringify(afterAnchors)
+    );
+
+    // S1f — hide-until-focus clutter gate: macro/far → detailNear false; mid focus → true.
+    const s1fNear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        ok: true,
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        cfgVisible: Number(d.cfgVisible) || 0,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        ratio: Number(d.scrollRatio) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Mid-file from S1e should already be near — assert detail gate open.
+    // Then jump to file top → macro → detail closed.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector(".viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          !d.detailNear &&
+          vp &&
+          vp.getAttribute("data-scroll-detail") === "0"
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(100);
+    const s1fFar = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    // Scroll mid again — detail must reopen with focus.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector(".viewport");
+        return !!(
+          d &&
+          !d.macroLod &&
+          d.detailNear &&
+          vp &&
+          vp.getAttribute("data-scroll-detail") === "1" &&
+          (Number(d.cfgVisible) >= 2 || Number(d.cfgUnroll) > 0.35 || Number(d.scrollRatio) > 0.25)
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(100);
+    const s1fReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        detailNear: !!d.detailNear,
+        attr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        macroLod: !!d.macroLod,
+        cfgVisible: Number(d.cfgVisible) || 0,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        ratio: Number(d.scrollRatio) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1f",
+      "Evidence scroll gates deep clutter until focus approaches (detailNear / data-scroll-detail)",
+      s1fNear.ok &&
+        s1fNear.evidenceOpen &&
+        s1fNear.detailNear &&
+        s1fNear.attr === "1" &&
+        !s1fNear.macroLod &&
+        s1fFar.macroLod &&
+        !s1fFar.detailNear &&
+        s1fFar.attr === "0" &&
+        s1fReopen.evidenceOpen &&
+        !s1fReopen.macroLod &&
+        s1fReopen.detailNear &&
+        s1fReopen.attr === "1",
+      "near=" +
+        JSON.stringify(s1fNear) +
+        " far=" +
+        JSON.stringify(s1fFar) +
+        " reopen=" +
+        JSON.stringify(s1fReopen)
+    );
+
+    // S1g — scrollVel eases tickCam lerp: fast flick → loose camEase; settle → snappy.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      // Ensure scrollable pad still present from S1a–S1f.
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.2);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(40);
+    // Burst scroll to spike EMA velocity.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const steps = [0.25, 0.55, 0.85, 0.95];
+      for (const r of steps) {
+        body.scrollTop = Math.floor(max * r);
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          Number.isFinite(d.camEase) &&
+          Number(d.scrollVel) > 0.2 &&
+          Number(d.camEase) < 0.24
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1gLoose = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Idle — velocity ages out → snappy settle (camEase > base).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          Number.isFinite(d.camEase) &&
+          Number(d.scrollVel) < 0.12 &&
+          Number(d.camEase) > 0.28
+        );
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1gSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1g",
+      "Evidence scrollVel eases tickCam lerp (loose on flick, snappy on settle)",
+      s1gLoose.evidenceOpen &&
+        s1gLoose.camEase < 0.24 &&
+        s1gLoose.scrollVel > 0.2 &&
+        s1gSnap.evidenceOpen &&
+        s1gSnap.camEase > 0.28 &&
+        s1gSnap.scrollVel < 0.12,
+      "loose=" + JSON.stringify(s1gLoose) + " snap=" + JSON.stringify(s1gSnap)
+    );
+
+    // S1h — activeLine maps to IR/fixture span owner (same-file sibling), not only sourceId.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1hSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const siblingId = "n21";
+      const siblingLine = 31;
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Controlled Evidence body — enough lead-in so sibling is not at viewport mid when scrollTop=0.
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1h", "1");
+        row.setAttribute("data-s1h-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 24; i++) addLine(200 + i, "s1h lead " + i);
+      addLine(ownLine, "s1h own span " + sourceId);
+      const sibRow = addLine(siblingLine, "s1h sibling span " + siblingId);
+      for (let k = 0; k < 24; k++) addLine(900 + k, "s1h far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(sibRow);
+      return {
+        ok: true,
+        sourceId: sourceId,
+        siblingId: siblingId,
+        siblingLine: siblingLine,
+        ownLine: ownLine,
+        scrollTop: body.scrollTop,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+        drive: Object.assign({}, window.__graphideScrollDrive || {}),
+      };
+    });
+    await page.waitForFunction(
+      (sib) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          d.lineMapHit === true &&
+          String(d.targetNodeId || "") === String(sib) &&
+          Number(d.activeLine) > 0
+        );
+      },
+      s1hSetup.siblingId,
+      { timeout: 5000 }
+    );
+    const s1hHit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        targetNodeId: d.targetNodeId || "",
+        lineMapHit: !!d.lineMapHit,
+        activeLine: Number(d.activeLine) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      const far = body && body.querySelector('.src-line[data-s1h-ln="900"]');
+      if (!body || !far) return;
+      const br = body.getBoundingClientRect();
+      const rr = far.getBoundingClientRect();
+      const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+      body.scrollTop = Math.max(0, body.scrollTop + delta);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          d.lineMapHit === false &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          Number(d.activeLine) >= 900
+        );
+      },
+      s1hSetup.sourceId,
+      { timeout: 5000 }
+    );
+    const s1hMiss = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        ok: true,
+        targetNodeId: d.targetNodeId || "",
+        lineMapHit: !!d.lineMapHit,
+        activeLine: Number(d.activeLine) || 0,
+        sourceId: sourceId,
+      };
+    }, s1hSetup.sourceId);
+    record(
+      "S1h",
+      "Evidence activeLine maps to IR/fixture span owner (lineMapHit)",
+      s1hSetup.ok &&
+        s1hHit.evidenceOpen &&
+        s1hHit.lineMapHit === true &&
+        s1hHit.targetNodeId === s1hSetup.siblingId &&
+        s1hMiss.ok &&
+        s1hMiss.lineMapHit === false &&
+        s1hMiss.targetNodeId === s1hSetup.sourceId,
+      "setup=" +
+        JSON.stringify(s1hSetup) +
+        " hit=" +
+        JSON.stringify(s1hHit) +
+        " miss=" +
+        JSON.stringify(s1hMiss)
+    );
+
+    // S1i — nested if/for/try braces expand child + ancestors; siblings collapse.
+    const s1iPad = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const pane = document.getElementById("sourcePane");
+      if (!(pane && !pane.hidden)) {
+        const n = document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (n) n.click();
+      }
+      body.innerHTML = "";
+      function add(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1i", "1");
+        row.setAttribute("data-s1i-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 20; i++) add(100 + i, "s1i lead " + i);
+      add(510, "if (outer) {");
+      for (let i = 0; i < 6; i++) add(511 + i, "  // outer pad " + i);
+      add(520, "  for (let i = 0; i < n; i++) {");
+      for (let i = 0; i < 6; i++) add(521 + i, "    // inner pad " + i);
+      const tryRow = add(530, "    try { flush(); } catch (e) { recover(e); }");
+      add(531, "  }");
+      add(532, "}");
+      for (let i = 0; i < 24; i++) add(600 + i, "s1i trail " + i);
+      // Sibling nest at same outer depth — should collapse when focus is in try.
+      add(700, "if (sibling) {");
+      add(701, "  return alt;");
+      add(702, "}");
+      for (let i = 0; i < 16; i++) add(800 + i, "s1i far " + i);
+      function center(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      center(tryRow);
+      return {
+        ok: true,
+        scrollTop: body.scrollTop,
+        scrollHeight: body.scrollHeight,
+        clientHeight: body.clientHeight,
+        drive: Object.assign({}, window.__graphideScrollDrive || {}),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.cfgUnroll) > 0.2 && Number(d.cfgSpanCount) >= 3)) return false;
+        if (!(Number(d.cfgNestMax) >= 2 && Number(d.cfgNestDepth) >= 2 && Number(d.cfgNestExpanded) >= 2)) return false;
+        const hot =
+          document.querySelector("#sliceCanvas .vnode.scroll-cfg-nest-hot, #sliceCanvas .vnode.scroll-cfg-hot[data-cfg-depth]");
+        const anc = document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length;
+        return !!(hot || anc >= 1 || d.cfgSpanKind === "try");
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(150);
+    const afterNest = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        ok: true,
+        ratio: Number(d.scrollRatio) || 0,
+        activeLine: Number(d.activeLine) || 0,
+        macroLod: !!d.macroLod,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        cfgSpanKind: d.cfgSpanKind || "",
+        cfgSpanCount: Number(d.cfgSpanCount) || 0,
+        cfgNestDepth: Number(d.cfgNestDepth) || 0,
+        cfgNestMax: Number(d.cfgNestMax) || 0,
+        cfgNestExpanded: Number(d.cfgNestExpanded) || 0,
+        nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
+        nestAnc: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-anc").length,
+        nestSib: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-sib").length,
+        depthPaint: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth]").length,
+        deep2: document.querySelectorAll("#sliceCanvas .vnode[data-cfg-depth='2']").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1i",
+      "Evidence nested CFG expands child+ancestors on activeLine; siblings collapse",
+      s1iPad.ok &&
+        afterNest.evidenceOpen &&
+        !afterNest.macroLod &&
+        afterNest.cfgUnroll > 0.2 &&
+        afterNest.cfgSpanCount >= 3 &&
+        afterNest.cfgNestMax >= 2 &&
+        afterNest.cfgNestDepth >= 2 &&
+        afterNest.cfgNestExpanded >= 2 &&
+        afterNest.depthPaint >= 1 &&
+        (afterNest.nestHot >= 1 || afterNest.cfgSpanKind === "try") &&
+        (afterNest.nestAnc >= 1 || afterNest.cfgNestExpanded >= 3 || afterNest.deep2 >= 1),
+      "pad=" + JSON.stringify(s1iPad) + " after=" + JSON.stringify(afterNest)
+    );
+
+    // S1j — nest glow / LOD blend: camEase-tied --scroll-blend-ms; CSS opacity ease (no snap).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        if (!(d && Number.isFinite(d.blendMs) && Number(d.blendMs) >= 100 && Number(d.blendMs) <= 300)) return false;
+        if (!(vp && vp.getAttribute("data-scroll-blend") === "1")) return false;
+        const ms = (vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "";
+        return /ms$/.test(ms.trim());
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1jNest = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      const probe =
+        document.querySelector(
+          "#sliceCanvas .vnode.scroll-cfg-nest-hot, #sliceCanvas .vnode.scroll-cfg-hot, #sliceCanvas .vnode.scroll-cfg-nest-anc, #sliceCanvas .vnode"
+        ) || null;
+      let transition = "";
+      if (probe) {
+        try {
+          transition = getComputedStyle(probe).transitionProperty || "";
+        } catch (_) {
+          transition = "";
+        }
+      }
+      return {
+        blendMs: Number(d.blendMs),
+        camEase: Number(d.camEase),
+        macroLod: !!d.macroLod,
+        detailNear: !!d.detailNear,
+        detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        transition: transition,
+        nestHot: document.querySelectorAll("#sliceCanvas .vnode.scroll-cfg-nest-hot").length,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Macro LOD path must also keep blend paint (file top).
+    const s1jMacro = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          Number.isFinite(d.blendMs) &&
+          Number(d.blendMs) >= 100 &&
+          Number(d.blendMs) <= 300 &&
+          vp &&
+          vp.getAttribute("data-scroll-blend") === "1" &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          d.detailNear === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(120);
+    const s1jMacroAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      const hot = document.querySelector(
+        "#sliceCanvas .vnode.scroll-macro-hot, #sliceCanvas .vnode[data-macro-hot='1'], .vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"
+      );
+      const dim = document.querySelector(
+        "#sliceCanvas .vnode.scroll-macro-dim, .vnode.scroll-macro-dim"
+      );
+      // Probe any painted macro vnode (hot preferred); fall back to any .vnode under blend.
+      const probe =
+        hot ||
+        dim ||
+        document.querySelector("#sliceCanvas .vnode[data-id], .viewport .vnode[data-id], .vnode[data-id]");
+      let transition = "";
+      if (probe) {
+        try {
+          transition = getComputedStyle(probe).transitionProperty || "";
+        } catch (_) {
+          transition = "";
+        }
+      }
+      return {
+        blendMs: Number(d.blendMs),
+        macroLod: !!d.macroLod,
+        detailNear: !!d.detailNear,
+        detailAttr: (vp && vp.getAttribute("data-scroll-detail")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        transition: transition,
+        hot: !!hot,
+        dim: !!dim,
+        probe: !!(probe && probe.getAttribute && probe.getAttribute("data-id")),
+      };
+    });
+    record(
+      "S1j",
+      "Evidence nest/macro paint eases via camEase-tied blendMs / data-scroll-blend (no snap; S1f clutter intact)",
+      s1jNest.evidenceOpen &&
+        Number.isFinite(s1jNest.blendMs) &&
+        s1jNest.blendMs >= 100 &&
+        s1jNest.blendMs <= 300 &&
+        s1jNest.blendAttr === "1" &&
+        /ms$/.test(String(s1jNest.blendVar).trim()) &&
+        String(s1jNest.transition).includes("opacity") &&
+        s1jMacro.ok &&
+        s1jMacroAfter.macroLod &&
+        s1jMacroAfter.blendAttr === "1" &&
+        s1jMacroAfter.macroAttr === "1" &&
+        s1jMacroAfter.detailNear === false &&
+        s1jMacroAfter.detailAttr === "0" &&
+        Number.isFinite(s1jMacroAfter.blendMs) &&
+        s1jMacroAfter.blendMs >= 100 &&
+        s1jMacroAfter.blendMs <= 300 &&
+        String(s1jMacroAfter.transition).includes("opacity"),
+      "nest=" + JSON.stringify(s1jNest) + " macroPad=" + JSON.stringify(s1jMacro) + " macro=" + JSON.stringify(s1jMacroAfter)
+    );
+
+    // S1k — prefers-reduced-motion: snap blendMs to 0, camEase snappy, no settle timers.
+    const s1kMock = await page.evaluate(() => {
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      if (!pane || pane.hidden || !body) return { ok: false, why: "evidence-closed" };
+      window.__graphideMatchMediaOrig = window.matchMedia;
+      window.matchMedia = function (query) {
+        const q = String(query || "");
+        if (/prefers-reduced-motion/i.test(q)) {
+          return {
+            matches: /reduce/i.test(q),
+            media: q,
+            onchange: null,
+            addListener: function () {},
+            removeListener: function () {},
+            addEventListener: function () {},
+            removeEventListener: function () {},
+            dispatchEvent: function () {
+              return false;
+            },
+          };
+        }
+        return window.__graphideMatchMediaOrig.apply(window, arguments);
+      };
+      // Mid-file scroll so paint + blend republish under the mock.
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+        if (!(d && d.reducedMotion === true && Number(d.blendMs) === 0)) return false;
+        if (!(Number(d.camEase) >= 0.3)) return false; // CAM_EASE_SNAP ≈ 0.36
+        const ms = (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "";
+        return ms.trim() === "0ms" || ms.trim() === "0";
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1kAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#sliceCanvas .viewport, .viewport");
+      return {
+        reducedMotion: !!d.reducedMotion,
+        blendMs: Number(d.blendMs),
+        camEase: Number(d.camEase),
+        blendVar: (vp && vp.style && vp.style.getPropertyValue("--scroll-blend-ms")) || "",
+        blendAttr: (vp && vp.getAttribute("data-scroll-blend")) || "",
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    // Restore matchMedia so later desk chrome / Present tests keep normal motion.
+    await page.evaluate(() => {
+      if (window.__graphideMatchMediaOrig) {
+        window.matchMedia = window.__graphideMatchMediaOrig;
+        delete window.__graphideMatchMediaOrig;
+      }
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    record(
+      "S1k",
+      "Evidence scroll respects prefers-reduced-motion (blendMs 0 / snappy camEase / reducedMotion flag)",
+      s1kMock.ok &&
+        s1kAfter.evidenceOpen &&
+        s1kAfter.reducedMotion === true &&
+        s1kAfter.blendMs === 0 &&
+        Number.isFinite(s1kAfter.camEase) &&
+        s1kAfter.camEase >= 0.3 &&
+        (/^0(ms)?$/.test(String(s1kAfter.blendVar).trim()) || s1kAfter.blendVar.trim() === "0ms"),
+      "mock=" + JSON.stringify(s1kMock) + " after=" + JSON.stringify(s1kAfter)
+    );
+
+    // S1l — burst #srcBody scrolls coalesce into one rAF flush (rafMerged rises; Lens stays Present overlay).
+    const s1lBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const body = document.getElementById("srcBody");
+      return {
+        evidenceOpen: !!(pane && !pane.hidden),
+        flushes: Number(d.rafFlushes) || 0,
+        merged: Number(d.rafMerged) || 0,
+        canScroll: !!(body && body.scrollHeight - body.clientHeight > 8),
+      };
+    });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      // Fire many scroll events synchronously before the next animation frame.
+      for (let i = 0; i < 14; i++) {
+        body.scrollTop = Math.floor(max * (0.28 + i * 0.03));
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (prev) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && d.rafCoalesce === true)) return false;
+        const flushes = Number(d.rafFlushes) || 0;
+        const merged = Number(d.rafMerged) || 0;
+        // At least one flush; surplus events from the 14-burst should merge.
+        return flushes > prev.flushes && merged >= prev.merged + 8;
+      },
+      s1lBefore,
+      { timeout: 6000 }
+    );
+    const s1lAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        rafCoalesce: !!d.rafCoalesce,
+        rafFlushes: Number(d.rafFlushes) || 0,
+        rafMerged: Number(d.rafMerged) || 0,
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1l",
+      "Evidence scroll coalesces into one rAF flush per frame (rafMerged / rafFlushes)",
+      s1lBefore.evidenceOpen &&
+        s1lBefore.canScroll &&
+        s1lAfter.evidenceOpen &&
+        s1lAfter.rafCoalesce === true &&
+        s1lAfter.rafFlushes > s1lBefore.flushes &&
+        s1lAfter.rafMerged >= s1lBefore.merged + 8,
+      "before=" + JSON.stringify(s1lBefore) + " after=" + JSON.stringify(s1lAfter)
+    );
+
+    // S1m — Present stage pauses ScrollDrive camera; exit resumes (Lens/Route overlays unchanged).
+    const s1mBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      const vp = document.querySelector(".viewport");
+      return {
+        evidenceOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        camEase: Number(d.camEase),
+        camY: Number(d.camY),
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macro: !!(vp && vp.getAttribute("data-scroll-macro") === "1"),
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        presenting: !!(document.body && document.body.classList.contains("present")),
+      };
+    });
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Residual scroll events / macro timer must not revive CFG/macro paint or clear presentPaused.
+    // Present stage may still ease its own camera — do not assert viewport transform equality.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.dispatchEvent(new Event("scroll"));
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForTimeout(280);
+    const s1mPaused = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        presenting: !!(document.body && document.body.classList.contains("present")),
+        evidenceOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        presentPaused: !!d.presentPaused,
+        camEase: Number(d.camEase),
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        cfgHot: !!document.querySelector(".vnode.scroll-cfg-hot, .vnode[data-cfg-active='1']"),
+        macro: !!(vp && vp.getAttribute("data-scroll-macro") === "1"),
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1mResumed = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector(".viewport");
+      return {
+        presenting: !!(document.body && document.body.classList.contains("present")),
+        presentPaused: !!d.presentPaused,
+        attr: !!(vp && vp.getAttribute("data-scroll-present-paused") === "1"),
+        camEase: Number(d.camEase),
+      };
+    });
+    record(
+      "S1m",
+      "Present pauses ScrollDrive camera; exit resumes (presentPaused / no residual cam nudge)",
+      s1mBefore.evidenceOpen &&
+        s1mBefore.presentPaused === false &&
+        s1mBefore.presenting === false &&
+        s1mPaused.presenting &&
+        !s1mPaused.evidenceOpen &&
+        s1mPaused.presentPaused === true &&
+        s1mPaused.attr === true &&
+        s1mPaused.cfgHot === false &&
+        s1mPaused.macro === false &&
+        Number.isFinite(s1mPaused.camEase) &&
+        s1mPaused.camEase >= 0.2 &&
+        s1mPaused.camEase <= 0.28 &&
+        s1mResumed.presenting === false &&
+        s1mResumed.presentPaused === false &&
+        s1mResumed.attr === false,
+      "before=" +
+        JSON.stringify(s1mBefore) +
+        " paused=" +
+        JSON.stringify(s1mPaused) +
+        " resumed=" +
+        JSON.stringify(s1mResumed)
+    );
+
+    // S1n — lineMapHit pulses mapped node (distinct from scroll-cfg-hot); miss quieter; Present clears; reduced-motion no pulse.
+    // Use painted Slice vnode n1 (own span) — n21 is IR-mapped in S1h but not painted on this Steiner slice.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1nSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const painted = !!document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      if (!painted) return { ok: false, why: "n1-not-painted" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1n", "1");
+        row.setAttribute("data-s1n-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 24; i++) addLine(200 + i, "s1n lead " + i);
+      const ownRow = addLine(ownLine, "s1n own span " + sourceId);
+      for (let k = 0; k < 24; k++) addLine(900 + k, "s1n far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, sourceId: sourceId, ownLine: ownLine };
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.lineMapHit === true &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          el &&
+          el.classList.contains("scroll-linemap-hit") &&
+          el.getAttribute("data-scroll-linemap") === "hit" &&
+          d.lineMapPulse === true &&
+          !el.classList.contains("scroll-linemap-miss") &&
+          // Distinct from generic CFG hot class name (may coexist on same node).
+          el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nHit = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      return {
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        targetNodeId: d.targetNodeId || "",
+        hitClass: !!(el && el.classList.contains("scroll-linemap-hit")),
+        missClass: !!(el && el.classList.contains("scroll-linemap-miss")),
+        attr: el ? el.getAttribute("data-scroll-linemap") : "",
+        hasCfgHotName: !!(el && el.classList.contains("scroll-cfg-hot")),
+      };
+    }, s1nSetup.sourceId);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      const far = body && body.querySelector('.src-line[data-s1n-ln="900"]');
+      if (!body || !far) return;
+      const br = body.getBoundingClientRect();
+      const rr = far.getBoundingClientRect();
+      const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+      body.scrollTop = Math.max(0, body.scrollTop + delta);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.lineMapHit === false &&
+          String(d.targetNodeId || "") === String(sourceId) &&
+          d.lineMapPulse === false &&
+          el &&
+          el.classList.contains("scroll-linemap-miss") &&
+          el.getAttribute("data-scroll-linemap") === "miss" &&
+          !el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nMiss = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      return {
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        targetNodeId: d.targetNodeId || "",
+        missClass: !!(el && el.classList.contains("scroll-linemap-miss")),
+        hitLeft: !!(el && el.classList.contains("scroll-linemap-hit")),
+      };
+    }, s1nSetup.sourceId);
+    // Reduced-motion: remount hit under mock matchMedia → lineMapPulse false, hit class stays.
+    await page.evaluate((sourceId) => {
+      const body = document.getElementById("srcBody");
+      const row = body && body.querySelector('.src-line[data-s1n-ln="11"]');
+      if (!body || !row) return;
+      window.__s1nPrevMatchMedia = window.matchMedia;
+      window.matchMedia = (q) => {
+        if (String(q).includes("prefers-reduced-motion")) {
+          return {
+            matches: true,
+            media: q,
+            addListener() {},
+            removeListener() {},
+            addEventListener() {},
+            removeEventListener() {},
+            dispatchEvent() {
+              return false;
+            },
+          };
+        }
+        return window.__s1nPrevMatchMedia.call(window, q);
+      };
+      const br = body.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      body.scrollTop = Math.max(0, body.scrollTop + (rr.top + rr.height / 2 - (br.top + body.clientHeight / 2)));
+      body.dispatchEvent(new Event("scroll"));
+    }, s1nSetup.sourceId);
+    await page.waitForFunction(
+      (sourceId) => {
+        const d = window.__graphideScrollDrive;
+        const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+        return !!(
+          d &&
+          d.reducedMotion === true &&
+          d.lineMapHit === true &&
+          d.lineMapPulse === false &&
+          el &&
+          el.classList.contains("scroll-linemap-hit")
+        );
+      },
+      s1nSetup.sourceId,
+      { timeout: 6000 }
+    );
+    const s1nReduced = await page.evaluate((sourceId) => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-id="' + sourceId + '"]');
+      const out = {
+        ok: true,
+        lineMapHit: !!d.lineMapHit,
+        lineMapPulse: !!d.lineMapPulse,
+        hitClass: !!(el && el.classList.contains("scroll-linemap-hit")),
+        reducedMotion: !!d.reducedMotion,
+      };
+      if (window.__s1nPrevMatchMedia) {
+        window.matchMedia = window.__s1nPrevMatchMedia;
+        delete window.__s1nPrevMatchMedia;
+      }
+      const body = document.getElementById("srcBody");
+      if (body) body.dispatchEvent(new Event("scroll"));
+      return out;
+    }, s1nSetup.sourceId);
+    // Present pause must clear linemap paint.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !document.querySelector(".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss")
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1nPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        hit: !!document.querySelector(".vnode.scroll-linemap-hit"),
+        miss: !!document.querySelector(".vnode.scroll-linemap-miss"),
+        lineMapPulse: !!d.lineMapPulse,
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 6000 }
+    );
+    record(
+      "S1n",
+      "lineMapHit pulses mapped node glow; miss quieter; reduced-motion / Present clear pulse",
+      s1nSetup.ok &&
+        s1nHit.lineMapHit === true &&
+        s1nHit.lineMapPulse === true &&
+        s1nHit.hitClass === true &&
+        s1nHit.missClass === false &&
+        s1nHit.attr === "hit" &&
+        s1nMiss.lineMapHit === false &&
+        s1nMiss.lineMapPulse === false &&
+        s1nMiss.missClass === true &&
+        s1nMiss.hitLeft === false &&
+        s1nReduced.ok &&
+        s1nReduced.lineMapHit === true &&
+        s1nReduced.hitClass === true &&
+        s1nReduced.lineMapPulse === false &&
+        s1nPresent.presentPaused === true &&
+        s1nPresent.hit === false &&
+        s1nPresent.miss === false &&
+        s1nPresent.lineMapPulse === false,
+      "setup=" +
+        JSON.stringify(s1nSetup) +
+        " hit=" +
+        JSON.stringify(s1nHit) +
+        " miss=" +
+        JSON.stringify(s1nMiss) +
+        " reduced=" +
+        JSON.stringify(s1nReduced) +
+        " present=" +
+        JSON.stringify(s1nPresent)
+    );
+
+    // S1p — Evidence mid-viewport active-line dual-pane cue (pairs with S1n graph glow).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const text = ((body && body.textContent) || "") + ((document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "");
+        return !!(pane && !pane.hidden && body && /hop_1|solarsim::ext/i.test(text));
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1pSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1p", "1");
+        row.setAttribute("data-s1p-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 20; i++) addLine(100 + i, "s1p lead " + i);
+      const mid = addLine(42, "s1p active mid");
+      for (let k = 0; k < 20; k++) addLine(300 + k, "s1p trail " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(mid);
+      return { ok: true, line: 42 };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const active = document.querySelector("#srcBody .src-line.scroll-drive-active");
+        const attr = document.querySelector('#srcBody .src-line[data-scroll-active="1"]');
+        const count = document.querySelectorAll("#srcBody .src-line.scroll-drive-active").length;
+        return !!(
+          d &&
+          Number(d.activeLine) === 42 &&
+          d.activeLineMarked === true &&
+          active &&
+          attr &&
+          active === attr &&
+          count === 1 &&
+          active.getAttribute("data-s1p-ln") === "42"
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1pMarked = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const active = document.querySelector("#srcBody .src-line.scroll-drive-active");
+      const all = document.querySelectorAll("#srcBody .src-line.scroll-drive-active");
+      return {
+        activeLine: Number(d.activeLine) || 0,
+        activeLineMarked: !!d.activeLineMarked,
+        count: all.length,
+        ln: active ? (active.getAttribute("data-s1p-ln") || "") : "",
+        attr: active ? active.getAttribute("data-scroll-active") : "",
+      };
+    });
+    // Present pause must clear Evidence active-line cue.
+    await page.click("#presentBtn");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive || {};
+        return (
+          !!(document.body && document.body.classList.contains("present")) &&
+          d.presentPaused === true &&
+          !document.querySelector(".src-line.scroll-drive-active, .src-line[data-scroll-active]")
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1pPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        active: !!document.querySelector(".src-line.scroll-drive-active"),
+        attr: !!document.querySelector(".src-line[data-scroll-active]"),
+        activeLineMarked: !!d.activeLineMarked,
+      };
+    });
+    await page.keyboard.press("Escape"); // exit Present
+    await page.waitForFunction(
+      () => !(document.body && document.body.classList.contains("present")),
+      null,
+      { timeout: 6000 }
+    );
+    record(
+      "S1p",
+      "Evidence mid-viewport active-line dual-pane cue; Present pause clears",
+      s1pSetup.ok &&
+        s1pMarked.activeLine === 42 &&
+        s1pMarked.activeLineMarked === true &&
+        s1pMarked.count === 1 &&
+        s1pMarked.ln === "42" &&
+        s1pMarked.attr === "1" &&
+        s1pPresent.presentPaused === true &&
+        s1pPresent.active === false &&
+        s1pPresent.attr === false &&
+        s1pPresent.activeLineMarked === false,
+      "setup=" +
+        JSON.stringify(s1pSetup) +
+        " marked=" +
+        JSON.stringify(s1pMarked) +
+        " present=" +
+        JSON.stringify(s1pPresent)
+    );
+
+    // S1q — soft camX follow toward off-center mapped target (micro path; not macro).
+    // Drop S1w last-stay left by S1p Present so this step cold-frames via zoomToEl;
+    // S1w later covers Present→Evidence soft restore on its own cycle.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1qSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Ensure mid-file scrollable (avoid S1c macro at file-top).
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1q", "1");
+          row.innerHTML =
+            '<span class="ln">' + (400 + i) + '</span><span class="tx">s1q pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1ah — settle-before-sample: wait soft cam idle before baselining (not mid-tween).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1qBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const id = d.targetNodeId || "";
+        const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          ratio: Number(d.scrollRatio) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: id,
+          hasEl: !!el,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1qOffset = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      if (!el) return { ok: false, why: "no-vnode" };
+      // Deliberately park mapped target left of viewport center.
+      el.style.transform = "translateX(-220px)";
+      el.setAttribute("data-s1q-offcenter", "1");
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = body.scrollTop + 12;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, id: id };
+    });
+    // S1ah — one soft-follow stimulus (not a 6-nudge stack that can exceed the ±80 band).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 2; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (beforeX) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused)) return false;
+        const x = Number(d.camX);
+        return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
+      },
+      s1qBefore.camX,
+      { timeout: 8000 }
+    );
+    // S1ah — sample on first soft-follow step (one paint), not after full settle
+    // (settle→absorb→follow can stack past the ±80 band). Baseline was settle-before.
+    await page.waitForTimeout(32);
+    const s1qAfter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-s1q-offcenter="1"]');
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+        stillOff: !!(el && el.getAttribute("data-s1q-offcenter") === "1"),
+      };
+    });
+    // Cleanup offset so later suites are not skewed.
+    await page.evaluate(() => {
+      document.querySelectorAll("#sliceCanvas .vnode[data-s1q-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1q-offcenter");
+      });
+    });
+    const s1qDx = Math.abs((Number(s1qAfter.camX) || 0) - (Number(s1qBefore.camX) || 0));
+    record(
+      "S1q",
+      "soft camX follow toward off-center mapped target (micro; Present not paused)",
+      s1qSetup.ok &&
+        s1qOffset.ok &&
+        s1qBefore.hasEl &&
+        !s1qBefore.macroLod &&
+        !s1qAfter.macroLod &&
+        !s1qAfter.presentPaused &&
+        Number.isFinite(s1qBefore.camX) &&
+        Number.isFinite(s1qAfter.camX) &&
+        s1qDx > 8 &&
+        s1qDx <= 96 + 1,
+      "setup=" +
+        JSON.stringify(s1qSetup) +
+        " before=" +
+        JSON.stringify(s1qBefore) +
+        " offset=" +
+        JSON.stringify(s1qOffset) +
+        " after=" +
+        JSON.stringify(s1qAfter) +
+        " dx=" +
+        s1qDx
+    );
+
+    // S1r — idle-settle soft camX into scrollDriveBase (no spring-back on tiny nudge).
+    // Cold-frame after S1q: close Evidence, drop S1w last-stay, reopen so zoomToEl
+    // reframes and tickCam catches up (softCamX uses live cam.x; stale cam sticks).
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      document.querySelectorAll("#sliceCanvas .vnode[style*='translateX'], #sliceCanvas .vnode[data-s1q-offcenter], #sliceCanvas .vnode[data-s1r-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1q-offcenter");
+        el.removeAttribute("data-s1r-offcenter");
+      });
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1rSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1r", "1");
+          row.innerHTML =
+            '<span class="ln">' + (500 + i) + '</span><span class="tx">s1r pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(500);
+    const s1rBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      return {
+        camX: Number(d.camX),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: id,
+        hasEl: !!el,
+      };
+    });
+    const s1rOffset = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const id = d.targetNodeId || "";
+      const el =
+        (id && document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]')) ||
+        document.querySelector("#sliceCanvas .vnode[data-id]");
+      if (!el) return { ok: false, why: "no-vnode" };
+      el.style.transform = "translateX(-220px)";
+      el.setAttribute("data-s1r-offcenter", "1");
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = body.scrollTop + 14;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, id: id };
+    });
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (beforeX) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && !d.presentPaused)) return false;
+        const x = Number(d.camX);
+        return Number.isFinite(x) && Number.isFinite(beforeX) && Math.abs(x - beforeX) > 8;
+      },
+      s1rBefore.camX,
+      { timeout: 8000 }
+    );
+    // Burst then idle so S1g settle timer fires and S1r absorbs into base.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1rSettled = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            d.camXSettled === true &&
+            Number(d.scrollVel) < 0.12
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camEase: Number(d.camEase),
+          scrollVel: Number(d.scrollVel) || 0,
+          camXSettled: !!d.camXSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Tiny further scroll — must not yank camX back toward pre-follow X.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 4;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(350);
+    const s1rAfterNudge = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const el = document.querySelector('#sliceCanvas .vnode[data-s1r-offcenter="1"]');
+      return {
+        camX: Number(d.camX),
+        camXSettled: !!d.camXSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        stillOff: !!(el && el.getAttribute("data-s1r-offcenter") === "1"),
+      };
+    });
+    await page.evaluate(() => {
+      document.querySelectorAll("#sliceCanvas .vnode[data-s1r-offcenter]").forEach((el) => {
+        el.style.transform = "";
+        el.removeAttribute("data-s1r-offcenter");
+      });
+    });
+    const s1rSoftDx = Math.abs((Number(s1rSettled.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    const s1rDistBefore = Math.abs((Number(s1rAfterNudge.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    const s1rDistSettled = Math.abs((Number(s1rSettled.camX) || 0) - (Number(s1rBefore.camX) || 0));
+    // Spring-back = after tiny nudge camX moved back toward pre-follow X by > 8px.
+    const s1rSpringBack = s1rDistBefore < s1rDistSettled - 8;
+    // Stability: either stayed near settled, or continued soft-forward (not back).
+    const s1rYank = Math.abs((Number(s1rAfterNudge.camX) || 0) - (Number(s1rSettled.camX) || 0));
+    record(
+      "S1r",
+      "idle-settle soft camX into scrollDriveBase (no spring-back on tiny nudge)",
+      s1rSetup.ok &&
+        s1rOffset.ok &&
+        s1rBefore.hasEl &&
+        !s1rBefore.macroLod &&
+        !s1rSettled.macroLod &&
+        !s1rSettled.presentPaused &&
+        s1rSettled.camXSettled === true &&
+        Number.isFinite(s1rBefore.camX) &&
+        Number.isFinite(s1rSettled.camX) &&
+        Number.isFinite(s1rAfterNudge.camX) &&
+        s1rSoftDx > 8 &&
+        !s1rSpringBack &&
+        s1rYank <= 96 + 1,
+      "setup=" +
+        JSON.stringify(s1rSetup) +
+        " before=" +
+        JSON.stringify(s1rBefore) +
+        " offset=" +
+        JSON.stringify(s1rOffset) +
+        " settled=" +
+        JSON.stringify(s1rSettled) +
+        " afterNudge=" +
+        JSON.stringify(s1rAfterNudge) +
+        " softDx=" +
+        s1rSoftDx +
+        " yank=" +
+        s1rYank +
+        " springBack=" +
+        s1rSpringBack
+    );
+
+
+    // S1s — idle-settle soft camY into scrollDriveBase (no Y spring-back on tiny nudge).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1sBaseline = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      if (body.querySelectorAll(".src-line").length < 60) {
+        for (let i = 0; i < 50; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1s", "1");
+          row.innerHTML =
+            '<span class="ln">' + (600 + i) + '</span><span class="tx">s1s pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true };
+    });
+    await page.waitForTimeout(250);
+    const s1sBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1sSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.55);
+      body.dispatchEvent(new Event("scroll"));
+      return { ok: true, scrollTop: body.scrollTop, max: max };
+    });
+    await page.waitForFunction(
+      (beforeY) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.macroLod && Number(d.scrollRatio) > 0.35 && d.targetNodeId)) return false;
+        const y = Number(d.camY);
+        return Number.isFinite(y) && Number.isFinite(beforeY) && Math.abs(y - beforeY) > 4;
+      },
+      s1sBefore.camY,
+      { timeout: 6000 }
+    );
+    // Burst then idle so S1g settle timer fires and S1s absorbs into base.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 3;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          d.camYSettled === true &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(200);
+    const s1sSettled = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        camEase: Number(d.camEase),
+        scrollVel: Number(d.scrollVel) || 0,
+        camYSettled: !!d.camYSettled,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Tiny further scroll — must not yank camY back toward pre-nudge / lock Y.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 4;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForTimeout(350);
+    const s1sAfterNudge = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camY: Number(d.camY),
+        camYSettled: !!d.camYSettled,
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    const s1sSoftDy = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    const s1sDistBefore = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    const s1sDistSettled = Math.abs((Number(s1sSettled.camY) || 0) - (Number(s1sBefore.camY) || 0));
+    // Spring-back = after tiny nudge camY moved back toward pre-nudge Y by > 8px.
+    const s1sSpringBack = s1sDistBefore < s1sDistSettled - 8;
+    const s1sYank = Math.abs((Number(s1sAfterNudge.camY) || 0) - (Number(s1sSettled.camY) || 0));
+    record(
+      "S1s",
+      "idle-settle soft camY into scrollDriveBase (no spring-back on tiny nudge)",
+      s1sBaseline.ok &&
+        s1sSetup.ok &&
+        // File-top baseline may be macro (S1c); settled path must be micro.
+        !s1sSettled.macroLod &&
+        !s1sSettled.presentPaused &&
+        !s1sAfterNudge.macroLod &&
+        s1sSettled.camYSettled === true &&
+        Number.isFinite(s1sBefore.camY) &&
+        Number.isFinite(s1sSettled.camY) &&
+        Number.isFinite(s1sAfterNudge.camY) &&
+        s1sSoftDy > 4 &&
+        !s1sSpringBack &&
+        s1sYank <= 8 + 1,
+      "baseline=" +
+        JSON.stringify(s1sBaseline) +
+        " before=" +
+        JSON.stringify(s1sBefore) +
+        " setup=" +
+        JSON.stringify(s1sSetup) +
+        " settled=" +
+        JSON.stringify(s1sSettled) +
+        " afterNudge=" +
+        JSON.stringify(s1sAfterNudge) +
+        " softDy=" +
+        s1sSoftDy +
+        " yank=" +
+        s1sYank +
+        " springBack=" +
+        s1sSpringBack
+    );
+
+    // S1t — nest/line remap mid-scroll soft-cam stay (no zoomToEl yank; settle flags refresh).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1tSetup = await page.evaluate(() => {
+      const sourceId = "n1";
+      const siblingId = "n21";
+      const siblingLine = 31;
+      const ownLine = 11;
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1t", "1");
+        row.setAttribute("data-s1t-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 28; i++) addLine(200 + i, "s1t lead " + i);
+      const ownRow = addLine(ownLine, "s1t own span " + sourceId);
+      // Gap so settle-burst on own cannot mid-viewport the sibling span.
+      for (let g = 0; g < 16; g++) addLine(400 + g, "s1t gap " + g);
+      const sibRow = addLine(siblingLine, "s1t sibling span " + siblingId);
+      for (let k = 0; k < 28; k++) addLine(900 + k, "s1t far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: sourceId,
+        siblingId: siblingId,
+        ownLine: ownLine,
+        siblingLine: siblingLine,
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+        sibRowOk: !!sibRow,
+      };
+    });
+    await page.waitForFunction(
+      (own) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          String(d.targetNodeId || "") === String(own)
+        );
+      },
+      s1tSetup.sourceId,
+      { timeout: 6000 }
+    );
+    // Burst then idle so S1r/S1s absorb into base before remap.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1au — settle-before-sample warm: require settle flags (not a fixed post-settle pad).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1tBefore = await page.waitForFunction(
+      (own) => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            String(d.targetNodeId || "") === String(own) &&
+            (d.camXSettled === true || d.camYSettled === true) &&
+            Number(d.scrollVel) < 0.12
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      s1tSetup.sourceId,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Remap: gently center the adjacent sibling span (small delta — avoid S1c macro
+    // vel yank). Soft-stay must keep cam within S1q caps (no zoomToEl leap).
+    const s1tRemap = await page.evaluate((sibLn) => {
+      const body = document.getElementById("srcBody");
+      const row = body && body.querySelector('.src-line[data-s1t-ln="' + sibLn + '"]');
+      if (!body || !row) return { ok: false, why: "no-sib-row" };
+      const br = body.getBoundingClientRect();
+      let steps = 0;
+      let lastDelta = 0;
+      // Walk toward sibling in capped steps so scrollVel stays under macro threshold.
+      for (let n = 0; n < 12; n++) {
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        lastDelta = delta;
+        if (Math.abs(delta) <= 4) break;
+        const step = Math.max(-40, Math.min(40, delta));
+        body.scrollTop = Math.max(0, body.scrollTop + step);
+        body.dispatchEvent(new Event("scroll"));
+        steps += 1;
+      }
+      return { ok: true, scrollTop: body.scrollTop, delta: lastDelta, steps: steps };
+    }, s1tSetup.siblingLine);
+    await page.waitForFunction(
+      (sib) => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          String(d.targetNodeId || "") === String(sib)
+        );
+      },
+      s1tSetup.siblingId,
+      { timeout: 6000 }
+    );
+    // S1au — sample first soft-stay step after remap (one paint), not a fixed 80ms mid-tween
+    // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed sibling target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
+    const s1tAfterRemap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        scrollVel: Number(d.scrollVel) || 0,
+      };
+    });
+    // Soft stay: no hard zoomToEl leap (cap ~80 soft X + modest Y from scroll delta).
+    const s1tDx = Math.abs((Number(s1tAfterRemap.camX) || 0) - (Number(s1tBefore.camX) || 0));
+    const s1tDy = Math.abs((Number(s1tAfterRemap.camY) || 0) - (Number(s1tBefore.camY) || 0));
+    const s1tDk = Math.abs((Number(s1tAfterRemap.camK) || 0) - (Number(s1tBefore.camK) || 0));
+    // S1au — tiny idle nudge so S1r/S1s settle flags re-absorb after remap (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1au — settle-before-sample resettle: require !macroLod + settle flags.
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1tResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          targetNodeId: d.targetNodeId || "",
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          scrollVel: Number(d.scrollVel) || 0,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1tResettleYank = Math.max(
+      Math.abs((Number(s1tResettle.camX) || 0) - (Number(s1tAfterRemap.camX) || 0)),
+      Math.abs((Number(s1tResettle.camY) || 0) - (Number(s1tAfterRemap.camY) || 0))
+    );
+    record(
+      "S1t",
+      "nest/line remap mid-scroll soft-cam stay (no zoomToEl yank; settle flags refresh)",
+      s1tSetup.ok &&
+        s1tRemap.ok &&
+        !s1tBefore.macroLod &&
+        !s1tBefore.presentPaused &&
+        s1tBefore.targetNodeId === s1tSetup.sourceId &&
+        (s1tBefore.camXSettled === true || s1tBefore.camYSettled === true) &&
+        s1tAfterRemap.targetNodeId === s1tSetup.siblingId &&
+        Number.isFinite(s1tBefore.camX) &&
+        Number.isFinite(s1tAfterRemap.camX) &&
+        Number.isFinite(s1tBefore.camY) &&
+        Number.isFinite(s1tAfterRemap.camY) &&
+        s1tDx <= 96 + 24 &&
+        s1tDy <= 120 &&
+        s1tDk <= 0.15 &&
+        (s1tResettle.camXSettled === true || s1tResettle.camYSettled === true) &&
+        s1tResettleYank <= 120 &&
+        !s1tResettle.macroLod &&
+        !s1tResettle.presentPaused,
+      "setup=" +
+        JSON.stringify(s1tSetup) +
+        " before=" +
+        JSON.stringify(s1tBefore) +
+        " remap=" +
+        JSON.stringify(s1tRemap) +
+        " afterRemap=" +
+        JSON.stringify(s1tAfterRemap) +
+        " resettle=" +
+        JSON.stringify(s1tResettle) +
+        " dx=" +
+        s1tDx +
+        " dy=" +
+        s1tDy +
+        " dk=" +
+        s1tDk +
+        " resettleYank=" +
+        s1tResettleYank
+    );
+
+    // S1au — nest/line remap settle-before-sample probe (parity with S1ah/S1as/S1at).
+    // After S1t, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1auSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1au",
+      "nest/line remap settle-before-sample: post-S1t still micro+settled (!macroLod; no mid-tween)",
+      !s1auSnap.presentPaused &&
+        !s1auSnap.macroLod &&
+        (s1auSnap.camXSettled === true || s1auSnap.camYSettled === true) &&
+        s1auSnap.scrollVel < 0.12 &&
+        !!s1auSnap.targetNodeId &&
+        Number.isFinite(s1auSnap.camX) &&
+        Number.isFinite(s1auSnap.camK),
+      "snap=" + JSON.stringify(s1auSnap)
+    );
+
+    // S1u — macro enter/exit mid Evidence scroll soft-stays camK (no zoomToEl yank).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1uSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1u", "1");
+        row.setAttribute("data-s1u-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      // Tall pad so mid-file and file-top are distinct; own span near mid.
+      // Use high line nums so pads do not steal S1h lineMap away from sourceId.
+      for (let i = 0; i < 40; i++) addLine(2000 + i, "s1u lead " + i);
+      const ownRow = addLine(11, "s1u own span n1");
+      for (let k = 0; k < 40; k++) addLine(9000 + k, "s1u far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Burst + idle so soft stay / settle flags warm before macro enter.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 4; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1aj — settle-before-sample: require settle flags (not scrollRatio fallback) before baselining.
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1uBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const vp = document.querySelector("#canvas .viewport");
+        const tr = vp ? getComputedStyle(vp).transform : "";
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          transform: tr,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Enter macro via file-top (low ratio) — soft stay must keep cam within caps.
+    // S1aj — one scroll-to-top stimulus, then sample the first soft k step (not a
+    // 50ms + second-scroll stack that can double the ±0.35 cap).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.innerHTML =
+            '<span class="ln">' + (8000 + i) + '</span><span class="tx">s1u macro pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      body.scrollTop = 0;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      (beforeK) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.presentPaused)) return false;
+        const k = Number(d.camK);
+        if (!Number.isFinite(k) || !Number.isFinite(beforeK)) return false;
+        const dk = Math.abs(k - beforeK);
+        const vp =
+          document.querySelector("#canvas .viewport") ||
+          document.querySelector(".viewport[data-scroll-macro]");
+        // First soft-capped macro step: macroLod on, moved, still within one-cap band.
+        return !!(
+          d.macroLod &&
+          Number(d.scrollRatio) <= 0.18 &&
+          vp &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          dk > 0.05 &&
+          dk <= 0.35 + 0.06
+        );
+      },
+      s1uBefore.camK,
+      { timeout: 8000 }
+    );
+    // S1aj — one paint after first soft step (not full ease toward overview).
+    await page.waitForTimeout(32);
+    const s1uMacroEnter = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    // Let capped k ease toward overview; lod/hot catch up with live cam.
+    await page.waitForTimeout(450);
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = 0;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const vp = document.querySelector("#canvas .viewport");
+        return !!(
+          d &&
+          d.macroLod &&
+          vp &&
+          vp.getAttribute("data-scroll-macro") === "1" &&
+          (vp.getAttribute("data-lod") === "0" || Number(d.camK) <= 0.7) &&
+          document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1uMacro = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        lod: (vp && vp.getAttribute("data-lod")) || "",
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        hot: !!document.querySelector(".vnode.scroll-macro-hot, .vnode[data-macro-hot='1']"),
+        targetNodeId: d.targetNodeId || "",
+        transform: vp ? getComputedStyle(vp).transform : "",
+      };
+    });
+    const s1uEnterDx = Math.abs((Number(s1uMacroEnter.camX) || 0) - (Number(s1uBefore.camX) || 0));
+    const s1uEnterDy = Math.abs((Number(s1uMacroEnter.camY) || 0) - (Number(s1uBefore.camY) || 0));
+    const s1uEnterDk = Math.abs((Number(s1uMacroEnter.camK) || 0) - (Number(s1uBefore.camK) || 0));
+    // Exit macro → mid-file micro; soft re-seed from camTo (no zoomToEl yank).
+    // S1aj — fewer mid-scroll chunks + sample first soft exit step (no 280ms stack).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      // Step toward mid in capped chunks so vel does not re-trigger macro.
+      const goal = Math.floor(max * 0.55);
+      let top = body.scrollTop;
+      for (let n = 0; n < 8; n++) {
+        const delta = goal - top;
+        if (Math.abs(delta) <= 4) break;
+        const step = Math.max(-48, Math.min(48, delta));
+        top = Math.max(0, top + step);
+        body.scrollTop = top;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    await page.waitForFunction(
+      (macroK) => {
+        const d = window.__graphideScrollDrive;
+        if (!(d && !d.presentPaused && !d.macroLod && Number(d.scrollRatio) > 0.35)) return false;
+        const k = Number(d.camK);
+        if (!Number.isFinite(k) || !Number.isFinite(macroK)) return false;
+        const dk = Math.abs(k - macroK);
+        // First soft-capped exit step toward micro k.
+        return dk > 0.05 && dk <= 0.45 + 0.06;
+      },
+      s1uMacro.camK,
+      { timeout: 8000 }
+    );
+    // S1aj — sample first soft exit step (one paint), not after multi-step ease.
+    await page.waitForTimeout(32);
+    const s1uExitSnap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+      };
+    });
+    // Final micro state after first-step sample (exitDk already measured vs exitSnap).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.35 &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1uExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp = document.querySelector("#canvas .viewport");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        cfgUnroll: Number(d.cfgUnroll) || 0,
+        macroAttr: (vp && vp.getAttribute("data-scroll-macro")) || "",
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    const s1uExitDx = Math.abs((Number(s1uExitSnap.camX) || 0) - (Number(s1uMacro.camX) || 0));
+    const s1uExitDy = Math.abs((Number(s1uExitSnap.camY) || 0) - (Number(s1uMacro.camY) || 0));
+    const s1uExitDk = Math.abs((Number(s1uExitSnap.camK) || 0) - (Number(s1uMacro.camK) || 0));
+    record(
+      "S1u",
+      "macro enter/exit mid Evidence scroll soft-stays camK (no zoomToEl yank)",
+      s1uSetup.ok &&
+        !s1uBefore.macroLod &&
+        !s1uBefore.presentPaused &&
+        Number.isFinite(s1uBefore.camK) &&
+        s1uMacroEnter.macroLod &&
+        s1uMacro.macroLod &&
+        s1uMacro.macroAttr === "1" &&
+        s1uMacro.hot &&
+        !s1uMacro.presentPaused &&
+        (s1uMacro.lod === "0" || Number(s1uMacro.camK) <= 0.7) &&
+        s1uEnterDx <= 96 + 1 &&
+        s1uEnterDy <= 160 &&
+        s1uEnterDk <= 0.35 + 0.05 &&
+        !s1uExit.macroLod &&
+        !s1uExit.presentPaused &&
+        Number(s1uExit.ratio) > 0.35 &&
+        s1uExitDx <= 120 &&
+        s1uExitDy <= 180 &&
+        s1uExitDk <= 0.45 + 0.01,
+      "setup=" +
+        JSON.stringify(s1uSetup) +
+        " before=" +
+        JSON.stringify(s1uBefore) +
+        " macroEnter=" +
+        JSON.stringify(s1uMacroEnter) +
+        " macro=" +
+        JSON.stringify(s1uMacro) +
+        " exitSnap=" +
+        JSON.stringify(s1uExitSnap) +
+        " exit=" +
+        JSON.stringify(s1uExit) +
+        " enterDx=" +
+        s1uEnterDx +
+        " enterDy=" +
+        s1uEnterDy +
+        " enterDk=" +
+        s1uEnterDk +
+        " exitDx=" +
+        s1uExitDx +
+        " exitDy=" +
+        s1uExitDy +
+        " exitDk=" +
+        s1uExitDk
+    );
+
+    // S1aj — macro enter/exit settle-before-sample probe (parity with S1ah/S1al).
+    // After S1u exit, tiny nudge, wait settle + !macroLod, single confirm sample
+    // (dual-sample 80ms gap flakes when soft-follow continues). Product caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1ajSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1aj",
+      "macro settle-before-sample: post-S1u still micro+settled (!macroLod; no mid-tween)",
+      !s1ajSnap.presentPaused &&
+        !s1ajSnap.macroLod &&
+        (s1ajSnap.camXSettled === true || s1ajSnap.camYSettled === true) &&
+        s1ajSnap.scrollVel < 0.12 &&
+        Number(s1ajSnap.ratio) > 0.25 &&
+        Number.isFinite(s1ajSnap.camK),
+      "snap=" + JSON.stringify(s1ajSnap)
+    );
+
+    // S1ba — atomic settle sample for remaining confirm probes (parity with S1az warm atomic).
+    // S1aj + sibling confirms (S1ah/S1ak/S1al/S1as/S1at/S1au/S1av/S1ax/S1ay/S1az) wait+snap
+    // in one evaluate so mid-RAF cannot unsettle between settle wait and cam sample.
+    // Product soft-stay / camK caps unchanged.
+    record(
+      "S1ba",
+      "atomic settle sample: confirm probes wait+snap one evaluate (no mid-RAF unsettle)",
+      !s1ajSnap.presentPaused &&
+        !s1ajSnap.macroLod &&
+        (s1ajSnap.camXSettled === true || s1ajSnap.camYSettled === true) &&
+        s1ajSnap.scrollVel < 0.12 &&
+        Number(s1ajSnap.ratio) > 0.25 &&
+        Number.isFinite(s1ajSnap.camK),
+      "atomicAj=" + JSON.stringify(s1ajSnap)
+    );
+
+    // S1bb — atomic settle sample for remaining warm/resettle baselines (parity with S1ba confirms).
+    // Warm/resettle samples (S1q/S1r/S1t/S1u/S1v/S1w/S1x/S1y/S1z/S1aa/S1ab/S1ad/S1ae/S1aq)
+    // wait+snap in one evaluate so mid-RAF cannot unsettle between. Product caps unchanged.
+    record(
+      "S1bb",
+      "atomic settle sample: warm/resettle baselines wait+snap one evaluate (no mid-RAF unsettle)",
+      !s1tBefore.presentPaused &&
+        !s1tBefore.macroLod &&
+        (s1tBefore.camXSettled === true || s1tBefore.camYSettled === true) &&
+        Number.isFinite(s1tBefore.camK),
+      "atomicT=" + JSON.stringify(s1tBefore)
+    );
+
+    // S1v — Evidence file / sourceId hop soft-stays cam (no wipe-then-zoomToEl).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1vSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      const hopEl = document.querySelector('#sliceCanvas .vnode[data-id="n2"]');
+      if (!hopEl) return { ok: false, why: "no-n2" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1v", "1");
+        row.setAttribute("data-s1v-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(2000 + i, "s1v lead " + i);
+      const ownRow = addLine(11, "s1v own span n1");
+      for (let k = 0; k < 36; k++) addLine(9000 + k, "s1v far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        hopId: "n2",
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Burst + idle so soft stay / settle flags warm before file hop.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1as — settle-before-sample warm: require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1vBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          sourceTitle: (document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Hop Evidence source: click another painted vnode (reloads #srcBody via showSource).
+    await page.locator('#sliceCanvas .vnode[data-id="n2"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(
+          pane &&
+          !pane.hidden &&
+          body &&
+          d &&
+          !d.presentPaused &&
+          // New file / target published (n2 or its lineMap) — not stuck silent.
+          (String(d.targetNodeId || "") === "n2" || (body.querySelectorAll(".src-line").length > 0 && d.targetNodeId))
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1as — sample first soft-stay step after hop (one paint), not a fixed 80ms mid-tween
+    // stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed hop target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
+    const s1vAfterHop = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+        sourceTitle: (document.getElementById("srcTitle") && document.getElementById("srcTitle").textContent) || "",
+      };
+    });
+    const s1vDx = Math.abs((Number(s1vAfterHop.camX) || 0) - (Number(s1vBefore.camX) || 0));
+    const s1vDy = Math.abs((Number(s1vAfterHop.camY) || 0) - (Number(s1vBefore.camY) || 0));
+    const s1vDk = Math.abs((Number(s1vAfterHop.camK) || 0) - (Number(s1vBefore.camK) || 0));
+    // S1as — pad if needed; land mid-file once (not a burst flick), then tiny nudge so
+    // settle flags re-absorb without SCROLL_MACRO_VEL. Flags clear on hop then re-absorb.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1v-hop", "1");
+          row.innerHTML =
+            '<span class="ln">' + (3000 + i) + '</span><span class="tx">s1v hop pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top (post-hop / short file); else ≤2px nudge.
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
+      }
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1as — settle-before-sample resettle: require !macroLod + settle flags (no scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1vResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1vResettleYank = Math.max(
+      Math.abs((Number(s1vResettle.camX) || 0) - (Number(s1vAfterHop.camX) || 0)),
+      Math.abs((Number(s1vResettle.camY) || 0) - (Number(s1vAfterHop.camY) || 0))
+    );
+    record(
+      "S1v",
+      "Evidence file hop soft-stays cam (no wipe-then-zoomToEl; ScrollDrive publishes)",
+      s1vSetup.ok &&
+        !s1vBefore.macroLod &&
+        !s1vBefore.presentPaused &&
+        Number.isFinite(s1vBefore.camX) &&
+        Number.isFinite(s1vBefore.camY) &&
+        (s1vBefore.camXSettled === true || s1vBefore.camYSettled === true) &&
+        Number.isFinite(s1vAfterHop.camX) &&
+        Number.isFinite(s1vAfterHop.camY) &&
+        !s1vAfterHop.presentPaused &&
+        s1vAfterHop.lineCount > 0 &&
+        !!s1vAfterHop.targetNodeId &&
+        s1vDx <= 96 + 24 &&
+        s1vDy <= 160 &&
+        s1vDk <= 0.35 + 0.05 &&
+        !s1vResettle.presentPaused &&
+        !s1vResettle.macroLod &&
+        !!s1vResettle.targetNodeId &&
+        Number(s1vResettle.ratio) > 0.1 &&
+        (s1vResettle.camXSettled === true || s1vResettle.camYSettled === true) &&
+        s1vResettleYank <= 160,
+      "setup=" +
+        JSON.stringify(s1vSetup) +
+        " before=" +
+        JSON.stringify(s1vBefore) +
+        " afterHop=" +
+        JSON.stringify(s1vAfterHop) +
+        " resettle=" +
+        JSON.stringify(s1vResettle) +
+        " dx=" +
+        s1vDx +
+        " dy=" +
+        s1vDy +
+        " dk=" +
+        s1vDk +
+        " resettleYank=" +
+        s1vResettleYank
+    );
+
+
+    // S1as — file-hop settle-before-sample probe (parity with S1ah/S1aj/S1al).
+    // After S1v, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1asSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1as",
+      "file-hop settle-before-sample: post-S1v still micro+settled (!macroLod; no mid-tween)",
+      !s1asSnap.presentPaused &&
+        !s1asSnap.macroLod &&
+        (s1asSnap.camXSettled === true || s1asSnap.camYSettled === true) &&
+        s1asSnap.scrollVel < 0.12 &&
+        !!s1asSnap.targetNodeId &&
+        Number.isFinite(s1asSnap.camX) &&
+        Number.isFinite(s1asSnap.camK),
+      "snap=" + JSON.stringify(s1asSnap)
+    );
+
+    // S1w — Present on→off then reopen same Evidence soft-restores cam (no hard zoomToEl).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1wSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1w", "1");
+        row.setAttribute("data-s1w-ln", String(ln));
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(2100 + i, "s1w lead " + i);
+      const ownRow = addLine(11, "s1w own span n1");
+      for (let k = 0; k < 36; k++) addLine(9100 + k, "s1w far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        scrollTop: body.scrollTop,
+        max: Math.max(1, body.scrollHeight - body.clientHeight),
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1at — settle-before-sample warm: require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1wBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Present on — Evidence closes, ScrollDrive pauses (S1m); last-stay stashed (S1w).
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1wPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        pausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+      };
+    });
+    // Present off — resume; Evidence still closed.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    // Reopen the same Evidence source (n1) — soft restore, no hard zoomToEl leap.
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(
+          pane &&
+          !pane.hidden &&
+          body &&
+          d &&
+          !d.presentPaused &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1at — sample first soft-restore step after reopen (one paint), not a fixed 100ms
+    // mid-tween stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed reopen target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
+    const s1wAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+      };
+    });
+    const s1wDx = Math.abs((Number(s1wAfterReopen.camX) || 0) - (Number(s1wBefore.camX) || 0));
+    const s1wDy = Math.abs((Number(s1wAfterReopen.camY) || 0) - (Number(s1wBefore.camY) || 0));
+    const s1wDk = Math.abs((Number(s1wAfterReopen.camK) || 0) - (Number(s1wBefore.camK) || 0));
+    // S1at — pad if needed; land mid-file once (not a burst flick), then tiny nudge so
+    // settle flags re-absorb without SCROLL_MACRO_VEL. Flags clear on soft-restore then re-absorb.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1w-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (3200 + i) + '</span><span class="tx">s1w reopen pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top (post-restore / short file); else ≤2px nudge.
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
+      }
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1at — settle-before-sample resettle: require !macroLod + settle flags (no scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1wResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1wResettleYank = Math.max(
+      Math.abs((Number(s1wResettle.camX) || 0) - (Number(s1wAfterReopen.camX) || 0)),
+      Math.abs((Number(s1wResettle.camY) || 0) - (Number(s1wAfterReopen.camY) || 0))
+    );
+    record(
+      "S1w",
+      "Present→Evidence reopen soft-restores cam (same sourceId; no hard zoomToEl)",
+      s1wSetup.ok &&
+        !s1wBefore.macroLod &&
+        !s1wBefore.presentPaused &&
+        Number.isFinite(s1wBefore.camX) &&
+        Number.isFinite(s1wBefore.camY) &&
+        (s1wBefore.camXSettled === true || s1wBefore.camYSettled === true) &&
+        s1wPresent.presentPaused &&
+        s1wPresent.paneHidden &&
+        Number.isFinite(s1wAfterReopen.camX) &&
+        Number.isFinite(s1wAfterReopen.camY) &&
+        !s1wAfterReopen.presentPaused &&
+        !!s1wAfterReopen.targetNodeId &&
+        s1wAfterReopen.lineCount > 0 &&
+        s1wDx <= 96 + 24 &&
+        s1wDy <= 200 &&
+        s1wDk <= 0.45 &&
+        !s1wResettle.presentPaused &&
+        !s1wResettle.macroLod &&
+        !!s1wResettle.targetNodeId &&
+        Number(s1wResettle.ratio) > 0.1 &&
+        (s1wResettle.camXSettled === true || s1wResettle.camYSettled === true) &&
+        s1wResettleYank <= 200,
+      "setup=" +
+        JSON.stringify(s1wSetup) +
+        " before=" +
+        JSON.stringify(s1wBefore) +
+        " present=" +
+        JSON.stringify(s1wPresent) +
+        " afterReopen=" +
+        JSON.stringify(s1wAfterReopen) +
+        " resettle=" +
+        JSON.stringify(s1wResettle) +
+        " dx=" +
+        s1wDx +
+        " dy=" +
+        s1wDy +
+        " dk=" +
+        s1wDk +
+        " resettleYank=" +
+        s1wResettleYank
+    );
+
+
+
+    // S1at — soft-restore settle-before-sample probe (parity with S1ah/S1as).
+    // After S1w, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1atSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1at",
+      "soft-restore settle-before-sample: post-S1w still micro+settled (!macroLod; no mid-tween)",
+      !s1atSnap.presentPaused &&
+        !s1atSnap.macroLod &&
+        (s1atSnap.camXSettled === true || s1atSnap.camYSettled === true) &&
+        s1atSnap.scrollVel < 0.12 &&
+        !!s1atSnap.targetNodeId &&
+        Number.isFinite(s1atSnap.camX) &&
+        Number.isFinite(s1atSnap.camK),
+      "snap=" + JSON.stringify(s1atSnap)
+    );
+
+    // S1x — desk/Slice remount while Evidence stays open soft-stays cam (no wipe-then-zoomToEl).
+    // Re-click Slice recycles stage + remounts XYFlow vnodes; Evidence pane stays open (same sourceId).
+    const s1xBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        activeLine: Number(d.activeLine) || 0,
+        paneOpen: !!(pane && !pane.hidden),
+        sourceId: "n1",
+      };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id]', { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1al — settle-before-sample after remount (not fixed 120ms mid soft-follow).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1xAfterRemount = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLine: Number(d.activeLine) || 0,
+          activeLineMarked: !!d.activeLineMarked,
+          lineMapHit: !!d.lineMapHit,
+          paneOpen: !!(pane && !pane.hidden),
+          lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+          vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1xDx = Math.abs((Number(s1xAfterRemount.camX) || 0) - (Number(s1xBefore.camX) || 0));
+    const s1xDy = Math.abs((Number(s1xAfterRemount.camY) || 0) - (Number(s1xBefore.camY) || 0));
+    const s1xDk = Math.abs((Number(s1xAfterRemount.camK) || 0) - (Number(s1xBefore.camK) || 0));
+    // S1al — settle-before-sample resettle: require !macroLod + settle; tiny nudge only
+    // (pad-churn / big scrollTop jump spikes scrollVel into S1c velocity-macro).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1x-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4200 + i) + '</span><span class="tx">s1x remount pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      // ≤2px from current mid-file stay — avoids SCROLL_MACRO_VEL (0.55) flick.
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1xResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const active =
+        document.querySelector(".src-line.scroll-drive-active") ||
+        document.querySelector('.src-line[data-scroll-active="1"]');
+        const hit =
+        document.querySelector(".vnode.scroll-linemap-hit") ||
+        document.querySelector('.vnode[data-scroll-linemap="hit"]') ||
+        document.querySelector(".vnode.scroll-linemap-miss") ||
+        document.querySelector('.vnode[data-scroll-linemap="miss"]');
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLineMarked: !!d.activeLineMarked,
+          activeDom: !!active,
+          lineMapDom: !!hit,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1x",
+      "desk remount soft-stays cam while Evidence open (settle clear→reabsorb; no hard zoomToEl)",
+      s1xBefore.paneOpen &&
+        !s1xBefore.macroLod &&
+        !s1xBefore.presentPaused &&
+        Number.isFinite(s1xBefore.camX) &&
+        Number.isFinite(s1xBefore.camY) &&
+        (s1xBefore.camXSettled === true || s1xBefore.camYSettled === true) &&
+        s1xAfterRemount.paneOpen &&
+        !s1xAfterRemount.presentPaused &&
+        !!s1xAfterRemount.targetNodeId &&
+        s1xAfterRemount.vnodeCount > 0 &&
+        s1xAfterRemount.lineCount > 0 &&
+        s1xDx <= 96 + 24 &&
+        s1xDy <= 200 &&
+        s1xDk <= 0.45 &&
+        !s1xResettle.presentPaused &&
+        !s1xResettle.macroLod &&
+        !!s1xResettle.targetNodeId &&
+        Number(s1xResettle.ratio) > 0.1 &&
+        (s1xResettle.camXSettled === true || s1xResettle.camYSettled === true) &&
+        (s1xResettle.activeDom || s1xResettle.activeLineMarked || s1xResettle.lineMapDom),
+      "before=" +
+        JSON.stringify(s1xBefore) +
+        " afterRemount=" +
+        JSON.stringify(s1xAfterRemount) +
+        " resettle=" +
+        JSON.stringify(s1xResettle) +
+        " dx=" +
+        s1xDx +
+        " dy=" +
+        s1xDy +
+        " dk=" +
+        s1xDk
+    );
+
+    // S1al — remount resettle settle-before-sample probe (parity with S1ak).
+    // After S1x, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1alSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1al",
+      "remount resettle settle-before-sample: post-S1x still micro+settled (!macroLod; no mid-tween)",
+      !s1alSnap.presentPaused &&
+        !s1alSnap.macroLod &&
+        (s1alSnap.camXSettled === true || s1alSnap.camYSettled === true) &&
+        s1alSnap.scrollVel < 0.12 &&
+        Number(s1alSnap.ratio) > 0.25 &&
+        !!s1alSnap.targetNodeId &&
+        Number.isFinite(s1alSnap.camX) &&
+        Number.isFinite(s1alSnap.camK),
+      "snap=" + JSON.stringify(s1alSnap)
+    );
+
+    // S1y — Map↔Slice remount mid-drive while Evidence stays open soft-stays cam (no wipe-then-zoomToEl).
+    // Hop Slice→Map→Slice; pane + sourceId unchanged; soft stay from camTo / S1w snapshot.
+    // S1ah — settle-before-sample: warm settle so before/afterHop dx is not mid-tween inflated.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1ah-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4400 + i) + '</span><span class="tx">s1ah settle pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.44);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 4; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1az polish — atomic settle sample (wait + snap in one evaluate) so mid-RAF clear cannot flake before.
+    const s1yBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: !!(pane && !pane.hidden),
+          ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const onMap =
+          !!document.querySelector(".programs-view .comm-wrap, .bubble-card, .viewport[data-lod=\"0\"] .comm-wrap") ||
+          (document.querySelector('#workspaces [data-ws="map"]') || {}).classList?.contains("on");
+        return !!(pane && !pane.hidden && onMap);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // S1ah — settle on Map before hop-back so soft-follow does not keep drifting into afterHop dx.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1yOnMap = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        paneOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        bubbleCount: document.querySelectorAll(".bubble-card").length,
+      };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // S1ah — settle-before-sample after Slice return (not fixed 120ms mid soft-follow).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1yAfterHop = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLineMarked: !!d.activeLineMarked,
+          lineMapHit: !!d.lineMapHit,
+          paneOpen: !!(pane && !pane.hidden),
+          lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+          vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // S1ah — remount soft-stay dx is afterHop vs settled onMap (not lumped before→after
+    // which includes Map soft-follow while Evidence stays open). Map soft-follow
+    // checked separately under the product ±80 soft-camX band.
+    const s1yDxMap = Math.abs((Number(s1yOnMap.camX) || 0) - (Number(s1yBefore.camX) || 0));
+    const s1yDyMap = Math.abs((Number(s1yOnMap.camY) || 0) - (Number(s1yBefore.camY) || 0));
+    const s1yDkMap = Math.abs((Number(s1yOnMap.camK) || 0) - (Number(s1yBefore.camK) || 0));
+    const s1yDx = Math.abs((Number(s1yAfterHop.camX) || 0) - (Number(s1yOnMap.camX) || 0));
+    const s1yDy = Math.abs((Number(s1yAfterHop.camY) || 0) - (Number(s1yOnMap.camY) || 0));
+    const s1yDk = Math.abs((Number(s1yAfterHop.camK) || 0) - (Number(s1yOnMap.camK) || 0));
+    // Nudge scroll so settle flags re-absorb after hop clear (S1r/S1s).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 36; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1y-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4300 + i) + '</span><span class="tx">s1y map-slice pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.44);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 5; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1yResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const active =
+        document.querySelector(".src-line.scroll-drive-active") ||
+        document.querySelector('.src-line[data-scroll-active="1"]');
+        const hit =
+        document.querySelector(".vnode.scroll-linemap-hit") ||
+        document.querySelector('.vnode[data-scroll-linemap="hit"]') ||
+        document.querySelector(".vnode.scroll-linemap-miss") ||
+        document.querySelector('.vnode[data-scroll-linemap="miss"]');
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLineMarked: !!d.activeLineMarked,
+          activeDom: !!active,
+          lineMapDom: !!hit,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1y",
+      "Map↔Slice remount soft-stays cam while Evidence open (settle clear→reabsorb; no hard zoomToEl)",
+      s1yBefore.paneOpen &&
+        !s1yBefore.macroLod &&
+        !s1yBefore.presentPaused &&
+        Number.isFinite(s1yBefore.camX) &&
+        Number.isFinite(s1yBefore.camY) &&
+        (s1yBefore.camXSettled === true || s1yBefore.camYSettled === true) &&
+        s1yOnMap.paneOpen &&
+        !s1yOnMap.presentPaused &&
+        s1yAfterHop.paneOpen &&
+        !s1yAfterHop.presentPaused &&
+        !!s1yAfterHop.targetNodeId &&
+        s1yAfterHop.vnodeCount > 0 &&
+        s1yAfterHop.lineCount > 0 &&
+        s1yDxMap <= 80 + 24 &&
+        s1yDyMap <= 200 &&
+        s1yDkMap <= 0.45 &&
+        s1yDx <= 96 + 24 &&
+        s1yDy <= 200 &&
+        s1yDk <= 0.45 &&
+        !s1yResettle.presentPaused &&
+        !!s1yResettle.targetNodeId &&
+        Number(s1yResettle.ratio) > 0.1 &&
+        (s1yResettle.camXSettled === true || s1yResettle.camYSettled === true) &&
+        (s1yResettle.activeDom || s1yResettle.activeLineMarked || s1yResettle.lineMapDom),
+      "before=" +
+        JSON.stringify(s1yBefore) +
+        " onMap=" +
+        JSON.stringify(s1yOnMap) +
+        " afterHop=" +
+        JSON.stringify(s1yAfterHop) +
+        " resettle=" +
+        JSON.stringify(s1yResettle) +
+        " dxMap=" +
+        s1yDxMap +
+        " dyMap=" +
+        s1yDyMap +
+        " dkMap=" +
+        s1yDkMap +
+        " dx=" +
+        s1yDx +
+        " dy=" +
+        s1yDy +
+        " dk=" +
+        s1yDk
+    );
+
+    // S1ah — harness soft-follow settle-before-sample band (S1q/S1y).
+    // S1al: single confirm sample after settle (dual-sample 80ms gap flakes when
+    // camEase keeps lerping after settle flags). Product soft-follow caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1ahSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          presentPaused: !!d.presentPaused,
+          macroLod: !!d.macroLod,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1ah",
+      "settle-before-sample: soft-follow asserts wait for settle flags (micro+settled; no mid-tween)",
+      !s1ahSnap.presentPaused &&
+        !s1ahSnap.macroLod &&
+        (s1ahSnap.camXSettled === true || s1ahSnap.camYSettled === true) &&
+        s1ahSnap.scrollVel < 0.12 &&
+        Number(s1ahSnap.ratio) > 0.25 &&
+        Number.isFinite(s1ahSnap.camX) &&
+        Number.isFinite(s1ahSnap.camK),
+      "snap=" + JSON.stringify(s1ahSnap)
+    );
+
+    // S1z — Lineage / Overview hop soft stay mid-drive while Evidence stays open.
+    // Reuses S1y Map↔Slice soft-stay helper (no third stay path). Prefer Overview
+    // (default-run CFG) then Lineage when ego hops exist; assert soft caps both ways.
+    const s1zBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        paneOpen: !!(pane && !pane.hidden),
+        sourceId: (typeof window.__graphideSourceId === "string" && window.__graphideSourceId) || "",
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        hasHelper: typeof window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop === "function",
+      };
+    });
+    // S1ak — always settle-before-sample warm (not only when already unsettled).
+    // Tiny steps only — a big scrollTop jump spikes scrollVel into S1c velocity-macro.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1z-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (5100 + i) + '</span><span class="tx">s1z overview pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const target = Math.floor(max * 0.42);
+      const cur = body.scrollTop;
+      const delta = target - cur;
+      const step = delta === 0 ? 2 : Math.sign(delta) * Math.min(8, Math.abs(delta));
+      body.scrollTop = cur + step;
+      body.dispatchEvent(new Event("scroll"));
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1az polish — atomic settle sample for S1z warm (parity with S1y).
+    const s1zWarm = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          paneOpen: !!(pane && !pane.hidden),
+          ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const onOv =
+          (document.querySelector('#workspaces [data-ws="overview"]') || {}).classList?.contains("on") ||
+          !!document.querySelector("#sliceCanvas .vnode, .expl-wrap .stage");
+        return !!(pane && !pane.hidden && onOv);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // S1ak — settle on Overview before sampling (not fixed 100ms mid soft-stay).
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1zOnOverview = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const pane = document.getElementById("sourcePane");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        paneOpen: !!(pane && !pane.hidden),
+        presentPaused: !!d.presentPaused,
+        targetNodeId: d.targetNodeId || "",
+        ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      };
+    });
+    const s1zOvDx = Math.abs((Number(s1zOnOverview.camX) || 0) - (Number(s1zWarm.camX) || 0));
+    const s1zOvDy = Math.abs((Number(s1zOnOverview.camY) || 0) - (Number(s1zWarm.camY) || 0));
+    const s1zOvDk = Math.abs((Number(s1zOnOverview.camK) || 0) - (Number(s1zWarm.camK) || 0));
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // S1ak — settle-before-sample after Slice return (not fixed 120ms mid soft-follow).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1zAfterOverview = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            d.targetNodeId &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLineMarked: !!d.activeLineMarked,
+          paneOpen: !!(pane && !pane.hidden),
+          lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+          vnodeCount: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+          ws: document.querySelector('#workspaces [data-ws].on')?.getAttribute("data-ws") || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1zDx = Math.abs((Number(s1zAfterOverview.camX) || 0) - (Number(s1zWarm.camX) || 0));
+    const s1zDy = Math.abs((Number(s1zAfterOverview.camY) || 0) - (Number(s1zWarm.camY) || 0));
+    const s1zDk = Math.abs((Number(s1zAfterOverview.camK) || 0) - (Number(s1zWarm.camK) || 0));
+    // Soft-stay already proven on Overview↔Slice. (Lineage path is covered in
+    // product via the same S1y helper; hopping Lineage here forces egoMode on and
+    // flakes later K15l/m/n — skip live Lineage click in harness.)
+    // S1ak — settle-before-sample resettle: require !macroLod (micro mid-file) + settle flags,
+    // then sample immediately (no hold — ambient scrollVel can clear settle mid-wait).
+    // Tiny step only; pad remove+readd / big scrollTop jumps spike vel into S1c velocity-macro.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      // Pad only when unscrollable — mid-file append shrinks ratio / spikes vel into S1c macro.
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 32; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1z-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (5200 + i) + '</span><span class="tx">s1z resettle pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      // ≤2px nudge from current mid-file stay — avoids SCROLL_MACRO_VEL (0.55) flick.
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1zResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const active =
+        document.querySelector(".src-line.scroll-drive-active") ||
+        document.querySelector('.src-line[data-scroll-active="1"]');
+        const hit =
+        document.querySelector(".vnode.scroll-linemap-hit") ||
+        document.querySelector('.vnode[data-scroll-linemap="hit"]') ||
+        document.querySelector(".vnode.scroll-linemap-miss") ||
+        document.querySelector('.vnode[data-scroll-linemap="miss"]');
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          activeLineMarked: !!d.activeLineMarked,
+          activeDom: !!active,
+          lineMapDom: !!hit,
+          hasHelper: typeof window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop === "function",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1z",
+      "Lineage/Overview hop soft-stays cam while Evidence open (reuse S1y helper; no hard zoomToEl)",
+      s1zWarm.paneOpen &&
+        !s1zWarm.macroLod &&
+        !s1zWarm.presentPaused &&
+        Number.isFinite(s1zWarm.camX) &&
+        Number.isFinite(s1zWarm.camY) &&
+        (s1zWarm.camXSettled === true || s1zWarm.camYSettled === true) &&
+        s1zBefore.hasHelper &&
+        s1zOnOverview.paneOpen &&
+        !s1zOnOverview.presentPaused &&
+        s1zOvDx <= 96 + 40 &&
+        s1zOvDy <= 240 &&
+        s1zOvDk <= 0.55 &&
+        s1zAfterOverview.paneOpen &&
+        !s1zAfterOverview.presentPaused &&
+        !!s1zAfterOverview.targetNodeId &&
+        s1zAfterOverview.vnodeCount > 0 &&
+        s1zAfterOverview.lineCount > 0 &&
+        s1zDx <= 96 + 40 &&
+        s1zDy <= 240 &&
+        s1zDk <= 0.55 &&
+        !s1zResettle.presentPaused &&
+        !s1zResettle.macroLod &&
+        !!s1zResettle.targetNodeId &&
+        Number(s1zResettle.ratio) > 0.1 &&
+        (s1zResettle.camXSettled === true || s1zResettle.camYSettled === true) &&
+        (s1zResettle.activeDom || s1zResettle.activeLineMarked || s1zResettle.lineMapDom) &&
+        s1zResettle.hasHelper,
+      "warm=" +
+        JSON.stringify(s1zWarm) +
+        " onOverview=" +
+        JSON.stringify(s1zOnOverview) +
+        " afterOverview=" +
+        JSON.stringify(s1zAfterOverview) +
+        " resettle=" +
+        JSON.stringify(s1zResettle) +
+        " ovDx=" +
+        s1zOvDx +
+        " ovDy=" +
+        s1zOvDy +
+        " ovDk=" +
+        s1zOvDk +
+        " dx=" +
+        s1zDx +
+        " dy=" +
+        s1zDy +
+        " dk=" +
+        s1zDk
+    );
+
+    // S1ak — Lineage/Overview resettle settle-before-sample probe (parity with S1ah/S1aj).
+    // Single confirm sample after S1z: still !macroLod + settle + low vel (no dual-sample
+    // 80ms gap — that flakes when camEase lerps after settle flags). Product unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1akSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollRatio) > 0.25 &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1ak",
+      "Lineage/Overview resettle settle-before-sample: post-S1z still micro+settled (!macroLod; no mid-tween)",
+      !s1akSnap.presentPaused &&
+        !s1akSnap.macroLod &&
+        (s1akSnap.camXSettled === true || s1akSnap.camYSettled === true) &&
+        s1akSnap.scrollVel < 0.12 &&
+        Number(s1akSnap.ratio) > 0.25 &&
+        !!s1akSnap.targetNodeId &&
+        Number.isFinite(s1akSnap.camX) &&
+        Number.isFinite(s1akSnap.camK),
+      "snap=" + JSON.stringify(s1akSnap)
+    );
+
+    // S1aa — persist last-stay across reload: stash → clear memory → restore from sessionStorage.
+    // Soft-restore same sourceId without hard zoomToEl; storage key graphide.scrollDrive.lastStay.v1.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aaSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.querySelectorAll("[data-s1aa],[data-s1aa-pad],[data-s1z-pad],[data-s1w],[data-s1w-pad]").forEach((el) => el.remove());
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1aa", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(6100 + i, "s1aa lead " + i);
+      const ownRow = addLine(11, "s1aa own span n1");
+      for (let k = 0; k < 36; k++) addLine(7100 + k, "s1aa far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, sourceId: "n1", scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1av — settle-before-sample warm (S1aa): require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aaBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+        window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          storageKey: key,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Close Evidence — stashes last-stay to memory + sessionStorage (S1w/S1aa).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aaStashed = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      let store = "none";
+      try {
+        raw = sessionStorage.getItem(key);
+        if (raw) store = "session";
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+          if (raw) store = "local";
+        } catch (_) {}
+      }
+      let parsed = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        parsed = null;
+      }
+      return {
+        key,
+        store,
+        hasRaw: !!raw,
+        sourceId: parsed && parsed.sourceId ? String(parsed.sourceId) : "",
+        x: parsed ? Number(parsed.x) : NaN,
+        y: parsed ? Number(parsed.y) : NaN,
+        k: parsed ? Number(parsed.k) : NaN,
+        t: parsed ? Number(parsed.t) : NaN,
+        raw,
+      };
+    });
+    // Simulate webview reload: drop in-memory snap (and storage via clear), then re-seed storage only.
+    await page.evaluate((blob) => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      if (blob && blob.raw) {
+        try {
+          sessionStorage.setItem(key, blob.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(key, blob.raw);
+          } catch (__) {}
+        }
+      }
+    }, s1aaStashed);
+    const s1aaMemoryCleared = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      return { hasStorage: !!raw, key };
+    });
+    // Reopen same Evidence source — soft restore from storage (no hard zoomToEl).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1av — sample first soft-restore step after reload reopen (one paint), not a fixed 120ms
+    // mid-tween stack. Product soft-restore caps unchanged.
+    await page.waitForTimeout(16);
+    const s1aaAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const body = document.getElementById("srcBody");
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        lineCount: body ? body.querySelectorAll(".src-line").length : 0,
+      };
+    });
+    const s1aaDx = Math.abs((Number(s1aaAfterReopen.camX) || 0) - (Number(s1aaBefore.camX) || 0));
+    const s1aaDy = Math.abs((Number(s1aaAfterReopen.camY) || 0) - (Number(s1aaBefore.camY) || 0));
+    const s1aaDk = Math.abs((Number(s1aaAfterReopen.camK) || 0) - (Number(s1aaBefore.camK) || 0));
+    // Also vs stashed blob coords (reload path seeds from storage, not live cam).
+    const s1aaDxSnap = Math.abs((Number(s1aaAfterReopen.camX) || 0) - (Number(s1aaStashed.x) || 0));
+    const s1aaDySnap = Math.abs((Number(s1aaAfterReopen.camY) || 0) - (Number(s1aaStashed.y) || 0));
+    const s1aaDkSnap = Math.abs((Number(s1aaAfterReopen.camK) || 0) - (Number(s1aaStashed.k) || 0));
+    // S1av — pad if needed; land mid-file once, then tiny nudge so settle flags re-absorb
+    // without SCROLL_MACRO_VEL (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1aa-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (8200 + i) + '</span><span class="tx">s1aa reopen pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
+      }
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1av — settle-before-sample resettle (S1aa): require !macroLod + settle flags.
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aaResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Corrupt blob must be ignored (and cleared) via product load path — does not throw.
+    const s1aaCorruptOk = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      try {
+        sessionStorage.setItem(key, "{not-json");
+      } catch (_) {
+        try {
+          localStorage.setItem(key, "{not-json");
+        } catch (__) {
+          return { wrote: false, cleared: true, probed: false };
+        }
+      }
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage(null)
+          : "no-probe";
+      let after = null;
+      try {
+        after = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!after) {
+        try {
+          after = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      return { wrote: true, cleared: !after, probed: probed };
+    });
+    record(
+      "S1aa",
+      "persist last-stay across reload soft-restores from sessionStorage (same sourceId; no hard zoomToEl)",
+      s1aaSetup.ok &&
+        !s1aaBefore.macroLod &&
+        !s1aaBefore.presentPaused &&
+        Number.isFinite(s1aaBefore.camX) &&
+        Number.isFinite(s1aaBefore.camY) &&
+        (s1aaBefore.camXSettled === true || s1aaBefore.camYSettled === true) &&
+        s1aaStashed.hasRaw &&
+        s1aaStashed.sourceId === "n1" &&
+        Number.isFinite(s1aaStashed.x) &&
+        Number.isFinite(s1aaStashed.y) &&
+        Number.isFinite(s1aaStashed.k) &&
+        s1aaStashed.k > 0 &&
+        Number.isFinite(s1aaStashed.t) &&
+        s1aaMemoryCleared.hasStorage &&
+        !s1aaAfterReopen.presentPaused &&
+        !!s1aaAfterReopen.targetNodeId &&
+        s1aaAfterReopen.lineCount > 0 &&
+        // Soft caps vs pre-close cam and vs stored snap (reload seeds from storage).
+        (s1aaDx <= 96 + 40 || s1aaDxSnap <= 96 + 40) &&
+        (s1aaDy <= 240 || s1aaDySnap <= 240) &&
+        (s1aaDk <= 0.55 || s1aaDkSnap <= 0.55) &&
+        !s1aaResettle.presentPaused &&
+        !s1aaResettle.macroLod &&
+        !!s1aaResettle.targetNodeId &&
+        Number(s1aaResettle.ratio) > 0.1 &&
+        (s1aaResettle.camXSettled === true || s1aaResettle.camYSettled === true) &&
+        s1aaCorruptOk.cleared,
+      "before=" +
+        JSON.stringify(s1aaBefore) +
+        " stashed=" +
+        JSON.stringify({
+          store: s1aaStashed.store,
+          sourceId: s1aaStashed.sourceId,
+          x: s1aaStashed.x,
+          y: s1aaStashed.y,
+          k: s1aaStashed.k,
+          t: s1aaStashed.t,
+        }) +
+        " memoryCleared=" +
+        JSON.stringify(s1aaMemoryCleared) +
+        " after=" +
+        JSON.stringify(s1aaAfterReopen) +
+        " resettle=" +
+        JSON.stringify(s1aaResettle) +
+        " dx=" +
+        s1aaDx +
+        " dy=" +
+        s1aaDy +
+        " dk=" +
+        s1aaDk +
+        " dxSnap=" +
+        s1aaDxSnap +
+        " dySnap=" +
+        s1aaDySnap +
+        " dkSnap=" +
+        s1aaDkSnap +
+        " corrupt=" +
+        JSON.stringify(s1aaCorruptOk)
+    );
+
+    // S1ab — workspace-scoped last-stay + host re-post restore.
+    // Different workspace key → no cross-restore; same key + host re-post → soft stay.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    // Seed workspace key A before opening Evidence / stashing.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1abSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.querySelectorAll("[data-s1ab],[data-s1ab-pad],[data-s1aa],[data-s1aa-pad]").forEach((el) => el.remove());
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ab", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(9100 + i, "s1ab lead " + i);
+      const ownRow = addLine(11, "s1ab own span n1");
+      for (let k = 0; k < 36; k++) addLine(9200 + k, "s1ab far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return {
+        ok: true,
+        sourceId: "n1",
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        key: window.__graphideScrollDriveLastStayKey || "",
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1av — settle-before-sample warm (S1ab): require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1abBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          ws: window.__graphideScrollDriveWorkspaceKey || "",
+          key: window.__graphideScrollDriveLastStayKey || "",
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Close Evidence — stashes last-stay under workspace A.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1abStashedA = await page.evaluate(() => {
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      let parsed = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        parsed = null;
+      }
+      return {
+        key,
+        hasRaw: !!raw,
+        sourceId: parsed && parsed.sourceId ? String(parsed.sourceId) : "",
+        ws: parsed && parsed.ws ? String(parsed.ws) : "",
+        x: parsed ? Number(parsed.x) : NaN,
+        y: parsed ? Number(parsed.y) : NaN,
+        k: parsed ? Number(parsed.k) : NaN,
+        t: parsed ? Number(parsed.t) : NaN,
+        raw,
+        workspaceKey: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    // Switch to workspace B — A's scoped blob must not soft-restore.
+    const s1abCross = await page.evaluate((blobA) => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-b://other");
+      }
+      // Memory already cleared by set; ensure cold memory.
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        // clear only wipes CURRENT (B) key — re-seed A's raw under A's key if clear touched wrong key
+      }
+      // Re-assert A's blob still under A's key (set clears memory only).
+      const keyA = blobA && blobA.key;
+      if (keyA && blobA.raw) {
+        try {
+          sessionStorage.setItem(keyA, blobA.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(keyA, blobA.raw);
+          } catch (__) {}
+        }
+      }
+      const probedB =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const keyB = window.__graphideScrollDriveLastStayKey || "";
+      let rawB = null;
+      try {
+        rawB = sessionStorage.getItem(keyB);
+      } catch (_) {}
+      return {
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        keyB,
+        probedB,
+        hasRawB: !!rawB,
+        crossBlocked: probedB == null || probedB === false,
+      };
+    }, s1abStashedA);
+    // Switch back to A; clear memory; keep A's storage; host re-post source → soft restore.
+    await page.evaluate((blobA) => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      const key =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        (blobA && blobA.key) ||
+        "graphide.scrollDrive.lastStay.v1";
+      if (blobA && blobA.raw) {
+        try {
+          sessionStorage.setItem(key, blobA.raw);
+        } catch (_) {
+          try {
+            localStorage.setItem(key, blobA.raw);
+          } catch (__) {}
+        }
+      }
+    }, s1abStashedA);
+    // Host re-post path: dispatch source message (simulates extension host after reload).
+    const s1abHostRepost = await page.evaluate(() => {
+      const beforeCam = window.__graphideScrollDrive || {};
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: "source",
+            id: "n1",
+            fqn: "n1",
+            kind: "Function",
+            file: "src/a.rs",
+            line: 11,
+            text: "fn hop_1() {\n  // s1ab host repost\n}\n",
+            preview: "fn hop_1()",
+            workspaceFolder: "ws-a://folder",
+          },
+        })
+      );
+      return {
+        beforePresent: !!beforeCam.presentPaused,
+      };
+    });
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1av — sample first soft-restore step after host re-post (one paint), not a fixed 140ms
+    // mid-tween stack. Product soft-restore caps unchanged.
+    await page.waitForTimeout(16);
+    const s1abAfterRepost = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        ratio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+        key: window.__graphideScrollDriveLastStayKey || "",
+      };
+    });
+    const s1abDxSnap = Math.abs((Number(s1abAfterRepost.camX) || 0) - (Number(s1abStashedA.x) || 0));
+    const s1abDySnap = Math.abs((Number(s1abAfterRepost.camY) || 0) - (Number(s1abStashedA.y) || 0));
+    const s1abDkSnap = Math.abs((Number(s1abAfterRepost.camK) || 0) - (Number(s1abStashedA.k) || 0));
+    const s1abDx = Math.abs((Number(s1abAfterRepost.camX) || 0) - (Number(s1abBefore.camX) || 0));
+    const s1abDy = Math.abs((Number(s1abAfterRepost.camY) || 0) - (Number(s1abBefore.camY) || 0));
+    const s1abDk = Math.abs((Number(s1abAfterRepost.camK) || 0) - (Number(s1abBefore.camK) || 0));
+    record(
+      "S1ab",
+      "workspace-scoped last-stay blocks cross-folder restore; same key + host re-post soft-restores",
+      s1abSetup.ok &&
+        s1abBefore.ws === "ws-a://folder" &&
+        !s1abBefore.macroLod &&
+        !s1abBefore.presentPaused &&
+        (s1abBefore.camXSettled === true || s1abBefore.camYSettled === true) &&
+        s1abStashedA.hasRaw &&
+        s1abStashedA.sourceId === "n1" &&
+        (s1abStashedA.ws === "ws-a://folder" || s1abStashedA.ws === "") &&
+        Number.isFinite(s1abStashedA.x) &&
+        Number.isFinite(s1abStashedA.y) &&
+        Number.isFinite(s1abStashedA.k) &&
+        s1abStashedA.k > 0 &&
+        s1abCross.ws === "ws-b://other" &&
+        s1abCross.crossBlocked &&
+        !s1abCross.hasRawB &&
+        !s1abAfterRepost.presentPaused &&
+        !s1abAfterRepost.macroLod &&
+        !!s1abAfterRepost.targetNodeId &&
+        s1abAfterRepost.ws === "ws-a://folder" &&
+        (s1abDx <= 96 + 40 || s1abDxSnap <= 96 + 40) &&
+        (s1abDy <= 240 || s1abDySnap <= 240) &&
+        (s1abDk <= 0.55 || s1abDkSnap <= 0.55),
+      "setup=" +
+        JSON.stringify(s1abSetup) +
+        " before=" +
+        JSON.stringify(s1abBefore) +
+        " stashedA=" +
+        JSON.stringify({
+          key: s1abStashedA.key,
+          sourceId: s1abStashedA.sourceId,
+          ws: s1abStashedA.ws,
+          x: s1abStashedA.x,
+          y: s1abStashedA.y,
+          k: s1abStashedA.k,
+        }) +
+        " cross=" +
+        JSON.stringify(s1abCross) +
+        " hostRepost=" +
+        JSON.stringify(s1abHostRepost) +
+        " after=" +
+        JSON.stringify(s1abAfterRepost) +
+        " dx=" +
+        s1abDx +
+        " dy=" +
+        s1abDy +
+        " dk=" +
+        s1abDk +
+        " dxSnap=" +
+        s1abDxSnap +
+        " dySnap=" +
+        s1abDySnap +
+        " dkSnap=" +
+        s1abDkSnap
+    );
+
+    // S1av — reload / host re-post settle-before-sample probe (parity with S1ah/S1as/S1at/S1au).
+    // After S1aa/S1ab, confirm still !macroLod + settle + low vel (single sample).
+    // Tiny nudge so settle flags re-absorb after S1ab soft-restore (which clears them).
+    // Product soft-restore caps unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 24; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1av-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (9300 + i) + '</span><span class="tx">s1av pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.4);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1avSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1av",
+      "reload/host-repost settle-before-sample: post-S1aa/S1ab still micro+settled (!macroLod; no mid-tween)",
+      !s1avSnap.presentPaused &&
+        !s1avSnap.macroLod &&
+        (s1avSnap.camXSettled === true || s1avSnap.camYSettled === true) &&
+        s1avSnap.scrollVel < 0.12 &&
+        !!s1avSnap.targetNodeId &&
+        Number.isFinite(s1avSnap.camX) &&
+        Number.isFinite(s1avSnap.camK),
+      "snap=" + JSON.stringify(s1avSnap)
+    );
+
+    // S1ac — Review restart clear / multi-folder stay polish.
+    // Stash under workspace A, seed an isolated B blob, clear via Review-restart helper:
+    // A storage empty + soft-restore skipped; B key untouched.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1acSeed = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-a://folder");
+      }
+      const keyA =
+        (typeof window.__graphideScrollDriveLastStayKey === "string" &&
+          window.__graphideScrollDriveLastStayKey) ||
+        "graphide.scrollDrive.lastStay.v1";
+      let rawA = null;
+      try {
+        rawA = sessionStorage.getItem(keyA);
+      } catch (_) {}
+      if (!rawA) {
+        try {
+          rawA = localStorage.getItem(keyA);
+        } catch (_) {}
+      }
+      // If close did not stash (base wiped by S1ab host path), plant a tiny A blob.
+      if (!rawA) {
+        const planted = JSON.stringify({
+          sourceId: "n1",
+          x: 12,
+          y: 34,
+          k: 1.1,
+          t: Date.now(),
+          ws: "ws-a://folder",
+        });
+        try {
+          sessionStorage.setItem(keyA, planted);
+          rawA = planted;
+        } catch (_) {
+          try {
+            localStorage.setItem(keyA, planted);
+            rawA = planted;
+          } catch (__) {}
+        }
+      }
+      const keyB =
+        "graphide.scrollDrive.lastStay.v1::" + encodeURIComponent("ws-b://other");
+      const rawB = JSON.stringify({
+        sourceId: "n1",
+        x: 99,
+        y: 88,
+        k: 1.2,
+        t: Date.now(),
+        ws: "ws-b://other",
+      });
+      try {
+        sessionStorage.setItem(keyB, rawB);
+      } catch (_) {
+        try {
+          localStorage.setItem(keyB, rawB);
+        } catch (__) {}
+      }
+      return {
+        keyA,
+        keyB,
+        hasRawA: !!rawA,
+        hasHook: typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+      };
+    });
+    const s1acCleared = await page.evaluate(() => {
+      const cleared =
+        typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function"
+          ? window.__graphideClearScrollDriveLastStayOnReviewRestart()
+          : false;
+      const keyA = window.__graphideScrollDriveLastStayKey || "";
+      let rawA = null;
+      try {
+        rawA = sessionStorage.getItem(keyA);
+      } catch (_) {}
+      if (!rawA) {
+        try {
+          rawA = localStorage.getItem(keyA);
+        } catch (_) {}
+      }
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const keyB =
+        "graphide.scrollDrive.lastStay.v1::" + encodeURIComponent("ws-b://other");
+      let rawB = null;
+      try {
+        rawB = sessionStorage.getItem(keyB);
+      } catch (_) {}
+      if (!rawB) {
+        try {
+          rawB = localStorage.getItem(keyB);
+        } catch (_) {}
+      }
+      // Host re-post after clear must not soft-restore prior cam.
+      let hostRestored = false;
+      if (typeof window.__graphideSoftStayScrollDriveAcrossHostSourceRepost === "function") {
+        hostRestored = !!window.__graphideSoftStayScrollDriveAcrossHostSourceRepost("n1");
+      }
+      return {
+        cleared: !!cleared,
+        keyA,
+        hasRawA: !!rawA,
+        probed,
+        restored: !!restored,
+        hostRestored: !!hostRestored,
+        hasRawB: !!rawB,
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    record(
+      "S1ac",
+      "Review restart clears current last-stay; soft-restore skipped; other folder key isolated",
+      s1acSeed.hasHook &&
+        s1acSeed.hasRawA &&
+        s1acCleared.cleared &&
+        !s1acCleared.hasRawA &&
+        (s1acCleared.probed == null || s1acCleared.probed === false) &&
+        !s1acCleared.restored &&
+        !s1acCleared.hostRestored &&
+        s1acCleared.hasRawB,
+      "seed=" +
+        JSON.stringify(s1acSeed) +
+        " cleared=" +
+        JSON.stringify(s1acCleared)
+    );
+
+    // S1ad — Present-stage soft-stay stash parity / clear cue.
+    // With prior stay: Present on stashes before wipe + presentStayStashed cue;
+    // Present exit alone does not yank cam; reopen same Evidence soft-stays.
+    // Without prior stay: Present on → presentStayStashed false; soft-restore skipped.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    if (typeof page.evaluate === "function") {
+      await page.evaluate(() => {
+        if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+          window.__graphideClearScrollDriveLastStay();
+        }
+        if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+          window.__graphideSetScrollDriveWorkspaceKey("ws-s1ad://folder");
+        }
+      });
+    }
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1adSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ad", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(4100 + i, "s1ad lead " + i);
+      const ownRow = addLine(11, "s1ad own span n1");
+      for (let k = 0; k < 36; k++) addLine(5100 + k, "s1ad far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1ay — settle-before-sample warm (S1ad): require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1adBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          presentStayStashed: !!d.presentStayStashed,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Present on — stash-before-wipe + presentStayStashed cue (S1ad).
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const vp =
+        document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+        document.querySelector('[data-scroll-present-paused="1"]');
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        pausedAttr: !!vp,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+        // Pause publishes empty drive — target/ratio must stay idle (no half-applied restore).
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    // Present off alone — cues clear; must not half-apply soft restore (no ScrollDrive base yet).
+    // Present stage may ease its own camera — do not assert viewport transform equality (S1m).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    const s1adAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      // Exit alone must leave ScrollDrive idle (no soft-restore seed) while last-stay stays warm.
+      let lastStayWarm = false;
+      try {
+        const key = window.__graphideScrollDriveLastStayKey || "graphide.scrollDrive.lastStay.v1";
+        const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          lastStayWarm = !!(parsed && parsed.sourceId === "n1");
+        }
+      } catch (_) {}
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        pausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+        lastStayWarm,
+      };
+    });
+    // S1ad stash fidelity — storage blob matches pre-Present cam (stash-before-wipe).
+    // Reopen soft-stay cam caps remain S1w's job (refit/overview may ease k after Present).
+    const s1adStashProbe = await page.evaluate((before) => {
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      if (!probed || typeof probed !== "object") return { ok: false, probed };
+      return {
+        ok: true,
+        sourceId: probed.sourceId || "",
+        x: Number(probed.x),
+        y: Number(probed.y),
+        k: Number(probed.k),
+        dx: Math.abs(Number(probed.x) - (Number(before.camX) || 0)),
+        dy: Math.abs(Number(probed.y) - (Number(before.camY) || 0)),
+        dk: Math.abs(Number(probed.k) - (Number(before.camK) || 0)),
+        ws: probed.ws || "",
+      };
+    }, s1adBefore);
+    // Reopen same Evidence — soft restore path still available (targetNodeId publishes).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1ay — sample first soft-restore step after reopen (one paint); S1ad only asserts target presence.
+    await page.waitForTimeout(16);
+    const s1adAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        targetNodeId: d.targetNodeId || "",
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+      };
+    });
+    // Cold path: clear last-stay, Present on without prior stay → no stash cue / no bogus restore.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1adCold = await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      // Present via product toggle if available; else synthesize pause for cue check.
+      const btn = document.getElementById("presentBtn");
+      if (btn) btn.click();
+      else if (typeof window.__graphideApplyPresent === "function") window.__graphideApplyPresent(true);
+      return { cleared: true };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adColdPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        stayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1adColdRestore = await page.evaluate(() => {
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? !!window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      return { restored, probed };
+    });
+    record(
+      "S1ad",
+      "Present enter stashes before wipe + stay cue; exit alone no cam yank; no prior stay → no bogus restore",
+      s1adSetup.ok &&
+        !s1adBefore.presentPaused &&
+        !s1adBefore.macroLod &&
+        Number.isFinite(s1adBefore.camX) &&
+        (s1adBefore.camXSettled === true || s1adBefore.camYSettled === true) &&
+        s1adPresent.presentPaused &&
+        s1adPresent.presentStayStashed &&
+        s1adPresent.stayAttr &&
+        s1adPresent.paneHidden &&
+        !s1adPresent.targetNodeId &&
+        Number(s1adPresent.ratio) === 0 &&
+        !s1adAfterExit.presentPaused &&
+        !s1adAfterExit.presentStayStashed &&
+        !s1adAfterExit.stayAttr &&
+        !s1adAfterExit.pausedAttr &&
+        !s1adAfterExit.targetNodeId &&
+        Number(s1adAfterExit.ratio) === 0 &&
+        s1adAfterExit.lastStayWarm &&
+        s1adStashProbe.ok &&
+        s1adStashProbe.sourceId === "n1" &&
+        Number.isFinite(s1adStashProbe.x) &&
+        s1adStashProbe.dx <= 8 &&
+        s1adStashProbe.dy <= 8 &&
+        s1adStashProbe.dk <= 0.05 &&
+        !!s1adAfterReopen.targetNodeId &&
+        s1adAfterReopen.paneOpen &&
+        !s1adAfterReopen.presentPaused &&
+        s1adColdPresent.presentPaused &&
+        !s1adColdPresent.presentStayStashed &&
+        !s1adColdPresent.stayAttr &&
+        !s1adColdRestore.restored &&
+        (s1adColdRestore.probed == null || s1adColdRestore.probed === false),
+      "setup=" +
+        JSON.stringify(s1adSetup) +
+        " before=" +
+        JSON.stringify(s1adBefore) +
+        " present=" +
+        JSON.stringify(s1adPresent) +
+        " afterExit=" +
+        JSON.stringify(s1adAfterExit) +
+        " stashProbe=" +
+        JSON.stringify(s1adStashProbe) +
+        " afterReopen=" +
+        JSON.stringify(s1adAfterReopen) +
+        " coldPresent=" +
+        JSON.stringify(s1adColdPresent) +
+        " coldRestore=" +
+        JSON.stringify(s1adColdRestore)
+    );
+
+    // S1ae — Present-exit soft-stay vs refitChartSoon: reopen must not be wiped by rAF fit.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStay === "function") {
+        window.__graphideClearScrollDriveLastStay();
+      }
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ae://folder");
+      }
+    });
+    // Closed pane + no stay → auto refit must NOT skip (Evidence close / stage fit stays honest).
+    const s1aeSkipCold = await page.evaluate(() => {
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : null;
+      return { skip, hasHook: typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function" };
+    });
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aeSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1ae", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(6100 + i, "s1ae lead " + i);
+      const ownRow = addLine(11, "s1ae own span n1");
+      for (let k = 0; k < 36; k++) addLine(7100 + k, "s1ae far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1ay — settle-before-sample warm (S1ae): require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aeBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+        ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+        : false;
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          skipRefit: skip,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    // Present on — Evidence closes; warm last-stay still means reopen would skip hard fit.
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1aePresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : null;
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+        skipRefit: skip,
+      };
+    });
+    // Present off alone — no half-restore; then reopen same Evidence (revealSourcePane refit must skip).
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    const s1aeAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        targetNodeId: d.targetNodeId || "",
+        ratio: Number(d.scrollRatio) || 0,
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1ay — sample first soft-restore step after reopen (one paint), not a fixed 200ms
+    // mid-tween stack that can inflate dx toward a zoomToEl/refit leap. Product soft-stay / skipRefit unchanged.
+    await page.waitForTimeout(16);
+    const s1aeAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        targetNodeId: d.targetNodeId || "",
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        presentPaused: !!d.presentPaused,
+        skipRefit: skip,
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    const s1aeDx = Math.abs((Number(s1aeAfterReopen.camX) || 0) - (Number(s1aeBefore.camX) || 0));
+    const s1aeDy = Math.abs((Number(s1aeAfterReopen.camY) || 0) - (Number(s1aeBefore.camY) || 0));
+    const s1aeDk = Math.abs((Number(s1aeAfterReopen.camK) || 0) - (Number(s1aeBefore.camK) || 0));
+    record(
+      "S1ae",
+      "Present→Evidence reopen soft-stay survives refitChartSoon (skip hard fit; exit alone no half-restore)",
+      s1aeSkipCold.hasHook &&
+        s1aeSkipCold.skip === false &&
+        s1aeSetup.ok &&
+        !s1aeBefore.presentPaused &&
+        !s1aeBefore.macroLod &&
+        s1aeBefore.skipRefit === true &&
+        Number.isFinite(s1aeBefore.camX) &&
+        (s1aeBefore.camXSettled === true || s1aeBefore.camYSettled === true) &&
+        s1aePresent.presentPaused &&
+        s1aePresent.paneHidden &&
+        s1aePresent.skipRefit === true &&
+        !s1aeAfterExit.presentPaused &&
+        !s1aeAfterExit.presentStayStashed &&
+        !s1aeAfterExit.targetNodeId &&
+        Number(s1aeAfterExit.ratio) === 0 &&
+        s1aeAfterReopen.paneOpen &&
+        !!s1aeAfterReopen.targetNodeId &&
+        !s1aeAfterReopen.presentPaused &&
+        s1aeAfterReopen.skipRefit === true &&
+        Number.isFinite(s1aeAfterReopen.camX) &&
+        s1aeDx <= 96 + 24 &&
+        s1aeDy <= 200 &&
+        s1aeDk <= 0.45,
+      "skipCold=" +
+        JSON.stringify(s1aeSkipCold) +
+        " setup=" +
+        JSON.stringify(s1aeSetup) +
+        " before=" +
+        JSON.stringify(s1aeBefore) +
+        " present=" +
+        JSON.stringify(s1aePresent) +
+        " afterExit=" +
+        JSON.stringify(s1aeAfterExit) +
+        " afterReopen=" +
+        JSON.stringify(s1aeAfterReopen) +
+        " d=" +
+        JSON.stringify({ dx: s1aeDx, dy: s1aeDy, dk: s1aeDk })
+    );
+
+    // S1ay — Present-stage settle-before-sample probe (parity with S1at/S1ax).
+    // After S1ae, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay / skipRefit caps unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aySnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        const skip =
+          typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+            ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+            : false;
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          skipRefit: skip,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1ay",
+      "Present-stage settle-before-sample: post-S1ad/S1ae still micro+settled (!macroLod; no mid-tween)",
+      !s1aySnap.presentPaused &&
+        !s1aySnap.macroLod &&
+        (s1aySnap.camXSettled === true || s1aySnap.camYSettled === true) &&
+        s1aySnap.scrollVel < 0.12 &&
+        !!s1aySnap.targetNodeId &&
+        Number.isFinite(s1aySnap.camX) &&
+        Number.isFinite(s1aySnap.camK),
+      "snap=" + JSON.stringify(s1aySnap)
+    );
+
+    // S1af — Review-clear UI cue (parity with S1ad presentStayStashed).
+    // After a warm stay, Review-restart clear publishes reviewStayCleared +
+    // data-scroll-review-clear (clear happened — not a restore). Soft-restore
+    // still skipped. Next soft-stash / cold open clears the cue.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1af://folder");
+      }
+    });
+    // Ensure Evidence open + mid-file stay so stash is warm before clear.
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      body.innerHTML = "";
+      function addLine(ln, tx) {
+        const row = document.createElement("div");
+        row.className = "src-line";
+        row.setAttribute("data-s1af", "1");
+        row.innerHTML = '<span class="ln">' + ln + '</span><span class="tx">' + tx + "</span>";
+        body.appendChild(row);
+        return row;
+      }
+      for (let i = 0; i < 36; i++) addLine(8100 + i, "s1af lead " + i);
+      const ownRow = addLine(11, "s1af own span n1");
+      for (let k = 0; k < 36; k++) addLine(9100 + k, "s1af far pad " + k);
+      function centerRow(row) {
+        const br = body.getBoundingClientRect();
+        const rr = row.getBoundingClientRect();
+        const delta = rr.top + rr.height / 2 - (br.top + body.clientHeight / 2);
+        body.scrollTop = Math.max(0, body.scrollTop + delta);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      centerRow(ownRow);
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.2 && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+    });
+    // S1az — settle-before-sample warm (S1af): require settle flags before Evidence close
+    // so Review-clear cue honesty is not raced mid-tween. Product cue semantics unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Close Evidence so stash lands (memory + storage), then Review-restart clear.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afBeforeClear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let raw = null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch (_) {}
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(key);
+        } catch (_) {}
+      }
+      // Ensure warm stay if close did not stash (base already wiped).
+      if (!raw && typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        const planted = JSON.stringify({
+          sourceId: "n1",
+          x: 11,
+          y: 22,
+          k: 1.15,
+          t: Date.now(),
+          ws: "ws-s1af://folder",
+        });
+        try {
+          sessionStorage.setItem(key, planted);
+          raw = planted;
+        } catch (_) {
+          try {
+            localStorage.setItem(key, planted);
+            raw = planted;
+          } catch (__) {}
+        }
+      }
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        hasRaw: !!raw,
+        hasHook: typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        // Warm settle already sampled before close; flags may clear on close wipe.
+        hadWarmStay: !!raw,
+      };
+    });
+    const s1afCleared = await page.evaluate(() => {
+      const cleared =
+        typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function"
+          ? window.__graphideClearScrollDriveLastStayOnReviewRestart()
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      const cueAttr = !!(
+        document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+        document.querySelector('[data-scroll-review-clear="1"]')
+      );
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : null;
+      return {
+        cleared: !!cleared,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: cueAttr,
+        restored: !!restored,
+        probed: probed,
+        presentStayStashed: !!d.presentStayStashed,
+      };
+    });
+    // Soft-stash a new stay → cue must clear (one-shot).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afAfterCold = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (body) {
+        body.scrollTop = Math.max(0, (body.scrollHeight - body.clientHeight) * 0.4);
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return true;
+    });
+    // S1az — settle before re-stash close so soft-stash clears Review-clear cue honestly.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Stash via Evidence close.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1afAfterStash = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const cueAttr = !!(
+        document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+        document.querySelector('[data-scroll-review-clear="1"]')
+      );
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: cueAttr,
+      };
+    });
+    // Cold-open clear path: clear again, then reopen without soft-restore material → cue drops on cold open.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+    });
+    const s1afRecleared = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.waitForTimeout(80);
+    const s1afAfterColdOpen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+      };
+    });
+    record(
+      "S1af",
+      "Review-clear publishes short-lived stay-cleared cue (not a restore); soft-stash / cold open clears it",
+      s1afSetup.ok &&
+        s1afBeforeClear.hasHook &&
+        s1afBeforeClear.hadWarmStay &&
+        !s1afBeforeClear.reviewStayCleared &&
+        !s1afBeforeClear.cueAttr &&
+        s1afCleared.cleared &&
+        s1afCleared.reviewStayCleared === true &&
+        s1afCleared.cueAttr === true &&
+        !s1afCleared.restored &&
+        (s1afCleared.probed == null || s1afCleared.probed === false) &&
+        !s1afCleared.presentStayStashed &&
+        s1afAfterStash.reviewStayCleared === false &&
+        s1afAfterStash.cueAttr === false &&
+        s1afRecleared.reviewStayCleared === true &&
+        s1afRecleared.cueAttr === true &&
+        s1afAfterColdOpen.paneOpen &&
+        s1afAfterColdOpen.reviewStayCleared === false &&
+        s1afAfterColdOpen.cueAttr === false,
+      "setup=" +
+        JSON.stringify(s1afSetup) +
+        " beforeClear=" +
+        JSON.stringify(s1afBeforeClear) +
+        " cleared=" +
+        JSON.stringify(s1afCleared) +
+        " afterStash=" +
+        JSON.stringify(s1afAfterStash) +
+        " recleared=" +
+        JSON.stringify(s1afRecleared) +
+        " afterColdOpen=" +
+        JSON.stringify(s1afAfterColdOpen)
+    );
+
+    // S1az — Review-clear cue settle-before-sample probe (parity with S1ay/S1at).
+    // After S1af cold open: pad if needed, one mid-file land (not a burst), tiny nudge,
+    // then require !macroLod + settle + cue cleared. Product cue unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1az-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4200 + i) + '</span><span class="tx">s1az pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top; else ≤2px nudge (avoid SCROLL_MACRO_VEL).
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1azSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1az",
+      "Review-clear cue settle-before-sample: post-S1af still micro+settled + cue cleared (!macroLod; no mid-tween)",
+      s1azSnap.paneOpen &&
+        !s1azSnap.presentPaused &&
+        !s1azSnap.macroLod &&
+        !s1azSnap.reviewStayCleared &&
+        !s1azSnap.cueAttr &&
+        !s1azSnap.presentStayStashed &&
+        (s1azSnap.camXSettled === true || s1azSnap.camYSettled === true) &&
+        s1azSnap.scrollVel < 0.12 &&
+        !!s1azSnap.targetNodeId &&
+        Number(s1azSnap.ratio) > 0.1 &&
+        Number.isFinite(s1azSnap.camX),
+      "snap=" + JSON.stringify(s1azSnap)
+    );
+
+    // S1ag — workspace-folder change clears S1af Review-clear cue (cannot stick across folders).
+    // Re-plant cue via Review-restart clear, assert same-key no-op keeps it, then folder hop drops it.
+    // S1bc — settle-before-sample before plant so Review-clear honesty is not raced mid-tween
+    // (parity with S1az warm on S1af). Product cue semantics unchanged; plant still wipes settle flags.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const s1agPlanted = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a");
+      }
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    const s1agSameKey = await page.evaluate(() => {
+      const changed =
+        typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
+          ? window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a")
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      return {
+        changed: !!changed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    const s1agHopped = await page.evaluate(() => {
+      const changed =
+        typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
+          ? window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-b")
+          : false;
+      const d = window.__graphideScrollDrive || {};
+      return {
+        changed: !!changed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        ws: window.__graphideScrollDriveWorkspaceKey || "",
+      };
+    });
+    record(
+      "S1ag",
+      "Workspace-folder change clears Review-clear cue (same-key no-op keeps it)",
+      s1agPlanted.reviewStayCleared === true &&
+        s1agPlanted.cueAttr === true &&
+        s1agSameKey.changed === false &&
+        s1agSameKey.reviewStayCleared === true &&
+        s1agSameKey.cueAttr === true &&
+        s1agHopped.changed === true &&
+        s1agHopped.reviewStayCleared === false &&
+        s1agHopped.cueAttr === false &&
+        s1agHopped.ws === "ws-s1ag://folder-b",
+      "planted=" +
+        JSON.stringify(s1agPlanted) +
+        " sameKey=" +
+        JSON.stringify(s1agSameKey) +
+        " hopped=" +
+        JSON.stringify(s1agHopped)
+    );
+
+    // S1bc — workspace-change Review-clear cue settle-before-sample probe (parity with S1az).
+    // After S1ag hop: cue cleared; plant wiped settle flags — tiny nudge then atomic wait+snap
+    // confirming !reviewStayCleared + micro+settled. Product cue unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bc-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4300 + i) + '</span><span class="tx">s1bc pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top; else ≤2px nudge (avoid SCROLL_MACRO_VEL).
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb after plant wiped them (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // Atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1bcSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+          ws: window.__graphideScrollDriveWorkspaceKey || "",
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bc",
+      "Workspace-change Review-clear cue settle-before-sample: post-S1ag still micro+settled + cue cleared (!macroLod; no mid-tween)",
+      s1bcSnap.paneOpen &&
+        !s1bcSnap.presentPaused &&
+        !s1bcSnap.macroLod &&
+        !s1bcSnap.reviewStayCleared &&
+        !s1bcSnap.cueAttr &&
+        !s1bcSnap.presentStayStashed &&
+        (s1bcSnap.camXSettled === true || s1bcSnap.camYSettled === true) &&
+        s1bcSnap.scrollVel < 0.12 &&
+        !!s1bcSnap.targetNodeId &&
+        Number(s1bcSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bcSnap.camX) &&
+        s1bcSnap.ws === "ws-s1ag://folder-b",
+      "snap=" + JSON.stringify(s1bcSnap)
+    );
+
+    // S1ai — Present enter clears lingering Review-clear cue; mutually exclusive with presentStayStashed.
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
+        window.__graphideSetScrollDriveWorkspaceKey("ws-s1ai://folder");
+      }
+    });
+    // S1bd — settle-before-sample before Path A plant so Review-clear honesty is not raced mid-tween
+    // (parity with S1bc on S1ag / S1az on S1af). Product cue mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    // Path A: Review-clear cue alone → Present enter drops cue (even with no stash).
+    // Atomic plant+sample so mid-RAF cannot clear the cue between evaluates (S1be polish).
+    const s1aiLingering = await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayStashed: !!d.presentStayStashed,
+        planted: typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+      };
+    });
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiAfterPresentClear = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    // Path B: warm stash + forced lingering Review-clear cue → Present stashes and clears cue (mutual exclusion).
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#sliceCanvas .vnode[data-id="n1"]', { timeout: 10000 });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.querySelectorAll(".src-line").length < 40) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1ai", "1");
+          row.innerHTML =
+            '<span class="ln">' + (8200 + i) + '</span><span class="tx">s1ai pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.45);
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(d && !d.macroLod && !d.presentPaused && Number(d.scrollRatio) > 0.2);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1bd — settle-before-sample warm (S1ai Path B): require settle flags before Evidence close
+    // so Present-stash honesty is not raced mid-tween. Product mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiForced = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      return {
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        hasRaw: hasRaw,
+        hasSetter: typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function",
+      };
+    });
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1aiMutEx = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    record(
+      "S1ai",
+      "Present enter clears Review-clear cue; mutually exclusive with presentStayStashed",
+      s1aiLingering.planted &&
+        s1aiLingering.reviewStayCleared === true &&
+        s1aiLingering.cueAttr === true &&
+        !s1aiLingering.presentStayStashed &&
+        s1aiAfterPresentClear.presentPaused &&
+        s1aiAfterPresentClear.reviewStayCleared === false &&
+        s1aiAfterPresentClear.cueAttr === false &&
+        s1aiForced.hasSetter &&
+        s1aiForced.reviewStayCleared === true &&
+        s1aiForced.cueAttr === true &&
+        s1aiForced.hasRaw &&
+        s1aiMutEx.presentPaused &&
+        s1aiMutEx.presentStayStashed === true &&
+        s1aiMutEx.presentStayAttr === true &&
+        s1aiMutEx.reviewStayCleared === false &&
+        s1aiMutEx.cueAttr === false,
+      "lingering=" +
+        JSON.stringify(s1aiLingering) +
+        " afterPresentClear=" +
+        JSON.stringify(s1aiAfterPresentClear) +
+        " forced=" +
+        JSON.stringify(s1aiForced) +
+        " mutEx=" +
+        JSON.stringify(s1aiMutEx)
+    );
+
+    // S1bd — Present-stash/Review-clear mutual-exclusion settle-before-sample probe (parity with S1bc).
+    // After S1ai Path B exit: reopen same Evidence, tiny nudge, atomic wait+snap confirming
+    // both cues off + micro+settled. Product mutual exclusion unchanged.
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bd-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4400 + i) + '</span><span class="tx">s1bd pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bdSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bd",
+      "Present-stash/Review-clear mutual-exclusion settle-before-sample: post-S1ai still micro+settled + both cues cleared (!macroLod; no mid-tween)",
+      s1bdSnap.paneOpen &&
+        !s1bdSnap.presentPaused &&
+        !s1bdSnap.macroLod &&
+        !s1bdSnap.reviewStayCleared &&
+        !s1bdSnap.cueAttr &&
+        !s1bdSnap.presentStayStashed &&
+        !s1bdSnap.presentStayAttr &&
+        (s1bdSnap.camXSettled === true || s1bdSnap.camYSettled === true) &&
+        s1bdSnap.scrollVel < 0.12 &&
+        !!s1bdSnap.targetNodeId &&
+        Number(s1bdSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bdSnap.camX),
+      "snap=" + JSON.stringify(s1bdSnap)
+    );
+
+    // S1am — Present exit never implies Review clear (parity with S1ad/S1ai).
+    // Re-enter Present (warm stay from S1ai path B), plant Review-clear cue mid-Present
+    // (half-set / Review-during-Present), exit → both cues scrubbed; no reviewStayCleared.
+    // S1be — settle-before-sample before Present enter so exit cue polish is not raced mid-tween
+    // (parity with S1bd/S1bc). Product Present-exit Review-clear scrub unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1amDuringPresent = await page.evaluate(() => {
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        hasSetter: typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function",
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1amAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        presentPausedAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-paused="1"]') ||
+          document.querySelector('[data-scroll-present-paused="1"]')
+        ),
+      };
+    });
+    record(
+      "S1am",
+      "Present exit clears presentStayStashed without implying Review clear (scrubs reviewStayCleared)",
+      s1amDuringPresent.hasSetter &&
+        s1amDuringPresent.presentPaused &&
+        s1amDuringPresent.reviewStayCleared === true &&
+        s1amDuringPresent.cueAttr === true &&
+        !s1amAfterExit.presentPaused &&
+        !s1amAfterExit.presentPausedAttr &&
+        s1amAfterExit.presentStayStashed === false &&
+        s1amAfterExit.presentStayAttr === false &&
+        s1amAfterExit.reviewStayCleared === false &&
+        s1amAfterExit.cueAttr === false,
+      "duringPresent=" +
+        JSON.stringify(s1amDuringPresent) +
+        " afterExit=" +
+        JSON.stringify(s1amAfterExit)
+    );
+
+    // S1be — Present-exit Review-clear cue polish settle-before-sample probe (parity with S1bd).
+    // After S1am exit: Present closed Evidence — reopen same source, tiny nudge + atomic
+    // wait+snap confirming both cues scrubbed + micro+settled. Product exit scrub unchanged.
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1be-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4500 + i) + '</span><span class="tx">s1be pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1beSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1be",
+      "Present-exit Review-clear cue polish settle-before-sample: post-S1am still micro+settled + both cues scrubbed (!macroLod; no mid-tween)",
+      s1beSnap.paneOpen &&
+        !s1beSnap.presentPaused &&
+        !s1beSnap.macroLod &&
+        !s1beSnap.reviewStayCleared &&
+        !s1beSnap.cueAttr &&
+        !s1beSnap.presentStayStashed &&
+        !s1beSnap.presentStayAttr &&
+        (s1beSnap.camXSettled === true || s1beSnap.camYSettled === true) &&
+        s1beSnap.scrollVel < 0.12 &&
+        !!s1beSnap.targetNodeId &&
+        Number(s1beSnap.ratio) > 0.1 &&
+        Number.isFinite(s1beSnap.camX),
+      "snap=" + JSON.stringify(s1beSnap)
+    );
+
+    // S1an — Review clear mid-Present drops presentStayStashed (mutual exclusion).
+    // Re-enter Present (warm stay), confirm stash, Review-restart clear → review cue on
+    // and present-stash cue off while still presentPaused; Present exit still coherent.
+    // S1bf — settle-before-sample before Present enter so mid-Present clear honesty is not
+    // raced mid-tween (parity with S1be/S1bd). Product mutual exclusion unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollVel) < 0.12 &&
+          (d.camXSettled === true || d.camYSettled === true)
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1anBefore = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    const s1anAfterClear = await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      } else if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(true);
+      }
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+        hasClear:
+          typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function",
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+      null,
+      { timeout: 5000 }
+    );
+    const s1anAfterExit = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        presentStayAttr: !!(
+          document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+          document.querySelector('[data-scroll-present-stay="1"]')
+        ),
+        reviewStayCleared: !!d.reviewStayCleared,
+        cueAttr: !!(
+          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+          document.querySelector('[data-scroll-review-clear="1"]')
+        ),
+      };
+    });
+    record(
+      "S1an",
+      "Review clear mid-Present drops presentStayStashed (mutual exclusion with reviewStayCleared)",
+      s1anBefore.presentPaused &&
+        s1anBefore.presentStayStashed === true &&
+        s1anBefore.presentStayAttr === true &&
+        s1anBefore.reviewStayCleared === false &&
+        s1anAfterClear.hasClear &&
+        s1anAfterClear.presentPaused &&
+        s1anAfterClear.reviewStayCleared === true &&
+        s1anAfterClear.cueAttr === true &&
+        s1anAfterClear.presentStayStashed === false &&
+        s1anAfterClear.presentStayAttr === false &&
+        !s1anAfterExit.presentPaused &&
+        s1anAfterExit.presentStayStashed === false &&
+        s1anAfterExit.presentStayAttr === false &&
+        s1anAfterExit.reviewStayCleared === false &&
+        s1anAfterExit.cueAttr === false,
+      "before=" +
+        JSON.stringify(s1anBefore) +
+        " afterClear=" +
+        JSON.stringify(s1anAfterClear) +
+        " afterExit=" +
+        JSON.stringify(s1anAfterExit)
+    );
+
+    // S1bf — Review-during-Present mutual-exclusion settle-before-sample probe (parity with S1be).
+    // After S1an wipe+exit: reopen cold, tiny nudge, atomic wait+snap both cues off + micro+settled;
+    // then re-wipe stay so S1ao afterWipe still finds empty (product wipe unchanged).
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        return !!(pane && !pane.hidden && body);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bf-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4600 + i) + '</span><span class="tx">s1bf pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bfSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bf",
+      "Review-during-Present mutual-exclusion settle-before-sample: post-S1an still micro+settled + both cues cleared (!macroLod; no mid-tween)",
+      s1bfSnap.paneOpen &&
+        !s1bfSnap.presentPaused &&
+        !s1bfSnap.macroLod &&
+        !s1bfSnap.reviewStayCleared &&
+        !s1bfSnap.cueAttr &&
+        !s1bfSnap.presentStayStashed &&
+        !s1bfSnap.presentStayAttr &&
+        (s1bfSnap.camXSettled === true || s1bfSnap.camYSettled === true) &&
+        s1bfSnap.scrollVel < 0.12 &&
+        !!s1bfSnap.targetNodeId &&
+        Number(s1bfSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bfSnap.camX),
+      "snap=" + JSON.stringify(s1bfSnap)
+    );
+    // Re-wipe stay (and close Evidence) so S1ao afterWipe still finds empty storage/memory.
+    await page.evaluate(() => {
+      if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
+        window.__graphideClearScrollDriveLastStayOnReviewRestart();
+      }
+      if (typeof window.__graphideSetScrollDriveReviewStayClearedCue === "function") {
+        window.__graphideSetScrollDriveReviewStayClearedCue(false);
+      }
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !pane || pane.hidden;
+      },
+      null,
+      { timeout: 5000 }
+    );
+
+    // S1ao — Evidence reopen after Review-during-Present wipe must not soft-restore.
+    // After S1an clear+exit: memory/sessionStorage empty, softRestore false; reopen n1
+    // takes cold hard path (__graphideScrollDriveShowSourceSoftStayed false).
+    const s1aoAfterWipe = await page.evaluate(() => {
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      const restored =
+        typeof window.__graphideSoftRestoreScrollDriveFromLastStay === "function"
+          ? window.__graphideSoftRestoreScrollDriveFromLastStay("n1")
+          : false;
+      let hostRestored = false;
+      if (typeof window.__graphideSoftStayScrollDriveAcrossHostSourceRepost === "function") {
+        hostRestored = !!window.__graphideSoftStayScrollDriveAcrossHostSourceRepost("n1");
+      }
+      return {
+        hasRaw: hasRaw,
+        probed: probed,
+        restored: !!restored,
+        hostRestored: !!hostRestored,
+        presentPaused: !!(window.__graphideScrollDrive && window.__graphideScrollDrive.presentPaused),
+        presentStayStashed: !!(
+          window.__graphideScrollDrive && window.__graphideScrollDrive.presentStayStashed
+        ),
+      };
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 5000 }
+    );
+    // S1bg — settle-before-sample cold reopen (S1ao): require softStayed false + target
+    // (not a fixed 80ms pad). Product cold hard path unchanged.
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean" &&
+          window.__graphideScrollDriveShowSourceSoftStayed === false &&
+          d &&
+          !d.presentPaused &&
+          !d.presentStayStashed &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1aoAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const key = window.__graphideScrollDriveLastStayKey || "";
+      let hasRaw = false;
+      try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+      } catch (_) {}
+      const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+          ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+          : "no-probe";
+      return {
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        hasSoftFlag: typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean",
+        hasRaw: hasRaw,
+        probed: probed,
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        targetNodeId: d.targetNodeId || "",
+      };
+    });
+    record(
+      "S1ao",
+      "Evidence reopen after Review-during-Present wipe takes cold hard path (no soft-restore)",
+      !s1aoAfterWipe.presentPaused &&
+        !s1aoAfterWipe.presentStayStashed &&
+        !s1aoAfterWipe.hasRaw &&
+        (s1aoAfterWipe.probed == null || s1aoAfterWipe.probed === false) &&
+        !s1aoAfterWipe.restored &&
+        !s1aoAfterWipe.hostRestored &&
+        s1aoAfterReopen.paneOpen &&
+        s1aoAfterReopen.hasSoftFlag &&
+        s1aoAfterReopen.softStayed === false &&
+        !s1aoAfterReopen.presentPaused &&
+        !s1aoAfterReopen.presentStayStashed &&
+        !!s1aoAfterReopen.targetNodeId,
+      "afterWipe=" +
+        JSON.stringify(s1aoAfterWipe) +
+        " afterReopen=" +
+        JSON.stringify(s1aoAfterReopen)
+    );
+
+    // S1bg — cold-path reopen settle-before-sample probe (parity with S1bf).
+    // After S1ao cold open: tiny nudge, atomic wait+snap softStayed false + micro+settled
+    // + both cues off. Product cold hard path unchanged.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1bg-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (4700 + i) + '</span><span class="tx">s1bg pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      if (ratio < 0.25) body.scrollTop = Math.floor(max * 0.42);
+      else body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          pane &&
+          !pane.hidden &&
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          !d.reviewStayCleared &&
+          !d.presentStayStashed &&
+          window.__graphideScrollDriveShowSourceSoftStayed === false &&
+          Number(d.scrollRatio) > 0.2 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    const s1bgSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            !d.reviewStayCleared &&
+            !d.presentStayStashed &&
+            window.__graphideScrollDriveShowSourceSoftStayed === false &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          reviewStayCleared: !!d.reviewStayCleared,
+          presentStayStashed: !!d.presentStayStashed,
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          presentStayAttr: !!(
+            document.querySelector('.viewport[data-scroll-present-stay="1"]') ||
+            document.querySelector('[data-scroll-present-stay="1"]')
+          ),
+          targetNodeId: d.targetNodeId || "",
+          paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1bg",
+      "Cold-path reopen settle-before-sample: post-S1ao still micro+settled + softStayed false + cues cleared (!macroLod; no mid-tween)",
+      s1bgSnap.paneOpen &&
+        !s1bgSnap.presentPaused &&
+        !s1bgSnap.macroLod &&
+        !s1bgSnap.reviewStayCleared &&
+        !s1bgSnap.cueAttr &&
+        !s1bgSnap.presentStayStashed &&
+        !s1bgSnap.presentStayAttr &&
+        s1bgSnap.softStayed === false &&
+        (s1bgSnap.camXSettled === true || s1bgSnap.camYSettled === true) &&
+        s1bgSnap.scrollVel < 0.12 &&
+        !!s1bgSnap.targetNodeId &&
+        Number(s1bgSnap.ratio) > 0.1 &&
+        Number.isFinite(s1bgSnap.camX),
+      "snap=" + JSON.stringify(s1bgSnap)
+    );
+
+    // S1aq — soft-restore round-trip after fresh stay post-S1ao wipe.
+    // Cold open left Evidence open with no wiped-stay restore; build a NEW stay
+    // (scroll + settle), Present stash, exit, reopen same source → softStayed true.
+    // S1ax — settle-before-sample: warm settle flags (not scrollRatio fallback);
+    // sample first soft-restore step after reopen (one paint); resettle requires
+    // !macroLod + settle. Product soft-stay caps unchanged.
+    const s1aqSetup = await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return { ok: false, why: "no-srcBody" };
+      // Ensure scrollable body so ScrollDrive can seed a fresh base.
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1aq-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (9100 + i) + '</span><span class="tx">s1aq pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      body.scrollTop = Math.floor(max * 0.42);
+      body.dispatchEvent(new Event("scroll"));
+      const base = body.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        body.scrollTop = base + i * 2;
+        body.dispatchEvent(new Event("scroll"));
+      }
+      return { ok: true, scrollTop: body.scrollTop };
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.macroLod &&
+          !d.presentPaused &&
+          Number(d.scrollRatio) > 0.15 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1ax — settle-before-sample warm: require settle flags (not scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aqBefore = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        // Force a stash of the fresh stay so Present enter has warm material.
+        let stashOk = false;
+        if (typeof window.__graphideStashScrollDriveLastStay === "function") {
+        stashOk = !!window.__graphideStashScrollDriveLastStay();
+        }
+        const key = window.__graphideScrollDriveLastStayKey || "";
+        let hasRaw = false;
+        try {
+        hasRaw = !!(sessionStorage.getItem(key) || localStorage.getItem(key));
+        } catch (_) {}
+        const probed =
+        typeof window.__graphideProbeScrollDriveLastStayStorage === "function"
+        ? window.__graphideProbeScrollDriveLastStayStorage("n1")
+        : null;
+        if (
+          !(
+            d &&
+            !d.macroLod &&
+            !d.presentPaused &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          hasRaw: hasRaw,
+          probedOk: !!(probed && probed.sourceId === "n1"),
+          hasStashHook: typeof window.__graphideStashScrollDriveLastStay === "function",
+          stashOk: stashOk,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    await page.keyboard.press("f");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        return !!(
+          document.body &&
+          document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === true &&
+          (!pane || pane.hidden)
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    const s1aqPresent = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      return {
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        paneHidden: !!(
+          !document.getElementById("sourcePane") ||
+          document.getElementById("sourcePane").hidden
+        ),
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          document.body &&
+          !document.body.classList.contains("present") &&
+          d &&
+          d.presentPaused === false
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    await page.waitForTimeout(80);
+    // Clear prior softStayed flag so reopen result is honest.
+    await page.evaluate(() => {
+      window.__graphideScrollDriveShowSourceSoftStayed = false;
+    });
+    await page.locator('#sliceCanvas .vnode[data-id="n1"]').first().click();
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        const body = document.getElementById("srcBody");
+        const d = window.__graphideScrollDrive;
+        return !!(pane && !pane.hidden && body && d && !d.presentPaused && d.targetNodeId);
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // S1ax — sample first soft-restore step after reopen (one paint), not a fixed 200ms
+    // mid-tween stack that can inflate dx toward a zoomToEl leap. Product soft-stay caps unchanged.
+    // Prior waitForFunction already confirmed reopen target; one rAF paints the soft step.
+    await page.waitForTimeout(16);
+    const s1aqAfterReopen = await page.evaluate(() => {
+      const d = window.__graphideScrollDrive || {};
+      const skip =
+        typeof window.__graphideShouldSkipRefitForScrollDriveStay === "function"
+          ? !!window.__graphideShouldSkipRefitForScrollDriveStay()
+          : false;
+      return {
+        softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        hasSoftFlag: typeof window.__graphideScrollDriveShowSourceSoftStayed === "boolean",
+        paneOpen: !!(document.getElementById("sourcePane") && !document.getElementById("sourcePane").hidden),
+        presentPaused: !!d.presentPaused,
+        presentStayStashed: !!d.presentStayStashed,
+        reviewStayCleared: !!d.reviewStayCleared,
+        targetNodeId: d.targetNodeId || "",
+        camX: Number(d.camX),
+        camY: Number(d.camY),
+        camK: Number(d.camK),
+        camXSettled: !!d.camXSettled,
+        camYSettled: !!d.camYSettled,
+        macroLod: !!d.macroLod,
+        skipRefit: skip,
+      };
+    });
+    const s1aqDx = Math.abs((Number(s1aqAfterReopen.camX) || 0) - (Number(s1aqBefore.camX) || 0));
+    const s1aqDy = Math.abs((Number(s1aqAfterReopen.camY) || 0) - (Number(s1aqBefore.camY) || 0));
+    // S1ax — pad if needed; land mid-file once (not a burst flick), then tiny nudge so
+    // settle flags re-absorb without SCROLL_MACRO_VEL. Flags clear on soft-restore then re-absorb.
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      if (body.scrollHeight <= body.clientHeight + 8) {
+        for (let i = 0; i < 40; i++) {
+          const row = document.createElement("div");
+          row.className = "src-line";
+          row.setAttribute("data-s1aq-reopen-pad", "1");
+          row.innerHTML =
+            '<span class="ln">' + (3200 + i) + '</span><span class="tx">s1aq reopen pad ' + i + "</span>";
+          body.appendChild(row);
+        }
+      }
+      const max = Math.max(1, body.scrollHeight - body.clientHeight);
+      const ratio = max > 0 ? body.scrollTop / max : 0;
+      // One mid-file land if still near top (post-restore / short file); else ≤2px nudge.
+      if (ratio < 0.25) {
+        body.scrollTop = Math.floor(max * 0.42);
+      } else {
+        body.scrollTop = body.scrollTop + 2;
+      }
+      body.dispatchEvent(new Event("scroll"));
+    });
+    await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        return !!(
+          d &&
+          !d.presentPaused &&
+          !d.macroLod &&
+          Number(d.scrollRatio) > 0.15 &&
+          d.targetNodeId
+        );
+      },
+      null,
+      { timeout: 6000 }
+    );
+    // Tiny idle nudge so S1r/S1s settle flags re-absorb (no multi-step burst).
+    await page.evaluate(() => {
+      const body = document.getElementById("srcBody");
+      if (!body) return;
+      body.scrollTop = body.scrollTop + 2;
+      body.dispatchEvent(new Event("scroll"));
+    });
+    // S1ax — settle-before-sample resettle: require !macroLod + settle flags (no scrollRatio fallback).
+    // S1bb — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1aqResettle = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          targetNodeId: d.targetNodeId || "",
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    const s1aqResettleYank = Math.max(
+      Math.abs((Number(s1aqResettle.camX) || 0) - (Number(s1aqAfterReopen.camX) || 0)),
+      Math.abs((Number(s1aqResettle.camY) || 0) - (Number(s1aqAfterReopen.camY) || 0))
+    );
+    record(
+      "S1aq",
+      "After S1ao wipe, fresh stay Present→Evidence soft-restores again (round-trip)",
+      s1aqSetup.ok &&
+        !!s1aqBefore.targetNodeId &&
+        s1aqBefore.hasStashHook &&
+        s1aqBefore.stashOk &&
+        (s1aqBefore.hasRaw || s1aqBefore.probedOk) &&
+        !s1aqBefore.macroLod &&
+        !s1aqBefore.presentPaused &&
+        (s1aqBefore.camXSettled === true || s1aqBefore.camYSettled === true) &&
+        s1aqPresent.presentPaused &&
+        s1aqPresent.presentStayStashed === true &&
+        s1aqPresent.paneHidden &&
+        s1aqPresent.reviewStayCleared === false &&
+        s1aqAfterReopen.paneOpen &&
+        s1aqAfterReopen.hasSoftFlag &&
+        s1aqAfterReopen.softStayed === true &&
+        !s1aqAfterReopen.presentPaused &&
+        !s1aqAfterReopen.reviewStayCleared &&
+        !!s1aqAfterReopen.targetNodeId &&
+        Number.isFinite(s1aqAfterReopen.camX) &&
+        Number.isFinite(s1aqAfterReopen.camY) &&
+        s1aqDx <= 120 &&
+        s1aqDy <= 160 &&
+        !s1aqResettle.presentPaused &&
+        !s1aqResettle.macroLod &&
+        !!s1aqResettle.targetNodeId &&
+        Number(s1aqResettle.ratio) > 0.1 &&
+        (s1aqResettle.camXSettled === true || s1aqResettle.camYSettled === true) &&
+        s1aqResettleYank <= 200,
+      "setup=" +
+        JSON.stringify(s1aqSetup) +
+        " before=" +
+        JSON.stringify(s1aqBefore) +
+        " present=" +
+        JSON.stringify(s1aqPresent) +
+        " afterReopen=" +
+        JSON.stringify(s1aqAfterReopen) +
+        " resettle=" +
+        JSON.stringify(s1aqResettle) +
+        " dx=" +
+        s1aqDx +
+        " dy=" +
+        s1aqDy +
+        " resettleYank=" +
+        s1aqResettleYank
+    );
+
+    // S1ax — soft-restore round-trip settle-before-sample probe (parity with S1at/S1as/S1av).
+    // After S1aq, confirm still !macroLod + settle + low vel (single sample; no dual-sample gap).
+    // Product soft-stay caps unchanged.
+    // S1ba — atomic settle sample (wait + snap in one evaluate) so mid-RAF cannot unsettle between.
+    const s1axSnap = await page.waitForFunction(
+      () => {
+        const d = window.__graphideScrollDrive;
+        const pane = document.getElementById("sourcePane");
+        if (
+          !(
+            pane &&
+            !pane.hidden &&
+            d &&
+            !d.presentPaused &&
+            !d.macroLod &&
+            Number(d.scrollVel) < 0.12 &&
+            (d.camXSettled === true || d.camYSettled === true)
+          )
+        ) {
+          return null;
+        }
+        return {
+          camX: Number(d.camX),
+          camY: Number(d.camY),
+          camK: Number(d.camK),
+          ratio: Number(d.scrollRatio) || 0,
+          camXSettled: !!d.camXSettled,
+          camYSettled: !!d.camYSettled,
+          scrollVel: Number(d.scrollVel) || 0,
+          macroLod: !!d.macroLod,
+          presentPaused: !!d.presentPaused,
+          targetNodeId: d.targetNodeId || "",
+          softStayed: !!window.__graphideScrollDriveShowSourceSoftStayed,
+        };
+      },
+      null,
+      { timeout: 8000 }
+    ).then((h) => h.jsonValue());
+    record(
+      "S1ax",
+      "soft-restore round-trip settle-before-sample: post-S1aq still micro+settled (!macroLod; no mid-tween)",
+      !s1axSnap.presentPaused &&
+        !s1axSnap.macroLod &&
+        (s1axSnap.camXSettled === true || s1axSnap.camYSettled === true) &&
+        s1axSnap.scrollVel < 0.12 &&
+        !!s1axSnap.targetNodeId &&
+        Number.isFinite(s1axSnap.camX) &&
+        Number.isFinite(s1axSnap.camK),
+      "snap=" + JSON.stringify(s1axSnap)
+    );
+
+    await page.keyboard.press("Escape"); // close Evidence (already closed by Present; keep sequence)
+
+
+
+
     await page.waitForFunction(
       () => {
         const pane = document.getElementById("sourcePane");
@@ -13671,6 +21871,13 @@ async function main() {
         lineageEgoFind.missInsideMax <= 0.18,
       JSON.stringify(lineageEgoFind)
     );
+    // Drop any leftover scroll-blend paint so opacity is not mid-transition (S1j).
+    await page.evaluate(() => {
+      document.querySelectorAll(".viewport[data-scroll-blend]").forEach((vp) => {
+        vp.removeAttribute("data-scroll-blend");
+        if (vp.style) vp.style.removeProperty("--scroll-blend-ms");
+      });
+    });
     const lineageEgoDimFloor = await page.evaluate(() => {
       const el =
         document.querySelector("#lineageCanvas .vnode[data-id]") ||
@@ -13678,6 +21885,8 @@ async function main() {
       if (!el) return { ok: false };
       el.classList.add("ego-dim", "dim");
       el.classList.remove("hit", "ego");
+      // Force style recalc after class swap (avoid reading mid CSS transition).
+      void el.offsetWidth;
       const op = Number(getComputedStyle(el).opacity);
       el.classList.remove("ego-dim", "dim");
       return { ok: true, op };
