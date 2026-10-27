@@ -10349,13 +10349,156 @@ async function main() {
       "Residual-filter clear-chip focus return step did not write .graphide/stamps/"
     );
 
-    // Leave filter OFF for later IR/PR residual chrome.
+    // ADE residual-filter count-chip :active/pressed flash parity (CNA1–CNA3) — themed press darker than FHP resting
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
     await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (legend && legend.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForSelector(
+      '#trajEdgeLegend[data-residual-filter="on"] .residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const cnaTrace = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#trajEdgeLegend .residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const rest = getComputedStyle(chip);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      chip.classList.add("press");
+      const pressed = getComputedStyle(chip);
+      const out = {
+        present: true,
+        cls: chip.classList.contains("residual-filter-count"),
+        role: chip.getAttribute("role"),
+        tabIndex: chip.tabIndex,
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (chip.getAttribute("aria-label") || chip.textContent || "").trim(),
+      };
+      chip.classList.remove("press");
+      return out;
+    });
+    const cna1ok = !!(
+      cnaTrace &&
+      cnaTrace.present &&
+      cnaTrace.cls &&
+      cnaTrace.restInset &&
+      cnaTrace.bgChanged &&
+      cnaTrace.pressInset
+    );
+    record(
+      "CNA1",
+      "Trace legend residual-filter count chip shows themed :active/.press flash (darker warning bg + inset) beyond FHP resting chrome",
+      !!cna1ok,
+      JSON.stringify(cnaTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual[data-residual-filter="on"] .passport-residual-filter-count[data-residual-filter-count="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const cnaPass = await page.evaluate(() => {
+      const chip = document.querySelector(
+        '#passportSign .passport-residual-filter-count[data-residual-filter-count="1"]'
+      );
+      if (!chip) return { present: false };
+      const rest = getComputedStyle(chip);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      chip.classList.add("press");
+      const pressed = getComputedStyle(chip);
+      const out = {
+        present: true,
+        cls: chip.classList.contains("passport-residual-filter-count"),
+        role: chip.getAttribute("role"),
+        tabIndex: chip.tabIndex,
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (chip.getAttribute("aria-label") || chip.textContent || "").trim(),
+      };
+      // Keep .press for proof PNG.
+      return out;
+    });
+    const cna2ok = !!(
+      cnaPass &&
+      cnaPass.present &&
+      cnaPass.cls &&
+      cnaPass.restInset &&
+      cnaPass.bgChanged &&
+      cnaPass.pressInset
+    );
+    record(
+      "CNA2",
+      "Passport sticky residual-filter count chip shows themed :active/.press flash (darker warning bg + inset) beyond FHP resting chrome",
+      !!cna2ok,
+      JSON.stringify(cnaPass)
+    );
+
+    await shot(page, "residual-filter-count-active-flash.png");
+    const cnaShot = checks.find(
+      (c) => c.id === "shot:residual-filter-count-active-flash.png"
+    );
+    record(
+      "CNA3",
+      "screenshot residual-filter-count-active-flash.png is not a black frame",
+      !!(cnaShot && cnaShot.pass),
+      cnaShot ? cnaShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CNA4",
+      "Residual-filter count-chip active flash step did not write .graphide/stamps/"
+    );
+
+    // Restore: drop press; leave filter OFF for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      document.querySelectorAll(".press").forEach((el) => el.classList.remove("press"));
       const toast = document.getElementById("toast");
       if (toast) {
         toast.classList.remove("on", "ok", "skip");
         toast.hidden = true;
         toast.textContent = "";
+      }
+      const passToggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (passToggle && passToggle.getAttribute("aria-pressed") === "true") {
+        passToggle.click();
+      } else {
+        const legend = document.getElementById("trajEdgeLegend");
+        if (legend && legend.getAttribute("data-residual-filter") === "on") {
+          const toggle = document.querySelector(
+            '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+          );
+          if (toggle) toggle.click();
+        }
       }
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });

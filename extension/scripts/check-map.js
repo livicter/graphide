@@ -738,6 +738,14 @@ assert(traceMap.includes("CFR1") && traceMap.includes("focus return") && traceMa
 assert(passportMap.includes("CFR1") && passportMap.includes("focus return") && passportMap.includes("residual-filter-clear-focus-return.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-chip focus return CFR / proof");
 
 
+assert(driver.includes("CNA1") && driver.includes("CNA3") && driver.includes("residual-filter-count-active-flash.png") && driver.includes("residual-filter-count") && driver.includes("passport-residual-filter-count"), "verify driver must prove residual-filter count-chip active flash CNA1–CNA3");
+assert(css.includes("residual-filter-count:active") && css.includes("passport-residual-filter-count:active") && css.includes(".press") && /residual-filter-count[\s\S]*?58%[\s\S]*?#000/.test(css), "main.css must theme residual-filter count-chip :active/.press flash (darker warning mix)");
+assert(keysMap.includes("CNA1") && keysMap.includes(":active") && keysMap.includes("residual-filter-count-active-flash.png"), "keys feature map must name residual-filter count-chip active flash CNA / proof");
+assert(traceMap.includes("CNA1") && traceMap.includes(":active") && traceMap.includes("residual-filter-count-active-flash.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip active flash CNA / proof");
+assert(passportMap.includes("CNA1") && passportMap.includes(":active") && passportMap.includes("residual-filter-count-active-flash.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip active flash CNA / proof");
+
+
+
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
 assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");
