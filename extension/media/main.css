@@ -2574,6 +2574,17 @@ html.bright .traj-legend-chip {
   opacity: 0.88;
   padding: 0 2px;
 }
+/* ADE traj zoom pct keyboard cue (ZPK1–ZPK3) — focusable slider; ADE 1px ring matching ZFV */
+.traj-zoom-pct[role="slider"] {
+  cursor: ew-resize;
+  border-radius: 999px;
+}
+.traj-zoom-pct:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  opacity: 1;
+}
 .traj-scale-layer {
   position: relative;
   transform-origin: 0 0;

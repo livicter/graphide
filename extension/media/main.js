@@ -28488,7 +28488,10 @@
     function renderTrajZoomBar() {
       const scale = Number(trajScale) || 1;
       const pct = trajZoomPctLabel(scale);
-      return '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom"><button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button><span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1">' + pct + '</span><button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button><button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button></span>';
+      const now2 = Math.round(scale * 100);
+      const vmin = Math.round(TRAJ_SCALE_MIN * 100);
+      const vmax = Math.round(TRAJ_SCALE_MAX * 100);
+      return '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom"><button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button><span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1" tabindex="0" role="slider" aria-label="Trajectory zoom percentage" aria-valuemin="' + esc(String(vmin)) + '" aria-valuemax="' + esc(String(vmax)) + '" aria-valuenow="' + esc(String(now2)) + '" aria-valuetext="' + esc(pct) + '" aria-keyshortcuts="ArrowUp ArrowDown Home" title="Arrow keys zoom · Home fits">' + pct + '</span><button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button><button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button></span>';
     }
     function renderTrajectoryEmptyBody(fix) {
       const title = fix.title || "Execution trajectory";
@@ -28824,6 +28827,36 @@
         ev.preventDefault();
         trajZoomFit();
       };
+      const zpct = document.getElementById("trajZoomPct");
+      if (zpct) {
+        zpct.onkeydown = (ev) => {
+          let acted = false;
+          if (ev.key === "ArrowUp" || ev.key === "ArrowRight") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomBy(TRAJ_SCALE_STEP);
+            acted = true;
+          } else if (ev.key === "ArrowDown" || ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomBy(1 / TRAJ_SCALE_STEP);
+            acted = true;
+          } else if (ev.key === "Home") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomFit();
+            acted = true;
+          }
+          if (!acted) return;
+          const el2 = document.getElementById("trajZoomPct");
+          if (el2 && typeof el2.focus === "function") {
+            try {
+              el2.focus({ preventScroll: true });
+            } catch (_err) {
+            }
+          }
+        };
+      }
       const residualFilterBtn = document.querySelector(
         '#trajEdgeLegend [data-residual-filter-toggle="1"]'
       );

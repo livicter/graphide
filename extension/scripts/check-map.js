@@ -337,8 +337,8 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
 assert(
-  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#441"),
-  "root README must document ADE Phase 1 tip stack #371…#441"
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#443"),
+  "root README must document ADE Phase 1 tip stack #371…#443"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -837,6 +837,10 @@ assert(driver.includes("ZFV1") && driver.includes("ZFV3") && driver.includes("tr
 assert(css.includes(".traj-zoom-btn:focus-visible") && /traj-zoom-btn:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-btn:focus-visible 1px ADE ring");
 assert(traceMap.includes("ZFV1") && traceMap.includes(":focus-visible") && traceMap.includes("trajectory-zoom-focus-visible.png"), "trace feature map must name ZFV1 / :focus-visible / proof");
 
+assert(driver.includes("ZPK1") && driver.includes("ZPK3") && driver.includes("trajectory-zoom-pct-keyboard.png") && driver.includes("trajZoomPct"), "verify driver must prove traj zoom pct keyboard ZPK1–ZPK3");
+assert(js.includes('role="slider"') && js.includes("aria-valuenow") && js.includes("aria-keyshortcuts") && js.includes("trajZoomPct") && js.includes("ArrowUp") && js.includes("Home"), "desk.js traj zoom pct must be keyboard slider (ZPK)");
+assert(css.includes(".traj-zoom-pct:focus-visible") && /traj-zoom-pct:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-pct:focus-visible 1px ADE ring");
+assert(traceMap.includes("ZPK1") && traceMap.includes("zoom percentage") && traceMap.includes("trajectory-zoom-pct-keyboard.png"), "trace feature map must name ZPK1 / zoom percentage keyboard / proof");
 
 assert(driver.includes("PSS1") && driver.includes("PSS3") && driver.includes("passport-sticky-summary.png") && driver.includes("data-passport-summary"), "verify driver must prove Passport sticky plan summary PSS1–PSS3");
 assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-summary") && js.includes("data-passport-gate") && js.includes('data-passport-count="contracts"') && js.includes('data-passport-count="impact"') && js.includes("passportImpactRowCount"), "Passport sticky summary render/markup missing");

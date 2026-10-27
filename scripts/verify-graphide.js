@@ -11977,6 +11977,123 @@ async function main() {
     );
     assertNoStampDir("ZFV4", "Traj zoom-bar focus-visible step did not write .graphide/stamps/");
 
+    // ADE traj zoom pct keyboard cue (ZPK1–ZPK3) — focusable #trajZoomPct slider; ArrowUp/Down/Home
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajZoomBar[data-traj-zoom-chrome]", { timeout: 8000 });
+    await page.waitForSelector("#trajZoomPct[data-traj-zoom-pct][role=\"slider\"]", { timeout: 8000 });
+    await page.click("#trajZoomFit");
+    await page.waitForTimeout(40);
+    const zpkMeta = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      if (!pct) return { present: false };
+      pct.focus({ focusVisible: true });
+      const cs = getComputedStyle(pct);
+      return {
+        present: true,
+        role: pct.getAttribute("role") || "",
+        tab: pct.getAttribute("tabindex") || "",
+        now: pct.getAttribute("aria-valuenow") || "",
+        vmin: pct.getAttribute("aria-valuemin") || "",
+        vmax: pct.getAttribute("aria-valuemax") || "",
+        text: (pct.textContent || "").trim(),
+        keys: pct.getAttribute("aria-keyshortcuts") || "",
+        focused: document.activeElement === pct,
+        focusVisible: typeof pct.matches === "function" ? pct.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        focusBg: cs.backgroundColor,
+      };
+    });
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(60);
+    const zpkAfterUp = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const host = document.querySelector("[data-traj-scale]");
+      return {
+        text: pct ? (pct.textContent || "").trim() : "",
+        now: pct ? pct.getAttribute("aria-valuenow") || "" : "",
+        focused: document.activeElement === pct,
+        scale: host ? host.getAttribute("data-traj-scale") || "" : "",
+      };
+    });
+    const zpk1ok =
+      !!zpkMeta.present &&
+      zpkMeta.role === "slider" &&
+      zpkMeta.tab === "0" &&
+      zpkMeta.now === "100" &&
+      zpkMeta.text === "100%" &&
+      /ArrowUp/.test(zpkMeta.keys || "") &&
+      !!zpkMeta.focused &&
+      !!zpkMeta.focusVisible &&
+      zpkMeta.outlineStyle === "solid" &&
+      (zpkMeta.outlineWidth === "1px" || zpkMeta.outlineWidth === "1") &&
+      (zpkMeta.outlineOffset === "1px" || zpkMeta.outlineOffset === "1") &&
+      zpkAfterUp.text !== "100%" &&
+      Number(zpkAfterUp.now) > 100 &&
+      !!zpkAfterUp.focused;
+    record(
+      "ZPK1",
+      "Trace #trajZoomPct is focusable slider; ArrowUp increments pct + aria-valuenow; focus restored",
+      !!zpk1ok,
+      JSON.stringify({ meta: zpkMeta, afterUp: zpkAfterUp })
+    );
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(60);
+    const zpkAfterDown = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      return {
+        text: pct ? (pct.textContent || "").trim() : "",
+        now: pct ? pct.getAttribute("aria-valuenow") || "" : "",
+        focused: document.activeElement === pct,
+      };
+    });
+    // Zoom in once more so Home has work, then Home → 100%
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(40);
+    await page.focus("#trajZoomPct");
+    await page.keyboard.press("Home");
+    await page.waitForTimeout(60);
+    const zpkAfterHome = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const host = document.querySelector("[data-traj-scale]");
+      return {
+        text: pct ? (pct.textContent || "").trim() : "",
+        now: pct ? pct.getAttribute("aria-valuenow") || "" : "",
+        focused: document.activeElement === pct,
+        scale: host ? host.getAttribute("data-traj-scale") || "" : "",
+      };
+    });
+    const zpk2ok =
+      zpkAfterDown.text === "100%" &&
+      zpkAfterDown.now === "100" &&
+      !!zpkAfterDown.focused &&
+      zpkAfterHome.text === "100%" &&
+      zpkAfterHome.now === "100" &&
+      (zpkAfterHome.scale === "1" || Number(zpkAfterHome.scale) === 1) &&
+      !!zpkAfterHome.focused;
+    record(
+      "ZPK2",
+      "Trace #trajZoomPct ArrowDown steps back; Home fits to 100% / scale 1; focus restored",
+      !!zpk2ok,
+      JSON.stringify({ afterDown: zpkAfterDown, afterHome: zpkAfterHome })
+    );
+
+    await page.focus("#trajZoomPct");
+    await page.waitForTimeout(40);
+    await shot(page, "trajectory-zoom-pct-keyboard.png");
+    const zpkShot = checks.find((c) => c.id === "shot:trajectory-zoom-pct-keyboard.png");
+    record(
+      "ZPK3",
+      "screenshot trajectory-zoom-pct-keyboard.png is not a black frame; ZPK keyboard cue proven",
+      !!(zpkShot && zpkShot.pass),
+      zpkShot ? zpkShot.detail : "missing shot"
+    );
+    assertNoStampDir("ZPK4", "Traj zoom pct keyboard step did not write .graphide/stamps/");
+
     // ADE Passport sticky plan summary (PSS1–PSS3) — gate + contracts/risks/tests/impact on sticky sign
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportSign[data-passport-sign-state]", { timeout: 8000 });
