@@ -10539,6 +10539,10 @@ function renderResidualFilterEmptyChrome(surface) {
     ' residual-filter-empty-action">' +
     '<button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button>' +
     "</div>" +
+    // ADE EKH: residual empty desk-keys hint (R toggle · Esc clear); Clear button remains
+    '<div class="desk-keys residual-filter-empty-keys" data-residual-filter-empty-keys="1">' +
+    "<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear" +
+    "</div>" +
     "</div>"
   );
 }

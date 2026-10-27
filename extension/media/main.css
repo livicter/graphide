@@ -3579,6 +3579,12 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
   cursor: pointer;
 }
 
+/* ADE residual-filter empty keyboard hints (EKH1–EKH3) — desk-keys strip under Clear; scoped spacing only */
+.residual-filter-empty .residual-filter-empty-keys,
+.passport-residual-filter-empty .residual-filter-empty-keys {
+  margin-top: 8px;
+}
+
 /* ADE Keys R row :active/pressed flash parity (KAF1–KAF3) — momentary darker flash distinct from KP resting ON (color/opacity/kbd); residual-bound only */
 #keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"]:active,
 #keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"].press,

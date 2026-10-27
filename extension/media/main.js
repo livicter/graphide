@@ -27,9 +27,9 @@
     mod
   ));
 
-  // ../graphide-ade-pin-residual/node_modules/react/cjs/react.production.min.js
+  // ../graphide-ade-a1a/node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react/cjs/react.production.min.js"(exports) {
+    "../graphide-ade-a1a/node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -300,9 +300,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react/index.js
+  // ../graphide-ade-a1a/node_modules/react/index.js
   var require_react = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react/index.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -312,9 +312,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../graphide-ade-a1a/node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../graphide-ade-a1a/node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -565,9 +565,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/scheduler/index.js
+  // ../graphide-ade-a1a/node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/scheduler/index.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -577,9 +577,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../graphide-ade-a1a/node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../graphide-ade-a1a/node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7187,9 +7187,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react-dom/index.js
+  // ../graphide-ade-a1a/node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react-dom/index.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7213,9 +7213,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react-dom/client.js
+  // ../graphide-ade-a1a/node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react-dom/client.js"(exports) {
+    "../graphide-ade-a1a/node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7244,9 +7244,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../graphide-ade-a1a/node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../graphide-ade-a1a/node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7269,9 +7269,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/react/jsx-runtime.js
+  // ../graphide-ade-a1a/node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/react/jsx-runtime.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7281,9 +7281,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
+  // ../graphide-ade-a1a/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
   var require_use_sync_external_store_shim_production = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
+    "../graphide-ade-a1a/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
       "use strict";
       var React = require_react();
       function is(x, y) {
@@ -7334,9 +7334,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/use-sync-external-store/shim/index.js
+  // ../graphide-ade-a1a/node_modules/use-sync-external-store/shim/index.js
   var require_shim = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/use-sync-external-store/shim/index.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/use-sync-external-store/shim/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_use_sync_external_store_shim_production();
@@ -7346,9 +7346,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
+  // ../graphide-ade-a1a/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
   var require_with_selector_production = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
+    "../graphide-ade-a1a/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
       "use strict";
       var React = require_react();
       var shim = require_shim();
@@ -7415,9 +7415,9 @@
     }
   });
 
-  // ../graphide-ade-pin-residual/node_modules/use-sync-external-store/shim/with-selector.js
+  // ../graphide-ade-a1a/node_modules/use-sync-external-store/shim/with-selector.js
   var require_with_selector = __commonJS({
-    "../graphide-ade-pin-residual/node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
+    "../graphide-ade-a1a/node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_with_selector_production();
@@ -7892,11 +7892,11 @@
     return fn2();
   }
 
-  // ../graphide-ade-pin-residual/node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-a1a/node_modules/@xyflow/react/dist/esm/index.js
   var import_jsx_runtime10 = __toESM(require_jsx_runtime());
   var import_react2 = __toESM(require_react());
 
-  // ../graphide-ade-pin-residual/node_modules/classcat/index.js
+  // ../graphide-ade-a1a/node_modules/classcat/index.js
   function cc(names) {
     if (typeof names === "string" || typeof names === "number") return "" + names;
     let out = "";
@@ -7914,7 +7914,7 @@
     return out;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-dispatch/src/dispatch.js
+  // ../graphide-ade-a1a/node_modules/d3-dispatch/src/dispatch.js
   var noop = { value: () => {
   } };
   function dispatch() {
@@ -7984,7 +7984,7 @@
   }
   var dispatch_default = dispatch;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/namespaces.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/namespaces.js
   var xhtml = "http://www.w3.org/1999/xhtml";
   var namespaces_default = {
     svg: "http://www.w3.org/2000/svg",
@@ -7994,14 +7994,14 @@
     xmlns: "http://www.w3.org/2000/xmlns/"
   };
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/namespace.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/namespace.js
   function namespace_default(name) {
     var prefix = name += "", i = prefix.indexOf(":");
     if (i >= 0 && (prefix = name.slice(0, i)) !== "xmlns") name = name.slice(i + 1);
     return namespaces_default.hasOwnProperty(prefix) ? { space: namespaces_default[prefix], local: name } : name;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/creator.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/creator.js
   function creatorInherit(name) {
     return function() {
       var document2 = this.ownerDocument, uri = this.namespaceURI;
@@ -8018,7 +8018,7 @@
     return (fullname.local ? creatorFixed : creatorInherit)(fullname);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selector.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selector.js
   function none() {
   }
   function selector_default(selector) {
@@ -8027,7 +8027,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/select.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/select.js
   function select_default(select) {
     if (typeof select !== "function") select = selector_default(select);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8041,12 +8041,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/array.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/array.js
   function array(x) {
     return x == null ? [] : Array.isArray(x) ? x : Array.from(x);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selectorAll.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selectorAll.js
   function empty() {
     return [];
   }
@@ -8056,7 +8056,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/selectAll.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/selectAll.js
   function arrayAll(select) {
     return function() {
       return array(select.apply(this, arguments));
@@ -8076,7 +8076,7 @@
     return new Selection(subgroups, parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/matcher.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/matcher.js
   function matcher_default(selector) {
     return function() {
       return this.matches(selector);
@@ -8088,7 +8088,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/selectChild.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/selectChild.js
   var find = Array.prototype.find;
   function childFind(match) {
     return function() {
@@ -8102,7 +8102,7 @@
     return this.select(match == null ? childFirst : childFind(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/selectChildren.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/selectChildren.js
   var filter = Array.prototype.filter;
   function children() {
     return Array.from(this.children);
@@ -8116,7 +8116,7 @@
     return this.selectAll(match == null ? children : childrenFilter(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/filter.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/filter.js
   function filter_default(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8129,12 +8129,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/sparse.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/sparse.js
   function sparse_default(update) {
     return new Array(update.length);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/enter.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/enter.js
   function enter_default() {
     return new Selection(this._enter || this._groups.map(sparse_default), this._parents);
   }
@@ -8161,14 +8161,14 @@
     }
   };
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/constant.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/constant.js
   function constant_default(x) {
     return function() {
       return x;
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/data.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/data.js
   function bindIndex(parent, group, enter, update, exit, data) {
     var i = 0, node, groupLength = group.length, dataLength = data.length;
     for (; i < dataLength; ++i) {
@@ -8240,12 +8240,12 @@
     return typeof data === "object" && "length" in data ? data : Array.from(data);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/exit.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/exit.js
   function exit_default() {
     return new Selection(this._exit || this._groups.map(sparse_default), this._parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/join.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/join.js
   function join_default(onenter, onupdate, onexit) {
     var enter = this.enter(), update = this, exit = this.exit();
     if (typeof onenter === "function") {
@@ -8263,7 +8263,7 @@
     return enter && update ? enter.merge(update).order() : update;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/merge.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/merge.js
   function merge_default(context) {
     var selection2 = context.selection ? context.selection() : context;
     for (var groups0 = this._groups, groups1 = selection2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -8279,7 +8279,7 @@
     return new Selection(merges, this._parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/order.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/order.js
   function order_default() {
     for (var groups = this._groups, j = -1, m = groups.length; ++j < m; ) {
       for (var group = groups[j], i = group.length - 1, next = group[i], node; --i >= 0; ) {
@@ -8292,7 +8292,7 @@
     return this;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/sort.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/sort.js
   function sort_default(compare) {
     if (!compare) compare = ascending;
     function compareNode(a, b) {
@@ -8312,7 +8312,7 @@
     return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/call.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/call.js
   function call_default() {
     var callback = arguments[0];
     arguments[0] = this;
@@ -8320,12 +8320,12 @@
     return this;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/nodes.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/nodes.js
   function nodes_default() {
     return Array.from(this);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/node.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/node.js
   function node_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length; i < n; ++i) {
@@ -8336,19 +8336,19 @@
     return null;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/size.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/size.js
   function size_default() {
     let size = 0;
     for (const node of this) ++size;
     return size;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/empty.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/empty.js
   function empty_default() {
     return !this.node();
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/each.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/each.js
   function each_default(callback) {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8358,7 +8358,7 @@
     return this;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/attr.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/attr.js
   function attrRemove(name) {
     return function() {
       this.removeAttribute(name);
@@ -8402,12 +8402,12 @@
     return this.each((value == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/window.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/window.js
   function window_default(node) {
     return node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/style.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/style.js
   function styleRemove(name) {
     return function() {
       this.style.removeProperty(name);
@@ -8432,7 +8432,7 @@
     return node.style.getPropertyValue(name) || window_default(node).getComputedStyle(node, null).getPropertyValue(name);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/property.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/property.js
   function propertyRemove(name) {
     return function() {
       delete this[name];
@@ -8454,7 +8454,7 @@
     return arguments.length > 1 ? this.each((value == null ? propertyRemove : typeof value === "function" ? propertyFunction : propertyConstant)(name, value)) : this.node()[name];
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/classed.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/classed.js
   function classArray(string) {
     return string.trim().split(/^|\s+/);
   }
@@ -8517,7 +8517,7 @@
     return this.each((typeof value === "function" ? classedFunction : value ? classedTrue : classedFalse)(names, value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/text.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/text.js
   function textRemove() {
     this.textContent = "";
   }
@@ -8536,7 +8536,7 @@
     return arguments.length ? this.each(value == null ? textRemove : (typeof value === "function" ? textFunction : textConstant)(value)) : this.node().textContent;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/html.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/html.js
   function htmlRemove() {
     this.innerHTML = "";
   }
@@ -8555,7 +8555,7 @@
     return arguments.length ? this.each(value == null ? htmlRemove : (typeof value === "function" ? htmlFunction : htmlConstant)(value)) : this.node().innerHTML;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/raise.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/raise.js
   function raise() {
     if (this.nextSibling) this.parentNode.appendChild(this);
   }
@@ -8563,7 +8563,7 @@
     return this.each(raise);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/lower.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/lower.js
   function lower() {
     if (this.previousSibling) this.parentNode.insertBefore(this, this.parentNode.firstChild);
   }
@@ -8571,7 +8571,7 @@
     return this.each(lower);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/append.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/append.js
   function append_default(name) {
     var create2 = typeof name === "function" ? name : creator_default(name);
     return this.select(function() {
@@ -8579,7 +8579,7 @@
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/insert.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/insert.js
   function constantNull() {
     return null;
   }
@@ -8590,7 +8590,7 @@
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/remove.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/remove.js
   function remove() {
     var parent = this.parentNode;
     if (parent) parent.removeChild(this);
@@ -8599,7 +8599,7 @@
     return this.each(remove);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/clone.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/clone.js
   function selection_cloneShallow() {
     var clone = this.cloneNode(false), parent = this.parentNode;
     return parent ? parent.insertBefore(clone, this.nextSibling) : clone;
@@ -8612,12 +8612,12 @@
     return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/datum.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/datum.js
   function datum_default(value) {
     return arguments.length ? this.property("__data__", value) : this.node().__data__;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/on.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/on.js
   function contextListener(listener) {
     return function(event) {
       listener.call(this, event, this.__data__);
@@ -8680,7 +8680,7 @@
     return this;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/dispatch.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/dispatch.js
   function dispatchEvent(node, type, params) {
     var window2 = window_default(node), event = window2.CustomEvent;
     if (typeof event === "function") {
@@ -8706,7 +8706,7 @@
     return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type, params));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/iterator.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/iterator.js
   function* iterator_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8715,7 +8715,7 @@
     }
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/selection/index.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/selection/index.js
   var root = [null];
   function Selection(groups, parents) {
     this._groups = groups;
@@ -8767,19 +8767,19 @@
   };
   var selection_default = selection;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/select.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/select.js
   function select_default2(selector) {
     return typeof selector === "string" ? new Selection([[document.querySelector(selector)]], [document.documentElement]) : new Selection([[selector]], root);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/sourceEvent.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/sourceEvent.js
   function sourceEvent_default(event) {
     let sourceEvent;
     while (sourceEvent = event.sourceEvent) event = sourceEvent;
     return event;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-selection/src/pointer.js
+  // ../graphide-ade-a1a/node_modules/d3-selection/src/pointer.js
   function pointer_default(event, node) {
     event = sourceEvent_default(event);
     if (node === void 0) node = event.currentTarget;
@@ -8799,7 +8799,7 @@
     return [event.pageX, event.pageY];
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-drag/src/noevent.js
+  // ../graphide-ade-a1a/node_modules/d3-drag/src/noevent.js
   var nonpassive = { passive: false };
   var nonpassivecapture = { capture: true, passive: false };
   function nopropagation(event) {
@@ -8810,7 +8810,7 @@
     event.stopImmediatePropagation();
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-drag/src/nodrag.js
+  // ../graphide-ade-a1a/node_modules/d3-drag/src/nodrag.js
   function nodrag_default(view) {
     var root3 = view.document.documentElement, selection2 = select_default2(view).on("dragstart.drag", noevent_default, nonpassivecapture);
     if ("onselectstart" in root3) {
@@ -8836,10 +8836,10 @@
     }
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-drag/src/constant.js
+  // ../graphide-ade-a1a/node_modules/d3-drag/src/constant.js
   var constant_default2 = (x) => () => x;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-drag/src/event.js
+  // ../graphide-ade-a1a/node_modules/d3-drag/src/event.js
   function DragEvent(type, {
     sourceEvent,
     subject,
@@ -8871,7 +8871,7 @@
     return value === this._ ? this : value;
   };
 
-  // ../graphide-ade-pin-residual/node_modules/d3-drag/src/drag.js
+  // ../graphide-ade-a1a/node_modules/d3-drag/src/drag.js
   function defaultFilter(event) {
     return !event.ctrlKey && !event.button;
   }
@@ -9016,7 +9016,7 @@
     return drag;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-color/src/define.js
+  // ../graphide-ade-a1a/node_modules/d3-color/src/define.js
   function define_default(constructor, factory, prototype) {
     constructor.prototype = factory.prototype = prototype;
     prototype.constructor = constructor;
@@ -9027,7 +9027,7 @@
     return prototype;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-color/src/color.js
+  // ../graphide-ade-a1a/node_modules/d3-color/src/color.js
   function Color() {
   }
   var darker = 0.7;
@@ -9364,7 +9364,7 @@
     return (h < 60 ? m1 + (m2 - m1) * h / 60 : h < 180 ? m2 : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60 : m1) * 255;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/basis.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/basis.js
   function basis(t1, v0, v1, v2, v3) {
     var t2 = t1 * t1, t3 = t2 * t1;
     return ((1 - 3 * t1 + 3 * t2 - t3) * v0 + (4 - 6 * t2 + 3 * t3) * v1 + (1 + 3 * t1 + 3 * t2 - 3 * t3) * v2 + t3 * v3) / 6;
@@ -9377,7 +9377,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/basisClosed.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/basisClosed.js
   function basisClosed_default(values) {
     var n = values.length;
     return function(t) {
@@ -9386,10 +9386,10 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/constant.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/constant.js
   var constant_default3 = (x) => () => x;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/color.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/color.js
   function linear(a, d) {
     return function(t) {
       return a + t * d;
@@ -9410,7 +9410,7 @@
     return d ? linear(a, d) : constant_default3(isNaN(a) ? b : a);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/rgb.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/rgb.js
   var rgb_default = (function rgbGamma(y) {
     var color2 = gamma(y);
     function rgb2(start2, end) {
@@ -9450,7 +9450,7 @@
   var rgbBasis = rgbSpline(basis_default);
   var rgbBasisClosed = rgbSpline(basisClosed_default);
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/numberArray.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/numberArray.js
   function numberArray_default(a, b) {
     if (!b) b = [];
     var n = a ? Math.min(b.length, a.length) : 0, c = b.slice(), i;
@@ -9463,7 +9463,7 @@
     return ArrayBuffer.isView(x) && !(x instanceof DataView);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/array.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/array.js
   function genericArray(a, b) {
     var nb = b ? b.length : 0, na = a ? Math.min(nb, a.length) : 0, x = new Array(na), c = new Array(nb), i;
     for (i = 0; i < na; ++i) x[i] = value_default(a[i], b[i]);
@@ -9474,7 +9474,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/date.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/date.js
   function date_default(a, b) {
     var d = /* @__PURE__ */ new Date();
     return a = +a, b = +b, function(t) {
@@ -9482,14 +9482,14 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/number.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/number.js
   function number_default(a, b) {
     return a = +a, b = +b, function(t) {
       return a * (1 - t) + b * t;
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/object.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/object.js
   function object_default(a, b) {
     var i = {}, c = {}, k;
     if (a === null || typeof a !== "object") a = {};
@@ -9507,7 +9507,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/string.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/string.js
   var reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
   var reB = new RegExp(reA.source, "g");
   function zero(b) {
@@ -9549,13 +9549,13 @@
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/value.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/value.js
   function value_default(a, b) {
     var t = typeof b, c;
     return b == null || t === "boolean" ? constant_default3(b) : (t === "number" ? number_default : t === "string" ? (c = color(b)) ? (b = c, rgb_default) : string_default : b instanceof color ? rgb_default : b instanceof Date ? date_default : isNumberArray(b) ? numberArray_default : Array.isArray(b) ? genericArray : typeof b.valueOf !== "function" && typeof b.toString !== "function" || isNaN(b) ? object_default : number_default)(a, b);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/transform/decompose.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/transform/decompose.js
   var degrees = 180 / Math.PI;
   var identity = {
     translateX: 0,
@@ -9581,7 +9581,7 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/transform/parse.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/transform/parse.js
   var svgNode;
   function parseCss(value) {
     const m = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value + "");
@@ -9596,7 +9596,7 @@
     return decompose_default(value.a, value.b, value.c, value.d, value.e, value.f);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/transform/index.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/transform/index.js
   function interpolateTransform(parse, pxComma, pxParen, degParen) {
     function pop(s) {
       return s.length ? s.pop() + " " : "";
@@ -9651,7 +9651,7 @@
   var interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
   var interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
 
-  // ../graphide-ade-pin-residual/node_modules/d3-interpolate/src/zoom.js
+  // ../graphide-ade-a1a/node_modules/d3-interpolate/src/zoom.js
   var epsilon2 = 1e-12;
   function cosh(x) {
     return ((x = Math.exp(x)) + 1 / x) / 2;
@@ -9696,7 +9696,7 @@
     return zoom;
   })(Math.SQRT2, 2, 4);
 
-  // ../graphide-ade-pin-residual/node_modules/d3-timer/src/timer.js
+  // ../graphide-ade-a1a/node_modules/d3-timer/src/timer.js
   var frame = 0;
   var timeout = 0;
   var interval = 0;
@@ -9798,7 +9798,7 @@
     }
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-timer/src/timeout.js
+  // ../graphide-ade-a1a/node_modules/d3-timer/src/timeout.js
   function timeout_default(callback, delay, time) {
     var t = new Timer();
     delay = delay == null ? 0 : +delay;
@@ -9809,7 +9809,7 @@
     return t;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/schedule.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/schedule.js
   var emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
   var emptyTween = [];
   var CREATED = 0;
@@ -9920,7 +9920,7 @@
     }
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/interrupt.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/interrupt.js
   function interrupt_default(node, name) {
     var schedules = node.__transition, schedule, active, empty2 = true, i;
     if (!schedules) return;
@@ -9939,14 +9939,14 @@
     if (empty2) delete node.__transition;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/selection/interrupt.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/selection/interrupt.js
   function interrupt_default2(name) {
     return this.each(function() {
       interrupt_default(this, name);
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/tween.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/tween.js
   function tweenRemove(id2, name) {
     var tween0, tween1;
     return function() {
@@ -10007,13 +10007,13 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/interpolate.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/interpolate.js
   function interpolate_default(a, b) {
     var c;
     return (typeof b === "number" ? number_default : b instanceof color ? rgb_default : (c = color(b)) ? (b = c, rgb_default) : string_default)(a, b);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/attr.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/attr.js
   function attrRemove2(name) {
     return function() {
       this.removeAttribute(name);
@@ -10063,7 +10063,7 @@
     return this.attrTween(name, typeof value === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i, tweenValue(this, "attr." + name, value)) : value == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i, value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/attrTween.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/attrTween.js
   function attrInterpolate(name, i) {
     return function(t) {
       this.setAttribute(name, i.call(this, t));
@@ -10103,7 +10103,7 @@
     return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/delay.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/delay.js
   function delayFunction(id2, value) {
     return function() {
       init(this, id2).delay = +value.apply(this, arguments);
@@ -10119,7 +10119,7 @@
     return arguments.length ? this.each((typeof value === "function" ? delayFunction : delayConstant)(id2, value)) : get2(this.node(), id2).delay;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/duration.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/duration.js
   function durationFunction(id2, value) {
     return function() {
       set2(this, id2).duration = +value.apply(this, arguments);
@@ -10135,7 +10135,7 @@
     return arguments.length ? this.each((typeof value === "function" ? durationFunction : durationConstant)(id2, value)) : get2(this.node(), id2).duration;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/ease.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/ease.js
   function easeConstant(id2, value) {
     if (typeof value !== "function") throw new Error();
     return function() {
@@ -10147,7 +10147,7 @@
     return arguments.length ? this.each(easeConstant(id2, value)) : get2(this.node(), id2).ease;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/easeVarying.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/easeVarying.js
   function easeVarying(id2, value) {
     return function() {
       var v = value.apply(this, arguments);
@@ -10160,7 +10160,7 @@
     return this.each(easeVarying(this._id, value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/filter.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/filter.js
   function filter_default2(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -10173,7 +10173,7 @@
     return new Transition(subgroups, this._parents, this._name, this._id);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/merge.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/merge.js
   function merge_default2(transition2) {
     if (transition2._id !== this._id) throw new Error();
     for (var groups0 = this._groups, groups1 = transition2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -10189,7 +10189,7 @@
     return new Transition(merges, this._parents, this._name, this._id);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/on.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/on.js
   function start(name) {
     return (name + "").trim().split(/^|\s+/).every(function(t) {
       var i = t.indexOf(".");
@@ -10210,7 +10210,7 @@
     return arguments.length < 2 ? get2(this.node(), id2).on.on(name) : this.each(onFunction(id2, name, listener));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/remove.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/remove.js
   function removeFunction(id2) {
     return function() {
       var parent = this.parentNode;
@@ -10222,7 +10222,7 @@
     return this.on("end.remove", removeFunction(this._id));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/select.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/select.js
   function select_default3(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selector_default(select);
@@ -10238,7 +10238,7 @@
     return new Transition(subgroups, this._parents, name, id2);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/selectAll.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/selectAll.js
   function selectAll_default2(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selectorAll_default(select);
@@ -10258,13 +10258,13 @@
     return new Transition(subgroups, parents, name, id2);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/selection.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/selection.js
   var Selection2 = selection_default.prototype.constructor;
   function selection_default2() {
     return new Selection2(this._groups, this._parents);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/style.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/style.js
   function styleNull(name, interpolate) {
     var string00, string10, interpolate0;
     return function() {
@@ -10305,7 +10305,7 @@
     return value == null ? this.styleTween(name, styleNull(name, i)).on("end.style." + name, styleRemove2(name)) : typeof value === "function" ? this.styleTween(name, styleFunction2(name, i, tweenValue(this, "style." + name, value))).each(styleMaybeRemove(this._id, name)) : this.styleTween(name, styleConstant2(name, i, value), priority).on("end.style." + name, null);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/styleTween.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/styleTween.js
   function styleInterpolate(name, i, priority) {
     return function(t) {
       this.style.setProperty(name, i.call(this, t), priority);
@@ -10329,7 +10329,7 @@
     return this.tween(key, styleTween(name, value, priority == null ? "" : priority));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/text.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/text.js
   function textConstant2(value) {
     return function() {
       this.textContent = value;
@@ -10345,7 +10345,7 @@
     return this.tween("text", typeof value === "function" ? textFunction2(tweenValue(this, "text", value)) : textConstant2(value == null ? "" : value + ""));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/textTween.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/textTween.js
   function textInterpolate(i) {
     return function(t) {
       this.textContent = i.call(this, t);
@@ -10369,7 +10369,7 @@
     return this.tween(key, textTween(value));
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/transition.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/transition.js
   function transition_default() {
     var name = this._name, id0 = this._id, id1 = newId();
     for (var groups = this._groups, m = groups.length, j = 0; j < m; ++j) {
@@ -10388,7 +10388,7 @@
     return new Transition(groups, this._parents, name, id1);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/end.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/end.js
   function end_default() {
     var on0, on1, that = this, id2 = that._id, size = that.size();
     return new Promise(function(resolve, reject) {
@@ -10409,7 +10409,7 @@
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/transition/index.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/transition/index.js
   var id = 0;
   function Transition(groups, parents, name, id2) {
     this._groups = groups;
@@ -10457,12 +10457,12 @@
     [Symbol.iterator]: selection_prototype[Symbol.iterator]
   };
 
-  // ../graphide-ade-pin-residual/node_modules/d3-ease/src/cubic.js
+  // ../graphide-ade-a1a/node_modules/d3-ease/src/cubic.js
   function cubicInOut(t) {
     return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/selection/transition.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/selection/transition.js
   var defaultTiming = {
     time: null,
     // Set on use.
@@ -10496,14 +10496,14 @@
     return new Transition(groups, this._parents, name, id2);
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-transition/src/selection/index.js
+  // ../graphide-ade-a1a/node_modules/d3-transition/src/selection/index.js
   selection_default.prototype.interrupt = interrupt_default2;
   selection_default.prototype.transition = transition_default2;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-zoom/src/constant.js
+  // ../graphide-ade-a1a/node_modules/d3-zoom/src/constant.js
   var constant_default4 = (x) => () => x;
 
-  // ../graphide-ade-pin-residual/node_modules/d3-zoom/src/event.js
+  // ../graphide-ade-a1a/node_modules/d3-zoom/src/event.js
   function ZoomEvent(type, {
     sourceEvent,
     target,
@@ -10519,7 +10519,7 @@
     });
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-zoom/src/transform.js
+  // ../graphide-ade-a1a/node_modules/d3-zoom/src/transform.js
   function Transform(k, x, y) {
     this.k = k;
     this.x = x;
@@ -10568,7 +10568,7 @@
     return node.__zoom;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-zoom/src/noevent.js
+  // ../graphide-ade-a1a/node_modules/d3-zoom/src/noevent.js
   function nopropagation2(event) {
     event.stopImmediatePropagation();
   }
@@ -10577,7 +10577,7 @@
     event.stopImmediatePropagation();
   }
 
-  // ../graphide-ade-pin-residual/node_modules/d3-zoom/src/zoom.js
+  // ../graphide-ade-a1a/node_modules/d3-zoom/src/zoom.js
   function defaultFilter2(event) {
     return (!event.ctrlKey || event.type === "wheel") && !event.button;
   }
@@ -10892,7 +10892,7 @@
     return zoom;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/@xyflow/system/dist/esm/index.js
+  // ../graphide-ade-a1a/node_modules/@xyflow/system/dist/esm/index.js
   var errorMessages = {
     error001: (lib = "react") => `Seems like you have not used ${lib === "svelte" ? "SvelteFlowProvider" : "ReactFlowProvider"} as an ancestor. Help: https://${lib}flow.dev/error#001`,
     error002: () => "It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them.",
@@ -13552,11 +13552,11 @@
     };
   }
 
-  // ../graphide-ade-pin-residual/node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-a1a/node_modules/zustand/esm/traditional.mjs
   var import_react = __toESM(require_react(), 1);
   var import_with_selector = __toESM(require_with_selector(), 1);
 
-  // ../graphide-ade-pin-residual/node_modules/zustand/esm/vanilla.mjs
+  // ../graphide-ade-a1a/node_modules/zustand/esm/vanilla.mjs
   var import_meta = {};
   var createStoreImpl = (createState) => {
     let state;
@@ -13589,7 +13589,7 @@
   };
   var createStore = (createState) => createState ? createStoreImpl(createState) : createStoreImpl;
 
-  // ../graphide-ade-pin-residual/node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-a1a/node_modules/zustand/esm/traditional.mjs
   var { useDebugValue } = import_react.default;
   var { useSyncExternalStoreWithSelector } = import_with_selector.default;
   var identity3 = (arg) => arg;
@@ -13612,7 +13612,7 @@
   };
   var createWithEqualityFn = (createState, defaultEqualityFn) => createState ? createWithEqualityFnImpl(createState, defaultEqualityFn) : createWithEqualityFnImpl;
 
-  // ../graphide-ade-pin-residual/node_modules/zustand/esm/shallow.mjs
+  // ../graphide-ade-a1a/node_modules/zustand/esm/shallow.mjs
   function shallow$1(objA, objB) {
     if (Object.is(objA, objB)) {
       return true;
@@ -13650,7 +13650,7 @@
     return true;
   }
 
-  // ../graphide-ade-pin-residual/node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-a1a/node_modules/@xyflow/react/dist/esm/index.js
   var import_react_dom = __toESM(require_react_dom());
   var StoreContext = (0, import_react2.createContext)(null);
   var Provider$1 = StoreContext.Provider;
@@ -17047,7 +17047,7 @@
   var import_client = __toESM(require_client());
   var import_react_dom2 = __toESM(require_react_dom());
 
-  // ../graphide-ade-pin-residual/node_modules/@dagrejs/dagre/dist/dagre.esm.js
+  // ../graphide-ade-a1a/node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var Te = Object.defineProperty;
   var In = (e, n, t) => n in e ? Te(e, n, { enumerable: true, configurable: true, writable: true, value: t }) : e[n] = t;
   var Sn = (e, n) => {
@@ -28343,7 +28343,7 @@
       const hostAttr = isTrace ? ' data-traj-residual-filter-empty="1" data-residual-filter-empty="1"' : ' data-passport-residual-filter-empty="1" data-residual-filter-empty="1"';
       const title = isTrace ? "No residual-bearing nodes" : "No residual paths match";
       const copy = isTrace ? "Residual filter is on, but no trajectory nodes bear residual gated writes. Clear the filter to show the full DAG." : "Residual filter is on, but no gate paths bear residual writes (gate may be approved). Clear the filter to show all paths.";
-      return '<div class="' + hostClass + '"' + hostAttr + ' role="status"><b class="' + (isTrace ? "traj-empty-title" : "passport-empty-title") + '">' + esc(title) + '</b><div class="' + (isTrace ? "traj-empty-copy" : "passport-empty-copy") + '">' + esc(copy) + '</div><div class="' + (isTrace ? "traj-empty-action" : "passport-empty-action") + ' residual-filter-empty-action"><button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button></div></div>';
+      return '<div class="' + hostClass + '"' + hostAttr + ' role="status"><b class="' + (isTrace ? "traj-empty-title" : "passport-empty-title") + '">' + esc(title) + '</b><div class="' + (isTrace ? "traj-empty-copy" : "passport-empty-copy") + '">' + esc(copy) + '</div><div class="' + (isTrace ? "traj-empty-action" : "passport-empty-action") + ' residual-filter-empty-action"><button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button></div><div class="desk-keys residual-filter-empty-keys" data-residual-filter-empty-keys="1"><kbd>R</kbd> toggle · <kbd>Esc</kbd> clear</div></div>';
     }
     const TRAJ_SCALE_MIN = 0.35;
     const TRAJ_SCALE_MAX = 3;

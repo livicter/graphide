@@ -11324,6 +11324,212 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE residual-filter empty keyboard hints (EKH1–EKH3) — desk-keys R/Esc under Clear
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const sticky = document.querySelector("#passportSign .passport-residual");
+      if (sticky && sticky.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const approve = document.querySelector('#passportSign [data-passport-action="approve"]');
+      const gate = document.getElementById("passportGate");
+      if (approve && gate && gate.getAttribute("data-passport-state") !== "approved") {
+        approve.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"] [data-residual-filter-empty-keys="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const ekhPass = await page.evaluate(() => {
+      const host = document.querySelector(
+        '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"]'
+      );
+      const keys = host
+        ? host.querySelector(
+            '.desk-keys.residual-filter-empty-keys[data-residual-filter-empty-keys="1"]'
+          )
+        : null;
+      const clear = host
+        ? host.querySelector('[data-residual-filter-clear="1"]')
+        : null;
+      const kbds = keys ? [...keys.querySelectorAll("kbd")].map((k) => k.textContent.trim()) : [];
+      const text = keys ? (keys.textContent || "").replace(/\s+/g, " ").trim() : "";
+      const cs = keys ? getComputedStyle(keys) : null;
+      return {
+        host: !!host,
+        keys: !!keys,
+        clear: !!clear,
+        kbds,
+        text,
+        hasDeskKeys: !!(keys && keys.classList.contains("desk-keys")),
+        fontSize: cs ? cs.fontSize : "",
+        opacity: cs ? cs.opacity : "",
+      };
+    });
+    const ekh2ok = !!(
+      ekhPass &&
+      ekhPass.host &&
+      ekhPass.keys &&
+      ekhPass.clear &&
+      ekhPass.hasDeskKeys &&
+      ekhPass.kbds.includes("R") &&
+      ekhPass.kbds.includes("Esc") &&
+      /toggle/i.test(ekhPass.text) &&
+      /clear/i.test(ekhPass.text)
+    );
+    record(
+      "EKH2",
+      "Passport residual-filter empty shows desk-keys R toggle · Esc clear; Clear button remains",
+      !!ekh2ok,
+      JSON.stringify(ekhPass)
+    );
+
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector(
+      '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"] [data-residual-filter-empty-keys="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const ekhTrace = await page.evaluate(() => {
+      const host = document.querySelector(
+        '.traj-empty.residual-filter-empty[data-traj-residual-filter-empty="1"]'
+      );
+      const keys = host
+        ? host.querySelector(
+            '.desk-keys.residual-filter-empty-keys[data-residual-filter-empty-keys="1"]'
+          )
+        : null;
+      const clear = host
+        ? host.querySelector('[data-residual-filter-clear="1"]')
+        : null;
+      const kbds = keys ? [...keys.querySelectorAll("kbd")].map((k) => k.textContent.trim()) : [];
+      const text = keys ? (keys.textContent || "").replace(/\s+/g, " ").trim() : "";
+      return {
+        host: !!host,
+        keys: !!keys,
+        clear: !!clear,
+        kbds,
+        text,
+        hasDeskKeys: !!(keys && keys.classList.contains("desk-keys")),
+        hostEmptyAttr: host ? host.getAttribute("data-residual-filter-empty") || "" : "",
+      };
+    });
+    const ekh1ok = !!(
+      ekhTrace &&
+      ekhTrace.host &&
+      ekhTrace.keys &&
+      ekhTrace.clear &&
+      ekhTrace.hasDeskKeys &&
+      ekhTrace.kbds.includes("R") &&
+      ekhTrace.kbds.includes("Esc") &&
+      /toggle/i.test(ekhTrace.text) &&
+      /clear/i.test(ekhTrace.text)
+    );
+    record(
+      "EKH1",
+      "Trace residual-filter empty shows desk-keys R toggle · Esc clear; Clear button remains",
+      !!ekh1ok,
+      JSON.stringify(ekhTrace)
+    );
+
+    // Esc still clears from empty chrome (parity with FE/ESC); leave empty then restore
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(60);
+    const ekhEsc = await page.evaluate(() => {
+      const empty = document.querySelector(
+        '[data-traj-residual-filter-empty="1"], [data-passport-residual-filter-empty="1"]'
+      );
+      const legend = document.getElementById("trajEdgeLegend");
+      return {
+        emptyGone: !empty,
+        filterOff: !legend || legend.getAttribute("data-residual-filter") !== "on",
+      };
+    });
+    // Re-enter empty for proof shot (Passport empty is richer chrome)
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const sticky = document.querySelector("#passportSign .passport-residual");
+      if (sticky && sticky.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const approve = document.querySelector('#passportSign [data-passport-action="approve"]');
+      const gate = document.getElementById("passportGate");
+      if (approve && gate && gate.getAttribute("data-passport-state") !== "approved") {
+        approve.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty[data-passport-residual-filter-empty="1"] [data-residual-filter-empty-keys="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+
+    await shot(page, "residual-filter-empty-kbd-hints.png");
+    const ekhShot = checks.find(
+      (c) => c.id === "shot:residual-filter-empty-kbd-hints.png"
+    );
+    const ekh3ok = !!(
+      ekhShot &&
+      ekhShot.pass &&
+      ekhEsc &&
+      ekhEsc.emptyGone &&
+      ekhEsc.filterOff &&
+      ekhPass &&
+      ekhPass.hasDeskKeys &&
+      ekhTrace &&
+      ekhTrace.hasDeskKeys
+    );
+    record(
+      "EKH3",
+      "screenshot residual-filter-empty-kbd-hints.png not black; Esc clears empty; desk-keys language on both surfaces",
+      !!ekh3ok,
+      JSON.stringify({
+        shot: ekhShot ? ekhShot.detail : "missing",
+        esc: ekhEsc,
+        passDesk: ekhPass && ekhPass.hasDeskKeys,
+        traceDesk: ekhTrace && ekhTrace.hasDeskKeys,
+      })
+    );
+    assertNoStampDir(
+      "EKH4",
+      "Residual empty kbd hints step did not write .graphide/stamps/"
+    );
+
+    // Restore after EKH: clear filter, reject gate for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      const clear = document.querySelector('[data-residual-filter-clear="1"]');
+      if (clear) clear.click();
+      else {
+        const legend = document.getElementById("trajEdgeLegend");
+        if (legend && legend.getAttribute("data-residual-filter") === "on") {
+          const toggle = document.querySelector(
+            '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+          );
+          if (toggle) toggle.click();
+        }
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(40);
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

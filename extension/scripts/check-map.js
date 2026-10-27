@@ -768,7 +768,12 @@ assert(keysMap.includes("CLC1") && keysMap.includes(":hover") && keysMap.include
 assert(traceMap.includes("CLC1") && traceMap.includes(":hover") && traceMap.includes("residual-filter-clear-hover-cue.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-filter hover cue CLC / proof");
 assert(passportMap.includes("CLC1") && passportMap.includes(":hover") && passportMap.includes("residual-filter-clear-hover-cue.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-filter hover cue CLC / proof");
 
-
+assert(driver.includes("EKH1") && driver.includes("EKH3") && driver.includes("residual-filter-empty-kbd-hints.png") && driver.includes("residual-filter-empty-keys") && driver.includes("data-residual-filter-empty-keys"), "verify driver must prove residual-filter empty keyboard hints EKH1–EKH3");
+assert(js.includes("residual-filter-empty-keys") && js.includes("data-residual-filter-empty-keys") && js.includes("<kbd>R</kbd>") && js.includes("<kbd>Esc</kbd>") && js.includes("renderResidualFilterEmptyChrome"), "desk.js residual empty must render desk-keys R/Esc hint strip (EKH)");
+assert(css.includes("residual-filter-empty-keys") && /residual-filter-empty-keys[\s\S]*?margin-top:\s*8px/.test(css), "main.css must scope residual-filter-empty-keys spacing (EKH)");
+assert(keysMap.includes("EKH1") && keysMap.includes("desk-keys") && keysMap.includes("residual-filter-empty-kbd-hints.png"), "keys feature map must name residual empty kbd hints EKH / proof");
+assert(traceMap.includes("EKH1") && traceMap.includes("desk-keys") && traceMap.includes("residual-filter-empty-kbd-hints.png") && traceMap.includes("data-residual-filter-empty-keys"), "trace feature map must name residual empty kbd hints EKH / proof");
+assert(passportMap.includes("EKH1") && passportMap.includes("desk-keys") && passportMap.includes("residual-filter-empty-kbd-hints.png") && passportMap.includes("data-residual-filter-empty-keys"), "passport feature map must name residual empty kbd hints EKH / proof");
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
