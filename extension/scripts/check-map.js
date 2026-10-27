@@ -842,6 +842,11 @@ assert(js.includes('role="slider"') && js.includes("aria-valuenow") && js.includ
 assert(css.includes(".traj-zoom-pct:focus-visible") && /traj-zoom-pct:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-pct:focus-visible 1px ADE ring");
 assert(traceMap.includes("ZPK1") && traceMap.includes("zoom percentage") && traceMap.includes("trajectory-zoom-pct-keyboard.png"), "trace feature map must name ZPK1 / zoom percentage keyboard / proof");
 
+assert(driver.includes("ZPH1") && driver.includes("ZPH3") && driver.includes("trajectory-zoom-pct-hover-cue.png") && driver.includes("trajZoomPct"), "verify driver must prove traj zoom pct hover cue ZPH1–ZPH3");
+assert(css.includes(".traj-zoom-pct:hover") && /traj-zoom-pct:hover[\s\S]*?18%/.test(css) && css.includes(".traj-zoom-btn:hover"), "main.css must theme .traj-zoom-pct:hover lift matching zoom-btn hover 18%");
+assert(traceMap.includes("ZPH1") && traceMap.includes(":hover") && traceMap.includes("trajectory-zoom-pct-hover-cue.png"), "trace feature map must name ZPH1 / :hover / proof");
+
+
 assert(driver.includes("ZAL1") && driver.includes("ZAL3") && driver.includes("trajectory-zoom-pct-aria-live.png") && driver.includes("trajZoomLive"), "verify driver must prove traj zoom pct aria-live ZAL1–ZAL3");
 assert(js.includes("announceTrajZoom") && js.includes("trajZoomLive") && js.includes("data-traj-zoom-live") && js.includes("Trajectory zoom"), "desk.js traj zoom pct aria-live announceTrajZoom / #trajZoomLive missing");
 assert(css.includes("traj-zoom-live") && css.includes("#trajZoomLive"), "main.css must theme #trajZoomLive / .traj-zoom-live");

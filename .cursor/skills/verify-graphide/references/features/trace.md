@@ -140,6 +140,7 @@ Driver assertions:
 - ZC1–ZC3: `#trajZoomBar` visible; zoom in changes `data-traj-scale` / `#trajZoomPct` off 100%; Fit resets to 1 / 100%; screenshot `verification/trajectory-zoom-chrome.png`
 - ZFV1–ZFV3: `#trajZoomBar` `.traj-zoom-btn` (`#trajZoomIn` / `#trajZoomOut` / `#trajZoomFit`) get dedicated `:focus-visible` 1px focusBorder ring + hover-matching bg lift (overrides global `button:focus-visible` 2px); screenshot `verification/trajectory-zoom-focus-visible.png`
 - ZPK1–ZPK3: `#trajZoomPct` / `[data-traj-zoom-pct]` is a focusable zoom percentage slider (`role="slider"` `tabindex="0"` `aria-valuenow`) — ArrowUp/ArrowDown (and Left/Right) step via `trajZoomBy`, Home fits via `trajZoomFit`; `:focus-visible` ADE 1px ring; screenshot `verification/trajectory-zoom-pct-keyboard.png`
+- ZPH1–ZPH3: `#trajZoomPct` / `.traj-zoom-pct:hover` lifts focusBorder-tinted bg matching `.traj-zoom-btn:hover` (18% mix) + opacity 1; keyboard slider + ZPK `:focus-visible` unchanged; screenshot `verification/trajectory-zoom-pct-hover-cue.png`
 - ZAL1–ZAL3: keyboard zoom announces via persistent polite `#trajZoomLive` / `[data-traj-zoom-live]` (`Trajectory zoom N%` / `Trajectory zoom fit, N%`) outside paint-replaced slider; residual `#residualFilterLive` unchanged; screenshot `verification/trajectory-zoom-pct-aria-live.png`
 - `.graphide/stamps/` is still empty
 
@@ -163,7 +164,7 @@ Driver assertions:
   (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
   `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
   `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome + `.traj-zoom-btn:focus-visible` (ZFV)
-  + `#trajZoomPct` keyboard slider (ZPK: ArrowUp/Down/Home) + `#trajZoomLive` polite announce (ZAL),
+  + `#trajZoomPct` keyboard slider (ZPK: ArrowUp/Down/Home) + hover lift (ZPH) + `#trajZoomLive` polite announce (ZAL),
   (`+` / `−` / `0`), residual filter toggle + Trace `R`/`r` → `toggleTrajResidualFilter`,
   residual-filter clear-on-ws-leave via `setWorkspace` / `ADE_RESIDUAL_WS`,
   residual-filter empty chrome via `renderResidualFilterEmptyChrome` / `clearTrajResidualFilter`; legend clear-filter cue via `legendClearFilterCue` / `data-legend-clear-filter` when ON + bearings.

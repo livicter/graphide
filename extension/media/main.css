@@ -2599,6 +2599,12 @@ html.bright .traj-legend-chip {
   background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
   opacity: 1;
 }
+
+/* ADE traj zoom pct hover lift (ZPH1–ZPH3) — parity with .traj-zoom-btn:hover; ZPK focus-visible unchanged */
+.traj-zoom-pct:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  opacity: 1;
+}
 .traj-scale-layer {
   position: relative;
   transform-origin: 0 0;

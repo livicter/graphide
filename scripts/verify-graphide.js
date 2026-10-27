@@ -12284,6 +12284,167 @@ async function main() {
     );
     assertNoStampDir("ZPK4", "Traj zoom pct keyboard step did not write .graphide/stamps/");
 
+    // ADE traj zoom pct hover cue (ZPH1–ZPH3) — hover bg parity with .traj-zoom-btn:hover; ZPK focus-visible unchanged
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajZoomPct[data-traj-zoom-pct][role=\"slider\"]", { timeout: 8000 });
+    await page.click("#trajZoomFit");
+    await page.waitForTimeout(40);
+    // Clear any focus/hover so resting sample is clean
+    await page.mouse.move(8, 8);
+    await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      if (pct && typeof pct.blur === "function") pct.blur();
+    });
+    await page.waitForTimeout(40);
+    const zphRest = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const btn = document.getElementById("trajZoomIn");
+      if (!pct) return { present: false };
+      const cs = getComputedStyle(pct);
+      return {
+        present: true,
+        role: pct.getAttribute("role") || "",
+        tab: pct.getAttribute("tabindex") || "",
+        restBg: cs.backgroundColor,
+        restOpacity: cs.opacity,
+        restCursor: cs.cursor,
+        btnHoverRule: !!(btn && true),
+      };
+    });
+    await page.hover("#trajZoomPct");
+    await page.waitForTimeout(40);
+    const zphHover = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      const btn = document.getElementById("trajZoomIn");
+      if (!pct) return { present: false };
+      const cs = getComputedStyle(pct);
+      // Sample zoom-btn:hover token by temporarily forcing hover class via matched rule is hard;
+      // instead compare that hover bg differs from rest and cursor stays ew-resize.
+      return {
+        present: true,
+        hoverBg: cs.backgroundColor,
+        hoverOpacity: cs.opacity,
+        hoverCursor: cs.cursor,
+        tab: pct.getAttribute("tabindex") || "",
+        role: pct.getAttribute("role") || "",
+        text: (pct.textContent || "").trim(),
+        btnPresent: !!btn,
+      };
+    });
+    // Also sample zoom-in button hover for bg parity
+    await page.mouse.move(8, 8);
+    await page.waitForTimeout(20);
+    await page.hover("#trajZoomIn");
+    await page.waitForTimeout(40);
+    const zphBtnHover = await page.evaluate(() => {
+      const btn = document.getElementById("trajZoomIn");
+      if (!btn) return { present: false };
+      const cs = getComputedStyle(btn);
+      return { present: true, hoverBg: cs.backgroundColor };
+    });
+    // Zoom-btn :hover can resolve via global button cascade; assert pct hover uses the
+    // same focusBorder 18% token (color-mix → srgb a=0.18) and lifts above transparent rest.
+    const zphHoverIsFocusTint =
+      !!zphHover &&
+      typeof zphHover.hoverBg === "string" &&
+      (/0\.18\)/.test(zphHover.hoverBg) ||
+        /\/ 0\.18\)/.test(zphHover.hoverBg) ||
+        /0\.478431/.test(zphHover.hoverBg));
+    const zph1ok = !!(
+      zphRest &&
+      zphRest.present &&
+      zphRest.role === "slider" &&
+      zphRest.tab === "0" &&
+      (zphRest.restBg === "rgba(0, 0, 0, 0)" || zphRest.restBg === "transparent") &&
+      zphHover &&
+      zphHover.present &&
+      zphHover.hoverBg &&
+      zphHover.hoverBg !== zphRest.restBg &&
+      zphHoverIsFocusTint &&
+      zphHover.hoverCursor === "ew-resize" &&
+      (zphHover.hoverOpacity === "1" || Number(zphHover.hoverOpacity) === 1) &&
+      zphBtnHover &&
+      zphBtnHover.present &&
+      zphBtnHover.hoverBg &&
+      zphBtnHover.hoverBg !== "rgba(0, 0, 0, 0)"
+    );
+    record(
+      "ZPH1",
+      "Trace #trajZoomPct :hover lifts focusBorder 18% tint above transparent rest; cursor ew-resize; opacity 1 (btn hover also non-transparent)",
+      !!zph1ok,
+      JSON.stringify({ rest: zphRest, hover: zphHover, btnHover: zphBtnHover, focusTint: !!zphHoverIsFocusTint })
+    );
+
+    // ZPH2: ZPK focus-visible still works after hover; keyboard unchanged
+    await page.mouse.move(8, 8);
+    await page.waitForTimeout(20);
+    await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      if (pct) pct.focus({ focusVisible: true });
+    });
+    await page.waitForTimeout(40);
+    const zphFocus = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      if (!pct) return { present: false };
+      const cs = getComputedStyle(pct);
+      return {
+        present: true,
+        focused: document.activeElement === pct,
+        focusVisible: typeof pct.matches === "function" ? pct.matches(":focus-visible") : false,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineOffset: cs.outlineOffset,
+        focusBg: cs.backgroundColor,
+      };
+    });
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(60);
+    const zphAfterUp = await page.evaluate(() => {
+      const pct = document.getElementById("trajZoomPct");
+      return {
+        text: pct ? (pct.textContent || "").trim() : "",
+        now: pct ? pct.getAttribute("aria-valuenow") || "" : "",
+        focused: document.activeElement === pct,
+      };
+    });
+    const zph2ok = !!(
+      zphFocus &&
+      zphFocus.present &&
+      zphFocus.focused &&
+      zphFocus.focusVisible &&
+      zphFocus.outlineStyle === "solid" &&
+      (zphFocus.outlineWidth === "1px" || zphFocus.outlineWidth === "1") &&
+      (zphFocus.outlineOffset === "1px" || zphFocus.outlineOffset === "1") &&
+      zphAfterUp.text !== "100%" &&
+      Number(zphAfterUp.now) > 100 &&
+      !!zphAfterUp.focused
+    );
+    record(
+      "ZPH2",
+      "After ZPH hover, ZPK :focus-visible 1px ring + ArrowUp still increment; slider keyboard intact",
+      !!zph2ok,
+      JSON.stringify({ focus: zphFocus, afterUp: zphAfterUp })
+    );
+
+    await page.hover("#trajZoomPct");
+    await page.waitForTimeout(40);
+    await shot(page, "trajectory-zoom-pct-hover-cue.png");
+    const zphShot = checks.find((c) => c.id === "shot:trajectory-zoom-pct-hover-cue.png");
+    const zph3ok = !!(zph1ok && zph2ok && zphShot && zphShot.pass);
+    record(
+      "ZPH3",
+      "screenshot trajectory-zoom-pct-hover-cue.png is not a black frame; ZPH hover cue proven",
+      !!zph3ok,
+      JSON.stringify({
+        shot: zphShot ? zphShot.detail : "missing",
+        zph1: !!zph1ok,
+        zph2: !!zph2ok,
+      })
+    );
+    assertNoStampDir("ZPH4", "Traj zoom pct hover cue step did not write .graphide/stamps/");
+    await page.click("#trajZoomFit");
+    await page.waitForTimeout(40);
+
     // ADE traj zoom pct aria-live announce (ZAL1–ZAL3) — polite #trajZoomLive outside paint-replaced slider
     await page.click('#workspaces [data-ws="trace"]');
     await page.waitForSelector("#trajZoomPct[data-traj-zoom-pct][role=\"slider\"]", { timeout: 8000 });
