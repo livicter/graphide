@@ -2559,6 +2559,12 @@ html.bright .traj-legend-chip {
 .traj-zoom-btn:hover {
   background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
 }
+/* ADE traj zoom-bar focus-visible (ZFV1–ZFV3) — ADE 1px ring + hover-matching bg; overrides global button 2px */
+.traj-zoom-btn:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+}
 .traj-zoom-fit { font-size: 10px; letter-spacing: 0.02em; text-transform: uppercase; padding: 0 8px; }
 .traj-zoom-pct {
   min-width: 38px;

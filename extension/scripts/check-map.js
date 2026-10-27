@@ -833,6 +833,11 @@ assert(js.includes('explorerWs === "trace"') && js.includes("trajZoomBy(TRAJ_SCA
 assert(css.includes("traj-zoom-bar") && css.includes("traj-scale-layer") && css.includes("traj-zoom-pct"), "Trace zoom chrome CSS missing");
 assert(traceMap.includes("ZC1") && traceMap.includes("zoom chrome") && traceMap.includes("trajectory-zoom-chrome.png"), "trace feature map must name zoom chrome ZC / proof");
 
+assert(driver.includes("ZFV1") && driver.includes("ZFV3") && driver.includes("trajectory-zoom-focus-visible.png") && driver.includes("trajZoomIn"), "verify driver must prove traj zoom-bar focus-visible ZFV1–ZFV3");
+assert(css.includes(".traj-zoom-btn:focus-visible") && /traj-zoom-btn:focus-visible[\s\S]*?outline-offset:\s*1px/.test(css), "main.css must theme .traj-zoom-btn:focus-visible 1px ADE ring");
+assert(traceMap.includes("ZFV1") && traceMap.includes(":focus-visible") && traceMap.includes("trajectory-zoom-focus-visible.png"), "trace feature map must name ZFV1 / :focus-visible / proof");
+
+
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
 {
   const immutableFs = require("fs");

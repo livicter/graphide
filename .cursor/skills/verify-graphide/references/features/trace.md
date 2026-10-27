@@ -138,6 +138,7 @@ Driver assertions:
   `verification/trajectory-residual-filter-key.png`, and
   `verification/residual-filter-ws-leave.png` are not black frames
 - ZC1–ZC3: `#trajZoomBar` visible; zoom in changes `data-traj-scale` / `#trajZoomPct` off 100%; Fit resets to 1 / 100%; screenshot `verification/trajectory-zoom-chrome.png`
+- ZFV1–ZFV3: `#trajZoomBar` `.traj-zoom-btn` (`#trajZoomIn` / `#trajZoomOut` / `#trajZoomFit`) get dedicated `:focus-visible` 1px focusBorder ring + hover-matching bg lift (overrides global `button:focus-visible` 2px); screenshot `verification/trajectory-zoom-focus-visible.png`
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
@@ -159,7 +160,7 @@ Driver assertions:
   `data-residual-hops` / `data-residual-seal`, keyboard step via `stepTrajectory`
   (`[` / `]` / arrows / `j` `k`), `.traj-empty` /
   `[data-traj-empty-chrome]` / `?traceEmpty=1` empty-state,
-  `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome
+  `#trajZoomBar` / `#trajScaleLayer` / `data-traj-scale` zoom chrome + `.traj-zoom-btn:focus-visible` (ZFV)
   (`+` / `−` / `0`), residual filter toggle + Trace `R`/`r` → `toggleTrajResidualFilter`,
   residual-filter clear-on-ws-leave via `setWorkspace` / `ADE_RESIDUAL_WS`,
   residual-filter empty chrome via `renderResidualFilterEmptyChrome` / `clearTrajResidualFilter`; legend clear-filter cue via `legendClearFilterCue` / `data-legend-clear-filter` when ON + bearings.

@@ -11901,6 +11901,84 @@ async function main() {
     );
     assertNoStampDir("SCH4", "Seal-chip hover cue step did not write .graphide/stamps/");
 
+    // ADE traj zoom-bar focus-visible (ZFV1–ZFV3) — ADE 1px ring + hover-matching bg; overrides global button 2px
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajZoomBar[data-traj-zoom-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const zfvProbe = async (sel) =>
+      page.evaluate((id) => {
+        const btn = document.getElementById(id);
+        if (!btn) return { present: false, id };
+        const rest = getComputedStyle(btn);
+        const restBg = rest.backgroundColor;
+        const restOutline = rest.outlineWidth;
+        btn.focus({ focusVisible: true });
+        const cs = getComputedStyle(btn);
+        return {
+          present: true,
+          id,
+          focused: document.activeElement === btn,
+          focusVisible: typeof btn.matches === "function" ? btn.matches(":focus-visible") : false,
+          clsBtn: btn.classList.contains("traj-zoom-btn"),
+          clsFit: btn.classList.contains("traj-zoom-fit"),
+          outlineStyle: cs.outlineStyle,
+          outlineWidth: cs.outlineWidth,
+          outlineOffset: cs.outlineOffset,
+          outlineColor: cs.outlineColor,
+          focusBg: cs.backgroundColor,
+          restBg,
+          restOutline,
+          label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+        };
+      }, sel.replace(/^#/, ""));
+    const zfvIn = await zfvProbe("#trajZoomIn");
+    const zfvOut = await zfvProbe("#trajZoomOut");
+    const zfvFit = await zfvProbe("#trajZoomFit");
+    const zfvRingOk = (o) =>
+      !!(
+        o &&
+        o.present &&
+        o.focused &&
+        o.focusVisible &&
+        o.clsBtn &&
+        o.outlineStyle === "solid" &&
+        (o.outlineWidth === "1px" || o.outlineWidth === "1") &&
+        (o.outlineOffset === "1px" || o.outlineOffset === "1") &&
+        o.focusBg &&
+        o.focusBg !== o.restBg
+      );
+    const zfv1ok = zfvRingOk(zfvIn) && /zoom in/i.test(zfvIn.label || "");
+    record(
+      "ZFV1",
+      "Trace #trajZoomIn :focus-visible shows ADE 1px focusBorder ring + hover-matching bg (not global 2px)",
+      !!zfv1ok,
+      JSON.stringify({ zin: zfvIn, zout: zfvOut })
+    );
+    const zfv2ok =
+      zfvRingOk(zfvFit) &&
+      zfvFit.clsFit &&
+      /fit/i.test(zfvFit.label || "") &&
+      zfvRingOk(zfvOut) &&
+      /zoom out/i.test(zfvOut.label || "");
+    record(
+      "ZFV2",
+      "Trace #trajZoomFit + #trajZoomOut :focus-visible show ADE 1px ring + hover-matching bg",
+      !!zfv2ok,
+      JSON.stringify({ zfit: zfvFit, zout: zfvOut })
+    );
+
+    await shot(page, "trajectory-zoom-focus-visible.png");
+    const zfvShot = checks.find((c) => c.id === "shot:trajectory-zoom-focus-visible.png");
+    record(
+      "ZFV3",
+      "screenshot trajectory-zoom-focus-visible.png is not a black frame; ZFV focus ring proven",
+      !!(zfvShot && zfvShot.pass),
+      zfvShot ? zfvShot.detail : "missing shot"
+    );
+    assertNoStampDir("ZFV4", "Traj zoom-bar focus-visible step did not write .graphide/stamps/");
+
+
+
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
