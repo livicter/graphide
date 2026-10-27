@@ -179,6 +179,7 @@ let deltaBodyKey = "";
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
 let dfBodyKey = "";
+let dfRoleFilter = null; // ADE RDF — lane role filter (graph-only)
 let lcCursor = -1;
 let lcWalk = { playing: false, timer: 0 };
 let lcBodyKey = "";
@@ -441,6 +442,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     overviewMixFilter = null;
     applyOverviewMixPaint();
+    return;
+  }
+  // ADE RDF: Escape clears Data-flow lane filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "dataflow" &&
+    dfRoleFilter
+  ) {
+    e.preventDefault();
+    dfRoleFilter = null;
+    paint({ animate: "none" });
     return;
   }
   // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
@@ -9744,16 +9757,14 @@ function toggleDfReview() {
 function resetDfOverview() {
   stopDfWalk();
   dfCursor = -1;
+  dfRoleFilter = null;
   paint({ animate: "none" });
 }
 
 function focusDfHop(hop) {
   if (!hop) return;
-  if (hop.from) {
-    selectedNodeId = idVal(hop.from);
-    peekSource(hop.from);
-  }
-  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+  // ADE RDF — Play / hop focus stays graph-only (no Evidence / peekSource / showHop).
+  if (hop.from) selectedNodeId = idVal(hop.from);
 }
 
 function dfRoleLabel(role) {
@@ -9761,6 +9772,31 @@ function dfRoleLabel(role) {
   if (role === "transform") return "Transforms";
   if (role === "store") return "Stores";
   return "Sinks";
+}
+
+function dfRoleWord(role) {
+  if (role === "source") return "Source";
+  if (role === "transform") return "Transform";
+  if (role === "store") return "Store";
+  return "Sink";
+}
+
+/** ADE RDF — role · channel (when endpoint) · short label; never file:line. */
+function dfNodeMeta(n) {
+  const parts = [dfRoleWord(n.role || "transform")];
+  if (n.channel) parts.push(String(n.channel));
+  else if (n.end_role) parts.push(String(n.end_role));
+  return parts.join(" · ");
+}
+
+function toggleDfRoleFilter(role) {
+  const next = role && dfRoleFilter === role ? null : role || null;
+  dfRoleFilter = next;
+  paint({ animate: "none" });
+}
+
+function dfNodeLaneDim(n) {
+  return !!(dfRoleFilter && n && n.role !== dfRoleFilter);
 }
 
 function renderDataflowBody() {
@@ -9771,7 +9807,7 @@ function renderDataflowBody() {
   const dfQ = (graphFilter.q || "").toLowerCase();
   const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
   const dfNodeMatch = (n) =>
-    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
+    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.channel) || dfHit(n.file);
   const dfHopMatch = (h) => {
     if (!dfQ) return true;
     const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
@@ -9793,7 +9829,16 @@ function renderDataflowBody() {
     }
   }
   if (!nodes.length || !hops.length) {
-    return '<div class="empty">No Steiner Reads / Writes / Publishes / Subscribes on this flow. Data-flow reads derived movement only.</div>';
+    return (
+      '<div class="empty df-empty" data-df-empty="1">' +
+      "No Steiner Reads / Writes / Publishes / Subscribes on this flow. " +
+      "Data-flow shows derived movement only — try " +
+      '<button type="button" class="crumb-btn" data-ws="overview">Overview Play</button>' +
+      " or " +
+      '<button type="button" class="crumb-btn" data-ws="sequence">Sequence</button>' +
+      " for control-flow behavior." +
+      "</div>"
+    );
   }
   if (dfCursor >= hops.length) dfCursor = hops.length - 1;
   const hot = dfCursor >= 0 ? hops[dfCursor] : null;
@@ -9813,21 +9858,29 @@ function renderDataflowBody() {
       ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
     "</span></div>";
-  const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
+  // ADE RDF — always show all four lanes with counts (empty lanes stay visible).
+  const stages = ["source", "transform", "store", "sink"];
   const stageCols = stages
     .map((role) => {
       const col = nodes.filter((n) => n.role === role);
+      const laneOn = dfRoleFilter === role;
+      const laneDim = !!(dfRoleFilter && dfRoleFilter !== role);
       const cards = col
         .map((n) => {
-          const on = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
-          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const on =
+            (hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id))) ||
+            (selectedNodeId && idVal(selectedNodeId) === idVal(n.id));
           const match = dfNodeMatch(n);
+          const roleDim = dfNodeLaneDim(n);
+          const meta = dfNodeMeta(n);
           return (
             '<button type="button" class="df-node vnode kind-' +
             esc(n.kind || "Function") +
             (on ? " on" : "") +
             (dfQ && match ? " hit" : "") +
-            (dfQ && !match ? " dim" : "") +
+            ((dfQ && !match) || roleDim ? " dim" : "") +
+            (roleDim ? " df-lane-dim" : "") +
+            (!roleDim && dfRoleFilter ? " df-lane-hit" : "") +
             '" data-id="' +
             esc(idVal(n.id)) +
             '" data-fqn="' +
@@ -9836,35 +9889,52 @@ function renderDataflowBody() {
             esc(n.kind || "") +
             '" data-df-role="' +
             esc(n.role) +
-            '"' +
+            '" data-rdf-meta="1"' +
             (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") +
             (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") +
             (n.file ? ' data-file="' + esc(n.file) + '"' : "") +
             '><span class="name">' +
             esc(shortOf(n.fqn)) +
             '</span> <span class="meta">' +
-            esc(n.kind || "") +
-            (ep ? " · " + esc(ep) : "") +
+            esc(meta) +
             "</span></button>"
           );
         })
         .join("");
       return (
-        '<div class="df-stage" data-df-role="' +
+        '<div class="df-stage' +
+        (laneOn ? " on" : "") +
+        (laneDim ? " dim" : "") +
+        '" data-df-role="' +
         role +
-        '"><div class="k">' +
+        '"><button type="button" class="df-lane-head' +
+        (laneOn ? " on" : "") +
+        '" data-df-lane="' +
+        role +
+        '" aria-pressed="' +
+        (laneOn ? "true" : "false") +
+        '"><span class="k">' +
         esc(dfRoleLabel(role)) +
-        "</div>" +
-        cards +
+        '</span><span class="df-lane-count" data-df-count="' +
+        col.length +
+        '">' +
+        col.length +
+        "</span></button>" +
+        (cards || '<div class="df-lane-empty">none</div>') +
         "</div>"
       );
     })
     .join("");
   const list = hopCards
     .map(({ h, i }) => {
+      const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+      const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+      const hopDim =
+        !!(dfRoleFilter && fromN && toN && fromN.role !== dfRoleFilter && toN.role !== dfRoleFilter);
       return (
         '<article class="df-hop expl-card' +
         (i === dfCursor ? " on" : "") +
+        (hopDim ? " dim" : "") +
         '" data-df-i="' +
         i +
         '" data-kind="' +
@@ -9880,13 +9950,13 @@ function renderDataflowBody() {
         '</div><div class="t">' +
         esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
         '</div><div class="b">' +
-        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
+        esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) +
         "</div></article>"
       );
     })
     .join("");
   return (
-    '<div class="df-page">' +
+    '<div class="df-page" data-rdf="1">' +
     review +
     '<div class="df-stages" id="dfStages" style="--df-n:' +
     stages.length +
@@ -9908,15 +9978,16 @@ function renderDataflowBody() {
 function dataflowWorkspaceKey() {
   const flow = dataflowFlow();
   const reading = dataflowOf(flow);
-  return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || ""].join("\0");
+  return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || "", dfRoleFilter || ""].join("\0");
 }
 
 function dataflowCanvasProps() {
   const reading = dataflowOf(dataflowFlow());
   return {
     nodes: reading.nodes.map((n) => {
-      const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+      const meta = dfNodeMeta(n);
       const paint = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
+      const roleDim = dfNodeLaneDim(n);
       return {
         id: idVal(n.id),
         fqn: n.fqn,
@@ -9926,9 +9997,9 @@ function dataflowCanvasProps() {
         endRole: n.end_role || "",
         channel: n.channel || "",
         file: paint.file || n.file || "",
-        dim: paint.dim,
-        hit: paint.hit,
-        ep,
+        dim: paint.dim || roleDim,
+        hit: paint.hit || (!!dfRoleFilter && !roleDim),
+        ep: meta,
       };
     }),
     hops: reading.hops.map((h, i) => ({
@@ -9940,8 +10011,9 @@ function dataflowCanvasProps() {
     cursor: dfCursor,
     onNodeClick: (id) => {
       if (!id) return;
+      // ADE RDF — graph-only highlight (no peekSource / Evidence).
       selectedNodeId = id;
-      peekSource(id);
+      paint({ animate: "none" });
     },
     onHopClick: (i) => {
       if (!Number.isFinite(i)) return;
@@ -9962,8 +10034,27 @@ function patchDataflowChrome() {
   });
   canvas.querySelectorAll("#dfStages .df-node").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
+    const role = el.getAttribute("data-df-role");
+    const on = !!(
+      (hot && (idVal(hot.from) === id || idVal(hot.to) === id)) ||
+      (selectedNodeId && idVal(selectedNodeId) === id)
+    );
     el.classList.toggle("on", on);
+    const roleDim = !!(dfRoleFilter && role !== dfRoleFilter);
+    el.classList.toggle("dim", roleDim);
+    el.classList.toggle("df-lane-dim", roleDim);
+    el.classList.toggle("df-lane-hit", !!(dfRoleFilter && !roleDim));
+  });
+  canvas.querySelectorAll("#dfStages .df-stage").forEach((el) => {
+    const role = el.getAttribute("data-df-role");
+    el.classList.toggle("on", dfRoleFilter === role);
+    el.classList.toggle("dim", !!(dfRoleFilter && dfRoleFilter !== role));
+  });
+  canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el) => {
+    const role = el.getAttribute("data-df-lane");
+    const on = dfRoleFilter === role;
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
   });
   const status = document.getElementById("dfStatus");
   const flow = dataflowFlow();
@@ -10014,14 +10105,26 @@ function bindDataflowPage() {
       focusDfHop(dfHops()[i]);
     };
   });
+  canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      toggleDfRoleFilter(el.getAttribute("data-df-lane"));
+    };
+  });
   canvas.querySelectorAll("#dfStages .df-node, #dfCanvas .df-node").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const id = el.getAttribute("data-id");
-      if (id) {
-        selectedNodeId = id;
-        peekSource(id);
-      }
+      if (!id) return;
+      // ADE RDF — graph-only highlight (no peekSource / Evidence).
+      selectedNodeId = id;
+      paint({ animate: "none" });
+    };
+  });
+  canvas.querySelectorAll(".df-empty [data-ws]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      setWorkspace(el.getAttribute("data-ws"), true);
     };
   });
   const overview = document.getElementById("dfOverview");

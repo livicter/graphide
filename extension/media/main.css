@@ -4427,6 +4427,61 @@ html.bright .src-line.scroll-drive-active {
   opacity: 0.7;
   margin-bottom: 6px;
 }
+/* ADE RDF — richer interactive Data-flow lanes */
+.df-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--g-radius, 6px);
+  background: var(--vscode-editor-background);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.df-lane-head .k {
+  margin: 0;
+  opacity: 0.85;
+}
+.df-lane-head .df-lane-count,
+.df-lane-count[data-df-count] {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 1.4em;
+  text-align: right;
+  opacity: 0.9;
+}
+.df-lane-head.on,
+.df-stage.on > .df-lane-head {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+  border-color: var(--vscode-focusBorder);
+}
+.df-stage.dim {
+  opacity: 0.42;
+}
+.df-node.df-lane-dim,
+.df-hop.dim {
+  opacity: 0.38;
+}
+.df-node.df-lane-hit {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+}
+.df-lane-empty {
+  font-size: 10px;
+  opacity: 0.55;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 2px 8px;
+}
+.df-empty[data-df-empty="1"] .crumb-btn {
+  margin: 0 4px;
+}
 .df-node {
   position: relative;
   left: auto;

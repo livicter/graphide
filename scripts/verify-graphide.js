@@ -36272,6 +36272,109 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
+    // ADE Richer Data-flow lanes (RDF1–RDF3) — interactive lanes + graph-only walk
+    if (dataflowDesk.overview) await page.click("#dfOverview");
+    await page.waitForTimeout(80);
+    await page.waitForSelector("#dfStages .df-lane-head[data-df-lane]", { timeout: 8000 });
+    const rdf1 = await page.evaluate(() => {
+      const heads = [...document.querySelectorAll("#dfStages .df-lane-head[data-df-lane]")];
+      const roles = heads.map((el) => el.getAttribute("data-df-lane"));
+      const counts = heads.map((el) => {
+        const c = el.querySelector("[data-df-count]");
+        return c ? Number(c.getAttribute("data-df-count") || c.textContent || 0) : -1;
+      });
+      const metas = [...document.querySelectorAll("#dfStages .df-node[data-rdf-meta='1'] .meta")].map(
+        (el) => (el.textContent || "").trim()
+      );
+      const looksRole =
+        metas.length > 0 &&
+        metas.every((t) => /Source|Transform|Store|Sink/i.test(t)) &&
+        !metas.some((t) => /:\d+/.test(t));
+      return {
+        lanes: heads.length,
+        roles,
+        counts,
+        metaN: metas.length,
+        sampleMeta: metas[0] || "",
+        looksRole,
+        page: !!document.querySelector('.df-page[data-rdf="1"]'),
+      };
+    });
+    const rdf1ok = !!(
+      rdf1 &&
+      rdf1.page &&
+      rdf1.lanes === 4 &&
+      ["source", "transform", "store", "sink"].every((r) => rdf1.roles.includes(r)) &&
+      rdf1.counts.every((n) => Number.isFinite(n) && n >= 0) &&
+      rdf1.metaN >= 1 &&
+      rdf1.looksRole
+    );
+    record(
+      "RDF1",
+      "Data-flow shows four interactive lane headers with counts; nodes use role·channel meta (not file:line)",
+      !!rdf1ok,
+      JSON.stringify(rdf1)
+    );
+
+    await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      const hop = document.getElementById("hopCard");
+      if (hop) hop.hidden = true;
+    });
+    const sourceLane = await page.$('#dfStages .df-lane-head[data-df-lane="source"]');
+    if (sourceLane) await sourceLane.click();
+    await page.waitForTimeout(60);
+    await page.click("#dfNext");
+    await page.waitForTimeout(80);
+    const rdf2 = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      const hop = document.getElementById("hopCard");
+      const head = document.querySelector('#dfStages .df-lane-head[data-df-lane="source"]');
+      const dimmed = document.querySelectorAll("#dfStages .df-node.df-lane-dim, #dfStages .df-stage.dim").length;
+      const hit = document.querySelectorAll("#dfStages .df-node.df-lane-hit, #dfStages .df-stage.on").length;
+      const onHop = document.querySelector("#dfHops .df-hop.on");
+      return {
+        srcHidden: !src || src.hidden,
+        hopHidden: !hop || hop.hidden,
+        lanePressed: !!(head && head.getAttribute("aria-pressed") === "true"),
+        dimmed,
+        hit,
+        hopOn: !!(onHop),
+      };
+    });
+    const rdf2ok = !!(
+      rdf2 &&
+      rdf2.srcHidden &&
+      rdf2.hopHidden &&
+      rdf2.lanePressed &&
+      (rdf2.dimmed > 0 || rdf2.hit > 0) &&
+      rdf2.hopOn
+    );
+    record(
+      "RDF2",
+      "Lane filter + df Next highlight graph-only (no Evidence / source pane / hop card)",
+      !!rdf2ok,
+      JSON.stringify(rdf2)
+    );
+
+    await page.click("#dfOverview");
+    await page.waitForTimeout(60);
+    await shot(page, "dataflow-richer-lanes.png");
+    const rdfShot = checks.find((c) => c.id === "shot:dataflow-richer-lanes.png");
+    const rdf3ok = !!(rdf1ok && rdf2ok && rdfShot && rdfShot.pass);
+    record(
+      "RDF3",
+      "screenshot dataflow-richer-lanes.png not black; richer Data-flow lanes proven",
+      !!rdf3ok,
+      JSON.stringify({
+        shot: rdfShot ? rdfShot.detail : "missing",
+        rdf1: !!rdf1ok,
+        rdf2: !!rdf2ok,
+      })
+    );
+    assertNoStampDir("RDF4", "Richer Data-flow lanes step did not write .graphide/stamps/");
+
     assertNoStampDir("F8", "Data-flow step did not write .graphide/stamps/");
 
     const lifecycleSnap = loadLifecycleSnap();

@@ -461,6 +461,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
+const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
@@ -924,6 +925,34 @@ assert((() => {
 })(), "focusWalkStop must stay graph-only (selectedNodeId; no peekSource)");
 assert(css.includes(".feat-chip-caption") && css.includes('data-sbc-caption'), "main.css must theme .feat-chip-caption / data-sbc-caption");
 assert(overviewMap.includes("SBC1") && overviewMap.includes("feat-chip-caption") && overviewMap.includes("story-behavior-captions.png") && overviewMap.includes("peekSource"), "overview feature map must name SBC / feat-chip-caption / proof / no peekSource");
+
+assert(driver.includes("RDF1") && driver.includes("RDF3") && driver.includes("dataflow-richer-lanes.png") && driver.includes("df-lane-head"), "verify driver must prove richer Data-flow lanes RDF1–RDF3");
+assert(js.includes("dfRoleFilter") && js.includes("toggleDfRoleFilter") && js.includes("dfNodeMeta") && js.includes("df-lane-head") && js.includes('data-rdf-meta="1"'), "desk.js must own dfRoleFilter / toggleDfRoleFilter / dfNodeMeta / lane heads");
+assert((() => {
+  const start = js.indexOf("function focusDfHop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noShowHop = !/showHop\s*\(/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noShowHop && setsSelection;
+})(), "focusDfHop must stay graph-only (selectedNodeId; no peekSource / showHop)");
+assert(css.includes(".df-lane-head") && css.includes(".df-lane-count") && css.includes("df-lane-dim"), "main.css must theme .df-lane-head / counts / dim");
+assert(dataflowMap.includes("RDF1") && dataflowMap.includes("df-lane-head") && dataflowMap.includes("dataflow-richer-lanes.png") && dataflowMap.includes("peekSource"), "dataflow feature map must name RDF / df-lane-head / proof / no peekSource");
+
 
 
 
