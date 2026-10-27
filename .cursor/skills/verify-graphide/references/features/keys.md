@@ -10,58 +10,9 @@ second command palette and not an agent stamp.
   is already open (`K17`) — modal chrome must not swallow the second `?`.
   Opening Keys closes Ask (`K18`), same exclusive chrome as Export (`K18b`). Opening Ask closes Keys (`K18c`) and Export (`K18d`). Opening Export closes Keys (`K18e`). Opening Keys closes Export (`K18f`). Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`). Opening Ask closes Evidence (`K18m`). Opening Ask closes Lens (`K18n`). Opening Ask closes Route (`K18o`). Opening Keys closes Evidence (`K18p`). Opening Keys closes Lens (`K18q`). Opening Keys closes Route (`K18r`). Opening Export closes Evidence (`K18s`). Opening Export closes Lens (`K18t`). Opening Export closes Route (`K18u`). Opening Evidence closes Ask (`K18v`). Opening Lens closes Ask (`K18w`). Opening Route closes Ask (`K18x`). Opening Evidence closes Keys (`K18y`). Opening Evidence closes Export (`K18z`). Opening Lens closes Keys (`K18aa`). Opening Lens closes Export (`K18ab`). Opening Route closes Keys (`K18ac`). Opening Route closes Export (`K18ad`). Opening Evidence closes Lens (`K18ae`). Opening Evidence closes Route (`K18af`). Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find hides the hover tip (`K19`, `K19b`, `K19c`, Evidence `K19d`, Present `K19e`, Lens `K19f`, Route `K19g`, Find `K19h`) and clears the toast (`K20`, Export `K20b`, Ask `K20c`, Evidence `K20d`, Present `K20e`, Lens `K20f`, Route `K20g`, Find `K20h`). `#keysClose` and Escape hide it. `/` is Find. Do not steal it.
 - Sheet lists the live desk keys: `1`–`9` workspaces, `/` find, `?` this
-  sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH on Map (and other desks); on Trace/Passport `R` residual filter (`data-keys-r-binding` / `data-keys-residual-hint`, KH1–KH3; pressed + toast KP1–KP3; Passport pressed proof PKP1–PKP3), `L` LENS,
+  sheet, `S` stamp, `X` skip, `P` play, `[` `]` step, `R` PATH, `L` LENS,
   `E` ego, `F` present, `D` day / night, `+` `−` zoom, `0` fit, Backspace
-  back; on Trace Keys also ↑/↓ Trace zoom pct · Home fit (`data-keys-row="traj-zoom"`,
-  KZH1–KZH3). Assert the text. Do not invent shortcuts.
-- ADE Keys residual-filter hint (KH1–KH3): `#keysPane` R row is workspace-aware via
-  `syncKeysRRow` in `desk.js`. Trace/Passport open Keys → `data-keys-row="r"` with
-  `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and binding
-  text `residual filter` (not PATH-only). Map (and other desks) keep
-  `data-keys-r-binding="path"` / `data-keys-residual-hint="0"` and text `PATH`.
-  Proof: `verification/keys-residual-filter.png` (Trace Keys). Existing `keys.png`
-  stays the Map Review snap. Opening Keys / switching workspace while Keys is open
-  refreshes the R row; no second sheet.
-- ADE Keys R pressed-state + residual-filter toast (KP1–KP3): when Trace/Passport and
-  `trajResidualFilter===true`, `[data-keys-row="r"]` mirrors ON via `aria-pressed="true"`,
-  `data-keys-r-pressed="1"`, and classes `on` / `pressed` (clears when filter OFF or leaving
-  Trace/Passport). `toggleTrajResidualFilter` / `clearTrajResidualFilter` call `flashToast`
-  with `Residuals on` (`ok`) / `Residuals off` (`skip`); no-op clear when already off does
-  not toast. Covers R key, legend toggle, Passport sticky toggle, and clear affordances.
-  Proof: `verification/keys-residual-pressed.png` (Trace Keys + filter ON).
-- ADE Passport Keys pressed-state proof (PKP1–PKP3): Passport path parity for the same
-  `syncKeysRRow` pressed chrome. Open Passport, residual filter ON (R / sticky toggle),
-  open Keys → `[data-keys-row="r"]` has `aria-pressed="true"` / `data-keys-r-pressed="1"` /
-  classes `on` / `pressed` and residual-filter binding; OFF clears pressed; leave to Map
-  clears pressed + binding → PATH. Does **not** re-assert Trace KP. Prefer PKP — KP is
-  Trace pressed+toast.
-  Proof: `verification/passport-keys-residual-pressed.png` (Passport Keys + filter ON).
-- ADE Keys Trace/Passport section header (KA1–KA3): when Trace/Passport (and Keys open /
-  sync path), `#keysPane` shows `#keysAdeSection` (`.keys-section` / `data-keys-section="ade"` /
-  `data-keys-ws="trace|passport"`) labeled **Trace · residual bindings** / **Passport · residual
-  bindings** immediately above the R residual row via `syncKeysAdeSection` (called from
-  `syncKeysRRow`). Map and other desks hide/clear the section (`hidden`, no `data-keys-ws`).
-  Proof: `verification/keys-ade-section.png` (Trace Keys). Prefer KA ids — KS is Trace keyboard
-  node-step.
-- ADE Keys Trace zoom pct keyboard hint (KZH1–KZH3): Trace-only `#keysPane` row
-  `[data-keys-row="traj-zoom"]` / `data-keys-traj-zoom-hint` documents `#trajZoomPct`
-  ArrowUp/Down step + Home fit (ZPK), via `syncKeysTrajZoomHint`. Map and Passport keep the
-  row `hidden` / hint `0` (no Passport traj zoom bar). Does **not** replace Map `+` `−` / `0`
-  zoom line. Proof: `verification/keys-zoom-pct-hint.png` (Trace Keys). Prefer KZH — ZPK is
-  the slider behavior; ZAL is aria-live.
-- ADE residual-filter dedicated aria-live (ALR1–ALR3): `#residualFilterLive`
-  (`[data-residual-filter-live]` / `role="status"` / `aria-live="polite"` / `.sr-only`) is a
-  persistent AT live region updated by `syncResidualFilterLive` from
-  `toggleTrajResidualFilter` / `clearTrajResidualFilter` (and ws-leave clear). Copy:
-  `Residual filter on, N matching` / `Residual filter off` (N from
-  `passportResidualTrajIds().size`). Does **not** replace `#toast` / `flashToast` Residuals
-  on/off. Proof: `verification/residual-filter-aria-live.png` (Trace + filter ON). Prefer ALR —
-  AL is Trace adj-residual legend.
-- ADE residual-filter live count paint refresh (LRP1–LRP3): while `trajResidualFilter` stays ON,
-  Trace/Passport paint paths (`paintTrajectoryWorkspace` / `paintPassportWorkspace`) call
-  `syncResidualFilterLive(true)` so `#residualFilterLive` `data-filter-residual-count` + text
-  stay current when bearings change without a toggle (Approve / focus / fixture). No toast on
-  paint refresh. Proof: `verification/residual-filter-live-paint-refresh.png`. Prefer LRP. Empty chrome Clear residual filter `:focus-visible` ring matches CC/PCF (CFV1–CFV3); proof `verification/residual-filter-clear-focus-visible.png`. Prefer CFV. Trace legend / Passport sticky residual-filter toggles get the same ADE chrome `:focus-visible` outline themed to warning residual (TFV1–TFV3); proof `verification/residual-filter-toggle-focus-visible.png`. Prefer TFV. Escape clears residual filter when ON on Trace/Passport after chrome owners (Keys/Export/llm/source/route/lens/present) via `clearTrajResidualFilter` (ESC1–ESC3); proof `verification/residual-filter-escape-clear.png`. Prefer ESC. Residual-filter count chips (`.residual-filter-count` / `.passport-residual-filter-count`) are keyboard-reachable `role="status"` with `tabindex="0"` + warning-themed `:focus-visible` when filter ON (CCF1–CCF3); Enter/Space does not clear (Clear filter / Escape remain). Proof `verification/residual-filter-count-chip-focus.png`. Prefer CCF. When filter ON, Trace/Passport count chips get pressed/ON visual parity with the residual-filter toggle (inset shadow + stronger warning mix) while hosts keep ON cues (FHP1–FHP3). Proof `verification/residual-filter-count-host-parity.png`. Prefer FHP. Trace `#trajEdgeLegend` and Passport `.passport-residual` hosts share one residual-filter ON cue language — warning `outline` 1px / offset 2px (HOP1–HOP3); Passport no longer uses a distinct ON inset. Proof `verification/residual-filter-host-on-cue-parity.png`. Prefer HOP. Clear-filter chips (legend CC / sticky PCF / empty FE) get themed `:active`/`.press` flash — darker hoverBackground mix + inset 1px — beyond global `button:active` scale (CAF1–CAF3). Proof `verification/residual-filter-clear-active-flash.png`. Prefer CAF. Residual-filter count chips toast a non-clearing hint on Enter/Space/click (`flashToast` skip: filter stays ON — use Clear, R, or Escape) without clearing (CCT1–CCT3). Proof `verification/residual-filter-count-chip-toast-hint.png`. Prefer CCT. Clear-filter chips (legend CC / sticky PCF / empty FE) toast **Residual filter cleared** (ok) on activate via `clearTrajResidualFilter("clear-chip")` — distinct from Escape/Keys-R-off **Residuals off** (skip) (CLT1–CLT3). Proof `verification/residual-filter-clear-confirm-toast.png`. Prefer CLT. Residual-filter toggles (Trace legend / Passport sticky) get themed `:active`/`.press` flash — darker warning residual mix + inset 1px — beyond global `button:active` scale (TAF1–TAF3). Proof `verification/residual-filter-toggle-active-flash.png`. Prefer TAF. Clear-filter chips (legend CC / sticky PCF / empty FE) restore keyboard focus to the matching residual-filter toggle after `clearTrajResidualFilter("clear-chip")` paint (CFR1–CFR3); Escape path unchanged. Proof `verification/residual-filter-clear-focus-return.png`. Prefer CFR. Residual-filter count chips (`.residual-filter-count` / `.passport-residual-filter-count`) get themed `:active`/`.press` flash — darker warning residual mix + inset 1px, darker than FHP 28% resting — beyond global `button:active` scale (CNA1–CNA3). Proof `verification/residual-filter-count-active-flash.png`. Prefer CNA. Keys R row (`#keysPane li[data-keys-row="r"]`) when residual-bound (`data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"`) gets themed `:active`/`.press` flash — darker warning mix + inset 1px — distinct from KP resting ON color/opacity/kbd (KAF1–KAF3). Proof `verification/keys-r-active-flash.png`. Prefer KAF. Residual-filter count chips (`.residual-filter-count` / `.passport-residual-filter-count`) get a subtle warning `:hover` lift above FHP 28% with `cursor:help` — informational, not Clear blue (CHC1–CHC3). Proof `verification/residual-filter-count-hover-cue.png`. Prefer CHC. Residual-filter toggles (Trace legend / Passport sticky) get a warning `:hover` lift above ON 28% (42% mix) with `cursor:pointer` — activatable, distinct from CHC count `cursor:help` and Clear blue (THC1–THC3). Proof `verification/residual-filter-toggle-hover-cue.png`. Prefer THC. Clear-filter chips (legend CC / sticky PCF / empty FE) get a dedicated blue `:hover` lift above resting button-background with `cursor:pointer` — activatable, distinct from CHC help and THC warning (CLC1–CLC3). Proof `verification/residual-filter-clear-hover-cue.png`. Prefer CLC. Residual-filter empty chrome (Trace + Passport) shows a compact `desk-keys` hint strip (`<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear`) under Clear while the Clear button remains (EKH1–EKH3). Proof `verification/residual-filter-empty-kbd-hints.png`. Prefer EKH.
+  back. Assert the text. Do not invent shortcuts.
 - Desk keys are bare keys (Shift allowed). Cmd / Ctrl chords belong to
   VS Code (save, cut, find, quick open) and fall through: `Cmd+S` never
   stamps, `Ctrl+X` never skips. Ctrl+Alt is AltGr on EU layouts, so it
@@ -148,29 +99,6 @@ Driver assertions:
 - Keys is not covered by Ask / export while open; close it before Evidence
   / ledger / Ask / Export suites so it does not stay on top of them
 - screenshot `verification/keys.png` is not a black frame
-- ADE KH1–KH3: Trace Keys open → `[data-keys-row="r"]` has `data-keys-r-binding="residual-filter"` / `data-keys-residual-hint="1"` and text includes `residual filter` (not sole PATH); Passport same; Map Keys → `path` / `0` / `PATH`. Screenshot `verification/keys-residual-filter.png` is not a black frame. No stamps.
-- ADE KZH1–KZH3: Trace Keys open → `[data-keys-row="traj-zoom"]` visible with `data-keys-traj-zoom-hint="1"` / `data-keys-workspace="trace"` and text includes Trace zoom pct + Home; Map/Passport Keys → row hidden / hint `0`; residual R row unchanged. Screenshot `verification/keys-zoom-pct-hint.png` is not a black frame. No stamps. Prefer KZH (ZPK is slider; ZAL is live).
-- ADE KP1–KP3: Trace residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed`) and `#toast` shows `Residuals on` (`ok`); toggle OFF → pressed cleared + `Residuals off` (`skip`); Map / leave clears pressed; no-op clear does not toast. Screenshot `verification/keys-residual-pressed.png` is not a black frame. No stamps.
-- ADE PKP1–PKP3: Passport residual ON → Keys R row pressed (`aria-pressed="true"` / `data-keys-r-pressed="1"` / `on`+`pressed` / residual-filter binding); OFF clears pressed; Map leave clears pressed + binding → PATH. Screenshot `verification/passport-keys-residual-pressed.png` is not a black frame. No stamps. Prefer PKP (KP is Trace).
-- ADE ALR1–ALR3: Trace residual ON → `#residualFilterLive[data-residual-filter-live]` (`aria-live="polite"` / `role="status"`) text matches `Residual filter on, N matching` (N = bearing count); OFF / clear → `Residual filter off`; `#toast` Residuals on/off still works separately. Screenshot `verification/residual-filter-aria-live.png` is not a black frame. No stamps. Prefer ALR (AL is adj-residual).
-- ADE LRP1–LRP3: residual filter ON → Approve/paint changes bearing N without toggle → `#residualFilterLive` text/`data-filter-residual-count` refresh to new N (no Residuals toast); filter OFF across Trace/Passport paint stays off; ALR toggle path still works. Screenshot `verification/residual-filter-live-paint-refresh.png` is not a black frame. No stamps. Prefer LRP.
-- ADE CFV1–CFV3: empty chrome Clear residual filter keyboard `:focus-visible` outline matches CC/PCF; screenshot `verification/residual-filter-clear-focus-visible.png`. Prefer CFV.
-- ADE TFV1–TFV3: Trace legend / Passport sticky residual-filter toggle keyboard `:focus-visible` outline themed to warning residual (1px / offset 1px); screenshot `verification/residual-filter-toggle-focus-visible.png`. Prefer TFV.
-- ADE ESC1–ESC3: Trace/Passport residual ON + Escape (no Keys/Export/etc. chrome) → `clearTrajResidualFilter` OFF; Keys/Export Escape still closes chrome first and leaves filter ON; OFF Escape is no-op. Screenshot `verification/residual-filter-escape-clear.png` is not a black frame. No stamps. Prefer ESC.
-- ADE CCF1–CCF3: Trace legend / Passport sticky residual-filter count chip keyboard-reachable (`tabindex="0"` `role="status"`) with warning-themed `:focus-visible` (1px / offset 1px); Enter/Space does not clear. Screenshot `verification/residual-filter-count-chip-focus.png`. Prefer CCF.
-- ADE FHP1–FHP3: Trace legend / Passport sticky residual-filter count chip pressed/ON visual parity with toggle (`background` ~28% warning mix + `inset` box-shadow) when host `data-residual-filter="on"`; hosts keep ON cues. Screenshot `verification/residual-filter-count-host-parity.png`. Prefer FHP.
-- ADE HOP1–HOP3: Trace↔Passport residual-filter host ON cue cross-parity — `#trajEdgeLegend[data-residual-filter=on]` and `.passport-residual[data-residual-filter=on]` share warning `outline` 1px / offset 2px (Passport ON inset removed). Screenshot `verification/residual-filter-host-on-cue-parity.png`. Prefer HOP.
-- ADE CAF1–CAF3: clear-filter `:active`/`.press` flash parity for legend CC / sticky PCF / empty FE — darker button-hoverBackground mix + inset 1px beyond global scale. Screenshot `verification/residual-filter-clear-active-flash.png`. Prefer CAF.
-- ADE CCT1–CCT3: residual-filter count chip Enter/Space/click non-clearing toast hint (filter stays ON — Clear / R / Escape); does not clear. Screenshot `verification/residual-filter-count-chip-toast-hint.png`. Prefer CCT.
-- ADE CLT1–CLT3: clear-chip confirm toast — legend/sticky/empty Clear activate → `Residual filter cleared` (ok); Escape/Keys-R-off keep `Residuals off` (skip). Screenshot `verification/residual-filter-clear-confirm-toast.png`. Prefer CLT.
-- ADE TAF1–TAF3: residual-filter toggle `:active`/`.press` flash parity for Trace legend / Passport sticky — darker warning residual mix + inset 1px beyond global scale (OFF and ON). Screenshot `verification/residual-filter-toggle-active-flash.png`. Prefer TAF.
-- ADE CFR1–CFR3: clear-chip focus return — after legend/sticky/empty Clear activates, focus moves to Trace `#trajEdgeLegend [data-residual-filter-toggle]` / Passport `#passportSign [data-passport-residual-filter-toggle]` (Escape unchanged). Screenshot `verification/residual-filter-clear-focus-return.png`. Prefer CFR.
-- ADE CNA1–CNA3: residual-filter count-chip `:active`/`.press` flash parity for Trace legend / Passport sticky — darker warning residual mix + inset 1px beyond FHP 28% resting / global scale. Screenshot `verification/residual-filter-count-active-flash.png`. Prefer CNA.
-- ADE KAF1–KAF3: Keys R row residual-bound `:active`/`.press` flash parity — darker warning mix + inset 1px distinct from KP resting ON; Map PATH unbound. Screenshot `verification/keys-r-active-flash.png`. Prefer KAF.
-- ADE CHC1–CHC3: residual-filter count-chip `:hover` cue for Trace legend / Passport sticky — warning bg lift above FHP 28% + `cursor:help`; not Clear blue pointer. Screenshot `verification/residual-filter-count-hover-cue.png`. Prefer CHC.
-- ADE THC1–THC3: residual-filter toggle `:hover` cue for Trace legend / Passport sticky — warning bg lift above ON 28% (42%) + `cursor:pointer`; distinct from CHC help and Clear blue. Screenshot `verification/residual-filter-toggle-hover-cue.png`. Prefer THC.
-- ADE CLC1–CLC3: clear-filter `:hover` cue for legend CC / sticky PCF / empty FE — blue bg/border lift above resting button-background + `cursor:pointer`; distinct from CHC help and THC warning. Screenshot `verification/residual-filter-clear-hover-cue.png`. Prefer CLC.
-- ADE EKH1–EKH3: residual-filter empty chrome keyboard hints — Trace/Passport empty shows `desk-keys` / `data-residual-filter-empty-keys` strip (`<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear`); Clear button remains. Screenshot `verification/residual-filter-empty-kbd-hints.png`. Prefer EKH.
 - Map altitude stays `xy=0`
 - `.graphide/stamps/` is still empty; no `{ type: "stamp" }` post
 - Cmd / Ctrl chords (`Ctrl+S`, `Cmd+S`, `Ctrl+X`, `Cmd+X`, `Cmd+F`,
@@ -203,9 +131,6 @@ Driver assertions:
   stays closed.
 - Do not add `data-component` / `data-testid`. `#keysBtn`, `#keysPane`,
   `#keysClose` are the hooks.
-- Residual-filter AT live region is `#residualFilterLive` / `[data-residual-filter-live]`
-  (`syncResidualFilterLive`); do not overload `#toast` for persistent filter state (ALR1–ALR3).
-  Paint refresh while filter ON must update live count without toast spam (LRP1–LRP3).
 - Do not invent a second drawing tool or a Mermaid cheatsheet.
 - `#keysPane` must stack above the desk (`z-index`) and start `hidden`.
 - Agents never stamp. The sheet is a reminder that `S` / `X` are human.

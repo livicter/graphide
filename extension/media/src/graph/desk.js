@@ -12,7 +12,6 @@ import {
   unmountSequenceCanvas,
   unmountReviewCanvas,
 } from "./sequence-canvas.jsx";
-import { TRAJECTORY_FIXTURE } from "./trajectory-fixture.js";
 
 export function bootDesk() {
   const vscode = acquireHost();
@@ -92,8 +91,8 @@ const LLM_PRESETS = {
 };
 let llmTok = 0;
 
-const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace", "passport"];
-const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1, passport: 1 };
+const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
+const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
 const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
 
 function reviewCanvasWorkspace(ws) {
@@ -175,13 +174,10 @@ let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
 let seqBodyKey = "";
-/** ADE SSR — participant focus id; graph-only highlight (null clears). */
-let seqPartFocusId = null;
 let deltaBodyKey = "";
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
 let dfBodyKey = "";
-let dfRoleFilter = null; // ADE RDF — lane role filter (graph-only)
 let lcCursor = -1;
 let lcWalk = { playing: false, timer: 0 };
 let lcBodyKey = "";
@@ -196,10 +192,6 @@ let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
-/** ADE OMC — Overview kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
-let overviewMixFilter = null;
-/** ADE CSC — Overview community-size filter; graph-only (never peekSource). null | bubbleId string */
-let overviewCommunityFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -436,59 +428,12 @@ document.addEventListener("keydown", (e) => {
     applyPresent(false);
     return;
   }
-  // ADE CSC: Escape clears Overview community-size filter when active.
-  if (
-    e.key === "Escape" &&
-    !e.defaultPrevented &&
-    explorerWs === "overview" &&
-    overviewCommunityFilter
-  ) {
-    e.preventDefault();
-    overviewCommunityFilter = null;
-    applyOverviewCommunityPaint();
-    return;
-  }
-  // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
-  if (
-    e.key === "Escape" &&
-    !e.defaultPrevented &&
-    explorerWs === "overview" &&
-    overviewMixFilter
-  ) {
-    e.preventDefault();
-    overviewMixFilter = null;
-    applyOverviewMixPaint();
-    return;
-  }
-  // ADE RDF: Escape clears Data-flow lane filter when active.
-  if (
-    e.key === "Escape" &&
-    !e.defaultPrevented &&
-    explorerWs === "dataflow" &&
-    dfRoleFilter
-  ) {
-    e.preventDefault();
-    dfRoleFilter = null;
-    paint({ animate: "none" });
-    return;
-  }
-  // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
-  if (
-    e.key === "Escape" &&
-    !e.defaultPrevented &&
-    (explorerWs === "trace" || explorerWs === "passport") &&
-    trajResidualFilter
-  ) {
-    e.preventDefault();
-    clearTrajResidualFilter();
-    return;
-  }
   // Cmd / Ctrl chords are VS Code's (save, cut, find, quick open): a reflex Cmd+S must not stamp. Ctrl+Alt is AltGr, so / [ ] still type.
   if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
   // A focused <select> (Ego hops, Ask host) owns its typeahead: "2" picks 2-hop, not workspace 2. Escape above still backs out.
   if (e.target && e.target.closest && e.target.closest("select")) return;
   // Holding a key auto-repeats keydown: toggles and actions (S X D F E R L P Backspace…) fire once; zoom / step / arrows repeat.
-  if (e.repeat && !/^(\+|=|-|_|\[|\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+  if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
   // Modal chrome owns the desk: S/X/R must not stamp / skip / PATH under Export, Keys, or Ask. Backspace still closes chrome below.
   // On Presentation Stage, Style / theme / zoom stay — let them through so Export/Keys do not steal stage chrome.
   // ? / F1 always toggle Keys (documented), even when Keys (or other chrome) is already open.
@@ -531,24 +476,6 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "a" || e.key === "A") {
       e.preventDefault();
       openAllPrograms();
-      return;
-    }
-  }
-  // ADE Trace zoom chrome (ZC): +/=/−/0 drive trajScale before Map zoomBy/fitChart.
-  if (explorerWs === "trace") {
-    if (e.key === "+" || e.key === "=") {
-      e.preventDefault();
-      trajZoomBy(TRAJ_SCALE_STEP);
-      return;
-    }
-    if (e.key === "-" || e.key === "_") {
-      e.preventDefault();
-      trajZoomBy(1 / TRAJ_SCALE_STEP);
-      return;
-    }
-    if (e.key === "0") {
-      e.preventDefault();
-      trajZoomFit();
       return;
     }
   }
@@ -628,15 +555,6 @@ document.addEventListener("keydown", (e) => {
     setEgoMode(!egoMode);
     return;
   }
-  // ADE Trace/Passport residual-filter key (RK/PM): R remaps on Trace+Passport (Map keeps PATH).
-  if (
-    (explorerWs === "trace" || explorerWs === "passport") &&
-    (e.key === "r" || e.key === "R")
-  ) {
-    e.preventDefault();
-    toggleTrajResidualFilter();
-    return;
-  }
   if (e.key === "r" || e.key === "R") {
     e.preventDefault();
     toggleRoute();
@@ -679,20 +597,6 @@ document.addEventListener("keydown", (e) => {
     else togglePathWalk();
     return;
   }
-  // ADE Trace keyboard node-step (KS): arrows + j/k alias existing [ ] → stepTrajectory.
-  // Programs-stack arrows return earlier; Map/path walks stay on their explorerWs branches.
-  if (explorerWs === "trace") {
-    if (e.key === "ArrowRight" || e.key === "j" || e.key === "J") {
-      e.preventDefault();
-      stepTrajectory(1);
-      return;
-    }
-    if (e.key === "ArrowLeft" || e.key === "k" || e.key === "K") {
-      e.preventDefault();
-      stepTrajectory(-1);
-      return;
-    }
-  }
   if (e.key === "[") {
     e.preventDefault();
     if (explorerWs === "delta") {
@@ -707,8 +611,6 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "lifecycle") {
       stopLcWalk();
       stepLcWalk(lcCursor < 0 ? 1 : -1);
-    } else if (explorerWs === "trace") {
-      stepTrajectory(-1);
     } else {
       stopPathWalk();
       stepPathWalk(pathWalk.i < 0 ? 1 : -1);
@@ -729,8 +631,6 @@ document.addEventListener("keydown", (e) => {
     } else if (explorerWs === "lifecycle") {
       stopLcWalk();
       stepLcWalk(1);
-    } else if (explorerWs === "trace") {
-      stepTrajectory(1);
     } else {
       stopPathWalk();
       stepPathWalk(1);
@@ -1436,19 +1336,6 @@ function softStayScrollDriveAcrossDeskRemount() {
 // Harness / desk glue — Slice remount soft stay (S1x).
 if (typeof window !== "undefined") {
   window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
-
-
-/** S1bq — Evidence open + warm stay (live base or matching last-stay): enter/exit remount soft-stays. */
-function evidenceScrollDriveStayLive() {
-  if (typeof isPresenting === "function" && isPresenting()) return false;
-  if (!sourcePane || sourcePane.hidden || !sourceId) return false;
-  return !!(
-    scrollDriveBase ||
-    (typeof scrollDriveLastStayMatches === "function" &&
-      scrollDriveLastStayMatches(String(sourceId)))
-  );
-}
-
 }
 
 /** S1y/S1z — desk workspace hop remounts the canvas mid ScrollDrive while Evidence
@@ -1876,8 +1763,6 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   if (!canvas) return;
   const lock = targetNodeId ? String(targetNodeId) : "";
   const el = findScrollDriveTargetEl(targetNodeId);
-  // S1bv — when just-restored fires inside the lock block, skip soft camX on this apply.
-  let keepRestoredCamX = false;
   if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
     // S1t — mid-scroll nest/line remap: seed base from current camTo and soft-follow
     // the new vnode (S1q cap). Avoid zoomToEl yank that discards S1r/S1s settle.
@@ -1888,9 +1773,6 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
     // S1w — just-restored: soft-stay but KEEP snapshot base (no camTo reseed / no zoomToEl).
     const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
     scrollDriveJustRestored = false;
-    // S1bv — remember just-restored across this apply so soft camX cannot walk the
-    // leave-stash / soft-restore base toward the vnode attractor on first flush.
-    keepRestoredCamX = justRestored;
     const softStay = remapping || justRestored;
     scrollDriveTargetLocked = lock;
     if (softStay) {
@@ -1910,9 +1792,7 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
       scrollDriveYNudgeOrigin = 0;
     }
     // Remap / first lock — idle settle may re-absorb soft cam into the new base.
-    // S1bv — just-restored base is already the stay; mark X settled so harness / idle
-    // do not soft-follow+absorb-walk it on the first flush.
-    scrollDriveCamXSettled = !!justRestored;
+    scrollDriveCamXSettled = false;
     scrollDriveCamYSettled = false;
   }
   // scrollRatio 0 → base focus; deeper scroll nudges cam Y — proves scroll moves the camera.
@@ -1922,11 +1802,9 @@ function applyScrollDriveCamera(scrollRatio, targetNodeId) {
   // Cap so it eases, never yanks. Macro LOD keeps its own path (no fight).
   // S1r absorbs camTo.x into scrollDriveBase on idle settle so a missing-el /
   // base-only path cannot spring back to the pre-follow X.
-  // S1bv — just-restored first flush keeps snapshot base X (no soft-follow walk).
-  const camX =
-    el && !keepRestoredCamX
-      ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
-      : scrollDriveBase.x;
+  const camX = el
+    ? scrollDriveSoftCamX(el, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP)
+    : scrollDriveBase.x;
   // S1u — soft-cap k toward micro base so macro→micro eases (S1k snaps uncapped).
   let camK = scrollDriveBase.k;
   if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
@@ -3100,20 +2978,7 @@ if (egoHopsEl)
     const n = parseInt(egoHopsEl.value, 10);
     egoHops = n === 2 ? 2 : 1;
     if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-      // S1bw — ego-hops remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-      const evidenceStay =
-        typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-        stashScrollDriveLastStay();
-      }
-      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-        stageFitRo.disconnect();
-        stageFitRo = null;
-      }
-      paint({ animate: "none", keepCam: !!evidenceStay });
-      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-        softStayScrollDriveAcrossDeskRemount();
-      }
+      paint({ animate: "none" });
       return;
     }
     applyEgoPaint();
@@ -3251,22 +3116,7 @@ window.addEventListener("message", (event) => {
   if (msg.type === "cancelled") {
     clearTimeout(previewTimer);
     finishWork();
-    // S1bz — cancelled remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-    if (snapshot) {
-      const evidenceStay =
-        typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-        stashScrollDriveLastStay();
-      }
-      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-        stageFitRo.disconnect();
-        stageFitRo = null;
-      }
-      paint({ animate: "none", keepCam: !!evidenceStay });
-      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-        softStayScrollDriveAcrossDeskRemount();
-      }
-    }
+    if (snapshot) paint({ animate: "none" });
     status.textContent = "cancelled";
     return;
   }
@@ -3501,23 +3351,7 @@ function applyPatch(msg) {
     consumeHarnessActions();
     return;
   }
-  // S1by — host patch remount while Evidence open: keepCam + soft-stay (vnode rebuild).
-  const evidenceStay =
-    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
-  paint({
-    animate: "none",
-    keepCam: evidenceStay || mapStageMounted() || !!canvas.querySelector(".stage"),
-  });
-  if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    softStayScrollDriveAcrossDeskRemount();
-  }
+  paint({ animate: "none", keepCam: mapStageMounted() || !!canvas.querySelector(".stage") });
 }
 
 function applyPreview(msg) {
@@ -3729,58 +3563,6 @@ function flashCanvas() {
   canvas.classList.add("swap");
 }
 
-/** ADE Keys Trace/Passport section header (KA1–KA3): show/hide #keysAdeSection by workspace. */
-function syncKeysAdeSection(ws) {
-  if (!keysPane) return;
-  const el = keysPane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection");
-  if (!el) return;
-  const titleEl = el.querySelector("[data-keys-section-title]") || el.querySelector(".keys-section-title");
-  const on = ws === "trace" || ws === "passport";
-  el.hidden = !on;
-  if (!on) {
-    el.removeAttribute("data-keys-ws");
-    if (titleEl) titleEl.textContent = "";
-    return;
-  }
-  el.setAttribute("data-keys-ws", ws);
-  if (titleEl) {
-    titleEl.textContent =
-      ws === "trace" ? "Trace · residual bindings" : "Passport · residual bindings";
-  }
-}
-
-/** ADE Keys Trace zoom pct keyboard hint (KZH1–KZH3): show Trace-only Keys row for ↑/↓/Home on #trajZoomPct. */
-function syncKeysTrajZoomHint(ws) {
-  if (!keysPane) return;
-  const row = keysPane.querySelector('[data-keys-row="traj-zoom"]');
-  if (!row) return;
-  const on = ws === "trace";
-  row.hidden = !on;
-  row.setAttribute("data-keys-traj-zoom-hint", on ? "1" : "0");
-  if (on) row.setAttribute("data-keys-workspace", "trace");
-  else row.removeAttribute("data-keys-workspace");
-}
-
-/** ADE Keys residual-filter hint (KH1–KH3) + pressed-state (KP1–KP3) + ADE section (KA1–KA3): workspace-aware R row on #keysPane. */
-function syncKeysRRow(ws) {
-  if (!keysPane) return;
-  if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
-  if (typeof syncKeysTrajZoomHint === "function") syncKeysTrajZoomHint(ws);
-  const row = keysPane.querySelector('[data-keys-row="r"]');
-  if (!row) return;
-  const textEl = row.querySelector("[data-keys-r-binding-text]");
-  const residual = ws === "trace" || ws === "passport";
-  row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
-  row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
-  if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
-  // ADE KP: mirror trajResidualFilter as pressed/on when Trace/Passport; clear on Map/leave or filter OFF.
-  const pressed = residual && !!trajResidualFilter;
-  row.setAttribute("aria-pressed", pressed ? "true" : "false");
-  row.setAttribute("data-keys-r-pressed", pressed ? "1" : "0");
-  row.classList.toggle("on", pressed);
-  row.classList.toggle("pressed", pressed);
-}
-
 function setKeysPane(on) {
   if (!keysPane) return;
   if (on) {
@@ -3798,7 +3580,6 @@ function setKeysPane(on) {
   keysPane.hidden = !on;
   keysPane.classList.toggle("open", !!on);
   if (keysBtn) keysBtn.classList.toggle("on", !!on);
-  if (on && typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
 }
 
 function setExportMenu(on) {
@@ -4533,51 +4314,30 @@ function setWorkspace(name, pin) {
   }
   // S1y/S1z — desk canvas hop remount mid-drive: stash stay + keepCam while Evidence
   // open (same sourceId). Map↔Slice (S1y); Lineage/Overview↔Slice and peer hops (S1z).
-  // S1br — list↔canvas: stash on leave-canvas; soft-stay on return-to-canvas while Evidence open.
   // Closed Evidence / sourceId change falls through to S1v/S1w.
   const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
-  const fromCanvas = !!DESK_SCROLL_STAY_WS[prevWs];
-  const toCanvas = !!DESK_SCROLL_STAY_WS[name];
-  const deskCanvasHop = prevWs !== name && fromCanvas && toCanvas;
-  const evidenceOpen =
-    !!(sourcePane && !sourcePane.hidden && sourceId) &&
-    !(typeof isPresenting === "function" && isPresenting());
-  const stayWarm =
-    !!scrollDriveBase ||
-    (typeof scrollDriveLastStayMatches === "function" &&
-      scrollDriveLastStayMatches(String(sourceId)));
-  const listLeaveStash =
-    prevWs !== name && fromCanvas && !toCanvas && evidenceOpen && !!scrollDriveBase;
-  const listReturnStay =
-    prevWs !== name && !fromCanvas && toCanvas && evidenceOpen && stayWarm;
-  const evidenceStay = (deskCanvasHop || listReturnStay) && evidenceOpen && stayWarm;
-  if (
-    (evidenceStay || listLeaveStash) &&
-    scrollDriveBase &&
-    typeof stashScrollDriveLastStay === "function"
-  ) {
+  const deskCanvasHop =
+    prevWs !== name &&
+    !!DESK_SCROLL_STAY_WS[prevWs] &&
+    !!DESK_SCROLL_STAY_WS[name];
+  const evidenceStay =
+    deskCanvasHop &&
+    sourcePane &&
+    !sourcePane.hidden &&
+    !!sourceId &&
+    !(typeof isPresenting === "function" && isPresenting()) &&
+    (!!scrollDriveBase ||
+      (typeof scrollDriveLastStayMatches === "function" &&
+        scrollDriveLastStayMatches(String(sourceId))));
+  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
     stashScrollDriveLastStay();
   }
-  // S1y/S1z/S1br — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
+  // S1y/S1z — disconnect scheduleFit RO before remount so workspace resize cannot fit-yank.
   if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
     stageFitRo.disconnect();
     stageFitRo = null;
   }
-  // ADE residual-filter clear-on-ws-leave (WL1–WL3) — don't leak filter into Map/Slice/etc.
-  // Trace↔Passport keep shared trajResidualFilter (both in ADE_RESIDUAL_WS).
-  const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
-  if (
-    prevWs !== name &&
-    ADE_RESIDUAL_WS[prevWs] &&
-    !ADE_RESIDUAL_WS[name] &&
-    trajResidualFilter
-  ) {
-    trajResidualFilter = false;
-    if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
-  }
   explorerWs = name;
-  // Keep #keysPane R row in sync even while closed (RK1 keysDoc + KH workspace-aware).
-  if (typeof syncKeysRRow === "function") syncKeysRRow(name);
   if (pin) explorerPinned = true;
   if (name === "lineage" && !egoMode) egoMode = true;
   paint({ animate: "none", keepCam: !!evidenceStay });
@@ -4595,20 +4355,7 @@ function setEgoMode(on) {
     if (wrap) wrap.hidden = !egoMode;
   }
   if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-    // S1bs — ego remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-    const evidenceStay =
-      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-      stashScrollDriveLastStay();
-    }
-    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
-    paint({ animate: "none", keepCam: !!evidenceStay });
-    if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-      softStayScrollDriveAcrossDeskRemount();
-    }
+    paint({ animate: "none" });
     return;
   }
   applyEgoPaint();
@@ -4617,20 +4364,7 @@ function setEgoMode(on) {
 function refreshExplorer() {
   if (!snapshot) return;
   if (enterCanvasActive() || isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
-    // S1bu — search / kind-filter remount while Evidence open: keepCam + soft-stay.
-    const evidenceStay =
-      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-      stashScrollDriveLastStay();
-    }
-    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
-    paint({ animate: "none", keepCam: !!evidenceStay });
-    if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-      softStayScrollDriveAcrossDeskRemount();
-    }
+    paint({ animate: "none" });
     return;
   }
   if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") {
@@ -5025,20 +4759,7 @@ function selectFlow(name) {
     // selectFlow already replaced the host stack. Pop the desk frames only.
     popEnterFrames();
     explorerWs = "slice";
-    // S1bt — flow-tab remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-    const evidenceStay =
-      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-      stashScrollDriveLastStay();
-    }
-    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
-    paint({ animate: "none", keepCam: !!evidenceStay });
-    if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-      softStayScrollDriveAcrossDeskRemount();
-    }
+    paint({ animate: "none" });
   }
 }
 
@@ -5052,17 +4773,6 @@ function enterRun(flow, bubble, fromEl) {
   graphFilter.bubble = null;
   vscode.postMessage({ type: "enterRun", flow, bubble });
   const token = ++navToken;
-  // S1bq — Evidence soft-stay live: stash + skip zoomToEl yank into the community
-  // (parity with selectNode softHop); enter remount keepCam + soft-restore.
-  const evidenceStay =
-    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
   const go = () => {
     if (token !== navToken) return;
     const top = stack[stack.length - 1];
@@ -5072,9 +4782,9 @@ function enterRun(flow, bubble, fromEl) {
       String(top.bubble) === String(bubble) &&
       String(top.flow || "") === String(flow || "");
     if (!same) stack.push({ kind: "bubble", flow, bubble: String(bubble) });
-    paint({ animate: "list", keepCam: !!evidenceStay });
+    paint({ animate: "list" });
   };
-  if (fromEl && !reduceMotion() && !evidenceStay) {
+  if (fromEl && !reduceMotion()) {
     fromEl.classList.add("zoom-in");
     canvas.classList.add("leaving");
     zoomToEl(fromEl, 1.9);
@@ -5092,31 +4802,14 @@ function syncBackBtn() {
 function goBack() {
   if (stack[stack.length - 1]?.kind === "bubble") {
     const token = ++navToken;
-    // S1bq — leave enter while Evidence open: keepCam + soft-stay (no fromInner hard cam reset).
-    const evidenceStay =
-      typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-    if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-      stashScrollDriveLastStay();
-    }
-    if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-      stageFitRo.disconnect();
-      stageFitRo = null;
-    }
     const go = () => {
       if (token !== navToken) return;
       stack.pop();
       graphFilter.bubble = null;
       vscode.postMessage({ type: "back" });
-      paint({
-        animate: "tree",
-        fromInner: !evidenceStay,
-        keepCam: !!evidenceStay,
-      });
-      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-        softStayScrollDriveAcrossDeskRemount();
-      }
+      paint({ animate: "tree", fromInner: true });
     };
-    if (!reduceMotion() && !evidenceStay) {
+    if (!reduceMotion()) {
       canvas.classList.add("leaving");
       setTimeout(go, 150);
     } else {
@@ -5172,8 +4865,7 @@ function paint(opts) {
         plugin: snapshot.plugin,
         stats: snapshot.stats,
       },
-      animate,
-      { keepCam: !!(opts && opts.keepCam) }
+      animate
     );
     applyEgoPaint();
     consumeHarnessActions();
@@ -5259,8 +4951,7 @@ function paint(opts) {
       plugin: snapshot.plugin,
       stats: snapshot.stats,
     },
-    animate,
-    { keepCam: !!(opts && opts.keepCam) }
+    animate
   );
   consumeHarnessActions();
 }
@@ -5996,20 +5687,7 @@ function requestStamp(name) {
   vscode.postMessage({ type: "stamp", flow });
   flashToast("Stamped " + flow + " · holds", "holds");
   flashBtn(stampBtn, "flash-holds");
-  // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-  const evidenceStay =
-    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
-  paint({ animate: "none", keepCam: !!evidenceStay });
-  if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    softStayScrollDriveAcrossDeskRemount();
-  }
+  paint({ animate: "none" });
 }
 
 function requestSkip(name) {
@@ -6022,20 +5700,7 @@ function requestSkip(name) {
   vscode.postMessage({ type: "skip", flow });
   flashToast("Skipped " + flow, "skip");
   flashBtn(skipBtn, "flash-skip");
-  // S1bx — stamp/skip remount while Evidence open: keepCam + soft-stay (no wipe-then-zoom).
-  const evidenceStay =
-    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-  if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
-    stashScrollDriveLastStay();
-  }
-  if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
-    stageFitRo.disconnect();
-    stageFitRo = null;
-  }
-  paint({ animate: "none", keepCam: !!evidenceStay });
-  if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    softStayScrollDriveAcrossDeskRemount();
-  }
+  paint({ animate: "none" });
 }
 
 function programKeyOf(p) {
@@ -6597,52 +6262,6 @@ function storyRailPath() {
   return featurePath(storyFlow());
 }
 
-
-/** ADE SBC — primary ROUTE_KINDS verb between two nodes (tree then graph; from→to then reverse). */
-function primaryIncidentVerb(fromId, toId) {
-  const a = idVal(fromId),
-    b = idVal(toId);
-  if (!a || !b || a === b) return "";
-  const flow = storyFlow();
-  const lists = [
-    (flow && flow.tree && flow.tree.edges) || [],
-    (snapshot && snapshot.graph && snapshot.graph.edges) || [],
-  ];
-  for (const edges of lists) {
-    for (const e of edges) {
-      if (!e || !ROUTE_KINDS[e.kind]) continue;
-      if (idVal(e.from) === a && idVal(e.to) === b) return String(e.kind);
-    }
-  }
-  for (const edges of lists) {
-    for (const e of edges) {
-      if (!e || !ROUTE_KINDS[e.kind]) continue;
-      if (idVal(e.from) === b && idVal(e.to) === a) return String(e.kind);
-    }
-  }
-  return "";
-}
-
-/** ADE SBC — derived behavior caption from IR only (kind · role/channel · verb toward next). */
-function storyBehaviorCaption(nodeId, nextNodeId) {
-  const sid = idVal(nodeId);
-  if (!sid) return "";
-  const node = nodeById.get(sid);
-  if (!node) return "";
-  const parts = [];
-  if (node.kind) parts.push(String(node.kind));
-  const ep = endpointOf(sid);
-  if (ep) {
-    if (ep.role) parts.push(String(ep.role));
-    if (ep.channel) parts.push(String(ep.channel));
-  }
-  if (nextNodeId) {
-    const verb = primaryIncidentVerb(sid, nextNodeId);
-    if (verb) parts.push(verb);
-  }
-  return parts.join(" · ");
-}
-
 function storyHopStops() {
   const hops = [];
   const seen = new Set();
@@ -6655,72 +6274,19 @@ function storyHopStops() {
       id: sid,
       label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
       kind: "hop",
-      caption: "",
     });
-  }
-  for (let i = 0; i < hops.length; i++) {
-    const next = hops[i + 1];
-    hops[i].caption = storyBehaviorCaption(hops[i].id, next ? next.id : "");
   }
   return hops;
 }
 
 function storyRailStops() {
   const comm = storyRailPath();
-  const featureStops = (list) => {
-    const stops = list.map((b) => ({
-      id: idVal(b.id),
-      label: b.label,
-      kind: "feature",
-      caption: "",
-      members: b.members || [],
-    }));
-    for (let i = 0; i < stops.length; i++) {
-      const mems = stops[i].members || [];
-      const from = mems.length ? idVal(mems[0]) : "";
-      let to = "";
-      for (let j = i + 1; j < stops.length; j++) {
-        const nm = stops[j].members || [];
-        if (nm.length) {
-          to = idVal(nm[0]);
-          break;
-        }
-      }
-      // Prefer a walk member that sits on this bubble when walk is available.
-      let walkFrom = from;
-      let walkTo = to;
-      const walk = flowWalk(storyFlow());
-      if (walk.length) {
-        const inBubble = (bid, nid) => {
-          const bub = findBubble(bid);
-          return !!(bub && (bub.members || []).some((m) => idVal(m) === idVal(nid)));
-        };
-        for (const wid of walk) {
-          if (inBubble(stops[i].id, wid)) {
-            walkFrom = idVal(wid);
-            break;
-          }
-        }
-        if (to) {
-          for (let j = i + 1; j < stops.length; j++) {
-            for (const wid of walk) {
-              if (inBubble(stops[j].id, wid)) {
-                walkTo = idVal(wid);
-                break;
-              }
-            }
-            if (walkTo) break;
-          }
-        }
-      }
-      stops[i].caption = storyBehaviorCaption(walkFrom || from, walkTo || to);
-    }
-    return stops;
-  };
-  if (comm.length >= 2) return featureStops(comm);
+  if (comm.length >= 2) {
+    return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+  }
   const hops = storyHopStops();
   if (hops.length >= 2) return hops;
-  return featureStops(comm);
+  return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
 }
 
 function pinStoryClusters(clusters) {
@@ -6731,24 +6297,12 @@ function pinStoryClusters(clusters) {
   return [...byId.values()];
 }
 
-
-/** ADE SBC — feat-chip inner HTML with optional derived behavior caption. */
-function storyChipInnerHtml(stop, i, pathLen) {
-  const name = shortOf(stop.label) || "feature";
-  const label = i === 0 ? "START · " + name : i === pathLen - 1 ? "END · " + name : name;
-  const caption = stop.caption ? String(stop.caption) : "";
-  const title = caption ? label + " · " + caption : label;
-  const capHtml = caption
-    ? '<span class="feat-chip-caption">' + esc(caption) + "</span>"
-    : "";
-  return { label, title, caption, capHtml };
-}
-
 function renderStoryRailHtml() {
   const path = storyRailStops();
   if (!path.length) return "";
   const chips = path
     .map((stop, i) => {
+      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
       const hop = stop.kind === "hop";
       const here = hop
@@ -6758,23 +6312,17 @@ function renderStoryRailHtml() {
         : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
           ? " here"
           : "";
-      const inner = storyChipInnerHtml(stop, i, path.length);
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
         here +
-        '" title="' +
-        esc(inner.title) +
         '" ' +
-        (inner.caption ? 'data-sbc-caption="1" ' : "") +
         (hop ? "data-hop" : "data-feature") +
         '="' +
         esc(idVal(stop.id)) +
-        '"><span class="feat-chip-name">' +
-        esc(inner.label) +
-        "</span>" +
-        inner.capHtml +
+        '">' +
+        esc((i === 0 ? "START · " : i === path.length - 1 ? "END · " : "") + name) +
         "</button>"
       );
     })
@@ -6793,6 +6341,7 @@ function renderFeaturePathHtml() {
   if (!path.length) return "";
   const chips = path
     .map((stop, i) => {
+      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
       const hop = stop.kind === "hop";
       const here = hop
@@ -6802,7 +6351,7 @@ function renderFeaturePathHtml() {
         : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
           ? " here"
           : "";
-      const inner = storyChipInnerHtml(stop, i, path.length);
+      const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
@@ -6810,17 +6359,12 @@ function renderFeaturePathHtml() {
         here +
         '" style="--i:' +
         i +
-        '" title="' +
-        esc(inner.title) +
         '" ' +
-        (inner.caption ? 'data-sbc-caption="1" ' : "") +
         (hop ? "data-hop" : "data-feature") +
         '="' +
         esc(idVal(stop.id)) +
-        '"><span class="feat-chip-name">' +
-        esc(inner.label) +
-        "</span>" +
-        inner.capHtml +
+        '">' +
+        esc(label) +
         "</button>"
       );
     })
@@ -6847,15 +6391,15 @@ function pathWalkStops() {
 
 function focusWalkStop(stop) {
   if (!stop) return;
-  // ADE SBC — Start→features→end walk stays graph-only (no Evidence / peekSource).
-  // Mirror prior hop path (selectedNodeId only) without peekSource / selectNode side effects.
   if (stop.kind === "hop") {
     selectedNodeId = idVal(stop.id);
+    // Stage hides #sourcePane — walk peeks must not exit Present via revealSourcePane (K18aj).
+    if (!isPresenting()) peekSource(stop.id);
     return;
   }
   const bub = findBubble(stop.id);
   const mem = bub && (bub.members || [])[0];
-  if (mem) selectedNodeId = idVal(mem);
+  if (mem && !isPresenting()) peekSource(mem);
 }
 
 function stopPathWalk() {
@@ -6866,30 +6410,6 @@ function stopPathWalk() {
   }
   applyPathWalkPaint();
 }
-
-/** ADE SBC / harness — clear walk index + .walk/.here paint (does not open Evidence). */
-function resetPathWalk() {
-  pathWalk.playing = false;
-  if (pathWalk.timer) {
-    clearInterval(pathWalk.timer);
-    pathWalk.timer = 0;
-  }
-  pathWalk.i = -1;
-  applyPathWalkPaint();
-  document.querySelectorAll(".walk").forEach((el) => el.classList.remove("walk"));
-  // Drop selection-driven .here on story chips only when walk is idle.
-  document.querySelectorAll(".feat-chip.here").forEach((el) => el.classList.remove("here"));
-  selectedNodeId = null;
-  const meta = document.getElementById("pathWalkMeta");
-  if (meta) meta.textContent = "";
-  const play = document.getElementById("pathWalkBtn");
-  if (play) {
-    play.classList.remove("on");
-    play.textContent = "Play";
-  }
-}
-if (typeof window !== "undefined") window.__graphideResetPathWalk = resetPathWalk;
-
 
 function stepPathWalk(delta) {
   const stops = pathWalkStops();
@@ -6989,14 +6509,9 @@ function applyPathWalkPaint() {
   }
   const metaEl = document.getElementById("pathWalkMeta");
   if (metaEl) {
-    if (!cur) {
-      metaEl.textContent = "";
-    } else {
-      const short = shortOf(cur.label) || "feature";
-      metaEl.textContent = cur.caption
-        ? pathWalk.i + 1 + "/" + stops.length + " · " + short + " · " + cur.caption
-        : pathWalk.i + 1 + "/" + stops.length + " · " + short;
-    }
+    metaEl.textContent = cur
+      ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature")
+      : "";
   }
   refreshNowPill();
 }
@@ -9065,78 +8580,15 @@ function sequenceFlow() {
   return cur || story || null;
 }
 
-
-/** ADE SSR — kind · role/channel (endpoint) from IR; never file:line. */
-function seqNodeCaption(id) {
-  const sid = idVal(id);
-  if (!sid) return "";
-  const node = nodeById.get(sid);
-  if (!node) return "";
-  const parts = [];
-  if (node.kind) parts.push(String(node.kind));
-  const ep = endpointOf(sid);
-  if (ep) {
-    if (ep.role) parts.push(String(ep.role));
-    if (ep.channel) parts.push(String(ep.channel));
-  }
-  return parts.join(" · ");
-}
-
-/** ADE SSR — hop caption: verb (+ return) · from/to kind·role/channel; not file:line. */
-function seqHopCaption(h) {
-  if (!h) return "";
-  const verb = h.kind
-    ? h.variant === "return"
-      ? String(h.kind) + " return"
-      : String(h.kind)
-    : "";
-  const fromCap = seqNodeCaption(h.from);
-  const toCap = seqNodeCaption(h.to);
-  const parts = [];
-  if (verb) parts.push(verb);
-  if (fromCap) parts.push(fromCap);
-  if (toCap && toCap !== fromCap) parts.push(toCap);
-  if (parts.length) return parts.join(" · ");
-  // Fall back to SBC-style derived caption toward peer.
-  const cap = storyBehaviorCaption(h.from, h.to);
-  return cap || "";
-}
-
-/** ADE SSR — participant caption: kind · role/channel · outgoing Calls/Publishes/Subscribes. */
-function seqPartCaption(p, hops) {
-  const base = seqNodeCaption(p && p.id);
-  const pid = idVal(p && p.id);
-  const out = (hops || []).find(
-    (h) => idVal(h.from) === pid && h.variant !== "return" && (h.kind === "Calls" || h.kind === "Publishes" || h.kind === "Subscribes")
-  );
-  if (out && out.kind) {
-    return base ? base + " · " + out.kind : String(out.kind);
-  }
-  return base || String((p && p.kind) || "");
-}
-
-function withSequenceCaptions(reading) {
-  const hopsIn = (reading && reading.hops) || [];
-  const hops = hopsIn.map((h) => {
-    const caption = h.caption || seqHopCaption(h);
-    return Object.assign({}, h, { caption: caption });
-  });
-  const participants = ((reading && reading.participants) || []).map((p) => {
-    const caption = p.caption || seqPartCaption(p, hops);
-    return Object.assign({}, p, { caption: caption });
-  });
-  return { participants: participants, hops: hops };
-}
-
 function sequenceOf(flow) {
   const ready = flow && flow.sequence;
   if (ready && (ready.participants || []).length && (ready.hops || []).length) {
-    return withSequenceCaptions({
+    return {
       participants: ready.participants.slice(),
       hops: ready.hops.slice(),
-    });
+    };
   }
-  return withSequenceCaptions(deriveSequence(flow));
+  return deriveSequence(flow);
 }
 
 function deriveSequence(flow) {
@@ -9273,42 +8725,23 @@ function toggleSeqReview() {
 function resetSeqOverview() {
   stopSeqWalk();
   seqCursor = -1;
-  seqPartFocusId = null;
-  selectedNodeId = null;
   paint({ animate: "none" });
 }
 
 function focusSeqHop(hop) {
   if (!hop) return;
-  // ADE SSR — Play / hop focus stays graph-only (no Evidence / peekSource / showHop).
   const id = hop.variant === "return" ? hop.to : hop.from;
-  if (id) selectedNodeId = idVal(id);
-  seqPartFocusId = null;
+  if (id) {
+    selectedNodeId = idVal(id);
+    peekSource(id);
+  }
+  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
 }
 
 function seqVariantMark(v) {
   if (v === "return") return "←";
   if (v === "call") return "→";
   return "·";
-}
-
-
-function toggleSeqPartFocus(id) {
-  const sid = idVal(id);
-  if (!sid) return;
-  if (seqPartFocusId && idVal(seqPartFocusId) === sid) {
-    seqPartFocusId = null;
-    selectedNodeId = null;
-  } else {
-    seqPartFocusId = sid;
-    selectedNodeId = sid;
-  }
-  paint({ animate: "none" });
-}
-
-function seqPartRelated(h, partId) {
-  const pid = idVal(partId);
-  return !!(pid && (idVal(h.from) === pid || idVal(h.to) === pid));
 }
 
 function renderSequenceBody() {
@@ -9341,16 +8774,7 @@ function renderSequenceBody() {
     }
   }
   if (!parts.length || !hops.length) {
-    return (
-      '<div class="empty seq-empty" data-ssr-empty="1">' +
-      "No Steiner Calls / Publishes / Subscribes on this flow. " +
-      "Sequence shows derived interaction only — try " +
-      '<button type="button" class="crumb-btn" data-ws="overview">Overview Play</button>' +
-      " or " +
-      '<button type="button" class="crumb-btn" data-ws="dataflow">Data-flow</button>' +
-      " for behavior graphs." +
-      "</div>"
-    );
+    return '<div class="empty">No Steiner Calls (or Publishes / Subscribes) on this flow. Sequence reads derived interaction only.</div>';
   }
   if (seqCursor >= hops.length) seqCursor = hops.length - 1;
   const hot = seqCursor >= 0 ? hops[seqCursor] : null;
@@ -9370,56 +8794,37 @@ function renderSequenceBody() {
       ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
     "</span></div>";
-  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   const heads = parts
     .map((p) => {
-      const pid = idVal(p.id);
-      const on =
-        (hot && (idVal(hot.from) === pid || idVal(hot.to) === pid)) ||
-        (focusId && focusId === pid);
+      const on = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
       const match = seqPartMatch(p);
-      const caption = p.caption || seqPartCaption(p, hops);
-      const focusDim = !!(focusId && focusId !== pid);
       return (
         '<button type="button" class="seq-part vnode kind-' +
         esc(p.kind || "Function") +
         (on ? " on" : "") +
-        (focusId && focusId === pid ? " ssr-hit" : "") +
-        (focusDim ? " ssr-dim" : "") +
         (seqQ && match ? " hit" : "") +
         (seqQ && !match ? " dim" : "") +
         '" data-id="' +
-        esc(pid) +
+        esc(idVal(p.id)) +
         '" data-fqn="' +
         esc(p.fqn) +
         '" data-kind="' +
         esc(p.kind || "") +
         '"' +
-        (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
         (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
-        ' aria-pressed="' +
-        (focusId && focusId === pid ? "true" : "false") +
-        '"><span class="name">' +
+        '><span class="name">' +
         esc(shortOf(p.fqn)) +
         '</span> <span class="meta">' +
         esc(p.kind || "") +
-        "</span>" +
-        (caption
-          ? '<span class="seq-part-caption">' + esc(caption) + "</span>"
-          : "") +
-        "</button>"
+        "</span></button>"
       );
     })
     .join("");
   const list = hopCards
     .map(({ h, i }) => {
-      const caption = h.caption || seqHopCaption(h);
-      const related = focusId ? seqPartRelated(h, focusId) : true;
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
-        (focusId && related ? " ssr-hit" : "") +
-        (focusId && !related ? " ssr-dim" : "") +
         '" data-seq-i="' +
         i +
         '" data-kind="' +
@@ -9432,20 +8837,18 @@ function renderSequenceBody() {
         esc(idVal(h.to)) +
         '" data-fqn="' +
         esc(h.from_fqn) +
-        '"' +
-        (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
         '"><div class="k">' +
         esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) +
         '</div><div class="t">' +
         esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
-        '</div><div class="b seq-hop-caption">' +
-        esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
+        '</div><div class="b">' +
+        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
         "</div></article>"
       );
     })
     .join("");
   return (
-    '<div class="seq-page" data-ssr="1">' +
+    '<div class="seq-page">' +
     review +
     '<div class="seq-parts" id="seqParts" style="--seq-n:' +
     parts.length +
@@ -9474,22 +8877,17 @@ function sequenceBodyKey() {
 
 function sequenceCanvasProps() {
   const reading = sequenceOf(sequenceFlow());
-  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   return {
     participants: reading.participants.map((p) => {
       const paint = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
-      const pid = idVal(p.id);
-      const caption = p.caption || seqPartCaption(p, reading.hops);
-      const focusDim = !!(focusId && focusId !== pid);
       return {
-        id: pid,
+        id: idVal(p.id),
         fqn: p.fqn,
         kind: p.kind || "Function",
         label: shortOf(p.fqn),
-        caption: caption,
         file: paint.file || p.file || "",
-        dim: paint.dim || focusDim,
-        hit: paint.hit || (!!focusId && focusId === pid),
+        dim: paint.dim,
+        hit: paint.hit,
       };
     }),
     hops: reading.hops.map((h, i) => ({
@@ -9500,15 +8898,12 @@ function sequenceCanvasProps() {
       variant: h.variant || "default",
       fromLabel: shortOf(h.from_fqn),
       toLabel: shortOf(h.to_fqn),
-      caption: h.caption || seqHopCaption(h),
-      dim: !!(focusId && !seqPartRelated(h, focusId)),
-      hit: !!(focusId && seqPartRelated(h, focusId)),
     })),
     cursor: seqCursor,
     onNodeClick: (id) => {
       if (!id) return;
-      // ADE SSR — graph-only highlight (no peekSource / Evidence).
-      toggleSeqPartFocus(id);
+      selectedNodeId = id;
+      peekSource(id);
     },
     onHopClick: (i) => {
       if (!Number.isFinite(i)) return;
@@ -9527,24 +8922,10 @@ function patchSequenceChrome() {
     const i = parseInt(el.getAttribute("data-seq-i"), 10);
     el.classList.toggle("on", i === seqCursor);
   });
-  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const on = !!(
-      (hot && (idVal(hot.from) === id || idVal(hot.to) === id)) ||
-      (focusId && focusId === id)
-    );
+    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
     el.classList.toggle("on", on);
-    el.classList.toggle("ssr-hit", !!(focusId && focusId === id));
-    el.classList.toggle("ssr-dim", !!(focusId && focusId !== id));
-    el.setAttribute("aria-pressed", focusId && focusId === id ? "true" : "false");
-  });
-  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
-    const from = el.getAttribute("data-from");
-    const to = el.getAttribute("data-to");
-    const related = !!(focusId && (from === focusId || to === focusId));
-    el.classList.toggle("ssr-hit", !!(focusId && related));
-    el.classList.toggle("ssr-dim", !!(focusId && !related));
   });
   const status = document.getElementById("seqStatus");
   const flow = sequenceFlow();
@@ -9599,15 +8980,10 @@ function bindSequencePage() {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const id = el.getAttribute("data-id");
-      if (!id) return;
-      // ADE SSR — graph-only highlight (no peekSource / Evidence).
-      toggleSeqPartFocus(id);
-    };
-  });
-  canvas.querySelectorAll(".seq-empty [data-ws]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      setWorkspace(el.getAttribute("data-ws"), true);
+      if (id) {
+        selectedNodeId = id;
+        peekSource(id);
+      }
     };
   });
   const overview = document.getElementById("seqOverview");
@@ -9912,14 +9288,16 @@ function toggleDfReview() {
 function resetDfOverview() {
   stopDfWalk();
   dfCursor = -1;
-  dfRoleFilter = null;
   paint({ animate: "none" });
 }
 
 function focusDfHop(hop) {
   if (!hop) return;
-  // ADE RDF — Play / hop focus stays graph-only (no Evidence / peekSource / showHop).
-  if (hop.from) selectedNodeId = idVal(hop.from);
+  if (hop.from) {
+    selectedNodeId = idVal(hop.from);
+    peekSource(hop.from);
+  }
+  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
 }
 
 function dfRoleLabel(role) {
@@ -9927,31 +9305,6 @@ function dfRoleLabel(role) {
   if (role === "transform") return "Transforms";
   if (role === "store") return "Stores";
   return "Sinks";
-}
-
-function dfRoleWord(role) {
-  if (role === "source") return "Source";
-  if (role === "transform") return "Transform";
-  if (role === "store") return "Store";
-  return "Sink";
-}
-
-/** ADE RDF — role · channel (when endpoint) · short label; never file:line. */
-function dfNodeMeta(n) {
-  const parts = [dfRoleWord(n.role || "transform")];
-  if (n.channel) parts.push(String(n.channel));
-  else if (n.end_role) parts.push(String(n.end_role));
-  return parts.join(" · ");
-}
-
-function toggleDfRoleFilter(role) {
-  const next = role && dfRoleFilter === role ? null : role || null;
-  dfRoleFilter = next;
-  paint({ animate: "none" });
-}
-
-function dfNodeLaneDim(n) {
-  return !!(dfRoleFilter && n && n.role !== dfRoleFilter);
 }
 
 function renderDataflowBody() {
@@ -9962,7 +9315,7 @@ function renderDataflowBody() {
   const dfQ = (graphFilter.q || "").toLowerCase();
   const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
   const dfNodeMatch = (n) =>
-    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.channel) || dfHit(n.file);
+    !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
   const dfHopMatch = (h) => {
     if (!dfQ) return true;
     const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
@@ -9984,16 +9337,7 @@ function renderDataflowBody() {
     }
   }
   if (!nodes.length || !hops.length) {
-    return (
-      '<div class="empty df-empty" data-df-empty="1">' +
-      "No Steiner Reads / Writes / Publishes / Subscribes on this flow. " +
-      "Data-flow shows derived movement only — try " +
-      '<button type="button" class="crumb-btn" data-ws="overview">Overview Play</button>' +
-      " or " +
-      '<button type="button" class="crumb-btn" data-ws="sequence">Sequence</button>' +
-      " for control-flow behavior." +
-      "</div>"
-    );
+    return '<div class="empty">No Steiner Reads / Writes / Publishes / Subscribes on this flow. Data-flow reads derived movement only.</div>';
   }
   if (dfCursor >= hops.length) dfCursor = hops.length - 1;
   const hot = dfCursor >= 0 ? hops[dfCursor] : null;
@@ -10013,29 +9357,21 @@ function renderDataflowBody() {
       ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
     "</span></div>";
-  // ADE RDF — always show all four lanes with counts (empty lanes stay visible).
-  const stages = ["source", "transform", "store", "sink"];
+  const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
   const stageCols = stages
     .map((role) => {
       const col = nodes.filter((n) => n.role === role);
-      const laneOn = dfRoleFilter === role;
-      const laneDim = !!(dfRoleFilter && dfRoleFilter !== role);
       const cards = col
         .map((n) => {
-          const on =
-            (hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id))) ||
-            (selectedNodeId && idVal(selectedNodeId) === idVal(n.id));
+          const on = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
+          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
           const match = dfNodeMatch(n);
-          const roleDim = dfNodeLaneDim(n);
-          const meta = dfNodeMeta(n);
           return (
             '<button type="button" class="df-node vnode kind-' +
             esc(n.kind || "Function") +
             (on ? " on" : "") +
             (dfQ && match ? " hit" : "") +
-            ((dfQ && !match) || roleDim ? " dim" : "") +
-            (roleDim ? " df-lane-dim" : "") +
-            (!roleDim && dfRoleFilter ? " df-lane-hit" : "") +
+            (dfQ && !match ? " dim" : "") +
             '" data-id="' +
             esc(idVal(n.id)) +
             '" data-fqn="' +
@@ -10044,52 +9380,35 @@ function renderDataflowBody() {
             esc(n.kind || "") +
             '" data-df-role="' +
             esc(n.role) +
-            '" data-rdf-meta="1"' +
+            '"' +
             (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") +
             (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") +
             (n.file ? ' data-file="' + esc(n.file) + '"' : "") +
             '><span class="name">' +
             esc(shortOf(n.fqn)) +
             '</span> <span class="meta">' +
-            esc(meta) +
+            esc(n.kind || "") +
+            (ep ? " · " + esc(ep) : "") +
             "</span></button>"
           );
         })
         .join("");
       return (
-        '<div class="df-stage' +
-        (laneOn ? " on" : "") +
-        (laneDim ? " dim" : "") +
-        '" data-df-role="' +
+        '<div class="df-stage" data-df-role="' +
         role +
-        '"><button type="button" class="df-lane-head' +
-        (laneOn ? " on" : "") +
-        '" data-df-lane="' +
-        role +
-        '" aria-pressed="' +
-        (laneOn ? "true" : "false") +
-        '"><span class="k">' +
+        '"><div class="k">' +
         esc(dfRoleLabel(role)) +
-        '</span><span class="df-lane-count" data-df-count="' +
-        col.length +
-        '">' +
-        col.length +
-        "</span></button>" +
-        (cards || '<div class="df-lane-empty">none</div>') +
+        "</div>" +
+        cards +
         "</div>"
       );
     })
     .join("");
   const list = hopCards
     .map(({ h, i }) => {
-      const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
-      const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
-      const hopDim =
-        !!(dfRoleFilter && fromN && toN && fromN.role !== dfRoleFilter && toN.role !== dfRoleFilter);
       return (
         '<article class="df-hop expl-card' +
         (i === dfCursor ? " on" : "") +
-        (hopDim ? " dim" : "") +
         '" data-df-i="' +
         i +
         '" data-kind="' +
@@ -10105,13 +9424,13 @@ function renderDataflowBody() {
         '</div><div class="t">' +
         esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
         '</div><div class="b">' +
-        esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) +
+        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
         "</div></article>"
       );
     })
     .join("");
   return (
-    '<div class="df-page" data-rdf="1">' +
+    '<div class="df-page">' +
     review +
     '<div class="df-stages" id="dfStages" style="--df-n:' +
     stages.length +
@@ -10133,16 +9452,15 @@ function renderDataflowBody() {
 function dataflowWorkspaceKey() {
   const flow = dataflowFlow();
   const reading = dataflowOf(flow);
-  return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || "", dfRoleFilter || ""].join("\0");
+  return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || ""].join("\0");
 }
 
 function dataflowCanvasProps() {
   const reading = dataflowOf(dataflowFlow());
   return {
     nodes: reading.nodes.map((n) => {
-      const meta = dfNodeMeta(n);
+      const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
       const paint = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
-      const roleDim = dfNodeLaneDim(n);
       return {
         id: idVal(n.id),
         fqn: n.fqn,
@@ -10152,9 +9470,9 @@ function dataflowCanvasProps() {
         endRole: n.end_role || "",
         channel: n.channel || "",
         file: paint.file || n.file || "",
-        dim: paint.dim || roleDim,
-        hit: paint.hit || (!!dfRoleFilter && !roleDim),
-        ep: meta,
+        dim: paint.dim,
+        hit: paint.hit,
+        ep,
       };
     }),
     hops: reading.hops.map((h, i) => ({
@@ -10166,9 +9484,8 @@ function dataflowCanvasProps() {
     cursor: dfCursor,
     onNodeClick: (id) => {
       if (!id) return;
-      // ADE RDF — graph-only highlight (no peekSource / Evidence).
       selectedNodeId = id;
-      paint({ animate: "none" });
+      peekSource(id);
     },
     onHopClick: (i) => {
       if (!Number.isFinite(i)) return;
@@ -10189,27 +9506,8 @@ function patchDataflowChrome() {
   });
   canvas.querySelectorAll("#dfStages .df-node").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const role = el.getAttribute("data-df-role");
-    const on = !!(
-      (hot && (idVal(hot.from) === id || idVal(hot.to) === id)) ||
-      (selectedNodeId && idVal(selectedNodeId) === id)
-    );
+    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
     el.classList.toggle("on", on);
-    const roleDim = !!(dfRoleFilter && role !== dfRoleFilter);
-    el.classList.toggle("dim", roleDim);
-    el.classList.toggle("df-lane-dim", roleDim);
-    el.classList.toggle("df-lane-hit", !!(dfRoleFilter && !roleDim));
-  });
-  canvas.querySelectorAll("#dfStages .df-stage").forEach((el) => {
-    const role = el.getAttribute("data-df-role");
-    el.classList.toggle("on", dfRoleFilter === role);
-    el.classList.toggle("dim", !!(dfRoleFilter && dfRoleFilter !== role));
-  });
-  canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el) => {
-    const role = el.getAttribute("data-df-lane");
-    const on = dfRoleFilter === role;
-    el.classList.toggle("on", on);
-    el.setAttribute("aria-pressed", on ? "true" : "false");
   });
   const status = document.getElementById("dfStatus");
   const flow = dataflowFlow();
@@ -10260,26 +9558,14 @@ function bindDataflowPage() {
       focusDfHop(dfHops()[i]);
     };
   });
-  canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      toggleDfRoleFilter(el.getAttribute("data-df-lane"));
-    };
-  });
   canvas.querySelectorAll("#dfStages .df-node, #dfCanvas .df-node").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const id = el.getAttribute("data-id");
-      if (!id) return;
-      // ADE RDF — graph-only highlight (no peekSource / Evidence).
-      selectedNodeId = id;
-      paint({ animate: "none" });
-    };
-  });
-  canvas.querySelectorAll(".df-empty [data-ws]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      setWorkspace(el.getAttribute("data-ws"), true);
+      if (id) {
+        selectedNodeId = id;
+        peekSource(id);
+      }
     };
   });
   const overview = document.getElementById("dfOverview");
@@ -10774,3116 +10060,6 @@ function bindLifecyclePage() {
   if (play) play.onclick = () => toggleLcReview();
 }
 
-
-function isTrajectoryFixture(v) {
-  if (
-    !(
-      v &&
-      typeof v === "object" &&
-      typeof v.id === "string" &&
-      Array.isArray(v.nodes) &&
-      Array.isArray(v.edges)
-    )
-  ) {
-    return false;
-  }
-  // Empty fixture (ES): no nodes and no edges — blank DAG shows empty-state chrome.
-  if (v.nodes.length === 0) return v.edges.length === 0;
-  return (
-    v.nodes.length >= 3 &&
-    v.edges.length >= 2 &&
-    v.nodes.every((n) => n && typeof n.id === "string")
-  );
-}
-
-const TRAJECTORY_EMPTY_FIXTURE = Object.freeze({
-  version: 2,
-  id: "ade-empty-fixture",
-  title: "Execution trajectory",
-  subtitle: "No subtasks yet — empty fixture",
-  nodes: Object.freeze([]),
-  edges: Object.freeze([]),
-});
-
-function wantTrajectoryEmpty() {
-  if (typeof window === "undefined" || typeof location === "undefined") return false;
-  try {
-    return new URLSearchParams(location.search || "").get("traceEmpty") === "1";
-  } catch (_err) {
-    return false;
-  }
-}
-
-function getTrajectory() {
-  if (wantTrajectoryEmpty()) return TRAJECTORY_EMPTY_FIXTURE;
-  const o = typeof window !== "undefined" ? window.__graphideTrajectory : null;
-  return isTrajectoryFixture(o) ? o : TRAJECTORY_FIXTURE;
-}
-
-function trajectoryFixture() {
-  return getTrajectory();
-}
-
-let trajSelectedId = "";
-let trajPinFocus = "";
-let trajFocusSeeded = false;
-let trajScale = 1;
-let trajResidualFilter = false;
-
-/** ADE residual-filter dedicated aria-live (ALR1–ALR3) — persistent AT region; does not replace flashToast. */
-function residualFilterMatchingCount() {
-  try {
-    if (typeof passportResidualTrajIds === "function") return passportResidualTrajIds().size;
-  } catch (e) {}
-  return 0;
-}
-
-function syncResidualFilterLive(on) {
-  const el = document.getElementById("residualFilterLive");
-  if (!el) return;
-  const active = !!on;
-  const n = active ? residualFilterMatchingCount() : 0;
-  const text = active
-    ? "Residual filter on, " + n + " matching"
-    : "Residual filter off";
-  el.setAttribute("data-residual-filter-live", "1");
-  el.setAttribute("data-residual-filter-live-state", active ? "on" : "off");
-  if (active) el.setAttribute("data-filter-residual-count", String(n));
-  else el.removeAttribute("data-filter-residual-count");
-  if (el.textContent !== text) el.textContent = text;
-}
-
-/** Flip Trace/Passport residual filter; shared by legend/Passport toggles + R key. */
-function toggleTrajResidualFilter() {
-  trajResidualFilter = !trajResidualFilter;
-  if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
-  if (typeof flashToast === "function") {
-    flashToast(
-      trajResidualFilter ? "Residuals on" : "Residuals off",
-      trajResidualFilter ? "ok" : "skip"
-    );
-  }
-  if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
-  paint({ animate: "none" });
-}
-
-/** ADE CFR: after clear-chip removes itself from the DOM, restore keyboard focus to the
- *  always-present residual-filter toggle on the same Trace/Passport surface (Escape unchanged). */
-function focusResidualToggleAfterClear() {
-  let target = null;
-  if (explorerWs === "passport") {
-    target =
-      document.querySelector('#passportSign [data-passport-residual-filter-toggle="1"]') ||
-      document.querySelector("#passportSign .passport-residual");
-  } else if (explorerWs === "trace") {
-    target =
-      document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]') ||
-      document.getElementById("trajEdgeLegend");
-  }
-  if (target && typeof target.focus === "function") {
-    try {
-      target.focus({ preventScroll: true });
-    } catch (_) {
-      /* ignore */
-    }
-  }
-}
-
-/** Clear residual filter (empty-chrome / Escape / clear-chip); no-op when already off.
- *  ADE CLT: source "clear-chip" toasts "Residual filter cleared" (ok); Escape/default keep "Residuals off" (skip).
- *  ADE CFR: source "clear-chip" restores focus to residual-filter toggle after paint (Escape unchanged). */
-function clearTrajResidualFilter(source) {
-  if (!trajResidualFilter) return;
-  trajResidualFilter = false;
-  if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
-  if (typeof flashToast === "function") {
-    if (source === "clear-chip") flashToast("Residual filter cleared", "ok");
-    else flashToast("Residuals off", "skip");
-  }
-  if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
-  paint({ animate: "none" });
-  if (source === "clear-chip" && typeof focusResidualToggleAfterClear === "function") {
-    focusResidualToggleAfterClear();
-  }
-}
-
-
-/** ADE count-chip Enter/Space/click toast hint (CCT1–CCT3) — informational; never clears. */
-const RESIDUAL_FILTER_COUNT_CHIP_TOAST =
-  "Residual filter stays ON — use Clear, R, or Escape to clear";
-
-function hintResidualFilterCountChip(ev) {
-  if (ev) {
-    if (typeof ev.preventDefault === "function") ev.preventDefault();
-    if (typeof ev.stopPropagation === "function") ev.stopPropagation();
-  }
-  if (typeof flashToast === "function") {
-    flashToast(RESIDUAL_FILTER_COUNT_CHIP_TOAST, "skip");
-  }
-}
-
-function bindResidualFilterCountChipHints() {
-  document
-    .querySelectorAll(
-      '.residual-filter-count[data-residual-filter-count="1"], .passport-residual-filter-count[data-residual-filter-count="1"]'
-    )
-    .forEach((chip) => {
-      const onActivate = (ev) => {
-        if (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ") return;
-        hintResidualFilterCountChip(ev);
-      };
-      chip.onclick = onActivate;
-      chip.onkeydown = onActivate;
-    });
-}
-
-/** Empty chrome when filter ON and zero residual-bearing trajs (e.g. gate approved). */
-function renderResidualFilterEmptyChrome(surface) {
-  if (!trajResidualFilter) return "";
-  const bearingN = passportResidualTrajIds().size;
-  if (bearingN > 0) return "";
-  const isTrace = surface === "trace";
-  const hostClass = isTrace
-    ? "traj-empty residual-filter-empty desk-empty"
-    : "passport-empty passport-residual-filter-empty desk-empty";
-  const hostAttr = isTrace
-    ? ' data-traj-residual-filter-empty="1" data-residual-filter-empty="1"'
-    : ' data-passport-residual-filter-empty="1" data-residual-filter-empty="1"';
-  const title = isTrace ? "No residual-bearing nodes" : "No residual paths match";
-  const copy = isTrace
-    ? "Residual filter is on, but no trajectory nodes bear residual gated writes. Clear the filter to show the full DAG."
-    : "Residual filter is on, but no gate paths bear residual writes (gate may be approved). Clear the filter to show all paths.";
-  return (
-    '<div class="' +
-    hostClass +
-    '"' +
-    hostAttr +
-    ' role="status">' +
-    '<b class="' +
-    (isTrace ? "traj-empty-title" : "passport-empty-title") +
-    '">' +
-    esc(title) +
-    "</b>" +
-    '<div class="' +
-    (isTrace ? "traj-empty-copy" : "passport-empty-copy") +
-    '">' +
-    esc(copy) +
-    "</div>" +
-    '<div class="' +
-    (isTrace ? "traj-empty-action" : "passport-empty-action") +
-    ' residual-filter-empty-action">' +
-    '<button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button>' +
-    "</div>" +
-    // ADE EKH: residual empty desk-keys hint (R toggle · Esc clear); Clear button remains
-    '<div class="desk-keys residual-filter-empty-keys" data-residual-filter-empty-keys="1">' +
-    "<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear" +
-    "</div>" +
-    "</div>"
-  );
-}
-
-const TRAJ_SCALE_MIN = 0.35;
-const TRAJ_SCALE_MAX = 3;
-const TRAJ_SCALE_STEP = 1.25;
-
-function seedTrajectoryFocus() {
-  if (trajFocusSeeded) return;
-  trajFocusSeeded = true;
-  const want =
-    (typeof window !== "undefined" && window.__graphideTrajectoryFocus) || "";
-  if (!want) return;
-  const nodes = trajectoryFixture().nodes || [];
-  if (nodes.some((n) => n.id === want)) trajSelectedId = want;
-}
-
-function trajStatusLabel(status) {
-  if (status === "done") return "done";
-  if (status === "running") return "running";
-  return "pending";
-}
-
-function trajNeighborIds(fix, selectedId) {
-  const near = new Set();
-  if (!selectedId) return near;
-  near.add(selectedId);
-  for (const e of fix.edges || []) {
-    if (e.from === selectedId) near.add(e.to);
-    if (e.to === selectedId) near.add(e.from);
-  }
-  return near;
-}
-
-/** Directed successors along fixture edges (order preserved; HA hop-affordance). */
-function trajOutgoingIds(fix, id) {
-  const src = String(id || "");
-  if (!src) return [];
-  const out = [];
-  const seen = new Set();
-  for (const e of fix.edges || []) {
-    if (e.from !== src) continue;
-    const to = e.to;
-    if (!to || seen.has(to)) continue;
-    seen.add(to);
-    out.push(to);
-  }
-  return out;
-}
-
-
-/** TNI: accessible hover/focus name for traj DAG node (id · kind · status · residual). */
-function trajNodeInfoLabel(n, fix) {
-  const id = String((n && n.id) || "");
-  const kind = String((n && n.kind) || "").trim();
-  const status = trajStatusLabel(n && n.status);
-  const nodes = (fix && fix.nodes) || [];
-  const byId = new Map(nodes.map((x) => [x.id, x]));
-  const depIds =
-    n && Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n || {});
-  let unmetDeps = 0;
-  for (const d of depIds) {
-    const dep = byId.get(d);
-    const st = (dep && dep.status) || "pending";
-    if (st !== "done") unmetDeps += 1;
-  }
-  const hops = trajOutgoingIds(fix, id).length;
-  const artPath = (n && n.artifact) || "";
-  const sealHint = !!(
-    (n && n.kind === "harness") ||
-    /seal|immutable/i.test(String(id) + " " + artPath)
-  );
-  const residualCopy =
-    unmetDeps +
-    " dep" +
-    (unmetDeps === 1 ? "" : "s") +
-    " left · " +
-    hops +
-    " hop" +
-    (hops === 1 ? "" : "s") +
-    (sealHint ? " · seal" : "");
-  const parts = [id];
-  if (kind) parts.push(kind);
-  parts.push(status);
-  parts.push(residualCopy);
-  return parts.filter(Boolean).join(" · ");
-}
-
-function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const focusOn = !!selectedId;
-  return edges
-    .map((e) => {
-      const a = byId.get(e.from);
-      const b = byId.get(e.to);
-      if (!a || !b) return "";
-      const x1 = a.x + nodeW;
-      const y1 = a.y + nodeH / 2;
-      const x2 = b.x;
-      const y2 = b.y + nodeH / 2;
-      const mx = (x1 + x2) / 2;
-      const kind = e.kind || "seq";
-      const onPath = focusOn && (e.from === selectedId || e.to === selectedId);
-      const dim = focusOn && !onPath;
-      const d =
-        "M" +
-        x1 +
-        " " +
-        y1 +
-        " C" +
-        mx +
-        " " +
-        y1 +
-        ", " +
-        mx +
-        " " +
-        y2 +
-        ", " +
-        x2 +
-        " " +
-        y2;
-      return (
-        '<path class="traj-edge kind-' +
-        esc(kind) +
-        (onPath ? " on-path" : "") +
-        (dim ? " dim" : "") +
-        '" data-edge-id="' +
-        esc(e.id) +
-        '" data-from="' +
-        esc(e.from) +
-        '" data-to="' +
-        esc(e.to) +
-        '" data-kind="' +
-        esc(kind) +
-        '"' +
-        (e.label ? ' data-label="' + esc(e.label) + '"' : "") +
-        (Number.isFinite(Number(e.latencyMs)) && Number(e.latencyMs) > 0
-          ? ' data-latency="' + esc(String(e.latencyMs)) + '"'
-          : "") +
-        (onPath ? ' data-on-path="1"' : "") +
-        ' d="' +
-        d +
-        '" />'
-      );
-    })
-    .join("");
-}
-
-function trajNodeDeps(fix, n) {
-  if (Array.isArray(n.deps) && n.deps.length) return n.deps.slice();
-  const id = n.id;
-  return (fix.edges || []).filter((e) => e.to === id).map((e) => e.from);
-}
-
-function trajDurationLabel(ms) {
-  const n = Number(ms);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  if (n < 1000) return n + "ms";
-  return (Math.round(n / 100) / 10) + "s";
-}
-
-function renderTrajectoryDetail(fix, selectedId) {
-  const n = (fix.nodes || []).find((x) => x.id === selectedId);
-  if (!n) {
-    return (
-      '<aside id="trajDetail" class="traj-detail" data-empty="1">' +
-      '<div class="traj-detail-empty">Select a subtask to inspect deps, next hops, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step · next → to hop.</div>' +
-      "</aside>"
-    );
-  }
-  const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
-  const artCls = pin === "artifact" ? " pin-focus" : "";
-  const diffCls = pin === "diff" ? " pin-focus" : "";
-  const deps = trajNodeDeps(fix, n);
-  const adds = Number(n.adds);
-  const dels = Number(n.dels);
-  const hasDiffMeta = Number.isFinite(adds) || Number.isFinite(dels);
-  const depHtml = deps.length
-    ? '<ul class="traj-dep-list" data-traj-deps="1">' +
-      deps
-        .map(
-          (d) =>
-            '<li class="traj-dep" role="button" tabindex="0" data-traj-dep="' +
-            esc(d) +
-            '" data-ade-dep-focus="1" title="Focus dependency ' +
-            esc(d) +
-            '"><code>' +
-            esc(d) +
-            "</code></li>"
-        )
-        .join("") +
-      "</ul>"
-    : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
-  const nextHops = trajOutgoingIds(fix, n.id).slice(0, 3);
-  const nextHopHtml = nextHops.length
-    ? '<ul class="traj-next-list" data-traj-nexts="1">' +
-      nextHops
-        .map((to) => {
-          const tgt = (fix.nodes || []).find((x) => x.id === to);
-          const label = (tgt && (tgt.label || tgt.id)) || to;
-          return (
-            '<li class="traj-next" role="button" tabindex="0" data-traj-next="' +
-            esc(to) +
-            '" data-ade-hop-next="1" title="Hop to ' +
-            esc(label) +
-            '"><span class="traj-next-arrow" aria-hidden="true">→</span><code>' +
-            esc(to) +
-            "</code></li>"
-          );
-        })
-        .join("") +
-      "</ul>"
-    : '<span class="traj-next-empty" data-traj-nexts="0">none</span>';
-  return (
-    '<aside id="trajDetail" class="traj-detail" data-selected="' +
-    esc(n.id) +
-    '"' +
-    (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") +
-    (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") +
-    (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") +
-    (Number.isFinite(Number(n.durationMs))
-      ? ' data-duration="' + esc(String(n.durationMs)) + '"'
-      : "") +
-    ">" +
-    '<div class="traj-detail-head">' +
-    '<span class="traj-status-chip status-' +
-    esc(n.status || "pending") +
-    '">' +
-    esc(trajStatusLabel(n.status)) +
-    "</span>" +
-    (n.phase
-      ? '<span class="traj-phase-chip" data-traj-phase-chip="' +
-        esc(n.phase) +
-        '">' +
-        esc(n.phase) +
-        "</span>"
-      : "") +
-    "<strong>" +
-    esc(n.label || n.id) +
-    "</strong>" +
-    '<code class="traj-detail-id">' +
-    esc(n.id) +
-    "</code></div>" +
-    '<dl class="traj-detail-grid">' +
-    "<dt>Kind</dt><dd>" +
-    esc(n.kind || "—") +
-    "</dd>" +
-    "<dt>Role</dt><dd>" +
-    esc(n.role || "—") +
-    "</dd>" +
-    '<dt>Phase</dt><dd data-traj-phase="' +
-    esc(n.phase || "") +
-    '">' +
-    esc(n.phase || "—") +
-    "</dd>" +
-    '<dt>Agent</dt><dd data-traj-agent="' +
-    esc(n.agent || "") +
-    '">' +
-    esc(n.agent || "—") +
-    "</dd>" +
-    '<dt>Duration</dt><dd data-traj-duration="' +
-    esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) +
-    '">' +
-    esc(trajDurationLabel(n.durationMs)) +
-    "</dd>" +
-    "<dt>Deps</dt><dd>" +
-    depHtml +
-    "</dd>" +
-    '<dt>Next hops</dt><dd data-traj-next-block="1">' +
-    nextHopHtml +
-    "</dd>" +
-    '<dt class="' +
-    (pin === "artifact" ? "on" : "") +
-    '">Artifact</dt><dd class="' +
-    (pin === "artifact" ? "on" : "") +
-    '">' +
-    (n.artifact
-      ? '<code data-traj-artifact="1" class="traj-pin-target' +
-        artCls +
-        '">' +
-        esc(n.artifact) +
-        "</code>"
-      : "—") +
-    "</dd>" +
-    '<dt class="' +
-    (pin === "diff" ? "on" : "") +
-    '">Diff pin</dt><dd class="' +
-    (pin === "diff" ? "on" : "") +
-    '">' +
-    (n.diff
-      ? '<code class="traj-diff traj-pin-target' +
-        diffCls +
-        '" data-traj-diff="1">' +
-        esc(n.diff) +
-        "</code>"
-      : "—") +
-    "</dd>" +
-    '<dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' +
-    (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
-    (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
-    ">" +
-    (hasDiffMeta
-      ? '<span class="traj-diff-adds">+' +
-        esc(String(Number.isFinite(adds) ? adds : 0)) +
-        '</span> <span class="traj-diff-dels">−' +
-        esc(String(Number.isFinite(dels) ? dels : 0)) +
-        "</span>"
-      : "—") +
-    "</dd>" +
-    "<dt>Note</dt><dd>" +
-    esc(n.note || "—") +
-    "</dd></dl>" +
-    '<div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or next → hop to focus it</div>' +
-    '<div class="traj-detail-ade-hop">' +
-    '<button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' +
-    esc(n.id) +
-    '" title="Show matching Passport rows for this Trace node">Show in Passport</button>' +
-    "</div>" +
-    "</aside>"
-  );
-}
-
-function announceTrajZoom(isFit) {
-  // ADE ZAL: polite live-region outside paint-replaced #trajZoomPct so SR hears keyboard zoom.
-  const live = document.getElementById("trajZoomLive");
-  if (!live) return;
-  const pctEl = document.getElementById("trajZoomPct");
-  const now =
-    (pctEl && pctEl.getAttribute("aria-valuenow")) ||
-    String(Math.round((Number(trajScale) || 1) * 100));
-  const text = isFit
-    ? "Trajectory zoom fit, " + now + "%"
-    : "Trajectory zoom " + now + "%";
-  live.setAttribute("data-traj-zoom-live", "1");
-  live.setAttribute("data-traj-zoom-live-pct", now);
-  if (isFit) live.setAttribute("data-traj-zoom-live-fit", "1");
-  else live.removeAttribute("data-traj-zoom-live-fit");
-  // Clear then set on next frame so polite live re-announces even when pct repeats.
-  live.textContent = "";
-  requestAnimationFrame(() => {
-    const el = document.getElementById("trajZoomLive");
-    if (el) el.textContent = text;
-  });
-}
-
-function trajZoomPctLabel(scale) {
-  return Math.round((Number(scale) || 1) * 100) + "%";
-}
-
-function trajZoomBy(factor) {
-  const nodes = trajectoryFixture().nodes || [];
-  if (!nodes.length) return;
-  const next = Math.min(
-    TRAJ_SCALE_MAX,
-    Math.max(TRAJ_SCALE_MIN, (Number(trajScale) || 1) * (Number(factor) || 1))
-  );
-  if (Math.abs(next - trajScale) < 1e-6) return;
-  trajScale = next;
-  paint({ animate: "none" });
-}
-
-function trajZoomFit() {
-  const nodes = trajectoryFixture().nodes || [];
-  if (!nodes.length) {
-    trajScale = 1;
-    return;
-  }
-  if (Math.abs((Number(trajScale) || 1) - 1) < 1e-6) return;
-  trajScale = 1;
-  paint({ animate: "none" });
-}
-
-function renderTrajZoomBar() {
-  const scale = Number(trajScale) || 1;
-  const pct = trajZoomPctLabel(scale);
-  const now = Math.round(scale * 100);
-  const vmin = Math.round(TRAJ_SCALE_MIN * 100);
-  const vmax = Math.round(TRAJ_SCALE_MAX * 100);
-  // ADE ZPK: pct readout is a keyboard slider (ArrowUp/Down step, Home fit); buttons stay click.
-  return (
-    '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom">' +
-    '<button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button>' +
-    '<span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1" tabindex="0" role="slider" aria-label="Trajectory zoom percentage" aria-valuemin="' +
-    esc(String(vmin)) +
-    '" aria-valuemax="' +
-    esc(String(vmax)) +
-    '" aria-valuenow="' +
-    esc(String(now)) +
-    '" aria-valuetext="' +
-    esc(pct) +
-    '" aria-keyshortcuts="ArrowUp ArrowDown Home" title="Arrow keys zoom · Home fits">' +
-    pct +
-    "</span>" +
-    '<button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button>' +
-    '<button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button>' +
-    "</span>"
-  );
-}
-
-function renderTrajectoryEmptyBody(fix) {
-  const title = fix.title || "Execution trajectory";
-  const sub = fix.subtitle || "No subtasks yet";
-  return (
-    '<div class="traj-page traj-page--empty" data-traj-empty="1">' +
-    '<div class="traj-strip">' +
-    '<span class="traj-strip-title">' +
-    esc(title) +
-    "</span>" +
-    '<span class="traj-strip-sub">' +
-    esc(sub) +
-    "</span>" +
-    '<span class="traj-strip-stats">' +
-    '<span class="traj-stat" data-stat="done"><b>0</b> done</span>' +
-    '<span class="traj-stat" data-stat="running"><b>0</b> running</span>' +
-    '<span class="traj-stat" data-stat="pending"><b>0</b> pending</span>' +
-    '<span class="traj-stat" data-stat="deps"><b>0</b> deps</span>' +
-    "</span>" +
-    renderSealStatusChip() +
-    renderAdeHop("passport", "Open Passport →") +
-    "</div>" +
-    '<div class="traj-layout">' +
-    '<div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' +
-    esc(fix.id || "ade-empty-fixture") +
-    '" data-empty="1" tabindex="0">' +
-    '<div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status">' +
-    '<b class="traj-empty-title">No trajectory nodes</b>' +
-    '<div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div>' +
-    '<div class="traj-empty-action">' +
-    renderAdeHop("passport", "Open Passport →") +
-    "</div>" +
-    "</div>" +
-    "</div>" +
-    renderTrajectoryDetail(fix, "") +
-    "</div>" +
-    '<div class="traj-meta" data-fixture-version="' +
-    esc(String(fix.version || 1)) +
-    '" data-empty="1">0 subtasks · 0 deps · empty fixture ' +
-    esc(fix.id || "ade-empty-fixture") +
-    (fix.version ? " v" + esc(String(fix.version)) : "") +
-    " · Open Passport to continue</div>" +
-    "</div>"
-  );
-}
-
-function renderTrajectoryBody() {
-  seedTrajectoryFocus();
-  seedPassportGate();
-  seedSealStatus();
-  const fix = trajectoryFixture();
-  const nodes = fix.nodes || [];
-  const edges = fix.edges || [];
-  if (!nodes.length) {
-    trajSelectedId = "";
-    trajPinFocus = "";
-    return renderTrajectoryEmptyBody(fix);
-  }
-  const nodeW = 188;
-  const nodeH = 96;
-  const selectedId =
-    trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
-  if (!selectedId) trajPinFocus = "";
-  const near = trajNeighborIds(fix, selectedId);
-  const residualTrajs = passportResidualTrajIds();
-  const focusOn = !!selectedId;
-  const edgeLines = renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId);
-  const nodeHtml = nodes
-    .map((n) => {
-      const art = n.artifact || "";
-      const diff = n.diff || "";
-      const on = selectedId === n.id ? " on" : "";
-      const neighbor = focusOn && near.has(n.id) && selectedId !== n.id ? " neighbor" : "";
-      const adjResidual =
-        focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id)
-          ? " traj-adj-residual"
-          : "";
-      const adjResidualAttr =
-        focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id)
-          ? ' data-traj-adj-residual="1"'
-          : "";
-      const residualBearing = residualTrajs.has(n.id);
-      const residualBearingAttr = residualBearing
-        ? ' data-residual-bearing="1"'
-        : "";
-      const residualFiltered = trajResidualFilter && !residualBearing;
-      const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
-      const residualFilteredAttr = residualFiltered
-        ? ' data-residual-filtered="1"'
-        : "";
-      const dim = focusOn && !near.has(n.id) ? " dim" : "";
-      const pinArt =
-        selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
-      const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
-      const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
-      const depAttr = deps.join(",");
-      const adds = Number(n.adds);
-      const dels = Number(n.dels);
-      const diffMeta =
-        (Number.isFinite(adds) ? " +" + adds : "") +
-        (Number.isFinite(dels) ? " −" + dels : "");
-      const nodeInfo = trajNodeInfoLabel(n, fix);
-      return (
-        '<button type="button" class="traj-node status-' +
-        esc(n.status || "pending") +
-        on +
-        neighbor +
-        adjResidual +
-        residualFilteredClass +
-        dim +
-        '" data-id="' +
-        esc(n.id) +
-        '"' +
-        adjResidualAttr +
-        residualBearingAttr +
-        residualFilteredAttr +
-        ' data-artifact="' +
-        esc(art) +
-        '" data-diff="' +
-        esc(diff) +
-        '" data-kind="' +
-        esc(n.kind || "") +
-        '" data-role="' +
-        esc(n.role || "") +
-        '" data-phase="' +
-        esc(n.phase || "") +
-        '" data-agent="' +
-        esc(n.agent || "") +
-        '" data-duration="' +
-        esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") +
-        '" data-deps="' +
-        esc(depAttr) +
-        '"' +
-        (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
-        (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
-        ' style="left:' +
-        n.x +
-        "px;top:" +
-        n.y +
-        'px" title="' +
-        esc(nodeInfo) +
-        '" aria-label="' +
-        esc(nodeInfo) +
-        '" data-traj-node-info="1" aria-pressed="' +
-        (on ? "true" : "false") +
-        '" tabindex="0">' +
-        '<div class="traj-node-top">' +
-        '<span class="traj-status-chip status-' +
-        esc(n.status || "pending") +
-        '">' +
-        esc(trajStatusLabel(n.status)) +
-        "</span>" +
-        (n.phase
-          ? '<span class="traj-phase-chip" data-traj-phase-chip="' +
-            esc(n.phase) +
-            '">' +
-            esc(n.phase) +
-            "</span>"
-          : "") +
-        (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") +
-        "</div>" +
-        '<div class="traj-label">' +
-        esc(n.label || n.id) +
-        "</div>" +
-        '<div class="traj-node-meta">' +
-        (n.role
-          ? '<span class="traj-role-chip" data-traj-role-chip="' +
-            esc(n.role) +
-            '">' +
-            esc(n.role) +
-            "</span>"
-          : "") +
-        (deps.length
-          ? '<span class="traj-dep-badge" data-dep-count="' +
-            deps.length +
-            '">' +
-            deps.length +
-            " dep" +
-            (deps.length === 1 ? "" : "s") +
-            "</span>"
-          : "") +
-        (n.agent
-          ? '<span class="traj-agent-chip" data-traj-agent-chip="' +
-            esc(n.agent) +
-            '">' +
-            esc(n.agent) +
-            "</span>"
-          : "") +
-        "</div>" +
-        (art
-          ? '<div class="traj-pin artifact' +
-            pinArt +
-            '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' +
-            esc("artifact · " + art) +
-            '">' +
-            esc(art) +
-            "</div>"
-          : "") +
-        (diff || diffMeta
-          ? '<div class="traj-pin diff' +
-            pinDiff +
-            '" data-traj-pin="diff" data-tip-ready="1"' +
-            (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") +
-            (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") +
-            ' aria-label="' +
-            esc(
-              "diff" +
-                (diff ? " " + diff : "") +
-                (Number.isFinite(adds) ? " +" + adds : "") +
-                (Number.isFinite(dels) ? " −" + dels : "")
-            ) +
-            '">' +
-            esc((diff || "Δ") + diffMeta) +
-            "</div>"
-          : "") +
-        "</button>"
-      );
-    })
-    .join("");
-  const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
-  const nextOut = selectedNode ? trajOutgoingIds(fix, selectedId).slice(0, 3) : [];
-  const hopChipHtml = nextOut
-    .map((to, i) => {
-      const tgt = nodes.find((n) => n.id === to);
-      const label = (tgt && (tgt.label || tgt.id)) || to;
-      const left = selectedNode.x + nodeW - 6;
-      const top = selectedNode.y + 10 + i * 24;
-      return (
-        '<button type="button" class="traj-hop-next" data-traj-next="' +
-        esc(to) +
-        '" data-ade-hop-next="1" data-from="' +
-        esc(selectedId) +
-        '" title="Hop to ' +
-        esc(label) +
-        '" aria-label="Next hop ' +
-        esc(label) +
-        '" style="left:' +
-        left +
-        "px;top:" +
-        top +
-        'px"><span class="traj-next-arrow" aria-hidden="true">→</span><span class="traj-hop-next-label">' +
-        esc(to) +
-        "</span></button>"
-      );
-    })
-    .join("");
-  const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
-  const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
-  const done = nodes.filter((n) => n.status === "done").length;
-  const running = nodes.filter((n) => n.status === "running").length;
-  const pending = nodes.filter((n) => n.status === "pending").length;
-  const edgeKinds = ["seq", "fork", "join"].filter((k) =>
-    edges.some((e) => (e.kind || "seq") === k)
-  );
-  const onPathKinds = new Set();
-  if (focusOn) {
-    for (const e of edges) {
-      if (e.from === selectedId || e.to === selectedId) {
-        onPathKinds.add(e.kind || "seq");
-      }
-    }
-  }
-  // AL: residual-adjacent node kinds on Trace legend (after #403 node attrs)
-  const adjResidualKinds = new Set();
-  let adjResidualCount = 0;
-  if (focusOn) {
-    for (const n of nodes) {
-      if (!near.has(n.id) || selectedId === n.id) continue;
-      if (!residualTrajs.has(n.id)) continue;
-      adjResidualCount += 1;
-      adjResidualKinds.add(n.kind || "task");
-    }
-  }
-  const hasAdjResidualLegend = focusOn && adjResidualCount > 0;
-  const adjResidualAttr = hasAdjResidualLegend
-    ? ' data-adj-residual-count="' + String(adjResidualCount) + '"'
-    : "";
-  const adjResidualChips = hasAdjResidualLegend
-    ? Array.from(adjResidualKinds)
-        .sort()
-        .map((k) => {
-          return (
-            '<span class="traj-legend-chip adj-residual kind-' +
-            esc(k) +
-            '" data-node-kind="' +
-            esc(k) +
-            '" data-adj-residual="1" title="Adjacent residual ' +
-            esc(k) +
-            '">' +
-            '<svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">' +
-            '<line x1="1" y1="5" x2="21" y2="5" stroke-dasharray="2 2"></line>' +
-            "</svg>" +
-            '<span class="traj-legend-label">adj ' +
-            esc(k) +
-            "</span></span>"
-          );
-        })
-        .join("")
-    : "";
-  // LC: focus-scoped residual count chip on Trace legend (pairs with Passport FC #405)
-  const passportFx = getPassport();
-  const passportWrites = Array.isArray(passportFx && passportFx.gatedWrites)
-    ? passportFx.gatedWrites
-    : [];
-  const focusResidualN = focusOn
-    ? passportWrites.filter((w) => {
-        const tid = resolvePassportTrajId(w);
-        return !!(tid && near.has(tid));
-      }).length
-    : 0;
-  const hasFocusResidualLegend = focusOn && focusResidualN > 0;
-  const focusResidualScopeAttr = hasFocusResidualLegend
-    ? ' data-residual-scope="focus" data-residual-focus="' +
-      esc(selectedId) +
-      '" data-focus-residual-count="' +
-      esc(String(focusResidualN)) +
-      '"'
-    : ' data-residual-scope="global"';
-  const focusResidualGate = passportGateState();
-  const focusResidualLabel =
-    focusResidualGate === "approved"
-      ? "focus open · " + focusResidualN
-      : "focus residual · " + focusResidualN;
-  const focusResidualChip = hasFocusResidualLegend
-    ? '<span class="traj-legend-chip focus-residual" data-focus-residual="1" data-residual-scope="focus" data-residual-focus="' +
-      esc(selectedId) +
-      '" data-focus-residual-count="' +
-      esc(String(focusResidualN)) +
-      '" data-residual-state="' +
-      esc(focusResidualGate) +
-      '" title="' +
-      esc(focusResidualLabel) +
-      '">' +
-      '<span class="traj-legend-focus-residual-badge">' +
-      esc(String(focusResidualN)) +
-      "</span>" +
-      '<span class="traj-legend-label">' +
-      esc(focusResidualLabel) +
-      "</span></span>"
-    : "";
-  const residualFilterAttr = trajResidualFilter
-    ? ' data-residual-filter="on"'
-    : "";
-  const residualFilterToggle =
-    '<button type="button" class="traj-legend-chip residual-filter-toggle" data-residual-filter-toggle="1" aria-pressed="' +
-    (trajResidualFilter ? "true" : "false") +
-    '" title="Show residual-bearing nodes only" aria-label="Toggle residual-bearing filter">' +
-    '<span class="traj-legend-label">' +
-    (trajResidualFilter ? "residuals on" : "residuals") +
-    "</span></button>";
-  // ADE Trace legend clear-filter cue (CC1–CC3) — ON + non-empty only; distinct from FE empty chrome
-  const legendClearFilterCue =
-    trajResidualFilter && residualTrajs.size > 0
-      ? '<button type="button" class="traj-legend-chip legend-clear-filter" data-legend-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
-      : "";
-  // ADE Trace legend residual-filter count chip (RFC1–RFC3) — ON + bearings; pairs with Passport sticky RC
-  const filterResidualN = residualTrajs.size;
-  const hasResidualFilterCount = trajResidualFilter && filterResidualN > 0;
-  const residualFilterCountAttr = hasResidualFilterCount
-    ? ' data-residual-filter-count="1" data-filter-residual-count="' +
-      esc(String(filterResidualN)) +
-      '"'
-    : "";
-  const residualFilterCountChip = hasResidualFilterCount
-    ? '<span class="traj-legend-chip residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
-      esc(String(filterResidualN)) +
-      '" tabindex="0" role="status" title="Residual filter matches ' +
-      esc(String(filterResidualN)) +
-      '. Clear filter or Escape to clear" aria-label="Residual filter matches ' +
-      esc(String(filterResidualN)) +
-      '. Clear filter or Escape to clear">' +
-      '<span class="traj-legend-filter-residual-badge">' +
-      esc(String(filterResidualN)) +
-      "</span>" +
-      '<span class="traj-legend-label">filter · ' +
-      esc(String(filterResidualN)) +
-      "</span></span>"
-    : "";
-  const edgeLegend =
-    edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend
-      ? ""
-      : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' +
-        adjResidualAttr +
-        focusResidualScopeAttr +
-        residualFilterAttr +
-        residualFilterCountAttr +
-        ">" +
-        edgeKinds
-          .map((k) => {
-            const chipFocus = focusOn
-              ? onPathKinds.has(k)
-                ? " on-path"
-                : " dim"
-              : "";
-            return (
-              '<span class="traj-legend-chip kind-' +
-              esc(k) +
-              chipFocus +
-              '" data-kind="' +
-              esc(k) +
-              '"' +
-              (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") +
-              (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") +
-              ">" +
-              '<svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">' +
-              '<line x1="1" y1="5" x2="21" y2="5"></line>' +
-              "</svg>" +
-              '<span class="traj-legend-label">' +
-              esc(k) +
-              "</span></span>"
-            );
-          })
-          .join("") +
-        adjResidualChips +
-        focusResidualChip +
-        residualFilterToggle +
-        residualFilterCountChip +
-        legendClearFilterCue +
-        "</div>";
-  return (
-    '<div class="traj-page' +
-    (focusOn ? " has-focus" : "") +
-    '">' +
-    '<div class="traj-strip">' +
-    '<span class="traj-strip-title">' +
-    esc(fix.title || "Execution trajectory") +
-    "</span>" +
-    '<span class="traj-strip-sub">' +
-    esc(fix.subtitle || "") +
-    "</span>" +
-    '<span class="traj-strip-stats">' +
-    '<span class="traj-stat" data-stat="done"><b>' +
-    done +
-    "</b> done</span>" +
-    '<span class="traj-stat" data-stat="running"><b>' +
-    running +
-    "</b> running</span>" +
-    '<span class="traj-stat" data-stat="pending"><b>' +
-    pending +
-    "</b> pending</span>" +
-    '<span class="traj-stat" data-stat="deps"><b>' +
-    edges.length +
-    "</b> deps</span>" +
-    "</span>" +
-    edgeLegend +
-    renderTrajZoomBar() +
-    renderSealStatusChip() +
-    renderAdeHop("passport", "Open Passport →") +
-    "</div>" +
-    '<div class="traj-layout">' +
-    '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
-    esc(fix.id) +
-    '" data-traj-scale="' +
-    esc(String(Number(trajScale) || 1)) +
-    '"' +
-    (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") +
-    (trajResidualFilter && residualTrajs.size === 0
-      ? ' data-residual-filter-empty="1"'
-      : "") +
-    ' tabindex="0" style="min-width:' +
-    Math.ceil(maxX * (Number(trajScale) || 1)) +
-    "px;min-height:" +
-    Math.ceil(maxY * (Number(trajScale) || 1)) +
-    'px">' +
-    '<div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' +
-    maxX +
-    "px;height:" +
-    maxY +
-    "px;transform:scale(" +
-    (Number(trajScale) || 1) +
-    ');transform-origin:0 0">' +
-    '<svg class="traj-edges" width="' +
-    maxX +
-    '" height="' +
-    maxY +
-    '" aria-hidden="true">' +
-    "<defs>" +
-    '<marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-    '<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>' +
-    '<marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
-    '<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker>' +
-    "</defs>" +
-    edgeLines +
-    "</svg>" +
-    nodeHtml +
-    hopChipHtml +
-    "</div>" +
-    renderResidualFilterEmptyChrome("trace") +
-    "</div>" +
-    renderTrajectoryDetail(fix, selectedId) +
-    "</div>" +
-    '<div class="traj-meta" data-fixture-version="' +
-    esc(String(fix.version || 1)) +
-    '">' +
-    nodes.length +
-    " subtasks · " +
-    edges.length +
-    " deps · fixture " +
-    esc(fix.id) +
-    (fix.version ? " v" + esc(String(fix.version)) : "") +
-    " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div>" +
-    "</div>"
-  );
-}
-
-function paintTrajectoryWorkspace(title) {
-  unmountAllReviewCanvases();
-  const html = renderTrajectoryBody();
-  canvas.className = "play explorer-list traj";
-  canvas.innerHTML =
-    '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
-  setZoomUi(false);
-  // ADE LRP: while residual filter stays ON, refresh live-region N on paint (Approve/focus/fixture) without toast.
-  if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
-}
-
-function stepTrajectory(dir) {
-  const nodes = trajectoryFixture().nodes || [];
-  if (!nodes.length) return;
-  let i = nodes.findIndex((n) => n.id === trajSelectedId);
-  if (i < 0) i = dir > 0 ? -1 : 0;
-  i = (i + dir + nodes.length) % nodes.length;
-  trajSelectedId = nodes[i].id;
-  trajPinFocus = "";
-  syncAdeDeepLink("trace");
-  paint({ animate: "none" });
-}
-
-function trajPinTipEl() {
-  let el = document.getElementById("trajPinTip");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "trajPinTip";
-    el.hidden = true;
-    el.setAttribute("data-traj-pin-tip", "1");
-    el.setAttribute("role", "tooltip");
-    document.body.appendChild(el);
-  }
-  return el;
-}
-
-function hideTrajPinTip() {
-  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
-  const el = document.getElementById("trajPinTip");
-  if (!el) return;
-  el.hidden = true;
-  el.removeAttribute("data-pin-kind");
-  el.removeAttribute("data-node-id");
-  el.removeAttribute("data-adds");
-  el.removeAttribute("data-dels");
-  el.removeAttribute("data-tip-place");
-  el.removeAttribute("data-tip-residual");
-  el.removeAttribute("data-residual-status");
-  el.removeAttribute("data-residual-deps");
-  el.removeAttribute("data-residual-hops");
-  el.removeAttribute("data-residual-seal");
-  el.innerHTML = "";
-}
-
-function positionTrajPinTip(el, ev, pin) {
-  const margin = 10;
-  const tipW = el.offsetWidth || 180;
-  const tipH = el.offsetHeight || 64;
-  let x;
-  let y;
-  if (pin && typeof pin.getBoundingClientRect === "function") {
-    const r = pin.getBoundingClientRect();
-    x = r.left + r.width / 2 - tipW / 2;
-    y = r.bottom + 8;
-    if (y + tipH > window.innerHeight - margin) {
-      y = r.top - tipH - 8;
-      el.setAttribute("data-tip-place", "above");
-    } else {
-      el.setAttribute("data-tip-place", "below");
-    }
-  } else {
-    x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
-    y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
-    el.setAttribute("data-tip-place", "cursor");
-  }
-  x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
-  y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
-  el.style.left = x + "px";
-  el.style.top = y + "px";
-}
-
-function showTrajPinTip(pin, node, ev) {
-  if (!pin || !node || !ev) return;
-  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
-  const el = trajPinTipEl();
-  const kind = pin.getAttribute("data-traj-pin") || "";
-  const id = node.getAttribute("data-id") || "";
-  const art = node.getAttribute("data-artifact") || "";
-  const diff = node.getAttribute("data-diff") || "";
-  const addsRaw = pin.getAttribute("data-adds");
-  const delsRaw = pin.getAttribute("data-dels");
-  const addsAttr =
-    addsRaw !== null && addsRaw !== ""
-      ? addsRaw
-      : node.getAttribute("data-adds") || "";
-  const delsAttr =
-    delsRaw !== null && delsRaw !== ""
-      ? delsRaw
-      : node.getAttribute("data-dels") || "";
-  const adds = Number(addsAttr);
-  const dels = Number(delsAttr);
-  const hasCounts = Number.isFinite(adds) || Number.isFinite(dels);
-  el.setAttribute("data-pin-kind", kind);
-  el.setAttribute("data-node-id", id);
-  if (Number.isFinite(adds)) el.setAttribute("data-adds", String(adds));
-  else el.removeAttribute("data-adds");
-  if (Number.isFinite(dels)) el.setAttribute("data-dels", String(dels));
-  else el.removeAttribute("data-dels");
-  let html =
-    '<div class="traj-pin-tip-head"><span class="traj-pin-tip-kind">' +
-    esc(kind || "pin") +
-    "</span>";
-  if (kind === "diff" && diff) {
-    html +=
-      '<code class="traj-pin-tip-diff-label" data-tip-diff="' +
-      esc(diff) +
-      '">' +
-      esc(diff) +
-      "</code>";
-  }
-  html += "</div>";
-  if (kind === "diff" || hasCounts) {
-    html +=
-      '<div class="traj-pin-tip-counts" data-tip-counts="1">' +
-      '<span class="traj-pin-tip-chip traj-pin-tip-chip-add traj-diff-adds" data-tip-adds="1">+' +
-      esc(String(Number.isFinite(adds) ? adds : 0)) +
-      '</span><span class="traj-pin-tip-chip traj-pin-tip-chip-del traj-diff-dels" data-tip-dels="1">−' +
-      esc(String(Number.isFinite(dels) ? dels : 0)) +
-      "</span></div>";
-  }
-  if (art) {
-    const slash = art.lastIndexOf("/");
-    const dir = slash >= 0 ? art.slice(0, slash + 1) : "";
-    const base = slash >= 0 ? art.slice(slash + 1) : art;
-    html +=
-      '<code class="traj-pin-tip-art" data-tip-artifact="1" title="' +
-      esc(art) +
-      '">';
-    if (dir) {
-      html +=
-        '<span class="traj-pin-tip-art-dir" data-tip-art-dir="1">' +
-        esc(dir) +
-        "</span>";
-    }
-    html +=
-      '<span class="traj-pin-tip-art-base" data-tip-art-base="1">' +
-      esc(base) +
-      "</span></code>";
-  }
-  // TP: residual/status cue — unmet deps, hop residual, optional seal hint
-  const fix = trajectoryFixture();
-  const nodes = fix.nodes || [];
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const fxNode = byId.get(id) || null;
-  const status = (fxNode && fxNode.status) || "pending";
-  const depIds = fxNode && Array.isArray(fxNode.deps) ? fxNode.deps : [];
-  let unmetDeps = 0;
-  for (const d of depIds) {
-    const dep = byId.get(d);
-    const st = (dep && dep.status) || "pending";
-    if (st !== "done") unmetDeps += 1;
-  }
-  const hops = trajOutgoingIds(fix, id).length;
-  const artPath = (fxNode && fxNode.artifact) || art || "";
-  const sealHint = !!(
-    (fxNode && fxNode.kind === "harness") ||
-    /seal|immutable/i.test(String(id) + " " + artPath)
-  );
-  el.setAttribute("data-tip-residual", "1");
-  el.setAttribute("data-residual-status", status);
-  el.setAttribute("data-residual-deps", String(unmetDeps));
-  el.setAttribute("data-residual-hops", String(hops));
-  if (sealHint) el.setAttribute("data-residual-seal", "1");
-  else el.removeAttribute("data-residual-seal");
-  const residualCopy =
-    unmetDeps +
-    " dep" +
-    (unmetDeps === 1 ? "" : "s") +
-    " left · " +
-    hops +
-    " hop" +
-    (hops === 1 ? "" : "s") +
-    (sealHint ? " · seal" : "");
-  html +=
-    '<div class="traj-pin-tip-residual" data-tip-residual="1" data-residual-status="' +
-    esc(status) +
-    '" data-residual-deps="' +
-    esc(String(unmetDeps)) +
-    '" data-residual-hops="' +
-    esc(String(hops)) +
-    '"' +
-    (sealHint ? ' data-residual-seal="1"' : "") +
-    '><span class="traj-pin-tip-residual-badge">' +
-    esc(status) +
-    '</span><span class="traj-pin-tip-residual-copy">' +
-    esc(residualCopy) +
-    "</span></div>";
-  el.innerHTML = html;
-  el.hidden = false;
-  positionTrajPinTip(el, ev, pin);
-}
-
-
-
-
-/** TEH: floating traj-edge hover tip (kind · label · from→to); mirror trajPinTip; no SVG <title>. */
-function trajEdgeTipEl() {
-  let el = document.getElementById("trajEdgeTip");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "trajEdgeTip";
-    el.hidden = true;
-    el.setAttribute("data-traj-edge-tip", "1");
-    el.setAttribute("role", "tooltip");
-    document.body.appendChild(el);
-  }
-  return el;
-}
-
-function hideTrajEdgeTip() {
-  const el = document.getElementById("trajEdgeTip");
-  if (!el) return;
-  el.hidden = true;
-  el.removeAttribute("data-edge-id");
-  el.removeAttribute("data-from");
-  el.removeAttribute("data-to");
-  el.removeAttribute("data-kind");
-  el.removeAttribute("data-label");
-  el.removeAttribute("data-latency");
-  el.removeAttribute("data-tip-place");
-  el.innerHTML = "";
-}
-
-function positionTrajEdgeTip(el, ev, edge) {
-  const margin = 10;
-  const tipW = el.offsetWidth || 160;
-  const tipH = el.offsetHeight || 48;
-  let x;
-  let y;
-  if (edge && typeof edge.getBoundingClientRect === "function") {
-    const r = edge.getBoundingClientRect();
-    x = r.left + r.width / 2 - tipW / 2;
-    y = r.bottom + 8;
-    if (y + tipH > window.innerHeight - margin) {
-      y = r.top - tipH - 8;
-      el.setAttribute("data-tip-place", "above");
-    } else {
-      el.setAttribute("data-tip-place", "below");
-    }
-  } else {
-    x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
-    y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
-    el.setAttribute("data-tip-place", "cursor");
-  }
-  x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
-  y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
-  el.style.left = x + "px";
-  el.style.top = y + "px";
-}
-
-function showTrajEdgeTip(edge, ev) {
-  if (!edge || !ev) return;
-  // Mutual exclusion with pin tip
-  const pin = document.getElementById("trajPinTip");
-  if (pin && !pin.hidden) {
-    pin.hidden = true;
-    pin.innerHTML = "";
-  }
-  const el = trajEdgeTipEl();
-  const id = edge.getAttribute("data-edge-id") || "";
-  const from = edge.getAttribute("data-from") || "";
-  const to = edge.getAttribute("data-to") || "";
-  const kind = edge.getAttribute("data-kind") || "";
-  const label = edge.getAttribute("data-label") || "";
-  el.setAttribute("data-edge-id", id);
-  el.setAttribute("data-from", from);
-  el.setAttribute("data-to", to);
-  el.setAttribute("data-kind", kind);
-  if (label) el.setAttribute("data-label", label);
-  else el.removeAttribute("data-label");
-  let latencyRaw = edge.getAttribute("data-latency") || "";
-  if (!latencyRaw) {
-    const fix = typeof trajectoryFixture === "function" ? trajectoryFixture() : null;
-    const fxEdge = ((fix && fix.edges) || []).find((x) => x && x.id === id);
-    if (fxEdge && Number.isFinite(Number(fxEdge.latencyMs)) && Number(fxEdge.latencyMs) > 0) {
-      latencyRaw = String(fxEdge.latencyMs);
-    }
-  }
-  const latencyMs = Number(latencyRaw);
-  const hasLatency = Number.isFinite(latencyMs) && latencyMs > 0;
-  if (hasLatency) el.setAttribute("data-latency", String(latencyMs));
-  else el.removeAttribute("data-latency");
-  const headBits = [];
-  if (kind) headBits.push(kind);
-  if (label) headBits.push(label);
-  const head = headBits.join(" · ") || "edge";
-  const hop = from && to ? from + " → " + to : from || to || "";
-  let html =
-    '<div class="traj-edge-tip-head"><span class="traj-edge-tip-kind" data-tip-edge-kind="1">' +
-    esc(kind || "edge") +
-    "</span>";
-  if (label) {
-    html +=
-      '<span class="traj-edge-tip-label" data-tip-edge-label="1">' +
-      esc(label) +
-      "</span>";
-  }
-  html += "</div>";
-  if (hop) {
-    html +=
-      '<div class="traj-edge-tip-hop" data-tip-edge-hop="1"><code data-tip-from="1">' +
-      esc(from) +
-      '</code><span class="traj-edge-tip-arrow" aria-hidden="true">→</span><code data-tip-to="1">' +
-      esc(to) +
-      "</code></div>";
-  }
-  if (hasLatency) {
-    html +=
-      '<div class="traj-edge-tip-meta" data-tip-edge-meta="1">' +
-      '<span class="traj-edge-tip-chip traj-edge-tip-chip--latency" data-tip-edge-latency="1">' +
-      esc(String(latencyMs)) +
-      "ms</span></div>";
-  }
-  el.setAttribute(
-    "data-tip-copy",
-    head + (hop ? " · " + hop : "") + (hasLatency ? " · " + latencyMs + "ms" : "")
-  );
-  el.innerHTML = html;
-  el.hidden = false;
-  positionTrajEdgeTip(el, ev, edge);
-}
-
-/** CF: clear Trace/Passport traj focus and restore global residual chrome. */
-function clearTrajFocus() {
-  trajSelectedId = "";
-  trajPinFocus = "";
-  hideTrajPinTip();
-  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
-  if (typeof window !== "undefined") window.__graphideTrajectoryFocus = "";
-  syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
-  paint({ animate: "none" });
-}
-
-function focusTrajectoryDep(depId) {
-  const id = String(depId || "");
-  if (!id) return false;
-  const nodes = trajectoryFixture().nodes || [];
-  if (!nodes.some((n) => n.id === id)) return false;
-  trajSelectedId = id;
-  trajPinFocus = "";
-  syncAdeDeepLink("trace");
-  paint({ animate: "none" });
-  return true;
-}
-
-/** HA: hop to a directed successor (same focus path as dep-list). */
-function hopTrajectoryNext(nextId) {
-  return focusTrajectoryDep(nextId);
-}
-
-function bindTrajectoryPage() {
-  const host = document.getElementById("trajCanvas");
-  if (!host) return;
-  hideTrajPinTip();
-  if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
-  host.querySelectorAll(".traj-node").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      const pin = ev.target && ev.target.closest ? ev.target.closest("[data-traj-pin]") : null;
-      const id = el.getAttribute("data-id") || "";
-      if (pin) {
-        const kind = pin.getAttribute("data-traj-pin") || "";
-        if (trajSelectedId === id && trajPinFocus === kind) {
-          trajPinFocus = "";
-        } else {
-          trajSelectedId = id;
-          trajPinFocus = kind === "artifact" || kind === "diff" ? kind : "";
-        }
-      } else if (trajSelectedId === id) {
-        trajSelectedId = "";
-        trajPinFocus = "";
-      } else {
-        trajSelectedId = id;
-        trajPinFocus = "";
-      }
-      hideTrajPinTip();
-      syncAdeDeepLink("trace");
-      paint({ animate: "none" });
-    };
-  });
-  host.querySelectorAll(".traj-pin[data-tip-ready]").forEach((pin) => {
-    const node = pin.closest(".traj-node");
-    if (!node) return;
-    pin.onpointerenter = (ev) => {
-      ev.stopPropagation();
-      showTrajPinTip(pin, node, ev);
-    };
-    pin.onpointermove = (ev) => {
-      const tipEl = document.getElementById("trajPinTip");
-      if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev, pin);
-    };
-    pin.onpointerleave = () => hideTrajPinTip();
-  });
-  // ADE TEH1–TEH3: traj-edge hover tip (pointer-events:stroke on path; parent svg still none)
-  host.querySelectorAll("svg.traj-edges path.traj-edge[data-edge-id]").forEach((edge) => {
-    edge.onpointerenter = (ev) => {
-      ev.stopPropagation();
-      showTrajEdgeTip(edge, ev);
-    };
-    edge.onpointermove = (ev) => {
-      const tipEl = document.getElementById("trajEdgeTip");
-      if (tipEl && !tipEl.hidden) positionTrajEdgeTip(tipEl, ev, edge);
-    };
-    edge.onpointerleave = () => hideTrajEdgeTip();
-  });
-  host.onclick = () => {
-    if (document.activeElement !== host) host.focus({ preventScroll: true });
-  };
-  const zin = document.getElementById("trajZoomIn");
-  const zout = document.getElementById("trajZoomOut");
-  const zfit = document.getElementById("trajZoomFit");
-  if (zin) zin.onclick = (ev) => { ev.preventDefault(); trajZoomBy(TRAJ_SCALE_STEP); };
-  if (zout) zout.onclick = (ev) => { ev.preventDefault(); trajZoomBy(1 / TRAJ_SCALE_STEP); };
-  if (zfit) zfit.onclick = (ev) => { ev.preventDefault(); trajZoomFit(); };
-  // ADE ZPK1–ZPK3: keyboard cue on zoom percentage slider (restore focus after paint)
-  const zpct = document.getElementById("trajZoomPct");
-  if (zpct) {
-    zpct.onkeydown = (ev) => {
-      let acted = false;
-      if (ev.key === "ArrowUp" || ev.key === "ArrowRight") {
-        ev.preventDefault();
-        ev.stopPropagation();
-        trajZoomBy(TRAJ_SCALE_STEP);
-        acted = true;
-      } else if (ev.key === "ArrowDown" || ev.key === "ArrowLeft") {
-        ev.preventDefault();
-        ev.stopPropagation();
-        trajZoomBy(1 / TRAJ_SCALE_STEP);
-        acted = true;
-      } else if (ev.key === "Home") {
-        ev.preventDefault();
-        ev.stopPropagation();
-        trajZoomFit();
-        acted = true;
-      }
-      if (!acted) return;
-      const el = document.getElementById("trajZoomPct");
-      if (el && typeof el.focus === "function") {
-        try {
-          el.focus({ preventScroll: true });
-        } catch (_err) {
-          /* ignore */
-        }
-      }
-      // ADE ZAL1–ZAL3: announce pct via persistent #trajZoomLive after paint/focus restore
-      if (typeof announceTrajZoom === "function") {
-        announceTrajZoom(ev.key === "Home");
-      }
-    };
-  }
-  const residualFilterBtn = document.querySelector(
-    '#trajEdgeLegend [data-residual-filter-toggle="1"]'
-  );
-  if (residualFilterBtn) {
-    residualFilterBtn.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleTrajResidualFilter();
-    };
-  }
-  document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      clearTrajResidualFilter("clear-chip");
-    };
-  });
-  document.querySelectorAll('#trajEdgeLegend [data-legend-clear-filter="1"]').forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      clearTrajResidualFilter("clear-chip");
-    };
-  });
-  if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
-  bindAdeHopButtons();
-  bindAdePassportHlHops();
-  const detail = document.getElementById("trajDetail");
-  if (detail) {
-    const onDepActivate = (ev) => {
-      const chip =
-        ev.target && ev.target.closest ? ev.target.closest("[data-traj-dep]") : null;
-      if (!chip || !detail.contains(chip)) return;
-      const id = chip.getAttribute("data-traj-dep") || "";
-      if (!id) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      focusTrajectoryDep(id);
-    };
-    detail.querySelectorAll("[data-traj-dep]").forEach((chip) => {
-      chip.onclick = onDepActivate;
-      chip.onkeydown = (ev) => {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        onDepActivate(ev);
-      };
-    });
-  }
-  const onNextActivate = (ev) => {
-    const chip =
-      ev.target && ev.target.closest ? ev.target.closest("[data-traj-next]") : null;
-    if (!chip) return;
-    const id = chip.getAttribute("data-traj-next") || "";
-    if (!id) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    hopTrajectoryNext(id);
-  };
-  document.querySelectorAll("[data-traj-next]").forEach((chip) => {
-    chip.onclick = onNextActivate;
-    chip.onkeydown = (ev) => {
-      if (ev.key !== "Enter" && ev.key !== " ") return;
-      onNextActivate(ev);
-    };
-  });
-}
-
-
-const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
-const PASSPORT_FIXTURE = Object.freeze({
-  version: 2,
-  id: "passport-ade-phase-1.2-fixtures",
-  title: "Plan Passport \u2014 ADE Phase 1.2 richer fixtures",
-  status: "pending",
-  summary: "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
-  targets: [
-    {
-      id: "t1",
-      label: "Passport paint + bind",
-      path: "extension/media/src/graph/desk.js",
-      traj: "sub-edit",
-      layer: "architecture",
-      deltaStatus: "Changed",
-      impact: "Richer row chrome + impact cards"
-    },
-    {
-      id: "t2",
-      label: "Explorer Passport tab",
-      path: "extension/media/src/chrome/GraphBar.jsx",
-      layer: "chrome",
-      impact: "Sibling tab order unchanged",
-      clusterKind: "Stable"
-    },
-    {
-      id: "t3",
-      label: "Harness + verify gate",
-      path: "scripts/verify-graphide.js",
-      traj: "sub-verify",
-      layer: "harness",
-      deltaStatus: "Added",
-      impact: "PF1\u2013PF5 fixture drivers"
-    },
-    {
-      id: "t4",
-      label: "Trace DAG polish",
-      path: "extension/media/src/graph/trajectory-fixture.js",
-      traj: "sub-fixture",
-      layer: "trace",
-      impact: "A1a semantics preserved",
-      clusterKind: "Stable"
-    },
-    {
-      id: "t5",
-      label: "Passport fixture JSON",
-      path: "extension/scripts/passport-fixture.json",
-      traj: "sub-passport",
-      layer: "harness",
-      deltaStatus: "Changed",
-      impact: "Sim rows for architecture/API/risk/test"
-    }
-  ],
-  contracts: [
-    {
-      id: "c1",
-      kind: "function",
-      name: "paintPassportWorkspace",
-      sig: "(title) => void",
-      stability: "draft",
-      deltaClass: "Presentation",
-      breaking: false,
-      change: "Renders enriched fixture rows",
-      traj: "sub-passport"
-    },
-    {
-      id: "c2",
-      kind: "function",
-      name: "getPassport",
-      sig: "() => PassportFixture",
-      stability: "draft",
-      deltaClass: "Semantic",
-      breaking: false,
-      change: "Accepts version-2 richer fields"
-    },
-    {
-      id: "c3",
-      kind: "function",
-      name: "setPassportGate",
-      sig: "(state) => void",
-      stability: "draft",
-      deltaClass: "Topology",
-      breaking: false,
-      change: "Gate state fixture-only",
-      traj: "sub-edit"
-    },
-    {
-      id: "c4",
-      kind: "function",
-      name: "bindTrajectoryPage",
-      sig: "() => void",
-      stability: "draft",
-      deltaClass: "Topology",
-      breaking: false,
-      change: "Trace bind unchanged (A1a)",
-      traj: "sub-fixture"
-    },
-    {
-      id: "c5",
-      kind: "function",
-      name: "renderPassportImpact",
-      sig: "(fx) => string",
-      stability: "draft",
-      deltaClass: "Presentation",
-      breaking: false,
-      change: "Structured impact rows + Delta chips",
-      traj: "sub-passport"
-    }
-  ],
-  risks: [
-    {
-      id: "r1",
-      level: "high",
-      area: "gate-state writes",
-      note: "must never touch .graphide/stamps/",
-      mitigation: "setPassportGate is in-memory only",
-      blast: ".graphide/stamps/",
-      traj: "sub-passport"
-    },
-    {
-      id: "r2",
-      level: "med",
-      area: "agent write ordering",
-      note: "file writes stay blocked until Approve",
-      mitigation: "gatedWrites stay data-blocked until approved",
-      blast: "extension/media/**",
-      traj: "sub-edit"
-    },
-    {
-      id: "r3",
-      level: "low",
-      area: "explorer tab ordering",
-      note: "Passport remains click-only",
-      mitigation: "no digit-key binding",
-      blast: "#workspaces"
-    },
-    {
-      id: "r4",
-      level: "med",
-      area: "A1a semantics",
-      note: "Trace polish must keep trajectory-dag host + pin attrs",
-      mitigation: "This slice does not edit Trace paint/bind",
-      blast: "#trajCanvas",
-      traj: "sub-fixture"
-    },
-    {
-      id: "r5",
-      level: "med",
-      area: "live Delta mount",
-      note: "Impact must stay vocabulary stub",
-      mitigation: "No #deltaCanvas under #passportPage",
-      blast: "#passportImpact",
-      traj: "sub-passport"
-    }
-  ],
-  testStrategy: [
-    {
-      id: "p1",
-      kind: "assert",
-      desc: "tab present, click-only (no digit key)",
-      fixture: "?passport=1&ws=passport",
-      covers: "chrome",
-      traj: "sub-passport"
-    },
-    {
-      id: "p2",
-      kind: "assert",
-      desc: "gate banner starts pending with blocked paths",
-      fixture: "P3",
-      covers: "gate"
-    },
-    {
-      id: "p3",
-      kind: "e2e",
-      desc: "Approve unlocks gate fixture state; Reject re-blocks",
-      fixture: "P6",
-      covers: "gate",
-      traj: "sub-verify"
-    },
-    {
-      id: "p4",
-      kind: "assert",
-      desc: "impact stub keeps Architecture Delta vocabulary text",
-      fixture: "P5",
-      covers: "impact"
-    },
-    {
-      id: "p5",
-      kind: "assert",
-      desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
-      fixture: "P5b",
-      covers: "impact",
-      traj: "sub-edit"
-    },
-    {
-      id: "p6",
-      kind: "assert",
-      desc: "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
-      fixture: "PF1\u2013PF5",
-      covers: "targets,contracts,risks,tests,impact",
-      traj: "sub-fixture"
-    }
-  ],
-  gatedWrites: [
-    {
-      path: "extension/media/src/graph/desk.js",
-      traj: "sub-edit",
-      reason: "agent would edit paint/bind"
-    },
-    {
-      path: "extension/media/src/chrome/GraphBar.jsx",
-      reason: "agent would add chrome"
-    },
-    {
-      path: "extension/media/main.css",
-      reason: "agent would restyle passport"
-    },
-    {
-      path: "extension/media/src/graph/trajectory-fixture.js",
-      traj: "sub-fixture",
-      reason: "agent would reshape Trace fixture"
-    },
-    {
-      path: "extension/scripts/passport-fixture.json",
-      traj: "sub-passport",
-      reason: "agent would reshape Passport sim"
-    }
-  ],
-  impact: {
-    callGraphs: [
-      {
-        id: "cg1",
-        traj: "sub-edit",
-        label: "paintPassportWorkspace \u2190 renderExplorerList(ws)",
-        detail: "Explorer list paint owns Passport page mount",
-        deltaStatus: "Changed",
-        deltaClass: "Topology"
-      },
-      {
-        id: "cg2",
-        label: "setPassportGate \u2190 #passportSign Approve/Reject",
-        detail: "Sign-off flips gate without disk writes",
-        deltaClass: "Semantic",
-        clusterKind: "Stable"
-      },
-      {
-        id: "cg3",
-        label: "bindTrajectoryPage \u2190 renderExplorerList(trace)",
-        detail: "Trace bind stays on A1a path",
-        deltaClass: "Topology",
-        clusterKind: "Stable"
-      },
-      {
-        id: "cg4",
-        label: "renderPassportImpact \u2190 renderPassportBody",
-        detail: "Structured rows + Delta vocab chips",
-        deltaStatus: "Added",
-        deltaClass: "Presentation"
-      },
-      "legacy string impact row (static chrome)"
-    ],
-    apiContracts: [
-      {
-        id: "ac1",
-        traj: "sub-verify",
-        label: "getPassport() \u2192 PASSPORT_FIXTURE | window.__graphidePassport",
-        detail: "Harness ?passport=1 may override embedded fixture",
-        deltaStatus: "Changed",
-        deltaClass: "Semantic"
-      },
-      {
-        id: "ac2",
-        label: "PASSPORT_GATE \u2208 pending|approved|rejected",
-        detail: "URL ?gate= seeds + replaceState sync",
-        deltaClass: "Semantic",
-        clusterKind: "Stable"
-      },
-      {
-        id: "ac3",
-        label: "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
-        detail: "A1a pin attrs untouched by Passport enrich",
-        deltaClass: "Topology",
-        clusterKind: "Stable"
-      }
-    ],
-    invariants: [
-      {
-        id: "inv1",
-        label: "no digit-key binding for passport",
-        detail: "Click-only workspace tab",
-        deltaClass: "Presentation",
-        clusterKind: "Stable"
-      },
-      {
-        id: "inv2",
-        label: "gate state fixture-only (no .graphide/stamps/)",
-        detail: "Approve never posts stamps",
-        deltaClass: "Semantic",
-        clusterKind: "Stable"
-      },
-      {
-        id: "inv3",
-        label: "Architecture Delta vocabulary in #passportDeltaVocab stub only",
-        detail: "No live #deltaCanvas mount on Passport",
-        deltaClass: "Presentation",
-        clusterKind: "Stable"
-      },
-      {
-        id: "inv4",
-        label: "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
-        detail: "A1a host preserved",
-        deltaClass: "Topology",
-        clusterKind: "Stable"
-      },
-      {
-        id: "inv5",
-        label: "no live #deltaCanvas mount on Passport",
-        detail: "Impact readability uses vocabulary chips only",
-        deltaClass: "Presentation",
-        clusterKind: "Stable"
-      }
-    ],
-    deltaVocab: {
-      statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
-      classes: ["Semantic", "Topology", "Presentation"],
-      clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
-      regions: [
-        {
-          id: "structural",
-          label: "Structural delta",
-          detail: "Pair by (kind, fqn). Exact facts only \u2014 no blast radius or merge safety."
-        },
-        {
-          id: "impact",
-          label: "Impact regions",
-          detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
-        },
-        {
-          id: "community",
-          label: "Cluster continuity",
-          detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
-        }
-      ]
-    }
-  }
-});
-
-const DELTA_VOCAB_DEFAULT = Object.freeze({
-  statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
-  classes: ["Semantic", "Topology", "Presentation"],
-  clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
-  regions: [
-    {
-      id: "structural",
-      label: "Structural delta",
-      detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety.",
-    },
-    {
-      id: "impact",
-      label: "Impact regions",
-      detail: "Plan-projected call graphs, API contracts, and invariants before agent writes.",
-    },
-    {
-      id: "community",
-      label: "Cluster continuity",
-      detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel.",
-    },
-  ],
-});
-let passportGate = "pending";
-let passportGateSeeded = false;
-
-/** Mirror classifyWrite vocabulary (display-only stub; not live FS). */
-const SEAL_STATES = { sealed: 1, open: 1, unlock: 1 };
-let sealStatus = "sealed";
-let sealStatusSeeded = false;
-
-function normalizeSealStatus(raw) {
-  const s = String(raw || "").trim().toLowerCase();
-  if (s === "agent") return "open";
-  if (SEAL_STATES[s]) return s;
-  return "";
-}
-
-function seedSealStatus() {
-  // Prefer live window override so verify / harness flips re-paint without
-  // calling setSealStatus. URL ?seal= seeds only on first pass.
-  let want =
-    (typeof window !== "undefined" && window.__graphideSealStatus) || "";
-  if (!want && !sealStatusSeeded && typeof location !== "undefined") {
-    try {
-      want = new URLSearchParams(location.search || "").get("seal") || "";
-    } catch (_err) {
-      want = "";
-    }
-  }
-  const norm = normalizeSealStatus(want);
-  if (norm) sealStatus = norm;
-  sealStatusSeeded = true;
-}
-
-function sealStatusState() {
-  return SEAL_STATES[sealStatus] ? sealStatus : "sealed";
-}
-
-function sealStatusLabel(state) {
-  if (state === "open") return "OPEN · agent";
-  if (state === "unlock") return "UNLOCK · ADE_ALLOW";
-  return "SEALED";
-}
-
-/** Matching title / aria-label / data-seal-info for seal-chip hover cue (SCH). */
-function sealStatusInfoLabel(state) {
-  return "Immutable seal / write-gate stub (fixture): " + sealStatusLabel(state);
-}
-
-function renderSealStatusChip() {
-  seedSealStatus();
-  const state = sealStatusState();
-  const label = sealStatusLabel(state);
-  const info = sealStatusInfoLabel(state);
-  return (
-    '<span id="adeSealChip" class="ade-seal-chip traj-status-chip" data-seal-state="' +
-    esc(state) +
-    '" data-seal-info="' +
-    esc(info) +
-    '" role="status" title="' +
-    esc(info) +
-    '" aria-label="' +
-    esc(info) +
-    '">' +
-    esc(label) +
-    "</span>"
-  );
-}
-
-function setSealStatus(state) {
-  // Fixture-only display. Never write disk / stamps / Docker.
-  const norm = normalizeSealStatus(state) || "sealed";
-  sealStatus = norm;
-  sealStatusSeeded = true;
-  if (typeof window !== "undefined") window.__graphideSealStatus = norm;
-  syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
-  paint({ animate: "none" });
-}
-
-function seedPassportGate() {
-  if (passportGateSeeded) return;
-  passportGateSeeded = true;
-  let want =
-    (typeof window !== "undefined" && window.__graphidePassportGate) || "";
-  if (!want && typeof location !== "undefined") {
-    try {
-      want = new URLSearchParams(location.search || "").get("gate") || "";
-    } catch (_err) {
-      want = "";
-    }
-  }
-  if (PASSPORT_STATES[want]) passportGate = want;
-}
-
-function renderAdeHop(target, label) {
-  return (
-    '<button type="button" class="ade-hop" data-ade-hop="' +
-    esc(target) +
-    '" title="Hop Trace↔Passport with traj/gate context">' +
-    esc(label) +
-    "</button>"
-  );
-}
-
-function syncAdeDeepLink(wsOverride) {
-  seedPassportGate();
-  seedSealStatus();
-  if (typeof history === "undefined" || !history.replaceState) return;
-  if (typeof location === "undefined") return;
-  let cur;
-  try {
-    cur = new URLSearchParams(location.search || "");
-  } catch (_err) {
-    return;
-  }
-  const onAde =
-    cur.get("trace") === "1" ||
-    cur.get("passport") === "1" ||
-    explorerWs === "trace" ||
-    explorerWs === "passport";
-  if (!onAde) return;
-  const q = new URLSearchParams(location.search || "");
-  q.set("trace", "1");
-  q.set("passport", "1");
-  const ws = wsOverride || explorerWs;
-  if (ws === "trace" || ws === "passport") q.set("ws", ws);
-  if (trajSelectedId) q.set("traj", trajSelectedId);
-  else q.delete("traj");
-  q.set("gate", passportGateState());
-  q.set("seal", sealStatusState());
-  const next = location.pathname + "?" + q.toString() + (location.hash || "");
-  const prev = location.pathname + location.search + (location.hash || "");
-  if (next !== prev) history.replaceState(null, "", next);
-  if (typeof window !== "undefined") {
-    window.__graphideTrajectoryFocus = trajSelectedId || "";
-    window.__graphidePassportGate = passportGateState();
-    window.__graphideSealStatus = sealStatusState();
-  }
-}
-
-function hopAdeWorkspace(target) {
-  if (target !== "trace" && target !== "passport") return;
-  syncAdeDeepLink(target);
-  setWorkspace(target);
-}
-
-function bindAdeHopButtons() {
-  document.querySelectorAll("[data-ade-hop]").forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.stopPropagation();
-      hopAdeWorkspace(btn.getAttribute("data-ade-hop") || "");
-    };
-  });
-}
-
-
-function trajIdExists(id) {
-  if (!id) return false;
-  const nodes = (trajectoryFixture().nodes || []);
-  return nodes.some((n) => n && n.id === id);
-}
-
-function resolvePassportTrajId(row) {
-  if (!row || typeof row !== "object") return "";
-  if (row.traj && trajIdExists(row.traj)) return row.traj;
-  const path = row.path || "";
-  if (!path) return "";
-  const nodes = trajectoryFixture().nodes || [];
-  const hit = nodes.find((n) => n && n.artifact === path);
-  return hit && hit.id ? hit.id : "";
-}
-
-
-
-/** Traj ids mapped from still-residual Passport gatedWrites (AR adjacent residual). */
-function passportResidualTrajIds() {
-  const ids = new Set();
-  if (passportGateState() === "approved") return ids;
-  const fx = getPassport();
-  for (const w of fx.gatedWrites || []) {
-    const tid = resolvePassportTrajId(w);
-    if (tid) ids.add(tid);
-  }
-  return ids;
-}
-
-function passportRowActiveAttr(trajId) {
-  return trajId && trajSelectedId && trajId === trajSelectedId
-    ? ' data-ade-traj-active="1"'
-    : "";
-}
-
-function passportRowActiveClass(trajId) {
-  return trajId && trajSelectedId && trajId === trajSelectedId
-    ? " ade-traj-active"
-    : "";
-}
-
-function renderAdeTrajHop(trajId) {
-  if (!trajIdExists(trajId)) return "";
-  return (
-    '<button type="button" class="ade-hop ade-traj-hop" data-ade-traj-hop="' +
-    esc(trajId) +
-    '" title="Open matching Trace node from Passport row">' +
-    "Open in Trace" +
-    "</button>"
-  );
-}
-
-function hopAdeTraj(trajId) {
-  if (!trajIdExists(trajId)) return;
-  trajSelectedId = trajId;
-  trajPinFocus = "";
-  if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
-  syncAdeDeepLink("trace");
-  hopAdeWorkspace("trace");
-}
-
-
-function hopAdePassportHighlight(trajId) {
-  if (trajId && trajIdExists(trajId)) {
-    trajSelectedId = trajId;
-    trajPinFocus = "";
-    if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
-  }
-  syncAdeDeepLink("passport");
-  hopAdeWorkspace("passport");
-}
-
-function bindAdePassportHlHops() {
-  document.querySelectorAll("[data-ade-passport-hl-hop]").forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.stopPropagation();
-      hopAdePassportHighlight(btn.getAttribute("data-ade-passport-hl-hop") || "");
-    };
-  });
-}
-
-function bindAdeTrajHops() {
-  document.querySelectorAll("[data-ade-traj-hop]").forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.stopPropagation();
-      hopAdeTraj(btn.getAttribute("data-ade-traj-hop") || "");
-    };
-  });
-}
-
-
-function isPassport(v) {
-  return !!(
-    v &&
-    typeof v === "object" &&
-    typeof v.id === "string" &&
-    Array.isArray(v.targets) &&
-    Array.isArray(v.contracts) &&
-    Array.isArray(v.risks) &&
-    Array.isArray(v.testStrategy) &&
-    Array.isArray(v.gatedWrites) &&
-    v.impact &&
-    typeof v.impact === "object"
-  );
-}
-
-const PASSPORT_EMPTY_FIXTURE = Object.freeze({
-  version: 2,
-  id: "passport-ade-empty-fixture",
-  title: "Plan Passport",
-  status: "pending",
-  summary: "No plan rows yet — empty fixture",
-  targets: Object.freeze([]),
-  contracts: Object.freeze([]),
-  risks: Object.freeze([]),
-  testStrategy: Object.freeze([]),
-  gatedWrites: Object.freeze([]),
-  impact: Object.freeze({
-    callGraphs: Object.freeze([]),
-    apiContracts: Object.freeze([]),
-    invariants: Object.freeze([]),
-    deltaVocab: DELTA_VOCAB_DEFAULT,
-  }),
-});
-
-function wantPassportEmpty() {
-  if (typeof window === "undefined" || typeof location === "undefined") return false;
-  try {
-    return new URLSearchParams(location.search || "").get("passportEmpty") === "1";
-  } catch (_err) {
-    return false;
-  }
-}
-
-function hasPassportPlanRows(fx) {
-  if (!fx || typeof fx !== "object") return false;
-  const impact = fx.impact || {};
-  const impactRows =
-    (impact.callGraphs || []).length +
-    (impact.apiContracts || []).length +
-    (impact.invariants || []).length;
-  return (
-    (fx.targets || []).length +
-      (fx.contracts || []).length +
-      (fx.risks || []).length +
-      (fx.testStrategy || []).length +
-      (fx.gatedWrites || []).length +
-      impactRows >
-    0
-  );
-}
-
-function getPassport() {
-  if (wantPassportEmpty()) return PASSPORT_EMPTY_FIXTURE;
-  const o = typeof window !== "undefined" ? window.__graphidePassport : null;
-  return isPassport(o) ? o : PASSPORT_FIXTURE;
-}
-
-function passportGateState() {
-  return PASSPORT_STATES[passportGate] ? passportGate : "pending";
-}
-
-
-
-function passportImpactRowCount(fx) {
-  const impact = (fx && fx.impact) || {};
-  return (
-    (impact.callGraphs || []).length +
-    (impact.apiContracts || []).length +
-    (impact.invariants || []).length
-  );
-}
-
-function renderPassportStickySummary(fx, state) {
-  const gate = PASSPORT_STATES[state] ? state : "pending";
-  const contracts = (fx && fx.contracts) || [];
-  const risks = (fx && fx.risks) || [];
-  const tests = (fx && fx.testStrategy) || [];
-  const impactN = passportImpactRowCount(fx);
-  // ADE PSE: sticky present with all summary counts zero (e.g. targets/gatedWrites only).
-  const zeroCounts =
-    contracts.length + risks.length + tests.length + impactN === 0;
-  const emptyAttr = zeroCounts
-    ? ' data-passport-summary-empty="1"'
-    : ' data-passport-summary-empty="0"';
-  const emptyClass = zeroCounts ? " passport-sticky-summary--zero" : "";
-  const zeroCue = zeroCounts
-    ? '<span class="passport-sticky-zero-cue" data-passport-summary-zero-cue="1">No contracts, risks, tests, or impact yet.</span>'
-    : "";
-  return (
-    '<div class="passport-sticky-summary' +
-    emptyClass +
-    '" data-passport-summary="1"' +
-    emptyAttr +
-    ' role="status" aria-label="Passport plan summary">' +
-    '<span class="passport-sticky-gate" data-passport-gate="' +
-    esc(gate) +
-    '">' +
-    esc(gate) +
-    "</span>" +
-    '<span class="passport-sticky-counts">' +
-    '<span class="passport-sticky-count"><b data-passport-count="contracts">' +
-    esc(String(contracts.length)) +
-    "</b> contracts</span>" +
-    '<span class="passport-sticky-count"><b data-passport-count="risks">' +
-    esc(String(risks.length)) +
-    "</b> risks</span>" +
-    '<span class="passport-sticky-count"><b data-passport-count="tests">' +
-    esc(String(tests.length)) +
-    "</b> tests</span>" +
-    '<span class="passport-sticky-count"><b data-passport-count="impact">' +
-    esc(String(impactN)) +
-    "</b> impact</span>" +
-    "</span>" +
-    zeroCue +
-    "</div>"
-  );
-}
-
-function renderPassportResidual(fx, state) {
-  const writes = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites : [];
-  const globalN = writes.length;
-  const residualState = PASSPORT_STATES[state] ? state : "pending";
-  const trajFix = trajectoryFixture();
-  const focusId =
-    trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId)
-      ? trajSelectedId
-      : "";
-  const focusIds = focusId ? trajNeighborIds(trajFix, focusId) : null;
-  const focusN = focusIds
-    ? writes.filter((w) => {
-        const tid = resolvePassportTrajId(w);
-        return !!(tid && focusIds.has(tid));
-      }).length
-    : 0;
-  const scoped = !!focusId;
-  const n = scoped ? focusN : globalN;
-  const copy = scoped
-    ? residualState === "approved"
-      ? "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " open"
-      : "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " blocked"
-    : residualState === "approved"
-      ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open"
-      : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
-  const scopeAttrs = scoped
-    ? ' data-residual-scope="focus" data-residual-focus="' +
-      esc(focusId) +
-      '" data-focus-residual-count="' +
-      esc(String(focusN)) +
-      '"'
-    : ' data-residual-scope="global"';
-  const clearCue = scoped
-    ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>'
-    : "";
-  const residualFilterAttr = trajResidualFilter
-    ? ' data-residual-filter="on"'
-    : "";
-  const residualFilterToggle =
-    '<button type="button" class="passport-residual-filter-toggle" data-passport-residual-filter-toggle="1" aria-pressed="' +
-    (trajResidualFilter ? "true" : "false") +
-    '" title="Show residual-bearing gate paths only" aria-label="Toggle residual-bearing filter">' +
-    (trajResidualFilter ? "residuals on" : "residuals") +
-    "</button>";
-  // ADE Passport sticky clear-filter cue (PCF1–PCF3) — ON + non-empty; mirror Trace legend CC
-  const stickyClearFilterCue =
-    trajResidualFilter && passportResidualTrajIds().size > 0
-      ? '<button type="button" class="passport-sticky-clear-filter" data-passport-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>'
-      : "";
-  // ADE Passport sticky residual-filter count (RFC1–RFC3) — ON + bearings; pairs with Trace legend RC
-  const filterBearingN = passportResidualTrajIds().size;
-  const hasPassportFilterCount = trajResidualFilter && filterBearingN > 0;
-  const residualFilterCountAttr = hasPassportFilterCount
-    ? ' data-residual-filter-count="1" data-filter-residual-count="' +
-      esc(String(filterBearingN)) +
-      '"'
-    : "";
-  const residualFilterCountChip = hasPassportFilterCount
-    ? '<span class="passport-residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' +
-      esc(String(filterBearingN)) +
-      '" tabindex="0" role="status" title="Residual filter matches ' +
-      esc(String(filterBearingN)) +
-      '. Clear filter or Escape to clear" aria-label="Residual filter matches ' +
-      esc(String(filterBearingN)) +
-      '. Clear filter or Escape to clear">filter · ' +
-      esc(String(filterBearingN)) +
-      "</span>"
-    : "";
-  return (
-    '<div class="passport-residual" data-passport-residual="1" data-residual-state="' +
-    esc(residualState) +
-    '" data-residual-count="' +
-    esc(String(globalN)) +
-    '"' +
-    scopeAttrs +
-    residualFilterAttr +
-    residualFilterCountAttr +
-    '><span class="passport-residual-badge">' +
-    esc(String(n)) +
-    '</span><span class="passport-residual-copy">' +
-    esc(copy) +
-    "</span>" +
-    residualFilterToggle +
-    residualFilterCountChip +
-    stickyClearFilterCue +
-    clearCue +
-    "</div>"
-  );
-}
-
-function renderPassportGate(fx, state) {
-  const unlocked = state === "approved";
-  const label = unlocked
-    ? "Writes unlocked — agent-style file writes may proceed (fixture)"
-    : state === "rejected"
-      ? "Rejected — gated write paths stay blocked"
-      : "Gated write paths blocked until approved";
-  const chip =
-    state === "approved" ? "approved" : state === "rejected" ? "rejected" : "pending";
-  const trajFix = trajectoryFixture();
-  const focusId =
-    trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId)
-      ? trajSelectedId
-      : "";
-  const near = trajNeighborIds(trajFix, focusId);
-  const residualTrajs = passportResidualTrajIds();
-  const paths = (fx.gatedWrites || [])
-    .map((w) => {
-      const blocked = unlocked ? "" : ' data-blocked="1"';
-      const trajId = resolvePassportTrajId(w);
-      const residualBearing = !!(trajId && residualTrajs.has(trajId));
-      const residualBearingAttr = residualBearing
-        ? ' data-residual-bearing="1"'
-        : "";
-      const residualFiltered = trajResidualFilter && !residualBearing;
-      const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
-      const residualFilteredAttr = residualFiltered
-        ? ' data-residual-filtered="1"'
-        : "";
-      const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
-      const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
-      const hopResidual =
-        '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' +
-        esc(hopState) +
-        '" data-hop-path="' +
-        esc(w.path || "") +
-        '"><span class="passport-hop-residual-badge">' +
-        esc(hopBadge) +
-        "</span></span>";
-      const isAdj =
-        !!focusId &&
-        !unlocked &&
-        !!trajId &&
-        trajId !== focusId &&
-        near.has(trajId);
-      const adjClass = isAdj ? " passport-adj-residual" : "";
-      const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
-      const adjCue = isAdj
-        ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>'
-        : "";
-      return (
-        '<li class="passport-gate-path' +
-        passportRowActiveClass(trajId) +
-        adjClass +
-        residualFilteredClass +
-        '" data-passport-path="' +
-        esc(w.path || "") +
-        '"' +
-        (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
-        passportRowActiveAttr(trajId) +
-        adjAttr +
-        residualBearingAttr +
-        residualFilteredAttr +
-        blocked +
-        '><span class="passport-path-state">' +
-        (unlocked ? "open" : "blocked") +
-        "</span>" +
-        hopResidual +
-        adjCue +
-        "<code>" +
-        esc(w.path || "") +
-        "</code>" +
-        (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") +
-        renderAdeTrajHop(trajId) +
-        "</li>"
-      );
-    })
-    .join("");
-  return (
-    '<div id="passportGate" class="passport-gate" data-passport-state="' +
-    esc(state) +
-    '"' +
-    (trajResidualFilter && residualTrajs.size === 0
-      ? ' data-residual-filter-empty="1"'
-      : "") +
-    '><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' +
-    esc(chip) +
-    '">' +
-    esc(chip) +
-    '</span><div class="passport-gate-state">' +
-    esc(label) +
-    '</div></div></div><ul class="passport-gate-paths">' +
-    paths +
-    "</ul>" +
-    renderResidualFilterEmptyChrome("passport") +
-    "</div>"
-  );
-}
-
-function renderPassportSection(key, title, body, count) {
-  const countHtml =
-    typeof count === "number"
-      ? '<span class="passport-section-count">' + count + "</span>"
-      : "";
-  return (
-    '<section class="passport-section" data-passport="' +
-    esc(key) +
-    '"><h3>' +
-    esc(title) +
-    countHtml +
-    "</h3>" +
-    body +
-    "</section>"
-  );
-}
-
-function renderDeltaVocabStub(impact) {
-  const vocab =
-    impact && impact.deltaVocab && typeof impact.deltaVocab === "object"
-      ? impact.deltaVocab
-      : DELTA_VOCAB_DEFAULT;
-  const chipRow = (kind, items) =>
-    '<div class="passport-vocab-row" data-vocab="' +
-    esc(kind) +
-    '"><span class="passport-vocab-label">' +
-    esc(kind) +
-    '</span><div class="passport-vocab-chips">' +
-    (items || [])
-      .map(
-        (s) =>
-          '<span class="passport-vocab-chip" data-vocab-chip="' +
-          esc(kind) +
-          '" data-vocab-value="' +
-          esc(s) +
-          '">' +
-          esc(s) +
-          "</span>"
-      )
-      .join("") +
-    "</div></div>";
-  const regions = (vocab.regions || [])
-    .map(
-      (r) =>
-        '<li class="passport-vocab-region" data-impact-region="' +
-        esc(r.id || "") +
-        '"><strong>' +
-        esc(r.label || r.id || "") +
-        "</strong><span>" +
-        esc(r.detail || "") +
-        "</span></li>"
-    )
-    .join("");
-  return (
-    '<div id="passportDeltaVocab" class="passport-delta-vocab" data-delta-stub="1">' +
-    '<div class="passport-delta-vocab-head">' +
-    '<span class="passport-delta-vocab-k">Architecture Delta</span>' +
-    '<span class="passport-delta-vocab-stub">vocabulary stub · no live Delta mount</span>' +
-    "</div>" +
-    chipRow("status", vocab.statuses) +
-    chipRow("class", vocab.classes) +
-    chipRow("cluster", vocab.clusterKinds) +
-    '<ul class="passport-vocab-regions">' +
-    regions +
-    "</ul></div>"
-  );
-}
-
-function renderPassportDeltaChip(kind, value) {
-  if (!value) return "";
-  return (
-    '<span class="passport-vocab-chip" data-vocab-chip="' +
-    esc(kind) +
-    '" data-vocab-value="' +
-    esc(value) +
-    '">' +
-    esc(value) +
-    "</span>"
-  );
-}
-
-function renderPassportImpactItem(item) {
-  if (item == null) return "";
-  if (typeof item === "string") {
-    return (
-      '<li class="passport-impact-row passport-impact-row--static" data-impact-row="">' +
-      '<div class="passport-impact-head">' +
-      '<span class="passport-impact-label"><code>' +
-      esc(item) +
-      "</code></span></div></li>"
-    );
-  }
-  const status = item.deltaStatus || "";
-  const klass = item.deltaClass || "";
-  const cluster = item.clusterKind || "";
-  const id = item.id || "";
-  const hasDetail = !!item.detail;
-  const staticClass = hasDetail ? "" : " passport-impact-row--static";
-  const expandAttrs = hasDetail
-    ? ' data-impact-expanded="false" aria-expanded="false" tabindex="0"'
-    : "";
-  const trajId = resolvePassportTrajId(item);
-  return (
-    '<li class="passport-impact-row' +
-    staticClass +
-    passportRowActiveClass(trajId) +
-    '" data-impact-row="' +
-    esc(id) +
-    '"' +
-    (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
-    passportRowActiveAttr(trajId) +
-    (status ? ' data-delta-status="' + esc(status) + '"' : "") +
-    (klass ? ' data-delta-class="' + esc(klass) + '"' : "") +
-    (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
-    expandAttrs +
-    ">" +
-    '<div class="passport-impact-head">' +
-    renderPassportDeltaChip("status", status) +
-    renderPassportDeltaChip("class", klass) +
-    renderPassportDeltaChip("cluster", cluster) +
-    '<strong class="passport-impact-label">' +
-    esc(item.label || id) +
-    "</strong>" +
-    renderAdeTrajHop(trajId) +
-    "</div>" +
-    (hasDetail
-      ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>"
-      : "") +
-    "</li>"
-  );
-}
-
-function renderPassportImpact(fx) {
-  const impact = fx.impact || {};
-  const card = (key, title, items) =>
-    '<div class="passport-impact-card" data-impact="' +
-    esc(key) +
-    '"><h4>' +
-    esc(title) +
-    "</h4><ul>" +
-    (items || []).map((s) => renderPassportImpactItem(s)).join("") +
-    "</ul></div>";
-  return (
-    '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact">' +
-    "<h3>Semantic impact</h3>" +
-    '<p class="passport-impact-summary">' +
-    esc(fx.summary || "") +
-    " — Architecture Delta vocabulary (structural delta / impact regions / call graphs / API contracts / invariants):</p>" +
-    renderDeltaVocabStub(impact) +
-    '<div class="passport-impact-grid">' +
-    card("callGraphs", "Call graphs", impact.callGraphs) +
-    card("apiContracts", "API contracts", impact.apiContracts) +
-    card("invariants", "Invariants", impact.invariants) +
-    "</div></section>"
-  );
-}
-
-function renderPassportEmptyBody(fx) {
-  seedPassportGate();
-  seedSealStatus();
-  const title = fx.title || "Plan Passport";
-  return (
-    '<div id="passportPage" class="passport-page passport-page--empty" data-passport-empty="1">' +
-    '<div class="ade-hop-row">' +
-    renderAdeHop("trace", "← Open Trace") +
-    renderSealStatusChip() +
-    '<span class="ade-hop-hint">empty fixture · hop Trace · no live Delta</span>' +
-    "</div>" +
-    '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
-    esc(title) +
-    " · " +
-    esc(fx.id || "passport-ade-empty-fixture") +
-    ' · empty fixture</span><span class="passport-outcome-counts">0 targets · 0 contracts · 0 risks · 0 tests</span></div>' +
-    '<div class="passport-empty desk-empty" data-passport-empty-chrome="1" role="status">' +
-    '<b class="passport-empty-title">No plan rows</b>' +
-    '<div class="passport-empty-copy">Passport is empty — no targets, contracts, risks, tests, or gated writes yet. Open Trace to inspect the trajectory, or load a Passport fixture.</div>' +
-    '<div class="passport-empty-action">' +
-    renderAdeHop("trace", "← Open Trace") +
-    "</div>" +
-    "</div>" +
-    "</div>"
-  );
-}
-
-function renderPassportBody() {
-  seedPassportGate();
-  seedSealStatus();
-  const fx = getPassport();
-  if (!hasPassportPlanRows(fx)) {
-    return renderPassportEmptyBody(fx);
-  }
-  const state = passportGateState();
-  const targets = (fx.targets || [])
-    .map((t) => {
-      const layer = t.layer || "";
-      const status = t.deltaStatus || "";
-      const cluster = t.clusterKind || "";
-      return (
-        (() => {
-          const trajId = resolvePassportTrajId(t);
-          return (
-        '<li class="passport-row' +
-        passportRowActiveClass(trajId) +
-        '" data-passport-target="' +
-        esc(t.id || "") +
-        '"' +
-        (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") +
-        passportRowActiveAttr(trajId) +
-        (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") +
-        (status ? ' data-passport-delta="' + esc(status) + '"' : "") +
-        (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") +
-        '><div class="passport-row-head">' +
-        (layer
-          ? '<span class="passport-layer-chip" data-passport-layer-chip="' +
-            esc(layer) +
-            '">' +
-            esc(layer) +
-            "</span>"
-          : "") +
-        renderPassportDeltaChip("status", status) +
-        renderPassportDeltaChip("cluster", cluster) +
-        '<span class="passport-target-label">' +
-        esc(t.label || t.id || "") +
-        "</span> <code>" +
-        esc(t.path || "") +
-        "</code>" +
-        renderAdeTrajHop(trajId) +
-        "</div>" +
-        (t.impact
-          ? '<div class="passport-row-impact" data-passport-impact="' +
-            esc(t.id || "") +
-            '">' +
-            esc(t.impact) +
-            "</div>"
-          : "") +
-        "</li>"
-          );
-        })()
-      );
-    })
-    .join("");
-  const contracts = (fx.contracts || [])
-    .map((c) => {
-      const klass = c.deltaClass || "";
-      const breaking = !!c.breaking;
-      const trajId = resolvePassportTrajId(c);
-      return (
-        '<li class="passport-row' +
-        passportRowActiveClass(trajId) +
-        '" data-passport-contract="' +
-        esc(c.id || "") +
-        '"' +
-        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-contract-traj="1"' : "") +
-        passportRowActiveAttr(trajId) +
-        (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") +
-        (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') +
-        '><div class="passport-row-head">' +
-        '<code class="passport-kind">' +
-        esc(c.kind || "") +
-        "</code> <strong>" +
-        esc(c.name || "") +
-        '</strong> <code class="passport-sig">' +
-        esc(c.sig || "") +
-        "</code>" +
-        renderPassportDeltaChip("class", klass) +
-        (breaking
-          ? '<span class="passport-breaking-pill" data-passport-breaking-pill="1">breaking</span>'
-          : '<span class="passport-breaking-pill" data-passport-breaking-pill="0">compat</span>') +
-        ' <em data-stability="' +
-        esc(c.stability || "") +
-        '">' +
-        esc(c.stability || "") +
-        "</em>" +
-        renderAdeTrajHop(trajId) +
-        "</div>" +
-        (c.change
-          ? '<div class="passport-row-impact">' + esc(c.change) + "</div>"
-          : "") +
-        "</li>"
-      );
-    })
-    .join("");
-  const risks = (fx.risks || [])
-    .map((r) => {
-      const trajId = resolvePassportTrajId(r);
-      return (
-        '<li class="passport-row' +
-        passportRowActiveClass(trajId) +
-        '" data-passport-risk="' +
-        esc(r.id || "") +
-        '"' +
-        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-risk-traj="1"' : "") +
-        passportRowActiveAttr(trajId) +
-        ' data-level="' +
-        esc(r.level || "") +
-        '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' +
-        esc(r.level || "") +
-        '">' +
-        esc(r.level || "") +
-        "</span> <b>" +
-        esc(r.area || "") +
-        "</b>" +
-        (r.note ? " — " + esc(r.note) : "") +
-        renderAdeTrajHop(trajId) +
-        "</div>" +
-        (r.mitigation
-          ? '<div class="passport-row-meta" data-passport-mitigation="' +
-            esc(r.id || "") +
-            '"><span class="passport-meta-k">mitigation</span> ' +
-            esc(r.mitigation) +
-            "</div>"
-          : "") +
-        (r.blast
-          ? '<div class="passport-row-meta" data-passport-blast="' +
-            esc(r.id || "") +
-            '"><span class="passport-meta-k">blast</span> <code>' +
-            esc(r.blast) +
-            "</code></div>"
-          : "") +
-        "</li>"
-      );
-    })
-    .join("");
-  const tests = (fx.testStrategy || [])
-    .map((x) => {
-      const trajId = resolvePassportTrajId(x);
-      return (
-        '<li class="passport-row' +
-        passportRowActiveClass(trajId) +
-        '" data-passport-test="' +
-        esc(x.id || "") +
-        '"' +
-        (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-test-traj="1"' : "") +
-        passportRowActiveAttr(trajId) +
-        '><div class="passport-row-head"><code class="passport-test-kind">' +
-        esc(x.kind || "") +
-        "</code> " +
-        esc(x.desc || "") +
-        renderAdeTrajHop(trajId) +
-        "</div>" +
-        (x.fixture
-          ? '<div class="passport-row-meta" data-passport-fixture="' +
-            esc(x.id || "") +
-            '"><span class="passport-meta-k">fixture</span> <code>' +
-            esc(x.fixture) +
-            "</code></div>"
-          : "") +
-        (x.covers
-          ? '<div class="passport-row-meta" data-passport-covers="' +
-            esc(x.id || "") +
-            '"><span class="passport-meta-k">covers</span> ' +
-            esc(x.covers) +
-            "</div>"
-          : "") +
-        "</li>"
-      );
-    })
-    .join("");
-  return (
-    '<div id="passportPage" class="passport-page">' +
-    '<div class="ade-hop-row">' +
-    renderAdeHop("trace", "← Open Trace") +
-    renderSealStatusChip() +
-    '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span>' +
-    "</div>" +
-    '<div class="outcome-strip passport-outcome"><span class="outcome-k">' +
-    esc(fx.title || "Plan Passport") +
-    " · " +
-    esc(fx.id || "") +
-    ' · fixture</span><span class="passport-outcome-counts">' +
-    (fx.targets || []).length +
-    " targets · " +
-    (fx.contracts || []).length +
-    " contracts · " +
-    (fx.risks || []).length +
-    " risks · " +
-    (fx.testStrategy || []).length +
-    " tests</span></div>" +
-    renderPassportGate(fx, state) +
-    renderPassportSection(
-      "targets",
-      "Architecture targets",
-      "<ul>" + targets + "</ul>",
-      (fx.targets || []).length
-    ) +
-    renderPassportSection(
-      "contracts",
-      "Interfaces / API contracts",
-      "<ul>" + contracts + "</ul>",
-      (fx.contracts || []).length
-    ) +
-    renderPassportSection(
-      "risks",
-      "Breaking-change risk",
-      "<ul>" + risks + "</ul>",
-      (fx.risks || []).length
-    ) +
-    renderPassportSection(
-      "tests",
-      "Test strategy",
-      "<ul>" + tests + "</ul>",
-      (fx.testStrategy || []).length
-    ) +
-    renderPassportImpact(fx) +
-    '<div id="passportSign" class="passport-sign" data-passport-sign-state="' +
-    esc(state) +
-    '">' +
-    renderPassportStickySummary(fx, state) +
-    renderPassportResidual(fx, state) +
-    '<div class="passport-sign-actions">' +
-    '<button type="button" data-passport-action="approve">Approve</button>' +
-    '<button type="button" data-passport-action="reject">Reject</button>' +
-    "</div>" +
-    '<span class="passport-sign-hint">Fixture gate only — never writes .graphide/stamps/</span>' +
-    "</div></div>"
-  );
-}
-
-function paintPassportWorkspace(title) {
-  unmountAllReviewCanvases();
-  canvas.className = "play explorer-list passport";
-  canvas.innerHTML =
-    '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
-  setZoomUi(false);
-  // ADE LRP: while residual filter stays ON, refresh live-region N on paint (Approve/focus/fixture) without toast.
-  if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
-}
-
-function syncPassportStickyGate() {
-  // ADE SGR: live-refresh sticky summary gate chip from passportGateState (Approve/Reject),
-  // even if a future paint path skips full #passportSign remount.
-  const gate = passportGateState();
-  const sign = document.getElementById("passportSign");
-  if (!sign) return;
-  if (sign.getAttribute("data-passport-sign-state") !== gate) {
-    sign.setAttribute("data-passport-sign-state", gate);
-  }
-  const chip =
-    sign.querySelector("[data-passport-summary] [data-passport-gate]") ||
-    sign.querySelector(".passport-sticky-gate[data-passport-gate]");
-  if (!chip) return;
-  if (chip.getAttribute("data-passport-gate") !== gate) {
-    chip.setAttribute("data-passport-gate", gate);
-  }
-  if ((chip.textContent || "").trim() !== gate) chip.textContent = gate;
-}
-
-function setPassportGate(state) {
-  // Fixture-only gate. Never write .graphide/stamps/. Never touch disk.
-  passportGate = PASSPORT_STATES[state] ? state : "pending";
-  syncAdeDeepLink("passport");
-  paint({ animate: "none" });
-  // ADE SGR: patch sticky gate chip after paint so Approve/Reject refresh without desk hop.
-  if (typeof syncPassportStickyGate === "function") syncPassportStickyGate();
-}
-if (typeof window !== "undefined") {
-  window.__graphideSetPassportGate = setPassportGate;
-  window.__graphideSyncPassportStickyGate = syncPassportStickyGate;
-}
-
-function togglePassportImpactRow(row) {
-  if (!row || !row.hasAttribute("data-impact-expanded")) return;
-  const next = row.getAttribute("data-impact-expanded") !== "true";
-  row.setAttribute("data-impact-expanded", next ? "true" : "false");
-  row.setAttribute("aria-expanded", next ? "true" : "false");
-}
-
-function bindPassportImpactRows() {
-  const root = document.getElementById("passportImpact");
-  if (!root) return;
-  root.addEventListener("click", (ev) => {
-    if (ev.target.closest("a, button")) return;
-    const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
-    if (!row || !root.contains(row)) return;
-    ev.preventDefault();
-    togglePassportImpactRow(row);
-  });
-  root.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Enter" && ev.key !== " ") return;
-    if (ev.target.closest("a, button")) return;
-    const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
-    if (!row || !root.contains(row)) return;
-    ev.preventDefault();
-    togglePassportImpactRow(row);
-  });
-}
-
-function bindPassportPage() {
-  const sign = document.getElementById("passportSign");
-  if (sign) {
-    const approve = sign.querySelector('[data-passport-action="approve"]');
-    const reject = sign.querySelector('[data-passport-action="reject"]');
-    if (approve)
-      approve.onclick = (ev) => {
-        ev.stopPropagation();
-        setPassportGate("approved");
-      };
-    if (reject)
-      reject.onclick = (ev) => {
-        ev.stopPropagation();
-        setPassportGate("rejected");
-      };
-    const clearFocus = sign.querySelector('[data-passport-clear-focus="1"]');
-    if (clearFocus)
-      clearFocus.onclick = (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        clearTrajFocus();
-      };
-    const residualFilterBtn = sign.querySelector(
-      '[data-passport-residual-filter-toggle="1"]'
-    );
-    if (residualFilterBtn)
-      residualFilterBtn.onclick = (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        toggleTrajResidualFilter();
-      };
-    const stickyClearFilter = sign.querySelector(
-      '[data-passport-clear-filter="1"]'
-    );
-    if (stickyClearFilter)
-      stickyClearFilter.onclick = (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        clearTrajResidualFilter("clear-chip");
-      };
-  }
-  document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
-    btn.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      clearTrajResidualFilter("clear-chip");
-    };
-  });
-  if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
-  bindPassportImpactRows();
-  bindAdeHopButtons();
-  bindAdeTrajHops();
-}
-
-
-
 function countMap(items, keyFn) {
   const m = new Map();
   for (const x of items || []) {
@@ -13893,293 +10069,11 @@ function countMap(items, keyFn) {
   return m;
 }
 
-function statChips(map, axis) {
+function statChips(map) {
   return [...map.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map((e) => {
-      if (!axis) {
-        return '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>";
-      }
-      const on = !!(
-        overviewMixFilter &&
-        overviewMixFilter.axis === axis &&
-        overviewMixFilter.value === e[0]
-      );
-      return (
-        '<button type="button" class="stat-chip omc-chip' +
-        (on ? " on" : "") +
-        '" data-omc-axis="' +
-        esc(axis) +
-        '" data-omc-value="' +
-        esc(e[0]) +
-        '" aria-pressed="' +
-        (on ? "true" : "false") +
-        '" title="' +
-        esc(e[0]) +
-        " · " +
-        e[1] +
-        '"><b>' +
-        esc(e[0]) +
-        "</b> " +
-        e[1] +
-        "</button>"
-      );
-    })
+    .map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>")
     .join("");
-}
-
-/** ADE OMC — CSS bar mix from countMap; max-scaled so top kind fills the track. */
-function mixChartHtml(axis, map) {
-  const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return "";
-  const max = Math.max(1, ...entries.map((e) => e[1]));
-  const bars = entries
-    .map((e) => {
-      const pct = Math.round((e[1] / max) * 100);
-      const on = !!(
-        overviewMixFilter &&
-        overviewMixFilter.axis === axis &&
-        overviewMixFilter.value === e[0]
-      );
-      return (
-        '<button type="button" class="omc-bar' +
-        (on ? " on" : "") +
-        '" data-omc-axis="' +
-        esc(axis) +
-        '" data-omc-value="' +
-        esc(e[0]) +
-        '" aria-pressed="' +
-        (on ? "true" : "false") +
-        '" title="' +
-        esc(e[0]) +
-        " · " +
-        e[1] +
-        '" style="--omc-pct:' +
-        pct +
-        '%"><span class="omc-fill" aria-hidden="true"></span><span class="omc-label"><b>' +
-        esc(e[0]) +
-        "</b> " +
-        e[1] +
-        "</span></button>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="omc-chart omc-chart--' +
-    esc(axis) +
-    '" role="group" aria-label="' +
-    (axis === "kind" ? "Node kind mix" : "Hop kind mix") +
-    '">' +
-    bars +
-    "</div>"
-  );
-}
-
-function toggleOverviewMixFilter(axis, value) {
-  if (!axis || value == null || value === "") return;
-  if (
-    overviewMixFilter &&
-    overviewMixFilter.axis === axis &&
-    overviewMixFilter.value === value
-  ) {
-    overviewMixFilter = null;
-  } else {
-    overviewMixFilter = { axis: String(axis), value: String(value) };
-    if (overviewCommunityFilter) {
-      overviewCommunityFilter = null;
-      applyOverviewCommunityPaint();
-    }
-  }
-  applyOverviewMixPaint();
-}
-
-function applyOverviewMixPaint() {
-  const host = document.getElementById("sliceCanvas");
-  const filter = overviewMixFilter;
-  if (canvas) {
-    canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el) => {
-      const on = !!(
-        filter &&
-        el.getAttribute("data-omc-axis") === filter.axis &&
-        el.getAttribute("data-omc-value") === filter.value
-      );
-      el.classList.toggle("on", on);
-      el.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-  }
-  if (!host) return;
-  host.classList.toggle("omc-filtering", !!filter);
-  const nodes = host.querySelectorAll(".vnode");
-  const edges = host.querySelectorAll(".react-flow__edge");
-  nodes.forEach((el) => el.classList.remove("omc-hit", "omc-dim"));
-  edges.forEach((el) => el.classList.remove("omc-hit", "omc-dim"));
-  if (!filter) return;
-  if (filter.axis === "kind") {
-    const hot = new Set();
-    nodes.forEach((el) => {
-      const match = (el.getAttribute("data-kind") || "") === filter.value;
-      el.classList.toggle("omc-hit", match);
-      el.classList.toggle("omc-dim", !match);
-      if (match) hot.add(el.getAttribute("data-id") || "");
-    });
-    edges.forEach((el) => {
-      const a = el.getAttribute("data-from") || "";
-      const b = el.getAttribute("data-to") || "";
-      const match = !!(hot.has(a) || hot.has(b));
-      el.classList.toggle("omc-hit", match);
-      el.classList.toggle("omc-dim", !match);
-    });
-  } else if (filter.axis === "hop") {
-    const incident = new Set();
-    edges.forEach((el) => {
-      const match = (el.getAttribute("data-kind") || "") === filter.value;
-      el.classList.toggle("omc-hit", match);
-      el.classList.toggle("omc-dim", !match);
-      if (match) {
-        const a = el.getAttribute("data-from");
-        const b = el.getAttribute("data-to");
-        if (a) incident.add(a);
-        if (b) incident.add(b);
-      }
-    });
-    nodes.forEach((el) => {
-      const match = incident.has(el.getAttribute("data-id") || "");
-      el.classList.toggle("omc-hit", match);
-      el.classList.toggle("omc-dim", !match);
-    });
-  }
-}
-
-function bindOverviewMixChart() {
-  if (!canvas) return;
-  canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleOverviewMixFilter(el.getAttribute("data-omc-axis"), el.getAttribute("data-omc-value"));
-    };
-    el.onkeydown = (ev) => {
-      if (ev.key !== "Enter" && ev.key !== " ") return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleOverviewMixFilter(el.getAttribute("data-omc-axis"), el.getAttribute("data-omc-value"));
-    };
-  });
-}
-
-/** ADE CSC — bar chart of community member counts (derived bubbles only). */
-function communitySizeChartHtml(bubbles) {
-  const entries = (bubbles || [])
-    .map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length }))
-    .filter((e) => e.id && e.n > 0)
-    .sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label)))
-    .slice(0, 12);
-  if (!entries.length) return "";
-  const max = Math.max(1, ...entries.map((e) => e.n));
-  const bars = entries
-    .map((e) => {
-      const pct = Math.round((e.n / max) * 100);
-      const on = !!(overviewCommunityFilter && String(overviewCommunityFilter) === String(e.id));
-      return (
-        '<button type="button" class="csc-bar' +
-        (on ? " on" : "") +
-        '" data-csc-bubble="' +
-        esc(e.id) +
-        '" aria-pressed="' +
-        (on ? "true" : "false") +
-        '" title="' +
-        esc(e.label) +
-        " · " +
-        e.n +
-        ' nodes" style="--csc-pct:' +
-        pct +
-        '%"><span class="csc-fill" aria-hidden="true"></span><span class="csc-label"><b>' +
-        esc(e.label) +
-        "</b> " +
-        e.n +
-        "</span></button>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="csc-chart" role="group" aria-label="Community sizes" data-csc="1">' +
-    bars +
-    "</div>"
-  );
-}
-
-function toggleOverviewCommunityFilter(bubbleId) {
-  if (!bubbleId) return;
-  if (overviewCommunityFilter && String(overviewCommunityFilter) === String(bubbleId)) {
-    overviewCommunityFilter = null;
-  } else {
-    overviewCommunityFilter = String(bubbleId);
-    if (overviewMixFilter) {
-      overviewMixFilter = null;
-      applyOverviewMixPaint();
-    }
-  }
-  applyOverviewCommunityPaint();
-}
-
-function applyOverviewCommunityPaint() {
-  const host = document.getElementById("sliceCanvas");
-  const filter = overviewCommunityFilter;
-  if (canvas) {
-    canvas.querySelectorAll("[data-csc-bubble]").forEach((el) => {
-      const on = !!(filter && String(el.getAttribute("data-csc-bubble")) === String(filter));
-      el.classList.toggle("on", on);
-      el.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    canvas.querySelectorAll(".expl-card[data-bubble][data-csc-card]").forEach((el) => {
-      el.classList.remove("csc-hit", "csc-dim");
-      if (!filter) return;
-      const match = String(el.getAttribute("data-bubble")) === String(filter);
-      el.classList.toggle("csc-hit", match);
-      el.classList.toggle("csc-dim", !match);
-    });
-  }
-  if (!host) return;
-  host.classList.toggle("csc-filtering", !!filter);
-  const nodes = host.querySelectorAll(".vnode");
-  const edges = host.querySelectorAll(".react-flow__edge");
-  nodes.forEach((el) => el.classList.remove("csc-hit", "csc-dim"));
-  edges.forEach((el) => el.classList.remove("csc-hit", "csc-dim"));
-  if (!filter) return;
-  const bub = findBubble(filter);
-  const members = new Set((bub && bub.members ? bub.members : []).map((m) => String(idVal(m))));
-  const hot = new Set();
-  nodes.forEach((el) => {
-    const id = el.getAttribute("data-id") || "";
-    const match = members.has(String(id));
-    el.classList.toggle("csc-hit", match);
-    el.classList.toggle("csc-dim", !match);
-    if (match) hot.add(id);
-  });
-  edges.forEach((el) => {
-    const a = el.getAttribute("data-from") || "";
-    const b = el.getAttribute("data-to") || "";
-    const match = !!(hot.has(a) || hot.has(b));
-    el.classList.toggle("csc-hit", match);
-    el.classList.toggle("csc-dim", !match);
-  });
-}
-
-function bindOverviewCommunityChart() {
-  if (!canvas) return;
-  canvas.querySelectorAll("[data-csc-bubble]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleOverviewCommunityFilter(el.getAttribute("data-csc-bubble"));
-    };
-    el.onkeydown = (ev) => {
-      if (ev.key !== "Enter" && ev.key !== " ") return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      toggleOverviewCommunityFilter(el.getAttribute("data-csc-bubble"));
-    };
-  });
 }
 
 function renderExplorerList(ws, opts) {
@@ -14203,8 +10097,6 @@ function renderExplorerList(ws, opts) {
     sequence: "Sequence — callers, callees, returns on this flow",
     dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
     lifecycle: "Lifecycle — review states, waits, terminals on this flow",
-    trace: "Trace — read-only execution trajectory DAG",
-    passport: "Passport — Plan Passport sign-off before agent writes",
   };
   setMeta(
     '<span class="crumb">Review</span> / <b>' +
@@ -14237,20 +10129,6 @@ function renderExplorerList(ws, opts) {
     paintLifecycleWorkspace(titles.lifecycle);
     bindWorkbenchPages();
     bindLifecyclePage();
-    applyProbePaint();
-    return;
-  }
-  if (ws === "trace") {
-    paintTrajectoryWorkspace(titles.trace);
-    bindWorkbenchPages();
-    bindTrajectoryPage();
-    applyProbePaint();
-    return;
-  }
-  if (ws === "passport") {
-    paintPassportWorkspace(titles.passport);
-    bindWorkbenchPages();
-    bindPassportPage();
     applyProbePaint();
     return;
   }
@@ -14289,10 +10167,6 @@ function renderExplorerList(ws, opts) {
     }
     const flow = defaultRunFlow();
     mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
-    bindOverviewMixChart();
-    applyOverviewMixPaint();
-    bindOverviewCommunityChart();
-    applyOverviewCommunityPaint();
     bindGraphFx();
     applyEgoPaint();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
@@ -14331,7 +10205,7 @@ function renderExplorerList(ws, opts) {
     };
   });
   canvas.querySelectorAll("[data-id]").forEach((el) => {
-    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
+    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas")) return;
     el.onclick = () => {
       explorerWs = "lineage";
       explorerPinned = true;
@@ -14494,23 +10368,19 @@ function renderOverviewBody() {
     renderFeaturePathHtml() +
     renderDefaultCfg() +
     '<div class="stat-strip">' +
-    '<span class="omc-stat"><i class="k">Nodes</i> <b class="n">' +
+    '<span><i class="k">Nodes</i> <b class="n">' +
     nodes.length +
     "</b> " +
-    statChips(kinds, "kind") +
-    mixChartHtml("kind", kinds) +
+    statChips(kinds) +
     "</span>" +
-    '<span class="omc-stat"><i class="k">Hops</i> <b class="n">' +
+    '<span><i class="k">Hops</i> <b class="n">' +
     edges.length +
     "</b> " +
-    statChips(hops, "hop") +
-    mixChartHtml("hop", hops) +
+    statChips(hops) +
     "</span>" +
-    '<span class="csc-stat"><i class="k">Communities</i> <b class="n">' +
+    '<span><i class="k">Communities</i> <b class="n">' +
     bubbles.length +
-    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button> ' +
-    communitySizeChartHtml(bubbles) +
-    "</span>" +
+    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span>' +
     '<span><i class="k">Programs</i> <b class="n">' +
     programs.length +
     "</b> " +
@@ -14535,9 +10405,7 @@ function renderOverviewBody() {
         const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
         const role = featureRole(step, path.length - 1);
         return (
-          '<article class="expl-card" data-ws="map" data-csc-card="1" data-bubble="' +
-          esc(idVal(b.id)) +
-          '"><div class="k">community' +
+          '<article class="expl-card" data-ws="map"><div class="k">community' +
           (role ? " · " + esc(role) : "") +
           '</div><div class="t">' +
           esc(shortOf(b.label) || "bubble") +
@@ -16089,7 +11957,7 @@ function mountEnterCanvas(inner) {
   stampXyFlowAttrs();
 }
 
-function renderInner(msg, animate, opts) {
+function renderInner(msg, animate) {
   const inner = msg.inner || { nodes: [] };
   renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
   renderStats(msg);
@@ -16113,11 +11981,6 @@ function renderInner(msg, animate, opts) {
   }
   const key = enterWorkspaceKey(inner);
   const recycle = enterStageMounted() && key === enterBodyKey;
-  // S1bq — enter remount while Evidence open soft-stays (parity with S1x Slice remount).
-  const keepCam = !!(opts && opts.keepCam);
-  const evidenceLive =
-    typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
-  const stay = keepCam || evidenceLive;
   canvas.className = "play has-stage programs-view" + (animate ? " play" : "");
   if (recycle) {
     const title = canvas.querySelector(".flow-title");
@@ -16137,7 +12000,7 @@ function renderInner(msg, animate, opts) {
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
       "</div></div>";
     enterBodyKey = document.getElementById("enterCanvas") ? key : "";
-    bindStage(canvas.querySelector(".stage"), { reset: !stay });
+    bindStage(canvas.querySelector(".stage"), { reset: true });
   }
   setZoomUi(true);
   mountEnterCanvas(inner);
@@ -16150,10 +12013,6 @@ function renderInner(msg, animate, opts) {
   renderLedger(leafNodes.length ? leafNodes : nodes.map((n) => ({ id: n.id, fqn: n.fqn, kind: n.kind })), {
     selected: selectedNodeId,
   });
-  // S1bq — re-seed soft stay + settle honesty across enter remount / recycle.
-  if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
-    softStayScrollDriveAcrossDeskRemount();
-  }
 }
 
 function renderCoverage(cov, findings, graph, opts) {
