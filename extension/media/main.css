@@ -3095,6 +3095,14 @@ html.bright .traj-node { background: #fff; }
 .passport-gate-chip[data-gate-chip="pending"],
 .passport-gate-chip[data-gate-chip="rejected"],
 .passport-gate-chip[data-gate-chip="approved"] { color: var(--passport-state); }
+
+/* ADE passport gate-chip hover cue (PGC1–PGC3) — state-tint lift above resting 18%; cursor:help; informational; no tabindex (parity with SGH sticky) */
+.passport-gate-chip[data-gate-chip]:hover {
+  background: color-mix(in srgb, var(--passport-state) 34%, var(--vscode-badge-background, #4d4d4d));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--passport-state) 42%, transparent);
+  cursor: help;
+}
+
 .passport-gate-state { font-weight: 600; line-height: 1.35; font-size: 12px; opacity: 0.92; }
 .passport-gate-paths { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .passport-gate-paths li {

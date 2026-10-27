@@ -13149,6 +13149,154 @@ async function main() {
     );
     assertNoStampDir("SGH4", "Passport sticky gate hover cue step did not write .graphide/stamps/");
 
+    // ADE Passport gate-chip hover cue (PGC1–PGC3) — non-sticky Decision Rail chip; state-tint lift; cursor:help; no tabindex
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(".passport-gate-chip[data-gate-chip]", { timeout: 8000 });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetPassportGate === "function") {
+        window.__graphideSetPassportGate("pending");
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(".passport-gate-chip[data-gate-chip]");
+        return !!(chip && chip.getAttribute("data-gate-chip") === "pending");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const pgcProbe = async (state) => {
+      if (state) {
+        await page.evaluate((g) => {
+          if (typeof window.__graphideSetPassportGate === "function") {
+            window.__graphideSetPassportGate(g);
+          }
+        }, state);
+        await page.waitForFunction(
+          (g) => {
+            const chip = document.querySelector(".passport-gate-chip[data-gate-chip]");
+            return !!(chip && chip.getAttribute("data-gate-chip") === g);
+          },
+          state,
+          { timeout: 8000 }
+        );
+      }
+      await page.mouse.move(8, 8);
+      await page.waitForTimeout(40);
+      const rest = await page.evaluate(() => {
+        const chip = document.querySelector(".passport-gate-chip[data-gate-chip]");
+        if (!chip) return { present: false };
+        const cs = getComputedStyle(chip);
+        return {
+          present: true,
+          gate: chip.getAttribute("data-gate-chip") || "",
+          tabIndex: chip.tabIndex,
+          role: chip.getAttribute("role") || "",
+          restBg: cs.backgroundColor,
+          restCursor: cs.cursor,
+          restShadow: cs.boxShadow,
+          label: (chip.textContent || "").trim(),
+        };
+      });
+      await page.hover(".passport-gate-chip[data-gate-chip]");
+      await page.waitForTimeout(40);
+      const hover = await page.evaluate(() => {
+        const chip = document.querySelector(".passport-gate-chip[data-gate-chip]");
+        if (!chip) return { present: false };
+        const cs = getComputedStyle(chip);
+        return {
+          present: true,
+          gate: chip.getAttribute("data-gate-chip") || "",
+          tabIndex: chip.tabIndex,
+          hoverBg: cs.backgroundColor,
+          hoverCursor: cs.cursor,
+          hoverShadow: cs.boxShadow,
+          label: (chip.textContent || "").trim(),
+        };
+      });
+      return { rest, hover };
+    };
+    const pgcPending = await pgcProbe("pending");
+    const pgc1ok = !!(
+      pgcPending.rest &&
+      pgcPending.rest.present &&
+      pgcPending.rest.gate === "pending" &&
+      pgcPending.rest.tabIndex < 0 &&
+      !pgcPending.rest.role &&
+      pgcPending.rest.restCursor !== "help" &&
+      (pgcPending.rest.restShadow === "none" || !pgcPending.rest.restShadow) &&
+      pgcPending.hover &&
+      pgcPending.hover.present &&
+      pgcPending.hover.hoverBg &&
+      pgcPending.hover.hoverBg !== pgcPending.rest.restBg &&
+      pgcPending.hover.hoverCursor === "help" &&
+      pgcPending.hover.hoverShadow &&
+      pgcPending.hover.hoverShadow !== "none" &&
+      pgcPending.hover.tabIndex < 0
+    );
+    record(
+      "PGC1",
+      "Non-sticky .passport-gate-chip pending :hover lifts state-tint bg above resting 18%, cursor:help, shadow ring, no tabindex",
+      !!pgc1ok,
+      JSON.stringify(pgcPending)
+    );
+
+    const pgcApproved = await pgcProbe("approved");
+    const pgcRejected = await pgcProbe("rejected");
+    const pgc2ok = !!(
+      pgcApproved.rest &&
+      pgcApproved.rest.gate === "approved" &&
+      pgcApproved.hover &&
+      pgcApproved.hover.hoverBg !== pgcApproved.rest.restBg &&
+      pgcApproved.hover.hoverCursor === "help" &&
+      pgcRejected.rest &&
+      pgcRejected.rest.gate === "rejected" &&
+      pgcRejected.hover &&
+      pgcRejected.hover.hoverBg !== pgcRejected.rest.restBg &&
+      pgcRejected.hover.hoverCursor === "help" &&
+      pgcApproved.hover.hoverBg !== pgcPending.hover.hoverBg &&
+      pgcRejected.hover.hoverBg !== pgcPending.hover.hoverBg &&
+      pgcRejected.hover.hoverBg !== pgcApproved.hover.hoverBg
+    );
+    record(
+      "PGC2",
+      "Non-sticky gate-chip approved/rejected :hover state-tint follows --passport-state; distinct per gate; cursor:help",
+      !!pgc2ok,
+      JSON.stringify({ approved: pgcApproved, rejected: pgcRejected })
+    );
+
+    await page.hover(".passport-gate-chip[data-gate-chip]");
+    await page.waitForTimeout(40);
+    await shot(page, "passport-gate-chip-hover-cue.png");
+    const pgcShot = checks.find((c) => c.id === "shot:passport-gate-chip-hover-cue.png");
+    // SGH sticky still works
+    const pgcSgh = await page.evaluate(() => {
+      const sticky = document.querySelector(
+        "#passportSign [data-passport-summary] [data-passport-gate]"
+      );
+      return { stickyPresent: !!sticky };
+    });
+    const pgc3ok = !!(
+      pgc1ok &&
+      pgc2ok &&
+      pgcShot &&
+      pgcShot.pass &&
+      pgcSgh.stickyPresent
+    );
+    record(
+      "PGC3",
+      "screenshot passport-gate-chip-hover-cue.png not black; sticky SGH chip still present; PGC proven",
+      !!pgc3ok,
+      JSON.stringify({
+        shot: pgcShot ? pgcShot.detail : "missing",
+        pgc1: !!pgc1ok,
+        pgc2: !!pgc2ok,
+        sgh: pgcSgh,
+      })
+    );
+    assertNoStampDir("PGC4", "Passport gate-chip hover cue step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

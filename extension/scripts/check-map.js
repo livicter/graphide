@@ -878,6 +878,11 @@ assert(driver.includes("SGH1") && driver.includes("SGH3") && driver.includes("pa
 assert(css.includes(".passport-sticky-gate[data-passport-gate]:hover") && css.includes("cursor: help") && /passport-sticky-gate\[data-passport-gate\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-sticky-gate[data-passport-gate]:hover state-tint lift (34%) + cursor:help");
 assert(passportMap.includes("SGH1") && passportMap.includes(":hover") && passportMap.includes("passport-sticky-gate-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name sticky gate hover SGH / proof");
 
+assert(driver.includes("PGC1") && driver.includes("PGC3") && driver.includes("passport-gate-chip-hover-cue.png") && driver.includes("passport-gate-chip"), "verify driver must prove Passport gate-chip hover cue PGC1–PGC3");
+assert(css.includes(".passport-gate-chip[data-gate-chip]:hover") && css.includes("cursor: help") && /passport-gate-chip\[data-gate-chip\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-gate-chip[data-gate-chip]:hover state-tint lift (34%) + cursor:help");
+assert(passportMap.includes("PGC1") && passportMap.includes(":hover") && passportMap.includes("passport-gate-chip-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name gate-chip hover PGC / proof");
+
+
 
 
 
