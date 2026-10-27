@@ -137,6 +137,7 @@ export function DerivedNode({ data }) {
   if (d.dist != null) attrs["data-dist"] = String(d.dist);
   if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
   if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
+  if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
   if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
   if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
   const style = d.depth != null ? { "--d": d.depth } : undefined;

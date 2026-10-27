@@ -522,7 +522,7 @@ export function renderLineageCanvas(host, props) {
     nodeCap: 48,
     hopCap: 80,
     nodeW: 176,
-    nodeH: 64,
+    nodeH: 78,
     nodesep: 36,
     ranksep: 96,
   });
@@ -535,6 +535,10 @@ export function renderLineageCanvas(host, props) {
       kindClass: n.kindClass || "kind-Function",
       label: n.label || n.fqn || String(n.id),
       kindLine: n.kindLine || n.kind || "Function",
+      // ADE LBC — behavior caption on ego meta (kind · role/channel · verb) — not file:line.
+      meta: n.meta || n.caption || "",
+      caption: n.caption || n.meta || "",
+      lbcCaption: !!(n.lbcCaption || n.meta || n.caption),
       side: n.side || "",
       hop: n.hop,
       focus: !!n.focus,
