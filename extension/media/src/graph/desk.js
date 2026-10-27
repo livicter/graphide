@@ -193,6 +193,8 @@ let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
 let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
+/** ADE OMC — Overview kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
+let overviewMixFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -427,6 +429,18 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "overview" &&
+    overviewMixFilter
+  ) {
+    e.preventDefault();
+    overviewMixFilter = null;
+    applyOverviewMixPaint();
     return;
   }
   // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
@@ -13471,11 +13485,174 @@ function countMap(items, keyFn) {
   return m;
 }
 
-function statChips(map) {
+function statChips(map, axis) {
   return [...map.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>")
+    .map((e) => {
+      if (!axis) {
+        return '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>";
+      }
+      const on = !!(
+        overviewMixFilter &&
+        overviewMixFilter.axis === axis &&
+        overviewMixFilter.value === e[0]
+      );
+      return (
+        '<button type="button" class="stat-chip omc-chip' +
+        (on ? " on" : "") +
+        '" data-omc-axis="' +
+        esc(axis) +
+        '" data-omc-value="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e[0]) +
+        " · " +
+        e[1] +
+        '"><b>' +
+        esc(e[0]) +
+        "</b> " +
+        e[1] +
+        "</button>"
+      );
+    })
     .join("");
+}
+
+/** ADE OMC — CSS bar mix from countMap; max-scaled so top kind fills the track. */
+function mixChartHtml(axis, map) {
+  const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(
+        overviewMixFilter &&
+        overviewMixFilter.axis === axis &&
+        overviewMixFilter.value === e[0]
+      );
+      return (
+        '<button type="button" class="omc-bar' +
+        (on ? " on" : "") +
+        '" data-omc-axis="' +
+        esc(axis) +
+        '" data-omc-value="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e[0]) +
+        " · " +
+        e[1] +
+        '" style="--omc-pct:' +
+        pct +
+        '%"><span class="omc-fill" aria-hidden="true"></span><span class="omc-label"><b>' +
+        esc(e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="omc-chart omc-chart--' +
+    esc(axis) +
+    '" role="group" aria-label="' +
+    (axis === "kind" ? "Node kind mix" : "Hop kind mix") +
+    '">' +
+    bars +
+    "</div>"
+  );
+}
+
+function toggleOverviewMixFilter(axis, value) {
+  if (!axis || value == null || value === "") return;
+  if (
+    overviewMixFilter &&
+    overviewMixFilter.axis === axis &&
+    overviewMixFilter.value === value
+  ) {
+    overviewMixFilter = null;
+  } else {
+    overviewMixFilter = { axis: String(axis), value: String(value) };
+  }
+  applyOverviewMixPaint();
+}
+
+function applyOverviewMixPaint() {
+  const host = document.getElementById("sliceCanvas");
+  const filter = overviewMixFilter;
+  if (canvas) {
+    canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el) => {
+      const on = !!(
+        filter &&
+        el.getAttribute("data-omc-axis") === filter.axis &&
+        el.getAttribute("data-omc-value") === filter.value
+      );
+      el.classList.toggle("on", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+  if (!host) return;
+  host.classList.toggle("omc-filtering", !!filter);
+  const nodes = host.querySelectorAll(".vnode");
+  const edges = host.querySelectorAll(".react-flow__edge");
+  nodes.forEach((el) => el.classList.remove("omc-hit", "omc-dim"));
+  edges.forEach((el) => el.classList.remove("omc-hit", "omc-dim"));
+  if (!filter) return;
+  if (filter.axis === "kind") {
+    const hot = new Set();
+    nodes.forEach((el) => {
+      const match = (el.getAttribute("data-kind") || "") === filter.value;
+      el.classList.toggle("omc-hit", match);
+      el.classList.toggle("omc-dim", !match);
+      if (match) hot.add(el.getAttribute("data-id") || "");
+    });
+    edges.forEach((el) => {
+      const a = el.getAttribute("data-from") || "";
+      const b = el.getAttribute("data-to") || "";
+      const match = !!(hot.has(a) || hot.has(b));
+      el.classList.toggle("omc-hit", match);
+      el.classList.toggle("omc-dim", !match);
+    });
+  } else if (filter.axis === "hop") {
+    const incident = new Set();
+    edges.forEach((el) => {
+      const match = (el.getAttribute("data-kind") || "") === filter.value;
+      el.classList.toggle("omc-hit", match);
+      el.classList.toggle("omc-dim", !match);
+      if (match) {
+        const a = el.getAttribute("data-from");
+        const b = el.getAttribute("data-to");
+        if (a) incident.add(a);
+        if (b) incident.add(b);
+      }
+    });
+    nodes.forEach((el) => {
+      const match = incident.has(el.getAttribute("data-id") || "");
+      el.classList.toggle("omc-hit", match);
+      el.classList.toggle("omc-dim", !match);
+    });
+  }
+}
+
+function bindOverviewMixChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleOverviewMixFilter(el.getAttribute("data-omc-axis"), el.getAttribute("data-omc-value"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleOverviewMixFilter(el.getAttribute("data-omc-axis"), el.getAttribute("data-omc-value"));
+    };
+  });
 }
 
 function renderExplorerList(ws, opts) {
@@ -13585,6 +13762,8 @@ function renderExplorerList(ws, opts) {
     }
     const flow = defaultRunFlow();
     mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
+    bindOverviewMixChart();
+    applyOverviewMixPaint();
     bindGraphFx();
     applyEgoPaint();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
@@ -13786,15 +13965,17 @@ function renderOverviewBody() {
     renderFeaturePathHtml() +
     renderDefaultCfg() +
     '<div class="stat-strip">' +
-    '<span><i class="k">Nodes</i> <b class="n">' +
+    '<span class="omc-stat"><i class="k">Nodes</i> <b class="n">' +
     nodes.length +
     "</b> " +
-    statChips(kinds) +
+    statChips(kinds, "kind") +
+    mixChartHtml("kind", kinds) +
     "</span>" +
-    '<span><i class="k">Hops</i> <b class="n">' +
+    '<span class="omc-stat"><i class="k">Hops</i> <b class="n">' +
     edges.length +
     "</b> " +
-    statChips(hops) +
+    statChips(hops, "hop") +
+    mixChartHtml("hop", hops) +
     "</span>" +
     '<span><i class="k">Communities</i> <b class="n">' +
     bubbles.length +

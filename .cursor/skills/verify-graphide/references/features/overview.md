@@ -18,6 +18,13 @@ product. Stamp / skip stay human.
   changed, flows. **Open map** is `.crumb-btn[data-ws="map"]` (also
   `.stat-strip [data-ws="map"]`). `#legend [data-prog]` is painted on this
   landing (`renderLegend()`), same chips as Map.
+- ADE OMC (Overview Mix Chart): Nodes/Hops keep totals + chips and add
+  `.omc-chart` / `.omc-bar` (and clickable `.omc-chip`) from the same
+  `countMap`. Click / Enter / Space toggles `overviewMixFilter` and paints
+  `#sliceCanvas` `.vnode` / `.react-flow__edge` with `omc-hit` / `omc-dim`.
+  Second click or Escape (Overview-only, when mix filter active) clears.
+  Graph-only — must not open Evidence / `peekSource` / source pane.
+  Screenshot `verification/overview-mix-chart.png`. Asserts OMC1–OMC3.
 - Community cards `.expl-card[data-ws="map"]` and highest-degree
   `.expl-card[data-id]` sit **below** the CFG (`renderDefaultCfg()` before
   the Communities heading).

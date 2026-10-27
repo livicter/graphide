@@ -1536,6 +1536,99 @@ svg.steiner.flowing .vnode.hot .node-box {
   text-transform: uppercase;
   opacity: 0.8;
 }
+/* ADE OMC — Overview kind/hop mix chart (interactive; graph-only filter) */
+.stat-strip .omc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 148px;
+}
+button.stat-chip.omc-chip {
+  appearance: none;
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, #000);
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+button.stat-chip.omc-chip.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+  opacity: 1;
+}
+button.stat-chip.omc-chip:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.omc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  max-width: 220px;
+  margin: 2px 0 4px;
+}
+.omc-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+}
+.omc-bar .omc-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--omc-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 28%, transparent);
+  pointer-events: none;
+}
+.omc-bar .omc-label {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omc-bar.on {
+  border-color: var(--vscode-focusBorder);
+}
+.omc-bar.on .omc-fill {
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 48%, transparent);
+}
+.omc-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+#sliceCanvas.omc-filtering .vnode.omc-dim,
+#sliceCanvas.omc-filtering .react-flow__edge.omc-dim {
+  opacity: 0.18;
+}
+#sliceCanvas.omc-filtering .vnode.omc-hit {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+#sliceCanvas.omc-filtering .react-flow__edge.omc-hit path {
+  stroke: var(--vscode-textLink-foreground);
+}
 .path-row {
   display: flex;
   flex-wrap: wrap;

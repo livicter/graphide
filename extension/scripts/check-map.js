@@ -460,6 +460,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
+const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
@@ -891,6 +892,11 @@ assert(driver.includes("FTE1") && driver.includes("FTE3") && driver.includes("tr
 assert(js.includes("latencyMs") && js.includes("data-tip-edge-latency") && js.includes("data-latency"), "desk/fixture must paint edge latencyMs into data-latency + tip chip");
 assert(css.includes(".traj-edge-tip-chip--latency"), "main.css must theme .traj-edge-tip-chip--latency");
 assert(traceMap.includes("FTE1") && traceMap.includes("latencyMs") && traceMap.includes("trajectory-edge-latency.png"), "trace feature map must name FTE / latencyMs / proof");
+
+assert(driver.includes("OMC1") && driver.includes("OMC3") && driver.includes("overview-mix-chart.png") && driver.includes("omc-bar"), "verify driver must prove Overview mix chart OMC1–OMC3");
+assert(js.includes("overviewMixFilter") && js.includes("mixChartHtml") && js.includes("applyOverviewMixPaint") && js.includes("bindOverviewMixChart"), "desk.js must own Overview mix filter helpers");
+assert(css.includes(".omc-chart") && css.includes(".omc-bar") && css.includes("omc-hit") && css.includes("omc-dim"), "main.css must theme Overview mix chart + omc-hit/omc-dim");
+assert(overviewMap.includes("OMC1") && overviewMap.includes("omc-chart") && overviewMap.includes("overview-mix-chart.png") && overviewMap.includes("peekSource"), "overview feature map must name OMC / omc-chart / proof / no peekSource");
 
 
 

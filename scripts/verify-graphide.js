@@ -12276,6 +12276,192 @@ async function main() {
     );
     assertNoStampDir("FTE4", "Fixture edge latency step did not write .graphide/stamps/");
 
+    // ADE Overview mix chart (OMC1–OMC3) — interactive kind/hop bars; graph-only filter on #sliceCanvas
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", {
+      timeout: 8000,
+    });
+    await page.waitForSelector(".stat-strip .omc-chart .omc-bar[data-omc-axis]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const omc1 = await page.evaluate(() => {
+      const strip = document.querySelector(".stat-strip");
+      const kindChart = document.querySelector('.omc-chart--kind');
+      const hopChart = document.querySelector('.omc-chart--hop');
+      const bars = [...document.querySelectorAll(".omc-chart .omc-bar[data-omc-axis][data-omc-value]")];
+      const chips = [...document.querySelectorAll(".stat-chip.omc-chip[data-omc-axis]")];
+      const nodesN = strip && strip.querySelector(".omc-stat .n");
+      const nodeTotal = nodesN ? (nodesN.textContent || "").trim() : "";
+      const hopStats = strip ? [...strip.querySelectorAll(".omc-stat")] : [];
+      const hopTotal =
+        hopStats[1] && hopStats[1].querySelector(".n")
+          ? (hopStats[1].querySelector(".n").textContent || "").trim()
+          : "";
+      return {
+        kindBars: kindChart ? kindChart.querySelectorAll(".omc-bar").length : 0,
+        hopBars: hopChart ? hopChart.querySelectorAll(".omc-bar").length : 0,
+        bars: bars.length,
+        chips: chips.length,
+        nodeTotal,
+        hopTotal,
+        slice: !!document.getElementById("sliceCanvas"),
+        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+      };
+    });
+    const omc1ok = !!(
+      omc1 &&
+      omc1.kindBars >= 1 &&
+      omc1.hopBars >= 1 &&
+      omc1.bars >= 2 &&
+      omc1.chips >= 1 &&
+      Number(omc1.nodeTotal) > 0 &&
+      Number(omc1.hopTotal) > 0 &&
+      omc1.slice &&
+      omc1.vnodes > 1
+    );
+    record(
+      "OMC1",
+      "Overview Nodes/Hops totals + .omc-chart/.omc-bar (kind+hop) + omc-chip present; #sliceCanvas CFG mounted",
+      !!omc1ok,
+      JSON.stringify(omc1)
+    );
+
+    const omc2 = await page.evaluate(() => {
+      const bar =
+        document.querySelector('.omc-chart--kind .omc-bar[data-omc-axis="kind"]') ||
+        document.querySelector('.omc-bar[data-omc-axis="kind"]');
+      if (!bar) return { ok: false, reason: "no kind bar" };
+      const value = bar.getAttribute("data-omc-value") || "";
+      bar.click();
+      const host = document.getElementById("sliceCanvas");
+      const hits = host ? host.querySelectorAll(".vnode.omc-hit").length : 0;
+      const dims = host ? host.querySelectorAll(".vnode.omc-dim").length : 0;
+      const filtering = !!(host && host.classList.contains("omc-filtering"));
+      const pressed = bar.getAttribute("aria-pressed") === "true";
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      // second click clears
+      bar.click();
+      const hits2 = host ? host.querySelectorAll(".vnode.omc-hit").length : 0;
+      const dims2 = host ? host.querySelectorAll(".vnode.omc-dim").length : 0;
+      const filtering2 = !!(host && host.classList.contains("omc-filtering"));
+      const pressed2 = bar.getAttribute("aria-pressed") === "true";
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        value,
+        hits,
+        dims,
+        filtering,
+        pressed,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const omc2ok = !!(
+      omc2 &&
+      omc2.ok &&
+      omc2.hits > 0 &&
+      omc2.dims > 0 &&
+      omc2.filtering &&
+      omc2.pressed &&
+      omc2.srcHidden &&
+      omc2.hits2 === 0 &&
+      omc2.dims2 === 0 &&
+      !omc2.filtering2 &&
+      !omc2.pressed2 &&
+      omc2.srcHidden2
+    );
+    record(
+      "OMC2",
+      "Click kind bar filters #sliceCanvas omc-hit/omc-dim without opening source; second click restores",
+      !!omc2ok,
+      JSON.stringify(omc2)
+    );
+
+    // OMC3 — Enter toggles; Escape clears (Overview-only; residual owner is Trace|Passport)
+    await page.evaluate(() => {
+      const bar =
+        document.querySelector('.omc-chart--kind .omc-bar[data-omc-axis="kind"]') ||
+        document.querySelector('.omc-bar[data-omc-axis="kind"]');
+      if (!bar) throw new Error("no kind bar for OMC3");
+      if (bar.getAttribute("aria-pressed") === "true") bar.click(); // ensure off
+    });
+    await page.focus('.omc-chart--kind .omc-bar[data-omc-axis="kind"]');
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const omc3on = await page.evaluate(() => {
+      const bar = document.querySelector('.omc-chart--kind .omc-bar[data-omc-axis="kind"]');
+      const host = document.getElementById("sliceCanvas");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: host ? host.querySelectorAll(".vnode.omc-hit").length : 0,
+        filtering: !!(host && host.classList.contains("omc-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const omc3off = await page.evaluate(() => {
+      const bar = document.querySelector('.omc-chart--kind .omc-bar[data-omc-axis="kind"]');
+      const host = document.getElementById("sliceCanvas");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: host ? host.querySelectorAll(".vnode.omc-hit").length : -1,
+        filtering: !!(host && host.classList.contains("omc-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const omc3ok = !!(
+      omc3on &&
+      omc3on.pressed &&
+      omc3on.hits > 0 &&
+      omc3on.filtering &&
+      omc3on.srcHidden &&
+      omc3off &&
+      !omc3off.pressed &&
+      omc3off.hits === 0 &&
+      !omc3off.filtering &&
+      omc3off.srcHidden
+    );
+    record(
+      "OMC3",
+      "Enter toggles Overview mix filter; Escape clears when active; source stays closed",
+      !!omc3ok,
+      JSON.stringify({ on: omc3on, off: omc3off })
+    );
+
+    // Re-apply filter for proof shot
+    await page.evaluate(() => {
+      const bar =
+        document.querySelector('.omc-chart--kind .omc-bar[data-omc-axis="kind"]') ||
+        document.querySelector('.omc-bar[data-omc-axis="kind"]');
+      if (bar && bar.getAttribute("aria-pressed") !== "true") bar.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "overview-mix-chart.png");
+    const omcShot = checks.find((c) => c.id === "shot:overview-mix-chart.png");
+    const omc4ok = !!(omc1ok && omc2ok && omc3ok && omcShot && omcShot.pass);
+    record(
+      "OMC4",
+      "screenshot overview-mix-chart.png not black; Overview mix chart proven",
+      !!omc4ok,
+      JSON.stringify({
+        shot: omcShot ? omcShot.detail : "missing",
+        omc1: !!omc1ok,
+        omc2: !!omc2ok,
+        omc3: !!omc3ok,
+      })
+    );
+    assertNoStampDir("OMC5", "Overview mix chart step did not write .graphide/stamps/");
+
     // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift; cursor:help; state-aware title/aria/data-seal-info
     await page.evaluate(() => {
       window.__graphideSealStatus = "sealed";
