@@ -14606,6 +14606,67 @@ function lineageWorkspaceKey(id, reading) {
   ].join("\0");
 }
 
+/** ADE LBC — derived behavior caption for Lineage ego nodes (kind · role/channel · verb). */
+function lineageBehaviorCaption(nid, hops, focusId) {
+  const sid = idVal(nid);
+  if (!sid) return "";
+  const focus = idVal(focusId);
+  let next = "";
+  const list = hops || [];
+  // Prefer hop toward / from focus so captions teach Used/Informed/Generated roles.
+  for (const h of list) {
+    const a = idVal(h.from);
+    const b = idVal(h.to);
+    if (a === sid && (!focus || b === focus || sid === focus)) {
+      next = b;
+      break;
+    }
+    if (b === sid && (!focus || a === focus || sid === focus)) {
+      next = a;
+      break;
+    }
+  }
+  if (!next) {
+    for (const h of list) {
+      const a = idVal(h.from);
+      const b = idVal(h.to);
+      if (a === sid) {
+        next = b;
+        break;
+      }
+      if (b === sid) {
+        next = a;
+        break;
+      }
+    }
+  }
+  let cap = storyBehaviorCaption(sid, next);
+  if (cap) return cap;
+  const parts = [];
+  const kind = kindOf(snapshot && snapshot.graph, sid);
+  if (kind) parts.push(String(kind));
+  const ep = endpointOf(sid);
+  if (ep) {
+    if (ep.role) parts.push(String(ep.role));
+    if (ep.channel) parts.push(String(ep.channel));
+  }
+  if (next) {
+    const verb = primaryIncidentVerb(sid, next);
+    if (verb) parts.push(verb);
+    else {
+      for (const h of list) {
+        if (idVal(h.from) === sid || idVal(h.to) === sid) {
+          if (h.kind) {
+            parts.push(String(h.kind));
+            break;
+          }
+        }
+      }
+    }
+  }
+  return parts.join(" · ");
+}
+
 function lineageCanvasProps(reading, focusId) {
   const hops = (reading && reading.hops) || [];
   const hot = lineageHopCursor >= 0 ? hops[lineageHopCursor] : null;
@@ -14614,11 +14675,14 @@ function lineageCanvasProps(reading, focusId) {
     hotIds.add(String(hot.from));
     hotIds.add(String(hot.to));
   }
+  const focus = focusId || lineageEgoId || "";
   const items = ((reading && reading.nodes) || []).map((n) => {
     const nid = n.id;
     const kind = kindOf(snapshot.graph, nid) || "Function";
     const fqn = fqnOf(snapshot.graph, nid);
     const flags = nodeFlags(nid);
+    // ADE LBC — behavior caption (not file:line) on ego members.
+    const caption = lineageBehaviorCaption(nid, hops, focus);
     return {
       id: nid,
       fqn,
@@ -14632,6 +14696,9 @@ function lineageCanvasProps(reading, focusId) {
       uncovered: !!flags.uncovered,
       changed: !!flags.changed,
       ...graphNodePaint(nid, { fqn, kind }),
+      meta: caption,
+      caption,
+      lbcCaption: !!caption,
     };
   });
   return {
@@ -14641,6 +14708,7 @@ function lineageCanvasProps(reading, focusId) {
       from: h.from,
       to: h.to,
       kind: h.kind || "",
+      caption: lineageBehaviorCaption(h.dir === "out" || h.side === "down" ? h.from : h.to, hops, focus) || storyBehaviorCaption(h.from, h.to),
     })),
     cursor: lineageHopCursor,
     hotIds,
@@ -14648,7 +14716,8 @@ function lineageCanvasProps(reading, focusId) {
       if (!nid) return;
       lineageHopCursor = -1;
       lineageEgoId = nid;
-      selectNode(nid, { peek: true });
+      // ADE LBC — ego browse stays graph-only (no peekSource / Evidence).
+      selectNode(nid, { peek: false });
       paint({ animate: "none" });
     },
     onHopClick: (iOrHop) => {
@@ -14742,16 +14811,18 @@ function renderLineage(opts) {
       esc(e.dir || "") +
       '" data-lineage-i="' +
       i +
-      '"><div class="k">' +
+      '" data-lbc-caption="1"><div class="k">' +
       esc(e.kind) +
       " " +
       (e.dir === "out" ? "→" : "←") +
       '</div><div class="t">' +
       esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) +
       '</div><div class="b">' +
-      esc(shortToken(e.from)) +
-      " → " +
-      esc(shortToken(e.to)) +
+      esc(
+        lineageBehaviorCaption(e.dir === "out" ? e.from : e.to, hops, id) ||
+          storyBehaviorCaption(e.from, e.to) ||
+          shortToken(e.from) + " → " + shortToken(e.to)
+      ) +
       "</div></button>"
     );
   });
@@ -14790,6 +14861,10 @@ function renderLineage(opts) {
         ? items
             .map((e) => {
               const other = e.dir === "out" ? e.to : e.from;
+              const cap =
+                lineageBehaviorCaption(other, hops, id) ||
+                storyBehaviorCaption(e.from, e.to) ||
+                e.kind;
               return (
                 '<button type="button" class="expl-card hop" data-from="' +
                 esc(e.from) +
@@ -14797,10 +14872,10 @@ function renderLineage(opts) {
                 esc(e.to) +
                 '" data-kind="' +
                 esc(e.kind) +
-                '"><div class="t">' +
+                '" data-lbc-caption="1"><div class="t">' +
                 esc(shortOf(fqnOf(snapshot.graph, other))) +
                 '</div><div class="b">' +
-                esc(e.kind) +
+                esc(cap) +
                 "</div></button>"
               );
             })
@@ -14862,7 +14937,8 @@ function renderLineage(opts) {
       ev.stopPropagation();
       lineageHopCursor = -1;
       lineageEgoId = nid;
-      selectNode(nid, { peek: true });
+      // ADE LBC — path chips stay graph-only (Evidence via object rail).
+      selectNode(nid, { peek: false });
       paint({ animate: "none" });
     };
   });
@@ -14880,7 +14956,7 @@ function renderLineage(opts) {
   setLedgerHead("EGO");
   applyEgoPaint();
   applyGraphFilter();
-  if (id) peekSource(id);
+  // ADE LBC — Lineage paint stays graph-only; Evidence opens from object rail.
   const upN = reading.nodes.filter((n) => n.side === "up").length;
   const downN = reading.nodes.filter((n) => n.side === "down").length;
   window.__graphideLineage = {

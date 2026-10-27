@@ -23,8 +23,18 @@ force-directed dump of the raw IR and not an agent-drawn graph.
 - Incident hop list `#lineageHops .expl-card.hop` (capped) and provenance
   buckets `.prov-col[data-prov]` stay HTML. They list the shown directed
   edges only.
-- Click a node → `selectNode` + Evidence (`#sourcePane`). Click an edge or
-  hop card → highlight that hop (`cursor` / `.on`).
+- ADE LBC (Lineage Behavior captions): `#lineageCanvas .vnode` ego members show a
+  derived `.meta` caption (`data-lbc-caption="1"`) from IR only — node `kind`,
+  endpoint `role`/`channel` when present, and primary incident edge verb
+  (`Calls`/`Reads`/`Writes`/`Publishes`/`Subscribes`). Used / Informed / Generated
+  provenance cards and `#lineageHops` hop cards carry the same behavior line
+  (`data-lbc-caption`). Ego browse (`lineageCanvasProps` / path chips →
+  `selectNode(id, { peek: false })`) highlights graph-only and **must not** open
+  Evidence / call `peekSource` on paint. Object rail remains the Evidence path.
+  Screenshot `verification/lineage-behavior-captions.png`. Asserts LBC1–LBC3.
+- Click a node → `selectNode(..., { peek: false })` graph-only highlight (LBC).
+  Object-rail cell opens Evidence. Click an edge or hop card → highlight that hop
+  (`cursor` / `.on`).
 - `coverage.changed` (and optional delta added/changed FQNs) mark `.changed`
   on nodes that sit on this ego. Empty: no selection, or no derived hops.
 
@@ -80,7 +90,8 @@ Driver assertions:
   Contains (demo: `events`)
 - When `coverage.changed` is present (delta snap), a changed node is marked
   `.changed`
-- Evidence still opens from a Lineage node click
+- ADE LBC: ego members show `.meta` behavior captions (`data-lbc-caption="1"`, kind · role/channel · verb — not file:line); screenshot `verification/lineage-behavior-captions.png`; asserts LBC1–LBC3 / no `peekSource` on ego browse
+- Lineage node click highlights graph-only (no `#sourcePane`); Evidence still opens from object rail
 - Map still `xy=0` (community LOD, cap 24)
 - screenshot `verification/lineage.png` is not a black frame
 - `.graphide/stamps/` is still empty
@@ -97,7 +108,7 @@ Driver assertions:
 - `LIST_WORKSPACES` does not include `lineage` — the object rail stays.
 - Do not add `data-component` / `data-testid`. `[data-ws="lineage"]`,
   `#lineageCanvas .react-flow__node`, `.ego-node[data-side]`,
-  `#lineageHops .expl-card.hop` are the product hooks.
+  `#lineageHops .expl-card.hop`, `#lineageCanvas .vnode[data-lbc-caption]` are the product hooks.
 - Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not
   React-mount the raw IR. Lineage XYFlow lives in `#lineageCanvas`.
   Shape is `data-shape` on `.vnode` from `derived-node.jsx`.
