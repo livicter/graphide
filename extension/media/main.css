@@ -648,6 +648,80 @@ button:disabled { opacity: 0.45; cursor: default; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 #ledgerPane[hidden] { display: none; }
+#herd {
+  /* ponytail: 64px keeps fitted Map tiles >= 16px (AI1). A wider rail
+     scales the community map down. Upgrade: overlay the rail. */
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  flex: 0 0 64px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--vscode-panel-border);
+  background: color-mix(in srgb, var(--vscode-sideBar-background) 92%, transparent);
+  font-size: 12px;
+}
+#herd[hidden] { display: none; }
+.herd-head {
+  padding: 7px 8px 5px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.herd-head span {
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 11px;
+  opacity: 0.85;
+}
+#herdList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 6px 8px;
+}
+.herd-cut {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 5px 7px;
+  font: inherit;
+  font-size: 12px;
+}
+.herd-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.herd-state {
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.herd-cut[data-herd-state="working"] .herd-state { color: #007aff; }
+.herd-cut[data-herd-state="blocked"] {
+  border-color: #ff9f0a;
+}
+.herd-cut[data-herd-state="blocked"] .herd-state { color: #ff9f0a; }
+.herd-cut[data-herd-state="idle"] .herd-state { opacity: 0.55; }
+.herd-cut[data-herd-state="done"] .herd-state { color: #34c759; }
+@media (max-width: 860px) {
+  #herd { display: none; }
+}
 .led-head, #ledgerMeta {
   padding: 7px 8px 5px;
   font-size: 9px;
@@ -3598,6 +3672,7 @@ body.present #nowPill,
 body.present #graphBar,
 body.present #probeDock,
 body.present #meta,
+body.present #herd,
 body.present #coverage,
 body.present #status,
 body.present #progress,
