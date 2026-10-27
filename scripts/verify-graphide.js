@@ -35968,6 +35968,107 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
+    // ADE Sequence Story Richness (SSR1–SSR3) — behavior captions; graph-only walk
+    if (sequenceDesk.overview) await page.click("#seqOverview");
+    await page.waitForTimeout(80);
+    await page.waitForSelector("#seqParts .seq-part[data-ssr-caption='1'], #seqHops .seq-hop[data-ssr-caption='1']", {
+      timeout: 8000,
+    });
+    const ssr1 = await page.evaluate(() => {
+      const parts = [...document.querySelectorAll("#seqParts .seq-part[data-ssr-caption='1']")];
+      const hops = [...document.querySelectorAll("#seqHops .seq-hop[data-ssr-caption='1']")];
+      const captions = [
+        ...parts.map((el) => (el.getAttribute("data-caption") || (el.querySelector(".seq-part-caption") || {}).textContent || "").trim()),
+        ...hops.map((el) => (el.getAttribute("data-caption") || (el.querySelector(".seq-hop-caption") || {}).textContent || "").trim()),
+      ].filter(Boolean);
+      const sample = captions[0] || "";
+      const looksDerived =
+        /Function|Type|Endpoint|Calls|Reads|Writes|Publishes|Subscribes|Sink|Source|Http|Channel|Queue|Table/i.test(
+          sample
+        ) && !/:\d+/.test(sample);
+      return {
+        page: !!document.querySelector('.seq-page[data-ssr="1"]'),
+        partCaps: parts.length,
+        hopCaps: hops.length,
+        captions: captions.length,
+        sample,
+        looksDerived,
+        play: !!document.getElementById("seqPlay"),
+      };
+    });
+    const ssr1ok = !!(
+      ssr1 &&
+      ssr1.page &&
+      ssr1.partCaps >= 1 &&
+      ssr1.hopCaps >= 1 &&
+      ssr1.captions >= 1 &&
+      ssr1.looksDerived &&
+      ssr1.play
+    );
+    record(
+      "SSR1",
+      "Sequence participants/hops show derived behavior captions (kind·role/channel·verb) via data-ssr-caption — not file:line",
+      !!ssr1ok,
+      JSON.stringify(ssr1)
+    );
+
+    await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      const hop = document.getElementById("hopCard");
+      if (hop) hop.hidden = true;
+    });
+    const firstPart = await page.$("#seqParts .seq-part[data-ssr-caption='1']");
+    if (firstPart) await firstPart.click();
+    await page.waitForTimeout(60);
+    await page.click("#seqNext");
+    await page.waitForTimeout(80);
+    const ssr2 = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      const hop = document.getElementById("hopCard");
+      const hit = document.querySelectorAll("#seqParts .seq-part.ssr-hit, #seqParts .seq-part.on, #seqHops .seq-hop.on, #seqHops .seq-hop.ssr-hit").length;
+      const dim = document.querySelectorAll("#seqParts .seq-part.ssr-dim, #seqHops .seq-hop.ssr-dim").length;
+      const canvasHit = document.querySelectorAll("#seqCanvas .react-flow__node.selected, #seqCanvas .vnode.on, #seqCanvas .seq-part.on").length;
+      return {
+        srcHidden: !src || src.hidden,
+        hopHidden: !hop || hop.hidden,
+        hit,
+        dim,
+        canvasHit,
+        hopOn: !!document.querySelector("#seqHops .seq-hop.on"),
+      };
+    });
+    const ssr2ok = !!(
+      ssr2 &&
+      ssr2.srcHidden &&
+      ssr2.hopHidden &&
+      (ssr2.hit > 0 || ssr2.canvasHit > 0) &&
+      ssr2.hopOn
+    );
+    record(
+      "SSR2",
+      "Participant/hop focus + seq Next stay graph-only (no Evidence / source pane / hop card)",
+      !!ssr2ok,
+      JSON.stringify(ssr2)
+    );
+
+    await page.click("#seqOverview");
+    await page.waitForTimeout(60);
+    await shot(page, "sequence-story-richness.png");
+    const ssrShot = checks.find((c) => c.id === "shot:sequence-story-richness.png");
+    const ssr3ok = !!(ssr1ok && ssr2ok && ssrShot && ssrShot.pass);
+    record(
+      "SSR3",
+      "screenshot sequence-story-richness.png not black; Sequence story richness proven",
+      !!ssr3ok,
+      JSON.stringify({
+        shot: ssrShot ? ssrShot.detail : "missing",
+        ssr1: !!ssr1ok,
+        ssr2: !!ssr2ok,
+      })
+    );
+    assertNoStampDir("SSR4", "Sequence story richness step did not write .graphide/stamps/");
+
     assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
     const dataflowSnap = loadDataflowSnap();

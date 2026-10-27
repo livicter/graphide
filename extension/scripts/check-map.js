@@ -462,6 +462,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
+const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
@@ -952,6 +953,35 @@ assert((() => {
 })(), "focusDfHop must stay graph-only (selectedNodeId; no peekSource / showHop)");
 assert(css.includes(".df-lane-head") && css.includes(".df-lane-count") && css.includes("df-lane-dim"), "main.css must theme .df-lane-head / counts / dim");
 assert(dataflowMap.includes("RDF1") && dataflowMap.includes("df-lane-head") && dataflowMap.includes("dataflow-richer-lanes.png") && dataflowMap.includes("peekSource"), "dataflow feature map must name RDF / df-lane-head / proof / no peekSource");
+
+
+assert(driver.includes("SSR1") && driver.includes("SSR3") && driver.includes("sequence-story-richness.png") && driver.includes("data-ssr-caption"), "verify driver must prove Sequence story richness SSR1–SSR3");
+assert(js.includes("seqHopCaption") && js.includes("seqPartCaption") && js.includes("toggleSeqPartFocus") && js.includes('data-ssr-caption="1"') && js.includes("withSequenceCaptions"), "desk.js must own seqHopCaption / seqPartCaption / toggleSeqPartFocus / withSequenceCaptions");
+assert((() => {
+  const start = js.indexOf("function focusSeqHop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noShowHop = !/showHop\s*\(/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noShowHop && setsSelection;
+})(), "focusSeqHop must stay graph-only (selectedNodeId; no peekSource / showHop)");
+assert(css.includes(".seq-part-caption") && css.includes(".seq-hop-caption") && css.includes("ssr-hit") && css.includes("ssr-dim"), "main.css must theme Sequence SSR captions + ssr-hit/ssr-dim");
+assert(sequenceMap.includes("SSR1") && sequenceMap.includes("seq-part-caption") && sequenceMap.includes("sequence-story-richness.png") && sequenceMap.includes("peekSource"), "sequence feature map must name SSR / seq-part-caption / proof / no peekSource");
+
 
 
 

@@ -2518,6 +2518,37 @@ html.bright .route-hop {
   outline-offset: 2px;
 }
 
+/* ADE SSR — Sequence story richness captions + focus paint */
+.seq-part-caption,
+.seq-hop-caption {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  font-weight: 500;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+.seq-part[data-ssr-caption="1"] .meta {
+  /* keep kind line; caption sits below */
+}
+.seq-part.ssr-hit,
+.seq-hop.ssr-hit {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.seq-part.ssr-dim,
+.seq-hop.ssr-dim {
+  opacity: 0.28;
+}
+.seq-page[data-ssr="1"] .seq-empty [data-ws] {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ADE A1a — Trace trajectory DAG (fixture, read-only) */
 .traj-page { display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
 .traj-strip {

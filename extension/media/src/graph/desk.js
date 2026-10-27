@@ -175,6 +175,8 @@ let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 let seqWalk = { playing: false, timer: 0 };
 let seqBodyKey = "";
+/** ADE SSR — participant focus id; graph-only highlight (null clears). */
+let seqPartFocusId = null;
 let deltaBodyKey = "";
 let dfCursor = -1;
 let dfWalk = { playing: false, timer: 0 };
@@ -9049,15 +9051,78 @@ function sequenceFlow() {
   return cur || story || null;
 }
 
+
+/** ADE SSR — kind · role/channel (endpoint) from IR; never file:line. */
+function seqNodeCaption(id) {
+  const sid = idVal(id);
+  if (!sid) return "";
+  const node = nodeById.get(sid);
+  if (!node) return "";
+  const parts = [];
+  if (node.kind) parts.push(String(node.kind));
+  const ep = endpointOf(sid);
+  if (ep) {
+    if (ep.role) parts.push(String(ep.role));
+    if (ep.channel) parts.push(String(ep.channel));
+  }
+  return parts.join(" · ");
+}
+
+/** ADE SSR — hop caption: verb (+ return) · from/to kind·role/channel; not file:line. */
+function seqHopCaption(h) {
+  if (!h) return "";
+  const verb = h.kind
+    ? h.variant === "return"
+      ? String(h.kind) + " return"
+      : String(h.kind)
+    : "";
+  const fromCap = seqNodeCaption(h.from);
+  const toCap = seqNodeCaption(h.to);
+  const parts = [];
+  if (verb) parts.push(verb);
+  if (fromCap) parts.push(fromCap);
+  if (toCap && toCap !== fromCap) parts.push(toCap);
+  if (parts.length) return parts.join(" · ");
+  // Fall back to SBC-style derived caption toward peer.
+  const cap = storyBehaviorCaption(h.from, h.to);
+  return cap || "";
+}
+
+/** ADE SSR — participant caption: kind · role/channel · outgoing Calls/Publishes/Subscribes. */
+function seqPartCaption(p, hops) {
+  const base = seqNodeCaption(p && p.id);
+  const pid = idVal(p && p.id);
+  const out = (hops || []).find(
+    (h) => idVal(h.from) === pid && h.variant !== "return" && (h.kind === "Calls" || h.kind === "Publishes" || h.kind === "Subscribes")
+  );
+  if (out && out.kind) {
+    return base ? base + " · " + out.kind : String(out.kind);
+  }
+  return base || String((p && p.kind) || "");
+}
+
+function withSequenceCaptions(reading) {
+  const hopsIn = (reading && reading.hops) || [];
+  const hops = hopsIn.map((h) => {
+    const caption = h.caption || seqHopCaption(h);
+    return Object.assign({}, h, { caption: caption });
+  });
+  const participants = ((reading && reading.participants) || []).map((p) => {
+    const caption = p.caption || seqPartCaption(p, hops);
+    return Object.assign({}, p, { caption: caption });
+  });
+  return { participants: participants, hops: hops };
+}
+
 function sequenceOf(flow) {
   const ready = flow && flow.sequence;
   if (ready && (ready.participants || []).length && (ready.hops || []).length) {
-    return {
+    return withSequenceCaptions({
       participants: ready.participants.slice(),
       hops: ready.hops.slice(),
-    };
+    });
   }
-  return deriveSequence(flow);
+  return withSequenceCaptions(deriveSequence(flow));
 }
 
 function deriveSequence(flow) {
@@ -9194,23 +9259,42 @@ function toggleSeqReview() {
 function resetSeqOverview() {
   stopSeqWalk();
   seqCursor = -1;
+  seqPartFocusId = null;
+  selectedNodeId = null;
   paint({ animate: "none" });
 }
 
 function focusSeqHop(hop) {
   if (!hop) return;
+  // ADE SSR — Play / hop focus stays graph-only (no Evidence / peekSource / showHop).
   const id = hop.variant === "return" ? hop.to : hop.from;
-  if (id) {
-    selectedNodeId = idVal(id);
-    peekSource(id);
-  }
-  showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+  if (id) selectedNodeId = idVal(id);
+  seqPartFocusId = null;
 }
 
 function seqVariantMark(v) {
   if (v === "return") return "←";
   if (v === "call") return "→";
   return "·";
+}
+
+
+function toggleSeqPartFocus(id) {
+  const sid = idVal(id);
+  if (!sid) return;
+  if (seqPartFocusId && idVal(seqPartFocusId) === sid) {
+    seqPartFocusId = null;
+    selectedNodeId = null;
+  } else {
+    seqPartFocusId = sid;
+    selectedNodeId = sid;
+  }
+  paint({ animate: "none" });
+}
+
+function seqPartRelated(h, partId) {
+  const pid = idVal(partId);
+  return !!(pid && (idVal(h.from) === pid || idVal(h.to) === pid));
 }
 
 function renderSequenceBody() {
@@ -9243,7 +9327,16 @@ function renderSequenceBody() {
     }
   }
   if (!parts.length || !hops.length) {
-    return '<div class="empty">No Steiner Calls (or Publishes / Subscribes) on this flow. Sequence reads derived interaction only.</div>';
+    return (
+      '<div class="empty seq-empty" data-ssr-empty="1">' +
+      "No Steiner Calls / Publishes / Subscribes on this flow. " +
+      "Sequence shows derived interaction only — try " +
+      '<button type="button" class="crumb-btn" data-ws="overview">Overview Play</button>' +
+      " or " +
+      '<button type="button" class="crumb-btn" data-ws="dataflow">Data-flow</button>' +
+      " for behavior graphs." +
+      "</div>"
+    );
   }
   if (seqCursor >= hops.length) seqCursor = hops.length - 1;
   const hot = seqCursor >= 0 ? hops[seqCursor] : null;
@@ -9263,37 +9356,56 @@ function renderSequenceBody() {
       ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
     "</span></div>";
+  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   const heads = parts
     .map((p) => {
-      const on = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
+      const pid = idVal(p.id);
+      const on =
+        (hot && (idVal(hot.from) === pid || idVal(hot.to) === pid)) ||
+        (focusId && focusId === pid);
       const match = seqPartMatch(p);
+      const caption = p.caption || seqPartCaption(p, hops);
+      const focusDim = !!(focusId && focusId !== pid);
       return (
         '<button type="button" class="seq-part vnode kind-' +
         esc(p.kind || "Function") +
         (on ? " on" : "") +
+        (focusId && focusId === pid ? " ssr-hit" : "") +
+        (focusDim ? " ssr-dim" : "") +
         (seqQ && match ? " hit" : "") +
         (seqQ && !match ? " dim" : "") +
         '" data-id="' +
-        esc(idVal(p.id)) +
+        esc(pid) +
         '" data-fqn="' +
         esc(p.fqn) +
         '" data-kind="' +
         esc(p.kind || "") +
         '"' +
+        (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
         (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
-        '><span class="name">' +
+        ' aria-pressed="' +
+        (focusId && focusId === pid ? "true" : "false") +
+        '"><span class="name">' +
         esc(shortOf(p.fqn)) +
         '</span> <span class="meta">' +
         esc(p.kind || "") +
-        "</span></button>"
+        "</span>" +
+        (caption
+          ? '<span class="seq-part-caption">' + esc(caption) + "</span>"
+          : "") +
+        "</button>"
       );
     })
     .join("");
   const list = hopCards
     .map(({ h, i }) => {
+      const caption = h.caption || seqHopCaption(h);
+      const related = focusId ? seqPartRelated(h, focusId) : true;
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
+        (focusId && related ? " ssr-hit" : "") +
+        (focusId && !related ? " ssr-dim" : "") +
         '" data-seq-i="' +
         i +
         '" data-kind="' +
@@ -9306,18 +9418,20 @@ function renderSequenceBody() {
         esc(idVal(h.to)) +
         '" data-fqn="' +
         esc(h.from_fqn) +
+        '"' +
+        (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
         '"><div class="k">' +
         esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) +
         '</div><div class="t">' +
         esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
-        '</div><div class="b">' +
-        esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) +
+        '</div><div class="b seq-hop-caption">' +
+        esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) +
         "</div></article>"
       );
     })
     .join("");
   return (
-    '<div class="seq-page">' +
+    '<div class="seq-page" data-ssr="1">' +
     review +
     '<div class="seq-parts" id="seqParts" style="--seq-n:' +
     parts.length +
@@ -9346,17 +9460,22 @@ function sequenceBodyKey() {
 
 function sequenceCanvasProps() {
   const reading = sequenceOf(sequenceFlow());
+  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   return {
     participants: reading.participants.map((p) => {
       const paint = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
+      const pid = idVal(p.id);
+      const caption = p.caption || seqPartCaption(p, reading.hops);
+      const focusDim = !!(focusId && focusId !== pid);
       return {
-        id: idVal(p.id),
+        id: pid,
         fqn: p.fqn,
         kind: p.kind || "Function",
         label: shortOf(p.fqn),
+        caption: caption,
         file: paint.file || p.file || "",
-        dim: paint.dim,
-        hit: paint.hit,
+        dim: paint.dim || focusDim,
+        hit: paint.hit || (!!focusId && focusId === pid),
       };
     }),
     hops: reading.hops.map((h, i) => ({
@@ -9367,12 +9486,15 @@ function sequenceCanvasProps() {
       variant: h.variant || "default",
       fromLabel: shortOf(h.from_fqn),
       toLabel: shortOf(h.to_fqn),
+      caption: h.caption || seqHopCaption(h),
+      dim: !!(focusId && !seqPartRelated(h, focusId)),
+      hit: !!(focusId && seqPartRelated(h, focusId)),
     })),
     cursor: seqCursor,
     onNodeClick: (id) => {
       if (!id) return;
-      selectedNodeId = id;
-      peekSource(id);
+      // ADE SSR — graph-only highlight (no peekSource / Evidence).
+      toggleSeqPartFocus(id);
     },
     onHopClick: (i) => {
       if (!Number.isFinite(i)) return;
@@ -9391,10 +9513,24 @@ function patchSequenceChrome() {
     const i = parseInt(el.getAttribute("data-seq-i"), 10);
     el.classList.toggle("on", i === seqCursor);
   });
+  const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     const id = el.getAttribute("data-id");
-    const on = !!(hot && (idVal(hot.from) === id || idVal(hot.to) === id));
+    const on = !!(
+      (hot && (idVal(hot.from) === id || idVal(hot.to) === id)) ||
+      (focusId && focusId === id)
+    );
     el.classList.toggle("on", on);
+    el.classList.toggle("ssr-hit", !!(focusId && focusId === id));
+    el.classList.toggle("ssr-dim", !!(focusId && focusId !== id));
+    el.setAttribute("aria-pressed", focusId && focusId === id ? "true" : "false");
+  });
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    const from = el.getAttribute("data-from");
+    const to = el.getAttribute("data-to");
+    const related = !!(focusId && (from === focusId || to === focusId));
+    el.classList.toggle("ssr-hit", !!(focusId && related));
+    el.classList.toggle("ssr-dim", !!(focusId && !related));
   });
   const status = document.getElementById("seqStatus");
   const flow = sequenceFlow();
@@ -9449,10 +9585,15 @@ function bindSequencePage() {
     el.onclick = (ev) => {
       ev.stopPropagation();
       const id = el.getAttribute("data-id");
-      if (id) {
-        selectedNodeId = id;
-        peekSource(id);
-      }
+      if (!id) return;
+      // ADE SSR — graph-only highlight (no peekSource / Evidence).
+      toggleSeqPartFocus(id);
+    };
+  });
+  canvas.querySelectorAll(".seq-empty [data-ws]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      setWorkspace(el.getAttribute("data-ws"), true);
     };
   });
   const overview = document.getElementById("seqOverview");
