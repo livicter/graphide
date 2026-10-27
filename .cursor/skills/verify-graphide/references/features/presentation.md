@@ -43,6 +43,9 @@ stay human — present and preset never write `.graphide/stamps/`.
 - While `body.present` with Keys open, desk `D` still toggles Day/Night (`P6h`).
 - While `body.present` with Keys open, desk `+`/`=`/`-` still zoom (`P6i`); Fit (`0`) still refits (`P6k`).
 - Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`), same exclusive chrome as Keys / Export closing Ask.
+- Reverse exclusivity: Ask / Evidence exit Present when opened (`K18ai` /
+  `K18aj`). Lens / Route / Keys / Export stay stage overlays (`P6s` /
+  `P6r` / `K14i`–`K14l`) — opening them does not call `applyPresent(false)`.
 - Opening Present hides the hover tip (`K19e`) and clears the toast (`K20e`), same chrome exclusivity as Keys / Export / Ask / Evidence.
 
 ## How to get to it (user POV)
@@ -86,6 +89,15 @@ Driver assertions:
 - opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`)
 - opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
+
+- **S1m / S1ad / S1ae / ScrollDrive:** entering Present pauses Evidence ScrollDrive
+  (`presentPaused`, no residual cam nudge) and stashes last-stay before the
+  wipe (`presentStayStashed` / `data-scroll-present-stay` when warm — S1ad).
+  Exit resumes without yanking cam; soft restore waits for Evidence reopen;
+  desk auto-refit one-shot-skips hard fit after soft stay reopen (S1ae). Review-clear stay wipe publishes a short-lived cue (S1af); workspace-folder change clears that cue (S1ag); soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion + macro enter/exit settle-before-sample + Lineage/Overview resettle settle-before-sample + remount resettle settle-before-sample + Present-exit Review-clear cue polish + Review-during-Present mutual exclusion + Evidence reopen after wipe no soft-restore + soft-restore round-trip after fresh stay + file-hop settle-before-sample + soft-restore settle-before-sample + nest/line remap settle-before-sample + reload/host-repost settle-before-sample + soft-restore round-trip settle-before-sample + Present-stage settle-before-sample + Review-clear cue settle-before-sample + confirm-probe atomic settle sample + warm/resettle atomic settle sample + workspace-change Review-clear cue settle-before-sample + Present-stash/Review-clear mutual-exclusion settle-before-sample + Present-exit Review-clear cue polish settle-before-sample + Review-during-Present mutual-exclusion settle-before-sample + cold-path reopen settle-before-sample (S1ah–S1bg) owned by scroll-drive.
+  Does not change Lens/Route stage-overlay rules (`P6s` / `K14k`). Owned by
+  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1bg`); this map only notes
+  the Present exclusive side-effect.
 
 ## Gotchas
 
