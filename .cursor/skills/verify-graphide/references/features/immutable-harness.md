@@ -22,7 +22,9 @@ filesystem write interception.
 - Visible `#adeSealChip` / `.ade-seal-chip` status chrome on Trace `.traj-strip`
   and Passport `.ade-hop-row` mirrors `classifyWrite` vocabulary
   (`sealed` | `open`/`agent` | `unlock`) via `window.__graphideSealStatus` /
-  `?seal=` — display-only fixture stub, not live Docker/Wasm FS.
+  `?seal=` — display-only fixture stub, not live Docker/Wasm FS. Dedicated
+  `:hover` seal-tint lift + `cursor:help` (SCH1–SCH3); proof
+  `verification/seal-chip-hover-cue.png`.
 
 ## How to get to it (user POV)
 
@@ -59,6 +61,10 @@ Desk seal status chip (SC1–SC3):
   approve/reject gate remains separate
 - SC3: proof `verification/seal-status-chip.png` is non-black; flipping seed
   re-paints chip without stamps
+- SCH1–SCH3: `#adeSealChip` / `.ade-seal-chip` gets seal-tinted `:hover` lift above
+  resting 16% (`--ade-seal` 34% mix + border/box-shadow) with `cursor:help`
+  across sealed/open/unlock; title/role unchanged; no tabindex. Proof
+  `verification/seal-chip-hover-cue.png`
 
 ## Gotchas
 

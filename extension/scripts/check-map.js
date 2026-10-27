@@ -799,6 +799,18 @@ assert(css.includes("ade-seal-chip") && css.includes('data-seal-state="sealed"')
     sealMap.includes("SC1") && sealMap.includes("adeSealChip") && sealMap.includes("seal-status-chip.png"),
     "immutable-harness feature map must name SC1 / adeSealChip / proof"
   );
+  assert(
+    driver.includes("SCH1") && driver.includes("SCH3") && driver.includes("seal-chip-hover-cue.png") && driver.includes("adeSealChip"),
+    "verify driver must prove seal-chip hover cue SCH1–SCH3"
+  );
+  assert(
+    css.includes(".ade-seal-chip:hover") && css.includes("cursor: help") && /ade-seal-chip:hover[\s\S]*?34%/.test(css),
+    "main.css must theme .ade-seal-chip:hover seal-tint lift (34%) + cursor:help"
+  );
+  assert(
+    sealMap.includes("SCH1") && sealMap.includes(":hover") && sealMap.includes("seal-chip-hover-cue.png"),
+    "immutable-harness feature map must name SCH1 / :hover / proof"
+  );
 }
 
 assert(driver.includes("PE1") && driver.includes("PE3") && driver.includes("passport-empty-state.png"), "verify driver must prove Passport empty-state PE1–PE3");

@@ -3001,6 +3001,14 @@ html.bright .traj-node { background: #fff; }
 .traj-strip .ade-seal-chip { margin-left: 2px; }
 .ade-hop-row .ade-seal-chip { margin-left: 2px; }
 
+/* ADE seal-chip hover cue (SCH1–SCH3) — seal-tinted lift above resting 16%; cursor:help; informational status; no tabindex */
+.ade-seal-chip:hover {
+  background: color-mix(in srgb, var(--ade-seal) 34%, var(--vscode-badge-background, #4d4d4d));
+  border-color: color-mix(in srgb, var(--ade-seal) 78%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ade-seal) 42%, transparent);
+  cursor: help;
+}
+
 
 .passport-page { display: flex; flex-direction: column; gap: 12px; max-width: 980px; padding-bottom: 8px; }
 .passport-outcome { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }

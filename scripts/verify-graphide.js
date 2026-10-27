@@ -11671,6 +11671,193 @@ async function main() {
     );
     assertNoStampDir("TNI4", "Trace traj node info step did not write .graphide/stamps/");
 
+    // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift above resting 16%; cursor:help; no tabindex
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "sealed";
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#adeSealChip[data-seal-state="sealed"]', { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const schTraceRest = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      if (!chip) return { present: false };
+      const rest = getComputedStyle(chip);
+      return {
+        present: true,
+        state: chip.getAttribute("data-seal-state") || "",
+        role: chip.getAttribute("role") || "",
+        title: chip.getAttribute("title") || "",
+        tabIndex: chip.tabIndex,
+        label: (chip.textContent || "").trim(),
+        restBg: rest.backgroundColor,
+        restBorder: rest.borderColor,
+        restCursor: rest.cursor,
+        restShadow: rest.boxShadow,
+      };
+    });
+    await page.hover("#adeSealChip");
+    await page.waitForTimeout(40);
+    const schTraceHover = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      if (!chip) return { present: false };
+      const hover = getComputedStyle(chip);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverBorder: hover.borderColor,
+        hoverCursor: hover.cursor,
+        hoverShadow: hover.boxShadow,
+        title: chip.getAttribute("title") || "",
+        role: chip.getAttribute("role") || "",
+        label: (chip.textContent || "").trim(),
+        tabIndex: chip.tabIndex,
+      };
+    });
+    const sch1ok = !!(
+      schTraceRest &&
+      schTraceRest.present &&
+      schTraceRest.state === "sealed" &&
+      schTraceRest.role === "status" &&
+      /seal|write-gate/i.test(schTraceRest.title) &&
+      /SEALED/i.test(schTraceRest.label) &&
+      schTraceRest.tabIndex < 0 &&
+      schTraceHover &&
+      schTraceHover.present &&
+      schTraceHover.hoverBg &&
+      schTraceHover.hoverBg !== schTraceRest.restBg &&
+      schTraceHover.hoverCursor === "help" &&
+      schTraceHover.hoverShadow &&
+      schTraceHover.hoverShadow !== "none" &&
+      schTraceHover.title === schTraceRest.title &&
+      schTraceHover.role === "status" &&
+      schTraceHover.label === schTraceRest.label &&
+      schTraceHover.tabIndex < 0
+    );
+    record(
+      "SCH1",
+      "Trace #adeSealChip sealed :hover lifts seal-tint bg above resting 16%, cursor:help, title/role/label unchanged, no tabindex",
+      !!sch1ok,
+      JSON.stringify({ rest: schTraceRest, hover: schTraceHover })
+    );
+
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "unlock";
+    });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#adeSealChip[data-seal-state="unlock"]', { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const schPassRest = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      const hop = document.querySelector(".ade-hop-row");
+      if (!chip) return { present: false };
+      const rest = getComputedStyle(chip);
+      return {
+        present: true,
+        state: chip.getAttribute("data-seal-state") || "",
+        inHop: !!(hop && hop.contains(chip)),
+        role: chip.getAttribute("role") || "",
+        title: chip.getAttribute("title") || "",
+        tabIndex: chip.tabIndex,
+        label: (chip.textContent || "").trim(),
+        restBg: rest.backgroundColor,
+        restCursor: rest.cursor,
+      };
+    });
+    await page.hover("#adeSealChip");
+    await page.waitForTimeout(40);
+    const schPassHover = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      if (!chip) return { present: false };
+      const hover = getComputedStyle(chip);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverCursor: hover.cursor,
+        hoverShadow: hover.boxShadow,
+        title: chip.getAttribute("title") || "",
+        label: (chip.textContent || "").trim(),
+      };
+    });
+    // Also sample open state hover tint follows --ade-seal (green)
+    await page.evaluate(() => {
+      window.__graphideSealStatus = "open";
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#adeSealChip[data-seal-state="open"]', { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const schOpenRest = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      if (!chip) return { present: false };
+      return {
+        present: true,
+        state: chip.getAttribute("data-seal-state") || "",
+        restBg: getComputedStyle(chip).backgroundColor,
+        label: (chip.textContent || "").trim(),
+      };
+    });
+    await page.hover("#adeSealChip");
+    await page.waitForTimeout(40);
+    const schOpenHover = await page.evaluate(() => {
+      const chip = document.getElementById("adeSealChip");
+      if (!chip) return { present: false };
+      const hover = getComputedStyle(chip);
+      return {
+        present: true,
+        hoverBg: hover.backgroundColor,
+        hoverCursor: hover.cursor,
+      };
+    });
+    const sch2ok = !!(
+      schPassRest &&
+      schPassRest.present &&
+      schPassRest.state === "unlock" &&
+      schPassRest.inHop &&
+      /UNLOCK/i.test(schPassRest.label) &&
+      schPassRest.tabIndex < 0 &&
+      schPassHover &&
+      schPassHover.present &&
+      schPassHover.hoverBg &&
+      schPassHover.hoverBg !== schPassRest.restBg &&
+      schPassHover.hoverCursor === "help" &&
+      schPassHover.title === schPassRest.title &&
+      schPassHover.label === schPassRest.label &&
+      schOpenRest &&
+      schOpenRest.present &&
+      schOpenRest.state === "open" &&
+      /OPEN/i.test(schOpenRest.label) &&
+      schOpenHover &&
+      schOpenHover.present &&
+      schOpenHover.hoverBg !== schOpenRest.restBg &&
+      schOpenHover.hoverCursor === "help" &&
+      schOpenHover.hoverBg !== schPassHover.hoverBg &&
+      schOpenHover.hoverBg !== (schTraceHover && schTraceHover.hoverBg)
+    );
+    record(
+      "SCH2",
+      "Passport hop-row unlock + Trace open :hover seal-tint follows --ade-seal per state; cursor:help; labels unchanged",
+      !!sch2ok,
+      JSON.stringify({
+        pass: { rest: schPassRest, hover: schPassHover },
+        open: { rest: schOpenRest, hover: schOpenHover },
+      })
+    );
+
+    await shot(page, "seal-chip-hover-cue.png");
+    const schShot = checks.find((c) => c.id === "shot:seal-chip-hover-cue.png");
+    const sch3ok = !!(schShot && schShot.pass && sch1ok && sch2ok);
+    record(
+      "SCH3",
+      "screenshot seal-chip-hover-cue.png is not a black frame; SCH hover cue proven",
+      !!sch3ok,
+      JSON.stringify({
+        shot: schShot ? schShot.detail : "missing",
+        sch1: !!sch1ok,
+        sch2: !!sch2ok,
+      })
+    );
+    assertNoStampDir("SCH4", "Seal-chip hover cue step did not write .graphide/stamps/");
+
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });
