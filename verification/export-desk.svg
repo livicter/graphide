@@ -832,6 +832,10 @@ html.bright .traj-node { background: rgb(255, 255, 255); }
 .passport-sticky-counts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0px; }
 .passport-sticky-count { white-space: nowrap; }
 .passport-sticky-count b { font-weight: 700; color: var(--vscode-foreground, #ccc); }
+.passport-sticky-summary[data-passport-summary-empty="1"], .passport-sticky-summary.passport-sticky-summary--zero { opacity: 0.92; }
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-count, .passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-count { opacity: 0.62; }
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-gate, .passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-gate { opacity: 1; }
+.passport-sticky-zero-cue, .passport-sticky-summary [data-passport-summary-zero-cue] { display: block; margin-top: 4px; font-size: 11px; line-height: 1.35; opacity: 0.72; color: var(--vscode-descriptionForeground, inherit); }
 .passport-residual { --passport-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)); display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0px; max-width: 100%; padding: 4px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--passport-residual) 55%, var(--vscode-widget-border, #333)); background: color-mix(in srgb, var(--passport-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e)); color: var(--passport-residual); font-size: 11px; line-height: 1.3; }
 .passport-residual[data-residual-state="pending"] { --passport-residual: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-residual[data-residual-state="rejected"] { --passport-residual: var(--vscode-errorForeground, #f14c4c); }

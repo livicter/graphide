@@ -12626,6 +12626,172 @@ async function main() {
     );
     assertNoStampDir("SGR4", "Passport sticky gate live-refresh step did not write .graphide/stamps/");
 
+    // ADE Passport sticky summary empty/zero-count chrome (PSE1–PSE3) — sticky present, all summary counts 0
+    await page.evaluate(() => {
+      window.__graphidePassport = {
+        version: 2,
+        id: "passport-ade-sticky-zero-fixture",
+        title: "Plan Passport",
+        status: "pending",
+        summary: "Targets only — sticky zero summary counts",
+        targets: [
+          {
+            id: "t-zero",
+            label: "Sticky zero target",
+            path: "crates/zero/mod.rs",
+            layer: "domain",
+            deltaStatus: "unchanged",
+            clusterKind: "core",
+          },
+        ],
+        contracts: [],
+        risks: [],
+        testStrategy: [],
+        gatedWrites: [
+          { id: "gw-zero", traj: "sub-edit", label: "gated zero", status: "pending" },
+        ],
+        impact: { callGraphs: [], apiContracts: [], invariants: [] },
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, .traj-page", { timeout: 8000 });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign [data-passport-summary]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const pse1 = await page.evaluate(() => {
+      const sign = document.getElementById("passportSign");
+      const summary = sign && sign.querySelector("[data-passport-summary]");
+      const gateEl = summary && summary.querySelector("[data-passport-gate]");
+      const cue = summary && summary.querySelector("[data-passport-summary-zero-cue]");
+      const count = (k) => {
+        const el = summary && summary.querySelector('[data-passport-count="' + k + '"]');
+        return el ? (el.textContent || "").trim() : null;
+      };
+      return {
+        present: !!summary,
+        empty: summary ? summary.getAttribute("data-passport-summary-empty") || "" : "",
+        zeroCls: !!(summary && summary.classList.contains("passport-sticky-summary--zero")),
+        cue: cue ? (cue.textContent || "").trim() : "",
+        gate: gateEl ? (gateEl.textContent || "").trim() : "",
+        counts: {
+          contracts: count("contracts"),
+          risks: count("risks"),
+          tests: count("tests"),
+          impact: count("impact"),
+        },
+        pageEmpty: !!(document.getElementById("passportPage") && document.getElementById("passportPage").getAttribute("data-passport-empty") === "1"),
+        sign: !!sign,
+      };
+    });
+    const pse1ok =
+      pse1.present &&
+      pse1.sign &&
+      !pse1.pageEmpty &&
+      pse1.empty === "1" &&
+      pse1.zeroCls &&
+      /No contracts, risks, tests, or impact yet/i.test(pse1.cue) &&
+      /^(pending|approved|rejected)$/.test(pse1.gate || "") &&
+      pse1.counts.contracts === "0" &&
+      pse1.counts.risks === "0" &&
+      pse1.counts.tests === "0" &&
+      pse1.counts.impact === "0";
+    record(
+      "PSE1",
+      "Sticky summary zero-count chrome (data-passport-summary-empty=1 + cue); gate + 0 chips remain",
+      !!pse1ok,
+      JSON.stringify(pse1)
+    );
+    await shot(page, "passport-sticky-summary-empty.png");
+    const pseShot = checks.find((c) => c.id === "shot:passport-sticky-summary-empty.png");
+
+    // PSE2: add one contract → empty chrome clears
+    await page.evaluate(() => {
+      const fx = window.__graphidePassport;
+      if (!fx) return;
+      fx.contracts = [
+        {
+          id: "c-nonzero",
+          kind: "function",
+          name: "paintSticky",
+          sig: "() => void",
+          stability: "draft",
+          deltaClass: "Presentation",
+          breaking: false,
+        },
+      ];
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, .traj-page", { timeout: 8000 });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign [data-passport-summary]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const pse2 = await page.evaluate(() => {
+      const summary = document.querySelector("#passportSign [data-passport-summary]");
+      const cue = summary && summary.querySelector("[data-passport-summary-zero-cue]");
+      const c = summary && summary.querySelector('[data-passport-count="contracts"]');
+      return {
+        empty: summary ? summary.getAttribute("data-passport-summary-empty") || "" : "",
+        zeroCls: !!(summary && summary.classList.contains("passport-sticky-summary--zero")),
+        cue: cue ? (cue.textContent || "").trim() : "",
+        contracts: c ? (c.textContent || "").trim() : null,
+      };
+    });
+    const pse2ok =
+      pse2.empty === "0" &&
+      !pse2.zeroCls &&
+      !pse2.cue &&
+      Number(pse2.contracts) >= 1;
+    record(
+      "PSE2",
+      "Adding a contract clears sticky zero-count empty chrome",
+      !!pse2ok,
+      JSON.stringify(pse2)
+    );
+
+    // PSE3: PE page empty still has no #passportSign; shot quality; restore fixture
+    await page.evaluate(() => {
+      window.__graphidePassport = {
+        version: 2,
+        id: "passport-ade-empty-fixture",
+        title: "Plan Passport",
+        status: "pending",
+        summary: "No plan rows yet — empty fixture",
+        targets: [],
+        contracts: [],
+        risks: [],
+        testStrategy: [],
+        gatedWrites: [],
+        impact: { callGraphs: [], apiContracts: [], invariants: [] },
+      };
+    });
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector("#trajCanvas, .traj-page", { timeout: 8000 });
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(".passport-empty[data-passport-empty-chrome]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const pse3 = await page.evaluate(() => {
+      return {
+        pageEmpty: !!(document.getElementById("passportPage") && document.getElementById("passportPage").getAttribute("data-passport-empty") === "1"),
+        sign: !!document.getElementById("passportSign"),
+        summary: !!document.querySelector("[data-passport-summary]"),
+      };
+    });
+    const pse3ok =
+      pse3.pageEmpty &&
+      !pse3.sign &&
+      !pse3.summary &&
+      !!(pseShot && pseShot.pass);
+    record(
+      "PSE3",
+      "PE page empty still has no sticky summary; passport-sticky-summary-empty.png not black",
+      !!pse3ok,
+      JSON.stringify({ pe: pse3, shot: pseShot ? pseShot.detail : "missing" })
+    );
+    assertNoStampDir("PSE4", "Passport sticky summary empty chrome step did not write .graphide/stamps/");
+    await page.evaluate(() => {
+      window.__graphidePassport = null;
+    });
+
 
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3

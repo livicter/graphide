@@ -864,6 +864,11 @@ assert(js.includes("syncPassportStickyGate") && /function setPassportGate\([\s\S
 assert(css.includes('.passport-sticky-gate[data-passport-gate="approved"]') && css.includes('.passport-sticky-gate[data-passport-gate="rejected"]') && css.includes('.passport-sticky-gate[data-passport-gate="pending"]'), "Passport sticky gate data-passport-gate state tint CSS missing");
 assert(passportMap.includes("SGR1") && passportMap.includes("live-refresh") && passportMap.includes("passport-sticky-gate-live-refresh.png") && passportMap.includes("syncPassportStickyGate"), "passport feature map must name sticky gate live-refresh SGR / proof");
 
+assert(driver.includes("PSE1") && driver.includes("PSE3") && driver.includes("passport-sticky-summary-empty.png") && driver.includes("data-passport-summary-empty"), "verify driver must prove Passport sticky summary empty/zero-count PSE1–PSE3");
+assert(js.includes("data-passport-summary-empty") && js.includes("passport-sticky-summary--zero") && js.includes("passport-sticky-zero-cue") && js.includes("No contracts, risks, tests, or impact yet"), "desk.js Passport sticky zero-count empty chrome missing");
+assert(css.includes("data-passport-summary-empty") && css.includes("passport-sticky-zero-cue") && css.includes("passport-sticky-summary--zero"), "main.css must theme Passport sticky zero-count empty chrome");
+assert(passportMap.includes("PSE1") && passportMap.includes("zero-count") && passportMap.includes("passport-sticky-summary-empty.png") && passportMap.includes("data-passport-summary-empty"), "passport feature map must name sticky zero-count PSE / proof");
+
 
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---

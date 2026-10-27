@@ -12543,8 +12543,22 @@ function renderPassportStickySummary(fx, state) {
   const risks = (fx && fx.risks) || [];
   const tests = (fx && fx.testStrategy) || [];
   const impactN = passportImpactRowCount(fx);
+  // ADE PSE: sticky present with all summary counts zero (e.g. targets/gatedWrites only).
+  const zeroCounts =
+    contracts.length + risks.length + tests.length + impactN === 0;
+  const emptyAttr = zeroCounts
+    ? ' data-passport-summary-empty="1"'
+    : ' data-passport-summary-empty="0"';
+  const emptyClass = zeroCounts ? " passport-sticky-summary--zero" : "";
+  const zeroCue = zeroCounts
+    ? '<span class="passport-sticky-zero-cue" data-passport-summary-zero-cue="1">No contracts, risks, tests, or impact yet.</span>'
+    : "";
   return (
-    '<div class="passport-sticky-summary" data-passport-summary="1" role="status" aria-label="Passport plan summary">' +
+    '<div class="passport-sticky-summary' +
+    emptyClass +
+    '" data-passport-summary="1"' +
+    emptyAttr +
+    ' role="status" aria-label="Passport plan summary">' +
     '<span class="passport-sticky-gate" data-passport-gate="' +
     esc(gate) +
     '">' +
@@ -12563,7 +12577,9 @@ function renderPassportStickySummary(fx, state) {
     '<span class="passport-sticky-count"><b data-passport-count="impact">' +
     esc(String(impactN)) +
     "</b> impact</span>" +
-    "</span></div>"
+    "</span>" +
+    zeroCue +
+    "</div>"
   );
 }
 

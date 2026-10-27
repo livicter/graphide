@@ -3360,6 +3360,29 @@ html.bright .traj-node { background: #fff; }
   color: var(--vscode-foreground, #ccc);
 }
 
+/* ADE PSE: sticky summary zero-count chrome (targets/gatedWrites only; not PE page empty) */
+.passport-sticky-summary[data-passport-summary-empty="1"],
+.passport-sticky-summary.passport-sticky-summary--zero {
+  opacity: 0.92;
+}
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-count,
+.passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-count {
+  opacity: 0.62;
+}
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-gate,
+.passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-gate {
+  opacity: 1;
+}
+.passport-sticky-zero-cue,
+.passport-sticky-summary [data-passport-summary-zero-cue] {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.72;
+  color: var(--vscode-descriptionForeground, inherit);
+}
+
 
 /* Passport residual / incomplete-signoff cue on sticky sign rail (PR1–PR3) */
 .passport-residual {

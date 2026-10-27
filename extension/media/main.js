@@ -29575,7 +29575,11 @@
       const risks = fx && fx.risks || [];
       const tests = fx && fx.testStrategy || [];
       const impactN = passportImpactRowCount(fx);
-      return '<div class="passport-sticky-summary" data-passport-summary="1" role="status" aria-label="Passport plan summary"><span class="passport-sticky-gate" data-passport-gate="' + esc(gate) + '">' + esc(gate) + '</span><span class="passport-sticky-counts"><span class="passport-sticky-count"><b data-passport-count="contracts">' + esc(String(contracts.length)) + '</b> contracts</span><span class="passport-sticky-count"><b data-passport-count="risks">' + esc(String(risks.length)) + '</b> risks</span><span class="passport-sticky-count"><b data-passport-count="tests">' + esc(String(tests.length)) + '</b> tests</span><span class="passport-sticky-count"><b data-passport-count="impact">' + esc(String(impactN)) + "</b> impact</span></span></div>";
+      const zeroCounts = contracts.length + risks.length + tests.length + impactN === 0;
+      const emptyAttr = zeroCounts ? ' data-passport-summary-empty="1"' : ' data-passport-summary-empty="0"';
+      const emptyClass = zeroCounts ? " passport-sticky-summary--zero" : "";
+      const zeroCue = zeroCounts ? '<span class="passport-sticky-zero-cue" data-passport-summary-zero-cue="1">No contracts, risks, tests, or impact yet.</span>' : "";
+      return '<div class="passport-sticky-summary' + emptyClass + '" data-passport-summary="1"' + emptyAttr + ' role="status" aria-label="Passport plan summary"><span class="passport-sticky-gate" data-passport-gate="' + esc(gate) + '">' + esc(gate) + '</span><span class="passport-sticky-counts"><span class="passport-sticky-count"><b data-passport-count="contracts">' + esc(String(contracts.length)) + '</b> contracts</span><span class="passport-sticky-count"><b data-passport-count="risks">' + esc(String(risks.length)) + '</b> risks</span><span class="passport-sticky-count"><b data-passport-count="tests">' + esc(String(tests.length)) + '</b> tests</span><span class="passport-sticky-count"><b data-passport-count="impact">' + esc(String(impactN)) + "</b> impact</span></span>" + zeroCue + "</div>";
     }
     function renderPassportResidual(fx, state) {
       const writes = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites : [];
