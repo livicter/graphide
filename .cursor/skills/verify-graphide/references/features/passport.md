@@ -97,7 +97,7 @@ then click `[data-ade-contract-traj] [data-ade-traj-hop]` /
 
 Test-strategy traj map: same harness; click
 `[data-ade-test-traj] [data-ade-traj-hop]` (TM1–TM3).
-Sticky plan summary: `#passportSign .passport-sticky-summary` / `[data-passport-summary]` shows gate chip (`[data-passport-gate]`) plus compact fixture counts (`[data-passport-count]` for contracts · risks · tests · impact = callGraphs+apiContracts+invariants) above residual chrome (PSS1–PSS3). Screenshot `verification/passport-sticky-summary.png`.
+Sticky plan summary: `#passportSign .passport-sticky-summary` / `[data-passport-summary]` shows gate chip (`[data-passport-gate]`) plus compact fixture counts (`[data-passport-count]` for contracts · risks · tests · impact = callGraphs+apiContracts+invariants) above residual chrome (PSS1–PSS3). Screenshot `verification/passport-sticky-summary.png`. Sticky gate live-refresh: `syncPassportStickyGate` patches `#passportSign [data-passport-summary] [data-passport-gate]` (+ sign `data-passport-sign-state`) from `passportGateState` after Approve/Reject so the chip state-tints without desk hop (SGR1–SGR3). Screenshot `verification/passport-sticky-gate-live-refresh.png`.
 Residual / incomplete-signoff cue: sticky `#passportSign .passport-residual` (PR1–PR3) shows blocked/open path count while scrolling.
 Hop residual badge: each `#passportGate .passport-gate-path` carries `.passport-hop-residual` (HB1–HB3) per-hop incomplete/blocked/open cue.
 Adjacent residual: when a Trace traj is focused, neighboring Passport gate paths that still have residual carry `.passport-adj-residual` / `data-passport-adj-residual` (AR1–AR3). Trace legend mirrors residual-adjacent node kinds via AL1–AL3 (`verification/trajectory-adj-residual-legend.png`).
@@ -144,6 +144,7 @@ Driver assertions:
 - RFC1–RFC3: residual-filter count chip — filter ON + bearings shows sticky `.passport-residual-filter-count` / `data-residual-filter-count` / `data-filter-residual-count` paired with Trace legend; OFF/empty hides; screenshot `verification/passport-residual-filter-count.png`
 - ALR1–ALR3: dedicated residual-filter aria-live — `#residualFilterLive[data-residual-filter-live]` announces on+N / off; toast unchanged; screenshot `verification/residual-filter-aria-live.png`
 - LRP1–LRP3: residual-filter live count paint refresh — filter ON + Approve/paint updates live N without toast; OFF stays off across paint; screenshot `verification/residual-filter-live-paint-refresh.png`
+- SGR1–SGR3: sticky gate live-refresh — Approve/Reject updates `#passportSign [data-passport-summary] [data-passport-gate]` via `syncPassportStickyGate` + state tint; screenshot `verification/passport-sticky-gate-live-refresh.png`
 - PKP1–PKP3: Passport Keys pressed-state proof — residual ON → Keys R `data-keys-r-pressed="1"` / `aria-pressed="true"` / `on`+`pressed` + residual-filter binding; OFF / Map leave clears; screenshot `verification/passport-keys-residual-pressed.png`
 - ESC1–ESC3: Escape clears residual filter when ON on Passport (after Keys/Export/chrome owners); OFF no-op; screenshot `verification/residual-filter-escape-clear.png`
 - CCF1–CCF3: sticky residual-filter count chip keyboard focus (`tabindex="0"` `role="status"` + warning `:focus-visible`); Trace legend mirrors; Enter/Space no clear; screenshot `verification/residual-filter-count-chip-focus.png`

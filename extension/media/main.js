@@ -29643,10 +29643,29 @@
       setZoomUi(false);
       if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
     }
+    function syncPassportStickyGate() {
+      const gate = passportGateState();
+      const sign = document.getElementById("passportSign");
+      if (!sign) return;
+      if (sign.getAttribute("data-passport-sign-state") !== gate) {
+        sign.setAttribute("data-passport-sign-state", gate);
+      }
+      const chip = sign.querySelector("[data-passport-summary] [data-passport-gate]") || sign.querySelector(".passport-sticky-gate[data-passport-gate]");
+      if (!chip) return;
+      if (chip.getAttribute("data-passport-gate") !== gate) {
+        chip.setAttribute("data-passport-gate", gate);
+      }
+      if ((chip.textContent || "").trim() !== gate) chip.textContent = gate;
+    }
     function setPassportGate(state) {
       passportGate = PASSPORT_STATES[state] ? state : "pending";
       syncAdeDeepLink("passport");
       paint({ animate: "none" });
+      if (typeof syncPassportStickyGate === "function") syncPassportStickyGate();
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSetPassportGate = setPassportGate;
+      window.__graphideSyncPassportStickyGate = syncPassportStickyGate;
     }
     function togglePassportImpactRow(row) {
       if (!row || !row.hasAttribute("data-impact-expanded")) return;

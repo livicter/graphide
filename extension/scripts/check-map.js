@@ -843,6 +843,11 @@ assert(js.includes("renderPassportStickySummary") && js.includes("data-passport-
 assert(css.includes("passport-sticky-summary") && css.includes("passport-sticky-gate") && css.includes("passport-sticky-counts"), "Passport sticky summary CSS missing");
 assert(passportMap.includes("PSS1") && passportMap.includes("Sticky plan summary") && passportMap.includes("passport-sticky-summary.png") && passportMap.includes("data-passport-summary"), "passport feature map must name sticky plan summary PSS / proof");
 
+assert(driver.includes("SGR1") && driver.includes("SGR3") && driver.includes("passport-sticky-gate-live-refresh.png") && driver.includes("syncPassportStickyGate"), "verify driver must prove Passport sticky gate live-refresh SGR1–SGR3");
+assert(js.includes("syncPassportStickyGate") && /function setPassportGate\([\s\S]*?syncPassportStickyGate/.test(js) && js.includes("__graphideSetPassportGate") && js.includes("__graphideSyncPassportStickyGate"), "Passport sticky gate live-refresh syncPassportStickyGate hook missing from setPassportGate");
+assert(css.includes('.passport-sticky-gate[data-passport-gate="approved"]') && css.includes('.passport-sticky-gate[data-passport-gate="rejected"]') && css.includes('.passport-sticky-gate[data-passport-gate="pending"]'), "Passport sticky gate data-passport-gate state tint CSS missing");
+assert(passportMap.includes("SGR1") && passportMap.includes("live-refresh") && passportMap.includes("passport-sticky-gate-live-refresh.png") && passportMap.includes("syncPassportStickyGate"), "passport feature map must name sticky gate live-refresh SGR / proof");
+
 
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---
