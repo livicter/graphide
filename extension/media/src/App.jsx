@@ -13,7 +13,27 @@ export function App() {
     <>
       <Header />
       <div id="tip" hidden />
+      <div id="trajPinTip" hidden data-traj-pin-tip="1" role="tooltip" />
       <div id="toast" hidden role="status" />
+      <div
+        id="residualFilterLive"
+        data-residual-filter-live="1"
+        data-residual-filter-live-state="off"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        Residual filter off
+      </div>
+      <div
+        id="trajZoomLive"
+        data-traj-zoom-live="1"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only traj-zoom-live"
+      />
       <KeysPane />
       <ExportMenu />
       <Progress />

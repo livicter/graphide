@@ -288,12 +288,18 @@ export function renderSequenceCanvas(host, props) {
     hotIds.add(String(hot.from));
     hotIds.add(String(hot.to));
   }
+  // ADE SSR — participant focus / hit paints the canvas story without opening source.
+  for (const p of participants) {
+    if (p && p.hit) hotIds.add(String(p.id));
+  }
   const items = decorateDerived(
     participants.map((p) => ({
       id: String(p.id),
       fqn: p.fqn || "",
       kind: p.kind || "Function",
       label: p.label || String(p.id),
+      // Behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
+      meta: p.caption || "",
       file: p.file || "",
       dim: !!p.dim,
       hit: !!p.hit,

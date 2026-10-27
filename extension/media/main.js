@@ -27,9 +27,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -300,9 +300,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -312,9 +312,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../graphide-ade-overview-mix-chart/node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -565,9 +565,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -577,9 +577,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7187,9 +7187,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7213,9 +7213,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7244,9 +7244,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7269,9 +7269,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../graphide-ade-overview-mix-chart/node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7281,9 +7281,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
+  // ../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
   var require_use_sync_external_store_shim_production = __commonJS({
-    "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
       "use strict";
       var React = require_react();
       function is(x, y) {
@@ -7334,9 +7334,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/shim/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/shim/index.js
   var require_shim = __commonJS({
-    "node_modules/use-sync-external-store/shim/index.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/shim/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_use_sync_external_store_shim_production();
@@ -7346,9 +7346,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
+  // ../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
   var require_with_selector_production = __commonJS({
-    "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
+    "../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
       "use strict";
       var React = require_react();
       var shim = require_shim();
@@ -7415,9 +7415,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/shim/with-selector.js
+  // ../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/shim/with-selector.js
   var require_with_selector = __commonJS({
-    "node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
+    "../graphide-ade-overview-mix-chart/node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_with_selector_production();
@@ -7546,6 +7546,13 @@
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.7 8H6.7M8 5.5v1.8M8 9.3v1.8M9.3 8h1.9" })
           ] }),
           "Trace"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "passport", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("rect", { x: "3", y: "2.5", width: "10", height: "11", rx: "1.2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.6" })
+          ] }),
+          "Passport"
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("nav", { id: "tabs" }),
@@ -7690,11 +7697,47 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "[" }),
           " ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "]" }),
+          " / ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "←" }),
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "→" }),
+          " / ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "j" }),
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "k" }),
           " step"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "li",
+          {
+            id: "keysAdeSection",
+            className: "keys-section",
+            "data-keys-section": "ade",
+            hidden: true,
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "keys-section-title", "data-keys-section-title": true })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+          "li",
+          {
+            "data-keys-row": "traj-zoom",
+            "data-keys-traj-zoom-hint": "0",
+            hidden: true,
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "↑" }),
+              " ",
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "↓" }),
+              " Trace zoom pct · ",
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "Home" }),
+              " fit"
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { "data-keys-row": "r", "data-keys-r-binding": "path", "data-keys-residual-hint": "0", "data-keys-r-pressed": "0", "aria-pressed": "false", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "R" }),
-          " PATH · ",
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "data-keys-r-binding-text": true, children: "PATH" }),
+          " · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "L" }),
           " LENS · ",
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("kbd", { children: "E" }),
@@ -7801,13 +7844,6 @@
   var import_jsx_runtime8 = __toESM(require_jsx_runtime());
   function Workspace() {
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { id: "workspace", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "herd", hidden: true, "aria-label": "Herd", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "herd-head", children: [
-          "Herd ",
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { id: "herdCount" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: "herdList" })
-      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("section", { id: "canvas" }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("aside", { id: "ledgerPane", hidden: true, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "led-head", children: "SLICE" }),
@@ -7835,7 +7871,32 @@
     return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Header, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "tip", hidden: true }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "trajPinTip", hidden: true, "data-traj-pin-tip": "1", role: "tooltip" }),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: "toast", hidden: true, role: "status" }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "div",
+        {
+          id: "residualFilterLive",
+          "data-residual-filter-live": "1",
+          "data-residual-filter-live-state": "off",
+          role: "status",
+          "aria-live": "polite",
+          "aria-atomic": "true",
+          className: "sr-only",
+          children: "Residual filter off"
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "div",
+        {
+          id: "trajZoomLive",
+          "data-traj-zoom-live": "1",
+          role: "status",
+          "aria-live": "polite",
+          "aria-atomic": "true",
+          className: "sr-only traj-zoom-live"
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(KeysPane, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ExportMenu, {}),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(Progress, {}),
@@ -7858,11 +7919,11 @@
     return fn2();
   }
 
-  // node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/@xyflow/react/dist/esm/index.js
   var import_jsx_runtime10 = __toESM(require_jsx_runtime());
   var import_react2 = __toESM(require_react());
 
-  // node_modules/classcat/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/classcat/index.js
   function cc(names) {
     if (typeof names === "string" || typeof names === "number") return "" + names;
     let out = "";
@@ -7880,7 +7941,7 @@
     return out;
   }
 
-  // node_modules/d3-dispatch/src/dispatch.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-dispatch/src/dispatch.js
   var noop = { value: () => {
   } };
   function dispatch() {
@@ -7950,7 +8011,7 @@
   }
   var dispatch_default = dispatch;
 
-  // node_modules/d3-selection/src/namespaces.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/namespaces.js
   var xhtml = "http://www.w3.org/1999/xhtml";
   var namespaces_default = {
     svg: "http://www.w3.org/2000/svg",
@@ -7960,14 +8021,14 @@
     xmlns: "http://www.w3.org/2000/xmlns/"
   };
 
-  // node_modules/d3-selection/src/namespace.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/namespace.js
   function namespace_default(name) {
     var prefix = name += "", i = prefix.indexOf(":");
     if (i >= 0 && (prefix = name.slice(0, i)) !== "xmlns") name = name.slice(i + 1);
     return namespaces_default.hasOwnProperty(prefix) ? { space: namespaces_default[prefix], local: name } : name;
   }
 
-  // node_modules/d3-selection/src/creator.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/creator.js
   function creatorInherit(name) {
     return function() {
       var document2 = this.ownerDocument, uri = this.namespaceURI;
@@ -7984,7 +8045,7 @@
     return (fullname.local ? creatorFixed : creatorInherit)(fullname);
   }
 
-  // node_modules/d3-selection/src/selector.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selector.js
   function none() {
   }
   function selector_default(selector) {
@@ -7993,7 +8054,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/select.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/select.js
   function select_default(select) {
     if (typeof select !== "function") select = selector_default(select);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8007,12 +8068,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // node_modules/d3-selection/src/array.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/array.js
   function array(x) {
     return x == null ? [] : Array.isArray(x) ? x : Array.from(x);
   }
 
-  // node_modules/d3-selection/src/selectorAll.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selectorAll.js
   function empty() {
     return [];
   }
@@ -8022,7 +8083,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/selectAll.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/selectAll.js
   function arrayAll(select) {
     return function() {
       return array(select.apply(this, arguments));
@@ -8042,7 +8103,7 @@
     return new Selection(subgroups, parents);
   }
 
-  // node_modules/d3-selection/src/matcher.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/matcher.js
   function matcher_default(selector) {
     return function() {
       return this.matches(selector);
@@ -8054,7 +8115,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/selectChild.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/selectChild.js
   var find = Array.prototype.find;
   function childFind(match) {
     return function() {
@@ -8068,7 +8129,7 @@
     return this.select(match == null ? childFirst : childFind(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // node_modules/d3-selection/src/selection/selectChildren.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/selectChildren.js
   var filter = Array.prototype.filter;
   function children() {
     return Array.from(this.children);
@@ -8082,7 +8143,7 @@
     return this.selectAll(match == null ? children : childrenFilter(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // node_modules/d3-selection/src/selection/filter.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/filter.js
   function filter_default(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8095,12 +8156,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/sparse.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/sparse.js
   function sparse_default(update) {
     return new Array(update.length);
   }
 
-  // node_modules/d3-selection/src/selection/enter.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/enter.js
   function enter_default() {
     return new Selection(this._enter || this._groups.map(sparse_default), this._parents);
   }
@@ -8127,14 +8188,14 @@
     }
   };
 
-  // node_modules/d3-selection/src/constant.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/constant.js
   function constant_default(x) {
     return function() {
       return x;
     };
   }
 
-  // node_modules/d3-selection/src/selection/data.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/data.js
   function bindIndex(parent, group, enter, update, exit, data) {
     var i = 0, node, groupLength = group.length, dataLength = data.length;
     for (; i < dataLength; ++i) {
@@ -8206,12 +8267,12 @@
     return typeof data === "object" && "length" in data ? data : Array.from(data);
   }
 
-  // node_modules/d3-selection/src/selection/exit.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/exit.js
   function exit_default() {
     return new Selection(this._exit || this._groups.map(sparse_default), this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/join.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/join.js
   function join_default(onenter, onupdate, onexit) {
     var enter = this.enter(), update = this, exit = this.exit();
     if (typeof onenter === "function") {
@@ -8229,7 +8290,7 @@
     return enter && update ? enter.merge(update).order() : update;
   }
 
-  // node_modules/d3-selection/src/selection/merge.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/merge.js
   function merge_default(context) {
     var selection2 = context.selection ? context.selection() : context;
     for (var groups0 = this._groups, groups1 = selection2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -8245,7 +8306,7 @@
     return new Selection(merges, this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/order.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/order.js
   function order_default() {
     for (var groups = this._groups, j = -1, m = groups.length; ++j < m; ) {
       for (var group = groups[j], i = group.length - 1, next = group[i], node; --i >= 0; ) {
@@ -8258,7 +8319,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/sort.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/sort.js
   function sort_default(compare) {
     if (!compare) compare = ascending;
     function compareNode(a, b) {
@@ -8278,7 +8339,7 @@
     return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
   }
 
-  // node_modules/d3-selection/src/selection/call.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/call.js
   function call_default() {
     var callback = arguments[0];
     arguments[0] = this;
@@ -8286,12 +8347,12 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/nodes.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/nodes.js
   function nodes_default() {
     return Array.from(this);
   }
 
-  // node_modules/d3-selection/src/selection/node.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/node.js
   function node_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length; i < n; ++i) {
@@ -8302,19 +8363,19 @@
     return null;
   }
 
-  // node_modules/d3-selection/src/selection/size.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/size.js
   function size_default() {
     let size = 0;
     for (const node of this) ++size;
     return size;
   }
 
-  // node_modules/d3-selection/src/selection/empty.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/empty.js
   function empty_default() {
     return !this.node();
   }
 
-  // node_modules/d3-selection/src/selection/each.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/each.js
   function each_default(callback) {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8324,7 +8385,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/attr.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/attr.js
   function attrRemove(name) {
     return function() {
       this.removeAttribute(name);
@@ -8368,12 +8429,12 @@
     return this.each((value == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value));
   }
 
-  // node_modules/d3-selection/src/window.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/window.js
   function window_default(node) {
     return node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView;
   }
 
-  // node_modules/d3-selection/src/selection/style.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/style.js
   function styleRemove(name) {
     return function() {
       this.style.removeProperty(name);
@@ -8398,7 +8459,7 @@
     return node.style.getPropertyValue(name) || window_default(node).getComputedStyle(node, null).getPropertyValue(name);
   }
 
-  // node_modules/d3-selection/src/selection/property.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/property.js
   function propertyRemove(name) {
     return function() {
       delete this[name];
@@ -8420,7 +8481,7 @@
     return arguments.length > 1 ? this.each((value == null ? propertyRemove : typeof value === "function" ? propertyFunction : propertyConstant)(name, value)) : this.node()[name];
   }
 
-  // node_modules/d3-selection/src/selection/classed.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/classed.js
   function classArray(string) {
     return string.trim().split(/^|\s+/);
   }
@@ -8483,7 +8544,7 @@
     return this.each((typeof value === "function" ? classedFunction : value ? classedTrue : classedFalse)(names, value));
   }
 
-  // node_modules/d3-selection/src/selection/text.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/text.js
   function textRemove() {
     this.textContent = "";
   }
@@ -8502,7 +8563,7 @@
     return arguments.length ? this.each(value == null ? textRemove : (typeof value === "function" ? textFunction : textConstant)(value)) : this.node().textContent;
   }
 
-  // node_modules/d3-selection/src/selection/html.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/html.js
   function htmlRemove() {
     this.innerHTML = "";
   }
@@ -8521,7 +8582,7 @@
     return arguments.length ? this.each(value == null ? htmlRemove : (typeof value === "function" ? htmlFunction : htmlConstant)(value)) : this.node().innerHTML;
   }
 
-  // node_modules/d3-selection/src/selection/raise.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/raise.js
   function raise() {
     if (this.nextSibling) this.parentNode.appendChild(this);
   }
@@ -8529,7 +8590,7 @@
     return this.each(raise);
   }
 
-  // node_modules/d3-selection/src/selection/lower.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/lower.js
   function lower() {
     if (this.previousSibling) this.parentNode.insertBefore(this, this.parentNode.firstChild);
   }
@@ -8537,7 +8598,7 @@
     return this.each(lower);
   }
 
-  // node_modules/d3-selection/src/selection/append.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/append.js
   function append_default(name) {
     var create2 = typeof name === "function" ? name : creator_default(name);
     return this.select(function() {
@@ -8545,7 +8606,7 @@
     });
   }
 
-  // node_modules/d3-selection/src/selection/insert.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/insert.js
   function constantNull() {
     return null;
   }
@@ -8556,7 +8617,7 @@
     });
   }
 
-  // node_modules/d3-selection/src/selection/remove.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/remove.js
   function remove() {
     var parent = this.parentNode;
     if (parent) parent.removeChild(this);
@@ -8565,7 +8626,7 @@
     return this.each(remove);
   }
 
-  // node_modules/d3-selection/src/selection/clone.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/clone.js
   function selection_cloneShallow() {
     var clone = this.cloneNode(false), parent = this.parentNode;
     return parent ? parent.insertBefore(clone, this.nextSibling) : clone;
@@ -8578,12 +8639,12 @@
     return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
   }
 
-  // node_modules/d3-selection/src/selection/datum.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/datum.js
   function datum_default(value) {
     return arguments.length ? this.property("__data__", value) : this.node().__data__;
   }
 
-  // node_modules/d3-selection/src/selection/on.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/on.js
   function contextListener(listener) {
     return function(event) {
       listener.call(this, event, this.__data__);
@@ -8646,7 +8707,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/dispatch.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/dispatch.js
   function dispatchEvent(node, type, params) {
     var window2 = window_default(node), event = window2.CustomEvent;
     if (typeof event === "function") {
@@ -8672,7 +8733,7 @@
     return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type, params));
   }
 
-  // node_modules/d3-selection/src/selection/iterator.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/iterator.js
   function* iterator_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8681,7 +8742,7 @@
     }
   }
 
-  // node_modules/d3-selection/src/selection/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/selection/index.js
   var root = [null];
   function Selection(groups, parents) {
     this._groups = groups;
@@ -8733,19 +8794,19 @@
   };
   var selection_default = selection;
 
-  // node_modules/d3-selection/src/select.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/select.js
   function select_default2(selector) {
     return typeof selector === "string" ? new Selection([[document.querySelector(selector)]], [document.documentElement]) : new Selection([[selector]], root);
   }
 
-  // node_modules/d3-selection/src/sourceEvent.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/sourceEvent.js
   function sourceEvent_default(event) {
     let sourceEvent;
     while (sourceEvent = event.sourceEvent) event = sourceEvent;
     return event;
   }
 
-  // node_modules/d3-selection/src/pointer.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-selection/src/pointer.js
   function pointer_default(event, node) {
     event = sourceEvent_default(event);
     if (node === void 0) node = event.currentTarget;
@@ -8765,7 +8826,7 @@
     return [event.pageX, event.pageY];
   }
 
-  // node_modules/d3-drag/src/noevent.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-drag/src/noevent.js
   var nonpassive = { passive: false };
   var nonpassivecapture = { capture: true, passive: false };
   function nopropagation(event) {
@@ -8776,7 +8837,7 @@
     event.stopImmediatePropagation();
   }
 
-  // node_modules/d3-drag/src/nodrag.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-drag/src/nodrag.js
   function nodrag_default(view) {
     var root3 = view.document.documentElement, selection2 = select_default2(view).on("dragstart.drag", noevent_default, nonpassivecapture);
     if ("onselectstart" in root3) {
@@ -8802,10 +8863,10 @@
     }
   }
 
-  // node_modules/d3-drag/src/constant.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-drag/src/constant.js
   var constant_default2 = (x) => () => x;
 
-  // node_modules/d3-drag/src/event.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-drag/src/event.js
   function DragEvent(type, {
     sourceEvent,
     subject,
@@ -8837,7 +8898,7 @@
     return value === this._ ? this : value;
   };
 
-  // node_modules/d3-drag/src/drag.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-drag/src/drag.js
   function defaultFilter(event) {
     return !event.ctrlKey && !event.button;
   }
@@ -8982,7 +9043,7 @@
     return drag;
   }
 
-  // node_modules/d3-color/src/define.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-color/src/define.js
   function define_default(constructor, factory, prototype) {
     constructor.prototype = factory.prototype = prototype;
     prototype.constructor = constructor;
@@ -8993,7 +9054,7 @@
     return prototype;
   }
 
-  // node_modules/d3-color/src/color.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-color/src/color.js
   function Color() {
   }
   var darker = 0.7;
@@ -9330,7 +9391,7 @@
     return (h < 60 ? m1 + (m2 - m1) * h / 60 : h < 180 ? m2 : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60 : m1) * 255;
   }
 
-  // node_modules/d3-interpolate/src/basis.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/basis.js
   function basis(t1, v0, v1, v2, v3) {
     var t2 = t1 * t1, t3 = t2 * t1;
     return ((1 - 3 * t1 + 3 * t2 - t3) * v0 + (4 - 6 * t2 + 3 * t3) * v1 + (1 + 3 * t1 + 3 * t2 - 3 * t3) * v2 + t3 * v3) / 6;
@@ -9343,7 +9404,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/basisClosed.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/basisClosed.js
   function basisClosed_default(values) {
     var n = values.length;
     return function(t) {
@@ -9352,10 +9413,10 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/constant.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/constant.js
   var constant_default3 = (x) => () => x;
 
-  // node_modules/d3-interpolate/src/color.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/color.js
   function linear(a, d) {
     return function(t) {
       return a + t * d;
@@ -9376,7 +9437,7 @@
     return d ? linear(a, d) : constant_default3(isNaN(a) ? b : a);
   }
 
-  // node_modules/d3-interpolate/src/rgb.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/rgb.js
   var rgb_default = (function rgbGamma(y) {
     var color2 = gamma(y);
     function rgb2(start2, end) {
@@ -9416,7 +9477,7 @@
   var rgbBasis = rgbSpline(basis_default);
   var rgbBasisClosed = rgbSpline(basisClosed_default);
 
-  // node_modules/d3-interpolate/src/numberArray.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/numberArray.js
   function numberArray_default(a, b) {
     if (!b) b = [];
     var n = a ? Math.min(b.length, a.length) : 0, c = b.slice(), i;
@@ -9429,7 +9490,7 @@
     return ArrayBuffer.isView(x) && !(x instanceof DataView);
   }
 
-  // node_modules/d3-interpolate/src/array.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/array.js
   function genericArray(a, b) {
     var nb = b ? b.length : 0, na = a ? Math.min(nb, a.length) : 0, x = new Array(na), c = new Array(nb), i;
     for (i = 0; i < na; ++i) x[i] = value_default(a[i], b[i]);
@@ -9440,7 +9501,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/date.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/date.js
   function date_default(a, b) {
     var d = /* @__PURE__ */ new Date();
     return a = +a, b = +b, function(t) {
@@ -9448,14 +9509,14 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/number.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/number.js
   function number_default(a, b) {
     return a = +a, b = +b, function(t) {
       return a * (1 - t) + b * t;
     };
   }
 
-  // node_modules/d3-interpolate/src/object.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/object.js
   function object_default(a, b) {
     var i = {}, c = {}, k;
     if (a === null || typeof a !== "object") a = {};
@@ -9473,7 +9534,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/string.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/string.js
   var reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
   var reB = new RegExp(reA.source, "g");
   function zero(b) {
@@ -9515,13 +9576,13 @@
     });
   }
 
-  // node_modules/d3-interpolate/src/value.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/value.js
   function value_default(a, b) {
     var t = typeof b, c;
     return b == null || t === "boolean" ? constant_default3(b) : (t === "number" ? number_default : t === "string" ? (c = color(b)) ? (b = c, rgb_default) : string_default : b instanceof color ? rgb_default : b instanceof Date ? date_default : isNumberArray(b) ? numberArray_default : Array.isArray(b) ? genericArray : typeof b.valueOf !== "function" && typeof b.toString !== "function" || isNaN(b) ? object_default : number_default)(a, b);
   }
 
-  // node_modules/d3-interpolate/src/transform/decompose.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/transform/decompose.js
   var degrees = 180 / Math.PI;
   var identity = {
     translateX: 0,
@@ -9547,7 +9608,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/transform/parse.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/transform/parse.js
   var svgNode;
   function parseCss(value) {
     const m = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value + "");
@@ -9562,7 +9623,7 @@
     return decompose_default(value.a, value.b, value.c, value.d, value.e, value.f);
   }
 
-  // node_modules/d3-interpolate/src/transform/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/transform/index.js
   function interpolateTransform(parse, pxComma, pxParen, degParen) {
     function pop(s) {
       return s.length ? s.pop() + " " : "";
@@ -9617,7 +9678,7 @@
   var interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
   var interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
 
-  // node_modules/d3-interpolate/src/zoom.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-interpolate/src/zoom.js
   var epsilon2 = 1e-12;
   function cosh(x) {
     return ((x = Math.exp(x)) + 1 / x) / 2;
@@ -9662,7 +9723,7 @@
     return zoom;
   })(Math.SQRT2, 2, 4);
 
-  // node_modules/d3-timer/src/timer.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-timer/src/timer.js
   var frame = 0;
   var timeout = 0;
   var interval = 0;
@@ -9764,7 +9825,7 @@
     }
   }
 
-  // node_modules/d3-timer/src/timeout.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-timer/src/timeout.js
   function timeout_default(callback, delay, time) {
     var t = new Timer();
     delay = delay == null ? 0 : +delay;
@@ -9775,7 +9836,7 @@
     return t;
   }
 
-  // node_modules/d3-transition/src/transition/schedule.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/schedule.js
   var emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
   var emptyTween = [];
   var CREATED = 0;
@@ -9886,7 +9947,7 @@
     }
   }
 
-  // node_modules/d3-transition/src/interrupt.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/interrupt.js
   function interrupt_default(node, name) {
     var schedules = node.__transition, schedule, active, empty2 = true, i;
     if (!schedules) return;
@@ -9905,14 +9966,14 @@
     if (empty2) delete node.__transition;
   }
 
-  // node_modules/d3-transition/src/selection/interrupt.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/selection/interrupt.js
   function interrupt_default2(name) {
     return this.each(function() {
       interrupt_default(this, name);
     });
   }
 
-  // node_modules/d3-transition/src/transition/tween.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/tween.js
   function tweenRemove(id2, name) {
     var tween0, tween1;
     return function() {
@@ -9973,13 +10034,13 @@
     };
   }
 
-  // node_modules/d3-transition/src/transition/interpolate.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/interpolate.js
   function interpolate_default(a, b) {
     var c;
     return (typeof b === "number" ? number_default : b instanceof color ? rgb_default : (c = color(b)) ? (b = c, rgb_default) : string_default)(a, b);
   }
 
-  // node_modules/d3-transition/src/transition/attr.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/attr.js
   function attrRemove2(name) {
     return function() {
       this.removeAttribute(name);
@@ -10029,7 +10090,7 @@
     return this.attrTween(name, typeof value === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i, tweenValue(this, "attr." + name, value)) : value == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i, value));
   }
 
-  // node_modules/d3-transition/src/transition/attrTween.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/attrTween.js
   function attrInterpolate(name, i) {
     return function(t) {
       this.setAttribute(name, i.call(this, t));
@@ -10069,7 +10130,7 @@
     return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value));
   }
 
-  // node_modules/d3-transition/src/transition/delay.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/delay.js
   function delayFunction(id2, value) {
     return function() {
       init(this, id2).delay = +value.apply(this, arguments);
@@ -10085,7 +10146,7 @@
     return arguments.length ? this.each((typeof value === "function" ? delayFunction : delayConstant)(id2, value)) : get2(this.node(), id2).delay;
   }
 
-  // node_modules/d3-transition/src/transition/duration.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/duration.js
   function durationFunction(id2, value) {
     return function() {
       set2(this, id2).duration = +value.apply(this, arguments);
@@ -10101,7 +10162,7 @@
     return arguments.length ? this.each((typeof value === "function" ? durationFunction : durationConstant)(id2, value)) : get2(this.node(), id2).duration;
   }
 
-  // node_modules/d3-transition/src/transition/ease.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/ease.js
   function easeConstant(id2, value) {
     if (typeof value !== "function") throw new Error();
     return function() {
@@ -10113,7 +10174,7 @@
     return arguments.length ? this.each(easeConstant(id2, value)) : get2(this.node(), id2).ease;
   }
 
-  // node_modules/d3-transition/src/transition/easeVarying.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/easeVarying.js
   function easeVarying(id2, value) {
     return function() {
       var v = value.apply(this, arguments);
@@ -10126,7 +10187,7 @@
     return this.each(easeVarying(this._id, value));
   }
 
-  // node_modules/d3-transition/src/transition/filter.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/filter.js
   function filter_default2(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -10139,7 +10200,7 @@
     return new Transition(subgroups, this._parents, this._name, this._id);
   }
 
-  // node_modules/d3-transition/src/transition/merge.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/merge.js
   function merge_default2(transition2) {
     if (transition2._id !== this._id) throw new Error();
     for (var groups0 = this._groups, groups1 = transition2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -10155,7 +10216,7 @@
     return new Transition(merges, this._parents, this._name, this._id);
   }
 
-  // node_modules/d3-transition/src/transition/on.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/on.js
   function start(name) {
     return (name + "").trim().split(/^|\s+/).every(function(t) {
       var i = t.indexOf(".");
@@ -10176,7 +10237,7 @@
     return arguments.length < 2 ? get2(this.node(), id2).on.on(name) : this.each(onFunction(id2, name, listener));
   }
 
-  // node_modules/d3-transition/src/transition/remove.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/remove.js
   function removeFunction(id2) {
     return function() {
       var parent = this.parentNode;
@@ -10188,7 +10249,7 @@
     return this.on("end.remove", removeFunction(this._id));
   }
 
-  // node_modules/d3-transition/src/transition/select.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/select.js
   function select_default3(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selector_default(select);
@@ -10204,7 +10265,7 @@
     return new Transition(subgroups, this._parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/transition/selectAll.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/selectAll.js
   function selectAll_default2(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selectorAll_default(select);
@@ -10224,13 +10285,13 @@
     return new Transition(subgroups, parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/transition/selection.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/selection.js
   var Selection2 = selection_default.prototype.constructor;
   function selection_default2() {
     return new Selection2(this._groups, this._parents);
   }
 
-  // node_modules/d3-transition/src/transition/style.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/style.js
   function styleNull(name, interpolate) {
     var string00, string10, interpolate0;
     return function() {
@@ -10271,7 +10332,7 @@
     return value == null ? this.styleTween(name, styleNull(name, i)).on("end.style." + name, styleRemove2(name)) : typeof value === "function" ? this.styleTween(name, styleFunction2(name, i, tweenValue(this, "style." + name, value))).each(styleMaybeRemove(this._id, name)) : this.styleTween(name, styleConstant2(name, i, value), priority).on("end.style." + name, null);
   }
 
-  // node_modules/d3-transition/src/transition/styleTween.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/styleTween.js
   function styleInterpolate(name, i, priority) {
     return function(t) {
       this.style.setProperty(name, i.call(this, t), priority);
@@ -10295,7 +10356,7 @@
     return this.tween(key, styleTween(name, value, priority == null ? "" : priority));
   }
 
-  // node_modules/d3-transition/src/transition/text.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/text.js
   function textConstant2(value) {
     return function() {
       this.textContent = value;
@@ -10311,7 +10372,7 @@
     return this.tween("text", typeof value === "function" ? textFunction2(tweenValue(this, "text", value)) : textConstant2(value == null ? "" : value + ""));
   }
 
-  // node_modules/d3-transition/src/transition/textTween.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/textTween.js
   function textInterpolate(i) {
     return function(t) {
       this.textContent = i.call(this, t);
@@ -10335,7 +10396,7 @@
     return this.tween(key, textTween(value));
   }
 
-  // node_modules/d3-transition/src/transition/transition.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/transition.js
   function transition_default() {
     var name = this._name, id0 = this._id, id1 = newId();
     for (var groups = this._groups, m = groups.length, j = 0; j < m; ++j) {
@@ -10354,7 +10415,7 @@
     return new Transition(groups, this._parents, name, id1);
   }
 
-  // node_modules/d3-transition/src/transition/end.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/end.js
   function end_default() {
     var on0, on1, that = this, id2 = that._id, size = that.size();
     return new Promise(function(resolve, reject) {
@@ -10375,7 +10436,7 @@
     });
   }
 
-  // node_modules/d3-transition/src/transition/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/transition/index.js
   var id = 0;
   function Transition(groups, parents, name, id2) {
     this._groups = groups;
@@ -10423,12 +10484,12 @@
     [Symbol.iterator]: selection_prototype[Symbol.iterator]
   };
 
-  // node_modules/d3-ease/src/cubic.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-ease/src/cubic.js
   function cubicInOut(t) {
     return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;
   }
 
-  // node_modules/d3-transition/src/selection/transition.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/selection/transition.js
   var defaultTiming = {
     time: null,
     // Set on use.
@@ -10462,14 +10523,14 @@
     return new Transition(groups, this._parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/selection/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-transition/src/selection/index.js
   selection_default.prototype.interrupt = interrupt_default2;
   selection_default.prototype.transition = transition_default2;
 
-  // node_modules/d3-zoom/src/constant.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-zoom/src/constant.js
   var constant_default4 = (x) => () => x;
 
-  // node_modules/d3-zoom/src/event.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-zoom/src/event.js
   function ZoomEvent(type, {
     sourceEvent,
     target,
@@ -10485,7 +10546,7 @@
     });
   }
 
-  // node_modules/d3-zoom/src/transform.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-zoom/src/transform.js
   function Transform(k, x, y) {
     this.k = k;
     this.x = x;
@@ -10534,7 +10595,7 @@
     return node.__zoom;
   }
 
-  // node_modules/d3-zoom/src/noevent.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-zoom/src/noevent.js
   function nopropagation2(event) {
     event.stopImmediatePropagation();
   }
@@ -10543,7 +10604,7 @@
     event.stopImmediatePropagation();
   }
 
-  // node_modules/d3-zoom/src/zoom.js
+  // ../graphide-ade-overview-mix-chart/node_modules/d3-zoom/src/zoom.js
   function defaultFilter2(event) {
     return (!event.ctrlKey || event.type === "wheel") && !event.button;
   }
@@ -10858,7 +10919,7 @@
     return zoom;
   }
 
-  // node_modules/@xyflow/system/dist/esm/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/@xyflow/system/dist/esm/index.js
   var errorMessages = {
     error001: (lib = "react") => `Seems like you have not used ${lib === "svelte" ? "SvelteFlowProvider" : "ReactFlowProvider"} as an ancestor. Help: https://${lib}flow.dev/error#001`,
     error002: () => "It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them.",
@@ -13518,11 +13579,11 @@
     };
   }
 
-  // node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-overview-mix-chart/node_modules/zustand/esm/traditional.mjs
   var import_react = __toESM(require_react(), 1);
   var import_with_selector = __toESM(require_with_selector(), 1);
 
-  // node_modules/zustand/esm/vanilla.mjs
+  // ../graphide-ade-overview-mix-chart/node_modules/zustand/esm/vanilla.mjs
   var import_meta = {};
   var createStoreImpl = (createState) => {
     let state;
@@ -13555,7 +13616,7 @@
   };
   var createStore = (createState) => createState ? createStoreImpl(createState) : createStoreImpl;
 
-  // node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-overview-mix-chart/node_modules/zustand/esm/traditional.mjs
   var { useDebugValue } = import_react.default;
   var { useSyncExternalStoreWithSelector } = import_with_selector.default;
   var identity3 = (arg) => arg;
@@ -13578,7 +13639,7 @@
   };
   var createWithEqualityFn = (createState, defaultEqualityFn) => createState ? createWithEqualityFnImpl(createState, defaultEqualityFn) : createWithEqualityFnImpl;
 
-  // node_modules/zustand/esm/shallow.mjs
+  // ../graphide-ade-overview-mix-chart/node_modules/zustand/esm/shallow.mjs
   function shallow$1(objA, objB) {
     if (Object.is(objA, objB)) {
       return true;
@@ -13616,7 +13677,7 @@
     return true;
   }
 
-  // node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-overview-mix-chart/node_modules/@xyflow/react/dist/esm/index.js
   var import_react_dom = __toESM(require_react_dom());
   var StoreContext = (0, import_react2.createContext)(null);
   var Provider$1 = StoreContext.Provider;
@@ -17013,7 +17074,7 @@
   var import_client = __toESM(require_client());
   var import_react_dom2 = __toESM(require_react_dom());
 
-  // node_modules/@dagrejs/dagre/dist/dagre.esm.js
+  // ../graphide-ade-overview-mix-chart/node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var Te = Object.defineProperty;
   var In = (e, n, t) => n in e ? Te(e, n, { enumerable: true, configurable: true, writable: true, value: t }) : e[n] = t;
   var Sn = (e, n) => {
@@ -19294,12 +19355,17 @@
       hotIds.add(String(hot.from));
       hotIds.add(String(hot.to));
     }
+    for (const p of participants) {
+      if (p && p.hit) hotIds.add(String(p.id));
+    }
     const items = decorateDerived(
       participants.map((p) => ({
         id: String(p.id),
         fqn: p.fqn || "",
         kind: p.kind || "Function",
         label: p.label || String(p.id),
+        // Behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
+        meta: p.caption || "",
         file: p.file || "",
         dim: !!p.dim,
         hit: !!p.hit,
@@ -19652,50 +19718,169 @@
 
   // extension/media/src/graph/trajectory-fixture.js
   var TRAJECTORY_FIXTURE = {
+    version: 2,
     id: "ade-a1a-fixture",
     title: "Execution trajectory",
+    subtitle: "Phase 1 Trace — richer subtasks, deps, and artifact-diff pins · edge handoff latencyMs",
     nodes: [
       {
         id: "sub-plan",
         label: "Plan slice",
         status: "done",
+        kind: "plan",
+        role: "upstream",
+        phase: "scope",
+        agent: "planner",
+        durationMs: 420,
+        deps: [],
         artifact: "ADE-PLAN.md",
         diff: "",
+        adds: 0,
+        dels: 0,
+        note: "Phase 1 scope locked before edits",
         x: 40,
-        y: 48
+        y: 56
       },
       {
         id: "sub-edit",
         label: "Edit desk",
         status: "done",
+        kind: "edit",
+        role: "write",
+        phase: "implement",
+        agent: "desk",
+        durationMs: 1800,
+        deps: ["sub-plan"],
         artifact: "extension/media/src/graph/desk.js",
         diff: "+traj",
-        x: 260,
-        y: 48
+        adds: 214,
+        dels: 18,
+        note: "Trajectory paint + bind on Review desk",
+        x: 240,
+        y: 40
+      },
+      {
+        id: "sub-fixture",
+        label: "Load fixtures",
+        status: "done",
+        kind: "fixture",
+        role: "sim",
+        phase: "implement",
+        agent: "harness",
+        durationMs: 640,
+        deps: ["sub-plan"],
+        artifact: "extension/media/src/graph/trajectory-fixture.js",
+        diff: "+nodes",
+        adds: 96,
+        dels: 12,
+        note: "Parallel sim path: richer subtasks / deps",
+        x: 240,
+        y: 200
+      },
+      {
+        id: "sub-diff",
+        label: "Artifact diff",
+        status: "done",
+        kind: "diff",
+        role: "review",
+        phase: "inspect",
+        agent: "diff",
+        durationMs: 510,
+        deps: ["sub-edit", "sub-fixture"],
+        artifact: "verification/trajectory-fixtures.png",
+        diff: "+pins",
+        adds: 4,
+        dels: 1,
+        note: "Pin-level artifact/diff readability for inspector",
+        x: 460,
+        y: 120
       },
       {
         id: "sub-verify",
         label: "Verify A1a",
         status: "running",
+        kind: "verify",
+        role: "gate",
+        phase: "prove",
+        agent: "verify",
+        durationMs: 9200,
+        deps: ["sub-edit", "sub-diff"],
         artifact: "scripts/verify-graphide.js",
-        diff: "+A1a",
-        x: 480,
-        y: 48
+        diff: "+TF",
+        adds: 88,
+        dels: 6,
+        note: "Immutable seal + Trace/Passport / TF drivers",
+        x: 680,
+        y: 40
+      },
+      {
+        id: "sub-seal",
+        label: "Seal specs",
+        status: "done",
+        kind: "harness",
+        role: "gate",
+        phase: "prove",
+        agent: "immutable",
+        durationMs: 310,
+        deps: ["sub-fixture", "sub-diff"],
+        artifact: ".cursor/skills/verify-graphide/references/immutable-specs.lock",
+        diff: "+I0-I5",
+        adds: 2,
+        dels: 2,
+        note: "SHA-256 lock on protected assert / feature maps",
+        x: 680,
+        y: 200
+      },
+      {
+        id: "sub-passport",
+        label: "Passport hop",
+        status: "pending",
+        kind: "gate",
+        role: "downstream",
+        phase: "signoff",
+        agent: "passport",
+        durationMs: 0,
+        deps: ["sub-verify"],
+        artifact: "extension/scripts/passport-fixture.json",
+        diff: "",
+        adds: 0,
+        dels: 0,
+        note: "Deep-link preserves traj focus into Passport",
+        x: 900,
+        y: 40
       },
       {
         id: "sub-pr",
         label: "Draft PR",
         status: "pending",
+        kind: "ship",
+        role: "downstream",
+        phase: "ship",
+        agent: "ship",
+        durationMs: 0,
+        deps: ["sub-verify", "sub-seal", "sub-passport"],
         artifact: "pull-request",
         diff: "",
-        x: 700,
-        y: 48
+        adds: 0,
+        dels: 0,
+        note: "Draft only — no undraft / merge",
+        x: 900,
+        y: 200
       }
     ],
     edges: [
-      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit" },
-      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify" },
-      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr" }
+      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit", kind: "seq", label: "scope→edit", latencyMs: 48 },
+      { id: "e-plan-fixture", from: "sub-plan", to: "sub-fixture", kind: "fork", label: "scope→sim", latencyMs: 36 },
+      { id: "e-edit-diff", from: "sub-edit", to: "sub-diff", kind: "seq", label: "edit→diff", latencyMs: 72 },
+      { id: "e-fixture-diff", from: "sub-fixture", to: "sub-diff", kind: "join", label: "sim→diff", latencyMs: 54 },
+      { id: "e-diff-verify", from: "sub-diff", to: "sub-verify", kind: "seq", label: "diff→prove", latencyMs: 90 },
+      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify", kind: "seq", label: "edit→prove", latencyMs: 110 },
+      { id: "e-fixture-seal", from: "sub-fixture", to: "sub-seal", kind: "seq", label: "sim→seal", latencyMs: 40 },
+      { id: "e-diff-seal", from: "sub-diff", to: "sub-seal", kind: "join", label: "diff→seal", latencyMs: 45 },
+      { id: "e-verify-passport", from: "sub-verify", to: "sub-passport", kind: "seq", label: "prove→sign", latencyMs: 140 },
+      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr", kind: "fork", label: "prove→ship", latencyMs: 95 },
+      { id: "e-seal-pr", from: "sub-seal", to: "sub-pr", kind: "join", label: "seal→ship", latencyMs: 28 },
+      { id: "e-passport-pr", from: "sub-passport", to: "sub-pr", kind: "join", label: "sign→ship", latencyMs: 22 }
     ]
   };
 
@@ -19777,8 +19962,8 @@
       custom: { url: "", model: "" }
     };
     let llmTok = 0;
-    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace"];
-    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1 };
+    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace", "passport"];
+    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1, passport: 1 };
     const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
@@ -19854,10 +20039,12 @@
     let seqCursor = -1;
     let seqWalk = { playing: false, timer: 0 };
     let seqBodyKey = "";
+    let seqPartFocusId = null;
     let deltaBodyKey = "";
     let dfCursor = -1;
     let dfWalk = { playing: false, timer: 0 };
     let dfBodyKey = "";
+    let dfRoleFilter = null;
     let lcCursor = -1;
     let lcWalk = { playing: false, timer: 0 };
     let lcBodyKey = "";
@@ -19872,6 +20059,8 @@
     let pathWalk = { i: -1, playing: false, timer: 0 };
     let sourceId = null;
     let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
+    let overviewMixFilter = null;
+    let overviewCommunityFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20097,9 +20286,32 @@
         applyPresent(false);
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewCommunityFilter) {
+        e.preventDefault();
+        overviewCommunityFilter = null;
+        applyOverviewCommunityPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
+        e.preventDefault();
+        overviewMixFilter = null;
+        applyOverviewMixPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "dataflow" && dfRoleFilter) {
+        e.preventDefault();
+        dfRoleFilter = null;
+        paint({ animate: "none" });
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && trajResidualFilter) {
+        e.preventDefault();
+        clearTrajResidualFilter();
+        return;
+      }
       if (e.metaKey || e.ctrlKey && !e.altKey) return;
       if (e.target && e.target.closest && e.target.closest("select")) return;
-      if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+      if (e.repeat && !/^(\+|=|-|_|\[|\]|j|J|k|K|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
       if (e.key !== "Backspace" && e.key !== "?" && e.key !== "F1" && !(isPresenting() && (e.key === "s" || e.key === "S" || e.key === "d" || e.key === "D" || e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_" || e.key === "0")) && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
         return;
       }
@@ -20122,6 +20334,23 @@
         if (e.key === "a" || e.key === "A") {
           e.preventDefault();
           openAllPrograms();
+          return;
+        }
+      }
+      if (explorerWs === "trace") {
+        if (e.key === "+" || e.key === "=") {
+          e.preventDefault();
+          trajZoomBy(TRAJ_SCALE_STEP);
+          return;
+        }
+        if (e.key === "-" || e.key === "_") {
+          e.preventDefault();
+          trajZoomBy(1 / TRAJ_SCALE_STEP);
+          return;
+        }
+        if (e.key === "0") {
+          e.preventDefault();
+          trajZoomFit();
           return;
         }
       }
@@ -20198,6 +20427,11 @@
         setEgoMode(!egoMode);
         return;
       }
+      if ((explorerWs === "trace" || explorerWs === "passport") && (e.key === "r" || e.key === "R")) {
+        e.preventDefault();
+        toggleTrajResidualFilter();
+        return;
+      }
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         toggleRoute();
@@ -20239,6 +20473,18 @@
         else togglePathWalk();
         return;
       }
+      if (explorerWs === "trace") {
+        if (e.key === "ArrowRight" || e.key === "j" || e.key === "J") {
+          e.preventDefault();
+          stepTrajectory(1);
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key === "k" || e.key === "K") {
+          e.preventDefault();
+          stepTrajectory(-1);
+          return;
+        }
+      }
       if (e.key === "[") {
         e.preventDefault();
         if (explorerWs === "delta") {
@@ -20253,6 +20499,8 @@
         } else if (explorerWs === "lifecycle") {
           stopLcWalk();
           stepLcWalk(lcCursor < 0 ? 1 : -1);
+        } else if (explorerWs === "trace") {
+          stepTrajectory(-1);
         } else {
           stopPathWalk();
           stepPathWalk(pathWalk.i < 0 ? 1 : -1);
@@ -20273,6 +20521,8 @@
         } else if (explorerWs === "lifecycle") {
           stopLcWalk();
           stepLcWalk(1);
+        } else if (explorerWs === "trace") {
+          stepTrajectory(1);
         } else {
           stopPathWalk();
           stepPathWalk(1);
@@ -22758,6 +23008,50 @@
       void canvas.offsetWidth;
       canvas.classList.add("swap");
     }
+    function syncKeysAdeSection(ws) {
+      if (!keysPane) return;
+      const el2 = keysPane.querySelector("#keysAdeSection") || document.getElementById("keysAdeSection");
+      if (!el2) return;
+      const titleEl = el2.querySelector("[data-keys-section-title]") || el2.querySelector(".keys-section-title");
+      const on2 = ws === "trace" || ws === "passport";
+      el2.hidden = !on2;
+      if (!on2) {
+        el2.removeAttribute("data-keys-ws");
+        if (titleEl) titleEl.textContent = "";
+        return;
+      }
+      el2.setAttribute("data-keys-ws", ws);
+      if (titleEl) {
+        titleEl.textContent = ws === "trace" ? "Trace · residual bindings" : "Passport · residual bindings";
+      }
+    }
+    function syncKeysTrajZoomHint(ws) {
+      if (!keysPane) return;
+      const row = keysPane.querySelector('[data-keys-row="traj-zoom"]');
+      if (!row) return;
+      const on2 = ws === "trace";
+      row.hidden = !on2;
+      row.setAttribute("data-keys-traj-zoom-hint", on2 ? "1" : "0");
+      if (on2) row.setAttribute("data-keys-workspace", "trace");
+      else row.removeAttribute("data-keys-workspace");
+    }
+    function syncKeysRRow(ws) {
+      if (!keysPane) return;
+      if (typeof syncKeysAdeSection === "function") syncKeysAdeSection(ws);
+      if (typeof syncKeysTrajZoomHint === "function") syncKeysTrajZoomHint(ws);
+      const row = keysPane.querySelector('[data-keys-row="r"]');
+      if (!row) return;
+      const textEl = row.querySelector("[data-keys-r-binding-text]");
+      const residual = ws === "trace" || ws === "passport";
+      row.setAttribute("data-keys-r-binding", residual ? "residual-filter" : "path");
+      row.setAttribute("data-keys-residual-hint", residual ? "1" : "0");
+      if (textEl) textEl.textContent = residual ? "residual filter" : "PATH";
+      const pressed = residual && !!trajResidualFilter;
+      row.setAttribute("aria-pressed", pressed ? "true" : "false");
+      row.setAttribute("data-keys-r-pressed", pressed ? "1" : "0");
+      row.classList.toggle("on", pressed);
+      row.classList.toggle("pressed", pressed);
+    }
     function setKeysPane(on2) {
       if (!keysPane) return;
       if (on2) {
@@ -22775,6 +23069,7 @@
       keysPane.hidden = !on2;
       keysPane.classList.toggle("open", !!on2);
       if (keysBtn) keysBtn.classList.toggle("on", !!on2);
+      if (on2 && typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
     }
     function setExportMenu(on2) {
       if (!exportMenu) return;
@@ -23266,8 +23561,6 @@
       if (graphBar) graphBar.hidden = !on2;
       const list = !!LIST_WORKSPACES[explorerWs];
       if (ledgerPane) ledgerPane.hidden = !on2 || list;
-      const herd = document.getElementById("herd");
-      if (herd && !on2) herd.hidden = true;
       if (workspace) workspace.classList.toggle("has-ledger", !!(on2 && !list));
       if (kindFilters) kindFilters.hidden = list;
       if (egoBtn) {
@@ -23416,7 +23709,13 @@
         stageFitRo.disconnect();
         stageFitRo = null;
       }
+      const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
+      if (prevWs !== name && ADE_RESIDUAL_WS[prevWs] && !ADE_RESIDUAL_WS[name] && trajResidualFilter) {
+        trajResidualFilter = false;
+        if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+      }
       explorerWs = name;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(name);
       if (pin) explorerPinned = true;
       if (name === "lineage" && !egoMode) egoMode = true;
       paint({ animate: "none", keepCam: !!evidenceStay });
@@ -25139,6 +25438,46 @@
       if (explorerWs === "map" && !enterCanvasActive()) return storyMapBubbles();
       return featurePath(storyFlow());
     }
+    function primaryIncidentVerb(fromId, toId) {
+      const a = idVal(fromId), b = idVal(toId);
+      if (!a || !b || a === b) return "";
+      const flow = storyFlow();
+      const lists = [
+        flow && flow.tree && flow.tree.edges || [],
+        snapshot && snapshot.graph && snapshot.graph.edges || []
+      ];
+      for (const edges of lists) {
+        for (const e of edges) {
+          if (!e || !ROUTE_KINDS[e.kind]) continue;
+          if (idVal(e.from) === a && idVal(e.to) === b) return String(e.kind);
+        }
+      }
+      for (const edges of lists) {
+        for (const e of edges) {
+          if (!e || !ROUTE_KINDS[e.kind]) continue;
+          if (idVal(e.from) === b && idVal(e.to) === a) return String(e.kind);
+        }
+      }
+      return "";
+    }
+    function storyBehaviorCaption(nodeId, nextNodeId) {
+      const sid = idVal(nodeId);
+      if (!sid) return "";
+      const node = nodeById.get(sid);
+      if (!node) return "";
+      const parts = [];
+      if (node.kind) parts.push(String(node.kind));
+      const ep = endpointOf(sid);
+      if (ep) {
+        if (ep.role) parts.push(String(ep.role));
+        if (ep.channel) parts.push(String(ep.channel));
+      }
+      if (nextNodeId) {
+        const verb = primaryIncidentVerb(sid, nextNodeId);
+        if (verb) parts.push(verb);
+      }
+      return parts.join(" · ");
+    }
     function storyHopStops() {
       const hops = [];
       const seen = /* @__PURE__ */ new Set();
@@ -25150,19 +25489,71 @@
         hops.push({
           id: sid,
           label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
-          kind: "hop"
+          kind: "hop",
+          caption: ""
         });
+      }
+      for (let i = 0; i < hops.length; i++) {
+        const next = hops[i + 1];
+        hops[i].caption = storyBehaviorCaption(hops[i].id, next ? next.id : "");
       }
       return hops;
     }
     function storyRailStops() {
       const comm = storyRailPath();
-      if (comm.length >= 2) {
-        return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
-      }
+      const featureStops = (list) => {
+        const stops = list.map((b) => ({
+          id: idVal(b.id),
+          label: b.label,
+          kind: "feature",
+          caption: "",
+          members: b.members || []
+        }));
+        for (let i = 0; i < stops.length; i++) {
+          const mems = stops[i].members || [];
+          const from = mems.length ? idVal(mems[0]) : "";
+          let to = "";
+          for (let j = i + 1; j < stops.length; j++) {
+            const nm = stops[j].members || [];
+            if (nm.length) {
+              to = idVal(nm[0]);
+              break;
+            }
+          }
+          let walkFrom = from;
+          let walkTo = to;
+          const walk = flowWalk(storyFlow());
+          if (walk.length) {
+            const inBubble = (bid, nid) => {
+              const bub = findBubble(bid);
+              return !!(bub && (bub.members || []).some((m) => idVal(m) === idVal(nid)));
+            };
+            for (const wid of walk) {
+              if (inBubble(stops[i].id, wid)) {
+                walkFrom = idVal(wid);
+                break;
+              }
+            }
+            if (to) {
+              for (let j = i + 1; j < stops.length; j++) {
+                for (const wid of walk) {
+                  if (inBubble(stops[j].id, wid)) {
+                    walkTo = idVal(wid);
+                    break;
+                  }
+                }
+                if (walkTo) break;
+              }
+            }
+          }
+          stops[i].caption = storyBehaviorCaption(walkFrom || from, walkTo || to);
+        }
+        return stops;
+      };
+      if (comm.length >= 2) return featureStops(comm);
       const hops = storyHopStops();
       if (hops.length >= 2) return hops;
-      return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+      return featureStops(comm);
     }
     function pinStoryClusters(clusters) {
       const path = storyMapBubbles();
@@ -25171,15 +25562,23 @@
       for (const b of clusters || []) byId.set(idVal(b.id), b);
       return [...byId.values()];
     }
+    function storyChipInnerHtml(stop, i, pathLen) {
+      const name = shortOf(stop.label) || "feature";
+      const label = i === 0 ? "START · " + name : i === pathLen - 1 ? "END · " + name : name;
+      const caption = stop.caption ? String(stop.caption) : "";
+      const title = caption ? label + " · " + caption : label;
+      const capHtml = caption ? '<span class="feat-chip-caption">' + esc(caption) + "</span>" : "";
+      return { label, title, caption, capHtml };
+    }
     function renderStoryRailHtml() {
       const path = storyRailStops();
       if (!path.length) return "";
       const chips = path.map((stop, i) => {
-        const name = shortOf(stop.label) || "feature";
         const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
         const hop = stop.kind === "hop";
         const here = hop ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id) ? " here" : "" : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble) ? " here" : "";
-        return (i ? '<span class="path-arrow">→</span>' : "") + '<button type="button" class="feat-chip' + (role ? " " + role : "") + here + '" ' + (hop ? "data-hop" : "data-feature") + '="' + esc(idVal(stop.id)) + '">' + esc((i === 0 ? "START · " : i === path.length - 1 ? "END · " : "") + name) + "</button>";
+        const inner = storyChipInnerHtml(stop, i, path.length);
+        return (i ? '<span class="path-arrow">→</span>' : "") + '<button type="button" class="feat-chip' + (role ? " " + role : "") + here + '" title="' + esc(inner.title) + '" ' + (inner.caption ? 'data-sbc-caption="1" ' : "") + (hop ? "data-hop" : "data-feature") + '="' + esc(idVal(stop.id)) + '"><span class="feat-chip-name">' + esc(inner.label) + "</span>" + inner.capHtml + "</button>";
       }).join("");
       return '<div class="story-rail" id="storyRail"><div class="story-rail-label">Start → features → end</div><div class="story-rail-row">' + chips + "</div></div>";
     }
@@ -25187,12 +25586,11 @@
       const path = storyRailStops();
       if (!path.length) return "";
       const chips = path.map((stop, i) => {
-        const name = shortOf(stop.label) || "feature";
         const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
         const hop = stop.kind === "hop";
         const here = hop ? selectedNodeId && idVal(selectedNodeId) === idVal(stop.id) ? " here" : "" : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble) ? " here" : "";
-        const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
-        return (i ? '<span class="path-arrow">→</span>' : "") + '<button type="button" class="feat-chip' + (role ? " " + role : "") + here + '" style="--i:' + i + '" ' + (hop ? "data-hop" : "data-feature") + '="' + esc(idVal(stop.id)) + '">' + esc(label) + "</button>";
+        const inner = storyChipInnerHtml(stop, i, path.length);
+        return (i ? '<span class="path-arrow">→</span>' : "") + '<button type="button" class="feat-chip' + (role ? " " + role : "") + here + '" style="--i:' + i + '" title="' + esc(inner.title) + '" ' + (inner.caption ? 'data-sbc-caption="1" ' : "") + (hop ? "data-hop" : "data-feature") + '="' + esc(idVal(stop.id)) + '"><span class="feat-chip-name">' + esc(inner.label) + "</span>" + inner.capHtml + "</button>";
       }).join("");
       return '<div class="feature-path"><div class="feature-path-head"><div class="feature-path-label">Start → features → end</div><div class="path-walk" role="group" aria-label="Walk the feature path"><button type="button" id="pathWalkPrev" title="Previous feature ([)">Prev</button><button type="button" id="pathWalkBtn" title="Play start → features → end (P)">Play</button><button type="button" id="pathWalkNext" title="Next feature (])">Next</button><span id="pathWalkMeta"></span></div></div><div class="feature-path-row">' + chips + "</div></div>";
     }
@@ -25203,12 +25601,11 @@
       if (!stop) return;
       if (stop.kind === "hop") {
         selectedNodeId = idVal(stop.id);
-        if (!isPresenting()) peekSource(stop.id);
         return;
       }
       const bub = findBubble(stop.id);
       const mem = bub && (bub.members || [])[0];
-      if (mem && !isPresenting()) peekSource(mem);
+      if (mem) selectedNodeId = idVal(mem);
     }
     function stopPathWalk() {
       pathWalk.playing = false;
@@ -25218,6 +25615,26 @@
       }
       applyPathWalkPaint();
     }
+    function resetPathWalk() {
+      pathWalk.playing = false;
+      if (pathWalk.timer) {
+        clearInterval(pathWalk.timer);
+        pathWalk.timer = 0;
+      }
+      pathWalk.i = -1;
+      applyPathWalkPaint();
+      document.querySelectorAll(".walk").forEach((el2) => el2.classList.remove("walk"));
+      document.querySelectorAll(".feat-chip.here").forEach((el2) => el2.classList.remove("here"));
+      selectedNodeId = null;
+      const meta2 = document.getElementById("pathWalkMeta");
+      if (meta2) meta2.textContent = "";
+      const play = document.getElementById("pathWalkBtn");
+      if (play) {
+        play.classList.remove("on");
+        play.textContent = "Play";
+      }
+    }
+    if (typeof window !== "undefined") window.__graphideResetPathWalk = resetPathWalk;
     function stepPathWalk(delta) {
       const stops = pathWalkStops();
       if (!stops.length) return;
@@ -25307,7 +25724,12 @@
       }
       const metaEl = document.getElementById("pathWalkMeta");
       if (metaEl) {
-        metaEl.textContent = cur ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature") : "";
+        if (!cur) {
+          metaEl.textContent = "";
+        } else {
+          const short = shortOf(cur.label) || "feature";
+          metaEl.textContent = cur.caption ? pathWalk.i + 1 + "/" + stops.length + " · " + short + " · " + cur.caption : pathWalk.i + 1 + "/" + stops.length + " · " + short;
+        }
       }
       refreshNowPill();
     }
@@ -26875,15 +27297,65 @@
       }
       return cur || story || null;
     }
+    function seqNodeCaption(id2) {
+      const sid = idVal(id2);
+      if (!sid) return "";
+      const node = nodeById.get(sid);
+      if (!node) return "";
+      const parts = [];
+      if (node.kind) parts.push(String(node.kind));
+      const ep = endpointOf(sid);
+      if (ep) {
+        if (ep.role) parts.push(String(ep.role));
+        if (ep.channel) parts.push(String(ep.channel));
+      }
+      return parts.join(" · ");
+    }
+    function seqHopCaption(h) {
+      if (!h) return "";
+      const verb = h.kind ? h.variant === "return" ? String(h.kind) + " return" : String(h.kind) : "";
+      const fromCap = seqNodeCaption(h.from);
+      const toCap = seqNodeCaption(h.to);
+      const parts = [];
+      if (verb) parts.push(verb);
+      if (fromCap) parts.push(fromCap);
+      if (toCap && toCap !== fromCap) parts.push(toCap);
+      if (parts.length) return parts.join(" · ");
+      const cap = storyBehaviorCaption(h.from, h.to);
+      return cap || "";
+    }
+    function seqPartCaption(p, hops) {
+      const base = seqNodeCaption(p && p.id);
+      const pid = idVal(p && p.id);
+      const out = (hops || []).find(
+        (h) => idVal(h.from) === pid && h.variant !== "return" && (h.kind === "Calls" || h.kind === "Publishes" || h.kind === "Subscribes")
+      );
+      if (out && out.kind) {
+        return base ? base + " · " + out.kind : String(out.kind);
+      }
+      return base || String(p && p.kind || "");
+    }
+    function withSequenceCaptions(reading) {
+      const hopsIn = reading && reading.hops || [];
+      const hops = hopsIn.map((h) => {
+        const caption = h.caption || seqHopCaption(h);
+        return Object.assign({}, h, { caption });
+      });
+      const participants = (reading && reading.participants || []).map((p) => {
+        const caption = p.caption || seqPartCaption(p, hops);
+        return Object.assign({}, p, { caption });
+      });
+      return { participants, hops };
+    }
     function sequenceOf(flow) {
       const ready = flow && flow.sequence;
       if (ready && (ready.participants || []).length && (ready.hops || []).length) {
-        return {
+        return withSequenceCaptions({
           participants: ready.participants.slice(),
           hops: ready.hops.slice()
-        };
+        });
       }
-      return deriveSequence(flow);
+      return withSequenceCaptions(deriveSequence(flow));
     }
     function deriveSequence(flow) {
       const tree = flow && flow.tree || { nodes: [], edges: [] };
@@ -27013,21 +27485,36 @@
     function resetSeqOverview() {
       stopSeqWalk();
       seqCursor = -1;
+      seqPartFocusId = null;
+      selectedNodeId = null;
       paint({ animate: "none" });
     }
     function focusSeqHop(hop) {
       if (!hop) return;
       const id2 = hop.variant === "return" ? hop.to : hop.from;
-      if (id2) {
-        selectedNodeId = idVal(id2);
-        peekSource(id2);
-      }
-      showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+      if (id2) selectedNodeId = idVal(id2);
+      seqPartFocusId = null;
     }
     function seqVariantMark(v) {
       if (v === "return") return "←";
       if (v === "call") return "→";
       return "·";
+    }
+    function toggleSeqPartFocus(id2) {
+      const sid = idVal(id2);
+      if (!sid) return;
+      if (seqPartFocusId && idVal(seqPartFocusId) === sid) {
+        seqPartFocusId = null;
+        selectedNodeId = null;
+      } else {
+        seqPartFocusId = sid;
+        selectedNodeId = sid;
+      }
+      paint({ animate: "none" });
+    }
+    function seqPartRelated(h, partId) {
+      const pid = idVal(partId);
+      return !!(pid && (idVal(h.from) === pid || idVal(h.to) === pid));
     }
     function renderSequenceBody() {
       const flow = sequenceFlow();
@@ -27051,21 +27538,27 @@
         }
       }
       if (!parts.length || !hops.length) {
-        return '<div class="empty">No Steiner Calls (or Publishes / Subscribes) on this flow. Sequence reads derived interaction only.</div>';
+        return '<div class="empty seq-empty" data-ssr-empty="1">No Steiner Calls / Publishes / Subscribes on this flow. Sequence shows derived interaction only — try <button type="button" class="crumb-btn" data-ws="overview">Overview Play</button> or <button type="button" class="crumb-btn" data-ws="dataflow">Data-flow</button> for behavior graphs.</div>';
       }
       if (seqCursor >= hops.length) seqCursor = hops.length - 1;
       const hot = seqCursor >= 0 ? hops[seqCursor] : null;
       const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
       const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
+      const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       const heads = parts.map((p) => {
-        const on2 = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
+        const pid = idVal(p.id);
+        const on2 = hot && (idVal(hot.from) === pid || idVal(hot.to) === pid) || focusId && focusId === pid;
         const match = seqPartMatch(p);
-        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(p.id)) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"' + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + '><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span></button>";
+        const caption = p.caption || seqPartCaption(p, hops);
+        const focusDim = !!(focusId && focusId !== pid);
+        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (focusId && focusId === pid ? " ssr-hit" : "") + (focusDim ? " ssr-dim" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(pid) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + ' aria-pressed="' + (focusId && focusId === pid ? "true" : "false") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span>" + (caption ? '<span class="seq-part-caption">' + esc(caption) + "</span>" : "") + "</button>";
       }).join("");
       const list = hopCards.map(({ h, i }) => {
-        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
+        const caption = h.caption || seqHopCaption(h);
+        const related = focusId ? seqPartRelated(h, focusId) : true;
+        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
-      return '<div class="seq-page">' + review + '<div class="seq-parts" id="seqParts" style="--seq-n:' + parts.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      return '<div class="seq-page" data-ssr="1">' + review + '<div class="seq-parts" id="seqParts" style="--seq-n:' + parts.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -27074,17 +27567,22 @@
     }
     function sequenceCanvasProps() {
       const reading = sequenceOf(sequenceFlow());
+      const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       return {
         participants: reading.participants.map((p) => {
           const paint2 = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
+          const pid = idVal(p.id);
+          const caption = p.caption || seqPartCaption(p, reading.hops);
+          const focusDim = !!(focusId && focusId !== pid);
           return {
-            id: idVal(p.id),
+            id: pid,
             fqn: p.fqn,
             kind: p.kind || "Function",
             label: shortOf(p.fqn),
+            caption,
             file: paint2.file || p.file || "",
-            dim: paint2.dim,
-            hit: paint2.hit
+            dim: paint2.dim || focusDim,
+            hit: paint2.hit || !!focusId && focusId === pid
           };
         }),
         hops: reading.hops.map((h, i) => ({
@@ -27094,13 +27592,15 @@
           kind: h.kind || "",
           variant: h.variant || "default",
           fromLabel: shortOf(h.from_fqn),
-          toLabel: shortOf(h.to_fqn)
+          toLabel: shortOf(h.to_fqn),
+          caption: h.caption || seqHopCaption(h),
+          dim: !!(focusId && !seqPartRelated(h, focusId)),
+          hit: !!(focusId && seqPartRelated(h, focusId))
         })),
         cursor: seqCursor,
         onNodeClick: (id2) => {
           if (!id2) return;
-          selectedNodeId = id2;
-          peekSource(id2);
+          toggleSeqPartFocus(id2);
         },
         onHopClick: (i) => {
           if (!Number.isFinite(i)) return;
@@ -27118,10 +27618,21 @@
         const i = parseInt(el2.getAttribute("data-seq-i"), 10);
         el2.classList.toggle("on", i === seqCursor);
       });
+      const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
-        const on2 = !!(hot && (idVal(hot.from) === id2 || idVal(hot.to) === id2));
+        const on2 = !!(hot && (idVal(hot.from) === id2 || idVal(hot.to) === id2) || focusId && focusId === id2);
         el2.classList.toggle("on", on2);
+        el2.classList.toggle("ssr-hit", !!(focusId && focusId === id2));
+        el2.classList.toggle("ssr-dim", !!(focusId && focusId !== id2));
+        el2.setAttribute("aria-pressed", focusId && focusId === id2 ? "true" : "false");
+      });
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        const from = el2.getAttribute("data-from");
+        const to = el2.getAttribute("data-to");
+        const related = !!(focusId && (from === focusId || to === focusId));
+        el2.classList.toggle("ssr-hit", !!(focusId && related));
+        el2.classList.toggle("ssr-dim", !!(focusId && !related));
       });
       const status2 = document.getElementById("seqStatus");
       const flow = sequenceFlow();
@@ -27167,10 +27678,14 @@
         el2.onclick = (ev) => {
           ev.stopPropagation();
           const id2 = el2.getAttribute("data-id");
-          if (id2) {
-            selectedNodeId = id2;
-            peekSource(id2);
-          }
+          if (!id2) return;
+          toggleSeqPartFocus(id2);
+        };
+      });
+      canvas.querySelectorAll(".seq-empty [data-ws]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          setWorkspace(el2.getAttribute("data-ws"), true);
         };
       });
       const overview = document.getElementById("seqOverview");
@@ -27457,21 +27972,38 @@
     function resetDfOverview() {
       stopDfWalk();
       dfCursor = -1;
+      dfRoleFilter = null;
       paint({ animate: "none" });
     }
     function focusDfHop(hop) {
       if (!hop) return;
-      if (hop.from) {
-        selectedNodeId = idVal(hop.from);
-        peekSource(hop.from);
-      }
-      showHop(idVal(hop.from), idVal(hop.to), hop.kind);
+      if (hop.from) selectedNodeId = idVal(hop.from);
     }
     function dfRoleLabel(role) {
       if (role === "source") return "Sources";
       if (role === "transform") return "Transforms";
       if (role === "store") return "Stores";
       return "Sinks";
+    }
+    function dfRoleWord(role) {
+      if (role === "source") return "Source";
+      if (role === "transform") return "Transform";
+      if (role === "store") return "Store";
+      return "Sink";
+    }
+    function dfNodeMeta(n) {
+      const parts = [dfRoleWord(n.role || "transform")];
+      if (n.channel) parts.push(String(n.channel));
+      else if (n.end_role) parts.push(String(n.end_role));
+      return parts.join(" · ");
+    }
+    function toggleDfRoleFilter(role) {
+      const next = role && dfRoleFilter === role ? null : role || null;
+      dfRoleFilter = next;
+      paint({ animate: "none" });
+    }
+    function dfNodeLaneDim(n) {
+      return !!(dfRoleFilter && n && n.role !== dfRoleFilter);
     }
     function renderDataflowBody() {
       const flow = dataflowFlow();
@@ -27480,7 +28012,7 @@
       const hops = reading.hops;
       const dfQ = (graphFilter.q || "").toLowerCase();
       const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
-      const dfNodeMatch = (n) => !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
+      const dfNodeMatch = (n) => !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.channel) || dfHit(n.file);
       const dfHopMatch = (h) => {
         if (!dfQ) return true;
         const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
@@ -27495,39 +28027,46 @@
         }
       }
       if (!nodes.length || !hops.length) {
-        return '<div class="empty">No Steiner Reads / Writes / Publishes / Subscribes on this flow. Data-flow reads derived movement only.</div>';
+        return '<div class="empty df-empty" data-df-empty="1">No Steiner Reads / Writes / Publishes / Subscribes on this flow. Data-flow shows derived movement only — try <button type="button" class="crumb-btn" data-ws="overview">Overview Play</button> or <button type="button" class="crumb-btn" data-ws="sequence">Sequence</button> for control-flow behavior.</div>';
       }
       if (dfCursor >= hops.length) dfCursor = hops.length - 1;
       const hot = dfCursor >= 0 ? hops[dfCursor] : null;
       const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => dfHopMatch(h));
       const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
-      const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
+      const stages = ["source", "transform", "store", "sink"];
       const stageCols = stages.map((role) => {
         const col = nodes.filter((n) => n.role === role);
+        const laneOn = dfRoleFilter === role;
+        const laneDim = !!(dfRoleFilter && dfRoleFilter !== role);
         const cards = col.map((n) => {
-          const on2 = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
-          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const on2 = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id)) || selectedNodeId && idVal(selectedNodeId) === idVal(n.id);
           const match = dfNodeMatch(n);
-          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + (dfQ && match ? " hit" : "") + (dfQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + (n.file ? ' data-file="' + esc(n.file) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(n.kind || "") + (ep ? " · " + esc(ep) : "") + "</span></button>";
+          const roleDim = dfNodeLaneDim(n);
+          const meta2 = dfNodeMeta(n);
+          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + (dfQ && match ? " hit" : "") + (dfQ && !match || roleDim ? " dim" : "") + (roleDim ? " df-lane-dim" : "") + (!roleDim && dfRoleFilter ? " df-lane-hit" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '" data-rdf-meta="1"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + (n.file ? ' data-file="' + esc(n.file) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(meta2) + "</span></button>";
         }).join("");
-        return '<div class="df-stage" data-df-role="' + role + '"><div class="k">' + esc(dfRoleLabel(role)) + "</div>" + cards + "</div>";
+        return '<div class="df-stage' + (laneOn ? " on" : "") + (laneDim ? " dim" : "") + '" data-df-role="' + role + '"><button type="button" class="df-lane-head' + (laneOn ? " on" : "") + '" data-df-lane="' + role + '" aria-pressed="' + (laneOn ? "true" : "false") + '"><span class="k">' + esc(dfRoleLabel(role)) + '</span><span class="df-lane-count" data-df-count="' + col.length + '">' + col.length + "</span></button>" + (cards || '<div class="df-lane-empty">none</div>') + "</div>";
       }).join("");
       const list = hopCards.map(({ h, i }) => {
-        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
+        const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+        const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+        const hopDim = !!(dfRoleFilter && fromN && toN && fromN.role !== dfRoleFilter && toN.role !== dfRoleFilter);
+        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + (hopDim ? " dim" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) + "</div></article>";
       }).join("");
-      return '<div class="df-page">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
+      return '<div class="df-page" data-rdf="1">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
     }
     function dataflowWorkspaceKey() {
       const flow = dataflowFlow();
       const reading = dataflowOf(flow);
-      return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || ""].join("\0");
+      return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || "", dfRoleFilter || ""].join("\0");
     }
     function dataflowCanvasProps() {
       const reading = dataflowOf(dataflowFlow());
       return {
         nodes: reading.nodes.map((n) => {
-          const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const meta2 = dfNodeMeta(n);
           const paint2 = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
+          const roleDim = dfNodeLaneDim(n);
           return {
             id: idVal(n.id),
             fqn: n.fqn,
@@ -27537,9 +28076,9 @@
             endRole: n.end_role || "",
             channel: n.channel || "",
             file: paint2.file || n.file || "",
-            dim: paint2.dim,
-            hit: paint2.hit,
-            ep
+            dim: paint2.dim || roleDim,
+            hit: paint2.hit || !!dfRoleFilter && !roleDim,
+            ep: meta2
           };
         }),
         hops: reading.hops.map((h, i) => ({
@@ -27552,7 +28091,7 @@
         onNodeClick: (id2) => {
           if (!id2) return;
           selectedNodeId = id2;
-          peekSource(id2);
+          paint({ animate: "none" });
         },
         onHopClick: (i) => {
           if (!Number.isFinite(i)) return;
@@ -27572,8 +28111,24 @@
       });
       canvas.querySelectorAll("#dfStages .df-node").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
-        const on2 = !!(hot && (idVal(hot.from) === id2 || idVal(hot.to) === id2));
+        const role = el2.getAttribute("data-df-role");
+        const on2 = !!(hot && (idVal(hot.from) === id2 || idVal(hot.to) === id2) || selectedNodeId && idVal(selectedNodeId) === id2);
         el2.classList.toggle("on", on2);
+        const roleDim = !!(dfRoleFilter && role !== dfRoleFilter);
+        el2.classList.toggle("dim", roleDim);
+        el2.classList.toggle("df-lane-dim", roleDim);
+        el2.classList.toggle("df-lane-hit", !!(dfRoleFilter && !roleDim));
+      });
+      canvas.querySelectorAll("#dfStages .df-stage").forEach((el2) => {
+        const role = el2.getAttribute("data-df-role");
+        el2.classList.toggle("on", dfRoleFilter === role);
+        el2.classList.toggle("dim", !!(dfRoleFilter && dfRoleFilter !== role));
+      });
+      canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el2) => {
+        const role = el2.getAttribute("data-df-lane");
+        const on2 = dfRoleFilter === role;
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
       });
       const status2 = document.getElementById("dfStatus");
       const flow = dataflowFlow();
@@ -27615,14 +28170,25 @@
           focusDfHop(dfHops()[i]);
         };
       });
+      canvas.querySelectorAll("#dfStages .df-lane-head").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          toggleDfRoleFilter(el2.getAttribute("data-df-lane"));
+        };
+      });
       canvas.querySelectorAll("#dfStages .df-node, #dfCanvas .df-node").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();
           const id2 = el2.getAttribute("data-id");
-          if (id2) {
-            selectedNodeId = id2;
-            peekSource(id2);
-          }
+          if (!id2) return;
+          selectedNodeId = id2;
+          paint({ animate: "none" });
+        };
+      });
+      canvas.querySelectorAll(".df-empty [data-ws]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          setWorkspace(el2.getAttribute("data-ws"), true);
         };
       });
       const overview = document.getElementById("dfOverview");
@@ -27983,17 +28549,201 @@
         };
       if (play) play.onclick = () => toggleLcReview();
     }
-    function trajectoryFixture() {
-      return TRAJECTORY_FIXTURE;
+    function isTrajectoryFixture(v) {
+      if (!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.nodes) && Array.isArray(v.edges))) {
+        return false;
+      }
+      if (v.nodes.length === 0) return v.edges.length === 0;
+      return v.nodes.length >= 3 && v.edges.length >= 2 && v.nodes.every((n) => n && typeof n.id === "string");
     }
-    function renderTrajectoryBody() {
-      const fix = trajectoryFixture();
-      const nodes = fix.nodes || [];
-      const edges = fix.edges || [];
+    const TRAJECTORY_EMPTY_FIXTURE = Object.freeze({
+      version: 2,
+      id: "ade-empty-fixture",
+      title: "Execution trajectory",
+      subtitle: "No subtasks yet — empty fixture",
+      nodes: Object.freeze([]),
+      edges: Object.freeze([])
+    });
+    function wantTrajectoryEmpty() {
+      if (typeof window === "undefined" || typeof location === "undefined") return false;
+      try {
+        return new URLSearchParams(location.search || "").get("traceEmpty") === "1";
+      } catch (_err) {
+        return false;
+      }
+    }
+    function getTrajectory() {
+      if (wantTrajectoryEmpty()) return TRAJECTORY_EMPTY_FIXTURE;
+      const o = typeof window !== "undefined" ? window.__graphideTrajectory : null;
+      return isTrajectoryFixture(o) ? o : TRAJECTORY_FIXTURE;
+    }
+    function trajectoryFixture() {
+      return getTrajectory();
+    }
+    let trajSelectedId = "";
+    let trajPinFocus = "";
+    let trajFocusSeeded = false;
+    let trajScale = 1;
+    let trajResidualFilter = false;
+    function residualFilterMatchingCount() {
+      try {
+        if (typeof passportResidualTrajIds === "function") return passportResidualTrajIds().size;
+      } catch (e) {
+      }
+      return 0;
+    }
+    function syncResidualFilterLive(on2) {
+      const el2 = document.getElementById("residualFilterLive");
+      if (!el2) return;
+      const active = !!on2;
+      const n = active ? residualFilterMatchingCount() : 0;
+      const text = active ? "Residual filter on, " + n + " matching" : "Residual filter off";
+      el2.setAttribute("data-residual-filter-live", "1");
+      el2.setAttribute("data-residual-filter-live-state", active ? "on" : "off");
+      if (active) el2.setAttribute("data-filter-residual-count", String(n));
+      else el2.removeAttribute("data-filter-residual-count");
+      if (el2.textContent !== text) el2.textContent = text;
+    }
+    function toggleTrajResidualFilter() {
+      trajResidualFilter = !trajResidualFilter;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+      if (typeof flashToast === "function") {
+        flashToast(
+          trajResidualFilter ? "Residuals on" : "Residuals off",
+          trajResidualFilter ? "ok" : "skip"
+        );
+      }
+      if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
+      paint({ animate: "none" });
+    }
+    function focusResidualToggleAfterClear() {
+      let target = null;
+      if (explorerWs === "passport") {
+        target = document.querySelector('#passportSign [data-passport-residual-filter-toggle="1"]') || document.querySelector("#passportSign .passport-residual");
+      } else if (explorerWs === "trace") {
+        target = document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]') || document.getElementById("trajEdgeLegend");
+      }
+      if (target && typeof target.focus === "function") {
+        try {
+          target.focus({ preventScroll: true });
+        } catch (_) {
+        }
+      }
+    }
+    function clearTrajResidualFilter(source) {
+      if (!trajResidualFilter) return;
+      trajResidualFilter = false;
+      if (typeof syncKeysRRow === "function") syncKeysRRow(explorerWs);
+      if (typeof flashToast === "function") {
+        if (source === "clear-chip") flashToast("Residual filter cleared", "ok");
+        else flashToast("Residuals off", "skip");
+      }
+      if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+      paint({ animate: "none" });
+      if (source === "clear-chip" && typeof focusResidualToggleAfterClear === "function") {
+        focusResidualToggleAfterClear();
+      }
+    }
+    const RESIDUAL_FILTER_COUNT_CHIP_TOAST = "Residual filter stays ON — use Clear, R, or Escape to clear";
+    function hintResidualFilterCountChip(ev) {
+      if (ev) {
+        if (typeof ev.preventDefault === "function") ev.preventDefault();
+        if (typeof ev.stopPropagation === "function") ev.stopPropagation();
+      }
+      if (typeof flashToast === "function") {
+        flashToast(RESIDUAL_FILTER_COUNT_CHIP_TOAST, "skip");
+      }
+    }
+    function bindResidualFilterCountChipHints() {
+      document.querySelectorAll(
+        '.residual-filter-count[data-residual-filter-count="1"], .passport-residual-filter-count[data-residual-filter-count="1"]'
+      ).forEach((chip) => {
+        const onActivate = (ev) => {
+          if (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ") return;
+          hintResidualFilterCountChip(ev);
+        };
+        chip.onclick = onActivate;
+        chip.onkeydown = onActivate;
+      });
+    }
+    function renderResidualFilterEmptyChrome(surface) {
+      if (!trajResidualFilter) return "";
+      const bearingN = passportResidualTrajIds().size;
+      if (bearingN > 0) return "";
+      const isTrace = surface === "trace";
+      const hostClass = isTrace ? "traj-empty residual-filter-empty desk-empty" : "passport-empty passport-residual-filter-empty desk-empty";
+      const hostAttr = isTrace ? ' data-traj-residual-filter-empty="1" data-residual-filter-empty="1"' : ' data-passport-residual-filter-empty="1" data-residual-filter-empty="1"';
+      const title = isTrace ? "No residual-bearing nodes" : "No residual paths match";
+      const copy = isTrace ? "Residual filter is on, but no trajectory nodes bear residual gated writes. Clear the filter to show the full DAG." : "Residual filter is on, but no gate paths bear residual writes (gate may be approved). Clear the filter to show all paths.";
+      return '<div class="' + hostClass + '"' + hostAttr + ' role="status"><b class="' + (isTrace ? "traj-empty-title" : "passport-empty-title") + '">' + esc(title) + '</b><div class="' + (isTrace ? "traj-empty-copy" : "passport-empty-copy") + '">' + esc(copy) + '</div><div class="' + (isTrace ? "traj-empty-action" : "passport-empty-action") + ' residual-filter-empty-action"><button type="button" class="residual-filter-clear" data-residual-filter-clear="1" title="Clear residual filter" aria-label="Clear residual filter">Clear residual filter</button></div><div class="desk-keys residual-filter-empty-keys" data-residual-filter-empty-keys="1"><kbd>R</kbd> toggle · <kbd>Esc</kbd> clear</div></div>';
+    }
+    const TRAJ_SCALE_MIN = 0.35;
+    const TRAJ_SCALE_MAX = 3;
+    const TRAJ_SCALE_STEP = 1.25;
+    function seedTrajectoryFocus() {
+      if (trajFocusSeeded) return;
+      trajFocusSeeded = true;
+      const want = typeof window !== "undefined" && window.__graphideTrajectoryFocus || "";
+      if (!want) return;
+      const nodes = trajectoryFixture().nodes || [];
+      if (nodes.some((n) => n.id === want)) trajSelectedId = want;
+    }
+    function trajStatusLabel(status2) {
+      if (status2 === "done") return "done";
+      if (status2 === "running") return "running";
+      return "pending";
+    }
+    function trajNeighborIds(fix, selectedId) {
+      const near = /* @__PURE__ */ new Set();
+      if (!selectedId) return near;
+      near.add(selectedId);
+      for (const e of fix.edges || []) {
+        if (e.from === selectedId) near.add(e.to);
+        if (e.to === selectedId) near.add(e.from);
+      }
+      return near;
+    }
+    function trajOutgoingIds(fix, id2) {
+      const src = String(id2 || "");
+      if (!src) return [];
+      const out = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const e of fix.edges || []) {
+        if (e.from !== src) continue;
+        const to = e.to;
+        if (!to || seen.has(to)) continue;
+        seen.add(to);
+        out.push(to);
+      }
+      return out;
+    }
+    function trajNodeInfoLabel(n, fix) {
+      const id2 = String(n && n.id || "");
+      const kind = String(n && n.kind || "").trim();
+      const status2 = trajStatusLabel(n && n.status);
+      const nodes = fix && fix.nodes || [];
+      const byId = new Map(nodes.map((x) => [x.id, x]));
+      const depIds = n && Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n || {});
+      let unmetDeps = 0;
+      for (const d of depIds) {
+        const dep = byId.get(d);
+        const st2 = dep && dep.status || "pending";
+        if (st2 !== "done") unmetDeps += 1;
+      }
+      const hops = trajOutgoingIds(fix, id2).length;
+      const artPath = n && n.artifact || "";
+      const sealHint = !!(n && n.kind === "harness" || /seal|immutable/i.test(String(id2) + " " + artPath));
+      const residualCopy = unmetDeps + " dep" + (unmetDeps === 1 ? "" : "s") + " left · " + hops + " hop" + (hops === 1 ? "" : "s") + (sealHint ? " · seal" : "");
+      const parts = [id2];
+      if (kind) parts.push(kind);
+      parts.push(status2);
+      parts.push(residualCopy);
+      return parts.filter(Boolean).join(" · ");
+    }
+    function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
       const byId = new Map(nodes.map((n) => [n.id, n]));
-      const nodeW = 168;
-      const nodeH = 64;
-      const edgeLines = edges.map((e) => {
+      const focusOn = !!selectedId;
+      return edges.map((e) => {
         const a = byId.get(e.from);
         const b = byId.get(e.to);
         if (!a || !b) return "";
@@ -28001,16 +28751,209 @@
         const y1 = a.y + nodeH / 2;
         const x2 = b.x;
         const y2 = b.y + nodeH / 2;
-        return '<line class="traj-edge" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" />';
+        const mx = (x1 + x2) / 2;
+        const kind = e.kind || "seq";
+        const onPath = focusOn && (e.from === selectedId || e.to === selectedId);
+        const dim = focusOn && !onPath;
+        const d = "M" + x1 + " " + y1 + " C" + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2;
+        return '<path class="traj-edge kind-' + esc(kind) + (onPath ? " on-path" : "") + (dim ? " dim" : "") + '" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(kind) + '"' + (e.label ? ' data-label="' + esc(e.label) + '"' : "") + (Number.isFinite(Number(e.latencyMs)) && Number(e.latencyMs) > 0 ? ' data-latency="' + esc(String(e.latencyMs)) + '"' : "") + (onPath ? ' data-on-path="1"' : "") + ' d="' + d + '" />';
       }).join("");
+    }
+    function trajNodeDeps(fix, n) {
+      if (Array.isArray(n.deps) && n.deps.length) return n.deps.slice();
+      const id2 = n.id;
+      return (fix.edges || []).filter((e) => e.to === id2).map((e) => e.from);
+    }
+    function trajDurationLabel(ms) {
+      const n = Number(ms);
+      if (!Number.isFinite(n) || n <= 0) return "—";
+      if (n < 1e3) return n + "ms";
+      return Math.round(n / 100) / 10 + "s";
+    }
+    function renderTrajectoryDetail(fix, selectedId) {
+      const n = (fix.nodes || []).find((x) => x.id === selectedId);
+      if (!n) {
+        return '<aside id="trajDetail" class="traj-detail" data-empty="1"><div class="traj-detail-empty">Select a subtask to inspect deps, next hops, artifact-diff pins, phase, and role. Use [ ] / ← → / j k to step · next → to hop.</div></aside>';
+      }
+      const pin = trajPinFocus === "artifact" || trajPinFocus === "diff" ? trajPinFocus : "";
+      const artCls = pin === "artifact" ? " pin-focus" : "";
+      const diffCls = pin === "diff" ? " pin-focus" : "";
+      const deps = trajNodeDeps(fix, n);
+      const adds = Number(n.adds);
+      const dels = Number(n.dels);
+      const hasDiffMeta = Number.isFinite(adds) || Number.isFinite(dels);
+      const depHtml = deps.length ? '<ul class="traj-dep-list" data-traj-deps="1">' + deps.map(
+        (d) => '<li class="traj-dep" role="button" tabindex="0" data-traj-dep="' + esc(d) + '" data-ade-dep-focus="1" title="Focus dependency ' + esc(d) + '"><code>' + esc(d) + "</code></li>"
+      ).join("") + "</ul>" : '<span class="traj-dep-empty" data-traj-deps="0">none</span>';
+      const nextHops = trajOutgoingIds(fix, n.id).slice(0, 3);
+      const nextHopHtml = nextHops.length ? '<ul class="traj-next-list" data-traj-nexts="1">' + nextHops.map((to) => {
+        const tgt = (fix.nodes || []).find((x) => x.id === to);
+        const label = tgt && (tgt.label || tgt.id) || to;
+        return '<li class="traj-next" role="button" tabindex="0" data-traj-next="' + esc(to) + '" data-ade-hop-next="1" title="Hop to ' + esc(label) + '"><span class="traj-next-arrow" aria-hidden="true">→</span><code>' + esc(to) + "</code></li>";
+      }).join("") + "</ul>" : '<span class="traj-next-empty" data-traj-nexts="0">none</span>';
+      return '<aside id="trajDetail" class="traj-detail" data-selected="' + esc(n.id) + '"' + (pin ? ' data-pin-focus="' + esc(pin) + '"' : "") + (n.phase ? ' data-phase="' + esc(n.phase) + '"' : "") + (n.agent ? ' data-agent="' + esc(n.agent) + '"' : "") + (Number.isFinite(Number(n.durationMs)) ? ' data-duration="' + esc(String(n.durationMs)) + '"' : "") + '><div class="traj-detail-head"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + "<strong>" + esc(n.label || n.id) + '</strong><code class="traj-detail-id">' + esc(n.id) + '</code></div><dl class="traj-detail-grid"><dt>Kind</dt><dd>' + esc(n.kind || "—") + "</dd><dt>Role</dt><dd>" + esc(n.role || "—") + '</dd><dt>Phase</dt><dd data-traj-phase="' + esc(n.phase || "") + '">' + esc(n.phase || "—") + '</dd><dt>Agent</dt><dd data-traj-agent="' + esc(n.agent || "") + '">' + esc(n.agent || "—") + '</dd><dt>Duration</dt><dd data-traj-duration="' + esc(String(Number.isFinite(Number(n.durationMs)) ? n.durationMs : "")) + '">' + esc(trajDurationLabel(n.durationMs)) + "</dd><dt>Deps</dt><dd>" + depHtml + '</dd><dt>Next hops</dt><dd data-traj-next-block="1">' + nextHopHtml + '</dd><dt class="' + (pin === "artifact" ? "on" : "") + '">Artifact</dt><dd class="' + (pin === "artifact" ? "on" : "") + '">' + (n.artifact ? '<code data-traj-artifact="1" class="traj-pin-target' + artCls + '">' + esc(n.artifact) + "</code>" : "—") + '</dd><dt class="' + (pin === "diff" ? "on" : "") + '">Diff pin</dt><dd class="' + (pin === "diff" ? "on" : "") + '">' + (n.diff ? '<code class="traj-diff traj-pin-target' + diffCls + '" data-traj-diff="1">' + esc(n.diff) + "</code>" : "—") + '</dd><dt>Artifact diff</dt><dd class="traj-artifact-diff" data-artifact-diff="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ">" + (hasDiffMeta ? '<span class="traj-diff-adds">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span> <span class="traj-diff-dels">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span>" : "—") + "</dd><dt>Note</dt><dd>" + esc(n.note || "—") + '</dd></dl><div class="traj-detail-hint">Neighbors stay lit · off-path deps dim · click a dep or next → hop to focus it</div><div class="traj-detail-ade-hop"><button type="button" class="ade-hop ade-passport-hl-hop" data-ade-passport-hl-hop="' + esc(n.id) + '" title="Show matching Passport rows for this Trace node">Show in Passport</button></div></aside>';
+    }
+    function announceTrajZoom(isFit) {
+      const live = document.getElementById("trajZoomLive");
+      if (!live) return;
+      const pctEl = document.getElementById("trajZoomPct");
+      const now2 = pctEl && pctEl.getAttribute("aria-valuenow") || String(Math.round((Number(trajScale) || 1) * 100));
+      const text = isFit ? "Trajectory zoom fit, " + now2 + "%" : "Trajectory zoom " + now2 + "%";
+      live.setAttribute("data-traj-zoom-live", "1");
+      live.setAttribute("data-traj-zoom-live-pct", now2);
+      if (isFit) live.setAttribute("data-traj-zoom-live-fit", "1");
+      else live.removeAttribute("data-traj-zoom-live-fit");
+      live.textContent = "";
+      requestAnimationFrame(() => {
+        const el2 = document.getElementById("trajZoomLive");
+        if (el2) el2.textContent = text;
+      });
+    }
+    function trajZoomPctLabel(scale) {
+      return Math.round((Number(scale) || 1) * 100) + "%";
+    }
+    function trajZoomBy(factor) {
+      const nodes = trajectoryFixture().nodes || [];
+      if (!nodes.length) return;
+      const next = Math.min(
+        TRAJ_SCALE_MAX,
+        Math.max(TRAJ_SCALE_MIN, (Number(trajScale) || 1) * (Number(factor) || 1))
+      );
+      if (Math.abs(next - trajScale) < 1e-6) return;
+      trajScale = next;
+      paint({ animate: "none" });
+    }
+    function trajZoomFit() {
+      const nodes = trajectoryFixture().nodes || [];
+      if (!nodes.length) {
+        trajScale = 1;
+        return;
+      }
+      if (Math.abs((Number(trajScale) || 1) - 1) < 1e-6) return;
+      trajScale = 1;
+      paint({ animate: "none" });
+    }
+    function renderTrajZoomBar() {
+      const scale = Number(trajScale) || 1;
+      const pct = trajZoomPctLabel(scale);
+      const now2 = Math.round(scale * 100);
+      const vmin = Math.round(TRAJ_SCALE_MIN * 100);
+      const vmax = Math.round(TRAJ_SCALE_MAX * 100);
+      return '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom"><button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button><span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1" tabindex="0" role="slider" aria-label="Trajectory zoom percentage" aria-valuemin="' + esc(String(vmin)) + '" aria-valuemax="' + esc(String(vmax)) + '" aria-valuenow="' + esc(String(now2)) + '" aria-valuetext="' + esc(pct) + '" aria-keyshortcuts="ArrowUp ArrowDown Home" title="Arrow keys zoom · Home fits">' + pct + '</span><button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button><button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button></span>';
+    }
+    function renderTrajectoryEmptyBody(fix) {
+      const title = fix.title || "Execution trajectory";
+      const sub = fix.subtitle || "No subtasks yet";
+      return '<div class="traj-page traj-page--empty" data-traj-empty="1"><div class="traj-strip"><span class="traj-strip-title">' + esc(title) + '</span><span class="traj-strip-sub">' + esc(sub) + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>0</b> done</span><span class="traj-stat" data-stat="running"><b>0</b> running</span><span class="traj-stat" data-stat="pending"><b>0</b> pending</span><span class="traj-stat" data-stat="deps"><b>0</b> deps</span></span>' + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' + esc(fix.id || "ade-empty-fixture") + '" data-empty="1" tabindex="0"><div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status"><b class="traj-empty-title">No trajectory nodes</b><div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div><div class="traj-empty-action">' + renderAdeHop("passport", "Open Passport →") + "</div></div></div>" + renderTrajectoryDetail(fix, "") + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '" data-empty="1">0 subtasks · 0 deps · empty fixture ' + esc(fix.id || "ade-empty-fixture") + (fix.version ? " v" + esc(String(fix.version)) : "") + " · Open Passport to continue</div></div>";
+    }
+    function renderTrajectoryBody() {
+      seedTrajectoryFocus();
+      seedPassportGate();
+      seedSealStatus();
+      const fix = trajectoryFixture();
+      const nodes = fix.nodes || [];
+      const edges = fix.edges || [];
+      if (!nodes.length) {
+        trajSelectedId = "";
+        trajPinFocus = "";
+        return renderTrajectoryEmptyBody(fix);
+      }
+      const nodeW = 188;
+      const nodeH = 96;
+      const selectedId = trajSelectedId && nodes.some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
+      if (!selectedId) trajPinFocus = "";
+      const near = trajNeighborIds(fix, selectedId);
+      const residualTrajs = passportResidualTrajIds();
+      const focusOn = !!selectedId;
+      const edgeLines = renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId);
       const nodeHtml = nodes.map((n) => {
         const art = n.artifact || "";
         const diff = n.diff || "";
-        return '<div class="traj-node status-' + esc(n.status || "pending") + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" style="left:' + n.x + "px;top:" + n.y + 'px"><div class="traj-label">' + esc(n.label || n.id) + "</div>" + (art ? '<div class="traj-pin artifact" title="artifact">' + esc(art) + "</div>" : "") + (diff ? '<div class="traj-pin diff" title="diff">' + esc(diff) + "</div>" : "") + "</div>";
+        const on2 = selectedId === n.id ? " on" : "";
+        const neighbor = focusOn && near.has(n.id) && selectedId !== n.id ? " neighbor" : "";
+        const adjResidual = focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id) ? " traj-adj-residual" : "";
+        const adjResidualAttr2 = focusOn && near.has(n.id) && selectedId !== n.id && residualTrajs.has(n.id) ? ' data-traj-adj-residual="1"' : "";
+        const residualBearing = residualTrajs.has(n.id);
+        const residualBearingAttr = residualBearing ? ' data-residual-bearing="1"' : "";
+        const residualFiltered = trajResidualFilter && !residualBearing;
+        const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
+        const residualFilteredAttr = residualFiltered ? ' data-residual-filtered="1"' : "";
+        const dim = focusOn && !near.has(n.id) ? " dim" : "";
+        const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
+        const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
+        const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
+        const depAttr = deps.join(",");
+        const adds = Number(n.adds);
+        const dels = Number(n.dels);
+        const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
+        const nodeInfo = trajNodeInfoLabel(n, fix);
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+          "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
+        ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
-      const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 40;
-      const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 40;
-      return '<div class="traj-page"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true">' + edgeLines + "</svg>" + nodeHtml + '</div><div class="traj-meta">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + "</div></div>";
+      const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
+      const nextOut = selectedNode ? trajOutgoingIds(fix, selectedId).slice(0, 3) : [];
+      const hopChipHtml = nextOut.map((to, i) => {
+        const tgt = nodes.find((n) => n.id === to);
+        const label = tgt && (tgt.label || tgt.id) || to;
+        const left = selectedNode.x + nodeW - 6;
+        const top = selectedNode.y + 10 + i * 24;
+        return '<button type="button" class="traj-hop-next" data-traj-next="' + esc(to) + '" data-ade-hop-next="1" data-from="' + esc(selectedId) + '" title="Hop to ' + esc(label) + '" aria-label="Next hop ' + esc(label) + '" style="left:' + left + "px;top:" + top + 'px"><span class="traj-next-arrow" aria-hidden="true">→</span><span class="traj-hop-next-label">' + esc(to) + "</span></button>";
+      }).join("");
+      const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 48;
+      const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 48;
+      const done = nodes.filter((n) => n.status === "done").length;
+      const running = nodes.filter((n) => n.status === "running").length;
+      const pending = nodes.filter((n) => n.status === "pending").length;
+      const edgeKinds = ["seq", "fork", "join"].filter(
+        (k) => edges.some((e) => (e.kind || "seq") === k)
+      );
+      const onPathKinds = /* @__PURE__ */ new Set();
+      if (focusOn) {
+        for (const e of edges) {
+          if (e.from === selectedId || e.to === selectedId) {
+            onPathKinds.add(e.kind || "seq");
+          }
+        }
+      }
+      const adjResidualKinds = /* @__PURE__ */ new Set();
+      let adjResidualCount = 0;
+      if (focusOn) {
+        for (const n of nodes) {
+          if (!near.has(n.id) || selectedId === n.id) continue;
+          if (!residualTrajs.has(n.id)) continue;
+          adjResidualCount += 1;
+          adjResidualKinds.add(n.kind || "task");
+        }
+      }
+      const hasAdjResidualLegend = focusOn && adjResidualCount > 0;
+      const adjResidualAttr = hasAdjResidualLegend ? ' data-adj-residual-count="' + String(adjResidualCount) + '"' : "";
+      const adjResidualChips = hasAdjResidualLegend ? Array.from(adjResidualKinds).sort().map((k) => {
+        return '<span class="traj-legend-chip adj-residual kind-' + esc(k) + '" data-node-kind="' + esc(k) + '" data-adj-residual="1" title="Adjacent residual ' + esc(k) + '"><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5" stroke-dasharray="2 2"></line></svg><span class="traj-legend-label">adj ' + esc(k) + "</span></span>";
+      }).join("") : "";
+      const passportFx = getPassport();
+      const passportWrites = Array.isArray(passportFx && passportFx.gatedWrites) ? passportFx.gatedWrites : [];
+      const focusResidualN = focusOn ? passportWrites.filter((w) => {
+        const tid = resolvePassportTrajId(w);
+        return !!(tid && near.has(tid));
+      }).length : 0;
+      const hasFocusResidualLegend = focusOn && focusResidualN > 0;
+      const focusResidualScopeAttr = hasFocusResidualLegend ? ' data-residual-scope="focus" data-residual-focus="' + esc(selectedId) + '" data-focus-residual-count="' + esc(String(focusResidualN)) + '"' : ' data-residual-scope="global"';
+      const focusResidualGate = passportGateState();
+      const focusResidualLabel = focusResidualGate === "approved" ? "focus open · " + focusResidualN : "focus residual · " + focusResidualN;
+      const focusResidualChip = hasFocusResidualLegend ? '<span class="traj-legend-chip focus-residual" data-focus-residual="1" data-residual-scope="focus" data-residual-focus="' + esc(selectedId) + '" data-focus-residual-count="' + esc(String(focusResidualN)) + '" data-residual-state="' + esc(focusResidualGate) + '" title="' + esc(focusResidualLabel) + '"><span class="traj-legend-focus-residual-badge">' + esc(String(focusResidualN)) + '</span><span class="traj-legend-label">' + esc(focusResidualLabel) + "</span></span>" : "";
+      const residualFilterAttr = trajResidualFilter ? ' data-residual-filter="on"' : "";
+      const residualFilterToggle = '<button type="button" class="traj-legend-chip residual-filter-toggle" data-residual-filter-toggle="1" aria-pressed="' + (trajResidualFilter ? "true" : "false") + '" title="Show residual-bearing nodes only" aria-label="Toggle residual-bearing filter"><span class="traj-legend-label">' + (trajResidualFilter ? "residuals on" : "residuals") + "</span></button>";
+      const legendClearFilterCue = trajResidualFilter && residualTrajs.size > 0 ? '<button type="button" class="traj-legend-chip legend-clear-filter" data-legend-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>' : "";
+      const filterResidualN = residualTrajs.size;
+      const hasResidualFilterCount = trajResidualFilter && filterResidualN > 0;
+      const residualFilterCountAttr = hasResidualFilterCount ? ' data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterResidualN)) + '"' : "";
+      const residualFilterCountChip = hasResidualFilterCount ? '<span class="traj-legend-chip residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterResidualN)) + '" tabindex="0" role="status" title="Residual filter matches ' + esc(String(filterResidualN)) + '. Clear filter or Escape to clear" aria-label="Residual filter matches ' + esc(String(filterResidualN)) + '. Clear filter or Escape to clear"><span class="traj-legend-filter-residual-badge">' + esc(String(filterResidualN)) + '</span><span class="traj-legend-label">filter · ' + esc(String(filterResidualN)) + "</span></span>" : "";
+      const edgeLegend = edgeKinds.length === 0 && !hasAdjResidualLegend && !hasFocusResidualLegend ? "" : '<div id="trajEdgeLegend" class="traj-edge-legend" aria-label="Trajectory edge kinds"' + adjResidualAttr + focusResidualScopeAttr + residualFilterAttr + residualFilterCountAttr + ">" + edgeKinds.map((k) => {
+        const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
+        return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
+      }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + residualFilterCountChip + legendClearFilterCue + "</div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -28018,6 +28961,1298 @@
       canvas.className = "play explorer-list traj";
       canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
       setZoomUi(false);
+      if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
+    }
+    function stepTrajectory(dir) {
+      const nodes = trajectoryFixture().nodes || [];
+      if (!nodes.length) return;
+      let i = nodes.findIndex((n) => n.id === trajSelectedId);
+      if (i < 0) i = dir > 0 ? -1 : 0;
+      i = (i + dir + nodes.length) % nodes.length;
+      trajSelectedId = nodes[i].id;
+      trajPinFocus = "";
+      syncAdeDeepLink("trace");
+      paint({ animate: "none" });
+    }
+    function trajPinTipEl() {
+      let el2 = document.getElementById("trajPinTip");
+      if (!el2) {
+        el2 = document.createElement("div");
+        el2.id = "trajPinTip";
+        el2.hidden = true;
+        el2.setAttribute("data-traj-pin-tip", "1");
+        el2.setAttribute("role", "tooltip");
+        document.body.appendChild(el2);
+      }
+      return el2;
+    }
+    function hideTrajPinTip() {
+      if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
+      const el2 = document.getElementById("trajPinTip");
+      if (!el2) return;
+      el2.hidden = true;
+      el2.removeAttribute("data-pin-kind");
+      el2.removeAttribute("data-node-id");
+      el2.removeAttribute("data-adds");
+      el2.removeAttribute("data-dels");
+      el2.removeAttribute("data-tip-place");
+      el2.removeAttribute("data-tip-residual");
+      el2.removeAttribute("data-residual-status");
+      el2.removeAttribute("data-residual-deps");
+      el2.removeAttribute("data-residual-hops");
+      el2.removeAttribute("data-residual-seal");
+      el2.innerHTML = "";
+    }
+    function positionTrajPinTip(el2, ev, pin) {
+      const margin = 10;
+      const tipW = el2.offsetWidth || 180;
+      const tipH = el2.offsetHeight || 64;
+      let x;
+      let y;
+      if (pin && typeof pin.getBoundingClientRect === "function") {
+        const r = pin.getBoundingClientRect();
+        x = r.left + r.width / 2 - tipW / 2;
+        y = r.bottom + 8;
+        if (y + tipH > window.innerHeight - margin) {
+          y = r.top - tipH - 8;
+          el2.setAttribute("data-tip-place", "above");
+        } else {
+          el2.setAttribute("data-tip-place", "below");
+        }
+      } else {
+        x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+        y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+        el2.setAttribute("data-tip-place", "cursor");
+      }
+      x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+      y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+      el2.style.left = x + "px";
+      el2.style.top = y + "px";
+    }
+    function showTrajPinTip(pin, node, ev) {
+      if (!pin || !node || !ev) return;
+      if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
+      const el2 = trajPinTipEl();
+      const kind = pin.getAttribute("data-traj-pin") || "";
+      const id2 = node.getAttribute("data-id") || "";
+      const art = node.getAttribute("data-artifact") || "";
+      const diff = node.getAttribute("data-diff") || "";
+      const addsRaw = pin.getAttribute("data-adds");
+      const delsRaw = pin.getAttribute("data-dels");
+      const addsAttr = addsRaw !== null && addsRaw !== "" ? addsRaw : node.getAttribute("data-adds") || "";
+      const delsAttr = delsRaw !== null && delsRaw !== "" ? delsRaw : node.getAttribute("data-dels") || "";
+      const adds = Number(addsAttr);
+      const dels = Number(delsAttr);
+      const hasCounts = Number.isFinite(adds) || Number.isFinite(dels);
+      el2.setAttribute("data-pin-kind", kind);
+      el2.setAttribute("data-node-id", id2);
+      if (Number.isFinite(adds)) el2.setAttribute("data-adds", String(adds));
+      else el2.removeAttribute("data-adds");
+      if (Number.isFinite(dels)) el2.setAttribute("data-dels", String(dels));
+      else el2.removeAttribute("data-dels");
+      let html = '<div class="traj-pin-tip-head"><span class="traj-pin-tip-kind">' + esc(kind || "pin") + "</span>";
+      if (kind === "diff" && diff) {
+        html += '<code class="traj-pin-tip-diff-label" data-tip-diff="' + esc(diff) + '">' + esc(diff) + "</code>";
+      }
+      html += "</div>";
+      if (kind === "diff" || hasCounts) {
+        html += '<div class="traj-pin-tip-counts" data-tip-counts="1"><span class="traj-pin-tip-chip traj-pin-tip-chip-add traj-diff-adds" data-tip-adds="1">+' + esc(String(Number.isFinite(adds) ? adds : 0)) + '</span><span class="traj-pin-tip-chip traj-pin-tip-chip-del traj-diff-dels" data-tip-dels="1">−' + esc(String(Number.isFinite(dels) ? dels : 0)) + "</span></div>";
+      }
+      if (art) {
+        const slash = art.lastIndexOf("/");
+        const dir = slash >= 0 ? art.slice(0, slash + 1) : "";
+        const base = slash >= 0 ? art.slice(slash + 1) : art;
+        html += '<code class="traj-pin-tip-art" data-tip-artifact="1" title="' + esc(art) + '">';
+        if (dir) {
+          html += '<span class="traj-pin-tip-art-dir" data-tip-art-dir="1">' + esc(dir) + "</span>";
+        }
+        html += '<span class="traj-pin-tip-art-base" data-tip-art-base="1">' + esc(base) + "</span></code>";
+      }
+      const fix = trajectoryFixture();
+      const nodes = fix.nodes || [];
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      const fxNode = byId.get(id2) || null;
+      const status2 = fxNode && fxNode.status || "pending";
+      const depIds = fxNode && Array.isArray(fxNode.deps) ? fxNode.deps : [];
+      let unmetDeps = 0;
+      for (const d of depIds) {
+        const dep = byId.get(d);
+        const st2 = dep && dep.status || "pending";
+        if (st2 !== "done") unmetDeps += 1;
+      }
+      const hops = trajOutgoingIds(fix, id2).length;
+      const artPath = fxNode && fxNode.artifact || art || "";
+      const sealHint = !!(fxNode && fxNode.kind === "harness" || /seal|immutable/i.test(String(id2) + " " + artPath));
+      el2.setAttribute("data-tip-residual", "1");
+      el2.setAttribute("data-residual-status", status2);
+      el2.setAttribute("data-residual-deps", String(unmetDeps));
+      el2.setAttribute("data-residual-hops", String(hops));
+      if (sealHint) el2.setAttribute("data-residual-seal", "1");
+      else el2.removeAttribute("data-residual-seal");
+      const residualCopy = unmetDeps + " dep" + (unmetDeps === 1 ? "" : "s") + " left · " + hops + " hop" + (hops === 1 ? "" : "s") + (sealHint ? " · seal" : "");
+      html += '<div class="traj-pin-tip-residual" data-tip-residual="1" data-residual-status="' + esc(status2) + '" data-residual-deps="' + esc(String(unmetDeps)) + '" data-residual-hops="' + esc(String(hops)) + '"' + (sealHint ? ' data-residual-seal="1"' : "") + '><span class="traj-pin-tip-residual-badge">' + esc(status2) + '</span><span class="traj-pin-tip-residual-copy">' + esc(residualCopy) + "</span></div>";
+      el2.innerHTML = html;
+      el2.hidden = false;
+      positionTrajPinTip(el2, ev, pin);
+    }
+    function trajEdgeTipEl() {
+      let el2 = document.getElementById("trajEdgeTip");
+      if (!el2) {
+        el2 = document.createElement("div");
+        el2.id = "trajEdgeTip";
+        el2.hidden = true;
+        el2.setAttribute("data-traj-edge-tip", "1");
+        el2.setAttribute("role", "tooltip");
+        document.body.appendChild(el2);
+      }
+      return el2;
+    }
+    function hideTrajEdgeTip() {
+      const el2 = document.getElementById("trajEdgeTip");
+      if (!el2) return;
+      el2.hidden = true;
+      el2.removeAttribute("data-edge-id");
+      el2.removeAttribute("data-from");
+      el2.removeAttribute("data-to");
+      el2.removeAttribute("data-kind");
+      el2.removeAttribute("data-label");
+      el2.removeAttribute("data-latency");
+      el2.removeAttribute("data-tip-place");
+      el2.innerHTML = "";
+    }
+    function positionTrajEdgeTip(el2, ev, edge) {
+      const margin = 10;
+      const tipW = el2.offsetWidth || 160;
+      const tipH = el2.offsetHeight || 48;
+      let x;
+      let y;
+      if (edge && typeof edge.getBoundingClientRect === "function") {
+        const r = edge.getBoundingClientRect();
+        x = r.left + r.width / 2 - tipW / 2;
+        y = r.bottom + 8;
+        if (y + tipH > window.innerHeight - margin) {
+          y = r.top - tipH - 8;
+          el2.setAttribute("data-tip-place", "above");
+        } else {
+          el2.setAttribute("data-tip-place", "below");
+        }
+      } else {
+        x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+        y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+        el2.setAttribute("data-tip-place", "cursor");
+      }
+      x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+      y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+      el2.style.left = x + "px";
+      el2.style.top = y + "px";
+    }
+    function showTrajEdgeTip(edge, ev) {
+      if (!edge || !ev) return;
+      const pin = document.getElementById("trajPinTip");
+      if (pin && !pin.hidden) {
+        pin.hidden = true;
+        pin.innerHTML = "";
+      }
+      const el2 = trajEdgeTipEl();
+      const id2 = edge.getAttribute("data-edge-id") || "";
+      const from = edge.getAttribute("data-from") || "";
+      const to = edge.getAttribute("data-to") || "";
+      const kind = edge.getAttribute("data-kind") || "";
+      const label = edge.getAttribute("data-label") || "";
+      el2.setAttribute("data-edge-id", id2);
+      el2.setAttribute("data-from", from);
+      el2.setAttribute("data-to", to);
+      el2.setAttribute("data-kind", kind);
+      if (label) el2.setAttribute("data-label", label);
+      else el2.removeAttribute("data-label");
+      let latencyRaw = edge.getAttribute("data-latency") || "";
+      if (!latencyRaw) {
+        const fix = typeof trajectoryFixture === "function" ? trajectoryFixture() : null;
+        const fxEdge = (fix && fix.edges || []).find((x) => x && x.id === id2);
+        if (fxEdge && Number.isFinite(Number(fxEdge.latencyMs)) && Number(fxEdge.latencyMs) > 0) {
+          latencyRaw = String(fxEdge.latencyMs);
+        }
+      }
+      const latencyMs = Number(latencyRaw);
+      const hasLatency = Number.isFinite(latencyMs) && latencyMs > 0;
+      if (hasLatency) el2.setAttribute("data-latency", String(latencyMs));
+      else el2.removeAttribute("data-latency");
+      const headBits = [];
+      if (kind) headBits.push(kind);
+      if (label) headBits.push(label);
+      const head = headBits.join(" · ") || "edge";
+      const hop = from && to ? from + " → " + to : from || to || "";
+      let html = '<div class="traj-edge-tip-head"><span class="traj-edge-tip-kind" data-tip-edge-kind="1">' + esc(kind || "edge") + "</span>";
+      if (label) {
+        html += '<span class="traj-edge-tip-label" data-tip-edge-label="1">' + esc(label) + "</span>";
+      }
+      html += "</div>";
+      if (hop) {
+        html += '<div class="traj-edge-tip-hop" data-tip-edge-hop="1"><code data-tip-from="1">' + esc(from) + '</code><span class="traj-edge-tip-arrow" aria-hidden="true">→</span><code data-tip-to="1">' + esc(to) + "</code></div>";
+      }
+      if (hasLatency) {
+        html += '<div class="traj-edge-tip-meta" data-tip-edge-meta="1"><span class="traj-edge-tip-chip traj-edge-tip-chip--latency" data-tip-edge-latency="1">' + esc(String(latencyMs)) + "ms</span></div>";
+      }
+      el2.setAttribute(
+        "data-tip-copy",
+        head + (hop ? " · " + hop : "") + (hasLatency ? " · " + latencyMs + "ms" : "")
+      );
+      el2.innerHTML = html;
+      el2.hidden = false;
+      positionTrajEdgeTip(el2, ev, edge);
+    }
+    function clearTrajFocus() {
+      trajSelectedId = "";
+      trajPinFocus = "";
+      hideTrajPinTip();
+      if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
+      if (typeof window !== "undefined") window.__graphideTrajectoryFocus = "";
+      syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
+      paint({ animate: "none" });
+    }
+    function focusTrajectoryDep(depId) {
+      const id2 = String(depId || "");
+      if (!id2) return false;
+      const nodes = trajectoryFixture().nodes || [];
+      if (!nodes.some((n) => n.id === id2)) return false;
+      trajSelectedId = id2;
+      trajPinFocus = "";
+      syncAdeDeepLink("trace");
+      paint({ animate: "none" });
+      return true;
+    }
+    function hopTrajectoryNext(nextId) {
+      return focusTrajectoryDep(nextId);
+    }
+    function bindTrajectoryPage() {
+      const host = document.getElementById("trajCanvas");
+      if (!host) return;
+      hideTrajPinTip();
+      if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
+      host.querySelectorAll(".traj-node").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          const pin = ev.target && ev.target.closest ? ev.target.closest("[data-traj-pin]") : null;
+          const id2 = el2.getAttribute("data-id") || "";
+          if (pin) {
+            const kind = pin.getAttribute("data-traj-pin") || "";
+            if (trajSelectedId === id2 && trajPinFocus === kind) {
+              trajPinFocus = "";
+            } else {
+              trajSelectedId = id2;
+              trajPinFocus = kind === "artifact" || kind === "diff" ? kind : "";
+            }
+          } else if (trajSelectedId === id2) {
+            trajSelectedId = "";
+            trajPinFocus = "";
+          } else {
+            trajSelectedId = id2;
+            trajPinFocus = "";
+          }
+          hideTrajPinTip();
+          syncAdeDeepLink("trace");
+          paint({ animate: "none" });
+        };
+      });
+      host.querySelectorAll(".traj-pin[data-tip-ready]").forEach((pin) => {
+        const node = pin.closest(".traj-node");
+        if (!node) return;
+        pin.onpointerenter = (ev) => {
+          ev.stopPropagation();
+          showTrajPinTip(pin, node, ev);
+        };
+        pin.onpointermove = (ev) => {
+          const tipEl = document.getElementById("trajPinTip");
+          if (tipEl && !tipEl.hidden) positionTrajPinTip(tipEl, ev, pin);
+        };
+        pin.onpointerleave = () => hideTrajPinTip();
+      });
+      host.querySelectorAll("svg.traj-edges path.traj-edge[data-edge-id]").forEach((edge) => {
+        edge.onpointerenter = (ev) => {
+          ev.stopPropagation();
+          showTrajEdgeTip(edge, ev);
+        };
+        edge.onpointermove = (ev) => {
+          const tipEl = document.getElementById("trajEdgeTip");
+          if (tipEl && !tipEl.hidden) positionTrajEdgeTip(tipEl, ev, edge);
+        };
+        edge.onpointerleave = () => hideTrajEdgeTip();
+      });
+      host.onclick = () => {
+        if (document.activeElement !== host) host.focus({ preventScroll: true });
+      };
+      const zin = document.getElementById("trajZoomIn");
+      const zout = document.getElementById("trajZoomOut");
+      const zfit = document.getElementById("trajZoomFit");
+      if (zin) zin.onclick = (ev) => {
+        ev.preventDefault();
+        trajZoomBy(TRAJ_SCALE_STEP);
+      };
+      if (zout) zout.onclick = (ev) => {
+        ev.preventDefault();
+        trajZoomBy(1 / TRAJ_SCALE_STEP);
+      };
+      if (zfit) zfit.onclick = (ev) => {
+        ev.preventDefault();
+        trajZoomFit();
+      };
+      const zpct = document.getElementById("trajZoomPct");
+      if (zpct) {
+        zpct.onkeydown = (ev) => {
+          let acted = false;
+          if (ev.key === "ArrowUp" || ev.key === "ArrowRight") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomBy(TRAJ_SCALE_STEP);
+            acted = true;
+          } else if (ev.key === "ArrowDown" || ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomBy(1 / TRAJ_SCALE_STEP);
+            acted = true;
+          } else if (ev.key === "Home") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            trajZoomFit();
+            acted = true;
+          }
+          if (!acted) return;
+          const el2 = document.getElementById("trajZoomPct");
+          if (el2 && typeof el2.focus === "function") {
+            try {
+              el2.focus({ preventScroll: true });
+            } catch (_err) {
+            }
+          }
+          if (typeof announceTrajZoom === "function") {
+            announceTrajZoom(ev.key === "Home");
+          }
+        };
+      }
+      const residualFilterBtn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (residualFilterBtn) {
+        residualFilterBtn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleTrajResidualFilter();
+        };
+      }
+      document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter("clear-chip");
+        };
+      });
+      document.querySelectorAll('#trajEdgeLegend [data-legend-clear-filter="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter("clear-chip");
+        };
+      });
+      if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+      bindAdeHopButtons();
+      bindAdePassportHlHops();
+      const detail = document.getElementById("trajDetail");
+      if (detail) {
+        const onDepActivate = (ev) => {
+          const chip = ev.target && ev.target.closest ? ev.target.closest("[data-traj-dep]") : null;
+          if (!chip || !detail.contains(chip)) return;
+          const id2 = chip.getAttribute("data-traj-dep") || "";
+          if (!id2) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          focusTrajectoryDep(id2);
+        };
+        detail.querySelectorAll("[data-traj-dep]").forEach((chip) => {
+          chip.onclick = onDepActivate;
+          chip.onkeydown = (ev) => {
+            if (ev.key !== "Enter" && ev.key !== " ") return;
+            onDepActivate(ev);
+          };
+        });
+      }
+      const onNextActivate = (ev) => {
+        const chip = ev.target && ev.target.closest ? ev.target.closest("[data-traj-next]") : null;
+        if (!chip) return;
+        const id2 = chip.getAttribute("data-traj-next") || "";
+        if (!id2) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        hopTrajectoryNext(id2);
+      };
+      document.querySelectorAll("[data-traj-next]").forEach((chip) => {
+        chip.onclick = onNextActivate;
+        chip.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          onNextActivate(ev);
+        };
+      });
+    }
+    const PASSPORT_STATES = { pending: 1, approved: 1, rejected: 1 };
+    const PASSPORT_FIXTURE = Object.freeze({
+      version: 2,
+      id: "passport-ade-phase-1.2-fixtures",
+      title: "Plan Passport — ADE Phase 1.2 richer fixtures",
+      status: "pending",
+      summary: "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
+      targets: [
+        {
+          id: "t1",
+          label: "Passport paint + bind",
+          path: "extension/media/src/graph/desk.js",
+          traj: "sub-edit",
+          layer: "architecture",
+          deltaStatus: "Changed",
+          impact: "Richer row chrome + impact cards"
+        },
+        {
+          id: "t2",
+          label: "Explorer Passport tab",
+          path: "extension/media/src/chrome/GraphBar.jsx",
+          layer: "chrome",
+          impact: "Sibling tab order unchanged",
+          clusterKind: "Stable"
+        },
+        {
+          id: "t3",
+          label: "Harness + verify gate",
+          path: "scripts/verify-graphide.js",
+          traj: "sub-verify",
+          layer: "harness",
+          deltaStatus: "Added",
+          impact: "PF1–PF5 fixture drivers"
+        },
+        {
+          id: "t4",
+          label: "Trace DAG polish",
+          path: "extension/media/src/graph/trajectory-fixture.js",
+          traj: "sub-fixture",
+          layer: "trace",
+          impact: "A1a semantics preserved",
+          clusterKind: "Stable"
+        },
+        {
+          id: "t5",
+          label: "Passport fixture JSON",
+          path: "extension/scripts/passport-fixture.json",
+          traj: "sub-passport",
+          layer: "harness",
+          deltaStatus: "Changed",
+          impact: "Sim rows for architecture/API/risk/test"
+        }
+      ],
+      contracts: [
+        {
+          id: "c1",
+          kind: "function",
+          name: "paintPassportWorkspace",
+          sig: "(title) => void",
+          stability: "draft",
+          deltaClass: "Presentation",
+          breaking: false,
+          change: "Renders enriched fixture rows",
+          traj: "sub-passport"
+        },
+        {
+          id: "c2",
+          kind: "function",
+          name: "getPassport",
+          sig: "() => PassportFixture",
+          stability: "draft",
+          deltaClass: "Semantic",
+          breaking: false,
+          change: "Accepts version-2 richer fields"
+        },
+        {
+          id: "c3",
+          kind: "function",
+          name: "setPassportGate",
+          sig: "(state) => void",
+          stability: "draft",
+          deltaClass: "Topology",
+          breaking: false,
+          change: "Gate state fixture-only",
+          traj: "sub-edit"
+        },
+        {
+          id: "c4",
+          kind: "function",
+          name: "bindTrajectoryPage",
+          sig: "() => void",
+          stability: "draft",
+          deltaClass: "Topology",
+          breaking: false,
+          change: "Trace bind unchanged (A1a)",
+          traj: "sub-fixture"
+        },
+        {
+          id: "c5",
+          kind: "function",
+          name: "renderPassportImpact",
+          sig: "(fx) => string",
+          stability: "draft",
+          deltaClass: "Presentation",
+          breaking: false,
+          change: "Structured impact rows + Delta chips",
+          traj: "sub-passport"
+        }
+      ],
+      risks: [
+        {
+          id: "r1",
+          level: "high",
+          area: "gate-state writes",
+          note: "must never touch .graphide/stamps/",
+          mitigation: "setPassportGate is in-memory only",
+          blast: ".graphide/stamps/",
+          traj: "sub-passport"
+        },
+        {
+          id: "r2",
+          level: "med",
+          area: "agent write ordering",
+          note: "file writes stay blocked until Approve",
+          mitigation: "gatedWrites stay data-blocked until approved",
+          blast: "extension/media/**",
+          traj: "sub-edit"
+        },
+        {
+          id: "r3",
+          level: "low",
+          area: "explorer tab ordering",
+          note: "Passport remains click-only",
+          mitigation: "no digit-key binding",
+          blast: "#workspaces"
+        },
+        {
+          id: "r4",
+          level: "med",
+          area: "A1a semantics",
+          note: "Trace polish must keep trajectory-dag host + pin attrs",
+          mitigation: "This slice does not edit Trace paint/bind",
+          blast: "#trajCanvas",
+          traj: "sub-fixture"
+        },
+        {
+          id: "r5",
+          level: "med",
+          area: "live Delta mount",
+          note: "Impact must stay vocabulary stub",
+          mitigation: "No #deltaCanvas under #passportPage",
+          blast: "#passportImpact",
+          traj: "sub-passport"
+        }
+      ],
+      testStrategy: [
+        {
+          id: "p1",
+          kind: "assert",
+          desc: "tab present, click-only (no digit key)",
+          fixture: "?passport=1&ws=passport",
+          covers: "chrome",
+          traj: "sub-passport"
+        },
+        {
+          id: "p2",
+          kind: "assert",
+          desc: "gate banner starts pending with blocked paths",
+          fixture: "P3",
+          covers: "gate"
+        },
+        {
+          id: "p3",
+          kind: "e2e",
+          desc: "Approve unlocks gate fixture state; Reject re-blocks",
+          fixture: "P6",
+          covers: "gate",
+          traj: "sub-verify"
+        },
+        {
+          id: "p4",
+          kind: "assert",
+          desc: "impact stub keeps Architecture Delta vocabulary text",
+          fixture: "P5",
+          covers: "impact"
+        },
+        {
+          id: "p5",
+          kind: "assert",
+          desc: "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
+          fixture: "P5b",
+          covers: "impact",
+          traj: "sub-edit"
+        },
+        {
+          id: "p6",
+          kind: "assert",
+          desc: "architecture/API/risk/test rows expose layer·delta·mitigation·fixture fields",
+          fixture: "PF1–PF5",
+          covers: "targets,contracts,risks,tests,impact",
+          traj: "sub-fixture"
+        }
+      ],
+      gatedWrites: [
+        {
+          path: "extension/media/src/graph/desk.js",
+          traj: "sub-edit",
+          reason: "agent would edit paint/bind"
+        },
+        {
+          path: "extension/media/src/chrome/GraphBar.jsx",
+          reason: "agent would add chrome"
+        },
+        {
+          path: "extension/media/main.css",
+          reason: "agent would restyle passport"
+        },
+        {
+          path: "extension/media/src/graph/trajectory-fixture.js",
+          traj: "sub-fixture",
+          reason: "agent would reshape Trace fixture"
+        },
+        {
+          path: "extension/scripts/passport-fixture.json",
+          traj: "sub-passport",
+          reason: "agent would reshape Passport sim"
+        }
+      ],
+      impact: {
+        callGraphs: [
+          {
+            id: "cg1",
+            traj: "sub-edit",
+            label: "paintPassportWorkspace ← renderExplorerList(ws)",
+            detail: "Explorer list paint owns Passport page mount",
+            deltaStatus: "Changed",
+            deltaClass: "Topology"
+          },
+          {
+            id: "cg2",
+            label: "setPassportGate ← #passportSign Approve/Reject",
+            detail: "Sign-off flips gate without disk writes",
+            deltaClass: "Semantic",
+            clusterKind: "Stable"
+          },
+          {
+            id: "cg3",
+            label: "bindTrajectoryPage ← renderExplorerList(trace)",
+            detail: "Trace bind stays on A1a path",
+            deltaClass: "Topology",
+            clusterKind: "Stable"
+          },
+          {
+            id: "cg4",
+            label: "renderPassportImpact ← renderPassportBody",
+            detail: "Structured rows + Delta vocab chips",
+            deltaStatus: "Added",
+            deltaClass: "Presentation"
+          },
+          "legacy string impact row (static chrome)"
+        ],
+        apiContracts: [
+          {
+            id: "ac1",
+            traj: "sub-verify",
+            label: "getPassport() → PASSPORT_FIXTURE | window.__graphidePassport",
+            detail: "Harness ?passport=1 may override embedded fixture",
+            deltaStatus: "Changed",
+            deltaClass: "Semantic"
+          },
+          {
+            id: "ac2",
+            label: "PASSPORT_GATE ∈ pending|approved|rejected",
+            detail: "URL ?gate= seeds + replaceState sync",
+            deltaClass: "Semantic",
+            clusterKind: "Stable"
+          },
+          {
+            id: "ac3",
+            label: "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
+            detail: "A1a pin attrs untouched by Passport enrich",
+            deltaClass: "Topology",
+            clusterKind: "Stable"
+          }
+        ],
+        invariants: [
+          {
+            id: "inv1",
+            label: "no digit-key binding for passport",
+            detail: "Click-only workspace tab",
+            deltaClass: "Presentation",
+            clusterKind: "Stable"
+          },
+          {
+            id: "inv2",
+            label: "gate state fixture-only (no .graphide/stamps/)",
+            detail: "Approve never posts stamps",
+            deltaClass: "Semantic",
+            clusterKind: "Stable"
+          },
+          {
+            id: "inv3",
+            label: "Architecture Delta vocabulary in #passportDeltaVocab stub only",
+            detail: "No live #deltaCanvas mount on Passport",
+            deltaClass: "Presentation",
+            clusterKind: "Stable"
+          },
+          {
+            id: "inv4",
+            label: "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
+            detail: "A1a host preserved",
+            deltaClass: "Topology",
+            clusterKind: "Stable"
+          },
+          {
+            id: "inv5",
+            label: "no live #deltaCanvas mount on Passport",
+            detail: "Impact readability uses vocabulary chips only",
+            deltaClass: "Presentation",
+            clusterKind: "Stable"
+          }
+        ],
+        deltaVocab: {
+          statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
+          classes: ["Semantic", "Topology", "Presentation"],
+          clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
+          regions: [
+            {
+              id: "structural",
+              label: "Structural delta",
+              detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+            },
+            {
+              id: "impact",
+              label: "Impact regions",
+              detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
+            },
+            {
+              id: "community",
+              label: "Cluster continuity",
+              detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+            }
+          ]
+        }
+      }
+    });
+    const DELTA_VOCAB_DEFAULT = Object.freeze({
+      statuses: ["Added", "Removed", "Changed", "Moved", "Rerouted"],
+      classes: ["Semantic", "Topology", "Presentation"],
+      clusterKinds: ["Stable", "Split", "Merge", "Relabel", "Added", "Removed"],
+      regions: [
+        {
+          id: "structural",
+          label: "Structural delta",
+          detail: "Pair by (kind, fqn). Exact facts only — no blast radius or merge safety."
+        },
+        {
+          id: "impact",
+          label: "Impact regions",
+          detail: "Plan-projected call graphs, API contracts, and invariants before agent writes."
+        },
+        {
+          id: "community",
+          label: "Cluster continuity",
+          detail: "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+        }
+      ]
+    });
+    let passportGate = "pending";
+    let passportGateSeeded = false;
+    const SEAL_STATES = { sealed: 1, open: 1, unlock: 1 };
+    let sealStatus = "sealed";
+    let sealStatusSeeded = false;
+    function normalizeSealStatus(raw) {
+      const s = String(raw || "").trim().toLowerCase();
+      if (s === "agent") return "open";
+      if (SEAL_STATES[s]) return s;
+      return "";
+    }
+    function seedSealStatus() {
+      let want = typeof window !== "undefined" && window.__graphideSealStatus || "";
+      if (!want && !sealStatusSeeded && typeof location !== "undefined") {
+        try {
+          want = new URLSearchParams(location.search || "").get("seal") || "";
+        } catch (_err) {
+          want = "";
+        }
+      }
+      const norm = normalizeSealStatus(want);
+      if (norm) sealStatus = norm;
+      sealStatusSeeded = true;
+    }
+    function sealStatusState() {
+      return SEAL_STATES[sealStatus] ? sealStatus : "sealed";
+    }
+    function sealStatusLabel(state) {
+      if (state === "open") return "OPEN · agent";
+      if (state === "unlock") return "UNLOCK · ADE_ALLOW";
+      return "SEALED";
+    }
+    function sealStatusInfoLabel(state) {
+      return "Immutable seal / write-gate stub (fixture): " + sealStatusLabel(state);
+    }
+    function renderSealStatusChip() {
+      seedSealStatus();
+      const state = sealStatusState();
+      const label = sealStatusLabel(state);
+      const info = sealStatusInfoLabel(state);
+      return '<span id="adeSealChip" class="ade-seal-chip traj-status-chip" data-seal-state="' + esc(state) + '" data-seal-info="' + esc(info) + '" role="status" title="' + esc(info) + '" aria-label="' + esc(info) + '">' + esc(label) + "</span>";
+    }
+    function setSealStatus(state) {
+      const norm = normalizeSealStatus(state) || "sealed";
+      sealStatus = norm;
+      sealStatusSeeded = true;
+      if (typeof window !== "undefined") window.__graphideSealStatus = norm;
+      syncAdeDeepLink(explorerWs === "passport" ? "passport" : "trace");
+      paint({ animate: "none" });
+    }
+    function seedPassportGate() {
+      if (passportGateSeeded) return;
+      passportGateSeeded = true;
+      let want = typeof window !== "undefined" && window.__graphidePassportGate || "";
+      if (!want && typeof location !== "undefined") {
+        try {
+          want = new URLSearchParams(location.search || "").get("gate") || "";
+        } catch (_err) {
+          want = "";
+        }
+      }
+      if (PASSPORT_STATES[want]) passportGate = want;
+    }
+    function renderAdeHop(target, label) {
+      return '<button type="button" class="ade-hop" data-ade-hop="' + esc(target) + '" title="Hop Trace↔Passport with traj/gate context">' + esc(label) + "</button>";
+    }
+    function syncAdeDeepLink(wsOverride) {
+      seedPassportGate();
+      seedSealStatus();
+      if (typeof history === "undefined" || !history.replaceState) return;
+      if (typeof location === "undefined") return;
+      let cur;
+      try {
+        cur = new URLSearchParams(location.search || "");
+      } catch (_err) {
+        return;
+      }
+      const onAde = cur.get("trace") === "1" || cur.get("passport") === "1" || explorerWs === "trace" || explorerWs === "passport";
+      if (!onAde) return;
+      const q2 = new URLSearchParams(location.search || "");
+      q2.set("trace", "1");
+      q2.set("passport", "1");
+      const ws = wsOverride || explorerWs;
+      if (ws === "trace" || ws === "passport") q2.set("ws", ws);
+      if (trajSelectedId) q2.set("traj", trajSelectedId);
+      else q2.delete("traj");
+      q2.set("gate", passportGateState());
+      q2.set("seal", sealStatusState());
+      const next = location.pathname + "?" + q2.toString() + (location.hash || "");
+      const prev = location.pathname + location.search + (location.hash || "");
+      if (next !== prev) history.replaceState(null, "", next);
+      if (typeof window !== "undefined") {
+        window.__graphideTrajectoryFocus = trajSelectedId || "";
+        window.__graphidePassportGate = passportGateState();
+        window.__graphideSealStatus = sealStatusState();
+      }
+    }
+    function hopAdeWorkspace(target) {
+      if (target !== "trace" && target !== "passport") return;
+      syncAdeDeepLink(target);
+      setWorkspace(target);
+    }
+    function bindAdeHopButtons() {
+      document.querySelectorAll("[data-ade-hop]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          hopAdeWorkspace(btn.getAttribute("data-ade-hop") || "");
+        };
+      });
+    }
+    function trajIdExists(id2) {
+      if (!id2) return false;
+      const nodes = trajectoryFixture().nodes || [];
+      return nodes.some((n) => n && n.id === id2);
+    }
+    function resolvePassportTrajId(row) {
+      if (!row || typeof row !== "object") return "";
+      if (row.traj && trajIdExists(row.traj)) return row.traj;
+      const path = row.path || "";
+      if (!path) return "";
+      const nodes = trajectoryFixture().nodes || [];
+      const hit = nodes.find((n) => n && n.artifact === path);
+      return hit && hit.id ? hit.id : "";
+    }
+    function passportResidualTrajIds() {
+      const ids = /* @__PURE__ */ new Set();
+      if (passportGateState() === "approved") return ids;
+      const fx = getPassport();
+      for (const w of fx.gatedWrites || []) {
+        const tid = resolvePassportTrajId(w);
+        if (tid) ids.add(tid);
+      }
+      return ids;
+    }
+    function passportRowActiveAttr(trajId) {
+      return trajId && trajSelectedId && trajId === trajSelectedId ? ' data-ade-traj-active="1"' : "";
+    }
+    function passportRowActiveClass(trajId) {
+      return trajId && trajSelectedId && trajId === trajSelectedId ? " ade-traj-active" : "";
+    }
+    function renderAdeTrajHop(trajId) {
+      if (!trajIdExists(trajId)) return "";
+      return '<button type="button" class="ade-hop ade-traj-hop" data-ade-traj-hop="' + esc(trajId) + '" title="Open matching Trace node from Passport row">Open in Trace</button>';
+    }
+    function hopAdeTraj(trajId) {
+      if (!trajIdExists(trajId)) return;
+      trajSelectedId = trajId;
+      trajPinFocus = "";
+      if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
+      syncAdeDeepLink("trace");
+      hopAdeWorkspace("trace");
+    }
+    function hopAdePassportHighlight(trajId) {
+      if (trajId && trajIdExists(trajId)) {
+        trajSelectedId = trajId;
+        trajPinFocus = "";
+        if (typeof window !== "undefined") window.__graphideTrajectoryFocus = trajId;
+      }
+      syncAdeDeepLink("passport");
+      hopAdeWorkspace("passport");
+    }
+    function bindAdePassportHlHops() {
+      document.querySelectorAll("[data-ade-passport-hl-hop]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          hopAdePassportHighlight(btn.getAttribute("data-ade-passport-hl-hop") || "");
+        };
+      });
+    }
+    function bindAdeTrajHops() {
+      document.querySelectorAll("[data-ade-traj-hop]").forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          hopAdeTraj(btn.getAttribute("data-ade-traj-hop") || "");
+        };
+      });
+    }
+    function isPassport(v) {
+      return !!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.targets) && Array.isArray(v.contracts) && Array.isArray(v.risks) && Array.isArray(v.testStrategy) && Array.isArray(v.gatedWrites) && v.impact && typeof v.impact === "object");
+    }
+    const PASSPORT_EMPTY_FIXTURE = Object.freeze({
+      version: 2,
+      id: "passport-ade-empty-fixture",
+      title: "Plan Passport",
+      status: "pending",
+      summary: "No plan rows yet — empty fixture",
+      targets: Object.freeze([]),
+      contracts: Object.freeze([]),
+      risks: Object.freeze([]),
+      testStrategy: Object.freeze([]),
+      gatedWrites: Object.freeze([]),
+      impact: Object.freeze({
+        callGraphs: Object.freeze([]),
+        apiContracts: Object.freeze([]),
+        invariants: Object.freeze([]),
+        deltaVocab: DELTA_VOCAB_DEFAULT
+      })
+    });
+    function wantPassportEmpty() {
+      if (typeof window === "undefined" || typeof location === "undefined") return false;
+      try {
+        return new URLSearchParams(location.search || "").get("passportEmpty") === "1";
+      } catch (_err) {
+        return false;
+      }
+    }
+    function hasPassportPlanRows(fx) {
+      if (!fx || typeof fx !== "object") return false;
+      const impact = fx.impact || {};
+      const impactRows = (impact.callGraphs || []).length + (impact.apiContracts || []).length + (impact.invariants || []).length;
+      return (fx.targets || []).length + (fx.contracts || []).length + (fx.risks || []).length + (fx.testStrategy || []).length + (fx.gatedWrites || []).length + impactRows > 0;
+    }
+    function getPassport() {
+      if (wantPassportEmpty()) return PASSPORT_EMPTY_FIXTURE;
+      const o = typeof window !== "undefined" ? window.__graphidePassport : null;
+      return isPassport(o) ? o : PASSPORT_FIXTURE;
+    }
+    function passportGateState() {
+      return PASSPORT_STATES[passportGate] ? passportGate : "pending";
+    }
+    function passportImpactRowCount(fx) {
+      const impact = fx && fx.impact || {};
+      return (impact.callGraphs || []).length + (impact.apiContracts || []).length + (impact.invariants || []).length;
+    }
+    function renderPassportStickySummary(fx, state) {
+      const gate = PASSPORT_STATES[state] ? state : "pending";
+      const contracts = fx && fx.contracts || [];
+      const risks = fx && fx.risks || [];
+      const tests = fx && fx.testStrategy || [];
+      const impactN = passportImpactRowCount(fx);
+      const zeroCounts = contracts.length + risks.length + tests.length + impactN === 0;
+      const emptyAttr = zeroCounts ? ' data-passport-summary-empty="1"' : ' data-passport-summary-empty="0"';
+      const emptyClass = zeroCounts ? " passport-sticky-summary--zero" : "";
+      const zeroCue = zeroCounts ? '<span class="passport-sticky-zero-cue" data-passport-summary-zero-cue="1">No contracts, risks, tests, or impact yet.</span>' : "";
+      return '<div class="passport-sticky-summary' + emptyClass + '" data-passport-summary="1"' + emptyAttr + ' role="status" aria-label="Passport plan summary"><span class="passport-sticky-gate" data-passport-gate="' + esc(gate) + '">' + esc(gate) + '</span><span class="passport-sticky-counts"><span class="passport-sticky-count"><b data-passport-count="contracts">' + esc(String(contracts.length)) + '</b> contracts</span><span class="passport-sticky-count"><b data-passport-count="risks">' + esc(String(risks.length)) + '</b> risks</span><span class="passport-sticky-count"><b data-passport-count="tests">' + esc(String(tests.length)) + '</b> tests</span><span class="passport-sticky-count"><b data-passport-count="impact">' + esc(String(impactN)) + "</b> impact</span></span>" + zeroCue + "</div>";
+    }
+    function renderPassportResidual(fx, state) {
+      const writes = Array.isArray(fx && fx.gatedWrites) ? fx.gatedWrites : [];
+      const globalN = writes.length;
+      const residualState = PASSPORT_STATES[state] ? state : "pending";
+      const trajFix = trajectoryFixture();
+      const focusId = trajSelectedId && (trajFix.nodes || []).some((n2) => n2.id === trajSelectedId) ? trajSelectedId : "";
+      const focusIds = focusId ? trajNeighborIds(trajFix, focusId) : null;
+      const focusN = focusIds ? writes.filter((w) => {
+        const tid = resolvePassportTrajId(w);
+        return !!(tid && focusIds.has(tid));
+      }).length : 0;
+      const scoped = !!focusId;
+      const n = scoped ? focusN : globalN;
+      const copy = scoped ? residualState === "approved" ? "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Focus path · " + n + " path" + (n === 1 ? "" : "s") + " blocked" : residualState === "approved" ? "Writes unlocked · " + n + " path" + (n === 1 ? "" : "s") + " open" : "Sign-off incomplete · " + n + " path" + (n === 1 ? "" : "s") + " blocked";
+      const scopeAttrs = scoped ? ' data-residual-scope="focus" data-residual-focus="' + esc(focusId) + '" data-focus-residual-count="' + esc(String(focusN)) + '"' : ' data-residual-scope="global"';
+      const clearCue = scoped ? '<button type="button" class="passport-clear-focus" data-passport-clear-focus="1" title="Clear focus and show all residual paths" aria-label="Clear focus and show all residual paths">Clear focus</button>' : "";
+      const residualFilterAttr = trajResidualFilter ? ' data-residual-filter="on"' : "";
+      const residualFilterToggle = '<button type="button" class="passport-residual-filter-toggle" data-passport-residual-filter-toggle="1" aria-pressed="' + (trajResidualFilter ? "true" : "false") + '" title="Show residual-bearing gate paths only" aria-label="Toggle residual-bearing filter">' + (trajResidualFilter ? "residuals on" : "residuals") + "</button>";
+      const stickyClearFilterCue = trajResidualFilter && passportResidualTrajIds().size > 0 ? '<button type="button" class="passport-sticky-clear-filter" data-passport-clear-filter="1" title="Clear residual filter" aria-label="Clear residual filter">Clear filter</button>' : "";
+      const filterBearingN = passportResidualTrajIds().size;
+      const hasPassportFilterCount = trajResidualFilter && filterBearingN > 0;
+      const residualFilterCountAttr = hasPassportFilterCount ? ' data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterBearingN)) + '"' : "";
+      const residualFilterCountChip = hasPassportFilterCount ? '<span class="passport-residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterBearingN)) + '" tabindex="0" role="status" title="Residual filter matches ' + esc(String(filterBearingN)) + '. Clear filter or Escape to clear" aria-label="Residual filter matches ' + esc(String(filterBearingN)) + '. Clear filter or Escape to clear">filter · ' + esc(String(filterBearingN)) + "</span>" : "";
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + residualFilterCountAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + residualFilterToggle + residualFilterCountChip + stickyClearFilterCue + clearCue + "</div>";
+    }
+    function renderPassportGate(fx, state) {
+      const unlocked = state === "approved";
+      const label = unlocked ? "Writes unlocked — agent-style file writes may proceed (fixture)" : state === "rejected" ? "Rejected — gated write paths stay blocked" : "Gated write paths blocked until approved";
+      const chip = state === "approved" ? "approved" : state === "rejected" ? "rejected" : "pending";
+      const trajFix = trajectoryFixture();
+      const focusId = trajSelectedId && (trajFix.nodes || []).some((n) => n.id === trajSelectedId) ? trajSelectedId : "";
+      const near = trajNeighborIds(trajFix, focusId);
+      const residualTrajs = passportResidualTrajIds();
+      const paths = (fx.gatedWrites || []).map((w) => {
+        const blocked = unlocked ? "" : ' data-blocked="1"';
+        const trajId = resolvePassportTrajId(w);
+        const residualBearing = !!(trajId && residualTrajs.has(trajId));
+        const residualBearingAttr = residualBearing ? ' data-residual-bearing="1"' : "";
+        const residualFiltered = trajResidualFilter && !residualBearing;
+        const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
+        const residualFilteredAttr = residualFiltered ? ' data-residual-filtered="1"' : "";
+        const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
+        const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
+        const hopResidual = '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' + esc(hopState) + '" data-hop-path="' + esc(w.path || "") + '"><span class="passport-hop-residual-badge">' + esc(hopBadge) + "</span></span>";
+        const isAdj = !!focusId && !unlocked && !!trajId && trajId !== focusId && near.has(trajId);
+        const adjClass = isAdj ? " passport-adj-residual" : "";
+        const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
+        const adjCue = isAdj ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>' : "";
+        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + residualFilteredClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + residualBearingAttr + residualFilteredAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
+      }).join("");
+      return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"' + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + '><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul>" + renderResidualFilterEmptyChrome("passport") + "</div>";
+    }
+    function renderPassportSection(key, title, body, count) {
+      const countHtml = typeof count === "number" ? '<span class="passport-section-count">' + count + "</span>" : "";
+      return '<section class="passport-section" data-passport="' + esc(key) + '"><h3>' + esc(title) + countHtml + "</h3>" + body + "</section>";
+    }
+    function renderDeltaVocabStub(impact) {
+      const vocab = impact && impact.deltaVocab && typeof impact.deltaVocab === "object" ? impact.deltaVocab : DELTA_VOCAB_DEFAULT;
+      const chipRow = (kind, items) => '<div class="passport-vocab-row" data-vocab="' + esc(kind) + '"><span class="passport-vocab-label">' + esc(kind) + '</span><div class="passport-vocab-chips">' + (items || []).map(
+        (s) => '<span class="passport-vocab-chip" data-vocab-chip="' + esc(kind) + '" data-vocab-value="' + esc(s) + '">' + esc(s) + "</span>"
+      ).join("") + "</div></div>";
+      const regions = (vocab.regions || []).map(
+        (r) => '<li class="passport-vocab-region" data-impact-region="' + esc(r.id || "") + '"><strong>' + esc(r.label || r.id || "") + "</strong><span>" + esc(r.detail || "") + "</span></li>"
+      ).join("");
+      return '<div id="passportDeltaVocab" class="passport-delta-vocab" data-delta-stub="1"><div class="passport-delta-vocab-head"><span class="passport-delta-vocab-k">Architecture Delta</span><span class="passport-delta-vocab-stub">vocabulary stub · no live Delta mount</span></div>' + chipRow("status", vocab.statuses) + chipRow("class", vocab.classes) + chipRow("cluster", vocab.clusterKinds) + '<ul class="passport-vocab-regions">' + regions + "</ul></div>";
+    }
+    function renderPassportDeltaChip(kind, value) {
+      if (!value) return "";
+      return '<span class="passport-vocab-chip" data-vocab-chip="' + esc(kind) + '" data-vocab-value="' + esc(value) + '">' + esc(value) + "</span>";
+    }
+    function renderPassportImpactItem(item) {
+      if (item == null) return "";
+      if (typeof item === "string") {
+        return '<li class="passport-impact-row passport-impact-row--static" data-impact-row=""><div class="passport-impact-head"><span class="passport-impact-label"><code>' + esc(item) + "</code></span></div></li>";
+      }
+      const status2 = item.deltaStatus || "";
+      const klass = item.deltaClass || "";
+      const cluster = item.clusterKind || "";
+      const id2 = item.id || "";
+      const hasDetail = !!item.detail;
+      const staticClass = hasDetail ? "" : " passport-impact-row--static";
+      const expandAttrs = hasDetail ? ' data-impact-expanded="false" aria-expanded="false" tabindex="0"' : "";
+      const trajId = resolvePassportTrajId(item);
+      return '<li class="passport-impact-row' + staticClass + passportRowActiveClass(trajId) + '" data-impact-row="' + esc(id2) + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + (status2 ? ' data-delta-status="' + esc(status2) + '"' : "") + (klass ? ' data-delta-class="' + esc(klass) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + expandAttrs + '><div class="passport-impact-head">' + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("class", klass) + renderPassportDeltaChip("cluster", cluster) + '<strong class="passport-impact-label">' + esc(item.label || id2) + "</strong>" + renderAdeTrajHop(trajId) + "</div>" + (hasDetail ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>" : "") + "</li>";
+    }
+    function renderPassportImpact(fx) {
+      const impact = fx.impact || {};
+      const card = (key, title, items) => '<div class="passport-impact-card" data-impact="' + esc(key) + '"><h4>' + esc(title) + "</h4><ul>" + (items || []).map((s) => renderPassportImpactItem(s)).join("") + "</ul></div>";
+      return '<section class="passport-section passport-impact" data-passport="impact" id="passportImpact"><h3>Semantic impact</h3><p class="passport-impact-summary">' + esc(fx.summary || "") + " — Architecture Delta vocabulary (structural delta / impact regions / call graphs / API contracts / invariants):</p>" + renderDeltaVocabStub(impact) + '<div class="passport-impact-grid">' + card("callGraphs", "Call graphs", impact.callGraphs) + card("apiContracts", "API contracts", impact.apiContracts) + card("invariants", "Invariants", impact.invariants) + "</div></section>";
+    }
+    function renderPassportEmptyBody(fx) {
+      seedPassportGate();
+      seedSealStatus();
+      const title = fx.title || "Plan Passport";
+      return '<div id="passportPage" class="passport-page passport-page--empty" data-passport-empty="1"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">empty fixture · hop Trace · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(title) + " · " + esc(fx.id || "passport-ade-empty-fixture") + ' · empty fixture</span><span class="passport-outcome-counts">0 targets · 0 contracts · 0 risks · 0 tests</span></div><div class="passport-empty desk-empty" data-passport-empty-chrome="1" role="status"><b class="passport-empty-title">No plan rows</b><div class="passport-empty-copy">Passport is empty — no targets, contracts, risks, tests, or gated writes yet. Open Trace to inspect the trajectory, or load a Passport fixture.</div><div class="passport-empty-action">' + renderAdeHop("trace", "← Open Trace") + "</div></div></div>";
+    }
+    function renderPassportBody() {
+      seedPassportGate();
+      seedSealStatus();
+      const fx = getPassport();
+      if (!hasPassportPlanRows(fx)) {
+        return renderPassportEmptyBody(fx);
+      }
+      const state = passportGateState();
+      const targets = (fx.targets || []).map((t) => {
+        const layer = t.layer || "";
+        const status2 = t.deltaStatus || "";
+        const cluster = t.clusterKind || "";
+        return (() => {
+          const trajId = resolvePassportTrajId(t);
+          return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-target="' + esc(t.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + (layer ? ' data-passport-layer="' + esc(layer) + '"' : "") + (status2 ? ' data-passport-delta="' + esc(status2) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + '><div class="passport-row-head">' + (layer ? '<span class="passport-layer-chip" data-passport-layer-chip="' + esc(layer) + '">' + esc(layer) + "</span>" : "") + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("cluster", cluster) + '<span class="passport-target-label">' + esc(t.label || t.id || "") + "</span> <code>" + esc(t.path || "") + "</code>" + renderAdeTrajHop(trajId) + "</div>" + (t.impact ? '<div class="passport-row-impact" data-passport-impact="' + esc(t.id || "") + '">' + esc(t.impact) + "</div>" : "") + "</li>";
+        })();
+      }).join("");
+      const contracts = (fx.contracts || []).map((c) => {
+        const klass = c.deltaClass || "";
+        const breaking = !!c.breaking;
+        const trajId = resolvePassportTrajId(c);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-contract="' + esc(c.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-contract-traj="1"' : "") + passportRowActiveAttr(trajId) + (klass ? ' data-passport-delta-class="' + esc(klass) + '"' : "") + (breaking ? ' data-passport-breaking="1"' : ' data-passport-breaking="0"') + '><div class="passport-row-head"><code class="passport-kind">' + esc(c.kind || "") + "</code> <strong>" + esc(c.name || "") + '</strong> <code class="passport-sig">' + esc(c.sig || "") + "</code>" + renderPassportDeltaChip("class", klass) + (breaking ? '<span class="passport-breaking-pill" data-passport-breaking-pill="1">breaking</span>' : '<span class="passport-breaking-pill" data-passport-breaking-pill="0">compat</span>') + ' <em data-stability="' + esc(c.stability || "") + '">' + esc(c.stability || "") + "</em>" + renderAdeTrajHop(trajId) + "</div>" + (c.change ? '<div class="passport-row-impact">' + esc(c.change) + "</div>" : "") + "</li>";
+      }).join("");
+      const risks = (fx.risks || []).map((r) => {
+        const trajId = resolvePassportTrajId(r);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-risk="' + esc(r.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-risk-traj="1"' : "") + passportRowActiveAttr(trajId) + ' data-level="' + esc(r.level || "") + '"><div class="passport-row-head"><span class="passport-risk-pill" data-level="' + esc(r.level || "") + '">' + esc(r.level || "") + "</span> <b>" + esc(r.area || "") + "</b>" + (r.note ? " — " + esc(r.note) : "") + renderAdeTrajHop(trajId) + "</div>" + (r.mitigation ? '<div class="passport-row-meta" data-passport-mitigation="' + esc(r.id || "") + '"><span class="passport-meta-k">mitigation</span> ' + esc(r.mitigation) + "</div>" : "") + (r.blast ? '<div class="passport-row-meta" data-passport-blast="' + esc(r.id || "") + '"><span class="passport-meta-k">blast</span> <code>' + esc(r.blast) + "</code></div>" : "") + "</li>";
+      }).join("");
+      const tests = (fx.testStrategy || []).map((x) => {
+        const trajId = resolvePassportTrajId(x);
+        return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-test="' + esc(x.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-test-traj="1"' : "") + passportRowActiveAttr(trajId) + '><div class="passport-row-head"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + renderAdeTrajHop(trajId) + "</div>" + (x.fixture ? '<div class="passport-row-meta" data-passport-fixture="' + esc(x.id || "") + '"><span class="passport-meta-k">fixture</span> <code>' + esc(x.fixture) + "</code></div>" : "") + (x.covers ? '<div class="passport-row-meta" data-passport-covers="' + esc(x.id || "") + '"><span class="passport-meta-k">covers</span> ' + esc(x.covers) + "</div>" : "") + "</li>";
+      }).join("");
+      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
+        "targets",
+        "Architecture targets",
+        "<ul>" + targets + "</ul>",
+        (fx.targets || []).length
+      ) + renderPassportSection(
+        "contracts",
+        "Interfaces / API contracts",
+        "<ul>" + contracts + "</ul>",
+        (fx.contracts || []).length
+      ) + renderPassportSection(
+        "risks",
+        "Breaking-change risk",
+        "<ul>" + risks + "</ul>",
+        (fx.risks || []).length
+      ) + renderPassportSection(
+        "tests",
+        "Test strategy",
+        "<ul>" + tests + "</ul>",
+        (fx.testStrategy || []).length
+      ) + renderPassportImpact(fx) + '<div id="passportSign" class="passport-sign" data-passport-sign-state="' + esc(state) + '">' + renderPassportStickySummary(fx, state) + renderPassportResidual(fx, state) + '<div class="passport-sign-actions"><button type="button" data-passport-action="approve">Approve</button><button type="button" data-passport-action="reject">Reject</button></div><span class="passport-sign-hint">Fixture gate only — never writes .graphide/stamps/</span></div></div>';
+    }
+    function paintPassportWorkspace(title) {
+      unmountAllReviewCanvases();
+      canvas.className = "play explorer-list passport";
+      canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title) + "</div>" + renderPassportBody() + "</div>";
+      setZoomUi(false);
+      if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
+    }
+    function syncPassportStickyGate() {
+      const gate = passportGateState();
+      const sign = document.getElementById("passportSign");
+      if (!sign) return;
+      if (sign.getAttribute("data-passport-sign-state") !== gate) {
+        sign.setAttribute("data-passport-sign-state", gate);
+      }
+      const chip = sign.querySelector("[data-passport-summary] [data-passport-gate]") || sign.querySelector(".passport-sticky-gate[data-passport-gate]");
+      if (!chip) return;
+      if (chip.getAttribute("data-passport-gate") !== gate) {
+        chip.setAttribute("data-passport-gate", gate);
+      }
+      if ((chip.textContent || "").trim() !== gate) chip.textContent = gate;
+    }
+    function setPassportGate(state) {
+      passportGate = PASSPORT_STATES[state] ? state : "pending";
+      syncAdeDeepLink("passport");
+      paint({ animate: "none" });
+      if (typeof syncPassportStickyGate === "function") syncPassportStickyGate();
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSetPassportGate = setPassportGate;
+      window.__graphideSyncPassportStickyGate = syncPassportStickyGate;
+    }
+    function togglePassportImpactRow(row) {
+      if (!row || !row.hasAttribute("data-impact-expanded")) return;
+      const next = row.getAttribute("data-impact-expanded") !== "true";
+      row.setAttribute("data-impact-expanded", next ? "true" : "false");
+      row.setAttribute("aria-expanded", next ? "true" : "false");
+    }
+    function bindPassportImpactRows() {
+      const root3 = document.getElementById("passportImpact");
+      if (!root3) return;
+      root3.addEventListener("click", (ev) => {
+        if (ev.target.closest("a, button")) return;
+        const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
+        if (!row || !root3.contains(row)) return;
+        ev.preventDefault();
+        togglePassportImpactRow(row);
+      });
+      root3.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.target.closest("a, button")) return;
+        const row = ev.target.closest("[data-impact-row][data-impact-expanded]");
+        if (!row || !root3.contains(row)) return;
+        ev.preventDefault();
+        togglePassportImpactRow(row);
+      });
+    }
+    function bindPassportPage() {
+      const sign = document.getElementById("passportSign");
+      if (sign) {
+        const approve = sign.querySelector('[data-passport-action="approve"]');
+        const reject = sign.querySelector('[data-passport-action="reject"]');
+        if (approve)
+          approve.onclick = (ev) => {
+            ev.stopPropagation();
+            setPassportGate("approved");
+          };
+        if (reject)
+          reject.onclick = (ev) => {
+            ev.stopPropagation();
+            setPassportGate("rejected");
+          };
+        const clearFocus = sign.querySelector('[data-passport-clear-focus="1"]');
+        if (clearFocus)
+          clearFocus.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            clearTrajFocus();
+          };
+        const residualFilterBtn = sign.querySelector(
+          '[data-passport-residual-filter-toggle="1"]'
+        );
+        if (residualFilterBtn)
+          residualFilterBtn.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            toggleTrajResidualFilter();
+          };
+        const stickyClearFilter = sign.querySelector(
+          '[data-passport-clear-filter="1"]'
+        );
+        if (stickyClearFilter)
+          stickyClearFilter.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            clearTrajResidualFilter("clear-chip");
+          };
+      }
+      document.querySelectorAll('[data-residual-filter-clear="1"]').forEach((btn) => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTrajResidualFilter("clear-chip");
+        };
+      });
+      if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+      bindPassportImpactRows();
+      bindAdeHopButtons();
+      bindAdeTrajHops();
     }
     function countMap(items, keyFn) {
       const m = /* @__PURE__ */ new Map();
@@ -28027,8 +30262,188 @@
       }
       return m;
     }
-    function statChips(map) {
-      return [...map.entries()].sort((a, b) => b[1] - a[1]).map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>").join("");
+    function statChips(map, axis) {
+      return [...map.entries()].sort((a, b) => b[1] - a[1]).map((e) => {
+        if (!axis) {
+          return '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>";
+        }
+        const on2 = !!(overviewMixFilter && overviewMixFilter.axis === axis && overviewMixFilter.value === e[0]);
+        return '<button type="button" class="stat-chip omc-chip' + (on2 ? " on" : "") + '" data-omc-axis="' + esc(axis) + '" data-omc-value="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '"><b>' + esc(e[0]) + "</b> " + e[1] + "</button>";
+      }).join("");
+    }
+    function mixChartHtml(axis, map) {
+      const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(overviewMixFilter && overviewMixFilter.axis === axis && overviewMixFilter.value === e[0]);
+        return '<button type="button" class="omc-bar' + (on2 ? " on" : "") + '" data-omc-axis="' + esc(axis) + '" data-omc-value="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '" style="--omc-pct:' + pct + '%"><span class="omc-fill" aria-hidden="true"></span><span class="omc-label"><b>' + esc(e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="omc-chart omc-chart--' + esc(axis) + '" role="group" aria-label="' + (axis === "kind" ? "Node kind mix" : "Hop kind mix") + '">' + bars + "</div>";
+    }
+    function toggleOverviewMixFilter(axis, value) {
+      if (!axis || value == null || value === "") return;
+      if (overviewMixFilter && overviewMixFilter.axis === axis && overviewMixFilter.value === value) {
+        overviewMixFilter = null;
+      } else {
+        overviewMixFilter = { axis: String(axis), value: String(value) };
+        if (overviewCommunityFilter) {
+          overviewCommunityFilter = null;
+          applyOverviewCommunityPaint();
+        }
+      }
+      applyOverviewMixPaint();
+    }
+    function applyOverviewMixPaint() {
+      const host = document.getElementById("sliceCanvas");
+      const filter2 = overviewMixFilter;
+      if (canvas) {
+        canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el2) => {
+          const on2 = !!(filter2 && el2.getAttribute("data-omc-axis") === filter2.axis && el2.getAttribute("data-omc-value") === filter2.value);
+          el2.classList.toggle("on", on2);
+          el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+        });
+      }
+      if (!host) return;
+      host.classList.toggle("omc-filtering", !!filter2);
+      const nodes = host.querySelectorAll(".vnode");
+      const edges = host.querySelectorAll(".react-flow__edge");
+      nodes.forEach((el2) => el2.classList.remove("omc-hit", "omc-dim"));
+      edges.forEach((el2) => el2.classList.remove("omc-hit", "omc-dim"));
+      if (!filter2) return;
+      if (filter2.axis === "kind") {
+        const hot = /* @__PURE__ */ new Set();
+        nodes.forEach((el2) => {
+          const match = (el2.getAttribute("data-kind") || "") === filter2.value;
+          el2.classList.toggle("omc-hit", match);
+          el2.classList.toggle("omc-dim", !match);
+          if (match) hot.add(el2.getAttribute("data-id") || "");
+        });
+        edges.forEach((el2) => {
+          const a = el2.getAttribute("data-from") || "";
+          const b = el2.getAttribute("data-to") || "";
+          const match = !!(hot.has(a) || hot.has(b));
+          el2.classList.toggle("omc-hit", match);
+          el2.classList.toggle("omc-dim", !match);
+        });
+      } else if (filter2.axis === "hop") {
+        const incident = /* @__PURE__ */ new Set();
+        edges.forEach((el2) => {
+          const match = (el2.getAttribute("data-kind") || "") === filter2.value;
+          el2.classList.toggle("omc-hit", match);
+          el2.classList.toggle("omc-dim", !match);
+          if (match) {
+            const a = el2.getAttribute("data-from");
+            const b = el2.getAttribute("data-to");
+            if (a) incident.add(a);
+            if (b) incident.add(b);
+          }
+        });
+        nodes.forEach((el2) => {
+          const match = incident.has(el2.getAttribute("data-id") || "");
+          el2.classList.toggle("omc-hit", match);
+          el2.classList.toggle("omc-dim", !match);
+        });
+      }
+    }
+    function bindOverviewMixChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll("[data-omc-axis][data-omc-value]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewMixFilter(el2.getAttribute("data-omc-axis"), el2.getAttribute("data-omc-value"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewMixFilter(el2.getAttribute("data-omc-axis"), el2.getAttribute("data-omc-value"));
+        };
+      });
+    }
+    function communitySizeChartHtml(bubbles) {
+      const entries = (bubbles || []).map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length })).filter((e) => e.id && e.n > 0).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, 12);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e.n));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e.n / max * 100);
+        const on2 = !!(overviewCommunityFilter && String(overviewCommunityFilter) === String(e.id));
+        return '<button type="button" class="csc-bar' + (on2 ? " on" : "") + '" data-csc-bubble="' + esc(e.id) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e.label) + " · " + e.n + ' nodes" style="--csc-pct:' + pct + '%"><span class="csc-fill" aria-hidden="true"></span><span class="csc-label"><b>' + esc(e.label) + "</b> " + e.n + "</span></button>";
+      }).join("");
+      return '<div class="csc-chart" role="group" aria-label="Community sizes" data-csc="1">' + bars + "</div>";
+    }
+    function toggleOverviewCommunityFilter(bubbleId) {
+      if (!bubbleId) return;
+      if (overviewCommunityFilter && String(overviewCommunityFilter) === String(bubbleId)) {
+        overviewCommunityFilter = null;
+      } else {
+        overviewCommunityFilter = String(bubbleId);
+        if (overviewMixFilter) {
+          overviewMixFilter = null;
+          applyOverviewMixPaint();
+        }
+      }
+      applyOverviewCommunityPaint();
+    }
+    function applyOverviewCommunityPaint() {
+      const host = document.getElementById("sliceCanvas");
+      const filter2 = overviewCommunityFilter;
+      if (canvas) {
+        canvas.querySelectorAll("[data-csc-bubble]").forEach((el2) => {
+          const on2 = !!(filter2 && String(el2.getAttribute("data-csc-bubble")) === String(filter2));
+          el2.classList.toggle("on", on2);
+          el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+        });
+        canvas.querySelectorAll(".expl-card[data-bubble][data-csc-card]").forEach((el2) => {
+          el2.classList.remove("csc-hit", "csc-dim");
+          if (!filter2) return;
+          const match = String(el2.getAttribute("data-bubble")) === String(filter2);
+          el2.classList.toggle("csc-hit", match);
+          el2.classList.toggle("csc-dim", !match);
+        });
+      }
+      if (!host) return;
+      host.classList.toggle("csc-filtering", !!filter2);
+      const nodes = host.querySelectorAll(".vnode");
+      const edges = host.querySelectorAll(".react-flow__edge");
+      nodes.forEach((el2) => el2.classList.remove("csc-hit", "csc-dim"));
+      edges.forEach((el2) => el2.classList.remove("csc-hit", "csc-dim"));
+      if (!filter2) return;
+      const bub = findBubble(filter2);
+      const members = new Set((bub && bub.members ? bub.members : []).map((m) => String(idVal(m))));
+      const hot = /* @__PURE__ */ new Set();
+      nodes.forEach((el2) => {
+        const id2 = el2.getAttribute("data-id") || "";
+        const match = members.has(String(id2));
+        el2.classList.toggle("csc-hit", match);
+        el2.classList.toggle("csc-dim", !match);
+        if (match) hot.add(id2);
+      });
+      edges.forEach((el2) => {
+        const a = el2.getAttribute("data-from") || "";
+        const b = el2.getAttribute("data-to") || "";
+        const match = !!(hot.has(a) || hot.has(b));
+        el2.classList.toggle("csc-hit", match);
+        el2.classList.toggle("csc-dim", !match);
+      });
+    }
+    function bindOverviewCommunityChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll("[data-csc-bubble]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewCommunityFilter(el2.getAttribute("data-csc-bubble"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewCommunityFilter(el2.getAttribute("data-csc-bubble"));
+        };
+      });
     }
     function renderExplorerList(ws, opts) {
       const keepCam = !!(opts && opts.keepCam);
@@ -28051,7 +30466,8 @@
         sequence: "Sequence — callers, callees, returns on this flow",
         dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
         lifecycle: "Lifecycle — review states, waits, terminals on this flow",
-        trace: "Trace — read-only execution trajectory DAG"
+        trace: "Trace — read-only execution trajectory DAG",
+        passport: "Passport — Plan Passport sign-off before agent writes"
       };
       setMeta(
         '<span class="crumb">Review</span> / <b>' + esc(ws) + "</b> · " + esc(titles[ws] || ws)
@@ -28087,6 +30503,14 @@
       if (ws === "trace") {
         paintTrajectoryWorkspace(titles.trace);
         bindWorkbenchPages();
+        bindTrajectoryPage();
+        applyProbePaint();
+        return;
+      }
+      if (ws === "passport") {
+        paintPassportWorkspace(titles.passport);
+        bindWorkbenchPages();
+        bindPassportPage();
         applyProbePaint();
         return;
       }
@@ -28120,6 +30544,10 @@
         }
         const flow = defaultRunFlow();
         mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
+        bindOverviewMixChart();
+        applyOverviewMixPaint();
+        bindOverviewCommunityChart();
+        applyOverviewCommunityPaint();
         bindGraphFx();
         applyEgoPaint();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
@@ -28288,11 +30716,11 @@
         if (pa !== pb) return pa - pb;
         return (b.members || []).length - (a.members || []).length;
       }).slice(0, 8);
-      return renderFeaturePathHtml() + renderDefaultCfg() + '<div class="stat-strip"><span><i class="k">Nodes</i> <b class="n">' + nodes.length + "</b> " + statChips(kinds) + '</span><span><i class="k">Hops</i> <b class="n">' + edges.length + "</b> " + statChips(hops) + '</span><span><i class="k">Communities</i> <b class="n">' + bubbles.length + '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span><span><i class="k">Programs</i> <b class="n">' + programs.length + "</b> " + statChips(countMap(programs, (p) => p.kind)) + '</span><span><i class="k">Uncovered</i> <b class="n">' + (cov.uncovered || []).length + "</b> of " + (cov.changed || []).length + ' changed</span><span><i class="k">Flows</i> <b class="n">' + flows.length + "</b> " + statChips(marks) + '</span></div><div class="flow-title">Communities</div><div class="expl-list compact">' + comms.map((b) => {
+      return renderFeaturePathHtml() + renderDefaultCfg() + '<div class="stat-strip"><span class="omc-stat"><i class="k">Nodes</i> <b class="n">' + nodes.length + "</b> " + statChips(kinds, "kind") + mixChartHtml("kind", kinds) + '</span><span class="omc-stat"><i class="k">Hops</i> <b class="n">' + edges.length + "</b> " + statChips(hops, "hop") + mixChartHtml("hop", hops) + '</span><span class="csc-stat"><i class="k">Communities</i> <b class="n">' + bubbles.length + '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button> ' + communitySizeChartHtml(bubbles) + '</span><span><i class="k">Programs</i> <b class="n">' + programs.length + "</b> " + statChips(countMap(programs, (p) => p.kind)) + '</span><span><i class="k">Uncovered</i> <b class="n">' + (cov.uncovered || []).length + "</b> of " + (cov.changed || []).length + ' changed</span><span><i class="k">Flows</i> <b class="n">' + flows.length + "</b> " + statChips(marks) + '</span></div><div class="flow-title">Communities</div><div class="expl-list compact">' + comms.map((b) => {
         const marks2 = bubbleMarks(b);
         const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
         const role = featureRole(step, path.length - 1);
-        return '<article class="expl-card" data-ws="map"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
+        return '<article class="expl-card" data-ws="map" data-csc-card="1" data-bubble="' + esc(idVal(b.id)) + '"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
       }).join("") + '</div><div class="flow-title">Highest degree</div><div class="expl-list compact">' + topDeg.slice(0, 6).map((x) => {
         const id2 = idVal(x.n.id);
         return '<article class="expl-card" data-id="' + esc(id2) + '"><div class="k">' + esc(x.n.kind) + '</div><div class="t">' + esc(shortOf(x.n.fqn)) + '</div><div class="b">degree ' + x.d + " · " + esc(shortToken(id2)) + "</div></article>";
@@ -29499,112 +31927,6 @@
       }
       coverage.innerHTML = html;
       markPanelShed(budgeted && shed);
-      renderHerd();
-    }
-    function flowNeedsHuman(name) {
-      const mark = flowMark(name);
-      const blocked = decisionRecords().some(
-        (r) => r.flow === name && (r.outcome === "pending" || r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint")
-      );
-      return blocked || mark === "broken";
-    }
-    function herdActiveFlowName() {
-      const open = (name) => !!name && flowMark(name) !== "holds" && flowMark(name) !== "skipped" && !flowNeedsHuman(name);
-      if (open(flowName)) return flowName;
-      const run = defaultRunFlow();
-      if (run && open(run.name)) return run.name;
-      return "";
-    }
-    function herdFlowState(name, active) {
-      const mark = flowMark(name);
-      if (flowNeedsHuman(name)) return "blocked";
-      if (mark === "holds") return "done";
-      if (mark === "skipped") return "idle";
-      if (active && name === active) return "working";
-      return "idle";
-    }
-    function herdCuts() {
-      if (!snapshot) return [];
-      const programs = snapshot.programs || [];
-      const seen = /* @__PURE__ */ new Set();
-      const names = [];
-      for (const f of snapshot.flows || []) {
-        if (!f.name || seen.has(f.name)) continue;
-        seen.add(f.name);
-        names.push(f.name);
-      }
-      for (const n of skippedFlows.concat(snapshot.skipped || [])) {
-        if (!n || seen.has(n)) continue;
-        seen.add(n);
-        names.push(n);
-      }
-      const active = herdActiveFlowName();
-      const rank = { blocked: 0, working: 1, idle: 2, done: 3 };
-      const cuts = names.map((name) => ({
-        kind: "flow",
-        flow: name,
-        label: name,
-        state: herdFlowState(name, active)
-      }));
-      programs.forEach((p, i) => {
-        const on2 = graphFilter.program ? programKeyOf(graphFilter.program) === programKeyOf(p) : programs.length === 1;
-        cuts.push({
-          kind: "program",
-          index: i,
-          label: ((p.kind ? p.kind + " " : "") + (p.name || "program")).trim(),
-          state: on2 ? "working" : "idle"
-        });
-      });
-      cuts.sort((a, b) => rank[a.state] - rank[b.state] || a.label.localeCompare(b.label));
-      return cuts;
-    }
-    function pendingDecisionFor(flow) {
-      const rows = decisionRecords().filter((r) => r.flow === flow);
-      return rows.find((r) => r.outcome === "pending") || rows.find((r) => r.outcome === "rejected" || r.verdict === "broken" || r.verdict === "hint") || null;
-    }
-    function openHerdCut(cut) {
-      if (!cut || !snapshot) return;
-      if (cut.kind === "program") {
-        const programs = snapshot.programs || [];
-        graphFilter.program = cut.index >= 0 ? programs[cut.index] : null;
-        progFocus = cut.index >= 0 ? cut.index : 0;
-        explorerWs = "map";
-        explorerPinned = true;
-        paint({ animate: "none" });
-        return;
-      }
-      if (cut.state === "blocked") {
-        const rec = pendingDecisionFor(cut.flow);
-        if (rec) selectedDecisionKey = decisionKey(rec);
-        explorerWs = "decisions";
-        explorerPinned = true;
-        paint({ animate: "none" });
-        return;
-      }
-      if (cut.flow) selectFlow(cut.flow);
-    }
-    function renderHerd() {
-      const herd = document.getElementById("herd");
-      const list = document.getElementById("herdList");
-      const count = document.getElementById("herdCount");
-      if (!herd || !list) return;
-      if (!snapshot) {
-        herd.hidden = true;
-        list.innerHTML = "";
-        return;
-      }
-      const cuts = herdCuts();
-      const blocked = cuts.filter((c) => c.state === "blocked").length;
-      if (count) count.textContent = cuts.length + (cuts.length === 1 ? " cut" : " cuts") + " · " + blocked + " blocked";
-      list.innerHTML = cuts.map((c) => {
-        const flowAttr = c.kind === "flow" ? ' data-flow="' + esc(c.flow) + '"' : "";
-        const progAttr = c.kind === "program" ? ' data-prog="' + c.index + '"' : "";
-        return '<button type="button" class="herd-cut" data-herd="' + esc(c.kind === "flow" ? c.flow : "prog:" + c.index) + '" data-herd-kind="' + c.kind + '" data-herd-state="' + c.state + '"' + flowAttr + progAttr + '><span class="herd-name">' + esc(c.label) + '</span><span class="herd-state">' + esc(c.state) + "</span></button>";
-      }).join("");
-      herd.hidden = false;
-      list.querySelectorAll(".herd-cut").forEach((el2, i) => {
-        el2.onclick = () => openHerdCut(cuts[i]);
-      });
     }
     function enterBubble(snap, flowName2, bubbleId) {
       const flow = (snap.flows || []).find((f) => f.name === flowName2);

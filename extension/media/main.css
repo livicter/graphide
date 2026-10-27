@@ -653,80 +653,6 @@ button:disabled { opacity: 0.45; cursor: default; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 #ledgerPane[hidden] { display: none; }
-#herd {
-  /* ponytail: 64px keeps fitted Map tiles >= 16px (AI1). A wider rail
-     scales the community map down. Upgrade: overlay the rail. */
-  width: 64px;
-  min-width: 64px;
-  max-width: 64px;
-  flex: 0 0 64px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--vscode-panel-border);
-  background: color-mix(in srgb, var(--vscode-sideBar-background) 92%, transparent);
-  font-size: 12px;
-}
-#herd[hidden] { display: none; }
-.herd-head {
-  padding: 7px 8px 5px;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-.herd-head span {
-  display: block;
-  margin-top: 2px;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  font-size: 11px;
-  opacity: 0.85;
-}
-#herdList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0 6px 8px;
-}
-.herd-cut {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 1px;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  color: inherit;
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 8px;
-  padding: 5px 7px;
-  font: inherit;
-  font-size: 12px;
-}
-.herd-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.herd-state {
-  flex: 0 0 auto;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.85;
-}
-.herd-cut[data-herd-state="working"] .herd-state { color: #007aff; }
-.herd-cut[data-herd-state="blocked"] {
-  border-color: #ff9f0a;
-}
-.herd-cut[data-herd-state="blocked"] .herd-state { color: #ff9f0a; }
-.herd-cut[data-herd-state="idle"] .herd-state { opacity: 0.55; }
-.herd-cut[data-herd-state="done"] .herd-state { color: #34c759; }
-@media (max-width: 860px) {
-  #herd { display: none; }
-}
 .led-head, #ledgerMeta {
   padding: 7px 8px 5px;
   font-size: 9px;
@@ -1610,6 +1536,175 @@ svg.steiner.flowing .vnode.hot .node-box {
   text-transform: uppercase;
   opacity: 0.8;
 }
+/* ADE OMC — Overview kind/hop mix chart (interactive; graph-only filter) */
+.stat-strip .omc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 148px;
+}
+button.stat-chip.omc-chip {
+  appearance: none;
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, #000);
+  color: inherit;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+button.stat-chip.omc-chip.on {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
+  opacity: 1;
+}
+button.stat-chip.omc-chip:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.omc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  max-width: 220px;
+  margin: 2px 0 4px;
+}
+.omc-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+}
+.omc-bar .omc-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--omc-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 28%, transparent);
+  pointer-events: none;
+}
+.omc-bar .omc-label {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omc-bar.on {
+  border-color: var(--vscode-focusBorder);
+}
+.omc-bar.on .omc-fill {
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 48%, transparent);
+}
+.omc-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+#sliceCanvas.omc-filtering .vnode.omc-dim,
+#sliceCanvas.omc-filtering .react-flow__edge.omc-dim {
+  opacity: 0.18;
+}
+#sliceCanvas.omc-filtering .vnode.omc-hit {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+#sliceCanvas.omc-filtering .react-flow__edge.omc-hit path {
+  stroke: var(--vscode-textLink-foreground);
+}
+
+/* ADE CSC — Overview community-size chart; graph-only CFG member highlight */
+.stat-strip .csc-stat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.csc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  max-width: 280px;
+  margin-top: 4px;
+}
+.csc-bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--stroke, #3a3a42) 80%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel, #1a1a1e) 92%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.csc-bar .csc-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--csc-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 35%, transparent);
+  pointer-events: none;
+}
+.csc-bar .csc-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.csc-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.csc-bar.on .csc-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 55%, transparent);
+}
+.csc-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+#sliceCanvas.csc-filtering .vnode.csc-dim,
+#sliceCanvas.csc-filtering .react-flow__edge.csc-dim {
+  opacity: 0.22;
+}
+#sliceCanvas.csc-filtering .vnode.csc-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+#sliceCanvas.csc-filtering .react-flow__edge.csc-hit path {
+  stroke-opacity: 1;
+}
+.expl-card[data-csc-card].csc-dim {
+  opacity: 0.35;
+}
+.expl-card[data-csc-card].csc-hit {
+  outline: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+  outline-offset: 0;
+}
 .path-row {
   display: flex;
   flex-wrap: wrap;
@@ -1887,6 +1982,28 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
   background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
 }
+/* ADE residual-filter dedicated aria-live (ALR) — visually hidden, always in a11y tree */
+.sr-only,
+#residualFilterLive.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+#residualFilterLive {
+  /* never hide with display/visibility — AT must read aria-live updates */
+  pointer-events: none;
+}
+/* ADE ZAL: traj zoom pct polite aria-live (keyboard zoom announce); persistent outside paint */
+#trajZoomLive.traj-zoom-live,
+.traj-zoom-live {
+  pointer-events: none;
+}
 #toast {
   position: fixed;
   left: 50%;
@@ -2010,6 +2127,52 @@ button:focus-visible, .feat-chip:focus-visible, .expl-card:focus-visible, .bubbl
   padding: 2px 5px;
   border-radius: 5px;
   border: 1px solid var(--vscode-panel-border);
+}
+/* ADE KA: Trace/Passport residual section header on #keysPane */
+#keysPane li.keys-section,
+#keysPane li[data-keys-section="ade"] {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 4px 2px 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground, inherit);
+}
+#keysPane li.keys-section[hidden],
+#keysPane li[data-keys-section="ade"][hidden] {
+  display: none;
+}
+#keysPane .keys-section-title,
+#keysPane [data-keys-section-title] {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* ADE KZH: Trace zoom pct keyboard hint row on #keysPane (Trace-only) */
+#keysPane li[data-keys-row="traj-zoom"][hidden],
+#keysPane li[data-keys-traj-zoom-hint="0"][hidden] {
+  display: none;
+}
+#keysPane li[data-keys-row="traj-zoom"][data-keys-traj-zoom-hint="1"] {
+  opacity: 0.95;
+}
+/* ADE KP: Keys R row pressed when residual filter ON on Trace/Passport */
+#keysPane li[data-keys-row="r"].on,
+#keysPane li[data-keys-row="r"].pressed,
+#keysPane li[data-keys-row="r"][aria-pressed="true"],
+#keysPane li[data-keys-row="r"][data-keys-r-pressed="1"] {
+  opacity: 1;
+  color: var(--vscode-textLink-foreground);
+}
+#keysPane li[data-keys-row="r"].on kbd,
+#keysPane li[data-keys-row="r"].pressed kbd,
+#keysPane li[data-keys-row="r"][aria-pressed="true"] kbd,
+#keysPane li[data-keys-row="r"][data-keys-r-pressed="1"] kbd {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-textLink-foreground);
 }
 #canvas.swap { animation: swapIn 180ms ease; }
 @keyframes swapIn {
@@ -2431,55 +2594,1568 @@ html.bright .route-hop {
   outline-offset: 2px;
 }
 
+/* ADE SSR — Sequence story richness captions + focus paint */
+.seq-part-caption,
+.seq-hop-caption {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  font-weight: 500;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+.seq-part[data-ssr-caption="1"] .meta {
+  /* keep kind line; caption sits below */
+}
+.seq-part.ssr-hit,
+.seq-hop.ssr-hit {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.seq-part.ssr-dim,
+.seq-hop.ssr-dim {
+  opacity: 0.28;
+}
+.seq-page[data-ssr="1"] .seq-empty [data-ws] {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ADE A1a — Trace trajectory DAG (fixture, read-only) */
-.traj-page { display: flex; flex-direction: column; gap: 8px; min-height: 200px; }
+.traj-page { display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
+.traj-strip {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent), transparent);
+}
+.traj-strip-title { font-weight: 650; font-size: 13px; }
+.traj-strip-sub { font-size: 11px; opacity: 0.72; }
+.traj-strip-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.traj-stat {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+}
+.traj-stat[data-stat="done"] b { color: #3fb950; }
+.traj-stat[data-stat="running"] b { color: var(--vscode-focusBorder, #2f81f7); }
+.traj-stat[data-stat="pending"] b { opacity: 0.85; }
+.traj-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); gap: 10px; align-items: stretch; }
+@media (max-width: 900px) { .traj-layout { grid-template-columns: 1fr; } }
 .traj-canvas {
   position: relative;
   overflow: auto;
   flex: 1 1 auto;
-  min-height: 180px;
+  min-height: 220px;
   width: 100%;
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
-  background: var(--g-panel, rgba(127,127,127,0.06));
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 16%, transparent), transparent 42%),
+    radial-gradient(circle at 88% 72%, color-mix(in srgb, #3fb950 10%, transparent), transparent 40%),
+    var(--g-panel, rgba(127,127,127,0.06));
 }
 .traj-edges {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  color: var(--g-line, #8b949e);
 }
 .traj-edge {
+  fill: none;
   stroke: var(--g-line, #8b949e);
-  stroke-width: 2;
-  marker-end: none;
+  stroke-width: 2.25;
+  marker-end: url(#trajArrow);
+  opacity: 0.9;
+  /* ADE TEH: re-enable stroke hit-testing under pointer-events:none parent svg */
+  pointer-events: stroke;
+  cursor: help;
 }
+.traj-edge:hover {
+  stroke-width: 3.1;
+  opacity: 1;
+}
+.traj-edge.kind-fork { stroke-dasharray: 5 4; opacity: 0.8; }
+.traj-edge.kind-join { stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e)); }
+.traj-edge-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.92;
+}
+.traj-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  white-space: nowrap;
+}
+.traj-legend-label { opacity: 0.88; text-transform: lowercase; letter-spacing: 0.02em; }
+.traj-legend-stroke {
+  display: block;
+  overflow: visible;
+  color: var(--g-line, #8b949e);
+}
+.traj-legend-stroke line {
+  fill: none;
+  stroke: var(--g-line, #8b949e);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+.traj-legend-chip.kind-fork .traj-legend-stroke line { stroke-dasharray: 5 4; opacity: 0.8; }
+.traj-legend-chip.kind-join .traj-legend-stroke line {
+  stroke: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+}
+html.bright .traj-edge-legend { opacity: 0.95; }
+html.bright .traj-legend-chip {
+  background: #fff;
+  border-color: rgba(60, 60, 67, 0.18);
+}
+.traj-page.has-focus .traj-legend-chip.dim {
+  opacity: 0.32;
+  filter: grayscale(0.35);
+}
+.traj-page.has-focus .traj-legend-chip.on-path {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 28%, transparent);
+}
+.traj-page.has-focus .traj-edge.dim { opacity: 0.22; }
+.traj-page.has-focus .traj-edge.on-path {
+  stroke: var(--vscode-focusBorder, #2f81f7);
+  stroke-width: 2.4;
+  opacity: 1;
+  marker-end: url(#trajArrowHot);
+}
+.traj-node.neighbor {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 35%, transparent);
+}
+.traj-page.has-focus .traj-node.dim { opacity: 0.38; filter: grayscale(0.25); }
+.traj-pin.pin-focus,
+.traj-pin-target.pin-focus {
+  outline: 1px solid var(--vscode-focusBorder, #2f81f7);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  border-radius: 3px;
+}
+.traj-detail-grid dt.on,
+.traj-detail-grid dd.on { color: var(--vscode-focusBorder, #2f81f7); }
+.traj-detail-hint { margin-top: 10px; font-size: 11px; opacity: 0.68; line-height: 1.4; }
+.traj-canvas:focus { outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent); outline-offset: 2px; }
+
+.traj-zoom-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 1px 2px;
+  border-radius: 999px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+}
+.traj-zoom-btn {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+}
+.traj-zoom-btn:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+}
+/* ADE traj zoom-bar focus-visible (ZFV1–ZFV3) — ADE 1px ring + hover-matching bg; overrides global button 2px */
+.traj-zoom-btn:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+}
+.traj-zoom-fit { font-size: 10px; letter-spacing: 0.02em; text-transform: uppercase; padding: 0 8px; }
+.traj-zoom-pct {
+  min-width: 38px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.88;
+  padding: 0 2px;
+}
+/* ADE traj zoom pct keyboard cue (ZPK1–ZPK3) — focusable slider; ADE 1px ring matching ZFV */
+.traj-zoom-pct[role="slider"] {
+  cursor: ew-resize;
+  border-radius: 999px;
+}
+.traj-zoom-pct:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  opacity: 1;
+}
+
+/* ADE traj zoom pct hover lift (ZPH1–ZPH3) — parity with .traj-zoom-btn:hover; ZPK focus-visible unchanged */
+.traj-zoom-pct:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  opacity: 1;
+}
+.traj-scale-layer {
+  position: relative;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+html.bright .traj-zoom-bar {
+  background: #fff;
+  border-color: rgba(60, 60, 67, 0.18);
+}
+
 .traj-node {
   position: absolute;
-  width: 168px;
-  min-height: 64px;
+  width: 188px;
+  min-height: 88px;
   box-sizing: border-box;
   padding: 8px 10px;
   border: 1px solid var(--g-line, #8b949e);
-  border-radius: 6px;
-  background: var(--vscode-editor-background, #1e1e1e);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, transparent);
   color: var(--vscode-foreground, #ddd);
   font-size: 12px;
   line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 8px 18px rgba(0,0,0,0.18);
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.traj-node:hover {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 70%, var(--g-line, #8b949e));
+  transform: translateY(-1px);
+}
+.traj-node.on {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 35%, transparent), 0 10px 22px rgba(0,0,0,0.22);
 }
 .traj-node.status-done { border-color: #3fb950; }
-.traj-node.status-running { border-color: var(--vscode-focusBorder, #2f81f7); }
-.traj-node.status-pending { opacity: 0.78; }
-.traj-label { font-weight: 600; margin-bottom: 4px; }
-.traj-pin {
-  font-size: 11px;
+.traj-node.status-running {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  animation: trajPulse 1.8s ease-in-out infinite;
+}
+.traj-node.status-pending { opacity: 0.82; }
+@keyframes trajPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 22%, transparent); }
+}
+.traj-node-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.traj-status-chip {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 650;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--g-line, rgba(127,127,127,0.4));
+}
+.traj-status-chip.status-done { color: #3fb950; border-color: color-mix(in srgb, #3fb950 55%, transparent); }
+.traj-status-chip.status-running { color: var(--vscode-focusBorder, #2f81f7); border-color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent); }
+.traj-status-chip.status-pending { opacity: 0.8; }
+.traj-kind { font-size: 10px; opacity: 0.65; margin-left: auto; }
+.traj-phase-chip {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, transparent);
+  color: var(--vscode-focusBorder, #2f81f7);
+  opacity: 0.92;
+}
+.traj-node-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 4px;
+  font-size: 10px;
+}
+.traj-role-chip,
+.traj-agent-chip,
+.traj-dep-badge {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--g-line, #8b949e) 55%, transparent);
   opacity: 0.85;
+}
+.traj-dep-badge { opacity: 0.75; }
+.traj-dep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.traj-dep {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 4px;
+  outline: none;
+}
+.traj-dep:hover code,
+.traj-dep:focus-visible code {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent);
+}
+
+.traj-dep[data-ade-dep-focus="1"] code { cursor: pointer; }
+
+/* ADE Trace hop-affordance (HA): directed next-hop chips on selected node + detail */
+.traj-hop-next {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 132px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 82%, var(--vscode-focusBorder, #2f81f7) 18%);
+  color: var(--vscode-foreground, #ddd);
+  font-size: 10px;
+  line-height: 1.3;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.traj-hop-next:hover,
+.traj-hop-next:focus-visible {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 40%, transparent);
+  outline: none;
+}
+.traj-hop-next-label { overflow: hidden; text-overflow: ellipsis; }
+.traj-next-arrow {
+  font-weight: 700;
+  color: var(--vscode-focusBorder, #2f81f7);
+}
+.traj-next-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.traj-next {
+  cursor: pointer;
+  list-style: none;
+  border-radius: 4px;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.traj-next:hover code,
+.traj-next:focus-visible code {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, transparent);
+}
+.traj-next[data-ade-hop-next="1"] code { cursor: pointer; }
+.traj-next code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, #2f81f7 12%);
+  border: 1px solid color-mix(in srgb, var(--g-line, #8b949e) 45%, transparent);
+}
+.traj-next-empty { opacity: 0.65; font-size: 11px; }
+html.bright .traj-hop-next {
+  background: color-mix(in srgb, #fff 88%, var(--vscode-focusBorder, #2f81f7) 12%);
+}
+
+.traj-dep code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, #2f81f7 12%);
+  border: 1px solid color-mix(in srgb, var(--g-line, #8b949e) 45%, transparent);
+}
+.traj-artifact-diff { font-variant-numeric: tabular-nums; }
+.traj-diff-adds { color: #3fb950; margin-right: 6px; }
+.traj-diff-dels { color: #f85149; }
+.traj-label { font-weight: 650; margin-bottom: 4px; }
+.traj-pin {
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.88;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .traj-pin.diff { color: #3fb950; }
+#trajPinTip {
+  position: fixed;
+  z-index: 30;
+  min-width: 148px;
+  max-width: 320px;
+  padding: 9px 11px;
+  border-radius: var(--g-radius-sm, 8px);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  box-shadow: var(--g-lift, 0 8px 22px rgba(0,0,0,0.32));
+  backdrop-filter: blur(12px);
+}
+#trajPinTip[hidden] { display: none !important; }
+#trajPinTip[data-pin-kind="diff"] {
+  border-color: color-mix(in srgb, #3fb950 42%, var(--vscode-editorHoverWidget-border, var(--vscode-panel-border)));
+}
+.traj-pin-tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.traj-pin-tip-kind {
+  font-size: 10px; font-weight: 650; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, transparent);
+  color: var(--vscode-focusBorder, #2f81f7);
+}
+#trajPinTip[data-pin-kind="diff"] .traj-pin-tip-kind {
+  color: #3fb950;
+  border-color: color-mix(in srgb, #3fb950 55%, transparent);
+  background: color-mix(in srgb, #3fb950 12%, transparent);
+}
+.traj-pin-tip-diff-label { color: #3fb950; font-size: 11px; font-weight: 600; }
+.traj-pin-tip-counts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0 6px;
+}
+.traj-pin-tip-chip {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 650;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.traj-pin-tip-chip-add {
+  color: #3fb950;
+  background: color-mix(in srgb, #3fb950 16%, transparent);
+  border-color: color-mix(in srgb, #3fb950 42%, transparent);
+}
+.traj-pin-tip-chip-del {
+  color: #f85149;
+  background: color-mix(in srgb, #f85149 14%, transparent);
+  border-color: color-mix(in srgb, #f85149 42%, transparent);
+}
+.traj-pin-tip-art {
+  display: block;
+  font-size: 10.5px;
+  line-height: 1.35;
+  word-break: break-all;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-line, rgba(127,127,127,0.35)) 75%, transparent);
+}
+.traj-pin-tip-art-dir { opacity: 0.55; }
+.traj-pin-tip-art-base { opacity: 0.96; font-weight: 650; }
+/* ADE Trace pin residual (TP1–TP3) — status / unmet deps / hop residual / seal hint */
+.traj-pin-tip-residual {
+  --traj-pin-residual: var(--vscode-editorWarning-foreground, #cca700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--traj-pin-residual) 50%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--traj-pin-residual) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--traj-pin-residual);
+  font-size: 10.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.traj-pin-tip-residual[data-residual-status="done"] {
+  --traj-pin-residual: var(--vscode-testing-iconPassed, #3fb950);
+}
+.traj-pin-tip-residual[data-residual-status="running"] {
+  --traj-pin-residual: var(--vscode-focusBorder, #2f81f7);
+}
+.traj-pin-tip-residual[data-residual-status="pending"] {
+  --traj-pin-residual: var(--vscode-editorWarning-foreground, #cca700);
+}
+.traj-pin-tip-residual[data-residual-seal="1"] {
+  border-style: dashed;
+}
+.traj-pin-tip-residual-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  min-height: 1.2rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--traj-pin-residual) 20%, transparent);
+}
+.traj-pin-tip-residual-copy {
+  font-weight: 600;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ADE traj-edge hover tip (TEH1–TEH3) — floating tooltip; mirror #trajPinTip; tip itself non-interactive */
+#trajEdgeTip {
+  position: fixed;
+  z-index: 30;
+  min-width: 132px;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: var(--g-radius-sm, 8px);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  box-shadow: var(--g-lift, 0 8px 22px rgba(0,0,0,0.32));
+  backdrop-filter: blur(12px);
+}
+#trajEdgeTip[hidden] { display: none !important; }
+.traj-edge-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.traj-edge-tip-kind {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  opacity: 0.9;
+  color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 85%, var(--vscode-foreground));
+}
+.traj-edge-tip-label {
+  font-weight: 600;
+  opacity: 0.92;
+}
+.traj-edge-tip-hop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.traj-edge-tip-hop code {
+  font-size: 11px;
+  opacity: 0.92;
+}
+.traj-edge-tip-arrow {
+  opacity: 0.55;
+  font-weight: 700;
+}
+
+.traj-edge-tip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.traj-edge-tip-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.traj-edge-tip-chip--latency {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 42%, transparent);
+  color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 90%, var(--vscode-foreground));
+}
+.traj-detail {
+  border: 1px solid var(--g-line, rgba(127,127,127,0.35));
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 94%, transparent);
+  min-height: 180px;
+}
+.traj-detail[data-empty="1"] { display: flex; align-items: center; }
+.traj-detail-empty { opacity: 0.7; font-size: 12px; line-height: 1.45; }
+
+/* ADE Trace empty-state (ES1–ES3) — blank DAG chrome */
+.traj-page--empty .traj-layout { min-height: 260px; }
+.traj-canvas--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+}
+.traj-empty.desk-empty {
+  max-width: 420px;
+  margin: 18px auto;
+  text-align: left;
+  opacity: 1;
+}
+.traj-empty-title { display: block; font-size: 14px; font-weight: 650; }
+.traj-empty-copy { margin-top: 8px; font-size: 12px; line-height: 1.45; opacity: 0.82; }
+.traj-empty-action { margin-top: 14px; }
+.traj-empty-action .ade-hop { pointer-events: auto; }
+
+.passport-page--empty { min-height: 280px; }
+.passport-empty.desk-empty {
+  max-width: 420px;
+  margin: 18px auto;
+  text-align: left;
+  opacity: 1;
+}
+.passport-empty-title { display: block; font-size: 14px; font-weight: 650; }
+.passport-empty-copy { margin-top: 8px; font-size: 12px; line-height: 1.45; opacity: 0.82; }
+.passport-empty-action { margin-top: 14px; }
+.passport-empty-action .ade-hop { pointer-events: auto; }
+
+.traj-page--empty .traj-meta[data-empty="1"] { opacity: 0.78; }
+.traj-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.traj-detail-id { font-size: 11px; opacity: 0.7; }
+.traj-detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 10px; margin: 0; font-size: 12px; }
+.traj-detail-grid dt { opacity: 0.7; }
+.traj-detail-grid dd { margin: 0; word-break: break-word; }
+.traj-diff { color: #3fb950; }
 .traj-meta { font-size: 11px; opacity: 0.7; }
 html.bright .traj-canvas { background: rgba(0,0,0,0.03); }
 html.bright .traj-node { background: #fff; }
+
+
+/* ADE Trace↔Passport deep-link hops */
+.ade-hop-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-bottom: 2px;
+}
+.ade-hop {
+  appearance: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, var(--g-line, #8b949e));
+  color: var(--vscode-focusBorder, #2f81f7);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent);
+}
+.ade-hop:hover {
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 22%, transparent);
+}
+.traj-strip .ade-hop { margin-left: 4px; }
+.ade-hop-hint { font-size: 11px; opacity: 0.68; }
+
+.ade-traj-hop {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.passport-row-head .ade-traj-hop,
+.passport-impact-head .ade-traj-hop,
+.passport-gate-paths .ade-traj-hop {
+  margin-left: auto;
+}
+/* data-ade-traj is marker-only; do not override impact-row pointer cursor */
+
+/* Trace focus → matching Passport row highlight (TH1–TH3) */
+.ade-traj-active,
+[data-ade-traj-active="1"] {
+  outline: 1px solid var(--vscode-focusBorder, #2f81f7);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent);
+}
+.traj-detail-ade-hop {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.ade-passport-hl-hop {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ADE immutable seal / write-gate status chip (fixture stub; not live FS) */
+.ade-seal-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid currentColor;
+  --ade-seal: var(--vscode-editorWarning-foreground, #cca700);
+  color: var(--ade-seal);
+  background: color-mix(in srgb, var(--ade-seal) 16%, var(--vscode-badge-background, #4d4d4d));
+}
+.ade-seal-chip[data-seal-state="sealed"] {
+  --ade-seal: var(--vscode-editorWarning-foreground, #cca700);
+}
+.ade-seal-chip[data-seal-state="open"] {
+  --ade-seal: var(--vscode-testing-iconPassed, #3fb950);
+}
+.ade-seal-chip[data-seal-state="unlock"] {
+  --ade-seal: var(--vscode-focusBorder, #2f81f7);
+}
+.traj-strip .ade-seal-chip { margin-left: 2px; }
+.ade-hop-row .ade-seal-chip { margin-left: 2px; }
+
+/* ADE seal-chip hover cue (SCH1–SCH3) — seal-tinted lift above resting 16%; cursor:help; informational status; no tabindex */
+.ade-seal-chip:hover {
+  background: color-mix(in srgb, var(--ade-seal) 34%, var(--vscode-badge-background, #4d4d4d));
+  border-color: color-mix(in srgb, var(--ade-seal) 78%, var(--g-line, #8b949e));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ade-seal) 42%, transparent);
+  cursor: help;
+}
+
+
+.passport-page { display: flex; flex-direction: column; gap: 12px; max-width: 980px; padding-bottom: 8px; }
+.passport-outcome { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+.passport-outcome-counts { font-size: 11px; opacity: 0.75; margin-left: auto; }
+.passport-section {
+  margin: 0; padding: 10px 12px;
+  border: 1px solid var(--vscode-widget-border, #333); border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 94%, transparent);
+}
+.passport-section h3 {
+  margin: 0 0 8px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85;
+  display: flex; align-items: center; gap: 8px;
+}
+.passport-section-count {
+  font-size: 10px; font-weight: 650; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, #333); opacity: 0.9;
+}
+.passport-section ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.passport-section li {
+  margin: 0; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, #333) 70%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+}
+.passport-target-label { font-weight: 600; margin-right: 6px; }
+.passport-gate {
+  --passport-state: var(--vscode-editorWarning-foreground, #cca700);
+  position: sticky; top: 0; z-index: 5;
+  max-height: min(40vh, 24rem); overflow: auto;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--vscode-widget-border, #333); border-left-width: 5px;
+  border-left-color: var(--passport-state);
+  background: var(--vscode-editor-background, #1e1e1e);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--vscode-widget-shadow, #000) 28%, transparent);
+}
+.passport-gate[data-passport-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-gate[data-passport-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
+.passport-gate[data-passport-state="approved"] { --passport-state: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-gate-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.passport-gate-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+.passport-gate-chip {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--passport-state) 18%, var(--vscode-badge-background, #4d4d4d));
+  color: var(--passport-state);
+}
+.passport-gate-chip[data-gate-chip="pending"],
+.passport-gate-chip[data-gate-chip="rejected"],
+.passport-gate-chip[data-gate-chip="approved"] { color: var(--passport-state); }
+
+/* ADE passport gate-chip hover cue (PGC1–PGC3) — state-tint lift above resting 18%; cursor:help; informational; no tabindex (parity with SGH sticky) */
+.passport-gate-chip[data-gate-chip]:hover {
+  background: color-mix(in srgb, var(--passport-state) 34%, var(--vscode-badge-background, #4d4d4d));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--passport-state) 42%, transparent);
+  cursor: help;
+}
+
+.passport-gate-state { font-weight: 600; line-height: 1.35; font-size: 12px; opacity: 0.92; }
+.passport-gate-paths { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.passport-gate-paths li {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--vscode-widget-border, #333); border-left-width: 3px; border-left-color: var(--passport-state);
+  background: var(--vscode-input-background, color-mix(in srgb, var(--vscode-editor-background) 88%, transparent));
+}
+.passport-gate-paths [data-blocked="1"] code { opacity: 0.78; text-decoration: line-through; }
+.passport-path-state {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; color: var(--passport-state);
+}
+.passport-gate[data-passport-state="approved"] .passport-path-state { color: var(--passport-state); }
+.passport-gate:not([data-passport-state="approved"]) .passport-path-state { color: var(--passport-state); }
+.passport-path-reason { font-size: 11px; opacity: 0.75; }
+
+
+/* Passport traj-hop adjacent residual (AR1–AR3) — neighbors of focused traj that still have residual */
+.passport-gate-path.passport-adj-residual,
+.passport-gate-path[data-passport-adj-residual="1"] {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 70%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent);
+}
+.passport-adj-residual-cue {
+  display: inline-flex; align-items: center;
+  flex: 0 0 auto;
+  margin-left: 4px; padding: 0 6px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 16%, transparent);
+}
+.traj-node.neighbor.traj-adj-residual,
+.traj-node.neighbor[data-traj-adj-residual="1"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 65%, transparent),
+    0 0 10px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 28%, transparent);
+}
+
+/* Trace adj-residual legend chips (AL1–AL3) — residual-adjacent node kinds on #trajEdgeLegend */
+#trajEdgeLegend .traj-legend-chip.adj-residual,
+#trajEdgeLegend .traj-legend-chip[data-adj-residual="1"] {
+  --traj-adj-legend: var(--vscode-editorWarning-foreground, #cca700);
+  color: var(--traj-adj-legend);
+  border-color: color-mix(in srgb, var(--traj-adj-legend) 55%, var(--g-line, #8b949e));
+  border-style: dashed;
+  background: color-mix(in srgb, var(--traj-adj-legend) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual .traj-legend-stroke line {
+  stroke: var(--traj-adj-legend);
+  stroke-dasharray: 2 2;
+  opacity: 0.95;
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+#trajEdgeLegend .traj-legend-chip.adj-residual.dim {
+  opacity: 1;
+  filter: none;
+}
+/* Trace legend focus-residual count chip (LC1–LC3) — pairs with Passport FC #405 */
+#trajEdgeLegend[data-residual-scope="focus"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 55%, transparent);
+  outline-offset: 2px;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual,
+#trajEdgeLegend .traj-legend-chip[data-focus-residual="1"] {
+  --traj-focus-residual: var(--vscode-focusBorder, #6ea8fe);
+  color: var(--traj-focus-residual);
+  border-color: color-mix(in srgb, var(--traj-focus-residual) 60%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--traj-focus-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e));
+  gap: 6px;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual .traj-legend-focus-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.15rem; height: 1.15rem; padding: 0 5px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--traj-focus-residual) 22%, transparent);
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="approved"] {
+  --traj-focus-residual: var(--vscode-testing-iconPassed, #3fb950);
+}
+#trajEdgeLegend .traj-legend-chip.focus-residual[data-residual-state="rejected"] {
+  --traj-focus-residual: var(--vscode-errorForeground, #f14c4c);
+}
+/* Trace legend residual filter/toggle (RF1–RF3) — pairs with #404/#406 residual legend chrome */
+/* ADE Trace↔Passport residual-filter host ON cue cross-parity (HOP1–HOP3) — shared outline language */
+#trajEdgeLegend[data-residual-filter="on"],
+.passport-residual[data-residual-filter="on"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, transparent);
+  outline-offset: 2px;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"] {
+  --traj-residual-filter: var(--vscode-editorWarning-foreground, #cca700);
+  cursor: pointer;
+  color: var(--traj-residual-filter);
+  border-color: color-mix(in srgb, var(--traj-residual-filter) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--traj-residual-filter) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+  font: inherit;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle[aria-pressed="true"],
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"][aria-pressed="true"] {
+  background: color-mix(in srgb, var(--traj-residual-filter) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-residual-filter) 50%, transparent);
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+/* ADE Trace legend residual-filter toggle focus-visible (TFV1–TFV3) — match clear-chip ring, warning residual */
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle:focus-visible,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--traj-residual-filter) 80%, transparent);
+  outline-offset: 1px;
+}
+/* ADE Trace legend clear-filter cue (CC1–CC3) — ON + non-empty; distinct from FE empty clear */
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"] {
+  --traj-legend-clear: var(--vscode-button-background, #0e639c);
+  cursor: pointer;
+  color: var(--vscode-button-foreground, #fff);
+  border-color: color-mix(in srgb, var(--traj-legend-clear) 70%, var(--g-line, #8b949e));
+  background: var(--traj-legend-clear);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter:focus-visible,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:focus-visible {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+  outline: 1px solid color-mix(in srgb, var(--traj-legend-clear) 80%, transparent);
+  outline-offset: 1px;
+}
+
+/* ADE Trace legend residual-filter count chip (RFC1–RFC3) — ON + bearings; pairs with Passport sticky RC */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"] {
+  --traj-filter-residual: var(--vscode-editorWarning-foreground, #cca700);
+  pointer-events: none;
+  cursor: default;
+  color: var(--traj-filter-residual);
+  border-color: color-mix(in srgb, var(--traj-filter-residual) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--traj-filter-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-count .traj-legend-filter-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 4px; border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--traj-filter-residual) 22%, transparent);
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-count .traj-legend-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+/* ADE Trace legend residual-filter count-chip focus (CCF1–CCF3) — keyboard-reachable status; no clear handler */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"],
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"] {
+  pointer-events: auto;
+  cursor: help;
+}
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"]:focus-visible,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--traj-filter-residual) 80%, transparent);
+  outline-offset: 1px;
+}
+/* ADE Trace legend residual-filter count pressed/host parity (FHP1–FHP3) — match toggle aria-pressed inset/28% */
+#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip.residual-filter-count,
+#trajEdgeLegend[data-residual-filter="on"] .traj-legend-chip[data-residual-filter-count="1"] {
+  background: color-mix(in srgb, var(--traj-filter-residual) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-filter-residual) 50%, transparent);
+}
+.traj-node.residual-filtered,
+.traj-node[data-residual-filtered="1"] {
+  opacity: 0.22;
+  filter: saturate(0.35);
+}
+/* Passport hop residual badge on gate path rows (HB1–HB3) */
+.passport-hop-residual {
+  --passport-hop-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));
+  display: inline-flex; align-items: center; gap: 4px;
+  flex: 0 0 auto;
+  padding: 1px 2px;
+  color: var(--passport-hop-residual);
+  font-size: 10px; line-height: 1.2;
+}
+.passport-hop-residual[data-hop-residual-state="pending"] { --passport-hop-residual: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-hop-residual[data-hop-residual-state="rejected"] { --passport-hop-residual: var(--vscode-errorForeground, #f14c4c); }
+.passport-hop-residual[data-hop-residual-state="approved"] { --passport-hop-residual: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-hop-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 1.15rem; padding: 0 6px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--passport-hop-residual) 20%, transparent);
+}
+.passport-sign {
+  position: sticky; bottom: 0; z-index: 6;
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+  margin-top: 4px; padding: 8px 10px;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid var(--vscode-widget-border, #333); border-bottom: none;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background, #1e1e1e));
+  box-shadow: 0 -6px 16px color-mix(in srgb, var(--vscode-widget-shadow, #000) 22%, transparent);
+}
+.passport-sign-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.passport-sign button {
+  cursor: pointer; padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--vscode-widget-border, #333);
+  background: var(--vscode-button-secondaryBackground, #3a3a3a);
+  color: var(--vscode-button-secondaryForeground, #fff);
+}
+.passport-sign button[data-passport-action="approve"] {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border-color: color-mix(in srgb, var(--vscode-button-background, #0e639c) 70%, #000);
+}
+.passport-sign button[data-passport-action="reject"] {
+  border-color: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 55%, var(--vscode-widget-border, #333));
+  color: var(--vscode-button-secondaryForeground, #fff);
+}
+.passport-sign-hint {
+  flex: 1 1 12rem; font-size: 10px; line-height: 1.35;
+  color: var(--vscode-descriptionForeground, rgba(204,204,204,0.7));
+  opacity: 0.85; order: 2;
+}
+
+
+/* Passport sticky plan summary (PSS1–PSS3) — gate + contracts/risks/tests/impact at a glance */
+.passport-sticky-summary {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  flex: 1 1 100%; min-width: 0; order: -1;
+  padding: 2px 0 6px; margin: 0 0 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 28%, var(--vscode-widget-border, #333));
+  font-size: 11px; line-height: 1.3;
+  color: var(--vscode-descriptionForeground, rgba(204,204,204,0.75));
+  font-variant-numeric: tabular-nums;
+}
+.passport-sticky-gate {
+  display: inline-flex; align-items: center;
+  padding: 1px 8px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 55%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 16%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));
+  font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  white-space: nowrap;
+}
+/* ADE SGR: sticky gate chip carries its own state tint (data-passport-gate) */
+.passport-sticky-gate[data-passport-gate="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-sticky-gate[data-passport-gate="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
+.passport-sticky-gate[data-passport-gate="approved"] { --passport-state: var(--vscode-testing-iconPassed, #3fb950); }
+
+/* ADE sticky-gate hover cue (SGH1–SGH3) — state-tinted lift above resting 16%; cursor:help; informational; no tabindex */
+.passport-sticky-gate[data-passport-gate]:hover {
+  background: color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 34%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 78%, var(--vscode-widget-border, #333));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 42%, transparent);
+  cursor: help;
+}
+
+
+.passport-sticky-counts {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0;
+}
+.passport-sticky-count { white-space: nowrap; }
+.passport-sticky-count b {
+  font-weight: 700;
+  color: var(--vscode-foreground, #ccc);
+}
+
+/* ADE PSE: sticky summary zero-count chrome (targets/gatedWrites only; not PE page empty) */
+.passport-sticky-summary[data-passport-summary-empty="1"],
+.passport-sticky-summary.passport-sticky-summary--zero {
+  opacity: 0.92;
+}
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-count,
+.passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-count {
+  opacity: 0.62;
+}
+.passport-sticky-summary[data-passport-summary-empty="1"] .passport-sticky-gate,
+.passport-sticky-summary.passport-sticky-summary--zero .passport-sticky-gate {
+  opacity: 1;
+}
+.passport-sticky-zero-cue,
+.passport-sticky-summary [data-passport-summary-zero-cue] {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.72;
+  color: var(--vscode-descriptionForeground, inherit);
+}
+
+
+/* Passport residual / incomplete-signoff cue on sticky sign rail (PR1–PR3) */
+.passport-residual {
+  --passport-residual: var(--passport-state, var(--vscode-editorWarning-foreground, #cca700));
+  display: inline-flex; align-items: center; gap: 6px;
+  flex: 0 1 auto; min-width: 0; max-width: 100%;
+  padding: 4px 8px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--passport-residual) 55%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--passport-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--passport-residual);
+  font-size: 11px; line-height: 1.3;
+}
+.passport-residual[data-residual-state="pending"] { --passport-residual: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-residual[data-residual-state="rejected"] { --passport-residual: var(--vscode-errorForeground, #f14c4c); }
+.passport-residual[data-residual-state="approved"] { --passport-residual: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-residual-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem; padding: 0 5px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--passport-residual) 22%, transparent);
+}
+.passport-residual-copy { font-weight: 600; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.passport-residual[data-residual-scope="focus"] {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 70%, transparent);
+  outline-offset: 2px;
+}
+.passport-residual[data-residual-scope="focus"] .passport-residual-badge {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 45%, transparent);
+}
+/* Passport sticky clear-focus cue (CF1–CF3) — pairs with FC/LC */
+.passport-residual .passport-clear-focus,
+.passport-residual [data-passport-clear-focus="1"] {
+  appearance: none;
+  margin: 0 0 0 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 55%, var(--vscode-widget-border, #333));
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 16%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--vscode-focusBorder, #6ea8fe);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.passport-residual .passport-clear-focus:hover,
+.passport-residual .passport-clear-focus:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 26%, var(--vscode-editorWidget-background, #1e1e1e));
+}
+.passport-residual[data-residual-scope="global"] .passport-clear-focus {
+  display: none;
+}
+
+/* ADE Passport residual-filter mirror (PM) — pairs with Trace RF/RK shared trajResidualFilter */
+/* Passport residual-filter host ON cue: shared outline with Trace (HOP); inset removed */
+.passport-residual .passport-residual-filter-toggle,
+.passport-residual [data-passport-residual-filter-toggle="1"] {
+  --passport-residual-filter: var(--vscode-editorWarning-foreground, #cca700);
+  margin-left: 6px;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--passport-residual-filter);
+  border: 1px solid color-mix(in srgb, var(--passport-residual-filter) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--passport-residual-filter) 12%, var(--vscode-editorWidget-background, #1e1e1e));
+}
+.passport-residual .passport-residual-filter-toggle[aria-pressed="true"],
+.passport-residual [data-passport-residual-filter-toggle="1"][aria-pressed="true"] {
+  background: color-mix(in srgb, var(--passport-residual-filter) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual-filter) 50%, transparent);
+}
+/* ADE Passport residual-filter toggle focus-visible (TFV1–TFV3) — match clear-chip ring, warning residual */
+.passport-residual .passport-residual-filter-toggle:focus-visible,
+.passport-residual [data-passport-residual-filter-toggle="1"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--passport-residual-filter) 80%, transparent);
+  outline-offset: 1px;
+}
+/* ADE Passport sticky clear-filter cue (PCF1–PCF3) — ON + non-empty; mirror Trace legend CC */
+.passport-residual .passport-sticky-clear-filter,
+.passport-residual [data-passport-clear-filter="1"] {
+  --passport-sticky-clear: var(--vscode-button-background, #0e639c);
+  appearance: none;
+  margin: 0 0 0 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--passport-sticky-clear) 70%, var(--g-line, #8b949e));
+  background: var(--passport-sticky-clear);
+  color: var(--vscode-button-foreground, #fff);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.passport-residual .passport-sticky-clear-filter:focus-visible,
+.passport-residual [data-passport-clear-filter="1"]:focus-visible {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+  outline: 1px solid color-mix(in srgb, var(--passport-sticky-clear) 80%, transparent);
+  outline-offset: 1px;
+}
+
+/* ADE Passport sticky residual-filter count (RFC1–RFC3) — ON + bearings; pairs with Trace legend RC */
+.passport-residual .passport-residual-filter-count,
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count {
+  --passport-filter-residual: var(--vscode-editorWarning-foreground, #cca700);
+  pointer-events: none;
+  cursor: default;
+  margin-left: 4px;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--passport-filter-residual) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--passport-filter-residual) 14%, var(--vscode-editorWidget-background, #1e1e1e));
+  color: var(--passport-filter-residual);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* ADE Passport sticky residual-filter count-chip focus (CCF1–CCF3) — keyboard-reachable status; no clear handler */
+.passport-residual .passport-residual-filter-count[tabindex="0"],
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"] {
+  pointer-events: auto;
+  cursor: help;
+}
+.passport-residual .passport-residual-filter-count[tabindex="0"]:focus-visible,
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"]:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--passport-filter-residual) 80%, transparent);
+  outline-offset: 1px;
+}
+/* ADE Passport sticky residual-filter count pressed/host parity (FHP1–FHP3) — match toggle aria-pressed inset/28% */
+.passport-residual[data-residual-filter="on"] .passport-residual-filter-count,
+.passport-residual[data-residual-filter="on"] [data-residual-filter-count="1"].passport-residual-filter-count {
+  background: color-mix(in srgb, var(--passport-filter-residual) 28%, var(--vscode-editorWidget-background, #1e1e1e));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-filter-residual) 50%, transparent);
+}
+
+.passport-gate-path.residual-filtered,
+.passport-gate-path[data-residual-filtered="1"] {
+  opacity: 0.35;
+  filter: grayscale(0.35);
+}
+
+/* ADE residual-filter empty chrome (FE1–FE3) — filter ON + zero bearings */
+#trajCanvas[data-residual-filter-empty="1"],
+#passportGate[data-residual-filter-empty="1"] {
+  position: relative;
+}
+.traj-empty.residual-filter-empty,
+.passport-empty.passport-residual-filter-empty {
+  margin: 12px 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 55%, var(--g-line, #8b949e));
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, var(--vscode-editorWidget-background, #1e1e1e));
+  max-width: 420px;
+  z-index: 2;
+}
+#trajCanvas .traj-empty.residual-filter-empty {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  pointer-events: auto;
+}
+.residual-filter-clear,
+button.residual-filter-clear[data-residual-filter-clear="1"] {
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-background, #0e639c);
+  border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 70%, transparent);
+}
+.residual-filter-clear:focus-visible,
+button.residual-filter-clear[data-residual-filter-clear="1"]:focus-visible {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+  outline: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 80%, transparent);
+  outline-offset: 1px;
+}
+
+/* ADE clear-filter :active/pressed flash parity (CAF1–CAF3) — themed press beyond global scale(0.97) */
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter:active,
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter.press,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:active,
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"].press,
+.passport-residual .passport-sticky-clear-filter:active,
+.passport-residual .passport-sticky-clear-filter.press,
+.passport-residual [data-passport-clear-filter="1"]:active,
+.passport-residual [data-passport-clear-filter="1"].press,
+.residual-filter-clear:active,
+.residual-filter-clear.press,
+button.residual-filter-clear[data-residual-filter-clear="1"]:active,
+button.residual-filter-clear[data-residual-filter-clear="1"].press {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 78%, #000 22%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 55%, #000 45%);
+}
+
+/* ADE residual-filter toggle :active/pressed flash parity (TAF1–TAF3) — warning-themed press beyond global scale(0.97); darker than OFF and ON resting chrome */
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle:active,
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle.press,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"]:active,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"].press {
+  background: color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
+}
+.passport-residual .passport-residual-filter-toggle:active,
+.passport-residual .passport-residual-filter-toggle.press,
+.passport-residual [data-passport-residual-filter-toggle="1"]:active,
+
+/* ADE residual-filter count-chip :active/pressed flash parity (CNA1–CNA3) — warning-themed press darker than FHP 28% resting; spans lack global button:active scale */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count:active,
+#trajEdgeLegend .traj-legend-chip.residual-filter-count.press,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"]:active,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"].press {
+  background: color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
+}
+.passport-residual .passport-residual-filter-count:active,
+.passport-residual .passport-residual-filter-count.press,
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count:active,
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count.press {
+  background: color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
+}
+
+/* ADE residual-filter count-chip hover cue (CHC1–CHC3) — warning lift above FHP 28%; cursor:help; not Clear blue; :active/.press still win */
+#trajEdgeLegend .traj-legend-chip.residual-filter-count[tabindex="0"]:hover:not(:active):not(.press),
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-count="1"][tabindex="0"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--traj-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 70%, var(--g-line, #8b949e));
+  cursor: help;
+}
+.passport-residual .passport-residual-filter-count[tabindex="0"]:hover:not(:active):not(.press),
+.passport-residual [data-residual-filter-count="1"].passport-residual-filter-count[tabindex="0"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 70%, var(--g-line, #8b949e));
+  cursor: help;
+}
+
+/* ADE residual-filter toggle hover cue (THC1–THC3) — warning lift above ON 28% (42%); cursor:pointer (activatable); distinct from CHC 38%+help and Clear blue; :active/.press still win */
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle:hover:not(:active):not(.press),
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 42%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 72%, var(--g-line, #8b949e));
+  cursor: pointer;
+}
+.passport-residual .passport-residual-filter-toggle:hover:not(:active):not(.press),
+.passport-residual [data-passport-residual-filter-toggle="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 42%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 72%, var(--g-line, #8b949e));
+  cursor: pointer;
+}
+
+/* ADE clear-filter hover cue (CLC1–CLC3) — blue lift above resting button-background; cursor:pointer (activatable); distinct from CHC help / THC warning; CAF :active/.press still win */
+#trajEdgeLegend .traj-legend-chip.legend-clear-filter:hover:not(:active):not(.press),
+#trajEdgeLegend .traj-legend-chip[data-legend-clear-filter="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
+  cursor: pointer;
+}
+.passport-residual .passport-sticky-clear-filter:hover:not(:active):not(.press),
+.passport-residual [data-passport-clear-filter="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
+  cursor: pointer;
+}
+.residual-filter-clear:hover:not(:active):not(.press),
+button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):not(.press) {
+  background: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 86%, #fff 14%);
+  border-color: color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 72%, #fff 28%);
+  cursor: pointer;
+}
+
+/* ADE residual-filter empty keyboard hints (EKH1–EKH3) — desk-keys strip under Clear; scoped spacing only */
+.residual-filter-empty .residual-filter-empty-keys,
+.passport-residual-filter-empty .residual-filter-empty-keys {
+  margin-top: 8px;
+}
+
+/* ADE Keys R row :active/pressed flash parity (KAF1–KAF3) — momentary darker flash distinct from KP resting ON (color/opacity/kbd); residual-bound only */
+#keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"]:active,
+#keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"].press,
+#keysPane li[data-keys-row="r"][data-keys-residual-hint="1"]:active,
+#keysPane li[data-keys-row="r"][data-keys-residual-hint="1"].press {
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 38%, #000 62%);
+  border-radius: 6px;
+}
+
+.passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
+.passport-sign[data-passport-sign-state="approved"] { --passport-state: var(--vscode-testing-iconPassed, #3fb950); }
+
+.passport-risk-pill {
+  display: inline-flex; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.03em; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid currentColor; margin-right: 4px;
+}
+.passport-page [data-level="high"] { color: var(--vscode-errorForeground, #f14c4c); }
+.passport-page [data-level="med"] { color: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-page [data-level="low"] { color: var(--vscode-testing-iconPassed, #3fb950); }
+.passport-page [data-stability="draft"] { font-style: italic; opacity: 0.85; }
+.passport-impact-summary { margin: 0 0 10px; line-height: 1.45; opacity: 0.9; }
+.passport-impact-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+}
+@media (max-width: 900px) { .passport-impact-grid { grid-template-columns: 1fr; } }
+.passport-impact-card {
+  border: 1px solid var(--vscode-widget-border, #333); border-radius: 8px; padding: 8px 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
+}
+.passport-impact-card h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.8; }
+.passport-impact-card ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.passport-impact-card li { margin: 0; font-size: 11px; line-height: 1.4; }
+
+.passport-delta-vocab {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+  border: 1px dashed var(--vscode-widget-border, #333);
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, #3fb950 4%);
+}
+.passport-delta-vocab-head {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; margin-bottom: 10px;
+}
+.passport-delta-vocab-k {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.passport-delta-vocab-stub {
+  font-size: 11px; opacity: 0.72;
+}
+.passport-vocab-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 8px;
+}
+.passport-vocab-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  opacity: 0.75; min-width: 58px;
+}
+.passport-vocab-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.passport-vocab-chip {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 650;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, #333);
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent);
+}
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Added"],
+.passport-vocab-chip[data-vocab-chip="cluster"][data-vocab-value="Added"] { color: #3fb950; }
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Removed"],
+.passport-vocab-chip[data-vocab-chip="cluster"][data-vocab-value="Removed"] {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Changed"],
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Moved"],
+.passport-vocab-chip[data-vocab-chip="status"][data-vocab-value="Rerouted"] {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+.passport-vocab-regions {
+  margin: 8px 0 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+}
+@media (max-width: 900px) { .passport-vocab-regions { grid-template-columns: 1fr; } }
+.passport-vocab-region {
+  margin: 0; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, #333) 75%, transparent);
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px; line-height: 1.4;
+}
+.passport-vocab-region strong { font-size: 11px; letter-spacing: 0.02em; }
+
+.passport-vocab-region span { opacity: 0.8; }
+
+.passport-row { display: flex; flex-direction: column; gap: 4px; }
+.passport-row-head { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+.passport-row-impact {
+  font-size: 11px; line-height: 1.4; opacity: 0.85; padding-left: 2px;
+}
+.passport-row-meta {
+  font-size: 11px; line-height: 1.4; opacity: 0.82;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline;
+}
+.passport-meta-k {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.7;
+}
+.passport-layer-chip {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.03em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, #333);
+  color: var(--vscode-focusBorder, #2f81f7);
+}
+.passport-breaking-pill {
+  display: inline-flex; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.03em; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, #333);
+}
+.passport-breaking-pill[data-passport-breaking-pill="1"] {
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-color: currentColor;
+}
+.passport-breaking-pill[data-passport-breaking-pill="0"] {
+  color: var(--vscode-testing-iconPassed, #3fb950);
+}
+.passport-impact-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 6px 8px; border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.passport-impact-row:hover,
+.passport-impact-row:focus-visible {
+  background: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 12%, transparent));
+  border-color: color-mix(in srgb, var(--vscode-widget-border, #333) 70%, transparent);
+  outline: none;
+}
+.passport-impact-row:focus-visible {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+}
+.passport-impact-head {
+  display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline;
+  position: relative; padding-right: 16px;
+}
+.passport-impact-head::after {
+  content: "\25B8";
+  position: absolute; right: 0; top: 0;
+  font-size: 11px; opacity: 0.55; line-height: 1.4;
+}
+.passport-impact-row[data-impact-expanded="true"] .passport-impact-head::after {
+  content: "\25BE";
+  opacity: 0.85;
+}
+.passport-impact-label { font-size: 11px; font-weight: 650; }
+.passport-impact-detail {
+  display: none; font-size: 11px; opacity: 0.78; line-height: 1.4;
+  padding: 0 2px 2px;
+}
+.passport-impact-row[data-impact-expanded="true"] .passport-impact-detail {
+  display: block;
+}
+.passport-impact-row--static {
+  cursor: default;
+}
+.passport-impact-row--static .passport-impact-head::after {
+  content: none;
+}
+.passport-impact-row--static:hover,
+.passport-impact-row--static:focus-visible {
+  background: transparent;
+  border-color: transparent;
+}
+
+
+
 
 .seq-canvas, .delta-canvas, .df-canvas, .lc-canvas {
   position: relative;
@@ -2857,6 +4533,61 @@ html.bright .src-line.scroll-drive-active {
   font-size: 10px;
   opacity: 0.7;
   margin-bottom: 6px;
+}
+/* ADE RDF — richer interactive Data-flow lanes */
+.df-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--g-radius, 6px);
+  background: var(--vscode-editor-background);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.df-lane-head .k {
+  margin: 0;
+  opacity: 0.85;
+}
+.df-lane-head .df-lane-count,
+.df-lane-count[data-df-count] {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 1.4em;
+  text-align: right;
+  opacity: 0.9;
+}
+.df-lane-head.on,
+.df-stage.on > .df-lane-head {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+  border-color: var(--vscode-focusBorder);
+}
+.df-stage.dim {
+  opacity: 0.42;
+}
+.df-node.df-lane-dim,
+.df-hop.dim {
+  opacity: 0.38;
+}
+.df-node.df-lane-hit {
+  outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+}
+.df-lane-empty {
+  font-size: 10px;
+  opacity: 0.55;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 2px 8px;
+}
+.df-empty[data-df-empty="1"] .crumb-btn {
+  margin: 0 4px;
 }
 .df-node {
   position: relative;
@@ -3368,6 +5099,34 @@ body.desk #workspace.has-source #canvas {
 .story-rail .feat-chip {
   animation: none;
 }
+
+/* ADE SBC — derived behavior caption under hop/feature name (graph-only comprehension) */
+.feat-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.2;
+}
+.feat-chip-name {
+  display: block;
+}
+.feat-chip-caption {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  font-weight: 500;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feat-chip[data-sbc-caption="1"] {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 
 /* Iteration 2 — two-row glass chrome, kind-tinted objects, no repeated now-pill. */
 html.bright header {
@@ -3969,7 +5728,6 @@ body.present #nowPill,
 body.present #graphBar,
 body.present #probeDock,
 body.present #meta,
-body.present #herd,
 body.present #coverage,
 body.present #status,
 body.present #progress,
