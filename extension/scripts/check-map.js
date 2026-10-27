@@ -462,6 +462,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
 const mapMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map.md"), "utf8");
+const lineageMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
 const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
@@ -912,6 +913,15 @@ assert(js.includes("enterBehaviorCaption") && js.includes("enterCanvasProps") &&
 assert(/selectNode\(\w+,\s*\{\s*peek:\s*false\s*\}\)/.test(js) && js.includes("ADE MBE"), "enter browse must selectNode with peek:false (MBE)");
 assert(css.includes("data-mbe-caption") && css.includes("#enterCanvas .vnode .meta"), "main.css must theme Map enter behavior captions");
 assert(mapMap.includes("MBE1") && mapMap.includes("data-mbe-caption") && mapMap.includes("map-enter-behavior.png") && mapMap.includes("peekSource"), "map feature map must name MBE / data-mbe-caption / proof / no peekSource");
+
+
+assert(driver.includes("LBC1") && driver.includes("LBC3") && driver.includes("lineage-behavior-captions.png") && driver.includes("data-lbc-caption"), "verify driver must prove Lineage behavior captions LBC1–LBC3");
+assert(js.includes("lineageBehaviorCaption") && js.includes("lineageCanvasProps") && js.includes("data-lbc-caption") && js.includes("ADE LBC"), "desk.js must derive lineageBehaviorCaption and graph-only lineage browse");
+assert(/selectNode\(\w+,\s*\{\s*peek:\s*false\s*\}\)/.test(js) && js.includes("ADE LBC"), "lineage browse must selectNode with peek:false (LBC)");
+assert(css.includes("data-lbc-caption") && css.includes("#lineageCanvas .vnode .meta"), "main.css must theme Lineage behavior captions");
+assert(lineageMap.includes("LBC1") && lineageMap.includes("data-lbc-caption") && lineageMap.includes("lineage-behavior-captions.png") && lineageMap.includes("peekSource"), "lineage feature map must name LBC / data-lbc-caption / proof / no peekSource");
+assert(openEvidenceMap.includes("ADE LBC") && openEvidenceMap.includes("peek: false"), "open-evidence must note Lineage graph-only browse (LBC)");
+
 
 assert(driver.includes("SBC1") && driver.includes("SBC3") && driver.includes("story-behavior-captions.png") && driver.includes("data-sbc-caption"), "verify driver must prove story behavior captions SBC1–SBC3");
 assert(js.includes("storyBehaviorCaption") && js.includes("primaryIncidentVerb") && js.includes("feat-chip-caption") && js.includes('data-sbc-caption="1"'), "desk.js must derive storyBehaviorCaption / primaryIncidentVerb and render feat-chip-caption");

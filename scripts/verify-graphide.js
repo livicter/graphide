@@ -37435,23 +37435,68 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
-    const evClick = await page.evaluate(() => {
-      const node = document.querySelector("#lineageCanvas .ego-node[data-id]");
-      if (node) node.click();
+    // ADE LBC — ego browse is graph-only; Evidence stays on object rail.
+    const lbcY7Posts = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      return (window.__vscodePosts || []).length;
+    });
+    const evClick = await page.evaluate((before) => {
+      const node =
+        document.querySelector('#lineageCanvas .ego-node[data-side="down"]') ||
+        document.querySelector("#lineageCanvas .ego-node[data-id]");
+      if (!node) return { clicked: false };
+      const id = node.getAttribute("data-id") || "";
+      node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const pane = document.getElementById("sourcePane");
+      const vnode = document.querySelector("#lineageCanvas .ego-node[data-id='" + id + "'], #lineageCanvas .vnode[data-id='" + id + "']");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        clicked: true,
+        id,
+        srcHidden: !pane || pane.hidden,
+        selected: !!(vnode && (vnode.classList.contains("selected") || vnode.classList.contains("ego"))),
+        caption: vnode ? vnode.getAttribute("data-lbc-caption") || "" : "",
+        peekPosted: posts.some((m) => m && m.type === "peekSource"),
+        kicker: ((document.querySelector(".src-k") || {}).textContent || "").trim(),
+      };
+    }, lbcY7Posts);
+    record(
+      "Y7",
+      "Lineage node click highlights graph-only without peekSource / Evidence",
+      !!(evClick.clicked && evClick.srcHidden && !evClick.peekPosted),
+      JSON.stringify(evClick)
+    );
+    await page.evaluate((id) => {
+      const cell =
+        (id && document.querySelector('#ledgerGrid .cell[data-id="' + id + '"]')) ||
+        document.querySelector("#ledgerGrid .cell[data-id]");
+      if (cell) cell.click();
+    }, evClick.id || "");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("sourcePane");
+        return !!(pane && !pane.hidden);
+      },
+      null,
+      { timeout: 8000 }
+    ).catch(() => {});
+    const railEv = await page.evaluate(() => {
       const pane = document.getElementById("sourcePane");
       return {
-        clicked: !!node,
         open: !!(pane && !pane.hidden),
         kicker: ((document.querySelector(".src-k") || {}).textContent || "").trim(),
         title: ((document.getElementById("srcTitle") || {}).textContent || "").trim(),
       };
     });
     record(
-      "Y7",
-      "Evidence still opens from a Lineage node click",
-      evClick.open && /Evidence/i.test(evClick.kicker),
-      evClick.kicker + " " + evClick.title
+      "Y7b",
+      "Evidence still opens from Lineage object rail after graph-only ego browse",
+      railEv.open && /Evidence/i.test(railEv.kicker),
+      railEv.kicker + " " + railEv.title
     );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(120);
 
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForTimeout(200);
@@ -37468,6 +37513,96 @@ async function main() {
 
     await page.click('#workspaces [data-ws="lineage"]');
     await page.waitForTimeout(200);
+    await page.waitForSelector("#lineageCanvas .react-flow__node, .ego-node", { timeout: 10000 });
+    await page.waitForTimeout(160);
+
+    // ADE Lineage Behavior captions (LBC1–LBC3) — derived ego captions; graph-only browse
+    const lbc1 = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#lineageCanvas .vnode[data-id], #lineageCanvas .ego-node[data-id]")];
+      const captioned = nodes.filter((el) => el.getAttribute("data-lbc-caption") === "1");
+      const metas = captioned
+        .map((el) => {
+          const meta = el.querySelector(".meta");
+          return (meta && meta.textContent) || "";
+        })
+        .filter(Boolean);
+      const sample = metas[0] || "";
+      const looksDerived =
+        /Function|Type|Endpoint|Calls|Reads|Writes|Publishes|Subscribes|Sink|Source|Http|Channel|Queue|Table/i.test(
+          sample
+        );
+      const fileLinePrimary = captioned.some((el) => {
+        const meta = ((el.querySelector(".meta") || {}).textContent || "").trim();
+        return /^\S+\.\w+:\d+/.test(meta);
+      });
+      const provCap = [...document.querySelectorAll(".prov-col .expl-card.hop[data-lbc-caption='1'], #lineageHops .expl-card.hop[data-lbc-caption='1']")].length;
+      return {
+        nodes: nodes.length,
+        captioned: captioned.length,
+        metas: metas.length,
+        sample,
+        looksDerived,
+        fileLinePrimary,
+        provCap,
+        title: ((document.querySelector("#canvas .flow-title") || {}).textContent || "").trim().slice(0, 80),
+      };
+    });
+    const lbc1ok = !!(lbc1 && lbc1.captioned >= 1 && lbc1.metas >= 1 && lbc1.looksDerived && !lbc1.fileLinePrimary);
+    record(
+      "LBC1",
+      "Lineage ego members show derived .meta behavior captions (data-lbc-caption; not file:line)",
+      !!lbc1ok,
+      JSON.stringify(lbc1)
+    );
+
+    const lbc2Before = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      return (window.__vscodePosts || []).length;
+    });
+    const lbc2 = await page.evaluate((before) => {
+      const node =
+        document.querySelector("#lineageCanvas .vnode[data-lbc-caption='1']") ||
+        document.querySelector("#lineageCanvas .ego-node[data-id]") ||
+        document.querySelector("#lineageCanvas .vnode[data-id]");
+      if (!node) return { ok: false, reason: "no node" };
+      const id = node.getAttribute("data-id") || "";
+      node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const pane = document.getElementById("sourcePane");
+      const vnode = document.querySelector("#lineageCanvas .vnode[data-id='" + id + "'], #lineageCanvas .ego-node[data-id='" + id + "']");
+      const posts = (window.__vscodePosts || []).slice(before);
+      return {
+        ok: true,
+        id,
+        srcHidden: !pane || pane.hidden,
+        selected: !!(vnode && (vnode.classList.contains("selected") || vnode.classList.contains("ego"))),
+        caption: vnode ? vnode.getAttribute("data-lbc-caption") || "" : "",
+        peekPosted: posts.some((m) => m && m.type === "peekSource"),
+      };
+    }, lbc2Before);
+    const lbc2ok = !!(lbc2 && lbc2.ok && lbc2.srcHidden && !lbc2.peekPosted);
+    record(
+      "LBC2",
+      "Lineage ego click highlights graph-only without peekSource / Evidence",
+      !!lbc2ok,
+      JSON.stringify(lbc2)
+    );
+
+    await shot(page, "lineage-behavior-captions.png");
+    const lbcShot = checks.find((c) => c.id === "shot:lineage-behavior-captions.png");
+    const lbc3ok = !!(lbc1ok && lbc2ok && lbcShot && lbcShot.pass);
+    record(
+      "LBC3",
+      "screenshot lineage-behavior-captions.png not black; Lineage behavior captions proven",
+      !!lbc3ok,
+      JSON.stringify({
+        shot: lbcShot ? lbcShot.detail : "missing",
+        lbc1: !!lbc1ok,
+        lbc2: !!lbc2ok,
+      })
+    );
+    assertNoStampDir("LBC4", "Lineage behavior captions step did not write .graphide/stamps/");
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

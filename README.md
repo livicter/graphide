@@ -28,7 +28,7 @@ After **Review**, the panel lands on **Overview** with a default run (`overview`
 
 **ADE Phase 1 (v0.2)** is on `main`. Goal: learn what the program does from graphs and interactive charts alone — no source pane required for the walk.
 
-Landed history (squash merges): Trajectory [#371](https://github.com/livicter/graphide/pull/371) · Passport [#372](https://github.com/livicter/graphide/pull/372) · Immutable [#373](https://github.com/livicter/graphide/pull/373) · residual-filter / Keys / seal / zoom polish through [#443](https://github.com/livicter/graphide/pull/443) · OMC [#455](https://github.com/livicter/graphide/pull/455) · SBC [#456](https://github.com/livicter/graphide/pull/456) · RDF [#457](https://github.com/livicter/graphide/pull/457) · SSR [#458](https://github.com/livicter/graphide/pull/458) · CSC [#459](https://github.com/livicter/graphide/pull/459) · Map enter behavior captions (MBE, this tip). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness. Trace↔Passport deep-link: `?trace=1&passport=1&traj=&gate=`.
+Landed history (squash merges): Trajectory [#371](https://github.com/livicter/graphide/pull/371) · Passport [#372](https://github.com/livicter/graphide/pull/372) · Immutable [#373](https://github.com/livicter/graphide/pull/373) · residual-filter / Keys / seal / zoom polish through tip stack [#443](https://github.com/livicter/graphide/pull/443) · OMC [#455](https://github.com/livicter/graphide/pull/455) · SBC [#456](https://github.com/livicter/graphide/pull/456) · RDF [#457](https://github.com/livicter/graphide/pull/457) · SSR [#458](https://github.com/livicter/graphide/pull/458) · CSC [#459](https://github.com/livicter/graphide/pull/459) · ADE tip restore + Map enter behavior captions (MBE) [#461](https://github.com/livicter/graphide/pull/461) · Lineage behavior captions (LBC, this tip). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness. Trace↔Passport deep-link: `?trace=1&passport=1&traj=&gate=`.
 
 ![Live V1–V57](UIUX_sample/live-suite.png)
 
@@ -66,7 +66,9 @@ Landed history (squash merges): Trajectory [#371](https://github.com/livicter/gr
 
 ![Passport](UIUX_sample/passport.png)
 
-**Lineage** — ego of the start hop, Used / Informed / Generated. **Registry** — snapshot audit:
+**Lineage** — ego of the start hop, Used / Informed / Generated with behavior captions (graph-only browse; Evidence on the object rail). **Registry** — snapshot audit:
+
+![Lineage behavior captions](UIUX_sample/lineage-behavior-captions.png)
 
 ![Lineage hops](UIUX_sample/lineage-hops.png)
 

@@ -17056,6 +17056,7 @@
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
     if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
     if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
+    if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
     if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
     const style2 = d.depth != null ? { "--d": d.depth } : void 0;
@@ -19606,7 +19607,7 @@
       nodeCap: 48,
       hopCap: 80,
       nodeW: 176,
-      nodeH: 64,
+      nodeH: 78,
       nodesep: 36,
       ranksep: 96
     });
@@ -19619,6 +19620,10 @@
         kindClass: n.kindClass || "kind-Function",
         label: n.label || n.fqn || String(n.id),
         kindLine: n.kindLine || n.kind || "Function",
+        // ADE LBC — behavior caption on ego meta (kind · role/channel · verb) — not file:line.
+        meta: n.meta || n.caption || "",
+        caption: n.caption || n.meta || "",
+        lbcCaption: !!(n.lbcCaption || n.meta || n.caption),
         side: n.side || "",
         hop: n.hop,
         focus: !!n.focus,
@@ -30756,6 +30761,64 @@
         graphFilter.q || ""
       ].join("\0");
     }
+    function lineageBehaviorCaption(nid, hops, focusId) {
+      const sid = idVal(nid);
+      if (!sid) return "";
+      const focus = idVal(focusId);
+      let next = "";
+      const list = hops || [];
+      for (const h of list) {
+        const a = idVal(h.from);
+        const b = idVal(h.to);
+        if (a === sid && (!focus || b === focus || sid === focus)) {
+          next = b;
+          break;
+        }
+        if (b === sid && (!focus || a === focus || sid === focus)) {
+          next = a;
+          break;
+        }
+      }
+      if (!next) {
+        for (const h of list) {
+          const a = idVal(h.from);
+          const b = idVal(h.to);
+          if (a === sid) {
+            next = b;
+            break;
+          }
+          if (b === sid) {
+            next = a;
+            break;
+          }
+        }
+      }
+      let cap = storyBehaviorCaption(sid, next);
+      if (cap) return cap;
+      const parts = [];
+      const kind = kindOf(snapshot && snapshot.graph, sid);
+      if (kind) parts.push(String(kind));
+      const ep = endpointOf(sid);
+      if (ep) {
+        if (ep.role) parts.push(String(ep.role));
+        if (ep.channel) parts.push(String(ep.channel));
+      }
+      if (next) {
+        const verb = primaryIncidentVerb(sid, next);
+        if (verb) parts.push(verb);
+        else {
+          for (const h of list) {
+            if (idVal(h.from) === sid || idVal(h.to) === sid) {
+              if (h.kind) {
+                parts.push(String(h.kind));
+                break;
+              }
+            }
+          }
+        }
+      }
+      return parts.join(" · ");
+    }
     function lineageCanvasProps(reading, focusId) {
       const hops = reading && reading.hops || [];
       const hot = lineageHopCursor >= 0 ? hops[lineageHopCursor] : null;
@@ -30764,11 +30827,13 @@
         hotIds.add(String(hot.from));
         hotIds.add(String(hot.to));
       }
+      const focus = focusId || lineageEgoId || "";
       const items = (reading && reading.nodes || []).map((n) => {
         const nid = n.id;
         const kind = kindOf(snapshot.graph, nid) || "Function";
         const fqn = fqnOf(snapshot.graph, nid);
         const flags = nodeFlags(nid);
+        const caption = lineageBehaviorCaption(nid, hops, focus);
         return {
           id: nid,
           fqn,
@@ -30781,7 +30846,10 @@
           focus: n.side === "focus",
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
-          ...graphNodePaint(nid, { fqn, kind })
+          ...graphNodePaint(nid, { fqn, kind }),
+          meta: caption,
+          caption,
+          lbcCaption: !!caption
         };
       });
       return {
@@ -30790,7 +30858,8 @@
           i,
           from: h.from,
           to: h.to,
-          kind: h.kind || ""
+          kind: h.kind || "",
+          caption: lineageBehaviorCaption(h.dir === "out" || h.side === "down" ? h.from : h.to, hops, focus) || storyBehaviorCaption(h.from, h.to)
         })),
         cursor: lineageHopCursor,
         hotIds,
@@ -30798,7 +30867,7 @@
           if (!nid) return;
           lineageHopCursor = -1;
           lineageEgoId = nid;
-          selectNode(nid, { peek: true });
+          selectNode(nid, { peek: false });
           paint({ animate: "none" });
         },
         onHopClick: (iOrHop) => {
@@ -30866,7 +30935,9 @@
           ].join(" ")
         );
       }).slice(0, 24).map(({ e, i }) => {
-        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
+        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '" data-lbc-caption="1"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(
+          lineageBehaviorCaption(e.dir === "out" ? e.from : e.to, hops, id2) || storyBehaviorCaption(e.from, e.to) || shortToken(e.from) + " → " + shortToken(e.to)
+        ) + "</div></button>";
       });
       const pathRow = path.length > 1 ? '<div class="path-row">' + path.map((pid) => {
         return '<button type="button" class="path-chip ' + kindClass(kindOf(snapshot.graph, pid)) + '" data-id="' + esc(pid) + '">' + esc(shortOf(fqnOf(snapshot.graph, pid))) + "</button>";
@@ -30878,7 +30949,8 @@
       const provCol = (name, label, items) => {
         return '<div class="prov-col" data-prov="' + name + '"><div class="k">' + label + "</div>" + (items.length ? items.map((e) => {
           const other = e.dir === "out" ? e.to : e.from;
-          return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '"><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, other))) + '</div><div class="b">' + esc(e.kind) + "</div></button>";
+          const cap = lineageBehaviorCaption(other, hops, id2) || storyBehaviorCaption(e.from, e.to) || e.kind;
+          return '<button type="button" class="expl-card hop" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-lbc-caption="1"><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, other))) + '</div><div class="b">' + esc(cap) + "</div></button>";
         }).join("") : '<div class="empty">—</div>') + "</div>";
       };
       const key = lineageWorkspaceKey(id2, reading);
@@ -30909,7 +30981,7 @@
           ev.stopPropagation();
           lineageHopCursor = -1;
           lineageEgoId = nid;
-          selectNode(nid, { peek: true });
+          selectNode(nid, { peek: false });
           paint({ animate: "none" });
         };
       });
@@ -30927,7 +30999,6 @@
       setLedgerHead("EGO");
       applyEgoPaint();
       applyGraphFilter();
-      if (id2) peekSource(id2);
       const upN = reading.nodes.filter((n) => n.side === "up").length;
       const downN = reading.nodes.filter((n) => n.side === "down").length;
       window.__graphideLineage = {
