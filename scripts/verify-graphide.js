@@ -10503,6 +10503,219 @@ async function main() {
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     });
 
+    // ADE Keys R residual-bound :active/pressed flash parity (KAF1–KAF3) — momentary darker flash distinct from KP resting ON
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (legend && legend.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend[data-residual-filter="on"]', { timeout: 8000 });
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        return !!(
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "residual-filter" &&
+          row.getAttribute("data-keys-r-pressed") === "1" &&
+          row.classList.contains("pressed")
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const kafTrace = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane li[data-keys-row="r"]');
+      if (!row) return { present: false };
+      const rest = getComputedStyle(row);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      row.classList.add("press");
+      const pressed = getComputedStyle(row);
+      const out = {
+        present: true,
+        binding: row.getAttribute("data-keys-r-binding") || "",
+        hint: row.getAttribute("data-keys-residual-hint") || "",
+        kpPressed: row.getAttribute("data-keys-r-pressed") || "",
+        kpCls: row.classList.contains("pressed") && row.classList.contains("on"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        aria: row.getAttribute("aria-pressed") || "",
+      };
+      row.classList.remove("press");
+      return out;
+    });
+    const kaf1ok = !!(
+      kafTrace &&
+      kafTrace.present &&
+      kafTrace.binding === "residual-filter" &&
+      kafTrace.kpPressed === "1" &&
+      kafTrace.kpCls &&
+      !kafTrace.restInset &&
+      kafTrace.bgChanged &&
+      kafTrace.pressInset
+    );
+    record(
+      "KAF1",
+      "Trace Keys R residual-bound row shows themed :active/.press flash (darker warning bg + inset) distinct from KP resting ON",
+      !!kaf1ok,
+      JSON.stringify(kafTrace)
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForFunction(
+      () => {
+        const pane = document.getElementById("keysPane");
+        const row = pane && pane.querySelector('[data-keys-row="r"]');
+        const host = document.querySelector(
+          '#passportSign .passport-residual[data-residual-filter="on"]'
+        );
+        return !!(
+          host &&
+          pane &&
+          !pane.hidden &&
+          row &&
+          row.getAttribute("data-keys-r-binding") === "residual-filter" &&
+          row.getAttribute("data-keys-r-pressed") === "1"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const kafPass = await page.evaluate(() => {
+      const row = document.querySelector('#keysPane li[data-keys-row="r"]');
+      if (!row) return { present: false };
+      const rest = getComputedStyle(row);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      row.classList.add("press");
+      const pressed = getComputedStyle(row);
+      // Map unbound control: temporarily force PATH binding attrs without removing press yet
+      const mapProbe = (() => {
+        const binding = row.getAttribute("data-keys-r-binding");
+        const hint = row.getAttribute("data-keys-residual-hint");
+        row.setAttribute("data-keys-r-binding", "path");
+        row.setAttribute("data-keys-residual-hint", "0");
+        // keep .press — CSS should not apply when unbound; snapshot before restore
+        // (getComputedStyle is live and would reflect restored attrs if read later)
+        const unbound = getComputedStyle(row);
+        const unboundBg = unbound.backgroundColor;
+        const unboundShadow = unbound.boxShadow || "";
+        row.setAttribute("data-keys-r-binding", binding || "residual-filter");
+        row.setAttribute("data-keys-residual-hint", hint || "1");
+        return {
+          unboundBg,
+          unboundInset: /inset/i.test(unboundShadow),
+          unboundMatchesRest: unboundBg === restBg,
+        };
+      })();
+      const out = {
+        present: true,
+        binding: row.getAttribute("data-keys-r-binding") || "",
+        kpPressed: row.getAttribute("data-keys-r-pressed") || "",
+        kpCls: row.classList.contains("pressed") && row.classList.contains("on"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        bgChanged: restBg !== pressed.backgroundColor,
+        mapProbe,
+      };
+      // Keep .press for proof PNG.
+      return out;
+    });
+    const kaf2ok = !!(
+      kafPass &&
+      kafPass.present &&
+      kafPass.binding === "residual-filter" &&
+      kafPass.kpPressed === "1" &&
+      kafPass.kpCls &&
+      !kafPass.restInset &&
+      kafPass.bgChanged &&
+      kafPass.pressInset &&
+      kafPass.mapProbe &&
+      kafPass.mapProbe.unboundMatchesRest &&
+      !kafPass.mapProbe.unboundInset
+    );
+    record(
+      "KAF2",
+      "Passport Keys R residual-bound row shows themed :active/.press flash; Map PATH binding does not",
+      !!kaf2ok,
+      JSON.stringify(kafPass)
+    );
+
+    await shot(page, "keys-r-active-flash.png");
+    const kafShot = checks.find((c) => c.id === "shot:keys-r-active-flash.png");
+    record(
+      "KAF3",
+      "screenshot keys-r-active-flash.png is not a black frame",
+      !!(kafShot && kafShot.pass),
+      kafShot ? kafShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "KAF4",
+      "Keys R active flash step did not write .graphide/stamps/"
+    );
+
+    // Restore: drop press; close Keys; leave filter OFF for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      document.querySelectorAll(".press").forEach((el) => el.classList.remove("press"));
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const keysClose = document.querySelector("#keysPane .keys-head button, #keysClose, [data-keys-close]");
+      const keysPane = document.getElementById("keysPane");
+      if (keysPane && !keysPane.hidden) {
+        // Prefer close control; fall back to hiding via known helper button
+        const btn =
+          document.getElementById("keysClose") ||
+          document.querySelector("#keysPane .keys-head button");
+        if (btn) btn.click();
+      }
+      const passToggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (passToggle && passToggle.getAttribute("aria-pressed") === "true") {
+        passToggle.click();
+      } else {
+        const legend = document.getElementById("trajEdgeLegend");
+        if (legend && legend.getAttribute("data-residual-filter") === "on") {
+          const toggle = document.querySelector(
+            '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+          );
+          if (toggle) toggle.click();
+        }
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.waitForTimeout(40);
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

@@ -744,6 +744,12 @@ assert(keysMap.includes("CNA1") && keysMap.includes(":active") && keysMap.includ
 assert(traceMap.includes("CNA1") && traceMap.includes(":active") && traceMap.includes("residual-filter-count-active-flash.png") && traceMap.includes("residual-filter-count"), "trace feature map must name residual-filter count-chip active flash CNA / proof");
 assert(passportMap.includes("CNA1") && passportMap.includes(":active") && passportMap.includes("residual-filter-count-active-flash.png") && passportMap.includes("passport-residual-filter-count"), "passport feature map must name residual-filter count-chip active flash CNA / proof");
 
+assert(driver.includes("KAF1") && driver.includes("KAF3") && driver.includes("keys-r-active-flash.png") && driver.includes("data-keys-row") && driver.includes("data-keys-r-binding"), "verify driver must prove Keys R active flash KAF1–KAF3");
+assert(css.includes('data-keys-row="r"][data-keys-r-binding="residual-filter"]:active') && css.includes('data-keys-residual-hint="1"].press') && /data-keys-row="r"[\s\S]*?58%[\s\S]*?#000/.test(css), "main.css must theme Keys R residual-bound :active/.press flash (darker warning mix)");
+assert(keysMap.includes("KAF1") && keysMap.includes(":active") && keysMap.includes("keys-r-active-flash.png"), "keys feature map must name Keys R active flash KAF / proof");
+assert(traceMap.includes("KAF1") && traceMap.includes(":active") && traceMap.includes("keys-r-active-flash.png") && traceMap.includes("data-keys-row"), "trace feature map must name Keys R active flash KAF / proof");
+assert(passportMap.includes("KAF1") && passportMap.includes(":active") && passportMap.includes("keys-r-active-flash.png") && passportMap.includes("data-keys-row"), "passport feature map must name Keys R active flash KAF / proof");
+
 
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");

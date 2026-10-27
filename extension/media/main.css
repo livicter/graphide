@@ -3537,6 +3537,16 @@ button.residual-filter-clear[data-residual-filter-clear="1"].press {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-filter-residual, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
 }
 
+/* ADE Keys R row :active/pressed flash parity (KAF1–KAF3) — momentary darker flash distinct from KP resting ON (color/opacity/kbd); residual-bound only */
+#keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"]:active,
+#keysPane li[data-keys-row="r"][data-keys-r-binding="residual-filter"].press,
+#keysPane li[data-keys-row="r"][data-keys-residual-hint="1"]:active,
+#keysPane li[data-keys-row="r"][data-keys-residual-hint="1"].press {
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 38%, #000 62%);
+  border-radius: 6px;
+}
+
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
