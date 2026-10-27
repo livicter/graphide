@@ -337,8 +337,8 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
 assert(
-  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#381") && rootReadme.includes("#388"),
-  "root README must document ADE Phase 1 tip stack #371…#388"
+  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#441"),
+  "root README must document ADE Phase 1 tip stack #371…#441"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
