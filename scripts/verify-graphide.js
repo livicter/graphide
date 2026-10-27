@@ -12186,6 +12186,137 @@ async function main() {
     );
     assertNoStampDir("PSS4", "Passport sticky summary step did not write .graphide/stamps/");
 
+    // ADE Passport sticky gate live-refresh (SGR1–SGR3) — syncPassportStickyGate after Approve/Reject
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign [data-passport-summary] [data-passport-gate]", { timeout: 8000 });
+    await page.waitForSelector('#passportSign [data-passport-action="approve"]', { timeout: 8000 });
+    const sgrProbe = async () =>
+      page.evaluate(() => {
+        const sign = document.getElementById("passportSign");
+        const chip = sign && sign.querySelector("[data-passport-summary] [data-passport-gate]");
+        const cs = chip ? getComputedStyle(chip) : null;
+        return {
+          gateAttr: chip ? chip.getAttribute("data-passport-gate") || "" : "",
+          gateText: chip ? (chip.textContent || "").trim() : "",
+          signState: sign ? sign.getAttribute("data-passport-sign-state") || "" : "",
+          color: cs ? cs.color : "",
+          top: sign ? sign.getBoundingClientRect().top : -1,
+        };
+      });
+    // Pending path: harness hook → setPassportGate("pending") → paint + syncPassportStickyGate
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetPassportGate === "function") {
+        window.__graphideSetPassportGate("pending");
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "pending");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const sgrPending = await sgrProbe();
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const sgrApproved = await sgrProbe();
+    // Resilience: corrupt sticky chip, re-Approve → setPassportGate → paint → sync restores.
+    await page.evaluate(() => {
+      const chip = document.querySelector(
+        "#passportSign [data-passport-summary] [data-passport-gate]"
+      );
+      if (chip) {
+        chip.setAttribute("data-passport-gate", "pending");
+        chip.textContent = "pending";
+      }
+    });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const sgrApprovedResync = await sgrProbe();
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "rejected");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const sgrRejected = await sgrProbe();
+    const sgr1ok =
+      sgrPending.gateAttr === "pending" &&
+      sgrPending.gateText === "pending" &&
+      sgrPending.signState === "pending" &&
+      sgrApproved.gateAttr === "approved" &&
+      sgrApproved.gateText === "approved" &&
+      sgrApproved.signState === "approved" &&
+      sgrApprovedResync.gateAttr === "approved" &&
+      sgrApprovedResync.gateText === "approved" &&
+      sgrRejected.gateAttr === "rejected" &&
+      sgrRejected.gateText === "rejected" &&
+      sgrRejected.signState === "rejected";
+    record(
+      "SGR1",
+      "After Approve, sticky [data-passport-gate] is approved (Reject → rejected; pending path covered)",
+      !!sgr1ok,
+      JSON.stringify({
+        pending: sgrPending,
+        approved: sgrApproved,
+        approvedResync: sgrApprovedResync,
+        rejected: sgrRejected,
+      })
+    );
+    const sgr2ok =
+      !!sgrPending.color &&
+      !!sgrApproved.color &&
+      !!sgrRejected.color &&
+      sgrPending.color !== sgrApproved.color &&
+      sgrApproved.color !== sgrRejected.color &&
+      Math.abs((sgrPending.top || 0) - (sgrApproved.top || 0)) < 40 &&
+      Math.abs((sgrApproved.top || 0) - (sgrRejected.top || 0)) < 40;
+    record(
+      "SGR2",
+      "Sticky gate chip CSS state tint updates with data-passport-gate; rail stays sticky",
+      !!sgr2ok,
+      JSON.stringify({
+        pendingColor: sgrPending.color,
+        approvedColor: sgrApproved.color,
+        rejectedColor: sgrRejected.color,
+        tops: [sgrPending.top, sgrApproved.top, sgrRejected.top],
+      })
+    );
+    await shot(page, "passport-sticky-gate-live-refresh.png");
+    const sgrShot = checks.find((c) => c.id === "shot:passport-sticky-gate-live-refresh.png");
+    record(
+      "SGR3",
+      "screenshot passport-sticky-gate-live-refresh.png is not a black frame; SGR sticky gate live-refresh proven",
+      !!(sgrShot && sgrShot.pass),
+      sgrShot ? sgrShot.detail : "missing shot"
+    );
+    assertNoStampDir("SGR4", "Passport sticky gate live-refresh step did not write .graphide/stamps/");
 
 
 

@@ -3332,6 +3332,11 @@ html.bright .traj-node { background: #fff; }
   font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
   white-space: nowrap;
 }
+/* ADE SGR: sticky gate chip carries its own state tint (data-passport-gate) */
+.passport-sticky-gate[data-passport-gate="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
+.passport-sticky-gate[data-passport-gate="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
+.passport-sticky-gate[data-passport-gate="approved"] { --passport-state: var(--vscode-testing-iconPassed, #3fb950); }
+
 .passport-sticky-counts {
   display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0;
 }
