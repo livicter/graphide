@@ -869,6 +869,11 @@ assert(js.includes("data-passport-summary-empty") && js.includes("passport-stick
 assert(css.includes("data-passport-summary-empty") && css.includes("passport-sticky-zero-cue") && css.includes("passport-sticky-summary--zero"), "main.css must theme Passport sticky zero-count empty chrome");
 assert(passportMap.includes("PSE1") && passportMap.includes("zero-count") && passportMap.includes("passport-sticky-summary-empty.png") && passportMap.includes("data-passport-summary-empty"), "passport feature map must name sticky zero-count PSE / proof");
 
+assert(driver.includes("SGH1") && driver.includes("SGH3") && driver.includes("passport-sticky-gate-hover-cue.png") && driver.includes("passport-sticky-gate"), "verify driver must prove Passport sticky gate hover cue SGH1–SGH3");
+assert(css.includes(".passport-sticky-gate[data-passport-gate]:hover") && css.includes("cursor: help") && /passport-sticky-gate\[data-passport-gate\]:hover[\s\S]*?34%/.test(css), "main.css must theme .passport-sticky-gate[data-passport-gate]:hover state-tint lift (34%) + cursor:help");
+assert(passportMap.includes("SGH1") && passportMap.includes(":hover") && passportMap.includes("passport-sticky-gate-hover-cue.png") && passportMap.includes("cursor:help"), "passport feature map must name sticky gate hover SGH / proof");
+
+
 
 
 // --- ADE Phase 1.3 immutable specs (append only; existing asserts unchanged) ---

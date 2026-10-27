@@ -3351,6 +3351,15 @@ html.bright .traj-node { background: #fff; }
 .passport-sticky-gate[data-passport-gate="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }
 .passport-sticky-gate[data-passport-gate="approved"] { --passport-state: var(--vscode-testing-iconPassed, #3fb950); }
 
+/* ADE sticky-gate hover cue (SGH1–SGH3) — state-tinted lift above resting 16%; cursor:help; informational; no tabindex */
+.passport-sticky-gate[data-passport-gate]:hover {
+  background: color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 34%, var(--vscode-editorWidget-background, #1e1e1e));
+  border-color: color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 78%, var(--vscode-widget-border, #333));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--passport-state, var(--vscode-editorWarning-foreground, #cca700)) 42%, transparent);
+  cursor: help;
+}
+
+
 .passport-sticky-counts {
   display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0;
 }

@@ -12792,7 +12792,201 @@ async function main() {
       window.__graphidePassport = null;
     });
 
+    // ADE Passport sticky gate hover cue (SGH1–SGH3) — state-tint lift; cursor:help; no tabindex
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector("#passportSign [data-passport-summary] [data-passport-gate]", { timeout: 8000 });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetPassportGate === "function") {
+        window.__graphideSetPassportGate("pending");
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "pending");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const sghProbe = async (state) => {
+      if (state) {
+        await page.evaluate((g) => {
+          if (typeof window.__graphideSetPassportGate === "function") {
+            window.__graphideSetPassportGate(g);
+          }
+        }, state);
+        await page.waitForFunction(
+          (g) => {
+            const chip = document.querySelector(
+              "#passportSign [data-passport-summary] [data-passport-gate]"
+            );
+            return !!(chip && chip.getAttribute("data-passport-gate") === g);
+          },
+          state,
+          { timeout: 8000 }
+        );
+      }
+      // Leave the chip so :hover clears before resting sample (Playwright keeps last hover).
+      await page.mouse.move(8, 8);
+      await page.waitForTimeout(40);
+      const rest = await page.evaluate(() => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        if (!chip) return { present: false };
+        const cs = getComputedStyle(chip);
+        return {
+          present: true,
+          gate: chip.getAttribute("data-passport-gate") || "",
+          tabIndex: chip.tabIndex,
+          role: chip.getAttribute("role") || "",
+          restBg: cs.backgroundColor,
+          restBorder: cs.borderColor,
+          restCursor: cs.cursor,
+          restShadow: cs.boxShadow,
+          label: (chip.textContent || "").trim(),
+        };
+      });
+      await page.hover("#passportSign [data-passport-summary] [data-passport-gate]");
+      await page.waitForTimeout(40);
+      const hover = await page.evaluate(() => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        if (!chip) return { present: false };
+        const cs = getComputedStyle(chip);
+        return {
+          present: true,
+          gate: chip.getAttribute("data-passport-gate") || "",
+          tabIndex: chip.tabIndex,
+          hoverBg: cs.backgroundColor,
+          hoverBorder: cs.borderColor,
+          hoverCursor: cs.cursor,
+          hoverShadow: cs.boxShadow,
+          label: (chip.textContent || "").trim(),
+        };
+      });
+      return { rest, hover };
+    };
+    const sghPending = await sghProbe("pending");
+    const sgh1ok = !!(
+      sghPending.rest &&
+      sghPending.rest.present &&
+      sghPending.rest.gate === "pending" &&
+      sghPending.rest.tabIndex < 0 &&
+      !sghPending.rest.role &&
+      sghPending.rest.restCursor !== "help" &&
+      (sghPending.rest.restShadow === "none" || !sghPending.rest.restShadow) &&
+      sghPending.hover &&
+      sghPending.hover.present &&
+      sghPending.hover.hoverBg &&
+      sghPending.hover.hoverBg !== sghPending.rest.restBg &&
+      sghPending.hover.hoverCursor === "help" &&
+      sghPending.hover.hoverShadow &&
+      sghPending.hover.hoverShadow !== "none" &&
+      sghPending.hover.tabIndex < 0 &&
+      sghPending.hover.gate === "pending"
+    );
+    record(
+      "SGH1",
+      "Sticky gate pending :hover lifts state-tint bg above resting 16%, cursor:help, shadow ring, no tabindex",
+      !!sgh1ok,
+      JSON.stringify(sghPending)
+    );
 
+    const sghApproved = await sghProbe("approved");
+    const sghRejected = await sghProbe("rejected");
+    const sgh2ok = !!(
+      sghApproved.rest &&
+      sghApproved.rest.present &&
+      sghApproved.rest.gate === "approved" &&
+      sghApproved.hover &&
+      sghApproved.hover.present &&
+      sghApproved.hover.hoverBg !== sghApproved.rest.restBg &&
+      sghApproved.hover.hoverCursor === "help" &&
+      sghRejected.rest &&
+      sghRejected.rest.present &&
+      sghRejected.rest.gate === "rejected" &&
+      sghRejected.hover &&
+      sghRejected.hover.present &&
+      sghRejected.hover.hoverBg !== sghRejected.rest.restBg &&
+      sghRejected.hover.hoverCursor === "help" &&
+      sghApproved.hover.hoverBg !== sghPending.hover.hoverBg &&
+      sghRejected.hover.hoverBg !== sghPending.hover.hoverBg &&
+      sghRejected.hover.hoverBg !== sghApproved.hover.hoverBg
+    );
+    record(
+      "SGH2",
+      "Sticky gate approved/rejected :hover state-tint follows --passport-state; distinct per gate; cursor:help",
+      !!sgh2ok,
+      JSON.stringify({ approved: sghApproved, rejected: sghRejected })
+    );
+
+    // SGH3: while hovering rejected, live-refresh to approved — hover tint follows new state
+    await page.hover("#passportSign [data-passport-summary] [data-passport-gate]");
+    await page.waitForTimeout(20);
+    await page.evaluate(() => {
+      if (typeof window.__graphideSetPassportGate === "function") {
+        window.__graphideSetPassportGate("approved");
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const chip = document.querySelector(
+          "#passportSign [data-passport-summary] [data-passport-gate]"
+        );
+        return !!(chip && chip.getAttribute("data-passport-gate") === "approved");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.hover("#passportSign [data-passport-summary] [data-passport-gate]");
+    await page.waitForTimeout(40);
+    const sghLive = await page.evaluate(() => {
+      const chip = document.querySelector(
+        "#passportSign [data-passport-summary] [data-passport-gate]"
+      );
+      if (!chip) return { present: false };
+      const cs = getComputedStyle(chip);
+      return {
+        present: true,
+        gate: chip.getAttribute("data-passport-gate") || "",
+        hoverBg: cs.backgroundColor,
+        hoverCursor: cs.cursor,
+        summary: !!document.querySelector("#passportSign [data-passport-summary]"),
+        seal: !!document.getElementById("adeSealChip"),
+      };
+    });
+    await shot(page, "passport-sticky-gate-hover-cue.png");
+    const sghShot = checks.find((c) => c.id === "shot:passport-sticky-gate-hover-cue.png");
+    const sgh3ok = !!(
+      sgh1ok &&
+      sgh2ok &&
+      sghLive &&
+      sghLive.present &&
+      sghLive.gate === "approved" &&
+      sghLive.hoverBg === sghApproved.hover.hoverBg &&
+      sghLive.hoverCursor === "help" &&
+      sghLive.summary &&
+      sghLive.seal &&
+      sghShot &&
+      sghShot.pass
+    );
+    record(
+      "SGH3",
+      "screenshot passport-sticky-gate-hover-cue.png not black; live gate change keeps hover tint; residual/summary/seal untouched",
+      !!sgh3ok,
+      JSON.stringify({
+        live: sghLive,
+        shot: sghShot ? sghShot.detail : "missing",
+        sgh1: !!sgh1ok,
+        sgh2: !!sgh2ok,
+      })
+    );
+    assertNoStampDir("SGH4", "Passport sticky gate hover cue step did not write .graphide/stamps/");
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
