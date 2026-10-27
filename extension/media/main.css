@@ -3509,6 +3509,22 @@ button.residual-filter-clear[data-residual-filter-clear="1"].press {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-button-hoverBackground, #1177bb) 55%, #000 45%);
 }
 
+/* ADE residual-filter toggle :active/pressed flash parity (TAF1–TAF3) — warning-themed press beyond global scale(0.97); darker than OFF and ON resting chrome */
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle:active,
+#trajEdgeLegend .traj-legend-chip.residual-filter-toggle.press,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"]:active,
+#trajEdgeLegend .traj-legend-chip[data-residual-filter-toggle="1"].press {
+  background: color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--traj-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
+}
+.passport-residual .passport-residual-filter-toggle:active,
+.passport-residual .passport-residual-filter-toggle.press,
+.passport-residual [data-passport-residual-filter-toggle="1"]:active,
+.passport-residual [data-passport-residual-filter-toggle="1"].press {
+  background: color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 58%, #000 42%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--passport-residual-filter, var(--vscode-editorWarning-foreground, #cca700)) 38%, #000 62%);
+}
+
 .passport-sign { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="pending"] { --passport-state: var(--vscode-editorWarning-foreground, #cca700); }
 .passport-sign[data-passport-sign-state="rejected"] { --passport-state: var(--vscode-errorForeground, #f14c4c); }

@@ -9795,6 +9795,285 @@ async function main() {
     );
     await page.waitForTimeout(40);
 
+    // ADE residual-filter toggle :active/pressed flash parity (TAF1–TAF3) — themed press beyond global scale
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    // Ensure OFF resting (no filter) for OFF flash; reject gate so toggle stays useful later.
+    await page.evaluate(() => {
+      const legend = document.getElementById("trajEdgeLegend");
+      if (legend && legend.getAttribute("data-residual-filter") === "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+      const reject = document.querySelector('#passportSign [data-passport-action="reject"]');
+      const gate = document.getElementById("passportGate");
+      if (reject && gate && gate.getAttribute("data-passport-state") === "approved") {
+        reject.click();
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return (
+          !!btn &&
+          (!legend || legend.getAttribute("data-residual-filter") !== "on") &&
+          btn.getAttribute("aria-pressed") === "false"
+        );
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const tafTraceOff = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("residual-filter-toggle"),
+        pressedAttr: btn.getAttribute("aria-pressed"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        pressShadow: pressed.boxShadow || "",
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+      btn.classList.remove("press");
+      return out;
+    });
+    // ON flash: toggle ON, sample resting ON then .press darker, restore OFF for Passport sample.
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") !== "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        return !!btn && btn.getAttribute("aria-pressed") === "true";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const tafTraceOn = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        pressedAttr: btn.getAttribute("aria-pressed"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        bgChanged: restBg !== pressed.backgroundColor,
+      };
+      btn.classList.remove("press");
+      return out;
+    });
+    const taf1ok = !!(
+      tafTraceOff &&
+      tafTraceOff.present &&
+      tafTraceOff.cls &&
+      tafTraceOff.pressedAttr === "false" &&
+      tafTraceOff.bgChanged &&
+      tafTraceOff.pressInset &&
+      !tafTraceOff.restInset &&
+      tafTraceOn &&
+      tafTraceOn.present &&
+      tafTraceOn.pressedAttr === "true" &&
+      tafTraceOn.bgChanged &&
+      tafTraceOn.pressInset &&
+      tafTraceOn.restInset
+    );
+    record(
+      "TAF1",
+      "Trace legend residual-filter toggle shows themed :active/.press flash (darker warning bg + inset) for OFF and ON beyond resting chrome",
+      !!taf1ok,
+      JSON.stringify({ off: tafTraceOff, on: tafTraceOn })
+    );
+
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector(
+      '#passportSign .passport-residual [data-passport-residual-filter-toggle="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    // Shared filter still ON from Trace — sample Passport ON press, then OFF press.
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return !!btn && btn.getAttribute("aria-pressed") === "true";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const tafPassOn = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("passport-residual-filter-toggle"),
+        pressedAttr: btn.getAttribute("aria-pressed"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        bgChanged: restBg !== pressed.backgroundColor,
+      };
+      btn.classList.remove("press");
+      return out;
+    });
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (btn && btn.getAttribute("aria-pressed") === "true") btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        return !!btn && btn.getAttribute("aria-pressed") === "false";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const tafPassOff = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      if (!btn) return { present: false };
+      const rest = getComputedStyle(btn);
+      const restBg = rest.backgroundColor;
+      const restShadow = rest.boxShadow || "";
+      btn.classList.add("press");
+      const pressed = getComputedStyle(btn);
+      const out = {
+        present: true,
+        cls: btn.classList.contains("passport-residual-filter-toggle"),
+        pressedAttr: btn.getAttribute("aria-pressed"),
+        restBg,
+        pressBg: pressed.backgroundColor,
+        restInset: /inset/i.test(restShadow),
+        pressInset: /inset/i.test(pressed.boxShadow || ""),
+        bgChanged: restBg !== pressed.backgroundColor,
+        label: (btn.getAttribute("aria-label") || btn.textContent || "").trim(),
+      };
+      // Keep .press for proof PNG.
+      return out;
+    });
+    const taf2ok = !!(
+      tafPassOn &&
+      tafPassOn.present &&
+      tafPassOn.cls &&
+      tafPassOn.pressedAttr === "true" &&
+      tafPassOn.bgChanged &&
+      tafPassOn.pressInset &&
+      tafPassOn.restInset &&
+      tafPassOff &&
+      tafPassOff.present &&
+      tafPassOff.cls &&
+      tafPassOff.pressedAttr === "false" &&
+      tafPassOff.bgChanged &&
+      tafPassOff.pressInset &&
+      !tafPassOff.restInset
+    );
+    record(
+      "TAF2",
+      "Passport residual-filter toggle shows themed :active/.press flash (darker warning bg + inset) for ON and OFF",
+      !!taf2ok,
+      JSON.stringify({ on: tafPassOn, off: tafPassOff })
+    );
+
+    await shot(page, "residual-filter-toggle-active-flash.png");
+    const tafShot = checks.find(
+      (c) => c.id === "shot:residual-filter-toggle-active-flash.png"
+    );
+    record(
+      "TAF3",
+      "screenshot residual-filter-toggle-active-flash.png is not a black frame",
+      !!(tafShot && tafShot.pass),
+      tafShot ? tafShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "TAF4",
+      "Residual-filter toggle active flash step did not write .graphide/stamps/"
+    );
+
+    // Restore: drop press; leave filter OFF for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      document.querySelectorAll(".press").forEach((el) => el.classList.remove("press"));
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      const legend = document.getElementById("trajEdgeLegend");
+      const sticky = document.querySelector("#passportSign .passport-residual");
+      if (
+        (legend && legend.getAttribute("data-residual-filter") === "on") ||
+        (sticky && sticky.getAttribute("data-residual-filter") === "on")
+      ) {
+        const clear =
+          document.querySelector('#passportSign [data-passport-clear-filter="1"]') ||
+          document.querySelector('[data-residual-filter-clear="1"]') ||
+          document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]') ||
+          document.querySelector('#passportSign [data-passport-residual-filter-toggle="1"]') ||
+          document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]');
+        if (clear) clear.click();
+      }
+    });
+    await page.waitForFunction(
+      () => {
+        const legend = document.getElementById("trajEdgeLegend");
+        const sticky = document.querySelector("#passportSign .passport-residual");
+        const legendOff = !legend || legend.getAttribute("data-residual-filter") !== "on";
+        const stickyOff = !sticky || sticky.getAttribute("data-residual-filter") !== "on";
+        return legendOff && stickyOff;
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
 
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
