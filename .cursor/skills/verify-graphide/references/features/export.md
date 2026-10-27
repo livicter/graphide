@@ -10,15 +10,36 @@ Not Archify's Node renderer. Stamp / skip stay human — export never writes
 
 - Header control `#exportBtn`. Opens `#exportMenu` (same popover chrome as
   `#keysPane`). `E` stays Ego (`#egoBtn`).
+- Opening Export hides the hover tip (`K19b`).
+- Opening Export closes Ask (`K18b`), same exclusive chrome as Keys (`K18`).
+- Opening Ask closes Export (`K18d`), same exclusive chrome as Export closing Ask (`K18b`).
+- Opening Export closes Keys (`K18e`), same exclusive chrome as Keys closing Export.
+- Opening Keys closes Export (`K18f`), same exclusive chrome as Export closing Keys (`K18e`).
+- Opening Present closes Export (`K18i`), same exclusive chrome as Present closing Ask / Keys.
+- Opening Export closes Evidence (`K18s`), same exclusive chrome as Keys closing Evidence (`K18p`).
+- Opening Export closes Lens (`K18t`), same exclusive chrome as Keys closing Lens (`K18q`).
+- Opening Lens closes Export (`K18ab`), same exclusive chrome as Export closing Lens (`K18t`).
+- Opening Export closes Route (`K18u`), same exclusive chrome as Keys closing Route (`K18r`).
+- Opening Route closes Export (`K18ad`), same exclusive chrome as Export closing Route (`K18u`).
+- Open Export blocks desk L so LENS stays closed (`K15h`), same as Keys (`K15f`) / Ask (`K15g`).
+- Open Export blocks desk F so Present stays off (`K15i`), same chrome key lock as S / X / R / L under Export.
+- Open Export blocks desk E so Ego stays off (`K15l`), residual chrome key lock after S / X / R / L / F.
+- Open Export blocks desk D so day/night stays put (`K15o`), residual chrome key lock after S / X / R / L / F / E.
+- Open Export blocks desk P so Play stays off (`K15r`), residual chrome key lock after S / X / R / L / F / E / D.
+- Open Export blocks desk `[` `]` so path step stays put (`K15u`), residual chrome key lock after S / X / R / L / F / E / D / P.
+- Open Export blocks desk `+` `−` so zoom stays put (`K15x`), residual chrome key lock after S / X / R / L / F / E / D / P / `[` `]`.
+- Open Export blocks desk `0` so Fit stays put (`K15aa`), residual chrome key lock after S / X / R / L / F / E / D / P / `[` `]` / `+` `−`.
 - Menu: `#exportCopyPng` · `#exportPng` · `#exportSvg` ·
   `#exportCopyShare` · `#exportShare` · `#exportRouteShare`. No WebM. No
   JPEG / WebP. Route Share Card fails closed when no directed route is
   resolved.
 - Canonical clone of `#seqCanvas` / `#dfCanvas` / `#lcCanvas` /
   `#deltaCanvas` / `#canvas .stage` / `#canvas`. `stripExportViewerState`
-  removes focus, play head, search dim (`.on` `.dim` `.focus` `.selected`
-  `.ego-dim`). Camera transform is reset so the full diagram is contain-
-  fitted, not cropped.
+  removes focus, play head, search dim / hit, Ego, Route, Lens, and away
+  (`.on` `.dim` `.hit` `.focus` `.selected` `.ego` `.ego-dim` `.route-dim`
+  `.on-route` `.on-route-hot` `.lens-dim` `.lens-on` `.away` `.hot`
+  `.flowing` `.on-path` `.now` `.past` `.ahead` `.here` `.walk` `.dragging` `.panning`, and `data-offview`). Camera
+  transform is reset so the full diagram is contain-fitted, not cropped.
 - Filenames `graphide-<flow>.png` / `.svg` / `-share.png`. No
   valid / verified / checked claim.
 - Share Card is 1200×630, title `Graphide · <flow>`, diagram contain-fitted.
@@ -56,11 +77,33 @@ await page.click("#exportShare"); // window.__graphideLastExport.share 1200×630
 Driver assertions:
 
 - `#exportBtn` opens `#exportMenu`
+- opening Export closes Ask (`K18b`)
+- opening Ask closes Export (`K18d`)
+- opening Export closes Keys (`K18e`)
+- opening Keys closes Export (`K18f`)
+- opening Present closes Export (`K18i`)
+- opening Export closes Evidence (`K18s`)
+- opening Export closes Lens (`K18t`)
+- opening Lens closes Export (`K18ab`)
+- opening Export closes Route (`K18u`)
+- opening Route closes Export (`K18ad`)
+- open Export: L does not open LENS (`K15h`)
+- open Export: F does not enter Present (`K15i`)
+- open Export: E does not turn Ego on (`K15l`)
+- open Export: D does not flip day/night (`K15o`)
+- open Export: P does not start Play (`K15r`)
+- open Export: `[` `]` do not step path walk (`K15u`)
+- open Export: `+` `−` do not zoom (`K15x`)
+- open Export: `0` does not Fit (`K15aa`)
 - saved `verification/export-desk.png` (or `.svg`) exists
 - PNG is not a black frame
 - `verification/export-share.png` is 1200×630
 - filenames do not contain valid / verified / checked
 - `.graphide/stamps/` is still empty
+- Find `physics` on Map, then Export SVG: no Map card in the SVG keeps
+  `.hit` or `.dim` (`X6b`); after Route / Lens, no `.route-dim` /
+  `.on-route` / `.lens-dim` / `.lens-on` (`X6c`, `X6d`); after Play, no
+  `.hot` / `.flowing` / `.on-path` (`X6e`); after zoom/pan parks, no `data-offview` and parked cards remain (`X6f`)
 
 ## Gotchas
 
@@ -73,3 +116,6 @@ Driver assertions:
 - Do not vendor Archify's Node renderer. The clone is Graphide DOM.
 - Theme stays. The current visual preset (`data-preset`) stays. Play head,
   search query, focus, and Presentation Stage do not.
+- `data-offview` is viewer pan state too. Parked Map cards are `visibility: hidden`; leaving the attribute on the clone would drop them after camera reset (`X6f`).
+- `.hit` is viewer state too. Since a hit paints at opacity 1 over path /
+  distance grey, a leftover `.hit` lifts that card or node in the export.

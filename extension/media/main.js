@@ -7536,6 +7536,16 @@
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M10.4 6.2h1.8V4.4" })
           ] }),
           "Lifecycle"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", "data-ws": "trace", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(WsIco, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "3.4", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "4.2", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "8", cy: "11.8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("circle", { cx: "12.6", cy: "8", r: "1.3" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M4.7 8H6.7M8 5.5v1.8M8 9.3v1.8M9.3 8h1.9" })
+          ] }),
+          "Trace"
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("nav", { id: "tabs" }),
@@ -19290,6 +19300,9 @@
         fqn: p.fqn || "",
         kind: p.kind || "Function",
         label: p.label || String(p.id),
+        file: p.file || "",
+        dim: !!p.dim,
+        hit: !!p.hit,
         surface: "seq-part"
       })),
       hops
@@ -19377,6 +19390,9 @@
         role: n.role || "",
         endRole: n.endRole || n.end_role || "",
         channel: n.channel || "",
+        file: n.file || "",
+        dim: !!n.dim,
+        hit: !!n.hit,
         meta: n.ep || "",
         surface: "df-node"
       })),
@@ -19634,6 +19650,55 @@
     );
   }
 
+  // extension/media/src/graph/trajectory-fixture.js
+  var TRAJECTORY_FIXTURE = {
+    id: "ade-a1a-fixture",
+    title: "Execution trajectory",
+    nodes: [
+      {
+        id: "sub-plan",
+        label: "Plan slice",
+        status: "done",
+        artifact: "ADE-PLAN.md",
+        diff: "",
+        x: 40,
+        y: 48
+      },
+      {
+        id: "sub-edit",
+        label: "Edit desk",
+        status: "done",
+        artifact: "extension/media/src/graph/desk.js",
+        diff: "+traj",
+        x: 260,
+        y: 48
+      },
+      {
+        id: "sub-verify",
+        label: "Verify A1a",
+        status: "running",
+        artifact: "scripts/verify-graphide.js",
+        diff: "+A1a",
+        x: 480,
+        y: 48
+      },
+      {
+        id: "sub-pr",
+        label: "Draft PR",
+        status: "pending",
+        artifact: "pull-request",
+        diff: "",
+        x: 700,
+        y: 48
+      }
+    ],
+    edges: [
+      { id: "e-plan-edit", from: "sub-plan", to: "sub-edit" },
+      { id: "e-edit-verify", from: "sub-edit", to: "sub-verify" },
+      { id: "e-verify-pr", from: "sub-verify", to: "sub-pr" }
+    ]
+  };
+
   // extension/media/src/graph/desk.js
   function bootDesk() {
     const vscode = acquireHost();
@@ -19712,8 +19777,8 @@
       custom: { url: "", model: "" }
     };
     let llmTok = 0;
-    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle"];
-    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1 };
+    const WORKSPACES = ["map", "slice", "lineage", "decisions", "registry", "overview", "timeline", "delta", "sequence", "dataflow", "lifecycle", "trace"];
+    const LIST_WORKSPACES = { decisions: 1, registry: 1, timeline: 1, delta: 1, sequence: 1, dataflow: 1, lifecycle: 1, trace: 1 };
     const REVIEW_CANVAS_WS = { sequence: 1, delta: 1, dataflow: 1, lifecycle: 1, slice: 1, overview: 1, lineage: 1 };
     function reviewCanvasWorkspace(ws) {
       return !!REVIEW_CANVAS_WS[ws || explorerWs];
@@ -19754,6 +19819,7 @@
     let stack = [{ kind: "flow" }];
     let nodeById = /* @__PURE__ */ new Map();
     let busy = false;
+    let cancelling = false;
     let previewTimer = 0;
     let lastTreeKey = "";
     let targetPct = 0;
@@ -19768,6 +19834,11 @@
     let cam = { x: 0, y: 0, k: 1 };
     let camTo = { x: 0, y: 0, k: 1 };
     let camRaf = 0;
+    const CAM_EASE_BASE = 0.24;
+    const CAM_EASE_SNAP = 0.36;
+    const CAM_EASE_LOOSE = 0.12;
+    const SCROLL_VEL_LOOSE = 0.45;
+    let camEase = CAM_EASE_BASE;
     let progFocus = 0;
     let selectedNodeId = null;
     let pathEnds = [];
@@ -19932,16 +20003,23 @@
         presentBtn.textContent = next ? "Exit" : "Present";
         presentBtn.title = next ? "Exit Presentation Stage (Esc)" : "Presentation Stage (F)";
       }
-      if (!next) return;
+      if (!next) {
+        if (typeof resumeScrollDriveAfterPresent === "function") resumeScrollDriveAfterPresent();
+        return;
+      }
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       if (typeof setKeysPane === "function") setKeysPane(false);
       if (typeof setExportMenu === "function") setExportMenu(false);
       if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
       if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+      if (typeof setLensOpen === "function") setLensOpen(false);
+      if (typeof setRouteOpen === "function") setRouteOpen(false);
       if (toastEl) {
         toastEl.classList.remove("on");
         toastEl.hidden = true;
       }
       if (tip) tip.hidden = true;
+      if (typeof pauseScrollDriveForPresent === "function") pauseScrollDriveForPresent();
     }
     function togglePresent() {
       applyPresent(!isPresenting());
@@ -19953,13 +20031,17 @@
     if (presetBtn) presetBtn.onclick = () => cyclePreset();
     if (presentBtn) presentBtn.onclick = () => togglePresent();
     reviewBtn.onclick = () => startReview();
-    cancelBtn.onclick = () => {
+    function requestCancel() {
       setBusy(true);
-      progressLabel.textContent = "Cancelling…";
+      cancelling = true;
+      pendingProgress = null;
+      if (progressLabel) progressLabel.textContent = "Cancelling…";
       vscode.postMessage({ type: "cancel" });
-    };
+    }
+    cancelBtn.onclick = () => requestCancel();
     backBtn.onclick = () => goBack();
     prompt.addEventListener("keydown", (e) => {
+      if (e.isComposing) return;
       if (e.key === "Enter") {
         e.preventDefault();
         startReview();
@@ -19968,7 +20050,7 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && busy) {
         e.preventDefault();
-        vscode.postMessage({ type: "cancel" });
+        requestCancel();
         return;
       }
       if (e.key === "Escape" && llmPane && !llmPane.hidden) {
@@ -19981,7 +20063,15 @@
         setKeysPane(false);
         return;
       }
-      if (e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]")) return;
+      const findEsc = e.key === "Escape" && graphSearch && e.target === graphSearch;
+      const promptEsc = e.key === "Escape" && prompt && e.target === prompt;
+      if (findEsc || promptEsc) {
+        e.preventDefault();
+        if (findEsc) graphSearch.blur();
+        if (promptEsc) prompt.blur();
+      } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
+        return;
+      }
       if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
         e.preventDefault();
         closeSourcePane();
@@ -20005,6 +20095,12 @@
       if (e.key === "Escape" && isPresenting()) {
         e.preventDefault();
         applyPresent(false);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey && !e.altKey) return;
+      if (e.target && e.target.closest && e.target.closest("select")) return;
+      if (e.repeat && !/^(\+|=|-|_|\[|\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;
+      if (e.key !== "Backspace" && e.key !== "?" && e.key !== "F1" && !(isPresenting() && (e.key === "s" || e.key === "S" || e.key === "d" || e.key === "D" || e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_" || e.key === "0")) && (exportMenu && !exportMenu.hidden || keysPane && !keysPane.hidden || llmPane && !llmPane.hidden)) {
         return;
       }
       if (stack[stack.length - 1]?.kind === "programs") {
@@ -20046,6 +20142,38 @@
       }
       if (e.key === "Backspace") {
         e.preventDefault();
+        if (busy) {
+          requestCancel();
+          return;
+        }
+        if (llmPane && !llmPane.hidden) {
+          setLlmPane(false);
+          return;
+        }
+        if (keysPane && !keysPane.hidden) {
+          setKeysPane(false);
+          return;
+        }
+        if (sourcePane && !sourcePane.hidden) {
+          closeSourcePane();
+          return;
+        }
+        if (exportMenu && !exportMenu.hidden) {
+          setExportMenu(false);
+          return;
+        }
+        if (routeOpen) {
+          setRouteOpen(false);
+          return;
+        }
+        if (lensOpen) {
+          setLensOpen(false);
+          return;
+        }
+        if (isPresenting()) {
+          applyPresent(false);
+          return;
+        }
         goBack();
         return;
       }
@@ -20062,7 +20190,7 @@
       }
       if (e.key === "x" || e.key === "X") {
         e.preventDefault();
-        requestSkip();
+        if (!isPresenting()) requestSkip();
         return;
       }
       if (e.key === "e" || e.key === "E") {
@@ -20087,6 +20215,12 @@
       }
       if (e.key === "/" && graphSearch) {
         e.preventDefault();
+        if (isPresenting()) return;
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
         graphSearch.focus();
         graphSearch.select();
         return;
@@ -20161,11 +20295,1854 @@
         const flow = currentFlow();
         vscode.postMessage({ type: "enterNode", flow: flow ? flow.name : "", id: sourceId, isLeaf: true });
       };
-    if (graphSearch)
+    let scrollDriveBase = null;
+    let scrollDriveTargetLocked = "";
+    let scrollDriveCamXSettled = false;
+    let scrollDriveCamYSettled = false;
+    let scrollDriveYNudgeOrigin = 0;
+    let scrollDriveWasMacro = false;
+    let scrollDriveLastStay = null;
+    const SCROLL_DRIVE_LAST_STAY_MS = 6e4;
+    const SCROLL_DRIVE_LAST_STAY_KEY = "graphide.scrollDrive.lastStay.v1";
+    const SCROLL_DRIVE_LAST_STAY_STORAGE_MS = 24 * 60 * 60 * 1e3;
+    let scrollDriveWorkspaceKey = "";
+    let scrollDriveLastShownSourceId = "";
+    let scrollDriveJustRestored = false;
+    let scrollDriveSuppressNextRefit = false;
+    let scrollDriveReviewStayCleared = false;
+    function emptyScrollDrive() {
+      return {
+        scrollRatio: 0,
+        activeLine: 0,
+        targetNodeId: "",
+        lineMapHit: false,
+        lineMapPulse: false,
+        activeLineMarked: false,
+        camX: 0,
+        camY: 0,
+        camK: 1,
+        cfgActiveId: "",
+        cfgUnroll: 0,
+        cfgVisible: 0,
+        cfgSpanKind: "",
+        cfgSpanCount: 0,
+        cfgNestDepth: 0,
+        cfgNestMax: 0,
+        cfgNestExpanded: 0,
+        scrollVel: 0,
+        camEase: CAM_EASE_BASE,
+        blendMs: 180,
+        macroLod: false,
+        anchorFocus: "",
+        anchorCounts: { api: 0, db: 0, svc: 0, util: 0 },
+        detailNear: false,
+        reducedMotion: false,
+        rafCoalesce: true,
+        rafFlushes: 0,
+        rafMerged: 0,
+        presentPaused: false,
+        presentStayStashed: false,
+        reviewStayCleared: false,
+        camXSettled: false,
+        camYSettled: false
+      };
+    }
+    function publishScrollDrive(drive) {
+      window.__graphideScrollDrive = drive || emptyScrollDrive();
+    }
+    function resetScrollDrive() {
+      scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+        clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = 0;
+      }
+      if (scrollDriveRaf) {
+        cancelAnimationFrame(scrollDriveRaf);
+        scrollDriveRaf = 0;
+      }
+      scrollDriveRafPending = 0;
+      scrollDriveRafFlushes = 0;
+      scrollDriveRafMerged = 0;
+      if (scrollDriveEaseTimer) {
+        clearTimeout(scrollDriveEaseTimer);
+        scrollDriveEaseTimer = 0;
+      }
+      setCamEase(CAM_EASE_BASE);
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      clearScrollDriveAnchorPaint();
+      clearScrollDriveDetailPaint();
+      clearScrollDriveBlendPaint();
+      const d = emptyScrollDrive();
+      if (typeof isPresenting === "function" && isPresenting()) {
+        d.presentPaused = true;
+        d.presentStayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+      }
+      d.reviewStayCleared = !!scrollDriveReviewStayCleared;
+      publishScrollDrive(d);
+    }
+    function softStayScrollDriveAcrossSourceHop() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase) return false;
+      scrollDriveBase = {
+        x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+        y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+        k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+      };
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+      else scrollDriveLastStay = null;
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      return true;
+    }
+    function scrollDriveLastStayStorage() {
+      try {
+        if (typeof sessionStorage !== "undefined" && sessionStorage) return sessionStorage;
+      } catch (_) {
+      }
+      try {
+        if (typeof localStorage !== "undefined" && localStorage) return localStorage;
+      } catch (_) {
+      }
+      return null;
+    }
+    function scrollDriveLastStayStorageKey(ws) {
+      const scope = ws != null ? String(ws) : scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (!scope) return SCROLL_DRIVE_LAST_STAY_KEY;
+      return SCROLL_DRIVE_LAST_STAY_KEY + "::" + encodeURIComponent(scope);
+    }
+    function normalizeScrollDriveWorkspaceKey(raw) {
+      if (raw == null) return "";
+      const s = String(raw).trim();
+      if (!s || s === "undefined" || s === "null") return "";
+      return s.length > 240 ? s.slice(0, 240) : s;
+    }
+    function setScrollDriveWorkspaceKey(next) {
+      const key = normalizeScrollDriveWorkspaceKey(next);
+      if (key === scrollDriveWorkspaceKey) {
+        if (typeof window !== "undefined") {
+          window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+          window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+        }
+        return false;
+      }
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+        const cur = typeof window !== "undefined" && window.__graphideScrollDrive ? window.__graphideScrollDrive : null;
+        if (cur) cur.reviewStayCleared = false;
+      }
+      scrollDriveWorkspaceKey = key;
+      if (typeof window !== "undefined") {
+        window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+        window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+      }
+      return true;
+    }
+    function normalizeScrollDriveLastStaySnap(raw) {
+      if (!raw || typeof raw !== "object") return null;
+      const sid = raw.sourceId != null ? String(raw.sourceId) : "";
+      if (!sid) return null;
+      const x = Number(raw.x);
+      const y = Number(raw.y);
+      const k = Number(raw.k);
+      const t = Number(raw.t);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(k) || k <= 0) return null;
+      if (!Number.isFinite(t) || t <= 0) return null;
+      const out = {
+        sourceId: sid,
+        x,
+        y,
+        k,
+        t
+      };
+      const ws = normalizeScrollDriveWorkspaceKey(raw.ws != null ? raw.ws : raw.workspaceKey);
+      if (ws) out.ws = ws;
+      if (raw.targetNodeId != null && String(raw.targetNodeId)) {
+        out.targetNodeId = String(raw.targetNodeId);
+      }
+      if (raw.scrollRatio != null && Number.isFinite(Number(raw.scrollRatio))) {
+        out.scrollRatio = Number(raw.scrollRatio);
+      }
+      return out;
+    }
+    function persistScrollDriveLastStay(snap) {
+      const clean = normalizeScrollDriveLastStaySnap(snap);
+      if (!clean) return false;
+      const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (ws) clean.ws = ws;
+      else delete clean.ws;
+      const store = scrollDriveLastStayStorage();
+      if (!store) return false;
+      try {
+        store.setItem(scrollDriveLastStayStorageKey(ws), JSON.stringify(clean));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    function clearPersistedScrollDriveLastStay() {
+      const store = scrollDriveLastStayStorage();
+      if (!store) return;
+      try {
+        store.removeItem(scrollDriveLastStayStorageKey());
+      } catch (_) {
+      }
+      if (scrollDriveWorkspaceKey) {
+        try {
+          store.removeItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        } catch (_) {
+        }
+      }
+    }
+    function loadScrollDriveLastStayFromStorage(nextSourceId) {
+      const store = scrollDriveLastStayStorage();
+      if (!store) return null;
+      const key = scrollDriveLastStayStorageKey();
+      let raw = null;
+      try {
+        raw = store.getItem(key);
+      } catch (_) {
+        return null;
+      }
+      if (!raw && !scrollDriveWorkspaceKey) {
+        try {
+          raw = store.getItem(SCROLL_DRIVE_LAST_STAY_KEY);
+        } catch (_) {
+          raw = null;
+        }
+      }
+      if (!raw) return null;
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      const snap = normalizeScrollDriveLastStaySnap(parsed);
+      if (!snap) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      const age = Date.now() - snap.t;
+      if (!Number.isFinite(age) || age < 0 || age > SCROLL_DRIVE_LAST_STAY_STORAGE_MS) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      const snapWs = snap.ws ? String(snap.ws) : "";
+      const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      if (snapWs !== curWs) {
+        clearPersistedScrollDriveLastStay();
+        return null;
+      }
+      if (nextSourceId != null && String(nextSourceId) && String(snap.sourceId) !== String(nextSourceId)) {
+        return null;
+      }
+      return snap;
+    }
+    function resolveScrollDriveLastStay(nextSourceId, opts) {
+      const allowStorage = !opts || opts.allowStorage !== false;
+      const sid = nextSourceId != null ? String(nextSourceId) : "";
+      const curWs = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      const mem = scrollDriveLastStay;
+      if (mem && mem.sourceId) {
+        const memWs = mem.ws ? String(mem.ws) : "";
+        if (memWs !== curWs) {
+          scrollDriveLastStay = null;
+        } else if (sid && String(mem.sourceId) !== sid) {
+          scrollDriveLastStay = null;
+        } else {
+          const age = Date.now() - (Number(mem.t) || 0);
+          if (Number.isFinite(age) && age >= 0 && age <= SCROLL_DRIVE_LAST_STAY_MS) {
+            return { snap: mem, fromStorage: false };
+          }
+          scrollDriveLastStay = null;
+        }
+      }
+      if (!allowStorage) return null;
+      const stored = loadScrollDriveLastStayFromStorage(sid || null);
+      if (!stored) return null;
+      scrollDriveLastStay = stored;
+      return { snap: stored, fromStorage: true };
+    }
+    function stashScrollDriveLastStay() {
+      if (!scrollDriveBase) return false;
+      const sid = sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      const d = typeof window !== "undefined" && window.__graphideScrollDrive || {};
+      const x = Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x;
+      const y = Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y;
+      const k = Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0 ? scrollDriveBase.k : 1;
+      const ws = scrollDriveWorkspaceKey ? String(scrollDriveWorkspaceKey) : "";
+      scrollDriveLastStay = {
+        sourceId: sid,
+        x: Number.isFinite(x) ? x : 0,
+        y: Number.isFinite(y) ? y : 0,
+        k: Number.isFinite(k) && k > 0 ? k : 1,
+        scrollRatio: Number(d.scrollRatio) || 0,
+        targetNodeId: d.targetNodeId ? String(d.targetNodeId) : sid,
+        t: Date.now()
+      };
+      if (ws) scrollDriveLastStay.ws = ws;
+      persistScrollDriveLastStay(scrollDriveLastStay);
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
+      return true;
+    }
+    function clearScrollDriveLastStay() {
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      clearPersistedScrollDriveLastStay();
+    }
+    function setScrollDriveReviewStayClearedCue(on2) {
+      scrollDriveReviewStayCleared = !!on2;
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        if (on2) {
+          vp.setAttribute("data-scroll-review-clear", "1");
+          vp.removeAttribute("data-scroll-present-stay");
+        } else {
+          vp.removeAttribute("data-scroll-review-clear");
+        }
+      }
+      const cur = typeof window !== "undefined" && window.__graphideScrollDrive ? window.__graphideScrollDrive : null;
+      if (cur) {
+        cur.reviewStayCleared = !!on2;
+        if (on2) cur.presentStayStashed = false;
+      } else if (on2) {
+        const d = emptyScrollDrive();
+        d.reviewStayCleared = true;
+        d.presentStayStashed = false;
+        publishScrollDrive(d);
+      }
+    }
+    function clearScrollDriveReviewStayClearedCue() {
+      if (!scrollDriveReviewStayCleared) {
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp && vp.hasAttribute("data-scroll-review-clear")) vp.removeAttribute("data-scroll-review-clear");
+        return;
+      }
+      setScrollDriveReviewStayClearedCue(false);
+    }
+    function clearScrollDriveLastStayOnReviewRestart() {
+      scrollDriveLastStay = null;
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      scrollDriveLastShownSourceId = "";
+      clearPersistedScrollDriveLastStay();
+      if (typeof setScrollDriveReviewStayClearedCue === "function") {
+        setScrollDriveReviewStayClearedCue(true);
+      } else {
+        scrollDriveReviewStayCleared = true;
+      }
+      return true;
+    }
+    function softStayScrollDriveAcrossHostSourceRepost(nextSourceId) {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      const sid = nextSourceId ? String(nextSourceId) : sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      if (scrollDriveBase) {
+        scrollDriveBase = {
+          x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+          y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+        };
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveWasMacro = false;
+        scrollDriveJustRestored = true;
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        return true;
+      }
+      if (typeof softRestoreScrollDriveFromLastStay === "function") {
+        return softRestoreScrollDriveFromLastStay(sid);
+      }
+      return false;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideClearScrollDriveLastStay = clearScrollDriveLastStay;
+      window.__graphideClearScrollDriveLastStayOnReviewRestart = clearScrollDriveLastStayOnReviewRestart;
+      window.__graphideStashScrollDriveLastStay = stashScrollDriveLastStay;
+      window.__graphideSetScrollDriveReviewStayClearedCue = setScrollDriveReviewStayClearedCue;
+      window.__graphideScrollDriveLastStayKey = scrollDriveLastStayStorageKey();
+      window.__graphideScrollDriveWorkspaceKey = scrollDriveWorkspaceKey;
+      window.__graphideSetScrollDriveWorkspaceKey = setScrollDriveWorkspaceKey;
+      window.__graphideProbeScrollDriveLastStayStorage = function(sid) {
+        return loadScrollDriveLastStayFromStorage(sid != null ? sid : null);
+      };
+      window.__graphideSoftStayScrollDriveAcrossHostSourceRepost = softStayScrollDriveAcrossHostSourceRepost;
+    }
+    function softRestoreScrollDriveFromLastStay(nextSourceId) {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (scrollDriveBase) return false;
+      const sid = nextSourceId ? String(nextSourceId) : "";
+      if (!sid) return false;
+      const resolved = resolveScrollDriveLastStay(sid);
+      if (!resolved || !resolved.snap) {
+        const other = loadScrollDriveLastStayFromStorage(null);
+        if (other && String(other.sourceId) !== sid) {
+          return false;
+        }
+        if (scrollDriveLastStay && String(scrollDriveLastStay.sourceId) !== sid) {
+          clearScrollDriveLastStay();
+        }
+        return false;
+      }
+      const snap = resolved.snap;
+      if (String(snap.sourceId) !== sid) {
+        clearScrollDriveLastStay();
+        return false;
+      }
+      const age = Date.now() - (Number(snap.t) || 0);
+      const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+      if (!Number.isFinite(age) || age < 0 || age > maxAge) {
+        clearScrollDriveLastStay();
+        return false;
+      }
+      const close = Number.isFinite(camTo.x) && Number.isFinite(camTo.y) && Math.abs(camTo.x - snap.x) < 120 && Math.abs(camTo.y - snap.y) < 160 && Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
+      if (close) {
+        scrollDriveBase = {
+          x: camTo.x,
+          y: camTo.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : snap.k || 1
+        };
+      } else {
+        scrollDriveBase = {
+          x: Number.isFinite(snap.x) ? snap.x : 0,
+          y: Number.isFinite(snap.y) ? snap.y : 0,
+          k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1
+        };
+      }
+      scrollDriveTargetLocked = "";
+      scrollDriveJustRestored = true;
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
+      scrollDriveWasMacro = false;
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      if (typeof setCamTarget === "function") {
+        setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+      }
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
+      return true;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSoftRestoreScrollDriveFromLastStay = softRestoreScrollDriveFromLastStay;
+    }
+    function scrollDriveLastStayMatches(nextSourceId) {
+      const sid = nextSourceId ? String(nextSourceId) : "";
+      if (!sid) return false;
+      const resolved = resolveScrollDriveLastStay(sid);
+      if (!resolved || !resolved.snap) return false;
+      const snap = resolved.snap;
+      if (String(snap.sourceId) !== sid) return false;
+      const age = Date.now() - (Number(snap.t) || 0);
+      const maxAge = resolved.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+      return Number.isFinite(age) && age >= 0 && age <= maxAge;
+    }
+    function softStayScrollDriveAcrossDeskRemount() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!sourcePane || sourcePane.hidden || !srcBody) return false;
+      const sid = sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      if (scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (scrollDriveBase) {
+        scrollDriveBase = {
+          x: Number.isFinite(camTo.x) ? camTo.x : scrollDriveBase.x,
+          y: Number.isFinite(camTo.y) ? camTo.y : scrollDriveBase.y,
+          k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : scrollDriveBase.k || 1
+        };
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveWasMacro = false;
+        scrollDriveJustRestored = true;
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+      if (typeof softRestoreScrollDriveFromLastStay === "function" && softRestoreScrollDriveFromLastStay(sid)) {
+        if (lensOpen || routeOpen) {
+          if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+          return true;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+        return true;
+      }
+      return false;
+    }
+    if (typeof window !== "undefined") {
+      let evidenceScrollDriveStayLive2 = function() {
+        if (typeof isPresenting === "function" && isPresenting()) return false;
+        if (!sourcePane || sourcePane.hidden || !sourceId) return false;
+        return !!(scrollDriveBase || typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(String(sourceId)));
+      };
+      var evidenceScrollDriveStayLive = evidenceScrollDriveStayLive2;
+      window.__graphideSoftStayScrollDriveAcrossDeskRemount = softStayScrollDriveAcrossDeskRemount;
+    }
+    function softStayScrollDriveAcrossMapSliceHop() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!sourcePane || sourcePane.hidden || !srcBody) return false;
+      const sid = sourceId ? String(sourceId) : "";
+      if (!sid) return false;
+      if (typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      const resolvedHop = typeof resolveScrollDriveLastStay === "function" ? resolveScrollDriveLastStay(sid) : null;
+      const snap = resolvedHop && resolvedHop.snap || scrollDriveLastStay;
+      const snapOk = snap && String(snap.sourceId) === sid && (() => {
+        const age = Date.now() - (Number(snap.t) || 0);
+        const maxAge = resolvedHop && resolvedHop.fromStorage ? SCROLL_DRIVE_LAST_STAY_STORAGE_MS : SCROLL_DRIVE_LAST_STAY_MS;
+        return Number.isFinite(age) && age >= 0 && age <= maxAge;
+      })();
+      const seedFromSnap = () => {
+        if (!snapOk) return false;
+        scrollDriveBase = {
+          x: Number.isFinite(snap.x) ? snap.x : 0,
+          y: Number.isFinite(snap.y) ? snap.y : 0,
+          k: Number.isFinite(snap.k) && snap.k > 0 ? snap.k : 1
+        };
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveYNudgeOrigin = Number(snap.scrollRatio) || 0;
+        scrollDriveWasMacro = false;
+        scrollDriveJustRestored = true;
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        if (typeof setCamTarget === "function") {
+          setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+        }
+        return true;
+      };
+      if (explorerWs === "map") {
+        if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+        if (seedFromSnap() || scrollDriveBase) {
+          if (!snapOk && scrollDriveBase && typeof setCamTarget === "function") {
+            setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+          }
+          scrollDriveTargetLocked = "";
+          scrollDriveCamXSettled = false;
+          scrollDriveCamYSettled = false;
+          scrollDriveWasMacro = false;
+          scrollDriveJustRestored = true;
+          clearScrollDriveCfgPaint();
+          clearScrollDriveLineMapPaint();
+          clearScrollDriveActiveLinePaint();
+          clearScrollDriveMacroPaint();
+          return true;
+        }
+        return false;
+      }
+      if (snapOk) {
+        const close = Number.isFinite(camTo.x) && Number.isFinite(camTo.y) && Math.abs(camTo.x - snap.x) < 120 && Math.abs(camTo.y - snap.y) < 160 && Math.abs((Number.isFinite(camTo.k) ? camTo.k : 1) - (snap.k || 1)) < 0.4;
+        if (!close) {
+          if (seedFromSnap()) {
+            if (lensOpen || routeOpen) {
+              if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+              return true;
+            }
+            if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+            return true;
+          }
+        } else {
+          if (seedFromSnap()) {
+            if (lensOpen || routeOpen) {
+              if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+              return true;
+            }
+            if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+            return true;
+          }
+        }
+      }
+      let ok = false;
+      if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        ok = softStayScrollDriveAcrossDeskRemount();
+      }
+      if (ok && scrollDriveBase && typeof setCamTarget === "function") {
+        setCamTarget(scrollDriveBase.x, scrollDriveBase.y, scrollDriveBase.k);
+      }
+      return ok;
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideSoftStayScrollDriveAcrossMapSliceHop = softStayScrollDriveAcrossMapSliceHop;
+      window.__graphideSoftStayScrollDriveAcrossLineageOverviewHop = softStayScrollDriveAcrossMapSliceHop;
+    }
+    function pauseScrollDriveForPresent() {
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+      }
+      const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+      if (typeof scrollDriveMacroTimer !== "undefined" && scrollDriveMacroTimer) {
+        clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = 0;
+      }
+      if (scrollDriveEaseTimer) {
+        clearTimeout(scrollDriveEaseTimer);
+        scrollDriveEaseTimer = 0;
+      }
+      if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+      scrollDriveBase = null;
+      scrollDriveTargetLocked = "";
+      scrollDriveCamXSettled = false;
+      scrollDriveCamYSettled = false;
+      scrollDriveYNudgeOrigin = 0;
+      scrollDriveWasMacro = false;
+      scrollDriveVel = { t: 0, top: 0, vel: 0 };
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      setCamEase(CAM_EASE_BASE);
+      clearScrollDriveCfgPaint();
+      clearScrollDriveLineMapPaint();
+      clearScrollDriveActiveLinePaint();
+      clearScrollDriveMacroPaint();
+      clearScrollDriveAnchorPaint();
+      clearScrollDriveDetailPaint();
+      clearScrollDriveBlendPaint();
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        vp.setAttribute("data-scroll-present-paused", "1");
+        if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+        else vp.removeAttribute("data-scroll-present-stay");
+      }
+      const d = emptyScrollDrive();
+      d.presentPaused = true;
+      d.presentStayStashed = !!stayStashed;
+      d.reviewStayCleared = false;
+      publishScrollDrive(d);
+    }
+    function resumeScrollDriveAfterPresent() {
+      setCamEase(CAM_EASE_BASE);
+      scrollDriveJustRestored = false;
+      scrollDriveSuppressNextRefit = false;
+      if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+        clearScrollDriveReviewStayClearedCue();
+      } else {
+        scrollDriveReviewStayCleared = false;
+      }
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        vp.removeAttribute("data-scroll-present-paused");
+        vp.removeAttribute("data-scroll-present-stay");
+        vp.removeAttribute("data-scroll-review-clear");
+      }
+      const d = emptyScrollDrive();
+      d.presentPaused = false;
+      d.presentStayStashed = false;
+      d.reviewStayCleared = false;
+      publishScrollDrive(d);
+    }
+    function readSrcActiveLine() {
+      if (!srcBody) return 0;
+      const bodyRect = srcBody.getBoundingClientRect();
+      const midY = bodyRect.top + srcBody.clientHeight / 2;
+      const lines = srcBody.querySelectorAll(".src-line");
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const r = el2.getBoundingClientRect();
+        if (r.top <= midY && midY < r.bottom + 0.5) {
+          const ln2 = el2.querySelector(".ln");
+          const n = parseInt(ln2 && ln2.textContent, 10);
+          return Number.isFinite(n) ? n : 0;
+        }
+      }
+      return 0;
+    }
+    function findScrollDriveTargetEl(id2) {
+      if (!id2 || !canvas) return null;
+      const esc2 = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(String(id2)) : String(id2).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      return canvas.querySelector('.vnode[data-id="' + esc2 + '"]') || canvas.querySelector('.ego-node[data-id="' + esc2 + '"]') || canvas.querySelector('.comm-node[data-id="' + esc2 + '"]') || canvas.querySelector('.bubble-card[data-bubble="' + esc2 + '"]') || canvas.querySelector('[data-id="' + esc2 + '"]');
+    }
+    function clearScrollDriveLineMapPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(
+        ".vnode.scroll-linemap-hit, .vnode.scroll-linemap-miss, .vnode[data-scroll-linemap]"
+      ).forEach((el2) => {
+        el2.classList.remove("scroll-linemap-hit", "scroll-linemap-miss");
+        el2.removeAttribute("data-scroll-linemap");
+      });
+    }
+    function applyScrollDriveLineMapGlow(lineMapHit, targetNodeId) {
+      clearScrollDriveLineMapPaint();
+      if (!canvas) return { lineMapPulse: false };
+      if (typeof isPresenting === "function" && isPresenting()) return { lineMapPulse: false };
+      function vnodeFor(id2) {
+        if (!id2) return null;
+        const found = findScrollDriveTargetEl(id2);
+        if (!found) return null;
+        if (found.classList && found.classList.contains("vnode")) return found;
+        return found.closest ? found.closest(".vnode") : null;
+      }
+      let el2 = vnodeFor(targetNodeId);
+      if (!el2 && sourceId) el2 = vnodeFor(sourceId);
+      if (!el2) return { lineMapPulse: false };
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (lineMapHit) {
+        el2.classList.add("scroll-linemap-hit");
+        el2.setAttribute("data-scroll-linemap", "hit");
+        return { lineMapPulse: !reduced };
+      }
+      el2.classList.add("scroll-linemap-miss");
+      el2.setAttribute("data-scroll-linemap", "miss");
+      return { lineMapPulse: false };
+    }
+    function clearScrollDriveActiveLinePaint() {
+      if (!srcBody) return;
+      srcBody.querySelectorAll(".src-line.scroll-drive-active, .src-line[data-scroll-active]").forEach((el2) => {
+        el2.classList.remove("scroll-drive-active");
+        el2.removeAttribute("data-scroll-active");
+      });
+    }
+    function applyScrollDriveActiveLine(activeLine) {
+      clearScrollDriveActiveLinePaint();
+      if (!srcBody) return { activeLineMarked: false };
+      if (typeof isPresenting === "function" && isPresenting()) return { activeLineMarked: false };
+      const line = Number(activeLine) || 0;
+      if (line <= 0) return { activeLineMarked: false };
+      const bodyRect = srcBody.getBoundingClientRect();
+      const midY = bodyRect.top + srcBody.clientHeight / 2;
+      const lines = srcBody.querySelectorAll(".src-line");
+      let marked = null;
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const r = el2.getBoundingClientRect();
+        if (r.top <= midY && midY < r.bottom + 0.5) {
+          marked = el2;
+          break;
+        }
+      }
+      if (!marked) {
+        for (let i = 0; i < lines.length; i++) {
+          const ln2 = lines[i].querySelector(".ln");
+          const n = parseInt(ln2 && ln2.textContent, 10);
+          if (n === line) {
+            marked = lines[i];
+            break;
+          }
+        }
+      }
+      if (!marked) return { activeLineMarked: false };
+      marked.classList.add("scroll-drive-active");
+      marked.setAttribute("data-scroll-active", "1");
+      return { activeLineMarked: true };
+    }
+    const SCROLL_CAMX_FOLLOW_CAP = 80;
+    const SCROLL_MACRO_CAM_FOLLOW_CAP = 48;
+    const SCROLL_MACRO_K_DELTA_CAP = 0.35;
+    function scrollDriveSoftCamX(el2, baseX, k, cap) {
+      const stage = canvas && canvas.querySelector(".stage");
+      if (!stage || !el2) return baseX;
+      const vr2 = stage.getBoundingClientRect();
+      if (vr2.width < 24) return baseX;
+      const r = el2.getBoundingClientRect();
+      const cx = r.left + r.width / 2 - vr2.left;
+      const liveK = cam && cam.k ? cam.k : k;
+      if (!Number.isFinite(liveK) || Math.abs(liveK) < 1e-6) return baseX;
+      const contentX = (cx - cam.x) / liveK;
+      const nk = Number.isFinite(k) && k > 0 ? k : liveK;
+      const idealX = vr2.width / 2 - contentX * nk;
+      let dx = idealX - baseX;
+      const lim = Math.max(0, Number(cap));
+      if (!Number.isFinite(lim)) return baseX;
+      if (dx > lim) dx = lim;
+      if (dx < -lim) dx = -lim;
+      return baseX + dx;
+    }
+    function absorbScrollDriveSoftCamX() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase || !canvas) return false;
+      const d = window.__graphideScrollDrive;
+      if (d && d.macroLod) return false;
+      if (!Number.isFinite(camTo.x)) return false;
+      if (Math.abs(camTo.x - scrollDriveBase.x) < 0.5) {
+        scrollDriveCamXSettled = true;
+        return false;
+      }
+      scrollDriveBase.x = camTo.x;
+      scrollDriveCamXSettled = true;
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+      return true;
+    }
+    function absorbScrollDriveSoftCamY() {
+      if (typeof isPresenting === "function" && isPresenting()) return false;
+      if (!scrollDriveBase || !canvas) return false;
+      const d = window.__graphideScrollDrive;
+      if (d && d.macroLod) return false;
+      if (!Number.isFinite(camTo.y)) return false;
+      let ratio = 0;
+      if (srcBody) {
+        const max = Math.max(1, srcBody.scrollHeight - srcBody.clientHeight);
+        ratio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
+      } else if (d && Number.isFinite(d.scrollRatio)) {
+        ratio = Number(d.scrollRatio);
+      }
+      if (scrollDriveCamYSettled && Math.abs(ratio - scrollDriveYNudgeOrigin) < 2e-3 && Math.abs(camTo.y - scrollDriveBase.y) < 0.5) {
+        return false;
+      }
+      scrollDriveBase.y = camTo.y;
+      scrollDriveYNudgeOrigin = ratio;
+      scrollDriveCamYSettled = true;
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+      return true;
+    }
+    function applyScrollDriveCamera(scrollRatio, targetNodeId) {
+      if (typeof isPresenting === "function" && isPresenting()) return;
+      if (!canvas) return;
+      const lock = targetNodeId ? String(targetNodeId) : "";
+      const el2 = findScrollDriveTargetEl(targetNodeId);
+      let keepRestoredCamX = false;
+      if (!scrollDriveBase || scrollDriveTargetLocked !== lock) {
+        const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+        const justRestored = !!scrollDriveJustRestored && !!scrollDriveBase;
+        scrollDriveJustRestored = false;
+        keepRestoredCamX = justRestored;
+        const softStay = remapping || justRestored;
+        scrollDriveTargetLocked = lock;
+        if (softStay) {
+          if (!justRestored) {
+            scrollDriveBase = {
+              x: Number.isFinite(camTo.x) ? camTo.x : 0,
+              y: Number.isFinite(camTo.y) ? camTo.y : 0,
+              k: Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1
+            };
+            scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+          }
+        } else {
+          if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+          scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+          scrollDriveYNudgeOrigin = 0;
+        }
+        scrollDriveCamXSettled = !!justRestored;
+        scrollDriveCamYSettled = false;
+      }
+      const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 48;
+      const camX = el2 && !keepRestoredCamX ? scrollDriveSoftCamX(el2, scrollDriveBase.x, scrollDriveBase.k, SCROLL_CAMX_FOLLOW_CAP) : scrollDriveBase.x;
+      let camK = scrollDriveBase.k;
+      if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(camTo.k) && camTo.k > 0) {
+        const dk = camK - camTo.k;
+        if (dk > SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+        else if (dk < -SCROLL_MACRO_K_DELTA_CAP) camK = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+      }
+      setCamTarget(camX, scrollDriveBase.y - nudge, camK);
+      if (!(typeof reduceMotion === "function" && reduceMotion()) && Number.isFinite(scrollDriveBase.k) && Math.abs(scrollDriveBase.k - camK) > 0.02) {
+        if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = setTimeout(() => {
+          scrollDriveMacroTimer = 0;
+          if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+        }, 120);
+      }
+      if (typeof reduceMotion === "function" && reduceMotion()) {
+        if (Number.isFinite(camX) && Math.abs(camX - scrollDriveBase.x) >= 0.5) {
+          scrollDriveBase.x = camX;
+        }
+        scrollDriveCamXSettled = true;
+        if (Number.isFinite(camTo.y)) {
+          scrollDriveBase.y = camTo.y;
+          scrollDriveYNudgeOrigin = scrollRatio;
+        }
+        scrollDriveCamYSettled = true;
+      }
+    }
+    let scrollDriveVel = { t: 0, top: 0, vel: 0 };
+    const SCROLL_MACRO_RATIO = 0.18;
+    const SCROLL_MACRO_VEL = 0.55;
+    function noteScrollDriveVelocity(scrollTop) {
+      const now2 = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      if (!scrollDriveVel.t) {
+        scrollDriveVel = { t: now2, top: scrollTop, vel: 0 };
+        return 0;
+      }
+      const dt2 = Math.max(1, now2 - scrollDriveVel.t);
+      const dTop = Math.abs(scrollTop - scrollDriveVel.top);
+      const instant = dTop / dt2;
+      scrollDriveVel.vel = scrollDriveVel.vel * 0.35 + instant * 0.65;
+      scrollDriveVel.t = now2;
+      scrollDriveVel.top = scrollTop;
+      return scrollDriveVel.vel;
+    }
+    function readScrollDriveVelocity() {
+      if (!scrollDriveVel.t) return 0;
+      const now2 = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const age = now2 - scrollDriveVel.t;
+      if (age <= 120) return scrollDriveVel.vel;
+      return scrollDriveVel.vel * Math.exp(-(age - 120) / 180);
+    }
+    function scrollDriveEaseFromVel(vel) {
+      const v = Math.max(0, Number(vel) || 0);
+      const t = Math.min(1, v / SCROLL_VEL_LOOSE);
+      return CAM_EASE_SNAP + (CAM_EASE_LOOSE - CAM_EASE_SNAP) * t;
+    }
+    function setCamEase(e) {
+      const n = Number(e);
+      camEase = Number.isFinite(n) ? Math.max(0.08, Math.min(0.45, n)) : CAM_EASE_BASE;
+    }
+    function scrollDriveBlendMsFromEase(ease) {
+      if (typeof reduceMotion === "function" && reduceMotion()) return 0;
+      const a = Number(ease);
+      const e = Number.isFinite(a) ? Math.max(0.08, Math.min(0.45, a)) : CAM_EASE_BASE;
+      const span = CAM_EASE_SNAP - CAM_EASE_LOOSE;
+      const t = span > 0 ? Math.max(0, Math.min(1, (e - CAM_EASE_LOOSE) / span)) : 0.5;
+      return Math.round(280 + (120 - 280) * t);
+    }
+    function clearScrollDriveBlendPaint() {
+      const seen = /* @__PURE__ */ new Set();
+      function wipe(vp) {
+        if (!vp || seen.has(vp)) return;
+        seen.add(vp);
+        vp.removeAttribute("data-scroll-blend");
+        if (vp.style) vp.style.removeProperty("--scroll-blend-ms");
+      }
+      wipe(viewportEl);
+      if (canvas) canvas.querySelectorAll(".viewport").forEach(wipe);
+      document.querySelectorAll(".viewport[data-scroll-blend]").forEach(wipe);
+    }
+    function applyScrollDriveBlendPaint(ease) {
+      const ms = scrollDriveBlendMsFromEase(ease);
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        if (vp.getAttribute("data-scroll-blend") !== "1") vp.setAttribute("data-scroll-blend", "1");
+        if (vp.style) vp.style.setProperty("--scroll-blend-ms", ms + "ms");
+      }
+      return { blendMs: ms };
+    }
+    function wantScrollDriveMacro(scrollRatio, vel, canScroll) {
+      if (!canScroll) return false;
+      return scrollRatio <= SCROLL_MACRO_RATIO || vel >= SCROLL_MACRO_VEL;
+    }
+    function clearScrollDriveMacroPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".vnode.scroll-macro-hot, .vnode.scroll-macro-dim, .vnode[data-macro-hot]").forEach((el2) => {
+        el2.classList.remove("scroll-macro-hot", "scroll-macro-dim");
+        el2.removeAttribute("data-macro-hot");
+      });
+      const vp = viewportEl || canvas.querySelector(".viewport");
+      if (vp) {
+        vp.removeAttribute("data-scroll-macro");
+        if (!mapStageMounted()) {
+          const lod = String(lodOf(cam && cam.k != null ? cam.k : 1));
+          if (vp.getAttribute("data-lod") !== lod) vp.setAttribute("data-lod", lod);
+        }
+      }
+    }
+    function applyScrollDriveMacro(scrollRatio, targetNodeId, opts) {
+      if (typeof isPresenting === "function" && isPresenting()) return { macroLod: false };
+      if (!canvas) return { macroLod: false };
+      const lock = targetNodeId ? String(targetNodeId) : "";
+      const el2 = findScrollDriveTargetEl(targetNodeId);
+      const entering = !!(opts && opts.entering);
+      const remapping = !!(scrollDriveBase && scrollDriveTargetLocked !== lock);
+      const softStay = !!(scrollDriveBase && (remapping || entering));
+      if (!scrollDriveBase || remapping || entering) {
+        scrollDriveTargetLocked = lock;
+        if (softStay) {
+          const keepK = Number.isFinite(scrollDriveBase.k) && scrollDriveBase.k > 0 ? scrollDriveBase.k : Number.isFinite(camTo.k) && camTo.k > 0 ? camTo.k : 1;
+          scrollDriveBase = {
+            x: Number.isFinite(camTo.x) ? camTo.x : 0,
+            y: Number.isFinite(camTo.y) ? camTo.y : 0,
+            k: keepK
+          };
+          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+        } else {
+          if (el2) zoomToEl(el2, Math.min(CAM_MAX, Math.max(1.35, camTo.k)));
+          scrollDriveBase = { x: camTo.x, y: camTo.y, k: camTo.k };
+          scrollDriveYNudgeOrigin = 0;
+        }
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+      }
+      const kIdeal = Math.min(0.68, Math.max(0.42, scrollDriveBase.k * 0.45));
+      let kMacro = kIdeal;
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (!reduced && Number.isFinite(camTo.k) && camTo.k > 0) {
+        const dk = kMacro - camTo.k;
+        if (dk > SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k + SCROLL_MACRO_K_DELTA_CAP;
+        else if (dk < -SCROLL_MACRO_K_DELTA_CAP) kMacro = camTo.k - SCROLL_MACRO_K_DELTA_CAP;
+      }
+      const nudge = (scrollRatio - scrollDriveYNudgeOrigin) * 24;
+      let camX = scrollDriveBase.x;
+      if (el2 && softStay) {
+        camX = scrollDriveSoftCamX(el2, scrollDriveBase.x, kMacro, SCROLL_MACRO_CAM_FOLLOW_CAP);
+      }
+      setCamTarget(camX, scrollDriveBase.y - nudge, kMacro);
+      if (!reduced && Math.abs(kIdeal - kMacro) > 0.02) {
+        if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+        scrollDriveMacroTimer = setTimeout(() => {
+          scrollDriveMacroTimer = 0;
+          if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+        }, 120);
+      }
+      const vp = viewportEl || canvas.querySelector(".viewport");
+      if (vp) {
+        if (vp.getAttribute("data-lod") !== "0") vp.setAttribute("data-lod", "0");
+        vp.setAttribute("data-scroll-macro", "1");
+      }
+      const hotId = targetNodeId ? String(targetNodeId) : "";
+      canvas.querySelectorAll(".vnode[data-id]").forEach((node) => {
+        const id2 = node.getAttribute("data-id");
+        const hot = !!(hotId && id2 === hotId);
+        node.classList.toggle("scroll-macro-hot", hot);
+        node.classList.toggle("scroll-macro-dim", !hot);
+        if (hot) node.setAttribute("data-macro-hot", "1");
+        else node.removeAttribute("data-macro-hot");
+      });
+      return { macroLod: true };
+    }
+    function lineOfScrollDriveNode(id2) {
+      const n = nodeById.get(idVal(id2));
+      if (!n || !n.span) return 0;
+      if (n.span.start && n.span.start.line) return Number(n.span.start.line) || 0;
+      return Number(n.span.line) || 0;
+    }
+    function spanLinesOfScrollDriveNode(id2) {
+      const n = nodeById.get(idVal(id2));
+      if (!n || !n.span) return null;
+      const sp = n.span;
+      const start2 = Number(sp.start && sp.start.line || sp.line) || 0;
+      if (!start2) return null;
+      const endRaw = Number(sp.end && sp.end.line || sp.endLine) || start2;
+      return {
+        start: start2,
+        end: Math.max(start2, endRaw),
+        file: sp.file || ""
+      };
+    }
+    function evidenceScrollDriveFile() {
+      if (!sourceId) return "";
+      const n = nodeById.get(idVal(sourceId));
+      return n && n.span && n.span.file || "";
+    }
+    function resolveScrollDriveTargetNode(activeLine) {
+      const fallback = sourceId ? String(sourceId) : "";
+      const line = Number(activeLine) || 0;
+      if (!line || !nodeById || typeof nodeById.forEach !== "function") {
+        return { targetNodeId: fallback, lineMapHit: false };
+      }
+      const file = evidenceScrollDriveFile();
+      const walk = new Set(scrollDriveCfgWalk());
+      let bestContain = null;
+      let bestNear = null;
+      nodeById.forEach((_n2, rawId) => {
+        const id2 = String(idVal(rawId));
+        const span = spanLinesOfScrollDriveNode(id2);
+        if (!span) return;
+        const sameFile = !file || !span.file || span.file === file;
+        if (!sameFile) return;
+        let score = 0;
+        if (walk.has(id2)) score += 2;
+        if (id2 === fallback) score += 1;
+        if (findScrollDriveTargetEl(id2)) score += 1;
+        if (line >= span.start && line <= span.end) {
+          const width = span.end - span.start;
+          const cand2 = { id: id2, width, score };
+          if (!bestContain || cand2.width < bestContain.width || cand2.width === bestContain.width && cand2.score > bestContain.score) {
+            bestContain = cand2;
+          }
+          return;
+        }
+        const dist = line < span.start ? span.start - line : line - span.end;
+        const cand = { id: id2, dist, score };
+        if (!bestNear || cand.dist < bestNear.dist || cand.dist === bestNear.dist && cand.score > bestNear.score) {
+          bestNear = cand;
+        }
+      });
+      if (bestContain) return { targetNodeId: bestContain.id, lineMapHit: true };
+      if (bestNear && bestNear.dist <= 48) {
+        return { targetNodeId: bestNear.id, lineMapHit: true };
+      }
+      return { targetNodeId: fallback, lineMapHit: false };
+    }
+    function scrollDriveCfgWalk() {
+      const flow = typeof currentFlow === "function" && currentFlow() || typeof storyFlow === "function" && storyFlow() || null;
+      if (!flow || typeof flowWalk !== "function") return [];
+      return flowWalk(flow).map((id2) => String(idVal(id2))).filter(Boolean);
+    }
+    function pickScrollDriveCfgActive(walk, activeLine, scrollRatio) {
+      if (!walk.length) return "";
+      if (activeLine > 0) {
+        let best = "";
+        let bestDist = Infinity;
+        for (let i = 0; i < walk.length; i++) {
+          const ln2 = lineOfScrollDriveNode(walk[i]);
+          if (!ln2) continue;
+          const d = Math.abs(ln2 - activeLine);
+          if (d < bestDist) {
+            bestDist = d;
+            best = walk[i];
+          }
+        }
+        if (best && bestDist <= 48) return best;
+      }
+      const idx = Math.min(walk.length - 1, Math.max(0, Math.round(scrollRatio * (walk.length - 1))));
+      return walk[idx] || "";
+    }
+    function clearScrollDriveCfgPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(
+        ".vnode.scroll-cfg-hot, .vnode.scroll-cfg-dim, .vnode.scroll-cfg-ahead, .vnode.scroll-cfg-sib, .vnode.scroll-cfg-if, .vnode.scroll-cfg-loop, .vnode.scroll-cfg-try, .vnode.scroll-cfg-nest-hot, .vnode.scroll-cfg-nest-anc, .vnode.scroll-cfg-nest-sib, .vnode[data-cfg-active], .vnode[data-cfg-span], .vnode[data-cfg-depth]"
+      ).forEach((el2) => {
+        el2.classList.remove(
+          "scroll-cfg-hot",
+          "scroll-cfg-dim",
+          "scroll-cfg-ahead",
+          "scroll-cfg-sib",
+          "scroll-cfg-if",
+          "scroll-cfg-loop",
+          "scroll-cfg-try",
+          "scroll-cfg-nest-hot",
+          "scroll-cfg-nest-anc",
+          "scroll-cfg-nest-sib"
+        );
+        el2.removeAttribute("data-cfg-active");
+        el2.removeAttribute("data-cfg-span");
+        el2.removeAttribute("data-cfg-depth");
+      });
+    }
+    function classifyScrollDriveCfgSpanText(tx) {
+      let s = String(tx || "");
+      s = s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/, "");
+      if (/\btry\b|\bcatch\b|\bfinally\b|\bexcept\b/.test(s)) return "try";
+      if (/\bfor\b|\bwhile\b|\bloop\b/.test(s)) return "loop";
+      if (/\belse\s+if\b|\bif\b|\belse\b/.test(s)) return "if";
+      return "";
+    }
+    function scanScrollDriveCfgSpans() {
+      if (!srcBody) return [];
+      const lines = srcBody.querySelectorAll(".src-line");
+      const hits = [];
+      const stack2 = [];
+      let depth = 0;
+      let lastLn = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const el2 = lines[i];
+        const lnEl = el2.querySelector(".ln");
+        const txEl = el2.querySelector(".tx");
+        const ln2 = parseInt(lnEl && lnEl.textContent, 10);
+        if (!Number.isFinite(ln2)) continue;
+        lastLn = ln2;
+        const tx = txEl && txEl.textContent || "";
+        const kind = classifyScrollDriveCfgSpanText(tx);
+        if (kind) {
+          const sp = {
+            kind,
+            line: ln2,
+            startLine: ln2,
+            endLine: ln2,
+            depth,
+            entered: false,
+            brace: false
+          };
+          hits.push(sp);
+          stack2.push(sp);
+        }
+        let quote = "";
+        for (let c = 0; c < tx.length; c++) {
+          const ch = tx[c];
+          if (quote) {
+            if (ch === "\\") {
+              c++;
+              continue;
+            }
+            if (ch === quote) quote = "";
+            continue;
+          }
+          if (ch === '"' || ch === "'" || ch === "`") {
+            quote = ch;
+            continue;
+          }
+          if (ch === "{") {
+            depth++;
+            if (stack2.length && stack2[stack2.length - 1].depth === depth - 1) {
+              stack2[stack2.length - 1].entered = true;
+              stack2[stack2.length - 1].brace = true;
+            }
+          } else if (ch === "}") {
+            depth = Math.max(0, depth - 1);
+            while (stack2.length && stack2[stack2.length - 1].entered && stack2[stack2.length - 1].depth === depth) {
+              const done = stack2.pop();
+              done.endLine = ln2;
+            }
+          }
+        }
+      }
+      for (let i = 0; i < hits.length; i++) {
+        const sp = hits[i];
+        if (sp.brace && sp.entered && sp.endLine >= sp.startLine && stack2.indexOf(sp) < 0) continue;
+        const next = hits[i + 1];
+        if (next && next.depth <= sp.depth) {
+          sp.endLine = Math.max(sp.startLine, next.startLine - 1);
+        } else if (!sp.brace) {
+          sp.endLine = sp.startLine + 8;
+        } else {
+          sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
+        }
+      }
+      while (stack2.length) {
+        const sp = stack2.pop();
+        sp.endLine = Math.max(sp.endLine, lastLn || sp.startLine);
+      }
+      assignScrollDriveCfgNestDepth(hits);
+      return hits;
+    }
+    function assignScrollDriveCfgNestDepth(spans) {
+      if (!spans || !spans.length) return spans;
+      let anyBrace = false;
+      for (let i = 0; i < spans.length; i++) {
+        if (spans[i].brace) anyBrace = true;
+      }
+      if (anyBrace) {
+        for (let i = 0; i < spans.length; i++) {
+          spans[i].depth = Math.max(0, Number(spans[i].depth) || 0);
+        }
+      } else {
+        for (let i = 0; i < spans.length; i++) spans[i].depth = 0;
+      }
+      const order = spans.slice().sort((a, b) => {
+        const wa = a.endLine - a.startLine;
+        const wb = b.endLine - b.startLine;
+        if (wa !== wb) return wb - wa;
+        return a.startLine - b.startLine;
+      });
+      for (let i = 0; i < order.length; i++) {
+        const child = order[i];
+        let best = anyBrace ? Number(child.depth) || 0 : 0;
+        for (let j = 0; j < order.length; j++) {
+          if (i === j) continue;
+          const par = order[j];
+          if (par.startLine <= child.startLine && par.endLine >= child.endLine) {
+            const wider = par.startLine < child.startLine || par.endLine > child.endLine;
+            if (!wider) continue;
+            best = Math.max(best, (Number(par.depth) || 0) + 1);
+          }
+        }
+        child.depth = best;
+      }
+      return spans;
+    }
+    function pickScrollDriveCfgNestFocus(spans, activeLine) {
+      const line = Number(activeLine) || 0;
+      if (!line || !spans || !spans.length) return null;
+      let best = null;
+      for (let i = 0; i < spans.length; i++) {
+        const sp = spans[i];
+        if (line < sp.startLine || line > sp.endLine) continue;
+        if (!best || (Number(sp.depth) || 0) > (Number(best.depth) || 0) || (Number(sp.depth) || 0) === (Number(best.depth) || 0) && sp.endLine - sp.startLine < best.endLine - best.startLine) {
+          best = sp;
+        }
+      }
+      return best;
+    }
+    function irNestDepthScrollDriveWalk(walk) {
+      const out = /* @__PURE__ */ Object.create(null);
+      if (!walk || !walk.length) return out;
+      const spans = [];
+      for (let i = 0; i < walk.length; i++) {
+        const id2 = walk[i];
+        const sp = spanLinesOfScrollDriveNode(id2);
+        if (!sp) continue;
+        spans.push({ id: id2, start: sp.start, end: sp.end });
+      }
+      for (let i = 0; i < spans.length; i++) {
+        let d = 0;
+        for (let j = 0; j < spans.length; j++) {
+          if (i === j) continue;
+          const a = spans[i];
+          const b = spans[j];
+          if (b.start <= a.start && b.end >= a.end && (b.start < a.start || b.end > a.end)) d++;
+        }
+        out[spans[i].id] = d;
+      }
+      return out;
+    }
+    function pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById) {
+      if (activeLine > 0 && spans.length) {
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          if (activeLine >= sp.startLine && activeLine <= sp.endLine) return sp.kind;
+        }
+        let best = "";
+        let bestDist = Infinity;
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          const d = Math.abs(sp.line - activeLine);
+          if (d < bestDist) {
+            bestDist = d;
+            best = sp.kind;
+          }
+        }
+        if (best && bestDist <= 48) return best;
+      }
+      if (activeId && kindById && kindById[activeId]) return kindById[activeId];
+      return spans[0] && spans[0].kind || "";
+    }
+    function assignScrollDriveCfgSpanKinds(walk, spans) {
+      const out = /* @__PURE__ */ Object.create(null);
+      if (!walk.length) return out;
+      const kinds = [];
+      const seen = /* @__PURE__ */ Object.create(null);
+      for (let i = 0; i < spans.length; i++) {
+        const k = spans[i].kind;
+        if (!seen[k]) {
+          seen[k] = 1;
+          kinds.push(k);
+        }
+      }
+      if (!kinds.length) return out;
+      for (let i = 0; i < walk.length; i++) {
+        const id2 = walk[i];
+        const ln2 = lineOfScrollDriveNode(id2);
+        let kind = "";
+        if (ln2 > 0) {
+          let best = "";
+          let bestDist = Infinity;
+          for (let j = 0; j < spans.length; j++) {
+            const sp = spans[j];
+            if (ln2 >= sp.startLine && ln2 <= sp.endLine) {
+              kind = sp.kind;
+              break;
+            }
+            const d = Math.abs(sp.line - ln2);
+            if (d < bestDist) {
+              bestDist = d;
+              best = sp.kind;
+            }
+          }
+          if (!kind && best && bestDist <= 48) kind = best;
+        }
+        if (!kind) {
+          const bucket = Math.min(kinds.length - 1, Math.floor(i * kinds.length / walk.length));
+          kind = kinds[bucket];
+        }
+        out[id2] = kind;
+      }
+      return out;
+    }
+    function applyScrollDriveCfg(scrollRatio, activeLine) {
+      const walk = scrollDriveCfgWalk();
+      const unroll = Math.max(0, Math.min(1, Number(scrollRatio) || 0));
+      const emptyCfg = {
+        cfgActiveId: "",
+        cfgUnroll: 0,
+        cfgVisible: 0,
+        cfgSpanKind: "",
+        cfgSpanCount: 0,
+        cfgNestDepth: 0,
+        cfgNestMax: 0,
+        cfgNestExpanded: 0
+      };
+      if (unroll <= 0 || !walk.length) {
+        clearScrollDriveCfgPaint();
+        return emptyCfg;
+      }
+      const spans = scanScrollDriveCfgSpans();
+      const kindById = assignScrollDriveCfgSpanKinds(walk, spans);
+      const irNest = irNestDepthScrollDriveWalk(walk);
+      const visible = 1 + Math.round(unroll * (walk.length - 1));
+      const visibleWalk = walk.slice(0, Math.max(1, visible));
+      const activeId = pickScrollDriveCfgActive(visibleWalk, activeLine, unroll);
+      const nestFocus = pickScrollDriveCfgNestFocus(spans, activeLine);
+      const cfgSpanKind = nestFocus && nestFocus.kind || pickScrollDriveCfgSpanKind(spans, activeLine, activeId, kindById);
+      let cfgNestMax = 0;
+      for (let i = 0; i < spans.length; i++) {
+        cfgNestMax = Math.max(cfgNestMax, Number(spans[i].depth) || 0);
+      }
+      for (const id2 of walk) {
+        cfgNestMax = Math.max(cfgNestMax, Number(irNest[id2]) || 0);
+      }
+      const cfgNestDepth = nestFocus ? Number(nestFocus.depth) || 0 : 0;
+      const expandedSpans = [];
+      if (nestFocus) {
+        for (let i = 0; i < spans.length; i++) {
+          const sp = spans[i];
+          if (sp.startLine <= nestFocus.startLine && sp.endLine >= nestFocus.endLine) {
+            expandedSpans.push(sp);
+          }
+        }
+      }
+      const expandedSet = new Set(expandedSpans);
+      const cfgNestExpanded = expandedSpans.length;
+      const walkSet = new Set(walk);
+      const visibleSet = new Set(visibleWalk);
+      function nestRoleForId(id2) {
+        if (!nestFocus) return { role: "", depth: Number(irNest[id2]) || 0 };
+        const ln2 = lineOfScrollDriveNode(id2);
+        let hit = null;
+        if (ln2 > 0) {
+          for (let i = 0; i < spans.length; i++) {
+            const sp = spans[i];
+            if (ln2 >= sp.startLine && ln2 <= sp.endLine) {
+              if (!hit || (Number(sp.depth) || 0) > (Number(hit.depth) || 0) || (Number(sp.depth) || 0) === (Number(hit.depth) || 0) && sp.endLine - sp.startLine < hit.endLine - hit.startLine) {
+                hit = sp;
+              }
+            }
+          }
+        }
+        if (!hit) {
+          const kind = kindById[id2] || "";
+          for (let i = 0; i < spans.length; i++) {
+            if (spans[i].kind === kind) {
+              hit = spans[i];
+              break;
+            }
+          }
+        }
+        const depth = hit ? Number(hit.depth) || 0 : Number(irNest[id2]) || 0;
+        if (hit && hit === nestFocus) return { role: "hot", depth };
+        if (hit && expandedSet.has(hit)) return { role: "anc", depth };
+        if (hit && nestFocus && (Number(hit.depth) || 0) === (Number(nestFocus.depth) || 0) && hit !== nestFocus) {
+          return { role: "sib", depth };
+        }
+        if (hit && nestFocus && (Number(hit.depth) || 0) > (Number(nestFocus.depth) || 0) && !expandedSet.has(hit)) {
+          return { role: "sib", depth };
+        }
+        return { role: "", depth };
+      }
+      if (canvas) {
+        canvas.querySelectorAll(".vnode").forEach((el2) => {
+          const id2 = el2.getAttribute("data-id");
+          if (!id2 || !walkSet.has(id2)) {
+            el2.classList.remove(
+              "scroll-cfg-hot",
+              "scroll-cfg-dim",
+              "scroll-cfg-ahead",
+              "scroll-cfg-sib",
+              "scroll-cfg-if",
+              "scroll-cfg-loop",
+              "scroll-cfg-try",
+              "scroll-cfg-nest-hot",
+              "scroll-cfg-nest-anc",
+              "scroll-cfg-nest-sib"
+            );
+            el2.removeAttribute("data-cfg-active");
+            el2.removeAttribute("data-cfg-span");
+            el2.removeAttribute("data-cfg-depth");
+            return;
+          }
+          const spanKind = kindById[id2] || "";
+          const ahead = !visibleSet.has(id2);
+          const nest = nestRoleForId(id2);
+          const kindSib = !!(cfgSpanKind && spanKind && spanKind !== cfgSpanKind && nest.role !== "hot" && nest.role !== "anc");
+          const nestSib = nest.role === "sib";
+          const sib = kindSib || nestSib;
+          const nestHot = nest.role === "hot";
+          const nestAnc = nest.role === "anc";
+          const hot = !!(activeId && id2 === activeId && !sib) || nestHot && !ahead;
+          el2.classList.toggle("scroll-cfg-hot", hot);
+          el2.classList.toggle("scroll-cfg-ahead", ahead && !sib && !nestAnc);
+          el2.classList.toggle("scroll-cfg-sib", sib && !ahead);
+          el2.classList.toggle("scroll-cfg-dim", !hot && !ahead && !sib && !nestAnc);
+          el2.classList.toggle("scroll-cfg-if", spanKind === "if");
+          el2.classList.toggle("scroll-cfg-loop", spanKind === "loop");
+          el2.classList.toggle("scroll-cfg-try", spanKind === "try");
+          el2.classList.toggle("scroll-cfg-nest-hot", nestHot && !ahead);
+          el2.classList.toggle("scroll-cfg-nest-anc", nestAnc && !ahead && !nestHot);
+          el2.classList.toggle("scroll-cfg-nest-sib", nestSib && !ahead);
+          if (spanKind) el2.setAttribute("data-cfg-span", spanKind);
+          else el2.removeAttribute("data-cfg-span");
+          el2.setAttribute("data-cfg-depth", String(nest.depth || 0));
+          if (hot) el2.setAttribute("data-cfg-active", "1");
+          else el2.removeAttribute("data-cfg-active");
+        });
+      }
+      return {
+        cfgActiveId: activeId || "",
+        cfgUnroll: unroll,
+        cfgVisible: visible,
+        cfgSpanKind: cfgSpanKind || "",
+        cfgSpanCount: spans.length,
+        cfgNestDepth,
+        cfgNestMax,
+        cfgNestExpanded
+      };
+    }
+    function scrollDriveAnchorFromMeta(kind, ep, fqn) {
+      const k = String(kind || "");
+      const ch = ep && ep.channel ? String(ep.channel) : "";
+      const role = ep && ep.role ? String(ep.role) : "";
+      const name = String(fqn || "");
+      if (k === "Endpoint" || ep) {
+        if (ch === "Http") return "api";
+        if (ch === "Table" || ch === "File") return "db";
+        if (ch === "Queue" || ch === "Channel") return "svc";
+        if (role === "Source") return "api";
+        if (role === "Sink") return "db";
+        return "api";
+      }
+      if (k === "Type") return "svc";
+      if (/\b(db|store|repo|sql|persist|cache)\b/i.test(name)) return "db";
+      if (/\b(api|http|rpc|handler|route)\b/i.test(name)) return "api";
+      if (/\b(service|svc|client|adapter)\b/i.test(name)) return "svc";
+      return "util";
+    }
+    function scrollDriveAnchorOf(id2, el2) {
+      const nid = idVal(id2);
+      const kind = el2 && el2.getAttribute && el2.getAttribute("data-kind") || (typeof kindOf === "function" ? kindOf(snapshot && snapshot.graph, nid) : "") || "Function";
+      const ep = typeof endpointOf === "function" ? endpointOf(nid) : null;
+      const fqn = typeof fqnOf === "function" ? fqnOf(snapshot && snapshot.graph, nid) : "";
+      return scrollDriveAnchorFromMeta(kind, ep, fqn);
+    }
+    function clearScrollDriveAnchorPaint() {
+      if (!canvas) return;
+      canvas.querySelectorAll(
+        ".vnode[data-scroll-anchor], .vnode.scroll-anchor-api, .vnode.scroll-anchor-db, .vnode.scroll-anchor-svc, .vnode.scroll-anchor-util"
+      ).forEach((el2) => {
+        el2.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
+        el2.removeAttribute("data-scroll-anchor");
+      });
+    }
+    function applyScrollDriveAnchors(targetNodeId) {
+      const counts = { api: 0, db: 0, svc: 0, util: 0 };
+      let focus = "";
+      if (!canvas) return { anchorFocus: "", anchorCounts: counts };
+      canvas.querySelectorAll(".vnode[data-id]").forEach((el2) => {
+        const id2 = el2.getAttribute("data-id");
+        if (!id2) return;
+        const bucket = scrollDriveAnchorOf(id2, el2);
+        el2.classList.remove("scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util");
+        if (bucket && counts[bucket] != null) {
+          counts[bucket] += 1;
+          el2.setAttribute("data-scroll-anchor", bucket);
+          el2.classList.add("scroll-anchor-" + bucket);
+          if (targetNodeId && id2 === String(targetNodeId)) focus = bucket;
+        } else {
+          el2.removeAttribute("data-scroll-anchor");
+        }
+      });
+      if (!focus && targetNodeId) focus = scrollDriveAnchorOf(targetNodeId, findScrollDriveTargetEl(targetNodeId)) || "";
+      return { anchorFocus: focus || "", anchorCounts: counts };
+    }
+    function wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors) {
+      if (macro) return false;
+      const unroll = Number(cfg && cfg.cfgUnroll) || 0;
+      const visible = Number(cfg && cfg.cfgVisible) || 0;
+      const ratio = Number(scrollRatio) || 0;
+      const line = Number(activeLine) || 0;
+      const focus = !!(anchors && anchors.anchorFocus);
+      if (visible >= 2 || unroll > 0.35) return true;
+      if (ratio > 0.25 && (line > 0 || focus)) return true;
+      return false;
+    }
+    function clearScrollDriveDetailPaint() {
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) vp.removeAttribute("data-scroll-detail");
+    }
+    function applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors) {
+      const near = wantScrollDriveDetailNear(macro, scrollRatio, activeLine, cfg, anchors);
+      const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+      if (vp) {
+        const v = near ? "1" : "0";
+        if (vp.getAttribute("data-scroll-detail") !== v) vp.setAttribute("data-scroll-detail", v);
+      }
+      return { detailNear: near };
+    }
+    let scrollDriveMacroTimer = 0;
+    let scrollDriveEaseTimer = 0;
+    let scrollDriveRaf = 0;
+    let scrollDriveRafPending = 0;
+    let scrollDriveRafFlushes = 0;
+    let scrollDriveRafMerged = 0;
+    function refreshScrollDriveCamEase() {
+      if (!srcBody || !sourcePane || sourcePane.hidden || !scrollDriveBase) {
+        setCamEase(CAM_EASE_BASE);
+        return camEase;
+      }
+      const v = readScrollDriveVelocity();
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (reduced) setCamEase(CAM_EASE_SNAP);
+      else setCamEase(scrollDriveEaseFromVel(v));
+      const blend = applyScrollDriveBlendPaint(camEase);
+      if (window.__graphideScrollDrive) {
+        window.__graphideScrollDrive.camEase = camEase;
+        window.__graphideScrollDrive.scrollVel = v;
+        window.__graphideScrollDrive.blendMs = blend.blendMs;
+        window.__graphideScrollDrive.reducedMotion = !!reduced;
+      }
+      return camEase;
+    }
+    function scheduleScrollDriveEaseSettle() {
+      if (typeof reduceMotion === "function" && reduceMotion()) return;
+      if (scrollDriveEaseTimer) clearTimeout(scrollDriveEaseTimer);
+      scrollDriveEaseTimer = setTimeout(() => {
+        scrollDriveEaseTimer = 0;
+        if (!srcBody || !sourcePane || sourcePane.hidden) return;
+        refreshScrollDriveCamEase();
+        if (readScrollDriveVelocity() > 0.08) {
+          scheduleScrollDriveEaseSettle();
+        } else {
+          absorbScrollDriveSoftCamX();
+          absorbScrollDriveSoftCamY();
+          if (window.__graphideScrollDrive) {
+            window.__graphideScrollDrive.camXSettled = !!scrollDriveCamXSettled;
+            window.__graphideScrollDrive.camYSettled = !!scrollDriveCamYSettled;
+            window.__graphideScrollDrive.camX = camTo.x;
+            window.__graphideScrollDrive.camY = camTo.y;
+          }
+        }
+      }, 160);
+    }
+    function cancelScrollDriveRaf() {
+      if (scrollDriveRaf) {
+        cancelAnimationFrame(scrollDriveRaf);
+        scrollDriveRaf = 0;
+      }
+      scrollDriveRafPending = 0;
+    }
+    function scheduleScrollDriveFlush() {
+      scrollDriveRafPending += 1;
+      if (scrollDriveRaf) return;
+      scrollDriveRaf = requestAnimationFrame(() => {
+        scrollDriveRaf = 0;
+        const pending = scrollDriveRafPending;
+        scrollDriveRafPending = 0;
+        const merged = Math.max(0, pending - 1);
+        scrollDriveRafMerged += merged;
+        scrollDriveRafFlushes += 1;
+        flushScrollDrive();
+      });
+    }
+    function flushScrollDrive() {
+      if (typeof isPresenting === "function" && isPresenting()) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        if (scrollDriveEaseTimer) {
+          clearTimeout(scrollDriveEaseTimer);
+          scrollDriveEaseTimer = 0;
+        }
+        cancelScrollDriveRaf();
+        if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
+        if (typeof clearScrollDriveReviewStayClearedCue === "function") {
+          clearScrollDriveReviewStayClearedCue();
+        } else {
+          scrollDriveReviewStayCleared = false;
+        }
+        const stayStashed = !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+        scrollDriveBase = null;
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        scrollDriveYNudgeOrigin = 0;
+        scrollDriveWasMacro = false;
+        scrollDriveVel = { t: 0, top: 0, vel: 0 };
+        scrollDriveJustRestored = false;
+        scrollDriveSuppressNextRefit = false;
+        setCamEase(CAM_EASE_BASE);
+        clearScrollDriveCfgPaint();
+        clearScrollDriveLineMapPaint();
+        clearScrollDriveActiveLinePaint();
+        clearScrollDriveMacroPaint();
+        clearScrollDriveAnchorPaint();
+        clearScrollDriveDetailPaint();
+        clearScrollDriveBlendPaint();
+        const vp = viewportEl || canvas && canvas.querySelector(".viewport");
+        if (vp) {
+          vp.setAttribute("data-scroll-present-paused", "1");
+          if (stayStashed) vp.setAttribute("data-scroll-present-stay", "1");
+          else vp.removeAttribute("data-scroll-present-stay");
+        }
+        const paused = emptyScrollDrive();
+        paused.presentPaused = true;
+        paused.presentStayStashed = !!stayStashed;
+        paused.reviewStayCleared = false;
+        publishScrollDrive(paused);
+        return;
+      }
+      if (!srcBody || !sourcePane || sourcePane.hidden) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        if (scrollDriveEaseTimer) {
+          clearTimeout(scrollDriveEaseTimer);
+          scrollDriveEaseTimer = 0;
+        }
+        cancelScrollDriveRaf();
+        resetScrollDrive();
+        return;
+      }
+      const maxScroll = srcBody.scrollHeight - srcBody.clientHeight;
+      const canScroll = maxScroll > 8;
+      const max = Math.max(1, maxScroll);
+      const scrollRatio = Math.max(0, Math.min(1, srcBody.scrollTop / max));
+      const activeLine = readSrcActiveLine();
+      const lineMap = resolveScrollDriveTargetNode(activeLine);
+      const targetNodeId = lineMap.targetNodeId || (sourceId ? String(sourceId) : "");
+      const lineMapHit = !!lineMap.lineMapHit;
+      noteScrollDriveVelocity(srcBody.scrollTop);
+      const scrollVel = readScrollDriveVelocity();
+      const reduced = typeof reduceMotion === "function" && reduceMotion();
+      if (reduced) {
+        setCamEase(CAM_EASE_SNAP);
+      } else {
+        setCamEase(scrollDriveEaseFromVel(scrollVel));
+        if (scrollVel > 0.05) {
+          scrollDriveCamXSettled = false;
+          scrollDriveCamYSettled = false;
+          scheduleScrollDriveEaseSettle();
+        }
+      }
+      const macro = wantScrollDriveMacro(scrollRatio, scrollVel, canScroll);
+      const enteringMacro = !!(macro && !scrollDriveWasMacro);
+      const exitingMacro = !!(!macro && scrollDriveWasMacro);
+      let cfg = { cfgActiveId: "", cfgUnroll: 0, cfgVisible: 0, cfgSpanKind: "", cfgSpanCount: 0, cfgNestDepth: 0, cfgNestMax: 0, cfgNestExpanded: 0 };
+      if (macro) {
+        clearScrollDriveCfgPaint();
+        applyScrollDriveMacro(scrollRatio, targetNodeId, { entering: enteringMacro });
+        if (scrollRatio > SCROLL_MACRO_RATIO) {
+          if (scrollDriveMacroTimer) clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = setTimeout(() => {
+            scrollDriveMacroTimer = 0;
+            if (srcBody && sourcePane && !sourcePane.hidden) onSrcBodyScroll();
+          }, 220);
+        }
+      } else {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        clearScrollDriveMacroPaint();
+        if (exitingMacro && scrollDriveBase) {
+          if (Number.isFinite(camTo.x)) scrollDriveBase.x = camTo.x;
+          if (Number.isFinite(camTo.y)) scrollDriveBase.y = camTo.y;
+          scrollDriveYNudgeOrigin = Number(scrollRatio) || 0;
+          scrollDriveCamXSettled = false;
+          scrollDriveCamYSettled = false;
+        }
+        applyScrollDriveCamera(scrollRatio, targetNodeId);
+        cfg = applyScrollDriveCfg(scrollRatio, activeLine);
+        if (!reduced && scrollVel <= 0.05) {
+          absorbScrollDriveSoftCamX();
+          absorbScrollDriveSoftCamY();
+        }
+      }
+      scrollDriveWasMacro = !!macro;
+      const anchors = applyScrollDriveAnchors(targetNodeId);
+      const detail = applyScrollDriveDetailGate(macro, scrollRatio, activeLine, cfg, anchors);
+      const blend = applyScrollDriveBlendPaint(camEase);
+      const lineGlow = applyScrollDriveLineMapGlow(lineMapHit, targetNodeId);
+      const lineCue = applyScrollDriveActiveLine(activeLine);
+      publishScrollDrive({
+        scrollRatio,
+        activeLine,
+        targetNodeId,
+        lineMapHit,
+        lineMapPulse: !!lineGlow.lineMapPulse,
+        activeLineMarked: !!lineCue.activeLineMarked,
+        camX: camTo.x,
+        camY: camTo.y,
+        camK: camTo.k,
+        cfgActiveId: cfg.cfgActiveId,
+        cfgUnroll: cfg.cfgUnroll,
+        cfgVisible: cfg.cfgVisible,
+        cfgSpanKind: cfg.cfgSpanKind || "",
+        cfgSpanCount: Number(cfg.cfgSpanCount) || 0,
+        cfgNestDepth: Number(cfg.cfgNestDepth) || 0,
+        cfgNestMax: Number(cfg.cfgNestMax) || 0,
+        cfgNestExpanded: Number(cfg.cfgNestExpanded) || 0,
+        scrollVel,
+        camEase,
+        blendMs: blend.blendMs,
+        macroLod: !!macro,
+        anchorFocus: anchors.anchorFocus || "",
+        anchorCounts: anchors.anchorCounts || { api: 0, db: 0, svc: 0, util: 0 },
+        detailNear: !!detail.detailNear,
+        reducedMotion: !!reduced,
+        rafCoalesce: true,
+        rafFlushes: scrollDriveRafFlushes,
+        rafMerged: scrollDriveRafMerged,
+        presentPaused: false,
+        presentStayStashed: false,
+        reviewStayCleared: !!scrollDriveReviewStayCleared,
+        camXSettled: !!scrollDriveCamXSettled,
+        camYSettled: !!scrollDriveCamYSettled
+      });
+    }
+    function onSrcBodyScroll() {
+      if (!srcBody || !sourcePane || sourcePane.hidden) {
+        if (scrollDriveMacroTimer) {
+          clearTimeout(scrollDriveMacroTimer);
+          scrollDriveMacroTimer = 0;
+        }
+        if (scrollDriveEaseTimer) {
+          clearTimeout(scrollDriveEaseTimer);
+          scrollDriveEaseTimer = 0;
+        }
+        cancelScrollDriveRaf();
+        resetScrollDrive();
+        return;
+      }
+      scheduleScrollDriveFlush();
+    }
+    if (srcBody) srcBody.addEventListener("scroll", onSrcBodyScroll, { passive: true });
+    publishScrollDrive(emptyScrollDrive());
+    if (graphSearch) {
+      graphSearch.addEventListener("focus", () => {
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
+      });
       graphSearch.addEventListener("input", () => {
         graphFilter.q = graphSearch.value.trim();
         refreshExplorer();
       });
+    }
     if (kindFilters)
       kindFilters.querySelectorAll("input").forEach((el2) => {
         el2.addEventListener("change", () => {
@@ -20211,7 +22188,18 @@
         const n = parseInt(egoHopsEl.value, 10);
         egoHops = n === 2 ? 2 : 1;
         if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-          paint({ animate: "none" });
+          const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+          if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+            stashScrollDriveLastStay();
+          }
+          if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+            stageFitRo.disconnect();
+            stageFitRo = null;
+          }
+          paint({ animate: "none", keepCam: !!evidenceStay });
+          if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+            softStayScrollDriveAcrossDeskRemount();
+          }
           return;
         }
         applyEgoPaint();
@@ -20241,6 +22229,7 @@
     if (llmSend) llmSend.onclick = () => sendLlmAsk();
     if (llmAsk)
       llmAsk.addEventListener("keydown", (e) => {
+        if (e.isComposing) return;
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           sendLlmAsk();
@@ -20248,6 +22237,11 @@
       });
     if (llmBaseUrl && !llmBaseUrl.value) llmBaseUrl.value = "http://127.0.0.1:11434/v1";
     function startReview() {
+      if (typeof clearScrollDriveLastStayOnReviewRestart === "function") {
+        clearScrollDriveLastStayOnReviewRestart();
+      }
+      cancelling = false;
+      pendingProgress = null;
       targetPct = 0;
       shownPct = 0;
       lastTreeKey = "";
@@ -20269,6 +22263,10 @@
         return;
       }
       if (msg.type === "empty") {
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+        if (typeof clearScrollDriveLastStayOnReviewRestart === "function") clearScrollDriveLastStayOnReviewRestart();
+        else if (typeof clearScrollDriveLastStay === "function") clearScrollDriveLastStay();
+        if (typeof setScrollDriveWorkspaceKey === "function") setScrollDriveWorkspaceKey("");
         stopPathWalk();
         snapshot = null;
         finishWork();
@@ -20325,7 +22323,20 @@
       if (msg.type === "cancelled") {
         clearTimeout(previewTimer);
         finishWork();
-        if (snapshot) paint({ animate: "none" });
+        if (snapshot) {
+          const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+          if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+            stashScrollDriveLastStay();
+          }
+          if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+            stageFitRo.disconnect();
+            stageFitRo = null;
+          }
+          paint({ animate: "none", keepCam: !!evidenceStay });
+          if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+            softStayScrollDriveAcrossDeskRemount();
+          }
+        }
         status.textContent = "cancelled";
         return;
       }
@@ -20352,15 +22363,29 @@
         return;
       }
       if (msg.type === "source") {
-        showSource(msg);
+        showSource(msg, { fromHost: true });
         return;
       }
       if (msg.type === "programs") {
+        if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+          if (typeof setScrollDriveWorkspaceKey === "function") {
+            setScrollDriveWorkspaceKey(
+              msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+            );
+          }
+        }
         clearTimeout(previewTimer);
         applyPrograms(msg);
         return;
       }
       if (msg.type === "flowchart" || msg.type === "inner") {
+        if (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null) {
+          if (typeof setScrollDriveWorkspaceKey === "function") {
+            setScrollDriveWorkspaceKey(
+              msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws
+            );
+          }
+        }
         clearTimeout(previewTimer);
         applySnapshot(msg, msg.type === "inner");
       }
@@ -20518,7 +22543,21 @@
         consumeHarnessActions();
         return;
       }
-      paint({ animate: "none", keepCam: mapStageMounted() || !!canvas.querySelector(".stage") });
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({
+        animate: "none",
+        keepCam: evidenceStay || mapStageMounted() || !!canvas.querySelector(".stage")
+      });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function applyPreview(msg) {
       if (!busy) return;
@@ -20721,7 +22760,18 @@
     }
     function setKeysPane(on2) {
       if (!keysPane) return;
-      if (on2) setExportMenu(false);
+      if (on2) {
+        setExportMenu(false);
+        if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+        if (typeof setLensOpen === "function") setLensOpen(false);
+        if (typeof setRouteOpen === "function") setRouteOpen(false);
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
+      }
       keysPane.hidden = !on2;
       keysPane.classList.toggle("open", !!on2);
       if (keysBtn) keysBtn.classList.toggle("on", !!on2);
@@ -20731,12 +22781,20 @@
       if (on2) {
         setKeysPane(false);
         if (llmPane && !llmPane.hidden) setLlmPane(false);
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+        if (typeof setLensOpen === "function") setLensOpen(false);
+        if (typeof setRouteOpen === "function") setRouteOpen(false);
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       }
       exportMenu.hidden = !on2;
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
@@ -20747,6 +22805,9 @@
       nodes.forEach((el2) => {
         EXPORT_STRIP.forEach((c) => el2.classList.remove(c));
         el2.removeAttribute("data-delta-review-current");
+        el2.removeAttribute("data-offview");
+        el2.removeAttribute("data-scroll-anchor");
+        el2.removeAttribute("data-scroll-detail");
         if (el2.getAttribute && el2.getAttribute("aria-pressed") === "true") el2.setAttribute("aria-pressed", "false");
       });
       const vp = root3.querySelector && root3.querySelector(".viewport");
@@ -21325,6 +23386,7 @@
     }
     function setWorkspace(name, pin) {
       if (WORKSPACES.indexOf(name) < 0) return;
+      const prevWs = explorerWs;
       if (name !== explorerWs) {
         const n = popEnterFrames();
         for (let i = 0; i < n; i++) vscode.postMessage({ type: "back" });
@@ -21338,10 +23400,29 @@
         const selected2 = selectedNodeId ? idVal(selectedNodeId) : "";
         if (selected2 && hasLineageHops(selected2)) lineageEgoId = selected2;
       }
+      const DESK_SCROLL_STAY_WS = { map: 1, slice: 1, lineage: 1, overview: 1 };
+      const fromCanvas = !!DESK_SCROLL_STAY_WS[prevWs];
+      const toCanvas = !!DESK_SCROLL_STAY_WS[name];
+      const deskCanvasHop = prevWs !== name && fromCanvas && toCanvas;
+      const evidenceOpen = !!(sourcePane && !sourcePane.hidden && sourceId) && !(typeof isPresenting === "function" && isPresenting());
+      const stayWarm = !!scrollDriveBase || typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(String(sourceId));
+      const listLeaveStash = prevWs !== name && fromCanvas && !toCanvas && evidenceOpen && !!scrollDriveBase;
+      const listReturnStay = prevWs !== name && !fromCanvas && toCanvas && evidenceOpen && stayWarm;
+      const evidenceStay = (deskCanvasHop || listReturnStay) && evidenceOpen && stayWarm;
+      if ((evidenceStay || listLeaveStash) && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
       explorerWs = name;
       if (pin) explorerPinned = true;
       if (name === "lineage" && !egoMode) egoMode = true;
-      paint({ animate: "none" });
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossMapSliceHop === "function") {
+        softStayScrollDriveAcrossMapSliceHop();
+      }
       flashCanvas();
     }
     function setEgoMode(on2) {
@@ -21352,7 +23433,18 @@
         if (wrap) wrap.hidden = !egoMode;
       }
       if (explorerWs === "lineage" || explorerWs === "slice" || explorerWs === "overview" || enterCanvasActive()) {
-        paint({ animate: "none" });
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        paint({ animate: "none", keepCam: !!evidenceStay });
+        if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+          softStayScrollDriveAcrossDeskRemount();
+        }
         return;
       }
       applyEgoPaint();
@@ -21360,7 +23452,18 @@
     function refreshExplorer() {
       if (!snapshot) return;
       if (enterCanvasActive() || isListWorkspace(explorerWs) || explorerWs === "lineage" || explorerWs === "overview" || explorerWs === "slice") {
-        paint({ animate: "none" });
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        paint({ animate: "none", keepCam: !!evidenceStay });
+        if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+          softStayScrollDriveAcrossDeskRemount();
+        }
         return;
       }
       if (explorerWs === "map" || stack[stack.length - 1]?.kind === "programs") {
@@ -21429,9 +23532,11 @@
       if (mapStageMounted()) queueOffviewSync();
     }
     function tickCam() {
-      cam.x += (camTo.x - cam.x) * 0.24;
-      cam.y += (camTo.y - cam.y) * 0.24;
-      cam.k += (camTo.k - cam.k) * 0.24;
+      if (scrollDriveBase) refreshScrollDriveCamEase();
+      const a = camEase;
+      cam.x += (camTo.x - cam.x) * a;
+      cam.y += (camTo.y - cam.y) * a;
+      cam.k += (camTo.k - cam.k) * a;
       if (Math.hypot(camTo.x - cam.x, camTo.y - cam.y) < 0.35 && Math.abs(camTo.k - cam.k) < 4e-3) {
         cam.x = camTo.x;
         cam.y = camTo.y;
@@ -21502,8 +23607,25 @@
       const ws = document.getElementById("workspace");
       if (ws) stageFitRo.observe(ws);
     }
+    function shouldSkipRefitForScrollDriveStay() {
+      if (scrollDriveSuppressNextRefit) return true;
+      if (scrollDriveJustRestored) return true;
+      return !!(scrollDriveLastStay && scrollDriveLastStay.sourceId);
+    }
     function refitChartSoon() {
-      requestAnimationFrame(() => fitChart());
+      requestAnimationFrame(() => {
+        if (scrollDriveSuppressNextRefit) {
+          scrollDriveSuppressNextRefit = false;
+          return;
+        }
+        if (scrollDriveJustRestored) return;
+        fitChart();
+      });
+    }
+    if (typeof window !== "undefined") {
+      window.__graphideShouldSkipRefitForScrollDriveStay = function() {
+        return typeof shouldSkipRefitForScrollDriveStay === "function" && !!shouldSkipRefitForScrollDriveStay();
+      };
     }
     function zoomBy(factor) {
       const stage = canvas.querySelector(".stage");
@@ -21695,7 +23817,18 @@
       if (flow && (flow.tree && flow.tree.edges && flow.tree.edges.length || flow.tree && flow.tree.nodes && flow.tree.nodes.length)) {
         popEnterFrames();
         explorerWs = "slice";
-        paint({ animate: "none" });
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        paint({ animate: "none", keepCam: !!evidenceStay });
+        if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+          softStayScrollDriveAcrossDeskRemount();
+        }
       }
     }
     function enterMapBubble(id2) {
@@ -21707,14 +23840,22 @@
       graphFilter.bubble = null;
       vscode.postMessage({ type: "enterRun", flow, bubble });
       const token = ++navToken;
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
       const go = () => {
         if (token !== navToken) return;
         const top = stack[stack.length - 1];
         const same = top && top.kind === "bubble" && String(top.bubble) === String(bubble) && String(top.flow || "") === String(flow || "");
         if (!same) stack.push({ kind: "bubble", flow, bubble: String(bubble) });
-        paint({ animate: "list" });
+        paint({ animate: "list", keepCam: !!evidenceStay });
       };
-      if (fromEl && !reduceMotion()) {
+      if (fromEl && !reduceMotion() && !evidenceStay) {
         fromEl.classList.add("zoom-in");
         canvas.classList.add("leaving");
         zoomToEl(fromEl, 1.9);
@@ -21730,14 +23871,29 @@
     function goBack() {
       if (stack[stack.length - 1]?.kind === "bubble") {
         const token2 = ++navToken;
+        const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+        if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+          stashScrollDriveLastStay();
+        }
+        if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
         const go2 = () => {
           if (token2 !== navToken) return;
           stack.pop();
           graphFilter.bubble = null;
           vscode.postMessage({ type: "back" });
-          paint({ animate: "tree", fromInner: true });
+          paint({
+            animate: "tree",
+            fromInner: !evidenceStay,
+            keepCam: !!evidenceStay
+          });
+          if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+            softStayScrollDriveAcrossDeskRemount();
+          }
         };
-        if (!reduceMotion()) {
+        if (!reduceMotion() && !evidenceStay) {
           canvas.classList.add("leaving");
           setTimeout(go2, 150);
         } else {
@@ -21792,19 +23948,20 @@
             plugin: snapshot.plugin,
             stats: snapshot.stats
           },
-          animate
+          animate,
+          { keepCam: !!(opts && opts.keepCam) }
         );
         applyEgoPaint();
         consumeHarnessActions();
         return;
       }
       if (isListWorkspace(explorerWs) || explorerWs === "overview") {
-        renderExplorerList(explorerWs);
+        renderExplorerList(explorerWs, { keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
       if (explorerWs === "lineage") {
-        renderLineage();
+        renderLineage({ keepCam: !!(opts && opts.keepCam) });
         consumeHarnessActions();
         return;
       }
@@ -21878,7 +24035,8 @@
           plugin: snapshot.plugin,
           stats: snapshot.stats
         },
-        animate
+        animate,
+        { keepCam: !!(opts && opts.keepCam) }
       );
       consumeHarnessActions();
     }
@@ -21900,6 +24058,7 @@
       reviewBtn.disabled = on2;
     }
     function showProgress(msg) {
+      if (cancelling) return;
       setBusy(true);
       progressEl.classList.add("on");
       const phase = PHASE_ALIAS[msg.phase] || msg.phase || "walk";
@@ -21950,6 +24109,7 @@
       progressFill.style.width = "0%";
     }
     function finishWork() {
+      cancelling = false;
       setBusy(false);
       hideProgress();
       canvas.classList.remove("stale");
@@ -22505,7 +24665,18 @@
       vscode.postMessage({ type: "stamp", flow });
       flashToast("Stamped " + flow + " · holds", "holds");
       flashBtn(stampBtn, "flash-holds");
-      paint({ animate: "none" });
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function requestSkip(name) {
       const flow = name || currentFlow() && currentFlow().name;
@@ -22517,7 +24688,18 @@
       vscode.postMessage({ type: "skip", flow });
       flashToast("Skipped " + flow, "skip");
       flashBtn(skipBtn, "flash-skip");
-      paint({ animate: "none" });
+      const evidenceStay = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      if (evidenceStay && scrollDriveBase && typeof stashScrollDriveLastStay === "function") {
+        stashScrollDriveLastStay();
+      }
+      if (evidenceStay && typeof stageFitRo !== "undefined" && stageFitRo) {
+        stageFitRo.disconnect();
+        stageFitRo = null;
+      }
+      paint({ animate: "none", keepCam: !!evidenceStay });
+      if (evidenceStay && typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function programKeyOf(p) {
       return (p.kind || "") + "\0" + (p.name || "") + "\0" + (p.root || "");
@@ -22674,19 +24856,39 @@
     }
     function revealSourcePane() {
       if (!sourcePane) return;
+      if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+      if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
+      if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
+      if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
+      if (routeOpen && typeof setRouteOpen === "function") setRouteOpen(false);
+      if (typeof applyPresent === "function") applyPresent(false);
+      if (typeof hideTip === "function") hideTip();
+      if (toastEl) {
+        toastEl.classList.remove("on");
+        toastEl.hidden = true;
+      }
       sourcePane.hidden = false;
       if (workspace) workspace.classList.add("has-source");
       refitChartSoon();
     }
-    function showSource(msg) {
+    function showSource(msg, opts) {
       if (!sourcePane) return;
+      if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
+        if (typeof setScrollDriveWorkspaceKey === "function") {
+          setScrollDriveWorkspaceKey(msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws);
+        }
+      }
       if (msg.missing) {
         revealSourcePane();
         if (srcTitle) srcTitle.textContent = "No span for this node";
         if (srcBody) srcBody.textContent = "";
         return;
       }
-      sourceId = msg.id || sourceId;
+      const nextSid = msg.id != null && String(msg.id) ? String(msg.id) : sourceId ? String(sourceId) : "";
+      const prevShown = scrollDriveLastShownSourceId ? String(scrollDriveLastShownSourceId) : "";
+      const sameSourceRepost = !!(prevShown && nextSid && prevShown === nextSid);
+      const fromHost = !!(opts && opts.fromHost);
+      sourceId = nextSid || sourceId;
       revealSourcePane();
       const where = msg.file ? shortFile(msg.file) + (msg.line ? ":" + msg.line : "") : "";
       if (srcTitle) srcTitle.textContent = (shortOf(msg.fqn) || "source") + (where ? " · " + where : "");
@@ -22694,6 +24896,33 @@
       if (srcBody) srcBody.innerHTML = renderSourceLines(msg);
       const hot = srcBody && srcBody.querySelector(".src-line.hot");
       if (hot && typeof hot.scrollIntoView === "function") hot.scrollIntoView({ block: "center" });
+      let softStayed = false;
+      if (!scrollDriveBase && typeof softRestoreScrollDriveFromLastStay === "function" && softRestoreScrollDriveFromLastStay(sourceId)) {
+        softStayed = true;
+      } else if (fromHost && sameSourceRepost && typeof softStayScrollDriveAcrossHostSourceRepost === "function" && softStayScrollDriveAcrossHostSourceRepost(nextSid)) {
+        softStayed = true;
+      } else if (typeof softStayScrollDriveAcrossSourceHop === "function" && softStayScrollDriveAcrossSourceHop()) {
+        softStayed = true;
+      }
+      if (typeof window !== "undefined") {
+        window.__graphideScrollDriveShowSourceSoftStayed = !!softStayed;
+      }
+      if (softStayed) {
+        scrollDriveSuppressNextRefit = true;
+        if (typeof stageFitRo !== "undefined" && stageFitRo) {
+          stageFitRo.disconnect();
+          stageFitRo = null;
+        }
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+      } else if (typeof resetScrollDrive === "function") {
+        if (typeof clearScrollDriveReviewStayClearedCue === "function") clearScrollDriveReviewStayClearedCue();
+        scrollDriveBase = null;
+        scrollDriveTargetLocked = "";
+        scrollDriveCamXSettled = false;
+        scrollDriveCamYSettled = false;
+        if (typeof onSrcBodyScroll === "function") onSrcBodyScroll();
+      }
+      if (nextSid) scrollDriveLastShownSourceId = nextSid;
     }
     function showHop(from, to, kind, opts) {
       const a = idVal(from), b = idVal(to);
@@ -22974,12 +25203,12 @@
       if (!stop) return;
       if (stop.kind === "hop") {
         selectedNodeId = idVal(stop.id);
-        peekSource(stop.id);
+        if (!isPresenting()) peekSource(stop.id);
         return;
       }
       const bub = findBubble(stop.id);
       const mem = bub && (bub.members || [])[0];
-      if (mem) peekSource(mem);
+      if (mem && !isPresenting()) peekSource(mem);
     }
     function stopPathWalk() {
       pathWalk.playing = false;
@@ -23134,7 +25363,10 @@
         hopCard.hidden = true;
         hopCard.innerHTML = "";
       }
+      if (typeof stashScrollDriveLastStay === "function") stashScrollDriveLastStay();
       sourceId = null;
+      scrollDriveLastShownSourceId = "";
+      if (typeof resetScrollDrive === "function") resetScrollDrive();
       return true;
     }
     function programMarks(p) {
@@ -23227,7 +25459,12 @@
       selectedNodeId = sid;
       highlightCommunity(sid);
       applyEgoPaint();
-      if (opts && opts.zoomEl) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+      if (opts && opts.zoomEl) {
+        const presenting = typeof isPresenting === "function" && isPresenting();
+        const lastStayMatch = typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
+        const softHop = !presenting && (!!scrollDriveBase && sourcePane && !sourcePane.hidden || lastStayMatch);
+        if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
+      }
       if (!opts || opts.peek !== false) peekSource(sid);
     }
     function shortestPath(from, to) {
@@ -23461,7 +25698,7 @@
       const kind = extra.kind != null ? extra.kind : node && node.kind || "";
       const flow = extra.flow || "";
       const hops = extra.hops != null ? extra.hops : hopKindsOf(nid);
-      const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery([fqn, file, flow, kind, hops].join(" "));
+      const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery([fqn, file, flow, kind, hops].join(" ")) || !!(extra.community && bubbleMembersMatchQuery(nid)));
       return {
         file,
         hops,
@@ -23702,8 +25939,21 @@
         stopRouteWalk();
         routeCursor = -1;
       } else {
+        if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+        if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
+        if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
+        if (lensOpen && typeof setLensOpen === "function") setLensOpen(false);
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
         resolveRoute();
         if (!lastRoute.ok) flashToast(lastRoute.reason === "unreachable" ? "Unreachable" : "Pick two nodes", "skip");
+        if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+        if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+        if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+        if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
       }
       syncProbeDock();
       if (routeOpen) fillRouteReceipt();
@@ -23711,7 +25961,22 @@
     }
     function setLensOpen(on2) {
       lensOpen = !!on2;
-      if (lensOpen && (!lensRoles.length || lensRoles.length > 2)) lensRoles = ["Function", "Endpoint"];
+      if (lensOpen) {
+        if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
+        if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
+        if (exportMenu && !exportMenu.hidden && typeof setExportMenu === "function") setExportMenu(false);
+        if (routeOpen && typeof setRouteOpen === "function") setRouteOpen(false);
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
+        if (!lensRoles.length || lensRoles.length > 2) lensRoles = ["Function", "Endpoint"];
+        if (typeof cancelScrollDriveRaf === "function") cancelScrollDriveRaf();
+        if (typeof clearScrollDriveLineMapPaint === "function") clearScrollDriveLineMapPaint();
+        if (typeof clearScrollDriveCfgPaint === "function") clearScrollDriveCfgPaint();
+        if (typeof clearScrollDriveMacroPaint === "function") clearScrollDriveMacroPaint();
+      }
       syncProbeDock();
       if (lensOpen) fillLensReceipt();
       applyProbePaint();
@@ -23750,6 +26015,16 @@
       }
       return false;
     }
+    function bubbleOnProbePath(bubbleId, pathSet) {
+      if (!bubbleId || !pathSet || !pathSet.size) return false;
+      const b = findBubble(bubbleId);
+      return (b && b.members || []).some((m) => pathSet.has(idVal(m)));
+    }
+    function bubbleLensHit(bubbleId) {
+      if (!bubbleId || !lensRoles.length) return false;
+      const b = findBubble(bubbleId);
+      return (b && b.members || []).some((m) => nodeLensHit(idVal(m)));
+    }
     function applyProbePaint() {
       const route = routeOpen ? resolveRoute() : { nodes: [], hops: [], ok: false };
       if (routeOpen) lastRoute = route;
@@ -23760,15 +26035,19 @@
       let hits = 0;
       canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
-        const onRoute = !!(id2 && pathSet.has(id2));
+        const bub = el2.getAttribute("data-bubble");
+        const onRoute = !!(id2 && pathSet.has(id2)) || !!(bub && bubbleOnProbePath(bub, pathSet));
         el2.classList.toggle("on-route", onRoute);
         if (el2.classList.contains("on-route") && id2 && !pathSet.has(id2)) extra++;
-        el2.classList.toggle("on-route-hot", !!(hot && id2 && (id2 === hot.from || id2 === hot.to)));
-        el2.classList.toggle("route-dim", !!(routeOpen && route.ok && id2 && !pathSet.has(id2)));
-        const lensHit = !!(lensOpen && id2 && nodeLensHit(id2));
+        el2.classList.toggle(
+          "on-route-hot",
+          !!(hot && (id2 && (id2 === hot.from || id2 === hot.to) || bub && bubbleOnProbePath(bub, /* @__PURE__ */ new Set([hot.from, hot.to]))))
+        );
+        el2.classList.toggle("route-dim", !!(routeOpen && route.ok && (id2 || bub) && !onRoute));
+        const lensHit = !!(lensOpen && (id2 && nodeLensHit(id2) || bub && bubbleLensHit(bub)));
         if (lensHit) hits++;
         el2.classList.toggle("lens-on", lensHit);
-        el2.classList.toggle("lens-dim", !!(lensOpen && id2 && !lensHit));
+        el2.classList.toggle("lens-dim", !!(lensOpen && (id2 || bub) && !lensHit));
       });
       canvas.querySelectorAll("[data-from][data-to]").forEach((el2) => {
         const a = el2.getAttribute("data-from");
@@ -24213,7 +26492,7 @@
       if (!graphFilter.q) return facts;
       return facts.filter(
         (f) => matchesExplorerQuery(
-          [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble].join(" ")
+          [f.status, f.subject, f.fqn, f.detail, f.class, f.from_fqn, f.to_fqn, f.bubble, f.file, f.from_file, f.to_file].join(" ")
         )
       );
     }
@@ -24540,7 +26819,7 @@
       const list = facts.map((f, i) => {
         const community = f.class === "community";
         const title = community ? "community · bubble " + (f.bubble || "?") + (f.fqn ? " · " + f.fqn : "") : (f.subject || "") + " · " + (f.fqn || "");
-        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (community ? " community" : "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '"' + (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") + ' data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc(title) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
+        return '<article class="delta-fact expl-card ' + esc(f.status || "") + (community ? " community" : "") + (i === deltaCursor ? " on" : "") + '" data-delta-kind="' + esc(f.status || "") + '" data-delta-class="' + esc(f.class || "") + '" data-fqn="' + esc(f.fqn || "") + '"' + (f.file ? ' data-file="' + esc(f.file) + '"' : "") + (f.bubble ? ' data-bubble="' + esc(f.bubble) + '"' : "") + ' data-delta-i="' + i + '"><div class="k">' + esc(deltaMarker(f.status) + " " + (f.status || "")) + '</div><div class="t">' + esc(title) + '</div><div class="b">' + esc(f.detail || f.class || "") + "</div></article>";
       }).join("");
       return '<div class="delta-page">' + switcher + review + '<div class="ws-split"><div class="ws-list" id="deltaFacts">' + (list || '<div class="empty">No added, removed, changed, moved, or rerouted facts.</div>') + '</div><div class="ws-detail"><div class="k">' + esc(deltaView) + " · derived</div>" + renderDeltaCanvas2(deltaView, hot) + "</div></div></div>";
     }
@@ -24755,11 +27034,18 @@
       const reading = sequenceOf(flow);
       const parts = reading.participants;
       const hops = reading.hops;
-      if (graphFilter.q) {
-        const q2 = graphFilter.q.toLowerCase();
-        const hit = (s) => String(s || "").toLowerCase().indexOf(q2) >= 0;
-        const keepP = parts.filter((p) => hit(p.fqn) || hit(p.kind) || hit(p.file));
-        const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind) || hit(h.variant));
+      const seqQ = (graphFilter.q || "").toLowerCase();
+      const seqHit = (s) => String(s || "").toLowerCase().indexOf(seqQ) >= 0;
+      const seqPartMatch = (p) => !seqQ || seqHit(p.fqn) || seqHit(p.kind) || seqHit(p.file);
+      const seqHopMatch = (h) => {
+        if (!seqQ) return true;
+        const fromP = parts.find((p) => idVal(p.id) === idVal(h.from));
+        const toP = parts.find((p) => idVal(p.id) === idVal(h.to));
+        return seqHit(h.from_fqn) || seqHit(h.to_fqn) || seqHit(h.kind) || seqHit(h.variant) || seqHit(h.file) || seqHit(fromP && fromP.file) || seqHit(toP && toP.file);
+      };
+      if (seqQ) {
+        const keepP = parts.filter(seqPartMatch);
+        const keepH = hops.filter(seqHopMatch);
         if (!keepP.length && !keepH.length) {
           return '<div class="empty">No sequence hops match “' + esc(graphFilter.q) + "”.</div>";
         }
@@ -24769,12 +27055,14 @@
       }
       if (seqCursor >= hops.length) seqCursor = hops.length - 1;
       const hot = seqCursor >= 0 ? hops[seqCursor] : null;
+      const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
       const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
       const heads = parts.map((p) => {
         const on2 = hot && (idVal(hot.from) === idVal(p.id) || idVal(hot.to) === idVal(p.id));
-        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(p.id)) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span></button>";
+        const match = seqPartMatch(p);
+        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(p.id)) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"' + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + '><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span></button>";
       }).join("");
-      const list = hops.map((h, i) => {
+      const list = hopCards.map(({ h, i }) => {
         return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
       }).join("");
       return '<div class="seq-page">' + review + '<div class="seq-parts" id="seqParts" style="--seq-n:' + parts.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
@@ -24787,12 +27075,18 @@
     function sequenceCanvasProps() {
       const reading = sequenceOf(sequenceFlow());
       return {
-        participants: reading.participants.map((p) => ({
-          id: idVal(p.id),
-          fqn: p.fqn,
-          kind: p.kind || "Function",
-          label: shortOf(p.fqn)
-        })),
+        participants: reading.participants.map((p) => {
+          const paint2 = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
+          return {
+            id: idVal(p.id),
+            fqn: p.fqn,
+            kind: p.kind || "Function",
+            label: shortOf(p.fqn),
+            file: paint2.file || p.file || "",
+            dim: paint2.dim,
+            hit: paint2.hit
+          };
+        }),
         hops: reading.hops.map((h, i) => ({
           i,
           from: idVal(h.from),
@@ -24855,6 +27149,7 @@
       const host = document.getElementById("seqCanvas");
       if (host) renderSequenceCanvas(host, sequenceCanvasProps());
       else unmountSequenceCanvas();
+      applyGraphFilter();
     }
     function bindSequencePage() {
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
@@ -25183,11 +27478,18 @@
       const reading = dataflowOf(flow);
       const nodes = reading.nodes;
       const hops = reading.hops;
-      if (graphFilter.q) {
-        const q2 = graphFilter.q.toLowerCase();
-        const hit = (s) => String(s || "").toLowerCase().indexOf(q2) >= 0;
-        const keepN = nodes.filter((n) => hit(n.fqn) || hit(n.kind) || hit(n.role) || hit(n.end_role));
-        const keepH = hops.filter((h) => hit(h.from_fqn) || hit(h.to_fqn) || hit(h.kind));
+      const dfQ = (graphFilter.q || "").toLowerCase();
+      const dfHit = (s) => String(s || "").toLowerCase().indexOf(dfQ) >= 0;
+      const dfNodeMatch = (n) => !dfQ || dfHit(n.fqn) || dfHit(n.kind) || dfHit(n.role) || dfHit(n.end_role) || dfHit(n.file);
+      const dfHopMatch = (h) => {
+        if (!dfQ) return true;
+        const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+        const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+        return dfHit(h.from_fqn) || dfHit(h.to_fqn) || dfHit(h.kind) || dfHit(h.file) || dfHit(fromN && fromN.file) || dfHit(toN && toN.file);
+      };
+      if (dfQ) {
+        const keepN = nodes.filter(dfNodeMatch);
+        const keepH = hops.filter(dfHopMatch);
         if (!keepN.length && !keepH.length) {
           return '<div class="empty">No data-flow hops match “' + esc(graphFilter.q) + "”.</div>";
         }
@@ -25197,6 +27499,7 @@
       }
       if (dfCursor >= hops.length) dfCursor = hops.length - 1;
       const hot = dfCursor >= 0 ? hops[dfCursor] : null;
+      const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => dfHopMatch(h));
       const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
       const stages = ["source", "transform", "store", "sink"].filter((role) => nodes.some((n) => n.role === role));
       const stageCols = stages.map((role) => {
@@ -25204,11 +27507,12 @@
         const cards = col.map((n) => {
           const on2 = hot && (idVal(hot.from) === idVal(n.id) || idVal(hot.to) === idVal(n.id));
           const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
-          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(n.kind || "") + (ep ? " · " + esc(ep) : "") + "</span></button>";
+          const match = dfNodeMatch(n);
+          return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + (dfQ && match ? " hit" : "") + (dfQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + (n.file ? ' data-file="' + esc(n.file) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(n.kind || "") + (ep ? " · " + esc(ep) : "") + "</span></button>";
         }).join("");
         return '<div class="df-stage" data-df-role="' + role + '"><div class="k">' + esc(dfRoleLabel(role)) + "</div>" + cards + "</div>";
       }).join("");
-      const list = hops.map((h, i) => {
+      const list = hopCards.map(({ h, i }) => {
         return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((h.from_fqn || "") + (h.file ? " · " + h.file : "")) + "</div></article>";
       }).join("");
       return '<div class="df-page">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
@@ -25223,6 +27527,7 @@
       return {
         nodes: reading.nodes.map((n) => {
           const ep = n.end_role || n.channel ? [n.end_role, n.channel].filter(Boolean).join(" · ") : "";
+          const paint2 = graphNodePaint(n.id, { fqn: n.fqn, kind: n.kind || "Function", file: n.file || "" });
           return {
             id: idVal(n.id),
             fqn: n.fqn,
@@ -25231,6 +27536,9 @@
             role: n.role,
             endRole: n.end_role || "",
             channel: n.channel || "",
+            file: paint2.file || n.file || "",
+            dim: paint2.dim,
+            hit: paint2.hit,
             ep
           };
         }),
@@ -25293,6 +27601,7 @@
       const host = document.getElementById("dfCanvas");
       if (host) renderDataflowCanvas(host, dataflowCanvasProps());
       else unmountReviewCanvas();
+      applyGraphFilter();
     }
     function bindDataflowPage() {
       canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
@@ -25494,12 +27803,15 @@
       const hops = reading.transitions;
       const ends = reading.endpoints;
       const lanes = reading.lanes;
-      if (graphFilter.q) {
-        const q2 = graphFilter.q.toLowerCase();
-        const hit = (s) => String(s || "").toLowerCase().indexOf(q2) >= 0;
-        const keepS = states.filter((s) => hit(s.id) || hit(s.label) || hit(lcStateKind(s)) || hit(s.lane));
-        const keepT = hops.filter((h) => hit(h.from) || hit(h.to) || hit(h.label));
-        const keepE = ends.filter((e) => hit(e.fqn) || hit(e.kind));
+      const lcQ = (graphFilter.q || "").toLowerCase();
+      const lcHit = (s) => String(s || "").toLowerCase().indexOf(lcQ) >= 0;
+      const lcStateMatch = (s) => !lcQ || lcHit(s.id) || lcHit(s.label) || lcHit(lcStateKind(s)) || lcHit(s.lane);
+      const lcHopMatch = (h) => !lcQ || lcHit(h.from) || lcHit(h.to) || lcHit(h.label);
+      const lcEndMatch = (e) => !lcQ || lcHit(e.fqn) || lcHit(e.kind) || lcHit(e.file);
+      if (lcQ) {
+        const keepS = states.filter(lcStateMatch);
+        const keepT = hops.filter(lcHopMatch);
+        const keepE = ends.filter(lcEndMatch);
         if (!keepS.length && !keepT.length && !keepE.length) {
           return '<div class="empty">No lifecycle states match “' + esc(graphFilter.q) + "”.</div>";
         }
@@ -25516,7 +27828,8 @@
         const cards = col.map((s) => {
           const kind = lcStateKind(s);
           const on2 = now2 === s.id || hot && (hot.from === s.id || hot.to === s.id);
-          return '<button type="button" class="lc-state vnode' + (on2 ? " on" : "") + '" data-lc-id="' + esc(s.id) + '" data-lc-type="' + esc(kind) + '" data-lc-lane="' + esc(s.lane) + '" data-lc-col="' + esc(String(s.col == null ? 0 : s.col)) + '"><span class="name">' + esc(s.label || s.id) + '</span> <span class="meta">' + esc(kind + (s.sublabel ? " · " + s.sublabel : "")) + "</span></button>";
+          const match = lcStateMatch(s);
+          return '<button type="button" class="lc-state vnode' + (on2 ? " on" : "") + (lcQ && match ? " hit" : "") + (lcQ && !match ? " dim" : "") + '" data-lc-id="' + esc(s.id) + '" data-lc-type="' + esc(kind) + '" data-lc-lane="' + esc(s.lane) + '" data-lc-col="' + esc(String(s.col == null ? 0 : s.col)) + '"><span class="name">' + esc(s.label || s.id) + '</span> <span class="meta">' + esc(kind + (s.sublabel ? " · " + s.sublabel : "")) + "</span></button>";
         }).join("");
         return '<div class="lc-lane" data-lc-lane="' + esc(lane.id) + '"><div class="k">' + esc(lane.label || lane.id) + "</div>" + cards + "</div>";
       }).join("");
@@ -25524,7 +27837,8 @@
         return '<article class="lc-trans expl-card' + (i === lcCursor ? " on" : "") + '" data-lc-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-lc-event="' + esc(h.label || "") + '"><div class="k">' + esc(h.label || "event") + '</div><div class="t">' + esc(h.from + " → " + h.to) + "</div></article>";
       }).join("");
       const endCards = ends.map((e) => {
-        return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
+        const match = lcEndMatch(e);
+        return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + (lcQ && match ? " hit" : "") + (lcQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"' + (e.file ? ' data-file="' + esc(e.file) + '"' : "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
       }).join("");
       const endsBlock = ends.length ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>" : "";
       return '<div class="lc-page">' + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
@@ -25614,6 +27928,7 @@
       const host = document.getElementById("lcCanvas");
       if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
       else unmountReviewCanvas();
+      applyGraphFilter();
     }
     function bindLifecyclePage() {
       canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
@@ -25668,6 +27983,42 @@
         };
       if (play) play.onclick = () => toggleLcReview();
     }
+    function trajectoryFixture() {
+      return TRAJECTORY_FIXTURE;
+    }
+    function renderTrajectoryBody() {
+      const fix = trajectoryFixture();
+      const nodes = fix.nodes || [];
+      const edges = fix.edges || [];
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      const nodeW = 168;
+      const nodeH = 64;
+      const edgeLines = edges.map((e) => {
+        const a = byId.get(e.from);
+        const b = byId.get(e.to);
+        if (!a || !b) return "";
+        const x1 = a.x + nodeW;
+        const y1 = a.y + nodeH / 2;
+        const x2 = b.x;
+        const y2 = b.y + nodeH / 2;
+        return '<line class="traj-edge" data-edge-id="' + esc(e.id) + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" />';
+      }).join("");
+      const nodeHtml = nodes.map((n) => {
+        const art = n.artifact || "";
+        const diff = n.diff || "";
+        return '<div class="traj-node status-' + esc(n.status || "pending") + '" data-id="' + esc(n.id) + '" data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" style="left:' + n.x + "px;top:" + n.y + 'px"><div class="traj-label">' + esc(n.label || n.id) + "</div>" + (art ? '<div class="traj-pin artifact" title="artifact">' + esc(art) + "</div>" : "") + (diff ? '<div class="traj-pin diff" title="diff">' + esc(diff) + "</div>" : "") + "</div>";
+      }).join("");
+      const maxX = Math.max(...nodes.map((n) => n.x + nodeW), 320) + 40;
+      const maxY = Math.max(...nodes.map((n) => n.y + nodeH), 120) + 40;
+      return '<div class="traj-page"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" style="min-width:' + maxX + "px;min-height:" + maxY + 'px"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true">' + edgeLines + "</svg>" + nodeHtml + '</div><div class="traj-meta">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + "</div></div>";
+    }
+    function paintTrajectoryWorkspace(title) {
+      unmountAllReviewCanvases();
+      const html = renderTrajectoryBody();
+      canvas.className = "play explorer-list traj";
+      canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
+      setZoomUi(false);
+    }
     function countMap(items, keyFn) {
       const m = /* @__PURE__ */ new Map();
       for (const x of items || []) {
@@ -25679,7 +28030,8 @@
     function statChips(map) {
       return [...map.entries()].sort((a, b) => b[1] - a[1]).map((e) => '<span class="stat-chip"><b>' + esc(e[0]) + "</b> " + e[1] + "</span>").join("");
     }
-    function renderExplorerList(ws) {
+    function renderExplorerList(ws, opts) {
+      const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
       renderStats(snapshot);
       if (ws === "overview") renderLegend();
@@ -25698,7 +28050,8 @@
         delta: "Delta — derived parent vs head",
         sequence: "Sequence — callers, callees, returns on this flow",
         dataflow: "Data-flow — sources, transforms, stores, sinks on this flow",
-        lifecycle: "Lifecycle — review states, waits, terminals on this flow"
+        lifecycle: "Lifecycle — review states, waits, terminals on this flow",
+        trace: "Trace — read-only execution trajectory DAG"
       };
       setMeta(
         '<span class="crumb">Review</span> / <b>' + esc(ws) + "</b> · " + esc(titles[ws] || ws)
@@ -25731,6 +28084,12 @@
         applyProbePaint();
         return;
       }
+      if (ws === "trace") {
+        paintTrajectoryWorkspace(titles.trace);
+        bindWorkbenchPages();
+        applyProbePaint();
+        return;
+      }
       if (ws !== "overview") {
         unmountAllReviewCanvases();
       }
@@ -25754,7 +28113,7 @@
       if (ws === "overview") {
         const stage = canvas.querySelector(".stage");
         if (stage) {
-          bindStage(stage, { reset: true });
+          bindStage(stage, { reset: !keepCam });
           setZoomUi(true);
         } else {
           setZoomUi(false);
@@ -25799,7 +28158,7 @@
         };
       });
       canvas.querySelectorAll("[data-id]").forEach((el2) => {
-        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas")) return;
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
         el2.onclick = () => {
           explorerWs = "lineage";
           explorerPinned = true;
@@ -26020,7 +28379,8 @@
       renderLineageCanvas(host, lineageCanvasProps(reading, focusId));
       stampXyFlowAttrs();
     }
-    function renderLineage() {
+    function renderLineage(opts) {
+      const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
       renderStats(snapshot);
       renderCoverage(snapshot.coverage, snapshot.findings, snapshot.graph);
@@ -26051,11 +28411,21 @@
       const up = meta.querySelector("[data-ws]");
       if (up) up.onclick = () => setWorkspace("map", true);
       if (lineageHopCursor >= hops.length) lineageHopCursor = hops.length ? hops.length - 1 : -1;
-      const hopCards = hops.map((e, i) => ({ e, i })).filter(
-        ({ e }) => matchesExplorerQuery(
-          [e.kind, e.from, e.to, fqnOf(snapshot.graph, e.from), fqnOf(snapshot.graph, e.to)].join(" ")
-        )
-      ).slice(0, 24).map(({ e, i }) => {
+      const hopCards = hops.map((e, i) => ({ e, i })).filter(({ e }) => {
+        const fromN = nodeById.get(idVal(e.from));
+        const toN = nodeById.get(idVal(e.to));
+        return matchesExplorerQuery(
+          [
+            e.kind,
+            e.from,
+            e.to,
+            fqnOf(snapshot.graph, e.from),
+            fqnOf(snapshot.graph, e.to),
+            fromN && fromN.span && fromN.span.file || "",
+            toN && toN.span && toN.span.file || ""
+          ].join(" ")
+        );
+      }).slice(0, 24).map(({ e, i }) => {
         return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(shortToken(e.from)) + " → " + esc(shortToken(e.to)) + "</div></button>";
       });
       const pathRow = path.length > 1 ? '<div class="path-row">' + path.map((pid) => {
@@ -26078,7 +28448,7 @@
         unmountReviewCanvas();
         canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
         lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
-        bindStage(canvas.querySelector(".stage"), { reset: true });
+        bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       } else {
         const title = canvas.querySelector(".flow-title");
         if (title) {
@@ -26618,7 +28988,7 @@
     function applyGraphFilter() {
       canvas.querySelectorAll(".comm-node, .vnode, .ego-node").forEach((el2) => {
         const kind = el2.getAttribute("data-kind") || "";
-        const match = graphFilter.kinds[kind] !== false && matchesExplorerQuery(
+        const match = graphFilter.kinds[kind] !== false && (matchesExplorerQuery(
           [
             el2.getAttribute("data-fqn") || "",
             el2.getAttribute("data-file") || "",
@@ -26626,15 +28996,24 @@
             el2.getAttribute("data-kind") || "",
             el2.getAttribute("data-hops") || ""
           ].join(" ")
-        );
+        ) || el2.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el2.getAttribute("data-id")));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
       });
       canvas.querySelectorAll(".bubble-card").forEach((el2) => {
         const name = el2.querySelector(".name") && el2.querySelector(".name").textContent || "";
-        const match = matchesExplorerQuery(name);
+        const match = matchesExplorerQuery(name) || bubbleMembersMatchQuery(el2.getAttribute("data-bubble"));
         el2.classList.toggle("dim", !match);
         el2.classList.toggle("hit", !!(graphFilter.q && match));
+      });
+    }
+    function bubbleMembersMatchQuery(id2) {
+      if (!graphFilter.q || !id2) return false;
+      const b = findBubble(id2);
+      return (b && b.members || []).some((m) => {
+        const n = nodeById.get(idVal(m));
+        if (!n || graphFilter.kinds[n.kind || ""] === false) return false;
+        return matchesExplorerQuery((n.fqn || "") + " " + (n.span && n.span.file || ""));
       });
     }
     function isProposedFlow(f) {
@@ -26744,6 +29123,9 @@
       applyEgoPaint();
       bindStoryRail();
       applyPathWalkPaint();
+      if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function stampBadge(name) {
       const mark = flowMark(name);
@@ -26988,7 +29370,7 @@
           uncovered: !!flags.uncovered,
           changed: !!flags.changed,
           surface: "enter-node",
-          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "" }),
+          ...graphNodePaint(nid, { fqn, kind, file, flow: inner.flow || "", community: !leaf }),
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance
         };
@@ -27025,7 +29407,7 @@
       renderEnterCanvas(host, enterCanvasProps(inner));
       stampXyFlowAttrs();
     }
-    function renderInner(msg, animate) {
+    function renderInner(msg, animate, opts) {
       const inner = msg.inner || { nodes: [] };
       renderTabs(msg.flow ? [msg.flow] : snapshot?.flows || [], inner.flow);
       renderStats(msg);
@@ -27047,6 +29429,9 @@
       }
       const key = enterWorkspaceKey(inner);
       const recycle = enterStageMounted() && key === enterBodyKey;
+      const keepCam = !!(opts && opts.keepCam);
+      const evidenceLive = typeof evidenceScrollDriveStayLive === "function" && evidenceScrollDriveStayLive();
+      const stay = keepCam || evidenceLive;
       canvas.className = "play has-stage programs-view" + (animate ? " play" : "");
       if (recycle) {
         const title = canvas.querySelector(".flow-title");
@@ -27058,7 +29443,7 @@
         unmountReviewCanvas();
         canvas.innerHTML = '<div class="stage"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
         enterBodyKey = document.getElementById("enterCanvas") ? key : "";
-        bindStage(canvas.querySelector(".stage"), { reset: true });
+        bindStage(canvas.querySelector(".stage"), { reset: !stay });
       }
       setZoomUi(true);
       mountEnterCanvas(inner);
@@ -27068,6 +29453,9 @@
       renderLedger(leafNodes.length ? leafNodes : nodes.map((n) => ({ id: n.id, fqn: n.fqn, kind: n.kind })), {
         selected: selectedNodeId
       });
+      if (typeof softStayScrollDriveAcrossDeskRemount === "function") {
+        softStayScrollDriveAcrossDeskRemount();
+      }
     }
     function renderCoverage(cov, findings, graph, opts) {
       const uncovered = cov && cov.uncovered || [];
@@ -27309,6 +29697,15 @@
       if (on2) {
         setExportMenu(false);
         if (typeof setKeysPane === "function") setKeysPane(false);
+        if (sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") closeSourcePane();
+        if (typeof setLensOpen === "function") setLensOpen(false);
+        if (typeof setRouteOpen === "function") setRouteOpen(false);
+        if (typeof applyPresent === "function") applyPresent(false);
+        if (typeof hideTip === "function") hideTip();
+        if (toastEl) {
+          toastEl.classList.remove("on");
+          toastEl.hidden = true;
+        }
       }
       llmPane.hidden = !on2;
       llmPane.classList.toggle("open", !!on2);
@@ -27382,6 +29779,7 @@
     }
     function sendLlmAsk() {
       if (!llmAsk) return;
+      llmAsk.focus();
       const q2 = llmAsk.value.trim();
       if (!q2) return;
       appendLlmLog(q2, "user");

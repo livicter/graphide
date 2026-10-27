@@ -25,6 +25,28 @@ stay human — present and preset never write `.graphide/stamps/`.
 - Export keeps the current theme **and** preset. Presentation chrome is
   viewer state and does not enter the canonical clone.
 - Stamp / skip stay human. Present / preset never write `.graphide/stamps/`.
+- While `body.present`, desk `X` does not skip (`P6b`) — Skip chrome is hidden; exit first. `S` still cycles Style.
+- While `body.present`, desk `/` does not focus Find (`P6c`) — `#graphBar` is hidden; exit first.
+- While `body.present`, desk `D` still toggles Day/Night (`P6l`) — Theme stays on stage; residual after Style (`P6`).
+- While `body.present`, desk `+`/`=`/`-` still zoom (`P6m`) — zoom stays on stage; residual after Day/Night (`P6l`).
+- While `body.present`, desk Fit (`0`) still refits (`P6n`) — Fit stays on stage; residual after zoom (`P6m`).
+- While `body.present`, desk `E` still toggles Ego (`P6o`) — Ego stays on stage; residual after Fit (`P6n`).
+- While `body.present`, desk `P` still starts path Play (`P6p`) — Play stays on stage; residual after Ego (`P6o`).
+- While `body.present`, desk `[`/`]` still steps path (`P6q`) — path step stays on stage; residual after Play (`P6p`).
+- While `body.present`, desk `R` still opens PATH (`P6r`) — Route stays on stage (K14l Backspace stack); residual after path step (`P6q`).
+- While `body.present`, desk `L` still opens LENS (`P6s`) — Lens stays on stage (K14k Backspace stack); residual after Route (`P6r`).
+- While `body.present`, desk `F` still exits the stage (`P6t`) — F toggles Present off; residual after Lens (`P6s`).
+- While `body.present` with Export open, desk `S` still cycles Style (`P6d`) — stamp is hidden; Export must not steal Style.
+- While `body.present` with Export open, desk `D` still toggles Day/Night (`P6e`).
+- While `body.present` with Export open, desk `+`/`=`/`-` still zoom (`P6f`); Fit (`0`) still refits (`P6j`).
+- While `body.present` with Keys open, desk `S` still cycles Style (`P6g`) — Keys must not steal Style.
+- While `body.present` with Keys open, desk `D` still toggles Day/Night (`P6h`).
+- While `body.present` with Keys open, desk `+`/`=`/`-` still zoom (`P6i`); Fit (`0`) still refits (`P6k`).
+- Opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`), same exclusive chrome as Keys / Export closing Ask.
+- Reverse exclusivity: Ask / Evidence exit Present when opened (`K18ai` /
+  `K18aj`). Lens / Route / Keys / Export stay stage overlays (`P6s` /
+  `P6r` / `K14i`–`K14l`) — opening them does not call `applyPresent(false)`.
+- Opening Present hides the hover tip (`K19e`) and clears the toast (`K20e`), same chrome exclusivity as Keys / Export / Ask / Evidence.
 
 ## How to get to it (user POV)
 
@@ -63,12 +85,26 @@ Driver assertions:
 - Escape removes `body.present` and restores graph-bar chrome
 - screenshots `verification/present.png` and
   `verification/preset-blueprint.png` are not black frames
+- on stage, `X` posts no skip (`P6b`); `/` does not focus Find (`P6c`); `D` still toggles Day/Night (`P6l`); zoom still scales (`P6m`); Fit still refits (`P6n`); `E` still toggles Ego (`P6o`); `P` still starts path Play (`P6p`); `[`/`]` still steps path (`P6q`); `R` still opens PATH (`P6r`); `L` still opens LENS (`P6s`); `F` still exits (`P6t`); Export/Keys open + `S`/`D`/zoom/Fit still work (`P6d`–`P6k`)
+- opening Present closes Ask (`K18g`), Keys (`K18h`), Export (`K18i`), Evidence (`K18j`), Lens (`K18k`), and Route (`K18l`)
+- opening Present hides `#tip` (`K19e`) and clears `#toast` (`K20e`)
 - `.graphide/stamps/` is still empty
+
+- **S1m / S1ad / S1ae / ScrollDrive:** entering Present pauses Evidence ScrollDrive
+  (`presentPaused`, no residual cam nudge) and stashes last-stay before the
+  wipe (`presentStayStashed` / `data-scroll-present-stay` when warm — S1ad).
+  Exit resumes without yanking cam; soft restore waits for Evidence reopen;
+  desk auto-refit one-shot-skips hard fit after soft stay reopen (S1ae). Review-clear stay wipe publishes a short-lived cue (S1af); workspace-folder change clears that cue (S1ag); soft-follow settle-before-sample + Present-stash/Review-clear mutual exclusion + macro enter/exit settle-before-sample + Lineage/Overview resettle settle-before-sample + remount resettle settle-before-sample + Present-exit Review-clear cue polish + Review-during-Present mutual exclusion + Evidence reopen after wipe no soft-restore + soft-restore round-trip after fresh stay + file-hop settle-before-sample + soft-restore settle-before-sample + nest/line remap settle-before-sample + reload/host-repost settle-before-sample + soft-restore round-trip settle-before-sample + Present-stage settle-before-sample + Review-clear cue settle-before-sample + confirm-probe atomic settle sample + warm/resettle atomic settle sample + workspace-change Review-clear cue settle-before-sample + Present-stash/Review-clear mutual-exclusion settle-before-sample + Present-exit Review-clear cue polish settle-before-sample + Review-during-Present mutual-exclusion settle-before-sample + cold-path reopen settle-before-sample + Review-clear cold-open settle-before-sample + Present-exit settle-before-sample + soft-stay idle-settle pad hunt + early wait-then-sample pad hunt + soft-step / macro catch-up pad hunt + S1s warm-publish pad hunt + remount/hop warm-publish pad hunt + velocity / Present-residual / S1g burst pad hunt + one-paint double-rAF pad hunt + enter-canvas soft-stay + list↔canvas soft-stay + ego remount soft-stay + flow-tab remount soft-stay + search/kind remount soft-stay + just-restored no soft-follow walk + ego-hops remount soft-stay + stamp/skip remount soft-stay + host-patch remount soft-stay + cancelled remount soft-stay (S1ah–S1by) owned by scroll-drive.
+  Does not change Lens/Route stage-overlay rules (`P6s` / `K14k`). Owned by
+  [scroll-drive.md](scroll-drive.md) (`S1a`–`S1bz`); this map only notes
+  the Present exclusive side-effect.
 
 ## Gotchas
 
 - `S` on the desk is still stamp. Do not steal it for Style except while
   `body.present` is on.
+- `X` on the stage must not skip. Exit Present before Skip.
+- `/` on the stage must not focus Find. Exit Present before Find.
 - `E` stays Ego. `D` stays Day / Night. Preset is independent of theme.
 - Do not add `data-component` / `data-testid`. `#presentBtn`, `#presetBtn`,
   `data-preset`, `body.present` are the product hooks.

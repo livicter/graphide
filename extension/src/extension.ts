@@ -579,11 +579,27 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /** S1ab — workspace folder URI for webview last-stay scope (no secrets). */
+  private workspaceFolderHint(): string {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) return "";
+    try {
+      return folder.uri.toString();
+    } catch {
+      return folder.uri.fsPath || "";
+    }
+  }
+
   private peekSource(id: any) {
     if (!this.view) return;
     const node = this.snapshot?.graph?.nodes?.find((n: any) => String(n.id) === String(id));
     if (!node?.span) {
-      this.view.webview.postMessage({ type: "source", id, missing: true });
+      this.view.webview.postMessage({
+        type: "source",
+        id,
+        missing: true,
+        workspaceFolder: this.workspaceFolderHint(),
+      });
       return;
     }
     this.view.webview.postMessage({
@@ -591,6 +607,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       id: String(node.id),
       fqn: node.fqn,
       kind: node.kind,
+      workspaceFolder: this.workspaceFolderHint(),
       ...snippetAt(node),
     });
   }
@@ -660,7 +677,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
     const top = this.stack[this.stack.length - 1];
     if (!this.snapshot) {
       this.lastPosted = null;
-      this.view.webview.postMessage({ type: "empty" });
+      this.view.webview.postMessage({ type: "empty", workspaceFolder: this.workspaceFolderHint() });
       return;
     }
     if ((top.kind === "programs" || top.kind === "flow") && this.canPushPanelPatch(top.kind)) {
@@ -683,6 +700,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         stamps: this.snapshot.stamps || [],
         skipped: this.skipped,
         delta: this.snapshot.delta || { facts: [] },
+        workspaceFolder: this.workspaceFolderHint(),
       });
       this.rememberPosted("programs");
       return;
@@ -708,6 +726,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
         program: this.selectedProgram(),
         snippets: snippetsFor(this.snapshot, shown),
         depth: 0,
+        workspaceFolder: this.workspaceFolderHint(),
       });
       this.rememberPosted("flow");
       return;
@@ -724,6 +743,7 @@ class ReviewViewProvider implements vscode.WebviewViewProvider {
       stamps: this.snapshot.stamps || [],
       skipped: this.skipped,
       depth: this.stack.length - 1,
+      workspaceFolder: this.workspaceFolderHint(),
     });
     this.rememberPosted("bubble");
   }

@@ -79,6 +79,7 @@ Driver assertions:
 - `#lcCanvas .react-flow__node` length `> 1` and `<= 24`
 - stepping Next past the end stays on the last `data-lc-i` (no loop)
 - screenshot `verification/lifecycle.png` is not a black frame
+- Find on a member file (`bus.rs`) keeps `#lcEnds` events `.hit` and dims lane states (`SG9`, `verification/lifecycle-find-file.png`); a non-matching file empties (`SG9b`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas

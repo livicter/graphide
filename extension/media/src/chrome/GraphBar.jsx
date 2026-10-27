@@ -93,6 +93,16 @@ export function GraphBar() {
           </WsIco>
           Lifecycle
         </button>
+        <button type="button" data-ws="trace">
+          <WsIco>
+            <circle cx="3.4" cy="8" r="1.3" />
+            <circle cx="8" cy="4.2" r="1.3" />
+            <circle cx="8" cy="11.8" r="1.3" />
+            <circle cx="12.6" cy="8" r="1.3" />
+            <path d="M4.7 8H6.7M8 5.5v1.8M8 9.3v1.8M9.3 8h1.9" />
+          </WsIco>
+          Trace
+        </button>
       </nav>
       <nav id="tabs" />
       <button id="egoBtn" type="button" title="Ego: isolate the selected node and its k-hop neighborhood">

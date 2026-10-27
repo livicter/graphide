@@ -74,7 +74,7 @@ assert(chrome.includes('id="keysPane"'), "shortcut sheet missing from the webvie
 assert(chrome.includes('id="keysBtn"') && chrome.includes('id="keysClose"'), "Keys chrome ids missing");
 assert(/#keysPane\s*\{[^}]*z-index/.test(css), "Keys pane must stack above the desk");
 assert(
-  /e\.key === "Escape" && keysPane && !keysPane\.hidden[\s\S]{0,250}e\.key === "Escape" && sourcePane && !sourcePane\.hidden/.test(js),
+  /e\.key === "Escape" && keysPane && !keysPane\.hidden[\s\S]{0,900}e\.key === "Escape" && sourcePane && !sourcePane\.hidden/.test(js),
   "Escape must close Keys before Evidence"
 );
 assert(js.includes("function togglePathWalk"), "feature path must be playable");
@@ -120,6 +120,10 @@ assert(js.includes("explorerWs = \"slice\""), "selecting a flow must open the sl
 assert(js.includes("function requestStamp"), "stamp must update the webview without waiting on the host");
 assert(js.includes("function requestSkip"), "skip must update the webview without waiting on the host");
 assert(js.includes("e.target.closest(\"input"), "search/prompt keys must not steal workspace shortcuts");
+assert(js.includes("if (e.metaKey || e.ctrlKey && !e.altKey) return;"), "Cmd / Ctrl chords must not fire desk keys (Cmd+S must not stamp)");
+assert(js.includes('if (e.target && e.target.closest && e.target.closest("select")) return;'), "a focused <select> must keep its typeahead keys (no workspace switch / stamp)");
+assert((js.match(/if \(e\.isComposing\) return;/g) || []).length >= 2, "IME-composing Enter must not send Ask or start a review");
+assert(js.includes("if (e.repeat && !/^(\\+|=|-|_|\\[|\\]|Arrow(Up|Down|Left|Right))$/.test(e.key)) return;"), "holding a toggle / action key must fire it once (auto-repeat ignored)");
 assert(js.includes("k !== \"StampBroken\" && k !== \"UnmatchedHint\""), "registry must not duplicate decision findings");
 assert(js.includes('type: "enterRun"'), "enter-run must post to the host so stacks stay aligned");
 assert(js.includes("function enterMapBubble"), "Map enter must use the same bubble stack as Slice");
@@ -279,6 +283,8 @@ assert(js.includes('type: "exportFile"') && ext.includes("saveExportFile"), "hos
 assert(ext.includes(".graphide") && ext.includes("stamps") && ext.includes("Export cannot write"), "export must refuse .graphide/stamps/");
 assert(!js.includes("writeStamp") || !/function runExport[\s\S]{0,1200}writeStamp/.test(js), "export must not stamp");
 assert(chrome.includes('id="presentBtn"'), "Present button missing from chrome");
+assert(/isPresenting\(\)/.test(js) && /if \(!isPresenting\(\)\) requestSkip/.test(js), "Present must block desk X skip");
+assert(/isPresenting\(\)/.test(js) && /e\.key === "\/"/.test(js), "Present must guard Find slash with isPresenting");
 assert(chrome.includes('id="presetBtn"'), "Style button missing from chrome");
 assert(js.includes("function applyPresent") && js.includes("function togglePresent"), "presentation stage missing");
 assert(js.includes("function applyPreset") && js.includes("function cyclePreset") && js.includes("function currentPreset"), "visual preset cycle missing");
@@ -303,6 +309,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/coverage-mark.md")), "coverage-mark feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/fit-reorg.md")), "fit-reorg feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md")), "zoom feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/scroll-drive.md")), "scroll-drive feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/canvas-recycle.md")), "canvas-recycle feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-onanalysis.md")), "delta-onanalysis feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-offview.md")), "map-offview feature map missing");
@@ -347,6 +354,11 @@ assert(featReadme.includes("slice-runs.md") && featReadme.includes("slice-runs.p
 assert(featReadme.includes("slice-enter-recycle.md") && featReadme.includes("slice-enter-recycle.png"), "feature README must list slice-enter-recycle.md");
 assert(featReadme.includes("stamp-recheck.md") && featReadme.includes("stamp-recheck.png"), "feature README must list stamp-recheck.md");
 assert(featReadme.includes("proposed-uncovered.md") && featReadme.includes("proposed-uncovered.png"), "feature README must list proposed-uncovered.md");
+assert(featReadme.includes("scroll-drive.md") && featReadme.includes("S1a") && featReadme.includes("S1n") && featReadme.includes("__graphideScrollDrive"), "feature README must list scroll-drive.md with S1a–S1n");
+const openEvidenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-evidence.md"), "utf8");
+assert(openEvidenceMap.includes("scroll-drive.md") && openEvidenceMap.includes("S1a") && openEvidenceMap.includes("S1n") && openEvidenceMap.includes("line→node") && openEvidenceMap.includes("lineMapHit"), "open-evidence must defer S1a–S1n scroll-drive ownership (S1o)");
+const presentationMapS1o = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/presentation.md"), "utf8");
+assert(presentationMapS1o.includes("S1m") && presentationMapS1o.includes("presentPaused") && presentationMapS1o.includes("scroll-drive.md"), "presentation must point S1m Present-pause at scroll-drive.md (S1o)");
 const zoomMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/zoom.md"), "utf8");
 assert(
   zoomMap.includes("## Sub-features") &&
@@ -517,6 +529,34 @@ assert(driver.includes("EG3d") && driver.includes("slice-select.png") && driver.
 assert(driver.includes("EG3e") && driver.includes("slice-select-grey.png") && driver.includes('data-id="n12"') && driver.includes("n12.op <= 0.48"), "verify driver must prove Slice select keeps off-tree neighbors in distance grey");
 assert(chrome.includes("ego: !!(egoMode && onEgo)") && chrome.includes('classList.toggle("ego", !!(egoMode && onEgo))'), "selection must not stamp the Ego class while Ego is off");
 assert(driver.includes("SG4") && driver.includes("slice-find-dim.png") && driver.includes("SG2b") && driver.includes("ScreenshotFormat"), "verify driver must prove Find dims the off-tree ring");
+assert(driver.includes("SG4b") && driver.includes("slice-find-hit.png") && driver.includes("SimulationData") && driver.includes("SG5") && driver.includes("ToastContainer"), "verify driver must prove a Find hit stays lit on the ring and under Ego dim");
+assert(driver.includes("SG4c") && driver.includes("slice-find-file.png") && driver.includes("simulationdata.rs"), "verify driver must prove a member-file Find lifts an off-tree Slice hit out of distance grey");
+assert(driver.includes("SG3b") && driver.includes("lineage-find-file.png") && driver.includes("sub.rs"), "verify driver must prove a member-file Find filters Lineage hops / dims off-query nodes");
+assert(driver.includes("SG7") && driver.includes("dataflow-find-file.png") && driver.includes("sub.rs"), "verify driver must prove a member-file Find filters Data-flow hops / dims off-query nodes");
+assert(chrome.includes("dfHit(n.file)") && chrome.includes("dfHopMatch") && chrome.includes('data-file="'), "Data-flow Find must match member file / paint data-file (SG7)");
+assert(driver.includes("SG8") && driver.includes("sequence-find-file.png") && driver.includes("sub.rs") && driver.includes("SG8b"), "verify driver must prove a member-file Find filters Sequence hops / dims off-query participants");
+assert(chrome.includes("seqHit(p.file)") && chrome.includes("seqHopMatch") && chrome.includes("seqHit(h.file)"), "Sequence Find must match member file on parts / hops (SG8)");
+assert(driver.includes("SG9") && driver.includes("lifecycle-find-file.png") && driver.includes("bus.rs") && driver.includes("SG9b"), "verify driver must prove a member-file Find keeps Lifecycle end .hit / dims off-query states");
+assert(chrome.includes("lcHit(e.file)") && chrome.includes("lcEndMatch") && chrome.includes('data-file="'), "Lifecycle Find must match member file on ends / paint data-file (SG9)");
+assert(driver.includes("SG10") && driver.includes("delta-find-file.png") && driver.includes("bus.rs") && driver.includes("SG10b"), "verify driver must prove a member-file Find keeps Delta fact with data-file");
+assert(chrome.includes("f.file, f.from_file, f.to_file") && chrome.includes("function deltaFacts"), "Delta Find must match member file on facts (SG10)");
+assert(chrome.includes("(fromN && fromN.span && fromN.span.file)") && chrome.includes("(toN && toN.span && toN.span.file)"), "Lineage hop Find must match from/to span.file (file half of SG3)");
+assert(css.includes(":not(.hit)") && css.includes("#sliceCanvas .vnode.hit") && css.includes("#enterCanvas .vnode.hit") && css.includes("#sliceCanvas .vnode.ego-dim:not(.hit)"), "Find hits must beat distance grey and Ego dim");
+assert(/\.bubble-card\.hit\s*\{[^}]*opacity:\s*1/.test(css) && css.includes(".bubble-card.off { opacity: 0.72; }") && css.includes(".bubble-card.dim { opacity: 0.22; }"), "Map Find hits must beat off-path grey; misses stay dim");
+assert(driver.includes("SG1b") && driver.includes("map-find-hit.png") && driver.includes('data-bubble=\'" + id + "\'') && driver.includes("b-physics") && driver.includes("op >= 0.99"), "verify driver must prove an off-path Map Find hit paints full opacity");
+assert(chrome.includes("function bubbleMembersMatchQuery") && chrome.includes('bubbleMembersMatchQuery(el.getAttribute("data-bubble"))'), "Map Find must match a card's member FQN / file, not the card name alone");
+assert(chrome.includes('el.getAttribute("data-leaf") === "0" && bubbleMembersMatchQuery(el.getAttribute("data-id"))') && chrome.includes("extra.community && bubbleMembersMatchQuery(nid)") && chrome.includes("community: !leaf"), "Enter child communities must match Find on a member FQN / file");
+assert(driver.includes("SG1d") && driver.includes("enter-find-member.png") && driver.includes("ScreenshotFormat_2000"), "verify driver must prove a member-FQN Find keeps the holding Enter child community lit");
+assert(driver.includes("SG1c") && driver.includes("map-find-member.png") && driver.includes("b-render"), "verify driver must prove a member-FQN Find keeps the holding Map card lit");
+assert(driver.includes("SG1e") && driver.includes("map-find-file.png") && driver.includes("simulationdata.rs"), "verify driver must prove a member-file Find keeps the holding Map card lit");
+assert(driver.includes("SG1f") && driver.includes("enter-find-file.png") && driver.includes("screenshotformat.rs"), "verify driver must prove a member-file Find keeps the holding Enter child communities lit");
+assert(chrome.includes('const EXPORT_STRIP = ["on", "dim", "hit",') && chrome.includes('"scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"]') && chrome.includes('"walk", "dragging", "panning"') && driver.includes("X6b") && driver.includes("X6c") && driver.includes("X6d") && driver.includes("X6e") && driver.includes("X6f") && driver.includes("walk dragging panning"), "Export must strip Find / Route / Lens / away / play-head / offview / scroll-cfg / scroll-macro / scroll-anchor / scroll-linemap viewer state");
+assert(js.includes('removeAttribute("data-offview")'), "export must strip data-offview");
+assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim)') && css.includes("#sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim)") && driver.includes("RT8") && driver.includes("slice-route-dim.png") && css.includes(".bubble-card.route-dim") && css.includes(".bubble-card.on-route") && css.includes(".bubble-card.lens-on") && js.includes("function bubbleOnProbePath"), "Slice Route dim must beat distance grey");
+assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim)') && css.includes("#sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim)") && driver.includes("LN6") && driver.includes("slice-lens-dim.png"), "Slice Lens dim must beat distance grey");
+assert(css.includes("#enterCanvas .vnode.grey[data-slice-dist]:is(.route-dim, .lens-dim):not(.ego):not(.ego-dim):not(.dim):not(.hit) { opacity: 0.18; }") && driver.includes("RT8b") && driver.includes("enter-route-dim.png"), "Enter Route / Lens dim must beat distance grey");
+assert(css.includes(".steiner-wrap .vnode.away:not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.38; }") && driver.includes("RT8c") && driver.includes("LN6b") && driver.includes("SG6") && driver.includes("slice-away-route.png"), "Slice Route / Lens / Find must beat the off-program .away fade");
+assert(css.includes("#enterCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim),") && css.includes("#sliceCanvas .vnode.ego:not(.dim):not(.route-dim):not(.lens-dim) { opacity: 1; }") && driver.includes("RT8e") && driver.includes("RT9") && driver.includes("LN7") && driver.includes("LN6d") && driver.includes("SG5b") && driver.includes("SG5c") && driver.includes("SG5d") && css.includes("#lineageCanvas .vnode.ego-dim:not(.hit)") && driver.includes("RT8d") && driver.includes("LN6c") && driver.includes("SG5") && driver.includes("slice-ego-route.png"), "Slice / Enter Find / Route / Lens dim must read inside the Ego neighborhood");
 assert(!css.includes('.vnode[data-dist="2"] { opacity'), "selecting a node must not fade the 2-hop ring");
 assert(css.includes('#sliceCanvas .vnode[data-slice-dist="1"]:not(.ego):not(.ego-dim)') && css.includes('#sliceCanvas .vnode[data-slice-dist="2"]:not(.ego):not(.ego-dim)'), "Slice distance grey must not override Ego");
 assert(
@@ -530,6 +570,113 @@ assert(
 );
 assert(driver.includes("ask.png") && driver.includes("#llmBtn") && driver.includes("#llmClose") && driver.includes("A1"), "verify driver must drive Ask on the Review desk");
 assert(driver.includes("keys.png") && driver.includes("#keysPane") && driver.includes("#keysClose") && driver.includes("K1"), "verify driver must drive Keys on the Review desk");
+assert(js.includes('e.key !== "?"') && js.includes('e.key !== "F1"') && driver.includes("K17"), "Keys ? / F1 must toggle closed even when chrome is open");
+assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?setLlmPane\(false\)/.test(chrome) && driver.includes("K18"), "Opening Keys must close Ask (exclusive chrome with Export)");
+assert(chrome.includes("function setExportMenu") && /function setExportMenu\(on\)[\s\S]*?setLlmPane\(false\)/.test(chrome) && driver.includes("K18b"), "Opening Export must close Ask (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?setKeysPane\(false\)/.test(chrome) && driver.includes("K18c"), "Opening Ask must close Keys (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?setExportMenu\(false\)/.test(chrome) && driver.includes("K18d"), "Opening Ask must close Export (exclusive chrome)");
+assert(chrome.includes("function setExportMenu") && /function setExportMenu\(on\)[\s\S]*?setKeysPane\(false\)/.test(chrome) && driver.includes("K18e"), "Opening Export must close Keys (exclusive chrome)");
+assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?setExportMenu\(false\)/.test(chrome) && driver.includes("K18f"), "Opening Keys must close Export (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?setLlmPane\(false\)/.test(chrome) && driver.includes("K18g"), "Opening Present must close Ask (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?setKeysPane\(false\)/.test(chrome) && driver.includes("K18h"), "Opening Present must close Keys (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?setExportMenu\(false\)/.test(chrome) && driver.includes("K18i"), "Opening Present must close Export (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?closeSourcePane\(\)/.test(chrome) && driver.includes("K18j"), "Opening Present must close Evidence (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?setLensOpen\(false\)/.test(chrome) && driver.includes("K18k"), "Opening Present must close Lens (exclusive chrome)");
+assert(chrome.includes("function applyPresent") && /function applyPresent\(on\w*\)[\s\S]*?setRouteOpen\(false\)/.test(chrome) && driver.includes("K18l"), "Opening Present must close Route (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?closeSourcePane\(\)/.test(chrome) && driver.includes("K18m"), "Opening Ask must close Evidence (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?setLensOpen\(false\)/.test(chrome) && driver.includes("K18n"), "Opening Ask must close Lens (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?setRouteOpen\(false\)/.test(chrome) && driver.includes("K18o"), "Opening Ask must close Route (exclusive chrome)");
+assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?closeSourcePane\(\)/.test(chrome) && driver.includes("K18p"), "Opening Keys must close Evidence (exclusive chrome)");
+assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?setLensOpen\(false\)/.test(chrome) && driver.includes("K18q"), "Opening Keys must close Lens (exclusive chrome)");
+assert(chrome.includes("function setKeysPane") && /function setKeysPane\(on\)[\s\S]*?setRouteOpen\(false\)/.test(chrome) && driver.includes("K18r"), "Opening Keys must close Route (exclusive chrome)");
+assert(chrome.includes("function setExportMenu") && /function setExportMenu\(on\)[\s\S]*?closeSourcePane\(\)/.test(chrome) && driver.includes("K18s"), "Opening Export must close Evidence (exclusive chrome)");
+assert(chrome.includes("function setExportMenu") && /function setExportMenu\(on\)[\s\S]*?setLensOpen\(false\)/.test(chrome) && driver.includes("K18t"), "Opening Export must close Lens (exclusive chrome)");
+assert(chrome.includes("function setExportMenu") && /function setExportMenu\(on\)[\s\S]*?setRouteOpen\(false\)/.test(chrome) && driver.includes("K18u"), "Opening Export must close Route (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?setLlmPane\(false\)/.test(js) && driver.includes("K18v"), "Opening Evidence must close Ask (exclusive chrome)");
+assert(js.includes("function setLensOpen") && /function setLensOpen\(on\w*\)[\s\S]*?setLlmPane\(false\)/.test(js) && driver.includes("K18w"), "Opening Lens must close Ask (exclusive chrome)");
+assert(js.includes("function setRouteOpen") && /function setRouteOpen\(on\w*\)[\s\S]*?setLlmPane\(false\)/.test(js) && driver.includes("K18x"), "Opening Route must close Ask (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?setKeysPane\(false\)/.test(js) && driver.includes("K18y"), "Opening Evidence must close Keys (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?setExportMenu\(false\)/.test(js) && driver.includes("K18z"), "Opening Evidence must close Export (exclusive chrome)");
+assert(js.includes("function setLensOpen") && /function setLensOpen\(on\w*\)[\s\S]*?setKeysPane\(false\)/.test(js) && driver.includes("K18aa"), "Opening Lens must close Keys (exclusive chrome)");
+assert(js.includes("function setLensOpen") && /function setLensOpen\(on\w*\)[\s\S]*?setExportMenu\(false\)/.test(js) && driver.includes("K18ab"), "Opening Lens must close Export (exclusive chrome)");
+assert(js.includes("function setRouteOpen") && /function setRouteOpen\(on\w*\)[\s\S]*?setKeysPane\(false\)/.test(js) && driver.includes("K18ac"), "Opening Route must close Keys (exclusive chrome)");
+assert(js.includes("function setRouteOpen") && /function setRouteOpen\(on\w*\)[\s\S]*?setExportMenu\(false\)/.test(js) && driver.includes("K18ad"), "Opening Route must close Export (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?setLensOpen\(false\)/.test(js) && driver.includes("K18ae"), "Opening Evidence must close Lens (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?setRouteOpen\(false\)/.test(js) && driver.includes("K18af"), "Opening Evidence must close Route (exclusive chrome)");
+assert(js.includes("function setRouteOpen") && /function setRouteOpen\(on\w*\)[\s\S]*?setLensOpen\(false\)/.test(js) && driver.includes("K18ag"), "Opening Route must close Lens (exclusive chrome)");
+assert(js.includes("function setLensOpen") && /function setLensOpen\(on\w*\)[\s\S]*?setRouteOpen\(false\)/.test(js) && driver.includes("K18ah"), "Opening Lens must close Route (exclusive chrome)");
+assert(chrome.includes("function setLlmPane") && /function setLlmPane\(on\)[\s\S]*?applyPresent\(false\)/.test(chrome) && driver.includes("K18ai"), "Opening Ask must close Present (exclusive chrome)");
+assert(js.includes("function revealSourcePane") && /function revealSourcePane\(\)[\s\S]*?applyPresent\(false\)/.test(js) && driver.includes("K18aj"), "Opening Evidence must close Present (exclusive chrome)");
+assert(js.includes("__graphideScrollDrive") && js.includes("function onSrcBodyScroll") && js.includes("function applyScrollDriveCamera") && /srcBody\.addEventListener\(\s*"scroll"/.test(js) && driver.includes("S1a"), "Evidence #srcBody scroll must publish ScrollDrive and lerp the camera (S1a)");
+assert(js.includes("function applyScrollDriveCfg") && js.includes("cfgActiveId") && js.includes("scroll-cfg-hot") && js.includes("cfgUnroll") && driver.includes("S1b"), "Evidence scroll must unroll fixture CFG and glow the active block (S1b)");
+assert(js.includes("function applyScrollDriveMacro") && js.includes("macroLod") && js.includes("scrollVel") && js.includes("scroll-macro-hot") && js.includes("data-scroll-macro") && driver.includes("S1c"), "Evidence scroll must enter macro Map LOD on file top / fast flick (S1c)");
+assert(js.includes("function scanScrollDriveCfgSpans") && js.includes("cfgSpanKind") && js.includes("data-cfg-span") && js.includes("scroll-cfg-sib") && js.includes("scroll-cfg-if") && js.includes("scroll-cfg-loop") && js.includes("scroll-cfg-try") && driver.includes("S1d"), "Evidence scroll must annotate if/loop/try CFG spans (S1d)");
+const scrollDriveMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/scroll-drive.md"), "utf8");
+assert(
+  scrollDriveMap.includes("## Sub-features") &&
+    scrollDriveMap.includes("## How to get to it (user POV)") &&
+    scrollDriveMap.includes("## Driving it with the harness") &&
+    scrollDriveMap.includes("## Gotchas"),
+  "scroll-drive feature map must use the four headings"
+);
+assert(scrollDriveMap.includes("S1a") && scrollDriveMap.includes("__graphideScrollDrive") && scrollDriveMap.includes("#srcBody"), "scroll-drive feature map must name S1a / ScrollDrive / #srcBody");
+assert(scrollDriveMap.includes("S1b") && scrollDriveMap.includes("cfgActiveId") && scrollDriveMap.includes("scroll-cfg-hot"), "scroll-drive feature map must name S1b CFG unroll");
+assert(scrollDriveMap.includes("S1c") && scrollDriveMap.includes("macroLod") && scrollDriveMap.includes("data-lod"), "scroll-drive feature map must name S1c macro LOD");
+assert(scrollDriveMap.includes("S1d") && scrollDriveMap.includes("cfgSpanKind") && scrollDriveMap.includes("data-cfg-span"), "scroll-drive feature map must name S1d CFG spans");
+assert(js.includes("function applyScrollDriveAnchors") && js.includes("scrollDriveAnchorFromMeta") && js.includes("data-scroll-anchor") && js.includes("scroll-anchor-api") && js.includes("anchorFocus") && js.includes("anchorCounts") && driver.includes("S1e"), "Evidence scroll must stamp API/DB/Service/Utility kind anchors (S1e)");
+assert(css.includes("--g-anchor-api") && css.includes("--g-anchor-db") && css.includes("--g-anchor-svc") && css.includes("--g-anchor-util") && css.includes('data-scroll-anchor="api"'), "CSS must define S1e kind-anchor palette");
+assert(scrollDriveMap.includes("S1e") && scrollDriveMap.includes("anchorFocus") && scrollDriveMap.includes("data-scroll-anchor"), "scroll-drive feature map must name S1e kind anchors");
+assert(js.includes("function applyScrollDriveDetailGate") && js.includes("wantScrollDriveDetailNear") && js.includes("detailNear") && js.includes("data-scroll-detail") && driver.includes("S1f"), "Evidence scroll must gate deep clutter until focus approaches (S1f)");
+assert(css.includes('data-scroll-detail="0"') && css.includes('data-scroll-detail="1"') && (css.includes("transition: opacity 180ms ease") || css.includes("transition: opacity var(--scroll-blend-ms, 180ms) ease")), "CSS must define S1f hide-until-focus opacity gate");
+assert(scrollDriveMap.includes("S1f") && scrollDriveMap.includes("detailNear") && scrollDriveMap.includes("data-scroll-detail"), "scroll-drive feature map must name S1f clutter gate");
+assert(js.includes("function scrollDriveEaseFromVel") && js.includes("function setCamEase") && js.includes("camEase") && js.includes("CAM_EASE_LOOSE") && js.includes("CAM_EASE_SNAP") && /tickCam\(\)[\s\S]*?camEase/.test(js) && driver.includes("S1g"), "Evidence scrollVel must ease tickCam lerp (S1g)");
+assert(scrollDriveMap.includes("S1g") && scrollDriveMap.includes("camEase") && scrollDriveMap.includes("scrollDriveEaseFromVel"), "scroll-drive feature map must name S1g velocity polish");
+assert(js.includes("function resolveScrollDriveTargetNode") && js.includes("function spanLinesOfScrollDriveNode") && js.includes("lineMapHit") && /resolveScrollDriveTargetNode\s*\(\s*activeLine/.test(js) && driver.includes("S1h"), "Evidence activeLine must map to IR/fixture span owner (S1h)");
+assert(scrollDriveMap.includes("S1h") && scrollDriveMap.includes("lineMapHit") && scrollDriveMap.includes("resolveScrollDriveTargetNode"), "scroll-drive feature map must name S1h line→node");
+assert(js.includes("function assignScrollDriveCfgNestDepth") && js.includes("function pickScrollDriveCfgNestFocus") && js.includes("cfgNestDepth") && js.includes("cfgNestMax") && js.includes("cfgNestExpanded") && js.includes("scroll-cfg-nest-hot") && js.includes("data-cfg-depth") && driver.includes("S1i"), "Evidence scroll must expand nested CFG by brace/IR depth (S1i)");
+assert(scrollDriveMap.includes("S1i") && scrollDriveMap.includes("cfgNestDepth") && scrollDriveMap.includes("scroll-cfg-nest-hot"), "scroll-drive feature map must name S1i nest depth");
+assert(css.includes("scroll-cfg-nest-anc") && css.includes("scroll-cfg-nest-sib"), "CSS must define S1i nest ancestor / sibling styles");
+assert(js.includes("function scrollDriveBlendMsFromEase") && js.includes("function applyScrollDriveBlendPaint") && js.includes("blendMs") && js.includes("data-scroll-blend") && js.includes("--scroll-blend-ms") && driver.includes("S1j"), "Evidence scroll must ease nest/macro paint with camEase-tied blend (S1j)");
+assert(css.includes('data-scroll-blend="1"') && css.includes("--scroll-blend-ms") && css.includes("scroll-cfg-nest-hot") && css.includes("var(--scroll-blend-ms, 180ms)"), "CSS must define S1j nest/macro blend transitions");
+assert(scrollDriveMap.includes("S1j") && scrollDriveMap.includes("blendMs") && scrollDriveMap.includes("scrollDriveBlendMsFromEase") && scrollDriveMap.includes("data-scroll-blend"), "scroll-drive feature map must name S1j nest glow / LOD blend");
+assert(js.includes("reducedMotion") && js.includes("CAM_EASE_SNAP") && /scrollDriveBlendMsFromEase[\s\S]*?reduceMotion/.test(js) && /scheduleScrollDriveEaseSettle[\s\S]*?reduceMotion/.test(js) && driver.includes("S1k"), "Evidence scroll must respect prefers-reduced-motion (S1k)");
+assert(scrollDriveMap.includes("S1k") && scrollDriveMap.includes("reducedMotion") && scrollDriveMap.includes("reduceMotion"), "scroll-drive feature map must name S1k reduced-motion");
+assert(js.includes("function scheduleScrollDriveFlush") && js.includes("function flushScrollDrive") && js.includes("rafCoalesce") && js.includes("rafFlushes") && js.includes("rafMerged") && /function onSrcBodyScroll\(\)[\s\S]*?scheduleScrollDriveFlush/.test(js) && driver.includes("S1l"), "Evidence scroll must coalesce into one rAF flush per frame (S1l)");
+assert(scrollDriveMap.includes("S1l") && scrollDriveMap.includes("rafCoalesce") && scrollDriveMap.includes("scheduleScrollDriveFlush") && scrollDriveMap.includes("rafMerged"), "scroll-drive feature map must name S1l rAF coalesce");
+assert(js.includes("function pauseScrollDriveForPresent") && js.includes("function resumeScrollDriveAfterPresent") && js.includes("presentPaused") && js.includes("data-scroll-present-paused") && /function applyPresent\(on\w*\)[\s\S]*?pauseScrollDriveForPresent/.test(js) && /function applyPresent\(on\w*\)[\s\S]*?resumeScrollDriveAfterPresent/.test(js) && /function applyScrollDriveCamera[\s\S]*?isPresenting/.test(js) && /function flushScrollDrive\(\)[\s\S]*?presentPaused/.test(js) && driver.includes("S1m"), "Present stage must pause ScrollDrive camera and resume on exit (S1m)");
+assert(scrollDriveMap.includes("S1m") && scrollDriveMap.includes("presentPaused") && scrollDriveMap.includes("pauseScrollDriveForPresent") && scrollDriveMap.includes("data-scroll-present-paused"), "scroll-drive feature map must name S1m Present pause");
+assert(js.includes("function applyScrollDriveLineMapGlow") && js.includes("function clearScrollDriveLineMapPaint") && js.includes("scroll-linemap-hit") && js.includes("scroll-linemap-miss") && js.includes("lineMapPulse") && js.includes("data-scroll-linemap") && /applyScrollDriveLineMapGlow\s*\(\s*lineMapHit/.test(js) && driver.includes("S1n"), "Evidence lineMapHit must pulse mapped node glow distinct from scroll-cfg-hot (S1n)");
+assert(css.includes("scroll-linemap-pulse") && css.includes("scroll-linemap-hit") && css.includes("scroll-linemap-miss") && css.includes("@keyframes scroll-linemap-pulse"), "CSS must define S1n lineMapHit glow pulse");
+assert(scrollDriveMap.includes("S1n") && scrollDriveMap.includes("lineMapPulse") && scrollDriveMap.includes("applyScrollDriveLineMapGlow") && scrollDriveMap.includes("scroll-linemap-hit"), "scroll-drive feature map must name S1n lineMapHit glow");
+assert(
+  scrollDriveMap.includes("S1h") &&
+    scrollDriveMap.includes("S1i") &&
+    scrollDriveMap.includes("S1j") &&
+    scrollDriveMap.includes("S1k") &&
+    scrollDriveMap.includes("S1l") &&
+    scrollDriveMap.includes("S1m") &&
+    scrollDriveMap.includes("S1n") &&
+    scrollDriveMap.includes("S1o") &&
+    scrollDriveMap.includes("lineMapHit") &&
+    scrollDriveMap.includes("cfgNestDepth") &&
+    scrollDriveMap.includes("blendMs") &&
+    scrollDriveMap.includes("reducedMotion") &&
+    scrollDriveMap.includes("rafCoalesce") &&
+    scrollDriveMap.includes("presentPaused") &&
+    scrollDriveMap.includes("lineMapPulse"),
+  "scroll-drive feature map must sync S1h–S1n (+ S1o note) after S1docs S1a–S1g"
+);
+const lensOverlayMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lens.md"), "utf8");
+assert(lensOverlayMap.includes("P6s") && lensOverlayMap.includes("K14k") && /does \*\*not\*\* exit Presentation Stage/.test(lensOverlayMap), "lens feature map must document Present stage overlay (P6s/K14k)");
+assert(js.includes("hideTip()") && /function revealSourcePane\(\)[\s\S]*?hideTip\(\)/.test(js) && /function revealSourcePane\(\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function applyPresent\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function applyPresent\(on\w*\)[\s\S]*?tip\.hidden = true/.test(js) && /function setLensOpen\(on\w*\)[\s\S]*?hideTip\(\)/.test(js) && /function setLensOpen\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /function setRouteOpen\(on\w*\)[\s\S]*?hideTip\(\)/.test(js) && /function setRouteOpen\(on\w*\)[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && /e\.key === "\/" && graphSearch[\s\S]*?hideTip\(\)/.test(js) && /e\.key === "\/" && graphSearch[\s\S]*?toastEl\.classList\.remove\("on"\)/.test(js) && driver.includes("K19") && driver.includes("K19b") && driver.includes("K19c") && driver.includes("K19d") && driver.includes("K19e") && driver.includes("K19f") && driver.includes("K19g") && driver.includes("K19h") && driver.includes("K20") && driver.includes("K20b") && driver.includes("K20c") && driver.includes("K20d") && driver.includes("K20e") && driver.includes("K20f") && driver.includes("K20g") && driver.includes("K20h"), "Opening Keys / Export / Ask / Evidence / Present / Lens / Route / Find must hideTip and clear toast so chrome does not stick");
+assert(driver.includes("K8") && driver.includes("K8b") && driver.includes("metaKey: true"), "verify driver must prove Cmd / Ctrl chords do not stamp or toggle desk keys");
+assert(driver.includes("K9") && driver.includes('page.focus("#egoHops")') && driver.includes("K12") && driver.includes('page.focus("#llmPreset")'), "verify driver must prove focused Ego hops and Ask host <select> keep 2 / S / X");
+assert(js.includes("e.target === graphSearch") && driver.includes("K13") && driver.includes("K13b") && driver.includes("K13c") && driver.includes("K13d") && driver.includes("K13e") && driver.includes("K13f"), "Escape on focused Find must blur (and still close Route)");
+assert(js.includes("if (exportMenu && !exportMenu.hidden)") && js.includes("goBack()") && driver.includes("K14") && driver.includes("K14b") && driver.includes("K14c") && driver.includes("K14d") && driver.includes("K14e") && driver.includes("K14f") && driver.includes("K14g") && driver.includes("K14h") && driver.includes("K14i") && driver.includes("K14j") && driver.includes("K14k") && driver.includes("K14l") && driver.includes("CR1b") && driver.includes("CR1c") && driver.includes("CR1d") && js.includes("let cancelling") && js.includes("if (cancelling) return") && js.includes("function requestCancel") && driver.includes("K15") && driver.includes("K15b") && driver.includes("K15c") && driver.includes("K15d") && driver.includes("K15e") && driver.includes("K15f") && driver.includes("K15g") && driver.includes("K15h") && driver.includes("K15i") && driver.includes("K15j") && driver.includes("K15k") && driver.includes("K15l") && driver.includes("K15m") && driver.includes("K15n") && driver.includes("K15o") && driver.includes("K15p") && driver.includes("K15q") && driver.includes("K15r") && driver.includes("K15s") && driver.includes("K15t") && driver.includes("K15u") && driver.includes("K15v") && driver.includes("K15w") && driver.includes("K15x") && driver.includes("K15y") && driver.includes("K15z") && driver.includes("K15aa") && driver.includes("K15ab") && driver.includes("K15ac") && driver.includes("P6b") && driver.includes("P6c") && driver.includes("P6d") && driver.includes("P6e") && driver.includes("P6f") && driver.includes("P6g") && driver.includes("P6h") && driver.includes("P6i") && driver.includes("P6j") && driver.includes("P6k") && driver.includes("P6l") && driver.includes("P6m") && driver.includes("P6n") && driver.includes("P6o") && driver.includes("P6p") && driver.includes("P6q") && driver.includes("P6r") && driver.includes("P6s") && driver.includes("P6t") && driver.includes("K16") && driver.includes("K16b") && js.includes("promptEsc") && js.includes("exportMenu && !exportMenu.hidden") && js.includes("keysPane && !keysPane.hidden"), "Backspace must close Export / Route before goBack");
+assert(driver.includes("A3b") && driver.includes("isComposing: true"), "verify driver must prove IME-composing Enter does not send");
+assert(/function sendLlmAsk\(\) \{\s*if \(!llmAsk\) return;\s*llmAsk\.focus\(\);/.test(js) && driver.includes("A3c"), "Ask must return focus to #llmAsk so the next question does not fire desk keys");
+assert(driver.includes("K10") && driver.includes("repeat: true"), "verify driver must prove auto-repeat does not flip toggles or stamp");
+assert(js.includes('e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")') && driver.includes("K11"), "a focused kind-pill checkbox must not swallow desk keys");
 assert(driver.includes("path-walk.png") && driver.includes("pathWalkBtn") && driver.includes("PW1") && driver.includes(".feat-chip.walk"), "verify driver must drive Map path walk on the Review desk");
 assert(driver.includes("night.png") && driver.includes("#themeNight") && driver.includes("N1") && driver.includes("classList.contains(\"night\")"), "verify driver must drive Day / Night appearance on the Review desk");
 assert(driver.includes("apple-chrome.png") && driver.includes("AC0") && driver.includes("#reviewBtn") && /007aff/i.test(driver), "verify driver must drive Sequoia Day chrome on the explorer Map");

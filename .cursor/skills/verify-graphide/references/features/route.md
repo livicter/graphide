@@ -22,6 +22,14 @@ journey is finite.
 - Export may offer `#exportRouteShare` after a real route. Fail closed
   when unreachable. Canonical PNG/SVG still strip viewer state.
 - Stamp / skip stay human. Route never writes `.graphide/stamps/`.
+- Opening Route hides the hover tip (`K19g`) and clears the toast (`K20g`), same chrome exclusivity as Keys / Export / Ask / Evidence / Present / Lens.
+- Opening Present closes Route (`K18l`), same exclusive chrome as Present closing Ask / Keys / Export / Evidence / Lens.
+- Opening Ask closes Route (`K18o`), same exclusive chrome as Present closing Route (`K18l`).
+- Opening Keys closes Route (`K18r`), same exclusive chrome as Present closing Route (`K18l`).
+- Opening Export closes Route (`K18u`), same exclusive chrome as Present closing Route (`K18l`).
+- Opening Route closes Ask (`K18x`), same exclusive chrome as Lens closing Ask (`K18w`).
+- Opening Route closes Keys (`K18ac`), same exclusive chrome as Lens closing Keys (`K18aa`).
+- Opening Route closes Export (`K18ad`), same exclusive chrome as Lens closing Export (`K18ab`).
 
 ## How to get to it (user POV)
 
@@ -52,11 +60,29 @@ Press `R` (or `?route=1`). `window.__graphideRoute` holds the path.
 Driver assertions:
 
 - `#pathBtn` is on and `#routeReceipt` is visible
+- opening Route hides `#tip` (`K19g`) and clears `#toast` (`K20g`)
+- opening Present closes Route (`K18l`)
+- opening Ask closes Route (`K18o`)
+- opening Keys closes Route (`K18r`)
+- opening Export closes Route (`K18u`)
+- opening Route closes Ask (`K18x`)
+- opening Route closes Keys (`K18ac`)
+- opening Route closes Export (`K18ad`)
 - `window.__graphideRoute.ok` and `hops.length >= 1`
 - some hop is Subscribes subscribe → events
 - highlighted `.on-route` nodes are only path nodes (`extra === 0`)
 - `#routeNext` past the end stays on the last hop (no loop)
 - screenshot `verification/route.png` is not a black frame
+- explorer Slice: `.route-dim` beats distance grey — off-route ring
+  nodes ≤ the off-route walk (≤ 0.22, `RT8`)
+- explorer Enter `b-render`: off-route grey members sit at 0.18, not
+  distance grey 0.56 / 0.40 / 0.28 (`RT8b`)
+- explorer Slice with `away=1`: `.route-dim` beats the off-program
+  `.away` fade (0.38) — off-route walk ≤ 0.22 < on-route walk (`RT8c`)
+- explorer Slice with Ego on `n1`: off-route `.ego` neighbors ≤ 0.22 <
+  on-route ones (`RT8d`); same on Enter `b-render` with Ego on `n0`
+  (`RT8e`)
+- explorer Map community LOD: on-path `.bubble-card.on-route` at full opacity; off-path `.bubble-card.route-dim` ≤ 0.22 (`RT9`)
 - `.graphide/stamps/` is still empty
 
 ## Gotchas
