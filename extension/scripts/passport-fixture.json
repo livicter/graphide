@@ -1,0 +1,362 @@
+{
+  "version": 2,
+  "id": "passport-ade-phase-1.2-fixtures",
+  "title": "Plan Passport \u2014 ADE Phase 1.2 richer fixtures",
+  "status": "pending",
+  "summary": "Architecture / API / risk / test rows with Delta-vocab impact chips for upstream sign-off before agent writes.",
+  "targets": [
+    {
+      "id": "t1",
+      "label": "Passport paint + bind",
+      "path": "extension/media/src/graph/desk.js",
+      "layer": "architecture",
+      "deltaStatus": "Changed",
+      "impact": "Richer row chrome + impact cards",
+      "traj": "sub-edit"
+    },
+    {
+      "id": "t2",
+      "label": "Explorer Passport tab",
+      "path": "extension/media/src/chrome/GraphBar.jsx",
+      "layer": "chrome",
+      "impact": "Sibling tab order unchanged",
+      "clusterKind": "Stable"
+    },
+    {
+      "id": "t3",
+      "label": "Harness + verify gate",
+      "path": "scripts/verify-graphide.js",
+      "layer": "harness",
+      "deltaStatus": "Added",
+      "impact": "PF1\u2013PF5 fixture drivers",
+      "traj": "sub-verify"
+    },
+    {
+      "id": "t4",
+      "label": "Trace DAG polish",
+      "path": "extension/media/src/graph/trajectory-fixture.js",
+      "layer": "trace",
+      "impact": "A1a semantics preserved",
+      "clusterKind": "Stable",
+      "traj": "sub-fixture"
+    },
+    {
+      "id": "t5",
+      "label": "Passport fixture JSON",
+      "path": "extension/scripts/passport-fixture.json",
+      "layer": "harness",
+      "deltaStatus": "Changed",
+      "impact": "Sim rows for architecture/API/risk/test",
+      "traj": "sub-passport"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "c1",
+      "kind": "function",
+      "name": "paintPassportWorkspace",
+      "sig": "(title) => void",
+      "stability": "draft",
+      "deltaClass": "Presentation",
+      "breaking": false,
+      "change": "Renders enriched fixture rows",
+      "traj": "sub-passport"
+    },
+    {
+      "id": "c2",
+      "kind": "function",
+      "name": "getPassport",
+      "sig": "() => PassportFixture",
+      "stability": "draft",
+      "deltaClass": "Semantic",
+      "breaking": false,
+      "change": "Accepts version-2 richer fields"
+    },
+    {
+      "id": "c3",
+      "kind": "function",
+      "name": "setPassportGate",
+      "sig": "(state) => void",
+      "stability": "draft",
+      "deltaClass": "Topology",
+      "breaking": false,
+      "change": "Gate state fixture-only",
+      "traj": "sub-edit"
+    },
+    {
+      "id": "c4",
+      "kind": "function",
+      "name": "bindTrajectoryPage",
+      "sig": "() => void",
+      "stability": "draft",
+      "deltaClass": "Topology",
+      "breaking": false,
+      "change": "Trace bind unchanged (A1a)",
+      "traj": "sub-fixture"
+    },
+    {
+      "id": "c5",
+      "kind": "function",
+      "name": "renderPassportImpact",
+      "sig": "(fx) => string",
+      "stability": "draft",
+      "deltaClass": "Presentation",
+      "breaking": false,
+      "change": "Structured impact rows + Delta chips",
+      "traj": "sub-passport"
+    }
+  ],
+  "risks": [
+    {
+      "id": "r1",
+      "level": "high",
+      "area": "gate-state writes",
+      "note": "must never touch .graphide/stamps/",
+      "mitigation": "setPassportGate is in-memory only",
+      "blast": ".graphide/stamps/",
+      "traj": "sub-passport"
+    },
+    {
+      "id": "r2",
+      "level": "med",
+      "area": "agent write ordering",
+      "note": "file writes stay blocked until Approve",
+      "mitigation": "gatedWrites stay data-blocked until approved",
+      "blast": "extension/media/**",
+      "traj": "sub-edit"
+    },
+    {
+      "id": "r3",
+      "level": "low",
+      "area": "explorer tab ordering",
+      "note": "Passport remains click-only",
+      "mitigation": "no digit-key binding",
+      "blast": "#workspaces"
+    },
+    {
+      "id": "r4",
+      "level": "med",
+      "area": "A1a semantics",
+      "note": "Trace polish must keep trajectory-dag host + pin attrs",
+      "mitigation": "This slice does not edit Trace paint/bind",
+      "blast": "#trajCanvas",
+      "traj": "sub-fixture"
+    },
+    {
+      "id": "r5",
+      "level": "med",
+      "area": "live Delta mount",
+      "note": "Impact must stay vocabulary stub",
+      "mitigation": "No #deltaCanvas under #passportPage",
+      "blast": "#passportImpact",
+      "traj": "sub-passport"
+    }
+  ],
+  "testStrategy": [
+    {
+      "id": "p1",
+      "kind": "assert",
+      "desc": "tab present, click-only (no digit key)",
+      "fixture": "?passport=1&ws=passport",
+      "covers": "chrome",
+      "traj": "sub-passport"
+    },
+    {
+      "id": "p2",
+      "kind": "assert",
+      "desc": "gate banner starts pending with blocked paths",
+      "fixture": "P3",
+      "covers": "gate"
+    },
+    {
+      "id": "p3",
+      "kind": "e2e",
+      "desc": "Approve unlocks gate fixture state; Reject re-blocks",
+      "fixture": "P6",
+      "covers": "gate",
+      "traj": "sub-verify"
+    },
+    {
+      "id": "p4",
+      "kind": "assert",
+      "desc": "impact stub keeps Architecture Delta vocabulary text",
+      "fixture": "P5",
+      "covers": "impact"
+    },
+    {
+      "id": "p5",
+      "kind": "assert",
+      "desc": "#passportDeltaVocab names statuses/classes/clusters + impact regions; no live Delta mount",
+      "fixture": "P5b",
+      "covers": "impact",
+      "traj": "sub-edit"
+    },
+    {
+      "id": "p6",
+      "kind": "assert",
+      "desc": "architecture/API/risk/test rows expose layer\u00b7delta\u00b7mitigation\u00b7fixture fields",
+      "fixture": "PF1\u2013PF5",
+      "covers": "targets,contracts,risks,tests,impact",
+      "traj": "sub-fixture"
+    }
+  ],
+  "gatedWrites": [
+    {
+      "path": "extension/media/src/graph/desk.js",
+      "reason": "agent would edit paint/bind",
+      "traj": "sub-edit"
+    },
+    {
+      "path": "extension/media/src/chrome/GraphBar.jsx",
+      "reason": "agent would add chrome"
+    },
+    {
+      "path": "extension/media/main.css",
+      "reason": "agent would restyle passport"
+    },
+    {
+      "path": "extension/media/src/graph/trajectory-fixture.js",
+      "reason": "agent would reshape Trace fixture",
+      "traj": "sub-fixture"
+    },
+    {
+      "path": "extension/scripts/passport-fixture.json",
+      "reason": "agent would reshape Passport sim",
+      "traj": "sub-passport"
+    }
+  ],
+  "impact": {
+    "callGraphs": [
+      {
+        "id": "cg1",
+        "label": "paintPassportWorkspace \u2190 renderExplorerList(ws)",
+        "detail": "Explorer list paint owns Passport page mount",
+        "deltaStatus": "Changed",
+        "deltaClass": "Topology",
+        "traj": "sub-edit"
+      },
+      {
+        "id": "cg2",
+        "label": "setPassportGate \u2190 #passportSign Approve/Reject",
+        "detail": "Sign-off flips gate without disk writes",
+        "deltaClass": "Semantic",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "cg3",
+        "label": "bindTrajectoryPage \u2190 renderExplorerList(trace)",
+        "detail": "Trace bind stays on A1a path",
+        "deltaClass": "Topology",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "cg4",
+        "label": "renderPassportImpact \u2190 renderPassportBody",
+        "detail": "Structured rows + Delta vocab chips",
+        "deltaStatus": "Added",
+        "deltaClass": "Presentation"
+      },
+      "legacy string impact row (static chrome)"
+    ],
+    "apiContracts": [
+      {
+        "id": "ac1",
+        "label": "getPassport() \u2192 PASSPORT_FIXTURE | window.__graphidePassport",
+        "detail": "Harness ?passport=1 may override embedded fixture",
+        "deltaStatus": "Changed",
+        "deltaClass": "Semantic",
+        "traj": "sub-verify"
+      },
+      {
+        "id": "ac2",
+        "label": "PASSPORT_GATE \u2208 pending|approved|rejected",
+        "detail": "URL ?gate= seeds + replaceState sync",
+        "deltaClass": "Semantic",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "ac3",
+        "label": "TRAJECTORY_FIXTURE.nodes[].artifact|diff pins on Trace",
+        "detail": "A1a pin attrs untouched by Passport enrich",
+        "deltaClass": "Topology",
+        "clusterKind": "Stable"
+      }
+    ],
+    "invariants": [
+      {
+        "id": "inv1",
+        "label": "no digit-key binding for passport",
+        "detail": "Click-only workspace tab",
+        "deltaClass": "Presentation",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "inv2",
+        "label": "gate state fixture-only (no .graphide/stamps/)",
+        "detail": "Approve never posts stamps",
+        "deltaClass": "Semantic",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "inv3",
+        "label": "Architecture Delta vocabulary in #passportDeltaVocab stub only",
+        "detail": "No live #deltaCanvas mount on Passport",
+        "deltaClass": "Presentation",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "inv4",
+        "label": "Trace keeps #trajCanvas[data-testid=trajectory-dag]",
+        "detail": "A1a host preserved",
+        "deltaClass": "Topology",
+        "clusterKind": "Stable"
+      },
+      {
+        "id": "inv5",
+        "label": "no live #deltaCanvas mount on Passport",
+        "detail": "Impact readability uses vocabulary chips only",
+        "deltaClass": "Presentation",
+        "clusterKind": "Stable"
+      }
+    ],
+    "deltaVocab": {
+      "statuses": [
+        "Added",
+        "Removed",
+        "Changed",
+        "Moved",
+        "Rerouted"
+      ],
+      "classes": [
+        "Semantic",
+        "Topology",
+        "Presentation"
+      ],
+      "clusterKinds": [
+        "Stable",
+        "Split",
+        "Merge",
+        "Relabel",
+        "Added",
+        "Removed"
+      ],
+      "regions": [
+        {
+          "id": "structural",
+          "label": "Structural delta",
+          "detail": "Pair by (kind, fqn). Exact facts only \u2014 no blast radius or merge safety."
+        },
+        {
+          "id": "impact",
+          "label": "Impact regions",
+          "detail": "Plan-projected call graphs, API contracts, and invariants before agent writes."
+        },
+        {
+          "id": "community",
+          "label": "Cluster continuity",
+          "detail": "sticky_match BubbleId kinds: Stable / Split / Merge / Relabel."
+        }
+      ]
+    }
+  }
+}

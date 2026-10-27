@@ -374,14 +374,33 @@
     if (p) p.hidden = true;
   }
 
+  if (params.get("traj") && params.get("trace") !== "1") {
+    window.__graphideTrajectoryFocus = params.get("traj");
+  }
+  {
+    const sealEarly = params.get("seal") || "";
+    if (sealEarly === "sealed" || sealEarly === "open" || sealEarly === "unlock" || sealEarly === "agent") {
+      window.__graphideSealStatus = sealEarly === "agent" ? "open" : sealEarly;
+    }
+  }
+
   function afterPaint() {
     setTimeout(function () {
       if (clickProgram) clickMainProgram();
       if (search) applySearch(search);
-      if (ws) {
+      // Prefer live location.search so Trace↔Passport deep-link replaceState
+      // is not clobbered by a stale boot-time ws= closure.
+      const liveWs = (function () {
+        try {
+          return new URLSearchParams(location.search).get("ws") || ws;
+        } catch (_err) {
+          return ws;
+        }
+      })();
+      if (liveWs) {
         const on = document.querySelector("#workspaces [data-ws].on");
-        if (!on || on.getAttribute("data-ws") !== ws) {
-          const tab = document.querySelector('#workspaces [data-ws="' + ws + '"]');
+        if (!on || on.getAttribute("data-ws") !== liveWs) {
+          const tab = document.querySelector('#workspaces [data-ws="' + liveWs + '"]');
           if (tab) tab.click();
         }
       }
@@ -444,7 +463,116 @@
       });
   }
 
-  if (params.get("lifecycle") === "1") {
+  function loadPassportFixture(done) {
+    if (params.get("passportEmpty") === "1") {
+      window.__graphidePassport = {
+        version: 2,
+        id: "passport-ade-empty-fixture",
+        title: "Plan Passport",
+        status: "pending",
+        summary: "No plan rows yet — empty fixture",
+        targets: [],
+        contracts: [],
+        risks: [],
+        testStrategy: [],
+        gatedWrites: [],
+        impact: { callGraphs: [], apiContracts: [], invariants: [] },
+      };
+      window.__graphidePassportError = "";
+      done();
+      return;
+    }
+    fetch("./passport-fixture.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no passport-fixture.json (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (fx) {
+        const ok =
+          fx &&
+          Array.isArray(fx.targets) &&
+          Array.isArray(fx.contracts) &&
+          Array.isArray(fx.gatedWrites);
+        if (!ok) throw new Error("passport-fixture.json is not a passport fixture");
+        window.__graphidePassport = fx;
+        window.__graphidePassportError = "";
+        done();
+      })
+      .catch(function (err) {
+        window.__graphidePassport = null;
+        window.__graphidePassportError = String(err && err.message ? err.message : err);
+        done();
+      });
+  }
+
+  function loadTrajectoryFixture(done) {
+    const focus = params.get("traj") || "";
+    if (focus) window.__graphideTrajectoryFocus = focus;
+    if (params.get("traceEmpty") === "1") {
+      window.__graphideTrajectory = {
+        version: 2,
+        id: "ade-empty-fixture",
+        title: "Execution trajectory",
+        subtitle: "No subtasks yet — empty fixture",
+        nodes: [],
+        edges: [],
+      };
+      window.__graphideTrajectoryError = "";
+      done();
+      return;
+    }
+    fetch("./trajectory-fixture.json", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no trajectory-fixture.json (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (fx) {
+        const ok =
+          fx &&
+          Array.isArray(fx.nodes) &&
+          fx.nodes.length >= 3 &&
+          Array.isArray(fx.edges) &&
+          fx.edges.length >= 2;
+        if (!ok) throw new Error("trajectory-fixture.json is not a trajectory fixture");
+        window.__graphideTrajectory = fx;
+        window.__graphideTrajectoryError = "";
+        done();
+      })
+      .catch(function (err) {
+        window.__graphideTrajectory = null;
+        window.__graphideTrajectoryError = String(err && err.message ? err.message : err);
+        done();
+      });
+  }
+
+  function loadAdePair(done) {
+    const focus = params.get("traj") || "";
+    if (focus) window.__graphideTrajectoryFocus = focus;
+    const gate = params.get("gate") || "";
+    if (gate === "pending" || gate === "approved" || gate === "rejected") {
+      window.__graphidePassportGate = gate;
+    }
+    const seal = params.get("seal") || "";
+    if (seal === "sealed" || seal === "open" || seal === "unlock" || seal === "agent") {
+      window.__graphideSealStatus = seal === "agent" ? "open" : seal;
+    }
+    let left = 2;
+    const finishOne = function () {
+      left -= 1;
+      if (left > 0) return;
+      window.postMessage(msg, "*");
+      afterPaint();
+      if (typeof done === "function") done();
+    };
+    loadTrajectoryFixture(finishOne);
+    loadPassportFixture(finishOne);
+  }
+
+  // Trace↔Passport deep-link: either flag loads BOTH fixtures so tab hops
+  // keep traj focus + passport gate without a live Delta mount.
+  if (params.get("trace") === "1" || params.get("passport") === "1") {
+    loadAdePair();
+  } else if (params.get("lifecycle") === "1") {
     loadNamedSnap("lifecycle-snap.json", "__graphideLifecycle", "__graphideLifecycleError", afterPaint, params.get("require") === "1");
   } else if (params.get("lineage") === "1") {
     loadNamedSnap("sequence-snap.json", "__graphideLineage", "__graphideLineageError", afterPaint, params.get("require") === "1");

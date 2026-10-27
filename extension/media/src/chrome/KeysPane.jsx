@@ -18,10 +18,25 @@ export function KeysPane() {
           <kbd>S</kbd> stamp · <kbd>X</kbd> skip
         </li>
         <li>
-          <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> step
+          <kbd>P</kbd> play path · <kbd>[</kbd> <kbd>]</kbd> / <kbd>←</kbd> <kbd>→</kbd> / <kbd>j</kbd> <kbd>k</kbd> step
         </li>
-        <li>
-          <kbd>R</kbd> PATH · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
+        <li
+          id="keysAdeSection"
+          className="keys-section"
+          data-keys-section="ade"
+          hidden
+        >
+          <span className="keys-section-title" data-keys-section-title />
+        </li>
+        <li
+          data-keys-row="traj-zoom"
+          data-keys-traj-zoom-hint="0"
+          hidden
+        >
+          <kbd>↑</kbd> <kbd>↓</kbd> Trace zoom pct · <kbd>Home</kbd> fit
+        </li>
+        <li data-keys-row="r" data-keys-r-binding="path" data-keys-residual-hint="0" data-keys-r-pressed="0" aria-pressed="false">
+          <kbd>R</kbd> <span data-keys-r-binding-text>PATH</span> · <kbd>L</kbd> LENS · <kbd>E</kbd> ego
         </li>
         <li>
           <kbd>F</kbd> present · Style button cycles Classic / Signal / Blueprint

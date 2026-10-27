@@ -18,7 +18,31 @@ product. Stamp / skip stay human.
   changed, flows. **Open map** is `.crumb-btn[data-ws="map"]` (also
   `.stat-strip [data-ws="map"]`). `#legend [data-prog]` is painted on this
   landing (`renderLegend()`), same chips as Map.
-- Community cards `.expl-card[data-ws="map"]` and highest-degree
+- ADE OMC (Overview Mix Chart): Nodes/Hops keep totals + chips and add
+  `.omc-chart` / `.omc-bar` (and clickable `.omc-chip`) from the same
+  `countMap`. Click / Enter / Space toggles `overviewMixFilter` and paints
+  `#sliceCanvas` `.vnode` / `.react-flow__edge` with `omc-hit` / `omc-dim`.
+  Second click or Escape (Overview-only, when mix filter active) clears.
+  Graph-only — must not open Evidence / `peekSource` / source pane.
+  Screenshot `verification/overview-mix-chart.png`. Asserts OMC1–OMC3.
+- ADE CSC (Community Size Chart): Communities keep the total + **Open map**
+  and add `.csc-chart` / `.csc-bar[data-csc-bubble]` sized by derived member
+  counts (`mapAltitudeBubbles`). Click / Enter / Space toggles
+  `overviewCommunityFilter` and paints `#sliceCanvas` member `.vnode` /
+  incident edges with `csc-hit` / `csc-dim`, plus community
+  `.expl-card[data-csc-card][data-bubble]`. Second click or Escape
+  (Overview-only, when community filter active) clears. Activating CSC
+  clears OMC and vice versa. Graph-only — must not open Evidence /
+  `peekSource` / source pane. Screenshot `verification/overview-community-size.png`.
+  Asserts CSC1–CSC3.
+- ADE SBC (Story Behavior Captions): `.feat-chip` on `.feature-path` /
+  `#storyRail` show a derived `.feat-chip-caption` (`data-sbc-caption="1"`)
+  from IR only — node `kind`, endpoint `role`/`channel` when present, and
+  primary incident edge verb (`Calls`/`Reads`/`Writes`/`Publishes`/`Subscribes`)
+  toward the next hop. Play / Prev / Next (`focusWalkStop`) select/highlight
+  on the graph and **must not** open Evidence / call `peekSource`. Screenshot
+  `verification/story-behavior-captions.png`. Asserts SBC1–SBC3.
+- Community cards `.expl-card[data-ws="map"][data-csc-card][data-bubble]` and highest-degree
   `.expl-card[data-id]` sit **below** the CFG (`renderDefaultCfg()` before
   the Communities heading).
 - Overview is **not** a `LIST_WORKSPACES` key. `#ledgerPane` stays. Map

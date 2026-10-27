@@ -90,3 +90,21 @@ Driver assertions:
 - Map stays vanilla community LOD (`renderBubbleMap` cap 24). Do not React-mount
   the raw IR. Sequence XYFlow lives in `#seqCanvas`. Delta / Data-flow /
   Lifecycle / Slice have their own canvas hosts.
+
+## ADE SSR — Sequence story richness (behavior captions, graph-only)
+
+Human reads **what the program does** from Sequence participants and hops alone —
+no source / Evidence pane.
+
+- Participants `#seqParts .seq-part[data-ssr-caption="1"]` show `.seq-part-caption`
+  (kind · role/channel when Endpoint · Calls/Publishes/Subscribes). Never file:line.
+- Hops `#seqHops .seq-hop[data-ssr-caption="1"]` show `.seq-hop-caption` with the
+  same contract (`data-caption`).
+- Click a participant toggles `seqPartFocusId` (`.ssr-hit` / `.ssr-dim` on parts +
+  hops + canvas). Second click or `#seqOverview` clears.
+- `focusSeqHop` / seq Play / hop list / canvas node click stay **graph-only**:
+  `selectedNodeId` only — must not call `peekSource` / `showHop` / open Evidence.
+- Honest empty `.seq-empty[data-ssr-empty="1"]` points at Overview Play / Data-flow
+  when no Steiner Calls/Publishes/Subscribes — invent nothing.
+- Asserts SSR1–SSR3. Proof `verification/sequence-story-richness.png`.
+
