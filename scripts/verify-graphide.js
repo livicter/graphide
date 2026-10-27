@@ -12462,6 +12462,97 @@ async function main() {
     );
     assertNoStampDir("OMC5", "Overview mix chart step did not write .graphide/stamps/");
 
+    // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
+    await page.waitForSelector(".feature-path .feat-chip, #storyRail .feat-chip", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const sbc1 = await page.evaluate(() => {
+      const chips = [...document.querySelectorAll(".feature-path .feat-chip[data-sbc-caption='1'], #storyRail .feat-chip[data-sbc-caption='1']")];
+      const captions = chips.map((el) => {
+        const cap = el.querySelector(".feat-chip-caption");
+        return (cap && cap.textContent) || "";
+      }).filter(Boolean);
+      const sample = captions[0] || "";
+      const looksDerived =
+        /Function|Type|Endpoint|Calls|Reads|Writes|Publishes|Subscribes|Sink|Source|Http|Channel|Queue|Table/i.test(sample);
+      return {
+        captionChips: chips.length,
+        captions: captions.length,
+        sample,
+        looksDerived,
+        featurePath: !!document.querySelector(".feature-path"),
+        play: !!document.getElementById("pathWalkBtn"),
+      };
+    });
+    const sbc1ok = !!(sbc1 && sbc1.captionChips >= 1 && sbc1.captions >= 1 && sbc1.looksDerived && sbc1.featurePath && sbc1.play);
+    record(
+      "SBC1",
+      "Overview feature-path / story rail shows derived .feat-chip-caption (kind·role/channel·verb) via data-sbc-caption",
+      !!sbc1ok,
+      JSON.stringify(sbc1)
+    );
+
+    // Ensure source closed, then step Next once — must highlight without opening Evidence
+    await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (src) src.hidden = true;
+      const stop = typeof stopPathWalk === "function" ? stopPathWalk : null;
+      if (stop) stop();
+    });
+    await page.click("#pathWalkNext");
+    await page.waitForTimeout(80);
+    const sbc2 = await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      const walkChip = document.querySelector(".feature-path .feat-chip.walk, #storyRail .feat-chip.walk, .feat-chip.here.walk");
+      const vnodeWalk = document.querySelectorAll("#sliceCanvas .vnode.walk, #sliceCanvas .vnode.here, #sliceCanvas .react-flow__node.selected").length;
+      const selected = document.querySelectorAll("#sliceCanvas .vnode.selected, #sliceCanvas .vnode.walk").length;
+      const meta = (document.getElementById("pathWalkMeta") || {}).textContent || "";
+      return {
+        srcHidden,
+        walkChip: !!walkChip,
+        vnodeWalk,
+        selected,
+        meta,
+        peekPosted: !!(window.__graphideLastPeek || window.__lastPeekSource),
+      };
+    });
+    const sbc2ok = !!(sbc2 && sbc2.srcHidden && (sbc2.walkChip || sbc2.vnodeWalk > 0 || sbc2.selected > 0));
+    record(
+      "SBC2",
+      "Path walk Next focuses hop on graph without opening Evidence/source pane",
+      !!sbc2ok,
+      JSON.stringify(sbc2)
+    );
+
+    await page.click("#pathWalkNext");
+    await page.waitForTimeout(60);
+    await shot(page, "story-behavior-captions.png");
+    const sbcShot = checks.find((c) => c.id === "shot:story-behavior-captions.png");
+    const sbc3ok = !!(sbc1ok && sbc2ok && sbcShot && sbcShot.pass);
+    record(
+      "SBC3",
+      "screenshot story-behavior-captions.png not black; story behavior captions proven",
+      !!sbc3ok,
+      JSON.stringify({
+        shot: sbcShot ? sbcShot.detail : "missing",
+        sbc1: !!sbc1ok,
+        sbc2: !!sbc2ok,
+      })
+    );
+    assertNoStampDir("SBC4", "Story behavior captions step did not write .graphide/stamps/");
+    // Clear path-walk paint so later Map chrome-block keys (K15r…) see walk===0
+    await page.evaluate(() => {
+      if (typeof window.__graphideResetPathWalk === "function") window.__graphideResetPathWalk();
+      else {
+        document.querySelectorAll(".walk, .here").forEach((el) => {
+          el.classList.remove("walk", "here");
+        });
+      }
+    });
+
+
     // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift; cursor:help; state-aware title/aria/data-seal-info
     await page.evaluate(() => {
       window.__graphideSealStatus = "sealed";

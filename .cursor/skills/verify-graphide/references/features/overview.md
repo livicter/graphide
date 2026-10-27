@@ -25,6 +25,13 @@ product. Stamp / skip stay human.
   Second click or Escape (Overview-only, when mix filter active) clears.
   Graph-only — must not open Evidence / `peekSource` / source pane.
   Screenshot `verification/overview-mix-chart.png`. Asserts OMC1–OMC3.
+- ADE SBC (Story Behavior Captions): `.feat-chip` on `.feature-path` /
+  `#storyRail` show a derived `.feat-chip-caption` (`data-sbc-caption="1"`)
+  from IR only — node `kind`, endpoint `role`/`channel` when present, and
+  primary incident edge verb (`Calls`/`Reads`/`Writes`/`Publishes`/`Subscribes`)
+  toward the next hop. Play / Prev / Next (`focusWalkStop`) select/highlight
+  on the graph and **must not** open Evidence / call `peekSource`. Screenshot
+  `verification/story-behavior-captions.png`. Asserts SBC1–SBC3.
 - Community cards `.expl-card[data-ws="map"]` and highest-degree
   `.expl-card[data-id]` sit **below** the CFG (`renderDefaultCfg()` before
   the Communities heading).

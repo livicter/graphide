@@ -4938,6 +4938,34 @@ body.desk #workspace.has-source #canvas {
   animation: none;
 }
 
+/* ADE SBC — derived behavior caption under hop/feature name (graph-only comprehension) */
+.feat-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.2;
+}
+.feat-chip-name {
+  display: block;
+}
+.feat-chip-caption {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  font-weight: 500;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feat-chip[data-sbc-caption="1"] {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+
 /* Iteration 2 — two-row glass chrome, kind-tinted objects, no repeated now-pill. */
 html.bright header {
   gap: 10px;

@@ -898,6 +898,34 @@ assert(js.includes("overviewMixFilter") && js.includes("mixChartHtml") && js.inc
 assert(css.includes(".omc-chart") && css.includes(".omc-bar") && css.includes("omc-hit") && css.includes("omc-dim"), "main.css must theme Overview mix chart + omc-hit/omc-dim");
 assert(overviewMap.includes("OMC1") && overviewMap.includes("omc-chart") && overviewMap.includes("overview-mix-chart.png") && overviewMap.includes("peekSource"), "overview feature map must name OMC / omc-chart / proof / no peekSource");
 
+assert(driver.includes("SBC1") && driver.includes("SBC3") && driver.includes("story-behavior-captions.png") && driver.includes("data-sbc-caption"), "verify driver must prove story behavior captions SBC1–SBC3");
+assert(js.includes("storyBehaviorCaption") && js.includes("primaryIncidentVerb") && js.includes("feat-chip-caption") && js.includes('data-sbc-caption="1"'), "desk.js must derive storyBehaviorCaption / primaryIncidentVerb and render feat-chip-caption");
+assert((() => {
+  const start = js.indexOf("function focusWalkStop");
+  if (start < 0) return false;
+  let i = js.indexOf("{", start);
+  let depth = 0;
+  for (; i < js.length; i++) {
+    const ch = js[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+  }
+  const body = js.slice(start, i);
+  const noPeek = !/peekSource\s*\(/.test(body);
+  const noSelectPeek = !/selectNode\s*\([^)]*peek\s*:\s*true/.test(body);
+  const setsSelection = /selectedNodeId\s*=/.test(body);
+  return noPeek && noSelectPeek && setsSelection;
+})(), "focusWalkStop must stay graph-only (selectedNodeId; no peekSource)");
+assert(css.includes(".feat-chip-caption") && css.includes('data-sbc-caption'), "main.css must theme .feat-chip-caption / data-sbc-caption");
+assert(overviewMap.includes("SBC1") && overviewMap.includes("feat-chip-caption") && overviewMap.includes("story-behavior-captions.png") && overviewMap.includes("peekSource"), "overview feature map must name SBC / feat-chip-caption / proof / no peekSource");
+
+
 
 
 

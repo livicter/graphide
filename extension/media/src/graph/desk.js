@@ -6568,6 +6568,52 @@ function storyRailPath() {
   return featurePath(storyFlow());
 }
 
+
+/** ADE SBC — primary ROUTE_KINDS verb between two nodes (tree then graph; from→to then reverse). */
+function primaryIncidentVerb(fromId, toId) {
+  const a = idVal(fromId),
+    b = idVal(toId);
+  if (!a || !b || a === b) return "";
+  const flow = storyFlow();
+  const lists = [
+    (flow && flow.tree && flow.tree.edges) || [],
+    (snapshot && snapshot.graph && snapshot.graph.edges) || [],
+  ];
+  for (const edges of lists) {
+    for (const e of edges) {
+      if (!e || !ROUTE_KINDS[e.kind]) continue;
+      if (idVal(e.from) === a && idVal(e.to) === b) return String(e.kind);
+    }
+  }
+  for (const edges of lists) {
+    for (const e of edges) {
+      if (!e || !ROUTE_KINDS[e.kind]) continue;
+      if (idVal(e.from) === b && idVal(e.to) === a) return String(e.kind);
+    }
+  }
+  return "";
+}
+
+/** ADE SBC — derived behavior caption from IR only (kind · role/channel · verb toward next). */
+function storyBehaviorCaption(nodeId, nextNodeId) {
+  const sid = idVal(nodeId);
+  if (!sid) return "";
+  const node = nodeById.get(sid);
+  if (!node) return "";
+  const parts = [];
+  if (node.kind) parts.push(String(node.kind));
+  const ep = endpointOf(sid);
+  if (ep) {
+    if (ep.role) parts.push(String(ep.role));
+    if (ep.channel) parts.push(String(ep.channel));
+  }
+  if (nextNodeId) {
+    const verb = primaryIncidentVerb(sid, nextNodeId);
+    if (verb) parts.push(verb);
+  }
+  return parts.join(" · ");
+}
+
 function storyHopStops() {
   const hops = [];
   const seen = new Set();
@@ -6580,19 +6626,72 @@ function storyHopStops() {
       id: sid,
       label: n ? shortOf(n.fqn) || n.fqn || sid : sid,
       kind: "hop",
+      caption: "",
     });
+  }
+  for (let i = 0; i < hops.length; i++) {
+    const next = hops[i + 1];
+    hops[i].caption = storyBehaviorCaption(hops[i].id, next ? next.id : "");
   }
   return hops;
 }
 
 function storyRailStops() {
   const comm = storyRailPath();
-  if (comm.length >= 2) {
-    return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
-  }
+  const featureStops = (list) => {
+    const stops = list.map((b) => ({
+      id: idVal(b.id),
+      label: b.label,
+      kind: "feature",
+      caption: "",
+      members: b.members || [],
+    }));
+    for (let i = 0; i < stops.length; i++) {
+      const mems = stops[i].members || [];
+      const from = mems.length ? idVal(mems[0]) : "";
+      let to = "";
+      for (let j = i + 1; j < stops.length; j++) {
+        const nm = stops[j].members || [];
+        if (nm.length) {
+          to = idVal(nm[0]);
+          break;
+        }
+      }
+      // Prefer a walk member that sits on this bubble when walk is available.
+      let walkFrom = from;
+      let walkTo = to;
+      const walk = flowWalk(storyFlow());
+      if (walk.length) {
+        const inBubble = (bid, nid) => {
+          const bub = findBubble(bid);
+          return !!(bub && (bub.members || []).some((m) => idVal(m) === idVal(nid)));
+        };
+        for (const wid of walk) {
+          if (inBubble(stops[i].id, wid)) {
+            walkFrom = idVal(wid);
+            break;
+          }
+        }
+        if (to) {
+          for (let j = i + 1; j < stops.length; j++) {
+            for (const wid of walk) {
+              if (inBubble(stops[j].id, wid)) {
+                walkTo = idVal(wid);
+                break;
+              }
+            }
+            if (walkTo) break;
+          }
+        }
+      }
+      stops[i].caption = storyBehaviorCaption(walkFrom || from, walkTo || to);
+    }
+    return stops;
+  };
+  if (comm.length >= 2) return featureStops(comm);
   const hops = storyHopStops();
   if (hops.length >= 2) return hops;
-  return comm.map((b) => ({ id: idVal(b.id), label: b.label, kind: "feature" }));
+  return featureStops(comm);
 }
 
 function pinStoryClusters(clusters) {
@@ -6603,12 +6702,24 @@ function pinStoryClusters(clusters) {
   return [...byId.values()];
 }
 
+
+/** ADE SBC — feat-chip inner HTML with optional derived behavior caption. */
+function storyChipInnerHtml(stop, i, pathLen) {
+  const name = shortOf(stop.label) || "feature";
+  const label = i === 0 ? "START · " + name : i === pathLen - 1 ? "END · " + name : name;
+  const caption = stop.caption ? String(stop.caption) : "";
+  const title = caption ? label + " · " + caption : label;
+  const capHtml = caption
+    ? '<span class="feat-chip-caption">' + esc(caption) + "</span>"
+    : "";
+  return { label, title, caption, capHtml };
+}
+
 function renderStoryRailHtml() {
   const path = storyRailStops();
   if (!path.length) return "";
   const chips = path
     .map((stop, i) => {
-      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
       const hop = stop.kind === "hop";
       const here = hop
@@ -6618,17 +6729,23 @@ function renderStoryRailHtml() {
         : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
           ? " here"
           : "";
+      const inner = storyChipInnerHtml(stop, i, path.length);
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
         (role ? " " + role : "") +
         here +
+        '" title="' +
+        esc(inner.title) +
         '" ' +
+        (inner.caption ? 'data-sbc-caption="1" ' : "") +
         (hop ? "data-hop" : "data-feature") +
         '="' +
         esc(idVal(stop.id)) +
-        '">' +
-        esc((i === 0 ? "START · " : i === path.length - 1 ? "END · " : "") + name) +
+        '"><span class="feat-chip-name">' +
+        esc(inner.label) +
+        "</span>" +
+        inner.capHtml +
         "</button>"
       );
     })
@@ -6647,7 +6764,6 @@ function renderFeaturePathHtml() {
   if (!path.length) return "";
   const chips = path
     .map((stop, i) => {
-      const name = shortOf(stop.label) || "feature";
       const role = i === 0 ? "start" : i === path.length - 1 ? "end" : "";
       const hop = stop.kind === "hop";
       const here = hop
@@ -6657,7 +6773,7 @@ function renderFeaturePathHtml() {
         : graphFilter.bubble && idVal(stop.id) === idVal(graphFilter.bubble)
           ? " here"
           : "";
-      const label = i === 0 ? "START · " + name : i === path.length - 1 ? "END · " + name : name;
+      const inner = storyChipInnerHtml(stop, i, path.length);
       return (
         (i ? '<span class="path-arrow">→</span>' : "") +
         '<button type="button" class="feat-chip' +
@@ -6665,12 +6781,17 @@ function renderFeaturePathHtml() {
         here +
         '" style="--i:' +
         i +
+        '" title="' +
+        esc(inner.title) +
         '" ' +
+        (inner.caption ? 'data-sbc-caption="1" ' : "") +
         (hop ? "data-hop" : "data-feature") +
         '="' +
         esc(idVal(stop.id)) +
-        '">' +
-        esc(label) +
+        '"><span class="feat-chip-name">' +
+        esc(inner.label) +
+        "</span>" +
+        inner.capHtml +
         "</button>"
       );
     })
@@ -6697,15 +6818,15 @@ function pathWalkStops() {
 
 function focusWalkStop(stop) {
   if (!stop) return;
+  // ADE SBC — Start→features→end walk stays graph-only (no Evidence / peekSource).
+  // Mirror prior hop path (selectedNodeId only) without peekSource / selectNode side effects.
   if (stop.kind === "hop") {
     selectedNodeId = idVal(stop.id);
-    // Stage hides #sourcePane — walk peeks must not exit Present via revealSourcePane (K18aj).
-    if (!isPresenting()) peekSource(stop.id);
     return;
   }
   const bub = findBubble(stop.id);
   const mem = bub && (bub.members || [])[0];
-  if (mem && !isPresenting()) peekSource(mem);
+  if (mem) selectedNodeId = idVal(mem);
 }
 
 function stopPathWalk() {
@@ -6716,6 +6837,30 @@ function stopPathWalk() {
   }
   applyPathWalkPaint();
 }
+
+/** ADE SBC / harness — clear walk index + .walk/.here paint (does not open Evidence). */
+function resetPathWalk() {
+  pathWalk.playing = false;
+  if (pathWalk.timer) {
+    clearInterval(pathWalk.timer);
+    pathWalk.timer = 0;
+  }
+  pathWalk.i = -1;
+  applyPathWalkPaint();
+  document.querySelectorAll(".walk").forEach((el) => el.classList.remove("walk"));
+  // Drop selection-driven .here on story chips only when walk is idle.
+  document.querySelectorAll(".feat-chip.here").forEach((el) => el.classList.remove("here"));
+  selectedNodeId = null;
+  const meta = document.getElementById("pathWalkMeta");
+  if (meta) meta.textContent = "";
+  const play = document.getElementById("pathWalkBtn");
+  if (play) {
+    play.classList.remove("on");
+    play.textContent = "Play";
+  }
+}
+if (typeof window !== "undefined") window.__graphideResetPathWalk = resetPathWalk;
+
 
 function stepPathWalk(delta) {
   const stops = pathWalkStops();
@@ -6815,9 +6960,14 @@ function applyPathWalkPaint() {
   }
   const metaEl = document.getElementById("pathWalkMeta");
   if (metaEl) {
-    metaEl.textContent = cur
-      ? pathWalk.i + 1 + "/" + stops.length + " · " + (shortOf(cur.label) || "feature")
-      : "";
+    if (!cur) {
+      metaEl.textContent = "";
+    } else {
+      const short = shortOf(cur.label) || "feature";
+      metaEl.textContent = cur.caption
+        ? pathWalk.i + 1 + "/" + stops.length + " · " + short + " · " + cur.caption
+        : pathWalk.i + 1 + "/" + stops.length + " · " + short;
+    }
   }
   refreshNowPill();
 }
