@@ -28385,6 +28385,29 @@
       }
       return out;
     }
+    function trajNodeInfoLabel(n, fix) {
+      const id2 = String(n && n.id || "");
+      const kind = String(n && n.kind || "").trim();
+      const status2 = trajStatusLabel(n && n.status);
+      const nodes = fix && fix.nodes || [];
+      const byId = new Map(nodes.map((x) => [x.id, x]));
+      const depIds = n && Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n || {});
+      let unmetDeps = 0;
+      for (const d of depIds) {
+        const dep = byId.get(d);
+        const st2 = dep && dep.status || "pending";
+        if (st2 !== "done") unmetDeps += 1;
+      }
+      const hops = trajOutgoingIds(fix, id2).length;
+      const artPath = n && n.artifact || "";
+      const sealHint = !!(n && n.kind === "harness" || /seal|immutable/i.test(String(id2) + " " + artPath));
+      const residualCopy = unmetDeps + " dep" + (unmetDeps === 1 ? "" : "s") + " left · " + hops + " hop" + (hops === 1 ? "" : "s") + (sealHint ? " · seal" : "");
+      const parts = [id2];
+      if (kind) parts.push(kind);
+      parts.push(status2);
+      parts.push(residualCopy);
+      return parts.filter(Boolean).join(" · ");
+    }
     function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
       const byId = new Map(nodes.map((n) => [n.id, n]));
       const focusOn = !!selectedId;
@@ -28512,7 +28535,8 @@
         const adds = Number(n.adds);
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+        const nodeInfo = trajNodeInfoLabel(n, fix);
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");

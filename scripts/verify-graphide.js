@@ -11530,6 +11530,147 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+
+    // ADE Trace traj DAG node hover/focus info (TNI1–TNI3)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajCanvas .traj-node[data-traj-node-info="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    const tni1 = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#trajCanvas button.traj-node")];
+      const infos = nodes.map((el) => {
+        const id = el.getAttribute("data-id") || "";
+        const kind = el.getAttribute("data-kind") || "";
+        const statusClass = [...el.classList].find((c) => c.startsWith("status-")) || "";
+        const status = statusClass.replace(/^status-/, "") || "pending";
+        const title = el.getAttribute("title") || "";
+        const aria = el.getAttribute("aria-label") || "";
+        const tipAttr = el.getAttribute("data-traj-node-info") || "";
+        const pressed = el.getAttribute("aria-pressed");
+        const tab = el.getAttribute("tabindex");
+        return { id, kind, status, title, aria, tipAttr, pressed, tab };
+      });
+      const allHave = infos.length > 0 && infos.every((n) => n.tipAttr === "1" && n.title && n.aria && n.title === n.aria);
+      const idKindStatus = infos.every((n) => {
+        if (!n.id || !n.title.includes(n.id)) return false;
+        if (n.kind && !n.title.includes(n.kind)) return false;
+        if (!n.title.includes(n.status)) return false;
+        return /deps? left/i.test(n.title) && /hops?/i.test(n.title);
+      });
+      const svgNodeTitle = !!document.querySelector(
+        "#trajCanvas svg.traj-edges title, #trajCanvas svg.traj-edges g[aria-label]"
+      );
+      return {
+        count: infos.length,
+        allHave,
+        idKindStatus,
+        svgNodeTitle,
+        sample: infos[0] || null,
+        pressedOk: infos.every((n) => n.pressed === "true" || n.pressed === "false"),
+        tabOk: infos.every((n) => n.tab === "0"),
+      };
+    });
+    const tni1ok = !!(
+      tni1 &&
+      tni1.count >= 2 &&
+      tni1.allHave &&
+      tni1.idKindStatus &&
+      !tni1.svgNodeTitle &&
+      tni1.pressedOk &&
+      tni1.tabOk
+    );
+    record(
+      "TNI1",
+      "Every Trace traj-node has matching title+aria-label (id · kind · status · residual) via data-traj-node-info; no SVG edge titles",
+      !!tni1ok,
+      JSON.stringify(tni1)
+    );
+
+    // Focus a known node and assert SR name + residual cue parity with tip source
+    await page.waitForSelector('.traj-node[data-id="sub-diff"]', { timeout: 5000 });
+    await page.$eval('.traj-node[data-id="sub-diff"]', (el) =>
+      el.scrollIntoView({ block: "center", inline: "center" })
+    );
+    await page.focus('.traj-node[data-id="sub-diff"]');
+    await page.waitForTimeout(40);
+    const tni2 = await page.evaluate(() => {
+      const el = document.querySelector('.traj-node[data-id="sub-diff"]');
+      if (!el) return { ok: false, reason: "missing" };
+      const title = el.getAttribute("title") || "";
+      const aria = el.getAttribute("aria-label") || "";
+      const kind = el.getAttribute("data-kind") || "";
+      const active = document.activeElement === el;
+      return {
+        ok: true,
+        active,
+        title,
+        aria,
+        match: title === aria,
+        hasId: title.includes("sub-diff"),
+        hasKind: !kind || title.includes(kind),
+        hasStatus: /done|running|pending/i.test(title),
+        hasDeps: /deps? left/i.test(title),
+        hasHops: /hops?/i.test(title),
+        noSeal: !/seal/i.test(title),
+        ariaPressed: el.getAttribute("aria-pressed") || "",
+        tipAttr: el.getAttribute("data-traj-node-info") || "",
+      };
+    });
+    // sub-seal carries seal hint
+    const tni2Seal = await page.evaluate(() => {
+      const el = document.querySelector('.traj-node[data-id="sub-seal"]');
+      if (!el) return { ok: false };
+      const title = el.getAttribute("title") || "";
+      return {
+        ok: true,
+        title,
+        hasSeal: /seal/i.test(title),
+        hasId: title.includes("sub-seal"),
+        hasStatus: /done|running|pending/i.test(title),
+      };
+    });
+    const tni2ok = !!(
+      tni2 &&
+      tni2.ok &&
+      tni2.active &&
+      tni2.match &&
+      tni2.hasId &&
+      tni2.hasKind &&
+      tni2.hasStatus &&
+      tni2.hasDeps &&
+      tni2.hasHops &&
+      tni2.noSeal &&
+      tni2.tipAttr === "1" &&
+      tni2Seal &&
+      tni2Seal.ok &&
+      tni2Seal.hasSeal &&
+      tni2Seal.hasId
+    );
+    record(
+      "TNI2",
+      "Focused traj-node exposes richer info name; sub-diff omits seal, sub-seal includes seal; data-* / aria-pressed preserved",
+      !!tni2ok,
+      JSON.stringify({ tni2, tni2Seal })
+    );
+
+    await page.hover('.traj-node[data-id="sub-diff"]');
+    await page.waitForTimeout(120);
+    await shot(page, "trajectory-node-info.png");
+    const tniShot = checks.find((c) => c.id === "shot:trajectory-node-info.png");
+    const tni3ok = !!(tniShot && tniShot.pass && tni1ok && tni2ok);
+    record(
+      "TNI3",
+      "screenshot trajectory-node-info.png not black; title/aria-label richer node info proven on Trace DAG",
+      !!tni3ok,
+      JSON.stringify({
+        shot: tniShot ? tniShot.detail : "missing",
+        tni1: !!tni1ok,
+        tni2: !!tni2ok,
+      })
+    );
+    assertNoStampDir("TNI4", "Trace traj node info step did not write .graphide/stamps/");
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

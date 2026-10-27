@@ -775,6 +775,12 @@ assert(keysMap.includes("EKH1") && keysMap.includes("desk-keys") && keysMap.incl
 assert(traceMap.includes("EKH1") && traceMap.includes("desk-keys") && traceMap.includes("residual-filter-empty-kbd-hints.png") && traceMap.includes("data-residual-filter-empty-keys"), "trace feature map must name residual empty kbd hints EKH / proof");
 assert(passportMap.includes("EKH1") && passportMap.includes("desk-keys") && passportMap.includes("residual-filter-empty-kbd-hints.png") && passportMap.includes("data-residual-filter-empty-keys"), "passport feature map must name residual empty kbd hints EKH / proof");
 
+
+assert(driver.includes("TNI1") && driver.includes("TNI3") && driver.includes("trajectory-node-info.png") && driver.includes("data-traj-node-info"), "verify driver must prove Trace traj node info TNI1–TNI3");
+assert(js.includes("trajNodeInfoLabel") && js.includes("data-traj-node-info") && js.includes('data-traj-node-info="1"'), "desk.js traj nodes must set title/aria-label via trajNodeInfoLabel (TNI)");
+assert(traceMap.includes("TNI1") && traceMap.includes("data-traj-node-info") && traceMap.includes("trajectory-node-info.png") && traceMap.includes("aria-label"), "trace feature map must name traj node info TNI / proof");
+
+
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
 assert(js.includes("wantTrajectoryEmpty") && js.includes("traceEmpty"), "Trace empty-state ?traceEmpty=1 hook missing");

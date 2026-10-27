@@ -10594,6 +10594,44 @@ function trajOutgoingIds(fix, id) {
   return out;
 }
 
+
+/** TNI: accessible hover/focus name for traj DAG node (id · kind · status · residual). */
+function trajNodeInfoLabel(n, fix) {
+  const id = String((n && n.id) || "");
+  const kind = String((n && n.kind) || "").trim();
+  const status = trajStatusLabel(n && n.status);
+  const nodes = (fix && fix.nodes) || [];
+  const byId = new Map(nodes.map((x) => [x.id, x]));
+  const depIds =
+    n && Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n || {});
+  let unmetDeps = 0;
+  for (const d of depIds) {
+    const dep = byId.get(d);
+    const st = (dep && dep.status) || "pending";
+    if (st !== "done") unmetDeps += 1;
+  }
+  const hops = trajOutgoingIds(fix, id).length;
+  const artPath = (n && n.artifact) || "";
+  const sealHint = !!(
+    (n && n.kind === "harness") ||
+    /seal|immutable/i.test(String(id) + " " + artPath)
+  );
+  const residualCopy =
+    unmetDeps +
+    " dep" +
+    (unmetDeps === 1 ? "" : "s") +
+    " left · " +
+    hops +
+    " hop" +
+    (hops === 1 ? "" : "s") +
+    (sealHint ? " · seal" : "");
+  const parts = [id];
+  if (kind) parts.push(kind);
+  parts.push(status);
+  parts.push(residualCopy);
+  return parts.filter(Boolean).join(" · ");
+}
+
 function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const focusOn = !!selectedId;
@@ -10967,6 +11005,7 @@ function renderTrajectoryBody() {
       const diffMeta =
         (Number.isFinite(adds) ? " +" + adds : "") +
         (Number.isFinite(dels) ? " −" + dels : "");
+      const nodeInfo = trajNodeInfoLabel(n, fix);
       return (
         '<button type="button" class="traj-node status-' +
         esc(n.status || "pending") +
@@ -11004,7 +11043,11 @@ function renderTrajectoryBody() {
         n.x +
         "px;top:" +
         n.y +
-        'px" aria-pressed="' +
+        'px" title="' +
+        esc(nodeInfo) +
+        '" aria-label="' +
+        esc(nodeInfo) +
+        '" data-traj-node-info="1" aria-pressed="' +
         (on ? "true" : "false") +
         '" tabindex="0">' +
         '<div class="traj-node-top">' +
