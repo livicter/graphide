@@ -20060,6 +20060,7 @@
     let sourceId = null;
     let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
     let overviewMixFilter = null;
+    let overviewCommunityFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20283,6 +20284,12 @@
       if (e.key === "Escape" && isPresenting()) {
         e.preventDefault();
         applyPresent(false);
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewCommunityFilter) {
+        e.preventDefault();
+        overviewCommunityFilter = null;
+        applyOverviewCommunityPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -30281,6 +30288,10 @@
         overviewMixFilter = null;
       } else {
         overviewMixFilter = { axis: String(axis), value: String(value) };
+        if (overviewCommunityFilter) {
+          overviewCommunityFilter = null;
+          applyOverviewCommunityPaint();
+        }
       }
       applyOverviewMixPaint();
     }
@@ -30349,6 +30360,88 @@
           ev.preventDefault();
           ev.stopPropagation();
           toggleOverviewMixFilter(el2.getAttribute("data-omc-axis"), el2.getAttribute("data-omc-value"));
+        };
+      });
+    }
+    function communitySizeChartHtml(bubbles) {
+      const entries = (bubbles || []).map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length })).filter((e) => e.id && e.n > 0).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, 12);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e.n));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e.n / max * 100);
+        const on2 = !!(overviewCommunityFilter && String(overviewCommunityFilter) === String(e.id));
+        return '<button type="button" class="csc-bar' + (on2 ? " on" : "") + '" data-csc-bubble="' + esc(e.id) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e.label) + " · " + e.n + ' nodes" style="--csc-pct:' + pct + '%"><span class="csc-fill" aria-hidden="true"></span><span class="csc-label"><b>' + esc(e.label) + "</b> " + e.n + "</span></button>";
+      }).join("");
+      return '<div class="csc-chart" role="group" aria-label="Community sizes" data-csc="1">' + bars + "</div>";
+    }
+    function toggleOverviewCommunityFilter(bubbleId) {
+      if (!bubbleId) return;
+      if (overviewCommunityFilter && String(overviewCommunityFilter) === String(bubbleId)) {
+        overviewCommunityFilter = null;
+      } else {
+        overviewCommunityFilter = String(bubbleId);
+        if (overviewMixFilter) {
+          overviewMixFilter = null;
+          applyOverviewMixPaint();
+        }
+      }
+      applyOverviewCommunityPaint();
+    }
+    function applyOverviewCommunityPaint() {
+      const host = document.getElementById("sliceCanvas");
+      const filter2 = overviewCommunityFilter;
+      if (canvas) {
+        canvas.querySelectorAll("[data-csc-bubble]").forEach((el2) => {
+          const on2 = !!(filter2 && String(el2.getAttribute("data-csc-bubble")) === String(filter2));
+          el2.classList.toggle("on", on2);
+          el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+        });
+        canvas.querySelectorAll(".expl-card[data-bubble][data-csc-card]").forEach((el2) => {
+          el2.classList.remove("csc-hit", "csc-dim");
+          if (!filter2) return;
+          const match = String(el2.getAttribute("data-bubble")) === String(filter2);
+          el2.classList.toggle("csc-hit", match);
+          el2.classList.toggle("csc-dim", !match);
+        });
+      }
+      if (!host) return;
+      host.classList.toggle("csc-filtering", !!filter2);
+      const nodes = host.querySelectorAll(".vnode");
+      const edges = host.querySelectorAll(".react-flow__edge");
+      nodes.forEach((el2) => el2.classList.remove("csc-hit", "csc-dim"));
+      edges.forEach((el2) => el2.classList.remove("csc-hit", "csc-dim"));
+      if (!filter2) return;
+      const bub = findBubble(filter2);
+      const members = new Set((bub && bub.members ? bub.members : []).map((m) => String(idVal(m))));
+      const hot = /* @__PURE__ */ new Set();
+      nodes.forEach((el2) => {
+        const id2 = el2.getAttribute("data-id") || "";
+        const match = members.has(String(id2));
+        el2.classList.toggle("csc-hit", match);
+        el2.classList.toggle("csc-dim", !match);
+        if (match) hot.add(id2);
+      });
+      edges.forEach((el2) => {
+        const a = el2.getAttribute("data-from") || "";
+        const b = el2.getAttribute("data-to") || "";
+        const match = !!(hot.has(a) || hot.has(b));
+        el2.classList.toggle("csc-hit", match);
+        el2.classList.toggle("csc-dim", !match);
+      });
+    }
+    function bindOverviewCommunityChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll("[data-csc-bubble]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewCommunityFilter(el2.getAttribute("data-csc-bubble"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleOverviewCommunityFilter(el2.getAttribute("data-csc-bubble"));
         };
       });
     }
@@ -30453,6 +30546,8 @@
         mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
         bindOverviewMixChart();
         applyOverviewMixPaint();
+        bindOverviewCommunityChart();
+        applyOverviewCommunityPaint();
         bindGraphFx();
         applyEgoPaint();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
@@ -30621,11 +30716,11 @@
         if (pa !== pb) return pa - pb;
         return (b.members || []).length - (a.members || []).length;
       }).slice(0, 8);
-      return renderFeaturePathHtml() + renderDefaultCfg() + '<div class="stat-strip"><span class="omc-stat"><i class="k">Nodes</i> <b class="n">' + nodes.length + "</b> " + statChips(kinds, "kind") + mixChartHtml("kind", kinds) + '</span><span class="omc-stat"><i class="k">Hops</i> <b class="n">' + edges.length + "</b> " + statChips(hops, "hop") + mixChartHtml("hop", hops) + '</span><span><i class="k">Communities</i> <b class="n">' + bubbles.length + '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span><span><i class="k">Programs</i> <b class="n">' + programs.length + "</b> " + statChips(countMap(programs, (p) => p.kind)) + '</span><span><i class="k">Uncovered</i> <b class="n">' + (cov.uncovered || []).length + "</b> of " + (cov.changed || []).length + ' changed</span><span><i class="k">Flows</i> <b class="n">' + flows.length + "</b> " + statChips(marks) + '</span></div><div class="flow-title">Communities</div><div class="expl-list compact">' + comms.map((b) => {
+      return renderFeaturePathHtml() + renderDefaultCfg() + '<div class="stat-strip"><span class="omc-stat"><i class="k">Nodes</i> <b class="n">' + nodes.length + "</b> " + statChips(kinds, "kind") + mixChartHtml("kind", kinds) + '</span><span class="omc-stat"><i class="k">Hops</i> <b class="n">' + edges.length + "</b> " + statChips(hops, "hop") + mixChartHtml("hop", hops) + '</span><span class="csc-stat"><i class="k">Communities</i> <b class="n">' + bubbles.length + '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button> ' + communitySizeChartHtml(bubbles) + '</span><span><i class="k">Programs</i> <b class="n">' + programs.length + "</b> " + statChips(countMap(programs, (p) => p.kind)) + '</span><span><i class="k">Uncovered</i> <b class="n">' + (cov.uncovered || []).length + "</b> of " + (cov.changed || []).length + ' changed</span><span><i class="k">Flows</i> <b class="n">' + flows.length + "</b> " + statChips(marks) + '</span></div><div class="flow-title">Communities</div><div class="expl-list compact">' + comms.map((b) => {
         const marks2 = bubbleMarks(b);
         const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
         const role = featureRole(step, path.length - 1);
-        return '<article class="expl-card" data-ws="map"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
+        return '<article class="expl-card" data-ws="map" data-csc-card="1" data-bubble="' + esc(idVal(b.id)) + '"><div class="k">community' + (role ? " · " + esc(role) : "") + '</div><div class="t">' + esc(shortOf(b.label) || "bubble") + '</div><div class="b">' + (b.members || []).length + " nodes" + (marks2.uncovered ? " · " + marks2.uncovered + " unc." : "") + (marks2.onTree ? " · " + marks2.onTree + " on tree" : "") + "</div></article>";
       }).join("") + '</div><div class="flow-title">Highest degree</div><div class="expl-list compact">' + topDeg.slice(0, 6).map((x) => {
         const id2 = idVal(x.n.id);
         return '<article class="expl-card" data-id="' + esc(id2) + '"><div class="k">' + esc(x.n.kind) + '</div><div class="t">' + esc(shortOf(x.n.fqn)) + '</div><div class="b">degree ' + x.d + " · " + esc(shortToken(id2)) + "</div></article>";

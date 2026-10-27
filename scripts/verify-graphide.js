@@ -12462,6 +12462,210 @@ async function main() {
     );
     assertNoStampDir("OMC5", "Overview mix chart step did not write .graphide/stamps/");
 
+    // ADE Overview community-size chart (CSC1–CSC3) — interactive size bars; graph-only CFG member highlight
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
+    await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", {
+      timeout: 8000,
+    });
+    await page.waitForSelector(".csc-chart .csc-bar[data-csc-bubble]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const csc1 = await page.evaluate(() => {
+      const chart = document.querySelector(".csc-chart[data-csc='1']");
+      const bars = [...document.querySelectorAll(".csc-chart .csc-bar[data-csc-bubble]")];
+      const cards = [...document.querySelectorAll(".expl-card[data-csc-card][data-bubble]")];
+      const sizes = bars.map((b) => {
+        const label = (b.querySelector(".csc-label") || b).textContent || "";
+        const m = label.match(/(\d+)\s*$/);
+        return { id: b.getAttribute("data-csc-bubble") || "", n: m ? Number(m[1]) : -1 };
+      });
+      const sorted = sizes.every((s, i) => i === 0 || sizes[i - 1].n >= s.n);
+      return {
+        bars: bars.length,
+        cards: cards.length,
+        sorted,
+        sizes: sizes.slice(0, 4),
+        slice: !!document.getElementById("sliceCanvas"),
+        vnodes: document.querySelectorAll("#sliceCanvas .vnode[data-id]").length,
+        chart: !!chart,
+      };
+    });
+    const csc1ok = !!(
+      csc1 &&
+      csc1.chart &&
+      csc1.bars >= 1 &&
+      csc1.sorted &&
+      csc1.slice &&
+      csc1.vnodes > 1
+    );
+    record(
+      "CSC1",
+      "Overview .csc-chart/.csc-bar community sizes present (desc); #sliceCanvas CFG mounted",
+      !!csc1ok,
+      JSON.stringify(csc1)
+    );
+
+    const csc2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".csc-chart .csc-bar[data-csc-bubble]")];
+      if (!bars.length) return { ok: false, reason: "no csc bar" };
+      let bar = null;
+      let bubble = "";
+      let hits = 0;
+      let dims = 0;
+      let filtering = false;
+      let pressed = false;
+      let cardHits = 0;
+      const host = document.getElementById("sliceCanvas");
+      for (const candidate of bars) {
+        // clear prior
+        bars.forEach((b) => {
+          if (b.getAttribute("aria-pressed") === "true") b.click();
+        });
+        candidate.click();
+        hits = host ? host.querySelectorAll(".vnode.csc-hit").length : 0;
+        dims = host ? host.querySelectorAll(".vnode.csc-dim").length : 0;
+        filtering = !!(host && host.classList.contains("csc-filtering"));
+        pressed = candidate.getAttribute("aria-pressed") === "true";
+        cardHits = document.querySelectorAll(".expl-card[data-csc-card].csc-hit").length;
+        if (hits > 0 && dims > 0) {
+          bar = candidate;
+          bubble = candidate.getAttribute("data-csc-bubble") || "";
+          break;
+        }
+      }
+      if (!bar) return { ok: false, reason: "no bar with CFG member hits", tried: bars.length };
+      // continue with chosen bar still pressed
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      bar.click();
+      const hits2 = host ? host.querySelectorAll(".vnode.csc-hit").length : 0;
+      const dims2 = host ? host.querySelectorAll(".vnode.csc-dim").length : 0;
+      const filtering2 = !!(host && host.classList.contains("csc-filtering"));
+      const pressed2 = bar.getAttribute("aria-pressed") === "true";
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        bubble,
+        hits,
+        dims,
+        filtering,
+        pressed,
+        cardHits,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const csc2ok = !!(
+      csc2 &&
+      csc2.ok &&
+      csc2.hits > 0 &&
+      csc2.dims > 0 &&
+      csc2.filtering &&
+      csc2.pressed &&
+      csc2.srcHidden &&
+      csc2.hits2 === 0 &&
+      csc2.dims2 === 0 &&
+      !csc2.filtering2 &&
+      !csc2.pressed2 &&
+      csc2.srcHidden2
+    );
+    record(
+      "CSC2",
+      "Click size bar filters #sliceCanvas csc-hit/csc-dim without opening source; second click restores",
+      !!csc2ok,
+      JSON.stringify(csc2)
+    );
+
+    const csc3bubble = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".csc-chart .csc-bar[data-csc-bubble]")];
+      bars.forEach((b) => {
+        if (b.getAttribute("aria-pressed") === "true") b.click();
+      });
+      const host = document.getElementById("sliceCanvas");
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = host ? host.querySelectorAll(".vnode.csc-hit").length : 0;
+        candidate.click(); // clear
+        if (hits > 0) return candidate.getAttribute("data-csc-bubble") || "";
+      }
+      return bars[0] ? bars[0].getAttribute("data-csc-bubble") || "" : "";
+    });
+    if (!csc3bubble) throw new Error("no csc bar for CSC3");
+    await page.focus('.csc-chart .csc-bar[data-csc-bubble="' + csc3bubble + '"]');
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const csc3on = await page.evaluate((bid) => {
+      const bar = document.querySelector('.csc-chart .csc-bar[data-csc-bubble="' + bid + '"]');
+      const host = document.getElementById("sliceCanvas");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: host ? host.querySelectorAll(".vnode.csc-hit").length : 0,
+        filtering: !!(host && host.classList.contains("csc-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    }, csc3bubble);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const csc3off = await page.evaluate((bid) => {
+      const bar = document.querySelector('.csc-chart .csc-bar[data-csc-bubble="' + bid + '"]');
+      const host = document.getElementById("sliceCanvas");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: host ? host.querySelectorAll(".vnode.csc-hit").length : -1,
+        filtering: !!(host && host.classList.contains("csc-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    }, csc3bubble);
+    const csc3ok = !!(
+      csc3on &&
+      csc3on.pressed &&
+      csc3on.hits > 0 &&
+      csc3on.filtering &&
+      csc3on.srcHidden &&
+      csc3off &&
+      !csc3off.pressed &&
+      csc3off.hits === 0 &&
+      !csc3off.filtering &&
+      csc3off.srcHidden
+    );
+    record(
+      "CSC3",
+      "Enter toggles Overview community-size filter; Escape clears when active; source stays closed",
+      !!csc3ok,
+      JSON.stringify({ on: csc3on, off: csc3off })
+    );
+
+    await page.evaluate((bid) => {
+      const bar =
+        document.querySelector('.csc-chart .csc-bar[data-csc-bubble="' + bid + '"]') ||
+        document.querySelector(".csc-chart .csc-bar[data-csc-bubble]");
+      if (bar && bar.getAttribute("aria-pressed") !== "true") bar.click();
+    }, csc3bubble);
+    await page.waitForTimeout(80);
+    await shot(page, "overview-community-size.png");
+    const cscShot = checks.find((c) => c.id === "shot:overview-community-size.png");
+    const csc4ok = !!(csc1ok && csc2ok && csc3ok && cscShot && cscShot.pass);
+    record(
+      "CSC4",
+      "screenshot overview-community-size.png not black; Overview community-size chart proven",
+      !!csc4ok,
+      JSON.stringify({
+        shot: cscShot ? cscShot.detail : "missing",
+        csc1: !!csc1ok,
+        csc2: !!csc2ok,
+        csc3: !!csc3ok,
+      })
+    );
+    assertNoStampDir("CSC5", "Overview community-size chart step did not write .graphide/stamps/");
+
+
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });

@@ -1629,6 +1629,82 @@ button.stat-chip.omc-chip:focus-visible {
 #sliceCanvas.omc-filtering .react-flow__edge.omc-hit path {
   stroke: var(--vscode-textLink-foreground);
 }
+
+/* ADE CSC — Overview community-size chart; graph-only CFG member highlight */
+.stat-strip .csc-stat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.csc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  max-width: 280px;
+  margin-top: 4px;
+}
+.csc-bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--stroke, #3a3a42) 80%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel, #1a1a1e) 92%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.csc-bar .csc-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--csc-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 35%, transparent);
+  pointer-events: none;
+}
+.csc-bar .csc-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.csc-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.csc-bar.on .csc-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 55%, transparent);
+}
+.csc-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+#sliceCanvas.csc-filtering .vnode.csc-dim,
+#sliceCanvas.csc-filtering .react-flow__edge.csc-dim {
+  opacity: 0.22;
+}
+#sliceCanvas.csc-filtering .vnode.csc-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+#sliceCanvas.csc-filtering .react-flow__edge.csc-hit path {
+  stroke-opacity: 1;
+}
+.expl-card[data-csc-card].csc-dim {
+  opacity: 0.35;
+}
+.expl-card[data-csc-card].csc-hit {
+  outline: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+  outline-offset: 0;
+}
 .path-row {
   display: flex;
   flex-wrap: wrap;

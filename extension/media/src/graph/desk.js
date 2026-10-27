@@ -198,6 +198,8 @@ let sourceId = null;
 let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
 /** ADE OMC — Overview kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let overviewMixFilter = null;
+/** ADE CSC — Overview community-size filter; graph-only (never peekSource). null | bubbleId string */
+let overviewCommunityFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -432,6 +434,18 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // ADE CSC: Escape clears Overview community-size filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "overview" &&
+    overviewCommunityFilter
+  ) {
+    e.preventDefault();
+    overviewCommunityFilter = null;
+    applyOverviewCommunityPaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -13971,6 +13985,10 @@ function toggleOverviewMixFilter(axis, value) {
     overviewMixFilter = null;
   } else {
     overviewMixFilter = { axis: String(axis), value: String(value) };
+    if (overviewCommunityFilter) {
+      overviewCommunityFilter = null;
+      applyOverviewCommunityPaint();
+    }
   }
   applyOverviewMixPaint();
 }
@@ -14045,6 +14063,121 @@ function bindOverviewMixChart() {
       ev.preventDefault();
       ev.stopPropagation();
       toggleOverviewMixFilter(el.getAttribute("data-omc-axis"), el.getAttribute("data-omc-value"));
+    };
+  });
+}
+
+/** ADE CSC — bar chart of community member counts (derived bubbles only). */
+function communitySizeChartHtml(bubbles) {
+  const entries = (bubbles || [])
+    .map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length }))
+    .filter((e) => e.id && e.n > 0)
+    .sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label)))
+    .slice(0, 12);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e.n));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e.n / max) * 100);
+      const on = !!(overviewCommunityFilter && String(overviewCommunityFilter) === String(e.id));
+      return (
+        '<button type="button" class="csc-bar' +
+        (on ? " on" : "") +
+        '" data-csc-bubble="' +
+        esc(e.id) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e.label) +
+        " · " +
+        e.n +
+        ' nodes" style="--csc-pct:' +
+        pct +
+        '%"><span class="csc-fill" aria-hidden="true"></span><span class="csc-label"><b>' +
+        esc(e.label) +
+        "</b> " +
+        e.n +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="csc-chart" role="group" aria-label="Community sizes" data-csc="1">' +
+    bars +
+    "</div>"
+  );
+}
+
+function toggleOverviewCommunityFilter(bubbleId) {
+  if (!bubbleId) return;
+  if (overviewCommunityFilter && String(overviewCommunityFilter) === String(bubbleId)) {
+    overviewCommunityFilter = null;
+  } else {
+    overviewCommunityFilter = String(bubbleId);
+    if (overviewMixFilter) {
+      overviewMixFilter = null;
+      applyOverviewMixPaint();
+    }
+  }
+  applyOverviewCommunityPaint();
+}
+
+function applyOverviewCommunityPaint() {
+  const host = document.getElementById("sliceCanvas");
+  const filter = overviewCommunityFilter;
+  if (canvas) {
+    canvas.querySelectorAll("[data-csc-bubble]").forEach((el) => {
+      const on = !!(filter && String(el.getAttribute("data-csc-bubble")) === String(filter));
+      el.classList.toggle("on", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    canvas.querySelectorAll(".expl-card[data-bubble][data-csc-card]").forEach((el) => {
+      el.classList.remove("csc-hit", "csc-dim");
+      if (!filter) return;
+      const match = String(el.getAttribute("data-bubble")) === String(filter);
+      el.classList.toggle("csc-hit", match);
+      el.classList.toggle("csc-dim", !match);
+    });
+  }
+  if (!host) return;
+  host.classList.toggle("csc-filtering", !!filter);
+  const nodes = host.querySelectorAll(".vnode");
+  const edges = host.querySelectorAll(".react-flow__edge");
+  nodes.forEach((el) => el.classList.remove("csc-hit", "csc-dim"));
+  edges.forEach((el) => el.classList.remove("csc-hit", "csc-dim"));
+  if (!filter) return;
+  const bub = findBubble(filter);
+  const members = new Set((bub && bub.members ? bub.members : []).map((m) => String(idVal(m))));
+  const hot = new Set();
+  nodes.forEach((el) => {
+    const id = el.getAttribute("data-id") || "";
+    const match = members.has(String(id));
+    el.classList.toggle("csc-hit", match);
+    el.classList.toggle("csc-dim", !match);
+    if (match) hot.add(id);
+  });
+  edges.forEach((el) => {
+    const a = el.getAttribute("data-from") || "";
+    const b = el.getAttribute("data-to") || "";
+    const match = !!(hot.has(a) || hot.has(b));
+    el.classList.toggle("csc-hit", match);
+    el.classList.toggle("csc-dim", !match);
+  });
+}
+
+function bindOverviewCommunityChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-csc-bubble]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleOverviewCommunityFilter(el.getAttribute("data-csc-bubble"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleOverviewCommunityFilter(el.getAttribute("data-csc-bubble"));
     };
   });
 }
@@ -14158,6 +14291,8 @@ function renderExplorerList(ws, opts) {
     mountSliceCanvas(flow, snapshot.graph, scarSet(snapshot.findings, flow && flow.name));
     bindOverviewMixChart();
     applyOverviewMixPaint();
+    bindOverviewCommunityChart();
+    applyOverviewCommunityPaint();
     bindGraphFx();
     applyEgoPaint();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
@@ -14371,9 +14506,11 @@ function renderOverviewBody() {
     statChips(hops, "hop") +
     mixChartHtml("hop", hops) +
     "</span>" +
-    '<span><i class="k">Communities</i> <b class="n">' +
+    '<span class="csc-stat"><i class="k">Communities</i> <b class="n">' +
     bubbles.length +
-    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button></span>' +
+    '</b> <button type="button" class="crumb-btn" data-ws="map">Open map</button> ' +
+    communitySizeChartHtml(bubbles) +
+    "</span>" +
     '<span><i class="k">Programs</i> <b class="n">' +
     programs.length +
     "</b> " +
@@ -14398,7 +14535,9 @@ function renderOverviewBody() {
         const step = pathRank.has(idVal(b.id)) ? pathRank.get(idVal(b.id)) : -1;
         const role = featureRole(step, path.length - 1);
         return (
-          '<article class="expl-card" data-ws="map"><div class="k">community' +
+          '<article class="expl-card" data-ws="map" data-csc-card="1" data-bubble="' +
+          esc(idVal(b.id)) +
+          '"><div class="k">community' +
           (role ? " · " + esc(role) : "") +
           '</div><div class="t">' +
           esc(shortOf(b.label) || "bubble") +

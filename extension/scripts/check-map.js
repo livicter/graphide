@@ -900,6 +900,12 @@ assert(js.includes("overviewMixFilter") && js.includes("mixChartHtml") && js.inc
 assert(css.includes(".omc-chart") && css.includes(".omc-bar") && css.includes("omc-hit") && css.includes("omc-dim"), "main.css must theme Overview mix chart + omc-hit/omc-dim");
 assert(overviewMap.includes("OMC1") && overviewMap.includes("omc-chart") && overviewMap.includes("overview-mix-chart.png") && overviewMap.includes("peekSource"), "overview feature map must name OMC / omc-chart / proof / no peekSource");
 
+assert(driver.includes("CSC1") && driver.includes("CSC3") && driver.includes("overview-community-size.png") && driver.includes("csc-bar"), "verify driver must prove Overview community-size chart CSC1–CSC3");
+assert(js.includes("communitySizeChartHtml") && js.includes("applyOverviewCommunityPaint") && js.includes("overviewCommunityFilter") && js.includes('data-csc-bubble'), "Overview community-size chart missing in desk.js");
+assert(css.includes(".csc-chart") && css.includes(".csc-bar") && css.includes("csc-hit") && css.includes("csc-dim"), "main.css must theme Overview community-size chart + csc-hit/csc-dim");
+assert(overviewMap.includes("CSC1") && overviewMap.includes("csc-chart") && overviewMap.includes("overview-community-size.png") && overviewMap.includes("peekSource"), "overview feature map must name CSC / csc-chart / proof / no peekSource");
+
+
 assert(driver.includes("SBC1") && driver.includes("SBC3") && driver.includes("story-behavior-captions.png") && driver.includes("data-sbc-caption"), "verify driver must prove story behavior captions SBC1–SBC3");
 assert(js.includes("storyBehaviorCaption") && js.includes("primaryIncidentVerb") && js.includes("feat-chip-caption") && js.includes('data-sbc-caption="1"'), "desk.js must derive storyBehaviorCaption / primaryIncidentVerb and render feat-chip-caption");
 assert((() => {
