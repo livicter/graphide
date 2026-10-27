@@ -23,7 +23,8 @@ filesystem write interception.
   and Passport `.ade-hop-row` mirrors `classifyWrite` vocabulary
   (`sealed` | `open`/`agent` | `unlock`) via `window.__graphideSealStatus` /
   `?seal=` — display-only fixture stub, not live Docker/Wasm FS. Dedicated
-  `:hover` seal-tint lift + `cursor:help` (SCH1–SCH3); proof
+  `:hover` seal-tint lift + `cursor:help` and matching `title` /
+  `aria-label` / `data-seal-info` with current seal state (SCH1–SCH3); proof
   `verification/seal-chip-hover-cue.png`.
 
 ## How to get to it (user POV)
@@ -63,7 +64,9 @@ Desk seal status chip (SC1–SC3):
   re-paints chip without stamps
 - SCH1–SCH3: `#adeSealChip` / `.ade-seal-chip` gets seal-tinted `:hover` lift above
   resting 16% (`--ade-seal` 34% mix + border/box-shadow) with `cursor:help`
-  across sealed/open/unlock; title/role unchanged; no tabindex. Proof
+  across sealed/open/unlock; matching `title` + `aria-label` + `data-seal-info`
+  include current state label (SEALED|OPEN|UNLOCK); role=status; no tabindex;
+  display-only (no click→`setSealStatus`). Proof
   `verification/seal-chip-hover-cue.png`
 
 ## Gotchas

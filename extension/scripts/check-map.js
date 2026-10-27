@@ -808,8 +808,14 @@ assert(css.includes("ade-seal-chip") && css.includes('data-seal-state="sealed"')
     "main.css must theme .ade-seal-chip:hover seal-tint lift (34%) + cursor:help"
   );
   assert(
-    sealMap.includes("SCH1") && sealMap.includes(":hover") && sealMap.includes("seal-chip-hover-cue.png"),
-    "immutable-harness feature map must name SCH1 / :hover / proof"
+    js.includes("sealStatusInfoLabel") && js.includes("data-seal-info") && js.includes('aria-label="') &&
+      /renderSealStatusChip[\s\S]*?data-seal-info[\s\S]*?aria-label/.test(js),
+    "Seal chip must expose matching title/aria-label/data-seal-info via sealStatusInfoLabel"
+  );
+  assert(
+    sealMap.includes("SCH1") && sealMap.includes(":hover") && sealMap.includes("seal-chip-hover-cue.png") &&
+      sealMap.includes("data-seal-info"),
+    "immutable-harness feature map must name SCH1 / :hover / data-seal-info / proof"
   );
 }
 

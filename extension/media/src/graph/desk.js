@@ -12167,14 +12167,27 @@ function sealStatusLabel(state) {
   return "SEALED";
 }
 
+/** Matching title / aria-label / data-seal-info for seal-chip hover cue (SCH). */
+function sealStatusInfoLabel(state) {
+  return "Immutable seal / write-gate stub (fixture): " + sealStatusLabel(state);
+}
+
 function renderSealStatusChip() {
   seedSealStatus();
   const state = sealStatusState();
+  const label = sealStatusLabel(state);
+  const info = sealStatusInfoLabel(state);
   return (
     '<span id="adeSealChip" class="ade-seal-chip traj-status-chip" data-seal-state="' +
     esc(state) +
-    '" role="status" title="Immutable seal / write-gate stub (fixture)">' +
-    esc(sealStatusLabel(state)) +
+    '" data-seal-info="' +
+    esc(info) +
+    '" role="status" title="' +
+    esc(info) +
+    '" aria-label="' +
+    esc(info) +
+    '">' +
+    esc(label) +
     "</span>"
   );
 }

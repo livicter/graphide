@@ -11671,7 +11671,7 @@ async function main() {
     );
     assertNoStampDir("TNI4", "Trace traj node info step did not write .graphide/stamps/");
 
-    // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift above resting 16%; cursor:help; no tabindex
+    // ADE seal-chip hover cue (SCH1–SCH3) — seal-tint lift; cursor:help; state-aware title/aria/data-seal-info
     await page.evaluate(() => {
       window.__graphideSealStatus = "sealed";
     });
@@ -11687,6 +11687,8 @@ async function main() {
         state: chip.getAttribute("data-seal-state") || "",
         role: chip.getAttribute("role") || "",
         title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
         tabIndex: chip.tabIndex,
         label: (chip.textContent || "").trim(),
         restBg: rest.backgroundColor,
@@ -11708,17 +11710,26 @@ async function main() {
         hoverCursor: hover.cursor,
         hoverShadow: hover.boxShadow,
         title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
         role: chip.getAttribute("role") || "",
         label: (chip.textContent || "").trim(),
         tabIndex: chip.tabIndex,
       };
     });
+    const sch1infoMatch =
+      !!schTraceRest &&
+      schTraceRest.title &&
+      schTraceRest.title === schTraceRest.ariaLabel &&
+      schTraceRest.title === schTraceRest.sealInfo &&
+      /\bSEALED\b/.test(schTraceRest.title) &&
+      /seal|write-gate/i.test(schTraceRest.title);
     const sch1ok = !!(
       schTraceRest &&
       schTraceRest.present &&
       schTraceRest.state === "sealed" &&
       schTraceRest.role === "status" &&
-      /seal|write-gate/i.test(schTraceRest.title) &&
+      sch1infoMatch &&
       /SEALED/i.test(schTraceRest.label) &&
       schTraceRest.tabIndex < 0 &&
       schTraceHover &&
@@ -11729,13 +11740,15 @@ async function main() {
       schTraceHover.hoverShadow &&
       schTraceHover.hoverShadow !== "none" &&
       schTraceHover.title === schTraceRest.title &&
+      schTraceHover.ariaLabel === schTraceRest.ariaLabel &&
+      schTraceHover.sealInfo === schTraceRest.sealInfo &&
       schTraceHover.role === "status" &&
       schTraceHover.label === schTraceRest.label &&
       schTraceHover.tabIndex < 0
     );
     record(
       "SCH1",
-      "Trace #adeSealChip sealed :hover lifts seal-tint bg above resting 16%, cursor:help, title/role/label unchanged, no tabindex",
+      "Trace #adeSealChip sealed :hover lifts seal-tint bg above resting 16%, cursor:help, matching title/aria/data-seal-info with SEALED, no tabindex",
       !!sch1ok,
       JSON.stringify({ rest: schTraceRest, hover: schTraceHover })
     );
@@ -11757,6 +11770,8 @@ async function main() {
         inHop: !!(hop && hop.contains(chip)),
         role: chip.getAttribute("role") || "",
         title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
         tabIndex: chip.tabIndex,
         label: (chip.textContent || "").trim(),
         restBg: rest.backgroundColor,
@@ -11775,6 +11790,8 @@ async function main() {
         hoverCursor: hover.cursor,
         hoverShadow: hover.boxShadow,
         title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
         label: (chip.textContent || "").trim(),
       };
     });
@@ -11793,6 +11810,9 @@ async function main() {
         state: chip.getAttribute("data-seal-state") || "",
         restBg: getComputedStyle(chip).backgroundColor,
         label: (chip.textContent || "").trim(),
+        title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
       };
     });
     await page.hover("#adeSealChip");
@@ -11805,8 +11825,25 @@ async function main() {
         present: true,
         hoverBg: hover.backgroundColor,
         hoverCursor: hover.cursor,
+        title: chip.getAttribute("title") || "",
+        ariaLabel: chip.getAttribute("aria-label") || "",
+        sealInfo: chip.getAttribute("data-seal-info") || "",
       };
     });
+    const sch2unlockInfo =
+      !!schPassRest &&
+      schPassRest.title &&
+      schPassRest.title === schPassRest.ariaLabel &&
+      schPassRest.title === schPassRest.sealInfo &&
+      /\bUNLOCK\b/.test(schPassRest.title) &&
+      /seal|write-gate/i.test(schPassRest.title);
+    const sch2openInfo =
+      !!schOpenRest &&
+      schOpenRest.title &&
+      schOpenRest.title === schOpenRest.ariaLabel &&
+      schOpenRest.title === schOpenRest.sealInfo &&
+      /\bOPEN\b/.test(schOpenRest.title) &&
+      /seal|write-gate/i.test(schOpenRest.title);
     const sch2ok = !!(
       schPassRest &&
       schPassRest.present &&
@@ -11814,27 +11851,34 @@ async function main() {
       schPassRest.inHop &&
       /UNLOCK/i.test(schPassRest.label) &&
       schPassRest.tabIndex < 0 &&
+      sch2unlockInfo &&
       schPassHover &&
       schPassHover.present &&
       schPassHover.hoverBg &&
       schPassHover.hoverBg !== schPassRest.restBg &&
       schPassHover.hoverCursor === "help" &&
       schPassHover.title === schPassRest.title &&
+      schPassHover.ariaLabel === schPassRest.ariaLabel &&
+      schPassHover.sealInfo === schPassRest.sealInfo &&
       schPassHover.label === schPassRest.label &&
       schOpenRest &&
       schOpenRest.present &&
       schOpenRest.state === "open" &&
       /OPEN/i.test(schOpenRest.label) &&
+      sch2openInfo &&
       schOpenHover &&
       schOpenHover.present &&
       schOpenHover.hoverBg !== schOpenRest.restBg &&
       schOpenHover.hoverCursor === "help" &&
+      schOpenHover.title === schOpenRest.title &&
+      schOpenHover.ariaLabel === schOpenRest.ariaLabel &&
+      schOpenHover.sealInfo === schOpenRest.sealInfo &&
       schOpenHover.hoverBg !== schPassHover.hoverBg &&
       schOpenHover.hoverBg !== (schTraceHover && schTraceHover.hoverBg)
     );
     record(
       "SCH2",
-      "Passport hop-row unlock + Trace open :hover seal-tint follows --ade-seal per state; cursor:help; labels unchanged",
+      "Passport hop-row unlock + Trace open :hover seal-tint follows --ade-seal; matching title/aria/data-seal-info with state; cursor:help",
       !!sch2ok,
       JSON.stringify({
         pass: { rest: schPassRest, hover: schPassHover },
