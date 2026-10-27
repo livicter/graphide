@@ -10432,8 +10432,31 @@ function toggleTrajResidualFilter() {
   paint({ animate: "none" });
 }
 
+/** ADE CFR: after clear-chip removes itself from the DOM, restore keyboard focus to the
+ *  always-present residual-filter toggle on the same Trace/Passport surface (Escape unchanged). */
+function focusResidualToggleAfterClear() {
+  let target = null;
+  if (explorerWs === "passport") {
+    target =
+      document.querySelector('#passportSign [data-passport-residual-filter-toggle="1"]') ||
+      document.querySelector("#passportSign .passport-residual");
+  } else if (explorerWs === "trace") {
+    target =
+      document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]') ||
+      document.getElementById("trajEdgeLegend");
+  }
+  if (target && typeof target.focus === "function") {
+    try {
+      target.focus({ preventScroll: true });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+}
+
 /** Clear residual filter (empty-chrome / Escape / clear-chip); no-op when already off.
- *  ADE CLT: source "clear-chip" toasts "Residual filter cleared" (ok); Escape/default keep "Residuals off" (skip). */
+ *  ADE CLT: source "clear-chip" toasts "Residual filter cleared" (ok); Escape/default keep "Residuals off" (skip).
+ *  ADE CFR: source "clear-chip" restores focus to residual-filter toggle after paint (Escape unchanged). */
 function clearTrajResidualFilter(source) {
   if (!trajResidualFilter) return;
   trajResidualFilter = false;
@@ -10444,6 +10467,9 @@ function clearTrajResidualFilter(source) {
   }
   if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
   paint({ animate: "none" });
+  if (source === "clear-chip" && typeof focusResidualToggleAfterClear === "function") {
+    focusResidualToggleAfterClear();
+  }
 }
 
 

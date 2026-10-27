@@ -10075,6 +10075,291 @@ async function main() {
     );
     await page.waitForTimeout(40);
 
+    // ADE clear-chip focus return (CFR1–CFR3) — after Clear, focusResidualToggleAfterClear lands on residual-filter toggle
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const keys = document.getElementById("keysPane");
+      if (keys && !keys.hidden) {
+        const close = document.getElementById("keysClose");
+        if (close) close.click();
+      }
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    await page.evaluate(() => {
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    const cfr1 = await page.evaluate(() => {
+      const btn = document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (!btn) return { present: false };
+      const legend = document.getElementById("trajEdgeLegend");
+      const filterBefore = legend ? legend.getAttribute("data-residual-filter") : "";
+      btn.focus({ focusVisible: true });
+      btn.click();
+      const legendAfter = document.getElementById("trajEdgeLegend");
+      const filterAfter = legendAfter
+        ? legendAfter.getAttribute("data-residual-filter") || ""
+        : "";
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      const clearGone = !document.querySelector(
+        '#trajEdgeLegend [data-legend-clear-filter="1"]'
+      );
+      const ae = document.activeElement;
+      return {
+        present: true,
+        filterBefore,
+        filterAfter,
+        clearGone,
+        togglePresent: !!toggle,
+        focusedToggle: !!(toggle && ae === toggle),
+        activeTag: ae ? (ae.tagName || "").toLowerCase() : "",
+        activeIsBody: !!(ae && ae === document.body),
+      };
+    });
+    const cfr1ok = !!(
+      cfr1 &&
+      cfr1.present &&
+      cfr1.filterBefore === "on" &&
+      cfr1.filterAfter !== "on" &&
+      cfr1.clearGone &&
+      cfr1.togglePresent &&
+      cfr1.focusedToggle &&
+      !cfr1.activeIsBody
+    );
+    record(
+      "CFR1",
+      "Trace legend Clear filter → focus returns to residual-filter toggle (not body)",
+      !!cfr1ok,
+      JSON.stringify(cfr1)
+    );
+
+    // CFR2: Passport sticky Clear + empty FE clear → focus on Passport toggle
+    await page.click('#workspaces [data-ws="passport"]');
+    await page.waitForSelector('#passportSign [data-passport-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(60);
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#passportSign [data-passport-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    const cfrSticky = await page.evaluate(() => {
+      const btn = document.querySelector('#passportSign [data-passport-clear-filter="1"]');
+      if (!btn) return { present: false };
+      const hostBefore = document.querySelector("#passportSign .passport-residual");
+      const filterBefore = hostBefore
+        ? hostBefore.getAttribute("data-residual-filter")
+        : "";
+      btn.focus({ focusVisible: true });
+      btn.click();
+      const hostAfter = document.querySelector("#passportSign .passport-residual");
+      const filterAfter = hostAfter
+        ? hostAfter.getAttribute("data-residual-filter") || ""
+        : "";
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      const clearGone = !document.querySelector(
+        '#passportSign [data-passport-clear-filter="1"]'
+      );
+      const ae = document.activeElement;
+      return {
+        present: true,
+        filterBefore,
+        filterAfter,
+        clearGone,
+        togglePresent: !!toggle,
+        focusedToggle: !!(toggle && ae === toggle),
+        activeIsBody: !!(ae && ae === document.body),
+      };
+    });
+    // FE empty Clear focus return
+    await page.waitForSelector('#passportSign [data-passport-action="approve"]', {
+      timeout: 8000,
+    });
+    await page.click('#passportSign [data-passport-action="approve"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "approved";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const host = document.querySelector("#passportSign .passport-residual");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#passportSign [data-passport-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector(
+      '.passport-residual-filter-empty [data-residual-filter-clear="1"]',
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(40);
+    const cfrFe = await page.evaluate(() => {
+      const btn = document.querySelector(
+        '.passport-residual-filter-empty [data-residual-filter-clear="1"]'
+      );
+      if (!btn) return { present: false };
+      btn.focus({ focusVisible: true });
+      btn.click();
+      const empty = document.querySelector('[data-passport-residual-filter-empty="1"]');
+      const toggle = document.querySelector(
+        '#passportSign [data-passport-residual-filter-toggle="1"]'
+      );
+      const ae = document.activeElement;
+      return {
+        present: true,
+        emptyGone: !empty,
+        togglePresent: !!toggle,
+        focusedToggle: !!(toggle && ae === toggle),
+        activeIsBody: !!(ae && ae === document.body),
+      };
+    });
+    // Restore gate rejected for later residual chrome
+    await page.click('#passportSign [data-passport-action="reject"]');
+    await page.waitForFunction(
+      () => {
+        const gate = document.getElementById("passportGate");
+        return gate && gate.getAttribute("data-passport-state") === "rejected";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    const cfr2ok = !!(
+      cfrSticky &&
+      cfrSticky.present &&
+      cfrSticky.filterBefore === "on" &&
+      cfrSticky.filterAfter !== "on" &&
+      cfrSticky.clearGone &&
+      cfrSticky.togglePresent &&
+      cfrSticky.focusedToggle &&
+      !cfrSticky.activeIsBody &&
+      cfrFe &&
+      cfrFe.present &&
+      cfrFe.emptyGone &&
+      cfrFe.togglePresent &&
+      cfrFe.focusedToggle &&
+      !cfrFe.activeIsBody
+    );
+    record(
+      "CFR2",
+      "Passport sticky Clear + empty FE Clear → focus returns to residual-filter toggle",
+      !!cfr2ok,
+      JSON.stringify({ sticky: cfrSticky, fe: cfrFe })
+    );
+
+    // CFR3 proof PNG: Trace clear → focus on toggle (with focus-visible for ring)
+    await page.click('#workspaces [data-ws="trace"]');
+    await page.waitForSelector('#trajEdgeLegend [data-residual-filter-toggle="1"]', {
+      timeout: 8000,
+    });
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const host = document.getElementById("trajEdgeLegend");
+      if (host && host.getAttribute("data-residual-filter") !== "on") {
+        const toggle = document.querySelector(
+          '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+        );
+        if (toggle) toggle.click();
+      }
+    });
+    await page.waitForSelector('#trajEdgeLegend [data-legend-clear-filter="1"]', {
+      timeout: 8000,
+    });
+    await page.waitForTimeout(40);
+    await page.evaluate(() => {
+      const btn = document.querySelector('#trajEdgeLegend [data-legend-clear-filter="1"]');
+      if (btn) {
+        btn.focus({ focusVisible: true });
+        btn.click();
+      }
+    });
+    await page.waitForTimeout(60);
+    // Ensure focus-visible ring for proof (product already focused toggle)
+    await page.evaluate(() => {
+      const toggle = document.querySelector(
+        '#trajEdgeLegend [data-residual-filter-toggle="1"]'
+      );
+      if (toggle && document.activeElement === toggle) {
+        toggle.focus({ focusVisible: true });
+      }
+    });
+    await page.waitForTimeout(40);
+    await shot(page, "residual-filter-clear-focus-return.png");
+    const cfrShot = checks.find(
+      (c) => c.id === "shot:residual-filter-clear-focus-return.png"
+    );
+    record(
+      "CFR3",
+      "screenshot residual-filter-clear-focus-return.png is not a black frame",
+      !!(cfrShot && cfrShot.pass),
+      cfrShot ? cfrShot.detail : "missing shot"
+    );
+    assertNoStampDir(
+      "CFR4",
+      "Residual-filter clear-chip focus return step did not write .graphide/stamps/"
+    );
+
+    // Leave filter OFF for later IR/PR residual chrome.
+    await page.evaluate(() => {
+      const toast = document.getElementById("toast");
+      if (toast) {
+        toast.classList.remove("on", "ok", "skip");
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+
     // ADE Passport impact-row chrome (hierarchy + expand/hover) — IR1–IR3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportImpact", { timeout: 8000 });

@@ -28284,6 +28284,20 @@
       if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(trajResidualFilter);
       paint({ animate: "none" });
     }
+    function focusResidualToggleAfterClear() {
+      let target = null;
+      if (explorerWs === "passport") {
+        target = document.querySelector('#passportSign [data-passport-residual-filter-toggle="1"]') || document.querySelector("#passportSign .passport-residual");
+      } else if (explorerWs === "trace") {
+        target = document.querySelector('#trajEdgeLegend [data-residual-filter-toggle="1"]') || document.getElementById("trajEdgeLegend");
+      }
+      if (target && typeof target.focus === "function") {
+        try {
+          target.focus({ preventScroll: true });
+        } catch (_) {
+        }
+      }
+    }
     function clearTrajResidualFilter(source) {
       if (!trajResidualFilter) return;
       trajResidualFilter = false;
@@ -28294,6 +28308,9 @@
       }
       if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
       paint({ animate: "none" });
+      if (source === "clear-chip" && typeof focusResidualToggleAfterClear === "function") {
+        focusResidualToggleAfterClear();
+      }
     }
     const RESIDUAL_FILTER_COUNT_CHIP_TOAST = "Residual filter stays ON — use Clear, R, or Escape to clear";
     function hintResidualFilterCountChip(ev) {

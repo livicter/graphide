@@ -731,6 +731,12 @@ assert(keysMap.includes("TAF1") && keysMap.includes(":active") && keysMap.includ
 assert(traceMap.includes("TAF1") && traceMap.includes(":active") && traceMap.includes("residual-filter-toggle-active-flash.png") && traceMap.includes("residual-filter-toggle"), "trace feature map must name residual-filter toggle active flash TAF / proof");
 assert(passportMap.includes("TAF1") && passportMap.includes(":active") && passportMap.includes("residual-filter-toggle-active-flash.png") && passportMap.includes("passport-residual-filter-toggle"), "passport feature map must name residual-filter toggle active flash TAF / proof");
 
+assert(driver.includes("CFR1") && driver.includes("CFR3") && driver.includes("residual-filter-clear-focus-return.png") && driver.includes("focusResidualToggleAfterClear") && driver.includes("data-residual-filter-toggle") && driver.includes("data-passport-residual-filter-toggle"), "verify driver must prove clear-chip focus return CFR1–CFR3");
+assert(js.includes("focusResidualToggleAfterClear") && js.includes('"clear-chip"') && js.includes("preventScroll"), "clear-chip focus return helper missing from desk bundle");
+assert(keysMap.includes("CFR1") && keysMap.includes("focus return") && keysMap.includes("residual-filter-clear-focus-return.png"), "keys feature map must name clear-chip focus return CFR / proof");
+assert(traceMap.includes("CFR1") && traceMap.includes("focus return") && traceMap.includes("residual-filter-clear-focus-return.png") && traceMap.includes("legend-clear-filter"), "trace feature map must name clear-chip focus return CFR / proof");
+assert(passportMap.includes("CFR1") && passportMap.includes("focus return") && passportMap.includes("residual-filter-clear-focus-return.png") && passportMap.includes("passport-sticky-clear-filter"), "passport feature map must name clear-chip focus return CFR / proof");
+
 
 assert(driver.includes("ES1") && driver.includes("ES3") && driver.includes("trajectory-empty-state.png"), "verify driver must prove Trace empty-state ES1–ES3");
 assert(js.includes("renderTrajectoryEmptyBody") && js.includes("traj-empty") && js.includes("data-traj-empty-chrome") && js.includes("TRAJECTORY_EMPTY_FIXTURE"), "Trace empty-state render/markup missing");
