@@ -2,160 +2,90 @@
 
 Review agent changes as flow graphs. Point the panel at any local repo.
 
-Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org) on PATH. Ubuntu also needs a C compiler: `sudo apt install build-essential`. macOS needs Xcode CLT: `xcode-select --install`.
+Needs [Rust](https://rustup.rs) and [Node.js](https://nodejs.org). The same VSIX installs into **Cursor** and VS Code. Goal: learn what a program does from graphs and interactive charts alone. No source pane required for the walk.
 
-The same VSIX installs into **Cursor** and VS Code (`engines.vscode` ^1.85.0). One-click installers try the `cursor` CLI first, then `code`. Language plugins (Rust, Python, JavaScript, TypeScript, C, C++, Go) ship in the CLI. Query langs match the Rust deriver: **TypeUses**, an **import map**, **Imports** edges when a name resolves through that map (`from pkg import T` / `import { T }` / `import pkg`), and **Endpoint** / Publishes / Subscribes / Reads. `graphide plugins --check` verifies every deriver after copy.
+## Install
 
-## Install (live)
+From this source repo (not the folder you Review):
 
-Caps from `bash install.sh` in this VM. Windows (`install.cmd`) and macOS (`install.command`) run the same steps. More in [`install_sample/`](install_sample/).
+```bash
+bash install.sh
+```
 
-**1. One-click scripts** in the Graphide source repo (not the folder you Review):
+Windows: `install.cmd`. macOS: `install.command`. The installer tries the `cursor` CLI, then `code`. Caps: [`install_sample/`](install_sample/).
 
-![One-click installers](install_sample/01-scripts.png)
+## Features
 
-**2. CLI + plugins + VSIX** — every deriver must pass before the panel is installed into Cursor, then VS Code:
+Graphs-only Review surfaces on `main`.
 
-![Install plugins and Cursor](install_sample/02-install-plugins.png)
+### Overview
 
-**3. Check again, then reload Cursor** → Graphide → **Review**:
+Scorecard, Play, and interactive mix and community-size charts. Story captions name behavior (kind · role · verb), not file:line.
 
-![VSIX and plugin check](install_sample/03-vsix-cursor.png)
-
-## Review panel
-
-After **Review**, the panel lands on **Overview** with a default run (`overview` + `control-flow`). Play walks **Start → features → end**. Other workspaces: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Caps below are a live SolarSim pass after the Imports plugin match (**349 nodes · 1222 edges · 57 files**, **457 Imports**, harness **PASS 57/57**). The desk has **Day** and **Night** appearance (header control, key `D`, or `graphide.appearance`: `auto` / `day` / `night`). Auto follows the Cursor / VS Code color theme. The object rail is a source list of names; the footer is one caption. Endpoint / pub-sub hops match Rust on the same derivers; SolarSim’s edge mix did not change from Endpoints. More in [`UIUX_sample/`](UIUX_sample/).
-
-**ADE Phase 1 (v0.2)** is on `main`. Goal: learn what the program does from graphs and interactive charts alone — no source pane required for the walk.
-
-Landed history (squash merges): Trajectory [#371](https://github.com/livicter/graphide/pull/371) · Passport [#372](https://github.com/livicter/graphide/pull/372) · Immutable [#373](https://github.com/livicter/graphide/pull/373) · residual-filter / Keys / seal / zoom polish through tip stack [#443](https://github.com/livicter/graphide/pull/443) · OMC [#455](https://github.com/livicter/graphide/pull/455) · SBC [#456](https://github.com/livicter/graphide/pull/456) · RDF [#457](https://github.com/livicter/graphide/pull/457) · SSR [#458](https://github.com/livicter/graphide/pull/458) · CSC [#459](https://github.com/livicter/graphide/pull/459) · ADE tip restore + Map enter behavior captions (MBE) [#461](https://github.com/livicter/graphide/pull/461) · Lineage behavior captions (LBC, this tip). Explorer tabs **Trace** (`?trace=1`, `?traceEmpty=1`, `?seal=`) and **Passport** (`?passport=1`, `?passportEmpty=1`) cover the Trajectory DAG, Upstream Plan Passport + Semantic Impact Diffs, and Immutable Verification Harness. Trace↔Passport deep-link: `?trace=1&passport=1&traj=&gate=`.
-
-![Live V1–V57](UIUX_sample/live-suite.png)
-
-**Day** and **Night** on the same SolarSim snapshot:
-
-![Overview day](UIUX_sample/overview-desk.png)
-
-![Overview night](UIUX_sample/overview-desk-night.png)
-
-**Overview** — scorecard, Play / Prev / Next. Story captions name behavior (kind · role/channel · verb), not file:line. Interactive mix and community-size charts filter the CFG graph-only:
+![Live suite](UIUX_sample/live-suite.png)
 
 ![Overview desk](UIUX_sample/overview-desk.png)
-
-![Story behavior captions](UIUX_sample/story-behavior-captions.png)
 
 ![Overview mix chart](UIUX_sample/overview-mix-chart.png)
 
 ![Overview community-size chart](UIUX_sample/overview-community-size.png)
 
-**Map** — communities on the walk; click a bubble to Enter. Enter members show behavior captions; leaf browse stays graph-only (Evidence stays on the object rail). **Slice** — Steiner control-flow:
+![Story behavior captions](UIUX_sample/story-behavior-captions.png)
+
+### Map
+
+Communities on the walk. Enter a bubble for behavior captions. Leaf browse stays graph-only.
 
 ![Map communities](UIUX_sample/map-communities.png)
 
 ![Map enter behavior](UIUX_sample/map-enter-behavior.png)
 
+### Slice
+
+Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes.
+
 ![Slice control-flow](UIUX_sample/slice-control-flow.png)
 
-**Sequence** — story-rich hops and participant highlight. **Data-flow** — richer lanes. Both stay graph-only on Play / focus:
+### Sequence
+
+Story-rich hops with participant highlight.
 
 ![Sequence story richness](UIUX_sample/sequence-story-richness.png)
 
-**Trace / Passport** — agent trajectory DAG and plan gate (ADE Phase 1 chrome):
+### Data-flow
+
+Richer lanes on the same graph-only walk.
+
+![Data-flow richer lanes](UIUX_sample/dataflow-richer-lanes.png)
+
+### Trace and Passport
+
+Trajectory DAG and Upstream Plan Passport (ADE Phase 1).
 
 ![Trajectory DAG](UIUX_sample/trajectory-dag.png)
 
 ![Passport](UIUX_sample/passport.png)
 
-**Lineage** — ego of the start hop, Used / Informed / Generated with behavior captions (graph-only browse; Evidence on the object rail). **Registry** — snapshot audit:
+### Lineage
+
+Ego of the start hop. Used, Informed, and Generated with behavior captions.
 
 ![Lineage behavior captions](UIUX_sample/lineage-behavior-captions.png)
 
-![Lineage hops](UIUX_sample/lineage-hops.png)
+### Registry
+
+Snapshot audit of the derived graph.
 
 ![Registry audit](UIUX_sample/registry-audit.png)
 
-**Decisions** — stamps, skips, broken attestations:
+### Decisions
+
+Stamps, skips, and broken attestations.
 
 ![Decisions stamps](UIUX_sample/decisions-stamps.png)
 
+## Progress
 
-## Windows
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC).
 
-1. Double-click **`install.cmd`**.
-2. Reload **Cursor** or VS Code.
-3. Open the folder to review → **Graphide** → **Review**.
-
-The CLI is copied to `%USERPROFILE%\.graphide\graphide.exe`. You do not set `graphide.cliPath`.
-
-## macOS
-
-1. Double-click **`install.command`** (or run `bash install.sh` in Terminal).
-2. If macOS blocks it: right-click → Open.
-3. Reload the editor → **Graphide** → **Review**.
-
-The CLI is copied to `~/.graphide/graphide`.
-
-## Linux (Ubuntu)
-
-```bash
-sudo apt install build-essential
-bash install.sh
-```
-
-Then reload **Cursor** or VS Code. If neither `cursor` nor `code` is on PATH, use **Extensions → … → Install from VSIX…** and pick the newest `extension/graphide-*.vsix`.
-
-`install.sh` builds the CLI for this machine and bundles that binary. A Linux VSIX does not contain Windows or macOS CLIs. `install.cmd` / `install.ps1` are Windows-only. `install.command` is a Finder wrapper around `install.sh`.
-
-## Package a VSIX
-
-From this repo (the tree with `crates/graphide-cli`), not the folder you Review:
-
-```bash
-npm ci
-npm ci --prefix extension
-cargo build -p graphide-cli --release
-npm run package
-```
-
-Root `npm ci` installs the Review webview and verify toolchain (`package-lock.json`). `npm ci --prefix extension` installs `tsc` and `vsce` (`extension/package-lock.json`). Those lockfiles must match their `package.json` versions.
-
-`npm run package` writes `extension/graphide-<version>.vsix`. The archive holds compiled `out/extension.js`, `media/main.js`, `media/main.css`, `media/xyflow.css`, `media/icon.svg`, and `bin/graphide` (or `graphide.exe`) for this host. It does not hold TypeScript or `media/src/`. There is no Marketplace listing. Sideload the VSIX.
-
-`install.sh` and `install.ps1` run the same package path after `cargo build --release`. They copy the CLI to `~/.graphide/` (Windows: `%USERPROFILE%\.graphide\`) and, when `cursor` or `code` is on PATH, install the VSIX. When neither editor CLI is present, they stop at the VSIX and print its path.
-
-Review does not need an LLM key or a bridge token. Connect LLM is optional.
-
-## Already have the extension?
-
-Command Palette → **Graphide: Install (one click)**. Same build + copy on Windows, macOS, and Linux. If it asks for a folder, pick the **Graphide source repo** (this tree — has `crates/graphide-cli`), not the project you are reviewing.
-
-## Review another repo
-
-Open that repo (e.g. SolarSim) and click **Review**. Do **not** run `cargo build -p graphide-cli` there — that package only exists in this Graphide source repo. Use `%USERPROFILE%\.graphide\graphide.exe` (or `~/.graphide/graphide`) instead.
-
-After Review the panel lands on **Overview** with a **default run**: an `overview` flow from derived entries and a `control-flow` Steiner along Calls/Reads/Writes/Publishes/Subscribes. No `flows.toml` required. Other workspaces stay: **Map**, **Slice**, **Lineage**, **Decisions**, **Registry**, **Timeline**. Search, kind filters, hop cards, and the inspect rail stay on every graph workspace. Programs are a legend filter (file projection), not a new IR kind.
-
-Geometric zoom is automatic LOD on this canvas: **overview → labels → hops → source**. Zooming out past overview pops one clustering level (members → communities, or inner world → parent). **Enter** (click a run or bubble) is still a world jump — the camera never dumps every function.
-
-This is not [Graphify](https://github.com/Graphify-Labs/graphify) and not a [Semantica](https://github.com/semantica-agi/semantica) embed. No Sigma.js / ForceAtlas2 hairball, no SPARQL, no ontology authoring, no entity merge. Graphide keeps a closed review vocabulary (`Function|Type|Endpoint`, spanned edges, stamps, coverage) and projects those objects through explorer workspaces.
-
-## LLM (any host, or a local port)
-
-Graphide can **call** an OpenAI-compatible host and **listen** so any LLM client can call it.
-
-1. Command Palette → **Graphide: Connect LLM**. Pick Local Ollama (`http://127.0.0.1:11434/v1`), LM Studio (`:1234`), llama.cpp (`:8080`), OpenAI, or a custom `/v1` URL. Paste an API key if the host needs one (Secret Storage). Local hosts can leave the key empty.
-2. Or set `graphide.llm.baseUrl` + `graphide.llm.model`.
-3. In the Review panel, **LLM** (or `L`) opens Ask. Questions are grounded on the current derived flow (start → features → end). The model **never stamps**.
-4. A local bridge listens on `127.0.0.1:8787` (`graphide.bridge.port`). **Graphide: Copy Bridge API Key**, then point any client at `http://127.0.0.1:8787/v1` with `Authorization: Bearer <key>`. Routes: `/health`, `/v1/review`, `/v1/path`, `/v1/ask`, `/v1/chat/completions`.
-
-Without a host, Ask still answers from the review graph. Reinstall the VSIX after this change.
-
-## Prompt
-
-Optional: `name=hit,hit` (repeat flows with `;`). Hits are unique FQN suffixes. The slice is a Steiner tree on the derived graph — static extract, not a live debugger. Timeline **Uncovered** can copy a draft `[[flow]]` hit list from those FQNs; paste it into `flows.toml`. The desk does not apply the hint and does not stamp.
-
-## Stamp and coverage
-
-After Review, **Stamp** (or `S`) writes a human attestation to `.graphide/stamps/<flow>.json`. **Skip** (or `X`) leaves that flow unstamped for this session. The next Review rechecks saved stamps: a new hop is a scar on the tree (`StampBroken`).
-
-If the folder is a git repo, Review extracts `HEAD^` as the parent revision so coverage can flag changed nodes not on any proposed tree, and bubble ids stay sticky across that cut. Set `graphide.parentRoot` to override, or pass `--no-parent` on the CLI.
+Parked next: Map-altitude community mix.
