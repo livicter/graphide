@@ -337,8 +337,11 @@ assert(featReadme.includes("zoom.md") && featReadme.includes("zoom.png"), "featu
 assert(featReadme.includes("passport.md") && featReadme.includes("passport.png"), "feature README must list passport.md");
 const rootReadme = fs.readFileSync(path.join(__dirname, "../../README.md"), "utf8");
 assert(
-  rootReadme.includes("ADE Phase 1") && rootReadme.includes("#371") && rootReadme.includes("#443"),
-  "root README must document ADE Phase 1 landed history #371…#443"
+  rootReadme.includes("ADE Phase 1") &&
+    rootReadme.includes("## Features") &&
+    rootReadme.includes("## Progress") &&
+    rootReadme.includes("Map-altitude community mix"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Map-altitude community mix (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -913,6 +916,13 @@ assert(js.includes("enterBehaviorCaption") && js.includes("enterCanvasProps") &&
 assert(/selectNode\(\w+,\s*\{\s*peek:\s*false\s*\}\)/.test(js) && js.includes("ADE MBE"), "enter browse must selectNode with peek:false (MBE)");
 assert(css.includes("data-mbe-caption") && css.includes("#enterCanvas .vnode .meta"), "main.css must theme Map enter behavior captions");
 assert(mapMap.includes("MBE1") && mapMap.includes("data-mbe-caption") && mapMap.includes("map-enter-behavior.png") && mapMap.includes("peekSource"), "map feature map must name MBE / data-mbe-caption / proof / no peekSource");
+
+assert(driver.includes("MAC1") && driver.includes("MAC3") && driver.includes("map-altitude-mix.png") && driver.includes("mac-bar"), "verify driver must prove Map-altitude community mix MAC1–MAC3");
+assert(js.includes("mapMixFilter") && js.includes("mapMixChartHtml") && js.includes("applyMapMixPaint") && js.includes("bindMapMixChart"), "desk.js must own Map-altitude mix filter helpers");
+assert(css.includes(".mac-chart") && css.includes(".mac-bar") && css.includes("mac-hit") && css.includes("mac-dim"), "main.css must theme Map-altitude mix chart + mac-hit/mac-dim");
+assert(mapMap.includes("MAC1") && mapMap.includes("mac-chart") && mapMap.includes("map-altitude-mix.png") && mapMap.includes("peekSource"), "map feature map must name MAC / mac-chart / proof / no peekSource");
+
+
 
 
 assert(driver.includes("LBC1") && driver.includes("LBC3") && driver.includes("lineage-behavior-captions.png") && driver.includes("data-lbc-caption"), "verify driver must prove Lineage behavior captions LBC1–LBC3");

@@ -200,6 +200,8 @@ let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }
 let overviewMixFilter = null;
 /** ADE CSC — Overview community-size filter; graph-only (never peekSource). null | bubbleId string */
 let overviewCommunityFilter = null;
+/** ADE MAC — Map-altitude kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
+let mapMixFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -446,6 +448,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     overviewCommunityFilter = null;
     applyOverviewCommunityPaint();
+    return;
+  }
+  // ADE MAC: Escape clears Map-altitude mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "map" &&
+    mapMixFilter
+  ) {
+    e.preventDefault();
+    mapMixFilter = null;
+    applyMapMixPaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -14067,6 +14081,224 @@ function bindOverviewMixChart() {
   });
 }
 
+
+/** ADE MAC — members of Map-altitude bubbles (deduped). */
+function mapAltitudeMemberNodes(bubbles) {
+  const out = [];
+  const seen = new Set();
+  for (const b of bubbles || []) {
+    for (const m of b.members || []) {
+      const id = idVal(m);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const n = nodeById.get(id);
+      if (n) out.push(n);
+    }
+  }
+  return out;
+}
+
+/** ADE MAC — graph edges incident to Map-altitude members. */
+function mapAltitudeMemberEdges(memberIds) {
+  const want = new Set(memberIds || []);
+  if (!want.size) return [];
+  const edges = (snapshot && snapshot.graph && snapshot.graph.edges) || [];
+  return edges.filter((e) => want.has(idVal(e.from)) || want.has(idVal(e.to)));
+}
+
+/** ADE MAC — CSS bar mix for Map altitude; max-scaled. */
+function mapMixChartHtml(axis, map) {
+  const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(
+        mapMixFilter &&
+        mapMixFilter.axis === axis &&
+        mapMixFilter.value === e[0]
+      );
+      return (
+        '<button type="button" class="mac-bar' +
+        (on ? " on" : "") +
+        '" data-mac-axis="' +
+        esc(axis) +
+        '" data-mac-value="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e[0]) +
+        " · " +
+        e[1] +
+        '" style="--mac-pct:' +
+        pct +
+        '%"><span class="mac-fill" aria-hidden="true"></span><span class="mac-label"><b>' +
+        esc(e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="mac-chart mac-chart--' +
+    esc(axis) +
+    '" role="group" aria-label="Map ' +
+    esc(axis) +
+    ' mix" data-mac-axis-group="' +
+    esc(axis) +
+    '">' +
+    bars +
+    "</div>"
+  );
+}
+
+/** ADE MAC — strip above Map community cards. */
+function mapMixStripHtml(bubbles) {
+  const members = mapAltitudeMemberNodes(bubbles);
+  const memberIds = members.map((n) => idVal(n.id));
+  const kinds = countMap(members, (n) => n.kind);
+  const hopEdges = mapAltitudeMemberEdges(memberIds);
+  const hops = countMap(hopEdges, (e) => e.kind);
+  if (!kinds.size && !hops.size) return "";
+  return (
+    '<div class="mac-strip" data-mac="1" role="group" aria-label="Map altitude community mix">' +
+    (kinds.size
+      ? '<span class="mac-stat"><i class="k">Kinds</i> <b class="n">' +
+        members.length +
+        "</b> " +
+        mapMixChartHtml("kind", kinds) +
+        "</span>"
+      : "") +
+    (hops.size
+      ? '<span class="mac-stat"><i class="k">Hops</i> <b class="n">' +
+        hopEdges.length +
+        "</b> " +
+        mapMixChartHtml("hop", hops) +
+        "</span>"
+      : "") +
+    "</div>"
+  );
+}
+
+function bubbleDominantKind(b) {
+  const counts = new Map();
+  for (const m of b.members || []) {
+    const n = nodeById.get(idVal(m));
+    if (!n) continue;
+    const k = String(n.kind || "—");
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  let best = null;
+  let bestN = -1;
+  for (const [k, n] of counts) {
+    if (n > bestN) {
+      best = k;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+function bubbleMatchesMapMix(b, filter) {
+  if (!filter) return true;
+  const members = (b.members || []).map((m) => idVal(m)).filter(Boolean);
+  if (!members.length) return false;
+  // Kind axis: dominant member kind (any-member match is universal on SolarSim).
+  if (filter.axis === "kind") {
+    return bubbleDominantKind(b) === String(filter.value);
+  }
+  if (filter.axis === "hop") {
+    const want = new Set(members);
+    const edges = (snapshot && snapshot.graph && snapshot.graph.edges) || [];
+    return edges.some(
+      (e) =>
+        String(e.kind || "—") === String(filter.value) &&
+        (want.has(idVal(e.from)) || want.has(idVal(e.to)))
+    );
+  }
+  return true;
+}
+
+function toggleMapMixFilter(axis, value) {
+  if (!axis || value == null || value === "") return;
+  if (
+    mapMixFilter &&
+    mapMixFilter.axis === axis &&
+    mapMixFilter.value === value
+  ) {
+    mapMixFilter = null;
+  } else {
+    mapMixFilter = { axis: String(axis), value: String(value) };
+  }
+  applyMapMixPaint();
+}
+
+function applyMapMixPaint() {
+  const filter = mapMixFilter;
+  if (!canvas) return;
+  canvas.querySelectorAll(".mac-bar[data-mac-axis][data-mac-value]").forEach((el) => {
+    const on = !!(
+      filter &&
+      filter.axis === el.getAttribute("data-mac-axis") &&
+      filter.value === el.getAttribute("data-mac-value")
+    );
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const host = canvas.querySelector(".comm-wrap") || canvas;
+  host.classList.toggle("mac-filtering", !!filter);
+  canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    el.classList.remove("mac-hit", "mac-dim");
+    if (!filter) return;
+    const id = el.getAttribute("data-bubble");
+    const bub = (mapAltitudeBubbles() || []).find((b) => idVal(b.id) === String(id));
+    const match = !!(bub && bubbleMatchesMapMix(bub, filter));
+    el.classList.toggle("mac-hit", match);
+    el.classList.toggle("mac-dim", !match);
+  });
+}
+
+function bindMapMixChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-mac-axis][data-mac-value]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapMixFilter(el.getAttribute("data-mac-axis"), el.getAttribute("data-mac-value"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapMixFilter(el.getAttribute("data-mac-axis"), el.getAttribute("data-mac-value"));
+    };
+  });
+}
+
+function refreshMapMixStrip(bubbles) {
+  if (!canvas) return;
+  const stage = canvas.querySelector(".stage");
+  if (!stage) return;
+  const title = stage.querySelector(".flow-title");
+  const html = mapMixStripHtml(bubbles);
+  let strip = stage.querySelector(".mac-strip");
+  if (!html) {
+    if (strip) strip.remove();
+    return;
+  }
+  if (strip) {
+    strip.outerHTML = html;
+  } else if (title) {
+    title.insertAdjacentHTML("afterend", html);
+  } else {
+    stage.insertAdjacentHTML("afterbegin", html);
+  }
+}
+
+
 /** ADE CSC — bar chart of community member counts (derived bubbles only). */
 function communitySizeChartHtml(bubbles) {
   const entries = (bubbles || [])
@@ -15434,6 +15666,7 @@ function renderBubbleMap(clusters, opts) {
   canvas.className = "play has-stage programs-view";
   if (recycle) {
     recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path);
+    refreshMapMixStrip(clusters);
     bindStage(canvas.querySelector(".stage"), { reset: false });
   } else {
     const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -15475,6 +15708,7 @@ function renderBubbleMap(clusters, opts) {
       '<div class="flow-title">' +
       mapFlowTitle(pathIds) +
       "</div>" +
+      mapMixStripHtml(clusters) +
       '<div class="viewport" data-lod="0">' +
       '<div class="comm-wrap" style="width:' +
       W +
@@ -15491,6 +15725,8 @@ function renderBubbleMap(clusters, opts) {
   const wrap = canvas.querySelector(".comm-wrap");
   separatePaintedCards(wrap, ".bubble-card");
   canvas.querySelectorAll(".bubble-card").forEach((el) => bindBubbleCardHot(el));
+  bindMapMixChart();
+  applyMapMixPaint();
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
     onClick: (id) => {
