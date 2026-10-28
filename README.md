@@ -60,7 +60,7 @@ Richer lanes on the same graph-only walk.
 
 ### Trace and Passport
 
-Trajectory DAG and Upstream Plan Passport (ADE Phase 1).
+Trajectory DAG and Upstream Plan Passport (ADE Phase 1, landed #371…#443).
 
 ![Trajectory DAG](UIUX_sample/trajectory-dag.png)
 
