@@ -12789,6 +12789,226 @@ async function main() {
     await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(80);
 
+    // ADE Map-altitude community mix (MAC1–MAC3) — interactive kind/hop bars; graph-only .bubble-card filter
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+    await page.waitForSelector(".mac-strip .mac-chart .mac-bar[data-mac-axis]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const mac1 = await page.evaluate(() => {
+      const strip = document.querySelector(".mac-strip[data-mac='1']");
+      const kindChart = document.querySelector(".mac-chart--kind");
+      const hopChart = document.querySelector(".mac-chart--hop");
+      const bars = [...document.querySelectorAll(".mac-chart .mac-bar[data-mac-axis][data-mac-value]")];
+      const cards = document.querySelectorAll(".bubble-card[data-bubble]").length;
+      return {
+        strip: !!strip,
+        kindBars: kindChart ? kindChart.querySelectorAll(".mac-bar").length : 0,
+        hopBars: hopChart ? hopChart.querySelectorAll(".mac-bar").length : 0,
+        bars: bars.length,
+        cards,
+        enter: !!document.getElementById("enterCanvas"),
+      };
+    });
+    const mac1ok = !!(
+      mac1 &&
+      mac1.strip &&
+      mac1.kindBars >= 1 &&
+      mac1.hopBars >= 1 &&
+      mac1.bars >= 2 &&
+      mac1.cards >= 8
+    );
+    record(
+      "MAC1",
+      "Map altitude .mac-strip/.mac-chart/.mac-bar (kind+hop) present with community cards",
+      !!mac1ok,
+      JSON.stringify(mac1)
+    );
+
+    const mac2 = await page.evaluate(() => {
+      function tryBars(selector) {
+        const bars = [...document.querySelectorAll(selector)];
+        for (const candidate of bars.slice().reverse()) {
+          if (candidate.getAttribute("aria-pressed") === "true") candidate.click();
+          candidate.click();
+          const hits = document.querySelectorAll(".bubble-card.mac-hit").length;
+          const dims = document.querySelectorAll(".bubble-card.mac-dim").length;
+          if (hits > 0 && dims > 0) {
+            return { bar: candidate, hits, dims, value: candidate.getAttribute("data-mac-value") || "", axis: candidate.getAttribute("data-mac-axis") || "" };
+          }
+          candidate.click();
+        }
+        return null;
+      }
+      const picked =
+        tryBars('.mac-chart--kind .mac-bar[data-mac-axis="kind"]') ||
+        tryBars('.mac-chart--hop .mac-bar[data-mac-axis="hop"]');
+      if (!picked) {
+        return {
+          ok: false,
+          reason: "no discriminative kind/hop bar",
+          triedKind: [...document.querySelectorAll('.mac-chart--kind .mac-bar')].map((b) => b.getAttribute("data-mac-value")),
+          triedHop: [...document.querySelectorAll('.mac-chart--hop .mac-bar')].map((b) => b.getAttribute("data-mac-value")),
+        };
+      }
+      const bar = picked.bar;
+      const wrapFilter = !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mac-filtering"));
+      const pressed = bar.getAttribute("aria-pressed") === "true";
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      bar.click();
+      const hits2 = document.querySelectorAll(".bubble-card.mac-hit").length;
+      const dims2 = document.querySelectorAll(".bubble-card.mac-dim").length;
+      const wrapFilter2 = !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mac-filtering"));
+      const pressed2 = bar.getAttribute("aria-pressed") === "true";
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        value: picked.value,
+        axis: picked.axis,
+        hits: picked.hits,
+        dims: picked.dims,
+        filtering: wrapFilter,
+        pressed,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2: wrapFilter2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const mac2ok = !!(
+      mac2 &&
+      mac2.ok &&
+      mac2.hits > 0 &&
+      mac2.dims > 0 &&
+      mac2.filtering &&
+      mac2.pressed &&
+      mac2.srcHidden &&
+      mac2.hits2 === 0 &&
+      mac2.dims2 === 0 &&
+      !mac2.filtering2 &&
+      !mac2.pressed2 &&
+      mac2.srcHidden2
+    );
+    record(
+      "MAC2",
+      "Click kind bar filters .bubble-card mac-hit/mac-dim without opening source; second click restores",
+      !!mac2ok,
+      JSON.stringify(mac2)
+    );
+
+    const mac3BarSel = await page.evaluate(() => {
+      function tryBars(selector) {
+        const bars = [...document.querySelectorAll(selector)];
+        for (const el of bars) {
+          if (el.getAttribute("aria-pressed") === "true") el.click();
+        }
+        for (const candidate of bars.slice().reverse()) {
+          candidate.click();
+          const hits = document.querySelectorAll(".bubble-card.mac-hit").length;
+          const dims = document.querySelectorAll(".bubble-card.mac-dim").length;
+          candidate.click();
+          if (hits > 0 && dims > 0) {
+            candidate.setAttribute("data-mac-probe", "1");
+            return '.mac-bar[data-mac-probe="1"]';
+          }
+        }
+        return null;
+      }
+      return (
+        tryBars('.mac-chart--kind .mac-bar[data-mac-axis="kind"]') ||
+        tryBars('.mac-chart--hop .mac-bar[data-mac-axis="hop"]') ||
+        ""
+      );
+    });
+    if (!mac3BarSel) throw new Error("no discriminative kind/hop bar for MAC3");
+    await page.focus(mac3BarSel);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const mac3on = await page.evaluate(() => {
+      const bar = document.querySelector('.mac-bar[data-mac-probe="1"]') || document.querySelector('.mac-chart--kind .mac-bar[data-mac-axis="kind"]');
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: document.querySelectorAll(".bubble-card.mac-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mac-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const mac3off = await page.evaluate(() => {
+      const bar = document.querySelector('.mac-bar[data-mac-probe="1"]') || document.querySelector('.mac-chart--kind .mac-bar[data-mac-axis="kind"]');
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: document.querySelectorAll(".bubble-card.mac-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mac-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const mac3ok = !!(
+      mac3on &&
+      mac3on.pressed &&
+      mac3on.hits > 0 &&
+      mac3on.filtering &&
+      mac3on.srcHidden &&
+      mac3off &&
+      !mac3off.pressed &&
+      mac3off.hits === 0 &&
+      !mac3off.filtering &&
+      mac3off.srcHidden
+    );
+    record(
+      "MAC3",
+      "Enter toggles Map mix filter; Escape clears when active; source stays closed",
+      !!mac3ok,
+      JSON.stringify({ on: mac3on, off: mac3off })
+    );
+
+    await page.evaluate(() => {
+      const pools = [
+        [...document.querySelectorAll('.mac-chart--kind .mac-bar[data-mac-axis="kind"]')],
+        [...document.querySelectorAll('.mac-chart--hop .mac-bar[data-mac-axis="hop"]')],
+      ];
+      for (const bars of pools) {
+        for (const el of bars) {
+          if (el.getAttribute("aria-pressed") === "true") el.click();
+        }
+      }
+      for (const bars of pools) {
+        for (const candidate of bars.slice().reverse()) {
+          candidate.click();
+          const hits = document.querySelectorAll(".bubble-card.mac-hit").length;
+          const dims = document.querySelectorAll(".bubble-card.mac-dim").length;
+          if (hits > 0 && dims > 0) return;
+          candidate.click();
+        }
+      }
+      const fallback = document.querySelector(".mac-bar[data-mac-axis]");
+      if (fallback) fallback.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "map-altitude-mix.png");
+    const macShot = checks.find((c) => c.id === "shot:map-altitude-mix.png");
+    const mac4ok = !!(mac1ok && mac2ok && mac3ok && macShot && macShot.pass);
+    record(
+      "MAC4",
+      "screenshot map-altitude-mix.png not black; Map-altitude community mix proven",
+      !!mac4ok,
+      JSON.stringify({
+        shot: macShot ? macShot.detail : "missing",
+        mac1: !!mac1ok,
+        mac2: !!mac2ok,
+        mac3: !!mac3ok,
+      })
+    );
+    assertNoStampDir("MAC5", "Map-altitude community mix step did not write .graphide/stamps/");
+
+
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });

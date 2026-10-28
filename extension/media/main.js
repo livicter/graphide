@@ -20078,6 +20078,7 @@
     let graphFilter = { q: "", kinds: { Function: true, Type: true, Endpoint: true }, program: null, bubble: null };
     let overviewMixFilter = null;
     let overviewCommunityFilter = null;
+    let mapMixFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20307,6 +20308,12 @@
         e.preventDefault();
         overviewCommunityFilter = null;
         applyOverviewCommunityPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "map" && mapMixFilter) {
+        e.preventDefault();
+        mapMixFilter = null;
+        applyMapMixPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -30380,6 +30387,144 @@
         };
       });
     }
+    function mapAltitudeMemberNodes(bubbles) {
+      const out = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const b of bubbles || []) {
+        for (const m of b.members || []) {
+          const id2 = idVal(m);
+          if (!id2 || seen.has(id2)) continue;
+          seen.add(id2);
+          const n = nodeById.get(id2);
+          if (n) out.push(n);
+        }
+      }
+      return out;
+    }
+    function mapAltitudeMemberEdges(memberIds) {
+      const want = new Set(memberIds || []);
+      if (!want.size) return [];
+      const edges = snapshot && snapshot.graph && snapshot.graph.edges || [];
+      return edges.filter((e) => want.has(idVal(e.from)) || want.has(idVal(e.to)));
+    }
+    function mapMixChartHtml(axis, map) {
+      const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(mapMixFilter && mapMixFilter.axis === axis && mapMixFilter.value === e[0]);
+        return '<button type="button" class="mac-bar' + (on2 ? " on" : "") + '" data-mac-axis="' + esc(axis) + '" data-mac-value="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '" style="--mac-pct:' + pct + '%"><span class="mac-fill" aria-hidden="true"></span><span class="mac-label"><b>' + esc(e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="mac-chart mac-chart--' + esc(axis) + '" role="group" aria-label="Map ' + esc(axis) + ' mix" data-mac-axis-group="' + esc(axis) + '">' + bars + "</div>";
+    }
+    function mapMixStripHtml(bubbles) {
+      const members = mapAltitudeMemberNodes(bubbles);
+      const memberIds = members.map((n) => idVal(n.id));
+      const kinds = countMap(members, (n) => n.kind);
+      const hopEdges = mapAltitudeMemberEdges(memberIds);
+      const hops = countMap(hopEdges, (e) => e.kind);
+      if (!kinds.size && !hops.size) return "";
+      return '<div class="mac-strip" data-mac="1" role="group" aria-label="Map altitude community mix">' + (kinds.size ? '<span class="mac-stat"><i class="k">Kinds</i> <b class="n">' + members.length + "</b> " + mapMixChartHtml("kind", kinds) + "</span>" : "") + (hops.size ? '<span class="mac-stat"><i class="k">Hops</i> <b class="n">' + hopEdges.length + "</b> " + mapMixChartHtml("hop", hops) + "</span>" : "") + "</div>";
+    }
+    function bubbleDominantKind(b) {
+      const counts = /* @__PURE__ */ new Map();
+      for (const m of b.members || []) {
+        const n = nodeById.get(idVal(m));
+        if (!n) continue;
+        const k = String(n.kind || "—");
+        counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      let best = null;
+      let bestN = -1;
+      for (const [k, n] of counts) {
+        if (n > bestN) {
+          best = k;
+          bestN = n;
+        }
+      }
+      return best;
+    }
+    function bubbleMatchesMapMix(b, filter2) {
+      if (!filter2) return true;
+      const members = (b.members || []).map((m) => idVal(m)).filter(Boolean);
+      if (!members.length) return false;
+      if (filter2.axis === "kind") {
+        return bubbleDominantKind(b) === String(filter2.value);
+      }
+      if (filter2.axis === "hop") {
+        const want = new Set(members);
+        const edges = snapshot && snapshot.graph && snapshot.graph.edges || [];
+        return edges.some(
+          (e) => String(e.kind || "—") === String(filter2.value) && (want.has(idVal(e.from)) || want.has(idVal(e.to)))
+        );
+      }
+      return true;
+    }
+    function toggleMapMixFilter(axis, value) {
+      if (!axis || value == null || value === "") return;
+      if (mapMixFilter && mapMixFilter.axis === axis && mapMixFilter.value === value) {
+        mapMixFilter = null;
+      } else {
+        mapMixFilter = { axis: String(axis), value: String(value) };
+      }
+      applyMapMixPaint();
+    }
+    function applyMapMixPaint() {
+      const filter2 = mapMixFilter;
+      if (!canvas) return;
+      canvas.querySelectorAll(".mac-bar[data-mac-axis][data-mac-value]").forEach((el2) => {
+        const on2 = !!(filter2 && filter2.axis === el2.getAttribute("data-mac-axis") && filter2.value === el2.getAttribute("data-mac-value"));
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const host = canvas.querySelector(".comm-wrap") || canvas;
+      host.classList.toggle("mac-filtering", !!filter2);
+      canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el2) => {
+        el2.classList.remove("mac-hit", "mac-dim");
+        if (!filter2) return;
+        const id2 = el2.getAttribute("data-bubble");
+        const bub = (mapAltitudeBubbles() || []).find((b) => idVal(b.id) === String(id2));
+        const match = !!(bub && bubbleMatchesMapMix(bub, filter2));
+        el2.classList.toggle("mac-hit", match);
+        el2.classList.toggle("mac-dim", !match);
+      });
+    }
+    function bindMapMixChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll("[data-mac-axis][data-mac-value]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleMapMixFilter(el2.getAttribute("data-mac-axis"), el2.getAttribute("data-mac-value"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleMapMixFilter(el2.getAttribute("data-mac-axis"), el2.getAttribute("data-mac-value"));
+        };
+      });
+    }
+    function refreshMapMixStrip(bubbles) {
+      if (!canvas) return;
+      const stage = canvas.querySelector(".stage");
+      if (!stage) return;
+      const title = stage.querySelector(".flow-title");
+      const html = mapMixStripHtml(bubbles);
+      let strip = stage.querySelector(".mac-strip");
+      if (!html) {
+        if (strip) strip.remove();
+        return;
+      }
+      if (strip) {
+        strip.outerHTML = html;
+      } else if (title) {
+        title.insertAdjacentHTML("afterend", html);
+      } else {
+        stage.insertAdjacentHTML("afterbegin", html);
+      }
+    }
     function communitySizeChartHtml(bubbles) {
       const entries = (bubbles || []).map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length })).filter((e) => e.id && e.n > 0).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, 12);
       if (!entries.length) return "";
@@ -31398,6 +31543,7 @@
       canvas.className = "play has-stage programs-view";
       if (recycle) {
         recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path);
+        refreshMapMixStrip(clusters);
         bindStage(canvas.querySelector(".stage"), { reset: false });
       } else {
         const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -31417,7 +31563,7 @@
           );
           html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + bubbleCardInnerHtml(b, role, n, marks) + "</button>";
         }
-        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + '</div><div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
+        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + "</div>" + mapMixStripHtml(clusters) + '<div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
         bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });
       }
       pinMapCommunityLod(canvas.querySelector(".viewport"));
@@ -31425,6 +31571,8 @@
       const wrap = canvas.querySelector(".comm-wrap");
       separatePaintedCards(wrap, ".bubble-card");
       canvas.querySelectorAll(".bubble-card").forEach((el2) => bindBubbleCardHot(el2));
+      bindMapMixChart();
+      applyMapMixPaint();
       bindDraggable(wrap, ".bubble-card", {
         idAttr: "data-bubble",
         onClick: (id2) => {
