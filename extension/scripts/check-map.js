@@ -344,8 +344,9 @@ assert(
     rootReadme.includes("Map-altitude community-size") &&
     rootReadme.includes("Map-altitude community-hop-size") &&
     rootReadme.includes("Slice hop-kind") &&
-    rootReadme.includes("Call-path scrubber"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Call-path scrubber (no full #371…#443 history dump)"
+    rootReadme.includes("Call-path scrubber") &&
+    rootReadme.includes("Route hop-kind"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Route hop-kind (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -470,6 +471,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
 const mapMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map.md"), "utf8");
 const openSliceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-slice.md"), "utf8");
+const routeMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md"), "utf8");
 const lineageMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
 const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
@@ -943,6 +945,10 @@ assert(driver.includes("CPS1") && driver.includes("CPS3") && driver.includes("ca
 assert(js.includes("callPathDepth") && js.includes("callPathReach") && js.includes("applyCallPathPaint") && js.includes("bindCallPathStrip"), "desk.js must own Call-path scrubber helpers");
 assert(css.includes(".cps-strip") && css.includes(".cps-depth") && css.includes("cps-hit") && css.includes("cps-dim"), "main.css must theme Call-path scrubber + cps-hit/cps-dim");
 assert(overviewMap.includes("CPS1") && overviewMap.includes("cps-strip") && overviewMap.includes("call-path-scrubber.png") && overviewMap.includes("peekSource"), "overview feature map must name CPS / cps-strip / proof / no peekSource");
+assert(driver.includes("RKM1") && driver.includes("RKM3") && driver.includes("route-hop-kind-mix.png") && driver.includes("rkm-bar"), "verify driver must prove Route hop-kind mix RKM1–RKM3");
+assert(js.includes("routeMixFilter") && js.includes("routeMixChartHtml") && js.includes("bindRouteMixChart") && js.includes("toggleRouteMixFilter"), "desk.js must own Route hop-kind mix filter helpers");
+assert(css.includes(".rkm-chart") && css.includes(".rkm-bar") && css.includes("rkm-hit") && css.includes("rkm-dim"), "main.css must theme Route hop-kind mix chart + rkm-hit/rkm-dim");
+assert(routeMap.includes("RKM1") && routeMap.includes("rkm-chart") && routeMap.includes("route-hop-kind-mix.png") && routeMap.includes("peekSource"), "route feature map must name RKM / rkm-chart / proof / no peekSource");
 
 
 

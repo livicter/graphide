@@ -20083,6 +20083,7 @@
     let mapHopSizeFilter = null;
     let sliceMixFilter = null;
     let callPathDepth = 0;
+    let routeMixFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20295,6 +20296,12 @@
       }
       if (e.key === "Escape" && routeOpen) {
         e.preventDefault();
+        if (routeMixFilter) {
+          routeMixFilter = null;
+          fillRouteReceipt();
+          applyProbePaint();
+          return;
+        }
         setRouteOpen(false);
         return;
       }
@@ -23142,7 +23149,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "rkm-hit", "rkm-dim", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
@@ -26347,6 +26354,44 @@
         lensBtn.setAttribute("aria-pressed", lensOpen ? "true" : "false");
       }
     }
+    function routeMixCounts(hops) {
+      const map = /* @__PURE__ */ Object.create(null);
+      for (const h of hops || []) {
+        const k = String(h && h.kind || "");
+        if (!k || !ROUTE_KINDS[k]) continue;
+        map[k] = (map[k] || 0) + 1;
+      }
+      return map;
+    }
+    function routeMixChartHtml(map) {
+      const entries = Object.keys(ROUTE_KINDS).filter((k) => map[k]).map((k) => [k, map[k]]);
+      if (!entries.length) return "";
+      const max = Math.max(...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const on2 = routeMixFilter && String(routeMixFilter) === String(e[0]) ? " on" : "";
+        const pct = max > 0 ? Math.round(e[1] / max * 100) : 0;
+        return '<button type="button" class="rkm-bar' + on2 + '" data-rkm-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0] + " · " + e[1]) + '" style="--rkm-pct:' + pct + '%"><span class="rkm-fill" aria-hidden="true"></span><span class="rkm-label"><b>' + esc(e[0]) + "</b><i>" + e[1] + "</i></span></button>";
+      }).join("");
+      return '<div class="rkm-chart" role="group" aria-label="Route hop-kind mix bars" data-rkm-axis-group="kind">' + bars + "</div>";
+    }
+    function toggleRouteMixFilter(kind) {
+      const k = String(kind || "");
+      if (!k || !ROUTE_KINDS[k]) return;
+      if (routeMixFilter && String(routeMixFilter) === k) routeMixFilter = null;
+      else routeMixFilter = k;
+      fillRouteReceipt();
+      applyProbePaint();
+    }
+    function bindRouteMixChart() {
+      if (!routeReceipt) return;
+      routeReceipt.querySelectorAll(".rkm-bar[data-rkm-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleRouteMixFilter(el2.getAttribute("data-rkm-kind"));
+        };
+      });
+    }
     function fillRouteReceipt() {
       if (!routeReceipt) return;
       const route = lastRoute && lastRoute.nodes ? lastRoute : resolveRoute();
@@ -26359,10 +26404,15 @@
       if (routeCursor >= hops.length) routeCursor = hops.length - 1;
       const hot = routeCursor >= 0 ? hops[routeCursor] : null;
       const status2 = !route.ok ? route.reason === "unreachable" ? "Unreachable" : "Pick two nodes" : hot ? routeCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(fqnOf(snapshot.graph, hot.from)) + " → " + shortOf(fqnOf(snapshot.graph, hot.to)) : hops.length + " hops · " + fromL + " → " + toL;
+      const mixMap = routeMixCounts(hops);
+      const mixKeys = Object.keys(mixMap);
       const list = hops.map((h, i) => {
-        return '<button type="button" class="route-hop' + (i === routeCursor ? " on" : "") + '" data-route-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-kind="' + esc(h.kind || "") + '">' + esc((h.kind || "") + " " + shortOf(fqnOf(snapshot.graph, h.from)) + " → " + shortOf(fqnOf(snapshot.graph, h.to))) + "</button>";
+        const kind = String(h.kind || "");
+        const mixCls = routeMixFilter ? kind === String(routeMixFilter) ? " rkm-hit" : " rkm-dim" : "";
+        return '<button type="button" class="route-hop' + (i === routeCursor ? " on" : "") + mixCls + '" data-route-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-kind="' + esc(kind) + '">' + esc((kind || "") + " " + shortOf(fqnOf(snapshot.graph, h.from)) + " → " + shortOf(fqnOf(snapshot.graph, h.to))) + "</button>";
       }).join("");
-      routeReceipt.innerHTML = '<div class="review-strip" id="routeReview"><span class="probe-k">PATH</span><button type="button" class="review-step" id="routeOverview">Overview</button><button type="button" class="review-step" id="routePrev">Prev</button><button type="button" class="review-step' + (routeWalk.playing ? " on" : "") + '" id="routePlay" aria-pressed="' + (routeWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="routeNext">Next</button><span id="routeStatus">' + esc(status2) + '</span></div><div id="routeHops" class="route-hops">' + (list || '<span class="empty">No derived directed hops.</span>') + "</div>";
+      const mixStrip = route.ok && mixKeys.length ? '<div class="rkm-strip" data-rkm="1" role="group" aria-label="Route hop-kind mix"><span class="rkm-stat"><i class="k">Kinds</i> <b class="n">' + mixKeys.length + "</b></span>" + routeMixChartHtml(mixMap) + "</div>" : "";
+      routeReceipt.innerHTML = '<div class="review-strip" id="routeReview"><span class="probe-k">PATH</span><button type="button" class="review-step" id="routeOverview">Overview</button><button type="button" class="review-step" id="routePrev">Prev</button><button type="button" class="review-step' + (routeWalk.playing ? " on" : "") + '" id="routePlay" aria-pressed="' + (routeWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="routeNext">Next</button><span id="routeStatus">' + esc(status2) + "</span></div>" + mixStrip + '<div id="routeHops" class="route-hops">' + (list || '<span class="empty">No derived directed hops.</span>') + "</div>";
       const overview = document.getElementById("routeOverview");
       const prev = document.getElementById("routePrev");
       const next = document.getElementById("routeNext");
@@ -26395,6 +26445,8 @@
           applyProbePaint();
         };
       });
+      bindRouteMixChart();
+      if (routeReceipt) routeReceipt.classList.toggle("rkm-filtering", !!routeMixFilter);
     }
     function fillLensReceipt() {
       if (!lensReceipt) return;
@@ -26415,6 +26467,7 @@
       if (!routeOpen) {
         stopRouteWalk();
         routeCursor = -1;
+        routeMixFilter = null;
       } else {
         if (llmPane && !llmPane.hidden && typeof setLlmPane === "function") setLlmPane(false);
         if (keysPane && !keysPane.hidden && typeof setKeysPane === "function") setKeysPane(false);
@@ -26508,6 +26561,15 @@
       const pathSet = new Set(route.ok ? route.nodes : []);
       const hopSet = new Set((route.ok ? route.hops : []).map((h) => h.from + "	" + h.to));
       const hot = routeOpen && routeCursor >= 0 && route.hops[routeCursor] ? route.hops[routeCursor] : null;
+      const mixKind = routeOpen && routeMixFilter ? String(routeMixFilter) : "";
+      const mixNodeSet = /* @__PURE__ */ new Set();
+      if (mixKind && route.ok) {
+        for (const h of route.hops || []) {
+          if (String(h.kind || "") !== mixKind) continue;
+          if (h.from) mixNodeSet.add(h.from);
+          if (h.to) mixNodeSet.add(h.to);
+        }
+      }
       let extra = 0;
       let hits = 0;
       canvas.querySelectorAll(".vnode, .comm-node, .ego-node, .seq-part, .df-node, .bubble-card, .lc-end").forEach((el2) => {
@@ -26521,6 +26583,13 @@
           !!(hot && (id2 && (id2 === hot.from || id2 === hot.to) || bub && bubbleOnProbePath(bub, /* @__PURE__ */ new Set([hot.from, hot.to]))))
         );
         el2.classList.toggle("route-dim", !!(routeOpen && route.ok && (id2 || bub) && !onRoute));
+        const rkmHit = !!(mixKind && onRoute && id2 && mixNodeSet.has(id2));
+        const rkmDim = !!(mixKind && onRoute && id2 && !mixNodeSet.has(id2));
+        el2.classList.toggle("rkm-hit", rkmHit);
+        el2.classList.toggle("rkm-dim", rkmDim);
+        if (!mixKind) {
+          el2.classList.remove("rkm-hit", "rkm-dim");
+        }
         const lensHit = !!(lensOpen && (id2 && nodeLensHit(id2) || bub && bubbleLensHit(bub)));
         if (lensHit) hits++;
         el2.classList.toggle("lens-on", lensHit);
@@ -26534,6 +26603,14 @@
         if (el2.classList.contains("on-route") && a && b && !hopSet.has(a + "	" + b)) extra++;
         el2.classList.toggle("on-route-hot", !!(hot && a === hot.from && b === hot.to));
         el2.classList.toggle("route-dim", !!(routeOpen && route.ok && !onRoute));
+        let edgeKind = "";
+        if (onRoute && mixKind && route.ok) {
+          const hop = (route.hops || []).find((h) => h.from === a && h.to === b);
+          edgeKind = hop ? String(hop.kind || "") : "";
+        }
+        el2.classList.toggle("rkm-hit", !!(mixKind && onRoute && edgeKind === mixKind));
+        el2.classList.toggle("rkm-dim", !!(mixKind && onRoute && edgeKind && edgeKind !== mixKind));
+        if (!mixKind) el2.classList.remove("rkm-hit", "rkm-dim");
       });
       if (kindFilters && lensOpen) {
         kindFilters.querySelectorAll("label").forEach((lab) => {
@@ -26551,7 +26628,8 @@
         nodes: route.nodes || [],
         hops: (route.hops || []).map((h) => ({ from: h.from, to: h.to, kind: h.kind })),
         extra,
-        cursor: routeCursor
+        cursor: routeCursor,
+        mix: routeMixFilter || null
       };
       window.__graphideLens = {
         open: !!lensOpen,

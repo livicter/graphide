@@ -38791,6 +38791,137 @@ async function main() {
     await shot(page, "route.png");
     assertNoStampDir("RT7", "Route step did not write .graphide/stamps/");
 
+    // ADE Route hop-kind mix (RKM1–RKM5) — interactive kind bars on PATH receipt
+    await page.waitForSelector(".rkm-strip .rkm-chart .rkm-bar[data-rkm-kind]", { timeout: 8000 });
+    const rkm1 = await page.evaluate(() => {
+      const strip = document.querySelector(".rkm-strip[data-rkm='1']");
+      const bars = [...document.querySelectorAll(".rkm-chart .rkm-bar[data-rkm-kind]")];
+      const hops = [...document.querySelectorAll("#routeHops .route-hop")];
+      const rec = window.__graphideRoute || {};
+      return {
+        strip: !!strip,
+        bars: bars.length,
+        kinds: bars.map((b) => b.getAttribute("data-rkm-kind")),
+        hops: hops.length,
+        open: !!rec.open,
+        ok: !!rec.ok,
+      };
+    });
+    const rkm1ok = !!(rkm1 && rkm1.strip && rkm1.bars >= 1 && rkm1.hops >= 1 && rkm1.open && rkm1.ok);
+    record(
+      "RKM1",
+      "Route .rkm-strip/.rkm-chart/.rkm-bar present with path hops",
+      !!rkm1ok,
+      JSON.stringify(rkm1)
+    );
+
+    const rkm2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".rkm-chart .rkm-bar[data-rkm-kind]")];
+      if (!bars.length) return { ok: false, reason: "no bars" };
+      const bar = bars[0];
+      const kind = bar.getAttribute("data-rkm-kind") || "";
+      bar.click();
+      const rec = window.__graphideRoute || {};
+      const hitHops = document.querySelectorAll("#routeHops .route-hop.rkm-hit").length;
+      const dimHops = document.querySelectorAll("#routeHops .route-hop.rkm-dim").length;
+      const filtering = !!(document.getElementById("routeReceipt") && document.getElementById("routeReceipt").classList.contains("rkm-filtering"));
+      // fillRouteReceipt rebuilds bars — re-query pressed state
+      const pressed = [...document.querySelectorAll(".rkm-bar[data-rkm-kind]")].some(
+        (b) => b.getAttribute("data-rkm-kind") === kind && b.getAttribute("aria-pressed") === "true"
+      );
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        kind,
+        mix: rec.mix || null,
+        hitHops,
+        dimHops,
+        filtering,
+        pressed,
+        srcHidden: !src || src.hidden,
+        hops: document.querySelectorAll("#routeHops .route-hop").length,
+        bars: bars.length,
+      };
+    });
+    // Single-kind paths (demo Subscribes) legitimately have dimHops=0; still require hit + filter + pressed.
+    const rkm2ok = !!(
+      rkm2 &&
+      rkm2.ok &&
+      rkm2.filtering &&
+      rkm2.pressed &&
+      rkm2.hitHops >= 1 &&
+      rkm2.mix === rkm2.kind &&
+      rkm2.srcHidden &&
+      rkm2.hitHops + rkm2.dimHops === rkm2.hops
+    );
+    record(
+      "RKM2",
+      "Route kind bar filters path hops rkm-hit/rkm-dim without opening source",
+      !!rkm2ok,
+      JSON.stringify(rkm2)
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const rkm3 = await page.evaluate(() => {
+      const rec = window.__graphideRoute || {};
+      const filtering = !!(document.getElementById("routeReceipt") && document.getElementById("routeReceipt").classList.contains("rkm-filtering"));
+      const hitHops = document.querySelectorAll("#routeHops .route-hop.rkm-hit").length;
+      const pressed = [...document.querySelectorAll(".rkm-bar[aria-pressed='true']")].length;
+      const src = document.getElementById("sourcePane");
+      return {
+        open: !!rec.open,
+        mix: rec.mix || null,
+        filtering,
+        hitHops,
+        pressed,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const rkm3ok = !!(
+      rkm3 &&
+      rkm3.open &&
+      !rkm3.mix &&
+      !rkm3.filtering &&
+      rkm3.hitHops === 0 &&
+      rkm3.pressed === 0 &&
+      rkm3.srcHidden
+    );
+    record(
+      "RKM3",
+      "Escape clears Route hop-kind filter without closing Route or opening source",
+      !!rkm3ok,
+      JSON.stringify(rkm3)
+    );
+
+    // Re-enable for proof shot
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".rkm-chart .rkm-bar[data-rkm-kind]")];
+      if (bars[0]) bars[0].click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "route-hop-kind-mix.png");
+    const rkmShot = checks.find((c) => c.id === "shot:route-hop-kind-mix.png");
+    const rkm4ok = !!(rkm1ok && rkm2ok && rkm3ok && rkmShot && rkmShot.pass);
+    record(
+      "RKM4",
+      "screenshot route-hop-kind-mix.png not black; Route hop-kind mix proven",
+      !!rkm4ok,
+      JSON.stringify({
+        shot: rkmShot ? rkmShot.detail : "missing",
+        rkm1: !!rkm1ok,
+        rkm2: !!rkm2ok,
+        rkm3: !!rkm3ok,
+      })
+    );
+    assertNoStampDir("RKM5", "Route hop-kind mix step did not write .graphide/stamps/");
+    // Clear leftover RKM filter so later Lens/chrome asserts stay honest
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".rkm-chart .rkm-bar[aria-pressed='true']")];
+      for (const el of bars) el.click();
+    });
+    await page.waitForTimeout(40);
+
     // Tip + toast under Lens must clear (parity with K19–K19e / K20–K20e).
     await page.evaluate(() => {
       const tip = document.getElementById("tip");

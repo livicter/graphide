@@ -17,6 +17,10 @@ journey is finite.
 - Receipt `#routeReceipt` inside `#probeDock`: Overview / Prev / Play /
   Next plus `#routeHops .route-hop`. Play (`#routePlay`) walks hops and
   stops on the last. It does not loop.
+- ADE RKM — hop-kind mix on the receipt (`.rkm-strip` / `.rkm-chart` / `.rkm-bar`).
+  Click a kind bar to filter path hops + canvas (`rkm-hit` / `rkm-dim`).
+  Escape clears the filter first, then closes Route. Never peekSource.
+  Proof `verification/route-hop-kind-mix.png` (RKM1–RKM5).
 - Canvas classes `.on-route` / `.route-dim` on existing `.vnode` /
   `.seq-part` / `.df-node`. Highlighted nodes ⊆ path nodes.
 - Export may offer `#exportRouteShare` after a real route. Fail closed
