@@ -38747,6 +38747,156 @@ async function main() {
     );
     assertNoStampDir("LBC4", "Lineage behavior captions step did not write .graphide/stamps/");
 
+    // ADE Lineage fan size mix (LFO1–LFO5) — Used/Informed/Generated member-count bars
+    await page.waitForSelector(".lfo-strip .lfo-chart .lfo-bar[data-lfo-kind]", { timeout: 8000 });
+    const lfo1 = await page.evaluate(() => {
+      const strip = document.querySelector(".lfo-strip[data-lfo='1']");
+      const bars = [...document.querySelectorAll(".lfo-chart .lfo-bar[data-lfo-kind]")];
+      const cols = [...document.querySelectorAll(".prov-col[data-prov]")];
+      const rec = window.__graphideLineage || {};
+      const src = document.getElementById("sourcePane");
+      return {
+        strip: !!strip,
+        bars: bars.length,
+        kinds: bars.map((b) => b.getAttribute("data-lfo-kind")),
+        cols: cols.length,
+        hops: rec.hops || 0,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const lfo1ok = !!(lfo1 && lfo1.strip && lfo1.bars >= 1 && lfo1.cols >= 1 && lfo1.srcHidden);
+    record(
+      "LFO1",
+      "Lineage .lfo-strip/.lfo-chart/.lfo-bar present with provenance cols",
+      !!lfo1ok,
+      JSON.stringify(lfo1)
+    );
+
+    const lfo2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".lfo-chart .lfo-bar[data-lfo-kind]")];
+      if (!bars.length) return { ok: false, reason: "no bars" };
+      // Prefer the highest-count bar (fat neighbors)
+      let best = bars[0];
+      let bestN = -1;
+      for (const b of bars) {
+        const label = ((b.querySelector(".lfo-label") || {}).textContent || "").trim();
+        const m = label.match(/(\d+)\s*$/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        if (n > bestN) {
+          bestN = n;
+          best = b;
+        }
+      }
+      const kind = best.getAttribute("data-lfo-kind") || "";
+      best.click();
+      const rec = window.__graphideLineage || {};
+      const filtering = !!(
+        document.querySelector(".lfo-strip.lfo-filtering") ||
+        document.querySelector(".prov-row.lfo-filtering") ||
+        document.getElementById("lineageCanvas")?.classList.contains("lfo-filtering")
+      );
+      const pressed = [...document.querySelectorAll(".lfo-bar[data-lfo-kind]")].some(
+        (b) => b.getAttribute("data-lfo-kind") === kind && b.getAttribute("aria-pressed") === "true"
+      );
+      const visibleCols = [...document.querySelectorAll(".prov-col[data-prov]")].filter((el) => !el.classList.contains("off"));
+      const hitCols = [...document.querySelectorAll(".prov-col.lfo-hit")];
+      const allVisibleMatch = visibleCols.every((el) => (el.getAttribute("data-prov") || "") === kind);
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        kind,
+        fan: rec.fan || null,
+        filtering,
+        pressed,
+        visibleCols: visibleCols.length,
+        hitCols: hitCols.length,
+        allVisibleMatch,
+        srcHidden: !src || src.hidden,
+        bestN,
+      };
+    });
+    const lfo2ok = !!(
+      lfo2 &&
+      lfo2.ok &&
+      lfo2.filtering &&
+      lfo2.pressed &&
+      lfo2.fan === lfo2.kind &&
+      lfo2.visibleCols >= 1 &&
+      lfo2.allVisibleMatch &&
+      lfo2.srcHidden
+    );
+    record(
+      "LFO2",
+      "High-count fan bar filters provenance cols lfo-hit without opening source",
+      !!lfo2ok,
+      JSON.stringify(lfo2)
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const lfo3 = await page.evaluate(() => {
+      const rec = window.__graphideLineage || {};
+      const filtering = !!(
+        document.querySelector(".lfo-strip.lfo-filtering") ||
+        document.querySelector(".prov-row.lfo-filtering") ||
+        document.getElementById("lineageCanvas")?.classList.contains("lfo-filtering")
+      );
+      const pressed = [...document.querySelectorAll(".lfo-bar[aria-pressed='true']")].length;
+      const off = document.querySelectorAll(".prov-col.off").length;
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+      const src = document.getElementById("sourcePane");
+      return {
+        ws,
+        fan: rec.fan || null,
+        filtering,
+        pressed,
+        off,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const lfo3ok = !!(
+      lfo3 &&
+      lfo3.ws === "lineage" &&
+      !lfo3.fan &&
+      !lfo3.filtering &&
+      lfo3.pressed === 0 &&
+      lfo3.off === 0 &&
+      lfo3.srcHidden
+    );
+    record(
+      "LFO3",
+      "Escape clears Lineage fan filter without leaving Lineage or opening source",
+      !!lfo3ok,
+      JSON.stringify(lfo3)
+    );
+
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".lfo-chart .lfo-bar[data-lfo-kind]")];
+      if (bars[0]) bars[0].click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "lineage-fan-size-mix.png");
+    const lfoShot = checks.find((c) => c.id === "shot:lineage-fan-size-mix.png");
+    const lfo4ok = !!(lfo1ok && lfo2ok && lfo3ok && lfoShot && lfoShot.pass);
+    record(
+      "LFO4",
+      "screenshot lineage-fan-size-mix.png not black; Lineage fan size mix proven",
+      !!lfo4ok,
+      JSON.stringify({
+        shot: lfoShot ? lfoShot.detail : "missing",
+        lfo1: !!lfo1ok,
+        lfo2: !!lfo2ok,
+        lfo3: !!lfo3ok,
+      })
+    );
+    assertNoStampDir("LFO5", "Lineage fan size mix step did not write .graphide/stamps/");
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".lfo-bar[aria-pressed='true']")];
+      for (const el of bars) el.click();
+    });
+    await page.waitForTimeout(40);
+
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

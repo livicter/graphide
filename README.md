@@ -84,9 +84,11 @@ Trajectory DAG and Upstream Plan Passport (ADE Phase 1).
 
 ### Lineage
 
-Ego of the start hop. Used, Informed, and Generated with behavior captions.
+Ego of the start hop. Used, Informed, and Generated with behavior captions. Fan size mix chart filters provenance neighbors by Used / Informed / Generated member count.
 
 ![Lineage behavior captions](UIUX_sample/lineage-behavior-captions.png)
+
+![Lineage fan size mix](UIUX_sample/lineage-fan-size-mix.png)
 
 ### Registry
 
@@ -104,6 +106,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO).
 
-Parked next: LFO (dsh NEXT_AFTER after DAM).
+Parked next: PTD (dsh NEXT_AFTER after LFO).

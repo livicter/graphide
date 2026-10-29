@@ -20070,6 +20070,7 @@
     let lineageBodyKey = "";
     let lineageHopCursor = -1;
     let lineageEgoId = "";
+    let lineageFanFilter = null;
     let decisionOutcomeFilter = "";
     let decisionAttestFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
@@ -20314,6 +20315,13 @@
       if (e.key === "Escape" && isPresenting()) {
         e.preventDefault();
         applyPresent(false);
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "lineage" && lineageFanFilter) {
+        e.preventDefault();
+        lineageFanFilter = null;
+        applyLineageFanPaint();
+        syncLineageFanBars();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "decisions" && decisionAttestFilter) {
@@ -31705,6 +31713,129 @@
       renderLineageCanvas(host, lineageCanvasProps(reading, focusId));
       stampXyFlowAttrs();
     }
+    function lineageFanChartHtml(buckets) {
+      const order = [
+        ["used", "Used"],
+        ["informed", "Informed"],
+        ["generated", "Generated"]
+      ];
+      const entries = order.map(([k, label]) => [k, label, (buckets[k] || []).length]).filter((e) => e[2] > 0);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[2]));
+      const bars = entries.map(([k, label, n]) => {
+        const pct = Math.round(n / max * 100);
+        const on2 = !!(lineageFanFilter && String(lineageFanFilter) === String(k));
+        return '<button type="button" class="lfo-bar' + (on2 ? " on" : "") + '" data-lfo-kind="' + esc(k) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(label) + " · " + n + '" style="--lfo-pct:' + pct + '%"><span class="lfo-fill" aria-hidden="true"></span><span class="lfo-label"><b>' + esc(label) + "</b> " + n + "</span></button>";
+      }).join("");
+      return '<div class="lfo-chart" role="group" aria-label="Lineage fan size mix bars" data-lfo-axis-group="fan">' + bars + "</div>";
+    }
+    function lineageFanStripHtml(buckets) {
+      const chart = lineageFanChartHtml(buckets);
+      if (!chart) return "";
+      const total = ["used", "informed", "generated"].reduce(
+        (a, k) => a + (buckets[k] || []).length,
+        0
+      );
+      return '<div class="lfo-strip" data-lfo="1" role="group" aria-label="Lineage fan size mix"><span class="lfo-stat"><i class="k">Fan</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function toggleLineageFanFilter(kind) {
+      if (!kind) return;
+      if (lineageFanFilter && String(lineageFanFilter) === String(kind)) lineageFanFilter = null;
+      else lineageFanFilter = String(kind);
+      applyLineageFanPaint();
+      syncLineageFanBars();
+    }
+    function syncLineageFanBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".lfo-bar[data-lfo-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-lfo-kind") || "";
+        const on2 = !!(lineageFanFilter && String(lineageFanFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".lfo-strip");
+      if (strip) strip.classList.toggle("lfo-filtering", !!lineageFanFilter);
+      const row = canvas.querySelector(".prov-row");
+      if (row) row.classList.toggle("lfo-filtering", !!lineageFanFilter);
+      const hops = document.getElementById("lineageHops");
+      if (hops) hops.classList.toggle("lfo-filtering", !!lineageFanFilter);
+      const host = document.getElementById("lineageCanvas");
+      if (host) host.classList.toggle("lfo-filtering", !!lineageFanFilter);
+    }
+    function bindLineageFanChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".lfo-bar[data-lfo-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleLineageFanFilter(el2.getAttribute("data-lfo-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleLineageFanFilter(el2.getAttribute("data-lfo-kind"));
+        };
+      });
+    }
+    function applyLineageFanPaint() {
+      if (!canvas || explorerWs !== "lineage") return;
+      const filter2 = lineageFanFilter ? String(lineageFanFilter) : "";
+      canvas.querySelectorAll(".prov-col[data-prov]").forEach((col) => {
+        const kind = col.getAttribute("data-prov") || "";
+        const hit = !!(filter2 && kind === filter2);
+        const dim = !!(filter2 && kind !== filter2);
+        col.classList.toggle("lfo-hit", hit);
+        col.classList.toggle("lfo-dim", dim);
+        col.classList.toggle("off", dim);
+      });
+      canvas.querySelectorAll(".expl-card.hop[data-kind], #lineageHops .expl-card.hop[data-kind]").forEach((el2) => {
+        const bucket = provBucket(el2.getAttribute("data-kind") || "");
+        const hit = !!(filter2 && bucket === filter2);
+        const dim = !!(filter2 && bucket !== filter2);
+        el2.classList.toggle("lfo-hit", hit);
+        el2.classList.toggle("lfo-dim", dim);
+        el2.classList.toggle("off", dim);
+      });
+      const host = document.getElementById("lineageCanvas");
+      const focus = lineageEgoId || "";
+      let keep = /* @__PURE__ */ new Set();
+      if (filter2) {
+        canvas.querySelectorAll(".expl-card.hop[data-kind]").forEach((el2) => {
+          if (el2.classList.contains("off")) return;
+          const from = el2.getAttribute("data-from") || "";
+          const to = el2.getAttribute("data-to") || "";
+          if (from) keep.add(from);
+          if (to) keep.add(to);
+        });
+        if (focus) keep.add(focus);
+      }
+      if (host) {
+        host.querySelectorAll(".vnode[data-id], .ego-node[data-id]").forEach((el2) => {
+          const id2 = el2.getAttribute("data-id") || "";
+          const hit = !!(filter2 && keep.has(id2));
+          const dim = !!(filter2 && !keep.has(id2));
+          el2.classList.toggle("lfo-hit", hit);
+          el2.classList.toggle("lfo-dim", dim);
+          if (!filter2) el2.classList.remove("lfo-hit", "lfo-dim");
+        });
+        host.querySelectorAll(".react-flow__edge").forEach((el2) => {
+          if (!filter2) {
+            el2.classList.remove("lfo-hit", "lfo-dim");
+            return;
+          }
+          const sid = el2.getAttribute("data-from") || el2.getAttribute("data-source") || "";
+          const tid = el2.getAttribute("data-to") || el2.getAttribute("data-target") || "";
+          const hit = !!(sid && tid && keep.has(sid) && keep.has(tid));
+          el2.classList.toggle("lfo-hit", hit);
+          el2.classList.toggle("lfo-dim", !hit);
+        });
+      }
+      syncLineageFanBars();
+      window.__graphideLineage = Object.assign({}, window.__graphideLineage || {}, {
+        fan: filter2 || null
+      });
+    }
     function renderLineage(opts) {
       const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
@@ -31724,7 +31855,8 @@
         canvas.className = "play";
         canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
         setZoomUi(false);
-        window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [] };
+        lineageFanFilter = null;
+        window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [], fan: null };
         return;
       }
       const node = nodeById.get(id2);
@@ -31775,7 +31907,7 @@
       canvas.className = "play has-stage explorer-lineage";
       if (!keep) {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div><div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
+        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div>' + lineageFanStripHtml(buckets) + '<div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
         lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       } else {
@@ -31818,12 +31950,15 @@
       applyGraphFilter();
       const upN = reading.nodes.filter((n) => n.side === "up").length;
       const downN = reading.nodes.filter((n) => n.side === "down").length;
+      bindLineageFanChart();
+      applyLineageFanPaint();
       window.__graphideLineage = {
         focus: id2,
         fqn: node && node.fqn || "",
         kind: node && node.kind || kindOf(snapshot.graph, id2),
         nodes: reading.nodes.length,
         hops: hops.length,
+        fan: lineageFanFilter || null,
         up: upN,
         down: downN,
         kinds: hops.map((h) => h.kind)

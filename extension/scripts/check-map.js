@@ -346,8 +346,9 @@ assert(
     rootReadme.includes("Slice hop-kind") &&
     rootReadme.includes("Call-path scrubber") &&
     rootReadme.includes("Route hop-kind") &&
-    rootReadme.includes("Decisions attestation"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Decisions attestation (no full #371…#443 history dump)"
+    rootReadme.includes("Decisions attestation") &&
+    rootReadme.includes("Lineage fan"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Lineage fan (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -955,6 +956,12 @@ assert(driver.includes("DAM1") && driver.includes("DAM3") && driver.includes("de
 assert(js.includes("decisionAttestFilter") && js.includes("decisionAttestChartHtml") && js.includes("bindDecisionAttestChart") && js.includes("toggleDecisionAttestFilter") && js.includes("attestationBucket"), "desk.js must own Decisions attestation mix filter helpers");
 assert(css.includes(".dam-chart") && css.includes(".dam-bar") && css.includes("dam-hit") && css.includes("dam-dim"), "main.css must theme Decisions attestation mix chart + dam-hit/dam-dim");
 assert(decisionsMap.includes("DAM1") && decisionsMap.includes("dam-chart") && decisionsMap.includes("decisions-attestation-mix.png") && decisionsMap.includes("peekSource"), "decisions feature map must name DAM / dam-chart / proof / no peekSource");
+
+assert(driver.includes("LFO1") && driver.includes("LFO3") && driver.includes("lineage-fan-size-mix.png") && driver.includes("lfo-bar"), "verify driver must prove Lineage fan size mix LFO1–LFO3");
+assert(js.includes("lineageFanFilter") && js.includes("lineageFanChartHtml") && js.includes("bindLineageFanChart") && js.includes("toggleLineageFanFilter") && js.includes("applyLineageFanPaint"), "desk.js must own Lineage fan size mix filter helpers");
+assert(css.includes(".lfo-chart") && css.includes(".lfo-bar") && css.includes("lfo-hit") && css.includes("lfo-dim"), "main.css must theme Lineage fan size mix chart + lfo-hit/lfo-dim");
+assert(lineageMap.includes("LFO1") && lineageMap.includes("lfo-chart") && lineageMap.includes("lineage-fan-size-mix.png") && lineageMap.includes("peekSource"), "lineage feature map must name LFO / lfo-chart / proof / no peekSource");
+
 
 
 

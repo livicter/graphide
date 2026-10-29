@@ -38,6 +38,9 @@ force-directed dump of the raw IR and not an agent-drawn graph.
 - `coverage.changed` (and optional delta added/changed FQNs) mark `.changed`
   on nodes that sit on this ego. Empty: no selection, or no derived hops.
 
+
+- ADE LFO (Lineage fan size mix): Lineage stage shows `.lfo-strip` / `.lfo-chart` / `.lfo-bar` Used/Informed/Generated member-count mix from provenance buckets. Click / Enter / Space toggles `lineageFanFilter` and paints `.prov-col` / hop cards / `#lineageCanvas` with `lfo-hit` / `lfo-dim` (non-matching cols also `.off`). Second click or Escape (Lineage-only, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/lineage-fan-size-mix.png`. Asserts LFO1–LFO3.
+
 ## How to get to it (user POV)
 
 1. Review a folder that has a derived graph. The desk lands on Overview.
