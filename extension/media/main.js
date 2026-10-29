@@ -20081,6 +20081,7 @@
     let mapMixFilter = null;
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
+    let sliceMixFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20310,6 +20311,12 @@
         e.preventDefault();
         overviewCommunityFilter = null;
         applyOverviewCommunityPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceMixFilter) {
+        e.preventDefault();
+        sliceMixFilter = null;
+        applySliceMixPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "map" && mapHopSizeFilter) {
@@ -30401,6 +30408,130 @@
         };
       });
     }
+    function sliceMixChartHtml(axis, map) {
+      const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(sliceMixFilter && sliceMixFilter.axis === axis && sliceMixFilter.value === e[0]);
+        return '<button type="button" class="shm-bar' + (on2 ? " on" : "") + '" data-shm-axis="' + esc(axis) + '" data-shm-value="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '" style="--shm-pct:' + pct + '%"><span class="shm-fill" aria-hidden="true"></span><span class="shm-label"><b>' + esc(e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="shm-chart shm-chart--' + esc(axis) + '" role="group" aria-label="Slice ' + esc(axis) + ' mix" data-shm-axis-group="' + esc(axis) + '">' + bars + "</div>";
+    }
+    function sliceMixStripHtml(flow, graph) {
+      const treeNodes = flow && flow.tree && flow.tree.nodes || [];
+      const nodes = [];
+      for (const raw of treeNodes) {
+        const n = nodeById.get(idVal(raw)) || { id: raw, kind: kindOf(graph, raw) };
+        if (n) nodes.push(n);
+      }
+      const treeEdges = flow && flow.tree && flow.tree.edges || [];
+      const kinds = countMap(nodes, (n) => n.kind);
+      const hops = countMap(treeEdges, (e) => e.kind || "Calls");
+      if (!kinds.size && !hops.size) return "";
+      return '<div class="shm-strip" data-shm="1" role="group" aria-label="Slice hop-kind mix">' + (kinds.size ? '<span class="shm-stat"><i class="k">Kinds</i> <b class="n">' + nodes.length + "</b> " + sliceMixChartHtml("kind", kinds) + "</span>" : "") + (hops.size ? '<span class="shm-stat"><i class="k">Hops</i> <b class="n">' + treeEdges.length + "</b> " + sliceMixChartHtml("hop", hops) + "</span>" : "") + "</div>";
+    }
+    function toggleSliceMixFilter(axis, value) {
+      if (!axis || value == null || value === "") return;
+      if (sliceMixFilter && sliceMixFilter.axis === axis && sliceMixFilter.value === value) {
+        sliceMixFilter = null;
+      } else {
+        sliceMixFilter = { axis: String(axis), value: String(value) };
+      }
+      applySliceMixPaint();
+    }
+    function applySliceMixPaint() {
+      const filter2 = sliceMixFilter;
+      if (canvas) {
+        canvas.querySelectorAll(".shm-bar[data-shm-axis][data-shm-value]").forEach((el2) => {
+          const on2 = !!(filter2 && filter2.axis === el2.getAttribute("data-shm-axis") && filter2.value === el2.getAttribute("data-shm-value"));
+          el2.classList.toggle("on", on2);
+          el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+        });
+      }
+      const host = document.getElementById("sliceCanvas");
+      if (!host) return;
+      host.classList.toggle("shm-filtering", !!filter2);
+      const nodes = host.querySelectorAll(".vnode");
+      const edges = host.querySelectorAll(".react-flow__edge");
+      nodes.forEach((el2) => el2.classList.remove("shm-hit", "shm-dim"));
+      edges.forEach((el2) => el2.classList.remove("shm-hit", "shm-dim"));
+      if (!filter2) return;
+      if (filter2.axis === "kind") {
+        const hot = /* @__PURE__ */ new Set();
+        nodes.forEach((el2) => {
+          const match = (el2.getAttribute("data-kind") || "") === filter2.value;
+          el2.classList.toggle("shm-hit", match);
+          el2.classList.toggle("shm-dim", !match);
+          if (match) hot.add(el2.getAttribute("data-id") || "");
+        });
+        edges.forEach((el2) => {
+          const a = el2.getAttribute("data-from") || "";
+          const b = el2.getAttribute("data-to") || "";
+          const match = !!(hot.has(a) || hot.has(b));
+          el2.classList.toggle("shm-hit", match);
+          el2.classList.toggle("shm-dim", !match);
+        });
+      } else if (filter2.axis === "hop") {
+        const incident = /* @__PURE__ */ new Set();
+        edges.forEach((el2) => {
+          const match = (el2.getAttribute("data-kind") || "") === filter2.value;
+          el2.classList.toggle("shm-hit", match);
+          el2.classList.toggle("shm-dim", !match);
+          if (match) {
+            const a = el2.getAttribute("data-from");
+            const b = el2.getAttribute("data-to");
+            if (a) incident.add(a);
+            if (b) incident.add(b);
+          }
+        });
+        nodes.forEach((el2) => {
+          const match = incident.has(el2.getAttribute("data-id") || "");
+          el2.classList.toggle("shm-hit", match);
+          el2.classList.toggle("shm-dim", !match);
+        });
+      }
+    }
+    function bindSliceMixChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll("[data-shm-axis][data-shm-value]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleSliceMixFilter(el2.getAttribute("data-shm-axis"), el2.getAttribute("data-shm-value"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleSliceMixFilter(el2.getAttribute("data-shm-axis"), el2.getAttribute("data-shm-value"));
+        };
+      });
+    }
+    function refreshSliceMixStrip(flow, graph) {
+      if (!canvas) return;
+      const stage = canvas.querySelector(".stage");
+      if (!stage) return;
+      const html = sliceMixStripHtml(flow, graph);
+      let strip = stage.querySelector(".shm-strip");
+      if (!html) {
+        if (strip) strip.remove();
+        return;
+      }
+      if (strip) {
+        strip.outerHTML = html;
+      } else {
+        const title = stage.querySelector(".flow-title");
+        const host = document.getElementById("sliceCanvas");
+        if (title) title.insertAdjacentHTML("afterend", html);
+        else if (host) host.insertAdjacentHTML("beforebegin", html);
+        else {
+          const vp = stage.querySelector(".viewport");
+          if (vp) vp.insertAdjacentHTML("afterbegin", html);
+        }
+      }
+    }
     function mapAltitudeMemberNodes(bubbles) {
       const out = [];
       const seen = /* @__PURE__ */ new Set();
@@ -31994,15 +32125,18 @@
       const recycle = sliceStageMounted() && key === sliceBodyKey;
       canvas.className = "play has-stage";
       if (recycle) {
+        refreshSliceMixStrip(flow, msg.graph);
         bindStage(canvas.querySelector(".stage"), { reset: false });
       } else {
         unmountReviewCanvas();
         enterBodyKey = "";
-        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
+        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + sliceMixStripHtml(flow, msg.graph) + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
         sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       }
       mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
+      bindSliceMixChart();
+      applySliceMixPaint();
       bindGraphFx();
       setZoomUi(true);
       applyGraphFilter();

@@ -1967,6 +1967,92 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE SHM — Slice hop-kind mix chart (OMC/MAC parity on Slice Steiner) */
+.shm-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 2px 8px 4px;
+  font-size: 10px;
+  max-height: 52px;
+  overflow: hidden;
+}
+.shm-stat {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.shm-stat .k {
+  opacity: 0.7;
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.shm-stat .n {
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.shm-chart {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.shm-bar {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  min-width: 64px;
+  max-width: 120px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 5px;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 18px;
+  flex: 0 1 auto;
+}
+.shm-bar .shm-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--shm-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  pointer-events: none;
+}
+.shm-bar .shm-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  white-space: nowrap;
+}
+.shm-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.shm-bar.on .shm-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 45%, transparent);
+}
+.shm-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+#sliceCanvas.shm-filtering .vnode.shm-dim,
+#sliceCanvas.shm-filtering .react-flow__edge.shm-dim {
+  opacity: 0.28;
+}
+#sliceCanvas.shm-filtering .vnode.shm-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+
 .path-row {
   display: flex;
   flex-wrap: wrap;

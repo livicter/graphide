@@ -17,6 +17,8 @@ Not a second canvas, not a stamp, and not a rewrite of UnmatchedHint.
 - Stamp / skip stay human. Opening Slice never posts `{ type: "stamp" }`
   and never writes `.graphide/stamps/`.
 
+- ADE SHM (Slice hop-kind mix): Slice stage shows `.shm-strip` / `.shm-chart` / `.shm-bar` kind+hop mix from the current flow Steiner tree. Click / Enter / Space toggles `sliceMixFilter` and paints `#sliceCanvas` `.vnode` / `.react-flow__edge` with `shm-hit` / `shm-dim` (kind = node kind; hop = edge verb). Second click or Escape (Slice-only, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/slice-hop-kind-mix.png`. Asserts SHM1–SHM3.
+
 ## How to get to it (user POV)
 
 1. Review a folder (or open the explorer fixture). The desk lands on
