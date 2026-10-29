@@ -191,6 +191,7 @@ let lineageBodyKey = "";
 let lineageHopCursor = -1;
 let lineageEgoId = "";
 let decisionOutcomeFilter = "";
+let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -453,6 +454,19 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // ADE DAM: Escape clears Decisions attestation mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "decisions" &&
+    decisionAttestFilter
+  ) {
+    e.preventDefault();
+    decisionAttestFilter = null;
+    applyDecisionListFilters();
+    syncDecisionAttestBars();
     return;
   }
   // ADE CSC: Escape clears Overview community-size filter when active.
@@ -8522,6 +8536,124 @@ function renderChain(steps) {
   );
 }
 
+
+/** ADE DAM — stamp | skip | broken bucket for a decision record. */
+function attestationBucket(r) {
+  if (!r) return "";
+  if (r.kind === "skip") return "skip";
+  if (r.verdict === "broken") return "broken";
+  if (r.kind === "stamp" && r.verdict === "holds") return "stamp";
+  if (r.kind === "stamp") return "broken";
+  return "";
+}
+
+/** ADE DAM — counts for interactive stamp/skip/broken bars. */
+function decisionAttestCounts(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const b = attestationBucket(r);
+    if (!b) continue;
+    map.set(b, (map.get(b) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE DAM — CSS bar mix for Decisions; max-scaled (OMC/SHM/RKM parity). */
+function decisionAttestChartHtml(map) {
+  const order = ["stamp", "skip", "broken"];
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) {
+    // still show zeros when ledger has hint-only rows? prefer empty — no strip
+    return "";
+  }
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const labels = { stamp: "Stamp", skip: "Skip", broken: "Broken" };
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(decisionAttestFilter && String(decisionAttestFilter) === String(e[0]));
+      return (
+        '<button type="button" class="dam-bar' +
+        (on ? " on" : "") +
+        '" data-dam-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--dam-pct:' +
+        pct +
+        '%"><span class="dam-fill" aria-hidden="true"></span><span class="dam-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="dam-chart" role="group" aria-label="Decisions attestation mix bars" data-dam-axis-group="attest">' +
+    bars +
+    "</div>"
+  );
+}
+
+function decisionAttestStripHtml(rows) {
+  const map = decisionAttestCounts(rows);
+  const chart = decisionAttestChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="dam-strip" data-dam="1" role="group" aria-label="Decisions attestation mix">' +
+    '<span class="dam-stat"><i class="k">Attest</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleDecisionAttestFilter(kind) {
+  if (!kind) return;
+  if (decisionAttestFilter && String(decisionAttestFilter) === String(kind)) decisionAttestFilter = null;
+  else decisionAttestFilter = String(kind);
+  applyDecisionListFilters();
+  syncDecisionAttestBars();
+}
+
+function syncDecisionAttestBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".dam-bar[data-dam-kind]").forEach((el) => {
+    const k = el.getAttribute("data-dam-kind") || "";
+    const on = !!(decisionAttestFilter && String(decisionAttestFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".dam-strip");
+  if (strip) strip.classList.toggle("dam-filtering", !!decisionAttestFilter);
+  const list = canvas.querySelector(".ws-list");
+  if (list) list.classList.toggle("dam-filtering", !!decisionAttestFilter);
+}
+
+function bindDecisionAttestChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".dam-bar[data-dam-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleDecisionAttestFilter(el.getAttribute("data-dam-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleDecisionAttestFilter(el.getAttribute("data-dam-kind"));
+    };
+  });
+}
+
 function renderDecisionBody() {
   const rows = decisionRecords().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -8552,6 +8684,8 @@ function renderDecisionBody() {
         esc(key) +
         '" data-outcome="' +
         esc(r.outcome || r.verdict || "") +
+        '" data-attest="' +
+        esc(attestationBucket(r)) +
         '"><div class="k">' +
         esc(r.outcome || r.verdict || r.kind) +
         '</div><div class="t">' +
@@ -8586,9 +8720,11 @@ function renderDecisionBody() {
       })
       .join("") +
     "</div>";
+  const damStrip = decisionAttestStripHtml(rows);
   return (
     '<div class="ws-split">' +
     '<div class="ws-list">' +
+    damStrip +
     strip +
     list +
     "</div>" +
@@ -15454,13 +15590,25 @@ function renderExplorerList(ws, opts) {
 }
 
 function applyDecisionOutcomeFilter() {
-  canvas.querySelectorAll(".expl-card[data-outcome]").forEach((el) => {
+  applyDecisionListFilters();
+}
+
+/** ADE DAM + outcome strip — hide non-matching Decision cards. */
+function applyDecisionListFilters() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".expl-card[data-decision]").forEach((el) => {
     const out = el.getAttribute("data-outcome") || "";
-    el.classList.toggle("off", !!(decisionOutcomeFilter && out !== decisionOutcomeFilter));
+    const bucket = el.getAttribute("data-attest") || "";
+    const outcomeOff = !!(decisionOutcomeFilter && out !== decisionOutcomeFilter);
+    const attestOff = !!(decisionAttestFilter && bucket !== decisionAttestFilter);
+    el.classList.toggle("off", outcomeOff || attestOff);
+    el.classList.toggle("dam-hit", !!(decisionAttestFilter && bucket === decisionAttestFilter));
+    el.classList.toggle("dam-dim", !!(decisionAttestFilter && bucket !== decisionAttestFilter));
   });
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
     el.classList.toggle("on", (el.getAttribute("data-outcome-filter") || "") === decisionOutcomeFilter);
   });
+  syncDecisionAttestBars();
 }
 
 function applyTimelineScrub() {
@@ -15483,12 +15631,13 @@ function applyTimelineScrub() {
 }
 
 function bindWorkbenchPages() {
-  applyDecisionOutcomeFilter();
+  applyDecisionListFilters();
+  bindDecisionAttestChart();
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
       decisionOutcomeFilter = el.getAttribute("data-outcome-filter") || "";
-      applyDecisionOutcomeFilter();
+      applyDecisionListFilters();
     };
   });
   const scrub = document.getElementById("tlScrub");

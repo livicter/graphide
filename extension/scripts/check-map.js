@@ -345,8 +345,9 @@ assert(
     rootReadme.includes("Map-altitude community-hop-size") &&
     rootReadme.includes("Slice hop-kind") &&
     rootReadme.includes("Call-path scrubber") &&
-    rootReadme.includes("Route hop-kind"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Route hop-kind (no full #371…#443 history dump)"
+    rootReadme.includes("Route hop-kind") &&
+    rootReadme.includes("Decisions attestation"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Decisions attestation (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -479,6 +480,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
+const decisionsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline.md")), "timeline feature map missing");
 assert(chrome.includes('id="pathBtn"'), "PATH button missing from chrome");
@@ -949,6 +951,10 @@ assert(driver.includes("RKM1") && driver.includes("RKM3") && driver.includes("ro
 assert(js.includes("routeMixFilter") && js.includes("routeMixChartHtml") && js.includes("bindRouteMixChart") && js.includes("toggleRouteMixFilter"), "desk.js must own Route hop-kind mix filter helpers");
 assert(css.includes(".rkm-chart") && css.includes(".rkm-bar") && css.includes("rkm-hit") && css.includes("rkm-dim"), "main.css must theme Route hop-kind mix chart + rkm-hit/rkm-dim");
 assert(routeMap.includes("RKM1") && routeMap.includes("rkm-chart") && routeMap.includes("route-hop-kind-mix.png") && routeMap.includes("peekSource"), "route feature map must name RKM / rkm-chart / proof / no peekSource");
+assert(driver.includes("DAM1") && driver.includes("DAM3") && driver.includes("decisions-attestation-mix.png") && driver.includes("dam-bar"), "verify driver must prove Decisions attestation mix DAM1–DAM3");
+assert(js.includes("decisionAttestFilter") && js.includes("decisionAttestChartHtml") && js.includes("bindDecisionAttestChart") && js.includes("toggleDecisionAttestFilter") && js.includes("attestationBucket"), "desk.js must own Decisions attestation mix filter helpers");
+assert(css.includes(".dam-chart") && css.includes(".dam-bar") && css.includes("dam-hit") && css.includes("dam-dim"), "main.css must theme Decisions attestation mix chart + dam-hit/dam-dim");
+assert(decisionsMap.includes("DAM1") && decisionsMap.includes("dam-chart") && decisionsMap.includes("decisions-attestation-mix.png") && decisionsMap.includes("peekSource"), "decisions feature map must name DAM / dam-chart / proof / no peekSource");
 
 
 

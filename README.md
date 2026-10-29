@@ -96,12 +96,14 @@ Snapshot audit of the derived graph.
 
 ### Decisions
 
-Stamps, skips, and broken attestations.
+Stamps, skips, and broken attestations. Attestation mix chart filters the ledger by stamp, skip, or broken.
 
 ![Decisions stamps](UIUX_sample/decisions-stamps.png)
 
+![Decisions attestation mix](UIUX_sample/decisions-attestation-mix.png)
+
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM).
 
-Parked next: DAM (dsh NEXT_AFTER after RKM).
+Parked next: LFO (dsh NEXT_AFTER after DAM).
