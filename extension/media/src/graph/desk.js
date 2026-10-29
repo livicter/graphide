@@ -202,6 +202,8 @@ let overviewMixFilter = null;
 let overviewCommunityFilter = null;
 /** ADE MAC — Map-altitude kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let mapMixFilter = null;
+/** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
+let mapSizeFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -448,6 +450,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     overviewCommunityFilter = null;
     applyOverviewCommunityPaint();
+    return;
+  }
+  // ADE MCS: Escape clears Map-altitude community-size filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "map" &&
+    mapSizeFilter
+  ) {
+    e.preventDefault();
+    mapSizeFilter = null;
+    applyMapSizePaint();
     return;
   }
   // ADE MAC: Escape clears Map-altitude mix filter when active.
@@ -14232,6 +14246,10 @@ function toggleMapMixFilter(axis, value) {
     mapMixFilter = null;
   } else {
     mapMixFilter = { axis: String(axis), value: String(value) };
+    if (mapSizeFilter) {
+      mapSizeFilter = null;
+      applyMapSizePaint();
+    }
   }
   applyMapMixPaint();
 }
@@ -14295,6 +14313,134 @@ function refreshMapMixStrip(bubbles) {
     title.insertAdjacentHTML("afterend", html);
   } else {
     stage.insertAdjacentHTML("afterbegin", html);
+  }
+}
+
+
+/** ADE MCS — compact size bars for Map altitude bubbles (CSC parity; member counts). */
+function mapSizeChartHtml(bubbles) {
+  const entries = (bubbles || [])
+    .map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length }))
+    .filter((e) => e.id && e.n > 0)
+    .sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label)))
+    .slice(0, 12);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e.n));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e.n / max) * 100);
+      const on = !!(mapSizeFilter && String(mapSizeFilter) === String(e.id));
+      return (
+        '<button type="button" class="mcs-bar' +
+        (on ? " on" : "") +
+        '" data-mcs-bubble="' +
+        esc(e.id) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e.label) +
+        " · " +
+        e.n +
+        ' nodes" style="--mcs-pct:' +
+        pct +
+        '%"><span class="mcs-fill" aria-hidden="true"></span><span class="mcs-label"><b>' +
+        esc(e.label) +
+        "</b> " +
+        e.n +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="mcs-chart" role="group" aria-label="Map community sizes" data-mcs-chart="1">' +
+    bars +
+    "</div>"
+  );
+}
+
+/** ADE MCS — strip under MAC mix; Map-altitude community-size chart. */
+function mapSizeStripHtml(bubbles) {
+  const chart = mapSizeChartHtml(bubbles);
+  if (!chart) return "";
+  const n = (bubbles || []).filter((b) => (b.members || []).length > 0).length;
+  return (
+    '<div class="mcs-strip" data-mcs="1" role="group" aria-label="Map altitude community sizes">' +
+    '<span class="mcs-stat"><i class="k">Sizes</i> <b class="n">' +
+    n +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleMapSizeFilter(bubbleId) {
+  if (!bubbleId) return;
+  if (mapSizeFilter && String(mapSizeFilter) === String(bubbleId)) {
+    mapSizeFilter = null;
+  } else {
+    mapSizeFilter = String(bubbleId);
+    if (mapMixFilter) {
+      mapMixFilter = null;
+      applyMapMixPaint();
+    }
+  }
+  applyMapSizePaint();
+}
+
+function applyMapSizePaint() {
+  const filter = mapSizeFilter;
+  if (!canvas) return;
+  canvas.querySelectorAll(".mcs-bar[data-mcs-bubble]").forEach((el) => {
+    const on = !!(filter && String(el.getAttribute("data-mcs-bubble")) === String(filter));
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const host = canvas.querySelector(".comm-wrap") || canvas;
+  host.classList.toggle("mcs-filtering", !!filter);
+  canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    el.classList.remove("mcs-hit", "mcs-dim");
+    if (!filter) return;
+    const match = String(el.getAttribute("data-bubble")) === String(filter);
+    el.classList.toggle("mcs-hit", match);
+    el.classList.toggle("mcs-dim", !match);
+  });
+}
+
+function bindMapSizeChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-mcs-bubble]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapSizeFilter(el.getAttribute("data-mcs-bubble"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapSizeFilter(el.getAttribute("data-mcs-bubble"));
+    };
+  });
+}
+
+function refreshMapSizeStrip(bubbles) {
+  if (!canvas) return;
+  const stage = canvas.querySelector(".stage");
+  if (!stage) return;
+  const html = mapSizeStripHtml(bubbles);
+  let strip = stage.querySelector(".mcs-strip");
+  if (!html) {
+    if (strip) strip.remove();
+    return;
+  }
+  if (strip) {
+    strip.outerHTML = html;
+  } else {
+    const mac = stage.querySelector(".mac-strip");
+    const title = stage.querySelector(".flow-title");
+    if (mac) mac.insertAdjacentHTML("afterend", html);
+    else if (title) title.insertAdjacentHTML("afterend", html);
+    else stage.insertAdjacentHTML("afterbegin", html);
   }
 }
 
@@ -15667,6 +15813,7 @@ function renderBubbleMap(clusters, opts) {
   if (recycle) {
     recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path);
     refreshMapMixStrip(clusters);
+    refreshMapSizeStrip(clusters);
     bindStage(canvas.querySelector(".stage"), { reset: false });
   } else {
     const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -15709,6 +15856,7 @@ function renderBubbleMap(clusters, opts) {
       mapFlowTitle(pathIds) +
       "</div>" +
       mapMixStripHtml(clusters) +
+      mapSizeStripHtml(clusters) +
       '<div class="viewport" data-lod="0">' +
       '<div class="comm-wrap" style="width:' +
       W +
@@ -15727,6 +15875,8 @@ function renderBubbleMap(clusters, opts) {
   canvas.querySelectorAll(".bubble-card").forEach((el) => bindBubbleCardHot(el));
   bindMapMixChart();
   applyMapMixPaint();
+  bindMapSizeChart();
+  applyMapSizePaint();
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
     onClick: (id) => {
