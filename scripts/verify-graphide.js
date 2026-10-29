@@ -13598,6 +13598,200 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE Call-path scrubber (CPS1–CPS3) — hop-depth slider; path lights, branches fade
+    await page.click('#workspaces [data-ws="overview"]');
+    await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
+    await page.waitForSelector("#sliceCanvas .vnode, #sliceCanvas .react-flow__node", { timeout: 12000 });
+    await page.waitForSelector(".cps-strip #cpsDepth", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    const cps1 = await page.evaluate(() => {
+      const strip = document.querySelector(".cps-strip[data-cps='1']");
+      const input = document.getElementById("cpsDepth");
+      const nodes = document.querySelectorAll("#sliceCanvas .vnode").length;
+      return {
+        strip: !!strip,
+        input: !!input,
+        disabled: input ? !!input.disabled : true,
+        min: input ? input.getAttribute("min") : "",
+        max: input ? Number(input.getAttribute("max") || 0) : 0,
+        nodes,
+      };
+    });
+    const cps1ok = !!(cps1 && cps1.strip && cps1.input && cps1.nodes >= 2);
+    record(
+      "CPS1",
+      "Overview .cps-strip / #cpsDepth present with #sliceCanvas vnodes",
+      !!cps1ok,
+      JSON.stringify(cps1)
+    );
+
+    // Select a vnode that has outbound Calls reach (prefer non-leaf)
+    const cpsPick = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+      // Prefer Function kind
+      const ordered = [
+        ...nodes.filter((n) => (n.getAttribute("data-kind") || "") === "Function"),
+        ...nodes,
+      ];
+      for (const el of ordered) {
+        el.click();
+        return el.getAttribute("data-id") || "";
+      }
+      return "";
+    });
+    await page.waitForTimeout(60);
+    // Close source pane if peek opened — CPS asserts graph-only scrubber.
+    // Must call real closeSourcePane (#srcClose) so ScrollDrive resets; a bare
+    // sourcePane.hidden=true leaves scrollDriveBase warm and M2d hop soft-stay
+    // disconnects scheduleFit RO → G4b narrow Map visible<8.
+    await page.evaluate(() => {
+      const src = document.getElementById("sourcePane");
+      if (!src || src.hidden) return;
+      const close =
+        document.getElementById("srcClose") ||
+        document.querySelector('#sourcePane [data-close], #sourcePane .close, button[aria-label="Close"]');
+      if (close) close.click();
+      else {
+        src.hidden = true;
+        const ws = document.getElementById("workspace");
+        if (ws) ws.classList.remove("has-source");
+      }
+    });
+    await page.waitForTimeout(40);
+
+    const cps2 = await page.evaluate(() => {
+      const input = document.getElementById("cpsDepth");
+      if (!input || input.disabled) return { ok: false, reason: "cpsDepth disabled after select" };
+      const max = Number(input.max || 0);
+      const target = Math.max(1, Math.min(2, max || 1));
+      input.value = String(target);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const host = document.getElementById("sliceCanvas");
+      const hits = document.querySelectorAll("#sliceCanvas .vnode.cps-hit").length;
+      const dims = document.querySelectorAll("#sliceCanvas .vnode.cps-dim").length;
+      const filtering = !!(host && host.classList.contains("cps-filtering"));
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      // Clear via depth 0
+      input.value = "0";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const filtering2 = !!(host && host.classList.contains("cps-filtering"));
+      const hits2 = document.querySelectorAll("#sliceCanvas .vnode.cps-hit").length;
+      return {
+        ok: true,
+        pick: true,
+        max,
+        target,
+        hits,
+        dims,
+        filtering,
+        srcHidden,
+        filtering2,
+        hits2,
+      };
+    });
+    const cps2ok = !!(
+      cps2 &&
+      cps2.ok &&
+      cps2.filtering &&
+      cps2.hits >= 1 &&
+      cps2.dims >= 1 &&
+      cps2.srcHidden &&
+      !cps2.filtering2 &&
+      cps2.hits2 === 0
+    );
+    record(
+      "CPS2",
+      "Call-path depth scrubber filters #sliceCanvas cps-hit/cps-dim without opening source; depth 0 clears",
+      !!cps2ok,
+      JSON.stringify({ pick: cpsPick, ...cps2 })
+    );
+
+    const cps3 = await page.evaluate(() => {
+      const input = document.getElementById("cpsDepth");
+      if (!input || input.disabled) return { on: null, off: null };
+      const max = Number(input.max || 0);
+      const target = Math.max(1, Math.min(2, max || 1));
+      input.value = String(target);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const host = document.getElementById("sliceCanvas");
+      const on = {
+        filtering: !!(host && host.classList.contains("cps-filtering")),
+        hits: document.querySelectorAll("#sliceCanvas .vnode.cps-hit").length,
+        depth: Number(input.value),
+      };
+      return { on, needEscape: true };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const cps3off = await page.evaluate(() => {
+      const host = document.getElementById("sliceCanvas");
+      const input = document.getElementById("cpsDepth");
+      const src = document.getElementById("sourcePane");
+      return {
+        filtering: !!(host && host.classList.contains("cps-filtering")),
+        hits: document.querySelectorAll("#sliceCanvas .vnode.cps-hit").length,
+        depth: input ? Number(input.value) : -1,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const cps3ok = !!(
+      cps3 &&
+      cps3.on &&
+      cps3.on.filtering &&
+      cps3.on.hits >= 1 &&
+      cps3off &&
+      !cps3off.filtering &&
+      cps3off.hits === 0 &&
+      cps3off.srcHidden
+    );
+    record(
+      "CPS3",
+      "Escape clears Overview call-path scrubber without opening source",
+      !!cps3ok,
+      JSON.stringify({ on: cps3 && cps3.on, off: cps3off })
+    );
+
+    // Re-enable for proof shot
+    await page.evaluate(() => {
+      const input = document.getElementById("cpsDepth");
+      if (!input || input.disabled) return;
+      const max = Number(input.max || 0);
+      const target = Math.max(1, Math.min(2, max || 1));
+      input.value = String(target);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "call-path-scrubber.png");
+    const cpsShot = checks.find((c) => c.id === "shot:call-path-scrubber.png");
+    const cps4ok = !!(cps1ok && cps2ok && cps3ok && cpsShot && cpsShot.pass);
+    record(
+      "CPS4",
+      "screenshot call-path-scrubber.png not black; Call-path scrubber proven",
+      !!cps4ok,
+      JSON.stringify({
+        shot: cpsShot ? cpsShot.detail : "missing",
+        cps1: !!cps1ok,
+        cps2: !!cps2ok,
+        cps3: !!cps3ok,
+      })
+    );
+    assertNoStampDir("CPS5", "Call-path scrubber step did not write .graphide/stamps/");
+    // Clear leftover CPS filter + Evidence before SBC / Map G4b (RO must stay alive)
+    await page.evaluate(() => {
+      const input = document.getElementById("cpsDepth");
+      if (input) {
+        input.value = "0";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const src = document.getElementById("sourcePane");
+      if (src && !src.hidden) {
+        const close = document.getElementById("srcClose");
+        if (close) close.click();
+      }
+    });
+    await page.waitForTimeout(40);
+
 
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
