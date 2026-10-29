@@ -343,8 +343,9 @@ assert(
     rootReadme.includes("Map-altitude community mix") &&
     rootReadme.includes("Map-altitude community-size") &&
     rootReadme.includes("Map-altitude community-hop-size") &&
-    rootReadme.includes("Slice hop-kind"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Slice hop-kind (no full #371…#443 history dump)"
+    rootReadme.includes("Slice hop-kind") &&
+    rootReadme.includes("Call-path scrubber"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Call-path scrubber (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -938,6 +939,10 @@ assert(driver.includes("SHM1") && driver.includes("SHM3") && driver.includes("sl
 assert(js.includes("sliceMixFilter") && js.includes("sliceMixChartHtml") && js.includes("applySliceMixPaint") && js.includes("bindSliceMixChart"), "desk.js must own Slice hop-kind mix filter helpers");
 assert(css.includes(".shm-chart") && css.includes(".shm-bar") && css.includes("shm-hit") && css.includes("shm-dim"), "main.css must theme Slice hop-kind mix chart + shm-hit/shm-dim");
 assert(openSliceMap.includes("SHM1") && openSliceMap.includes("shm-chart") && openSliceMap.includes("slice-hop-kind-mix.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name SHM / shm-chart / proof / no peekSource");
+assert(driver.includes("CPS1") && driver.includes("CPS3") && driver.includes("call-path-scrubber.png") && driver.includes("cpsDepth"), "verify driver must prove Call-path scrubber CPS1–CPS3");
+assert(js.includes("callPathDepth") && js.includes("callPathReach") && js.includes("applyCallPathPaint") && js.includes("bindCallPathStrip"), "desk.js must own Call-path scrubber helpers");
+assert(css.includes(".cps-strip") && css.includes(".cps-depth") && css.includes("cps-hit") && css.includes("cps-dim"), "main.css must theme Call-path scrubber + cps-hit/cps-dim");
+assert(overviewMap.includes("CPS1") && overviewMap.includes("cps-strip") && overviewMap.includes("call-path-scrubber.png") && overviewMap.includes("peekSource"), "overview feature map must name CPS / cps-strip / proof / no peekSource");
 
 
 

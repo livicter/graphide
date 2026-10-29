@@ -2053,6 +2053,49 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
+.cps-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 2px 8px 4px;
+  font-size: 10px;
+  max-height: 36px;
+  overflow: hidden;
+}
+.cps-stat .k { opacity: 0.7; font-style: normal; }
+.cps-stat .n { font-weight: 600; }
+.cps-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+}
+.cps-depth-label { white-space: nowrap; opacity: 0.85; }
+.cps-depth {
+  width: 100px;
+  accent-color: var(--accent, #6ea8fe);
+  cursor: pointer;
+}
+.cps-depth:disabled { opacity: 0.4; cursor: not-allowed; }
+.cps-hint { opacity: 0.55; font-style: italic; }
+#sliceCanvas.cps-filtering .vnode.cps-dim,
+#sliceCanvas.cps-filtering .react-flow__edge.cps-dim {
+  opacity: 0.22;
+}
+#sliceCanvas.cps-filtering .react-flow__edge.cps-branch {
+  opacity: 0.14;
+}
+#sliceCanvas.cps-filtering .vnode.cps-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 85%, transparent);
+  outline-offset: 1px;
+}
+#sliceCanvas.cps-filtering .react-flow__edge.cps-hit {
+  opacity: 1;
+}
+
+
 .path-row {
   display: flex;
   flex-wrap: wrap;

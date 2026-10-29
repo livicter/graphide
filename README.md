@@ -20,7 +20,7 @@ Graphs-only Review surfaces on `main`.
 
 ### Overview
 
-Scorecard, Play, and interactive mix and community-size charts. Story captions name behavior (kind · role · verb), not file:line.
+Scorecard, Play, and interactive mix and community-size charts. Call-path scrubber grows directed Calls depth from the selected focus (path lights, branches fade). Story captions name behavior (kind · role · verb), not file:line.
 
 ![Live suite](UIUX_sample/live-suite.png)
 
@@ -31,6 +31,8 @@ Scorecard, Play, and interactive mix and community-size charts. Story captions n
 ![Overview community-size chart](UIUX_sample/overview-community-size.png)
 
 ![Story behavior captions](UIUX_sample/story-behavior-captions.png)
+
+![Call-path scrubber](UIUX_sample/call-path-scrubber.png)
 
 ### Map
 
@@ -48,7 +50,7 @@ Communities on the walk. Altitude mix chart filters communities by kind or hop. 
 
 ### Slice
 
-Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-kind mix chart filters lit nodes and hops by kind or edge verb.
+Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-kind mix chart filters lit nodes and hops by kind or edge verb. Same call-path scrubber as Overview on the Steiner canvas.
 
 ![Slice control-flow](UIUX_sample/slice-control-flow.png)
 
@@ -94,6 +96,6 @@ Stamps, skips, and broken attestations.
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS).
 
-Parked next: Call-path scrubber (CPS).
+Parked next: Route depth polish / DAM (dsh NEXT_AFTER ROUTE).

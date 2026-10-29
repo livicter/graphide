@@ -20082,6 +20082,7 @@
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let sliceMixFilter = null;
+    let callPathDepth = 0;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20311,6 +20312,13 @@
         e.preventDefault();
         overviewCommunityFilter = null;
         applyOverviewCommunityPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && callPathDepth > 0) {
+        e.preventDefault();
+        callPathDepth = 0;
+        applyCallPathPaint();
+        syncCallPathStrip();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceMixFilter) {
@@ -25926,6 +25934,8 @@
       selectedNodeId = sid;
       highlightCommunity(sid);
       applyEgoPaint();
+      if (typeof applyCallPathPaint === "function") applyCallPathPaint();
+      if (typeof syncCallPathStrip === "function") syncCallPathStrip();
       if (opts && opts.zoomEl) {
         const presenting = typeof isPresenting === "function" && isPresenting();
         const lastStayMatch = typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
@@ -30509,6 +30519,138 @@
         };
       });
     }
+    function callPathReach(id2, depth) {
+      const start2 = id2 ? String(idVal(id2)) : "";
+      const hot = /* @__PURE__ */ new Set();
+      const edgeHot = /* @__PURE__ */ new Set();
+      if (!start2 || !(depth > 0)) return { nodes: hot, edges: edgeHot };
+      hot.add(start2);
+      let frontier = [start2];
+      const CALLISH = { Calls: 1, Publishes: 1, Subscribes: 1 };
+      for (let h = 0; h < depth; h++) {
+        const next = [];
+        for (const cur of frontier) {
+          for (const e of incidentEdges(cur)) {
+            if (e.dir !== "out") continue;
+            if (!CALLISH[String(e.kind || "")]) continue;
+            const other = e.to;
+            if (!other) continue;
+            edgeHot.add(cur + "\0" + other + "\0" + String(e.kind || "Calls"));
+            edgeHot.add(cur + "\0" + other);
+            if (hot.has(other)) continue;
+            hot.add(other);
+            next.push(other);
+          }
+        }
+        frontier = next;
+        if (!frontier.length) break;
+      }
+      return { nodes: hot, edges: edgeHot };
+    }
+    function callPathMaxDepth(id2) {
+      const start2 = id2 ? String(idVal(id2)) : "";
+      if (!start2) return 0;
+      let max = 0;
+      const seen = /* @__PURE__ */ new Set([start2]);
+      let frontier = [start2];
+      const CALLISH = { Calls: 1, Publishes: 1, Subscribes: 1 };
+      for (let h = 0; h < 12; h++) {
+        const next = [];
+        for (const cur of frontier) {
+          for (const e of incidentEdges(cur)) {
+            if (e.dir !== "out") continue;
+            if (!CALLISH[String(e.kind || "")]) continue;
+            const other = e.to;
+            if (!other || seen.has(other)) continue;
+            seen.add(other);
+            next.push(other);
+          }
+        }
+        if (!next.length) break;
+        max = h + 1;
+        frontier = next;
+      }
+      return max;
+    }
+    function callPathStripHtml() {
+      const sid = selectedNodeId ? idVal(selectedNodeId) : "";
+      const max = sid ? Math.max(1, callPathMaxDepth(sid)) : 1;
+      const depth = callPathDepth > 0 ? Math.min(callPathDepth, max) : 0;
+      const label = sid ? shortToken(sid) : "select a node";
+      return '<div class="cps-strip" data-cps="1" role="group" aria-label="Call-path scrubber"><span class="cps-stat"><i class="k">Call path</i> <b class="n" data-cps-focus="1">' + esc(label) + '</b></span><label class="cps-slider-wrap"><span class="cps-depth-label">depth <b data-cps-depth-val="1">' + depth + '</b></span><input type="range" id="cpsDepth" class="cps-depth" min="0" max="' + max + '" value="' + depth + '" step="1" aria-label="Call-path hop depth" ' + (sid ? "" : "disabled ") + '/></label><span class="cps-hint">lights Calls path · branches fade</span></div>';
+    }
+    function syncCallPathStrip() {
+      if (!canvas) return;
+      const strip = canvas.querySelector(".cps-strip[data-cps='1']");
+      if (!strip) return;
+      const sid = selectedNodeId ? idVal(selectedNodeId) : "";
+      const max = sid ? Math.max(1, callPathMaxDepth(sid)) : 1;
+      if (callPathDepth > max) callPathDepth = max;
+      const depth = callPathDepth > 0 ? callPathDepth : 0;
+      const focus = strip.querySelector("[data-cps-focus='1']");
+      if (focus) focus.textContent = sid ? shortToken(sid) : "select a node";
+      const val = strip.querySelector("[data-cps-depth-val='1']");
+      if (val) val.textContent = String(depth);
+      const input = strip.querySelector("#cpsDepth");
+      if (input) {
+        input.max = String(max);
+        input.value = String(depth);
+        input.disabled = !sid;
+      }
+    }
+    function bindCallPathStrip() {
+      if (!canvas) return;
+      const input = canvas.querySelector("#cpsDepth");
+      if (!input || input.dataset.cpsBound === "1") return;
+      input.dataset.cpsBound = "1";
+      input.addEventListener("input", () => {
+        const n = parseInt(input.value, 10);
+        callPathDepth = Number.isFinite(n) && n > 0 ? n : 0;
+        if (callPathDepth > 0) {
+          if (overviewMixFilter) {
+            overviewMixFilter = null;
+            applyOverviewMixPaint();
+          }
+          if (sliceMixFilter) {
+            sliceMixFilter = null;
+            applySliceMixPaint();
+          }
+        }
+        const val = canvas.querySelector("[data-cps-depth-val='1']");
+        if (val) val.textContent = String(callPathDepth);
+        applyCallPathPaint();
+      });
+    }
+    function applyCallPathPaint() {
+      const host = document.getElementById("sliceCanvas");
+      if (!host) return;
+      const depth = callPathDepth > 0 ? callPathDepth : 0;
+      const sid = selectedNodeId ? idVal(selectedNodeId) : "";
+      const active = !!(depth && sid);
+      host.classList.toggle("cps-filtering", active);
+      const nodes = host.querySelectorAll(".vnode");
+      const edges = host.querySelectorAll(".react-flow__edge");
+      nodes.forEach((el2) => el2.classList.remove("cps-hit", "cps-dim", "cps-branch"));
+      edges.forEach((el2) => el2.classList.remove("cps-hit", "cps-dim", "cps-branch"));
+      if (!active) return;
+      const reach = callPathReach(sid, depth);
+      nodes.forEach((el2) => {
+        const id2 = el2.getAttribute("data-id") || "";
+        const hit = reach.nodes.has(id2);
+        el2.classList.toggle("cps-hit", hit);
+        el2.classList.toggle("cps-dim", !hit);
+      });
+      edges.forEach((el2) => {
+        const a = el2.getAttribute("data-from") || "";
+        const b = el2.getAttribute("data-to") || "";
+        const kind = el2.getAttribute("data-kind") || "Calls";
+        const hit = reach.edges.has(a + "\0" + b + "\0" + kind) || reach.edges.has(a + "\0" + b) || reach.nodes.has(a) && reach.nodes.has(b);
+        const branch = reach.nodes.has(a) && !reach.nodes.has(b);
+        el2.classList.toggle("cps-hit", hit && !branch);
+        el2.classList.toggle("cps-branch", branch);
+        el2.classList.toggle("cps-dim", !hit || branch);
+      });
+    }
     function refreshSliceMixStrip(flow, graph) {
       if (!canvas) return;
       const stage = canvas.querySelector(".stage");
@@ -31065,6 +31207,8 @@
         applyOverviewMixPaint();
         bindOverviewCommunityChart();
         applyOverviewCommunityPaint();
+        bindCallPathStrip();
+        applyCallPathPaint();
         bindGraphFx();
         applyEgoPaint();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
@@ -31250,7 +31394,7 @@
       }
       const treeHtml = renderSteiner(flow, snapshot.graph, false, scarSet(snapshot.findings, flow.name));
       const runHtml = renderRuns(flow, snapshot, false);
-      return '<div class="flow-title">Default run · ' + esc(flow.name) + ' — control-flow graph</div><div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '">' + treeHtml + (runHtml ? '<div class="flow-title">Subsystem runs — click to enter</div>' + runHtml : "") + "</div></div>";
+      return '<div class="flow-title">Default run · ' + esc(flow.name) + ' — control-flow graph</div><div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '">' + callPathStripHtml() + treeHtml + (runHtml ? '<div class="flow-title">Subsystem runs — click to enter</div>' + runHtml : "") + "</div></div>";
     }
     function lineageWorkspaceKey(id2, reading) {
       return [
@@ -32126,17 +32270,28 @@
       canvas.className = "play has-stage";
       if (recycle) {
         refreshSliceMixStrip(flow, msg.graph);
+        const stage = canvas.querySelector(".stage .viewport") || canvas.querySelector(".stage");
+        if (stage && !stage.querySelector(".cps-strip")) {
+          const shm = stage.querySelector(".shm-strip");
+          const html = callPathStripHtml();
+          if (shm) shm.insertAdjacentHTML("afterend", html);
+          else stage.insertAdjacentHTML("afterbegin", html);
+        } else {
+          syncCallPathStrip();
+        }
         bindStage(canvas.querySelector(".stage"), { reset: false });
       } else {
         unmountReviewCanvas();
         enterBodyKey = "";
-        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + sliceMixStripHtml(flow, msg.graph) + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
+        canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="viewport" data-lod="' + lodOf(cam.k) + '"><div class="flow-title">Flow · Steiner — zoom out for runs, in for hops and source</div>' + sliceMixStripHtml(flow, msg.graph) + callPathStripHtml() + treeHtml + (runHtml ? '<div class="flow-title" style="margin-top:18px">Subsystem runs — click to enter</div>' + runHtml : preview ? '<div class="hint-live">Runs appear when clustering finishes</div>' : "") + "</div></div>";
         sliceBodyKey = document.getElementById("sliceCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       }
       mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
       bindSliceMixChart();
       applySliceMixPaint();
+      bindCallPathStrip();
+      applyCallPathPaint();
       bindGraphFx();
       setZoomUi(true);
       applyGraphFilter();
