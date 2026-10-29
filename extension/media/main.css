@@ -2221,6 +2221,91 @@ button.stat-chip.omc-chip:focus-visible {
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
+/* ADE LFO — Lineage fan size mix (Used/Informed/Generated) */
+.lfo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-end;
+  margin: 8px 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.lfo-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  flex: 1 1 160px;
+}
+.lfo-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.lfo-stat .n { font-size: 12px; font-weight: 600; }
+.lfo-chart {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: stretch;
+}
+.lfo-bar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 72px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-focusBorder) 12%);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.lfo-bar .lfo-fill {
+  position: absolute;
+  left: 0; bottom: 0; top: 0;
+  width: var(--lfo-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
+  pointer-events: none;
+}
+.lfo-bar .lfo-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.lfo-bar.on { border-color: var(--vscode-focusBorder); }
+.lfo-bar.on .lfo-fill {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+}
+.lfo-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.prov-row.lfo-filtering .prov-col.lfo-dim,
+#lineageHops.lfo-filtering .expl-card.lfo-dim {
+  opacity: 0.35;
+}
+.prov-row.lfo-filtering .prov-col.lfo-hit,
+#lineageHops.lfo-filtering .expl-card.lfo-hit {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.prov-col.off { display: none; }
+#lineageCanvas.lfo-filtering .vnode.lfo-dim,
+#lineageCanvas.lfo-filtering .ego-node.lfo-dim,
+#lineageCanvas.lfo-filtering .react-flow__edge.lfo-dim {
+  opacity: 0.22;
+}
+#lineageCanvas.lfo-filtering .vnode.lfo-hit,
+#lineageCanvas.lfo-filtering .ego-node.lfo-hit {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;

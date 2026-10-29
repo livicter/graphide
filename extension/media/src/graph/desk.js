@@ -190,6 +190,7 @@ let enterBodyKey = "";
 let lineageBodyKey = "";
 let lineageHopCursor = -1;
 let lineageEgoId = "";
+let lineageFanFilter = null; // ADE LFO: used|informed|generated
 let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let layoutPins = new Map();
@@ -454,6 +455,19 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && isPresenting()) {
     e.preventDefault();
     applyPresent(false);
+    return;
+  }
+  // ADE LFO: Escape clears Lineage fan-size mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "lineage" &&
+    lineageFanFilter
+  ) {
+    e.preventDefault();
+    lineageFanFilter = null;
+    applyLineageFanPaint();
+    syncLineageFanBars();
     return;
   }
   // ADE DAM: Escape clears Decisions attestation mix filter when active.
@@ -15973,6 +15987,173 @@ function mountLineageCanvas(reading, focusId) {
   stampXyFlowAttrs();
 }
 
+
+/** ADE LFO — Used/Informed/Generated fan-size mix bars (member counts). */
+function lineageFanChartHtml(buckets) {
+  const order = [
+    ["used", "Used"],
+    ["informed", "Informed"],
+    ["generated", "Generated"],
+  ];
+  const entries = order
+    .map(([k, label]) => [k, label, (buckets[k] || []).length])
+    .filter((e) => e[2] > 0);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[2]));
+  const bars = entries
+    .map(([k, label, n]) => {
+      const pct = Math.round((n / max) * 100);
+      const on = !!(lineageFanFilter && String(lineageFanFilter) === String(k));
+      return (
+        '<button type="button" class="lfo-bar' +
+        (on ? " on" : "") +
+        '" data-lfo-kind="' +
+        esc(k) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(label) +
+        " · " +
+        n +
+        '" style="--lfo-pct:' +
+        pct +
+        '%"><span class="lfo-fill" aria-hidden="true"></span><span class="lfo-label"><b>' +
+        esc(label) +
+        "</b> " +
+        n +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="lfo-chart" role="group" aria-label="Lineage fan size mix bars" data-lfo-axis-group="fan">' +
+    bars +
+    "</div>"
+  );
+}
+
+function lineageFanStripHtml(buckets) {
+  const chart = lineageFanChartHtml(buckets);
+  if (!chart) return "";
+  const total = ["used", "informed", "generated"].reduce(
+    (a, k) => a + ((buckets[k] || []).length),
+    0
+  );
+  return (
+    '<div class="lfo-strip" data-lfo="1" role="group" aria-label="Lineage fan size mix">' +
+    '<span class="lfo-stat"><i class="k">Fan</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleLineageFanFilter(kind) {
+  if (!kind) return;
+  if (lineageFanFilter && String(lineageFanFilter) === String(kind)) lineageFanFilter = null;
+  else lineageFanFilter = String(kind);
+  applyLineageFanPaint();
+  syncLineageFanBars();
+}
+
+function syncLineageFanBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".lfo-bar[data-lfo-kind]").forEach((el) => {
+    const k = el.getAttribute("data-lfo-kind") || "";
+    const on = !!(lineageFanFilter && String(lineageFanFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".lfo-strip");
+  if (strip) strip.classList.toggle("lfo-filtering", !!lineageFanFilter);
+  const row = canvas.querySelector(".prov-row");
+  if (row) row.classList.toggle("lfo-filtering", !!lineageFanFilter);
+  const hops = document.getElementById("lineageHops");
+  if (hops) hops.classList.toggle("lfo-filtering", !!lineageFanFilter);
+  const host = document.getElementById("lineageCanvas");
+  if (host) host.classList.toggle("lfo-filtering", !!lineageFanFilter);
+}
+
+function bindLineageFanChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".lfo-bar[data-lfo-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleLineageFanFilter(el.getAttribute("data-lfo-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleLineageFanFilter(el.getAttribute("data-lfo-kind"));
+    };
+  });
+}
+
+/** ADE LFO — filter provenance cards + ego canvas by Used/Informed/Generated. */
+function applyLineageFanPaint() {
+  if (!canvas || explorerWs !== "lineage") return;
+  const filter = lineageFanFilter ? String(lineageFanFilter) : "";
+  canvas.querySelectorAll(".prov-col[data-prov]").forEach((col) => {
+    const kind = col.getAttribute("data-prov") || "";
+    const hit = !!(filter && kind === filter);
+    const dim = !!(filter && kind !== filter);
+    col.classList.toggle("lfo-hit", hit);
+    col.classList.toggle("lfo-dim", dim);
+    col.classList.toggle("off", dim);
+  });
+  canvas.querySelectorAll(".expl-card.hop[data-kind], #lineageHops .expl-card.hop[data-kind]").forEach((el) => {
+    const bucket = provBucket(el.getAttribute("data-kind") || "");
+    const hit = !!(filter && bucket === filter);
+    const dim = !!(filter && bucket !== filter);
+    el.classList.toggle("lfo-hit", hit);
+    el.classList.toggle("lfo-dim", dim);
+    el.classList.toggle("off", dim);
+  });
+  // Canvas ego members: keep focus lit; neighbors lit only if they appear in filtered hops.
+  const host = document.getElementById("lineageCanvas");
+  const focus = lineageEgoId || "";
+  let keep = new Set();
+  if (filter) {
+    canvas.querySelectorAll(".expl-card.hop[data-kind]").forEach((el) => {
+      if (el.classList.contains("off")) return;
+      const from = el.getAttribute("data-from") || "";
+      const to = el.getAttribute("data-to") || "";
+      if (from) keep.add(from);
+      if (to) keep.add(to);
+    });
+    if (focus) keep.add(focus);
+  }
+  if (host) {
+    host.querySelectorAll(".vnode[data-id], .ego-node[data-id]").forEach((el) => {
+      const id = el.getAttribute("data-id") || "";
+      const hit = !!(filter && keep.has(id));
+      const dim = !!(filter && !keep.has(id));
+      el.classList.toggle("lfo-hit", hit);
+      el.classList.toggle("lfo-dim", dim);
+      if (!filter) el.classList.remove("lfo-hit", "lfo-dim");
+    });
+    host.querySelectorAll(".react-flow__edge").forEach((el) => {
+      if (!filter) {
+        el.classList.remove("lfo-hit", "lfo-dim");
+        return;
+      }
+      // edges: dim unless both ends kept — best-effort via data attrs when present
+      const sid = el.getAttribute("data-from") || el.getAttribute("data-source") || "";
+      const tid = el.getAttribute("data-to") || el.getAttribute("data-target") || "";
+      const hit = !!(sid && tid && keep.has(sid) && keep.has(tid));
+      el.classList.toggle("lfo-hit", hit);
+      el.classList.toggle("lfo-dim", !hit);
+    });
+  }
+  syncLineageFanBars();
+  window.__graphideLineage = Object.assign({}, window.__graphideLineage || {}, {
+    fan: filter || null,
+  });
+}
+
 function renderLineage(opts) {
   const keepCam = !!(opts && opts.keepCam);
   renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
@@ -15992,7 +16173,8 @@ function renderLineage(opts) {
     canvas.className = "play";
     canvas.innerHTML = '<div class="empty">Select a node on the map or slice to see its incident hops.</div>';
     setZoomUi(false);
-    window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [] };
+    lineageFanFilter = null;
+    window.__graphideLineage = { focus: "", nodes: 0, hops: 0, up: 0, down: 0, kinds: [], fan: null };
     return;
   }
   const node = nodeById.get(id);
@@ -16136,6 +16318,7 @@ function renderLineage(opts) {
       "-hop</div>" +
       pathRow +
       '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div>' +
+      lineageFanStripHtml(buckets) +
       '<div class="flow-title">Provenance on derived edges</div>' +
       '<div class="prov-row xy">' +
       provCol("used", "Used · Reads", buckets.used) +
@@ -16192,12 +16375,15 @@ function renderLineage(opts) {
   // ADE LBC — Lineage paint stays graph-only; Evidence opens from object rail.
   const upN = reading.nodes.filter((n) => n.side === "up").length;
   const downN = reading.nodes.filter((n) => n.side === "down").length;
+  bindLineageFanChart();
+  applyLineageFanPaint();
   window.__graphideLineage = {
     focus: id,
     fqn: (node && node.fqn) || "",
     kind: (node && node.kind) || kindOf(snapshot.graph, id),
     nodes: reading.nodes.length,
     hops: hops.length,
+    fan: lineageFanFilter || null,
     up: upN,
     down: downN,
     kinds: hops.map((h) => h.kind),
