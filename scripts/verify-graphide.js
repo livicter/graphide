@@ -13008,6 +13008,200 @@ async function main() {
     );
     assertNoStampDir("MAC5", "Map-altitude community mix step did not write .graphide/stamps/");
 
+    // ADE Map-altitude community-size mix (MCS1–MCS3) — CSC parity size bars; graph-only .bubble-card filter
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+    await page.waitForSelector(".mcs-strip .mcs-chart .mcs-bar[data-mcs-bubble]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const mcs1 = await page.evaluate(() => {
+      const strip = document.querySelector(".mcs-strip[data-mcs='1']");
+      const chart = document.querySelector(".mcs-chart[data-mcs-chart='1']");
+      const bars = [...document.querySelectorAll(".mcs-chart .mcs-bar[data-mcs-bubble]")];
+      const cards = document.querySelectorAll(".bubble-card[data-bubble]").length;
+      return {
+        strip: !!strip,
+        chart: !!chart,
+        bars: bars.length,
+        cards,
+        enter: !!document.getElementById("enterCanvas"),
+      };
+    });
+    const mcs1ok = !!(
+      mcs1 &&
+      mcs1.strip &&
+      mcs1.chart &&
+      mcs1.bars >= 2 &&
+      mcs1.cards >= 8
+    );
+    record(
+      "MCS1",
+      "Map altitude .mcs-strip/.mcs-chart/.mcs-bar present with community cards",
+      !!mcs1ok,
+      JSON.stringify(mcs1)
+    );
+
+    const mcs2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mcs-chart .mcs-bar[data-mcs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      let picked = null;
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mcs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mcs-dim").length;
+        if (hits === 1 && dims > 0) {
+          picked = {
+            id: candidate.getAttribute("data-mcs-bubble") || "",
+            hits,
+            dims,
+            filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mcs-filtering")),
+            pressed: candidate.getAttribute("aria-pressed") === "true",
+          };
+          break;
+        }
+        candidate.click();
+      }
+      if (!picked) {
+        return { ok: false, reason: "no discriminative size bar", tried: bars.map((b) => b.getAttribute("data-mcs-bubble")) };
+      }
+      const bar = document.querySelector('.mcs-bar[data-mcs-bubble="' + picked.id + '"]');
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      if (bar) bar.click();
+      const hits2 = document.querySelectorAll(".bubble-card.mcs-hit").length;
+      const dims2 = document.querySelectorAll(".bubble-card.mcs-dim").length;
+      const filtering2 = !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mcs-filtering"));
+      const pressed2 = bar ? bar.getAttribute("aria-pressed") === "true" : true;
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        ...picked,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const mcs2ok = !!(
+      mcs2 &&
+      mcs2.ok &&
+      mcs2.hits === 1 &&
+      mcs2.dims > 0 &&
+      mcs2.filtering &&
+      mcs2.pressed &&
+      mcs2.srcHidden &&
+      mcs2.hits2 === 0 &&
+      mcs2.dims2 === 0 &&
+      !mcs2.filtering2 &&
+      !mcs2.pressed2 &&
+      mcs2.srcHidden2
+    );
+    record(
+      "MCS2",
+      "Click size bar filters one .bubble-card mcs-hit/mcs-dim without opening source; second click restores",
+      !!mcs2ok,
+      JSON.stringify(mcs2)
+    );
+
+    const mcs3BarSel = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mcs-chart .mcs-bar[data-mcs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mcs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mcs-dim").length;
+        candidate.click();
+        if (hits === 1 && dims > 0) {
+          candidate.setAttribute("data-mcs-probe", "1");
+          return '.mcs-bar[data-mcs-probe="1"]';
+        }
+      }
+      return "";
+    });
+    if (!mcs3BarSel) throw new Error("no discriminative size bar for MCS3");
+    await page.focus(mcs3BarSel);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const mcs3on = await page.evaluate(() => {
+      const bar = document.querySelector('.mcs-bar[data-mcs-probe="1"]') || document.querySelector(".mcs-chart .mcs-bar[data-mcs-bubble]");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: document.querySelectorAll(".bubble-card.mcs-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mcs-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const mcs3off = await page.evaluate(() => {
+      const bar = document.querySelector('.mcs-bar[data-mcs-probe="1"]') || document.querySelector(".mcs-chart .mcs-bar[data-mcs-bubble]");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: document.querySelectorAll(".bubble-card.mcs-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mcs-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const mcs3ok = !!(
+      mcs3on &&
+      mcs3on.pressed &&
+      mcs3on.hits === 1 &&
+      mcs3on.filtering &&
+      mcs3on.srcHidden &&
+      mcs3off &&
+      !mcs3off.pressed &&
+      mcs3off.hits === 0 &&
+      !mcs3off.filtering &&
+      mcs3off.srcHidden
+    );
+    record(
+      "MCS3",
+      "Enter toggles Map size filter; Escape clears when active; source stays closed",
+      !!mcs3ok,
+      JSON.stringify({ on: mcs3on, off: mcs3off })
+    );
+
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mcs-chart .mcs-bar[data-mcs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mcs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mcs-dim").length;
+        if (hits === 1 && dims > 0) return;
+        candidate.click();
+      }
+      const fallback = document.querySelector(".mcs-bar[data-mcs-bubble]");
+      if (fallback) fallback.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "map-altitude-community-size.png");
+    const mcsShot = checks.find((c) => c.id === "shot:map-altitude-community-size.png");
+    const mcs4ok = !!(mcs1ok && mcs2ok && mcs3ok && mcsShot && mcsShot.pass);
+    record(
+      "MCS4",
+      "screenshot map-altitude-community-size.png not black; Map-altitude community-size mix proven",
+      !!mcs4ok,
+      JSON.stringify({
+        shot: mcsShot ? mcsShot.detail : "missing",
+        mcs1: !!mcs1ok,
+        mcs2: !!mcs2ok,
+        mcs3: !!mcs3ok,
+      })
+    );
+    assertNoStampDir("MCS5", "Map-altitude community-size mix step did not write .graphide/stamps/");
+
 
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');

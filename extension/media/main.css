@@ -1793,6 +1793,93 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE MCS — Map-altitude community-size chart (CSC parity; compact under MAC) */
+.mcs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 0 8px 4px;
+  font-size: 10px;
+  max-height: 52px;
+  overflow: hidden;
+}
+.mcs-stat {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.mcs-stat .k {
+  opacity: 0.7;
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.mcs-stat .n {
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.mcs-chart {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.mcs-bar {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  min-width: 64px;
+  max-width: 120px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 5px;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 18px;
+  flex: 0 1 auto;
+}
+.mcs-bar .mcs-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--mcs-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  pointer-events: none;
+}
+.mcs-bar .mcs-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  white-space: nowrap;
+}
+.mcs-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.mcs-bar.on .mcs-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 45%, transparent);
+}
+.mcs-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+.comm-wrap.mcs-filtering .bubble-card.mcs-dim,
+.programs-view.mcs-filtering .bubble-card.mcs-dim {
+  opacity: 0.28;
+}
+.comm-wrap.mcs-filtering .bubble-card.mcs-hit,
+.programs-view .bubble-card.mcs-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+
 .path-row {
   display: flex;
   flex-wrap: wrap;
