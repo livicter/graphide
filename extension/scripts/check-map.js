@@ -974,6 +974,14 @@ assert(mapMap.includes("CFT1") && mapMap.includes("cft-trail") && mapMap.include
 assert(openSliceMap.includes("CFT1") && openSliceMap.includes("cft-trail") && openSliceMap.includes("cross-desk-focus-trail.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name CFT / cft-trail / proof / no peekSource");
 assert(sequenceMap.includes("CFT1") && sequenceMap.includes("cft-trail") && sequenceMap.includes("cross-desk-focus-trail.png") && sequenceMap.includes("peekSource"), "sequence feature map must name CFT / cft-trail / proof / no peekSource");
 
+assert(driver.includes("FTR1") && driver.includes("FTR3") && driver.includes("focus-trail-return.png") && driver.includes("ftr-return"), "verify driver must prove Focus Trail Return FTR1–FTR3");
+assert(js.includes("returnToFocusTrailMap") && js.includes("Return to Map community") && js.includes("data-cft-chip"), "desk.js must own Focus Trail Return helper");
+assert(css.includes("→ Map") && css.includes('data-cft-chip="1"'), "main.css must cue Focus Trail Return on chip");
+assert(mapMap.includes("FTR1") && mapMap.includes("returnToFocusTrailMap") && mapMap.includes("focus-trail-return.png") && mapMap.includes("peekSource"), "map feature map must name FTR / returnToFocusTrailMap / proof / no peekSource");
+assert(openSliceMap.includes("FTR1") && openSliceMap.includes("focus-trail-return.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name FTR / proof / no peekSource");
+assert(sequenceMap.includes("FTR1") && sequenceMap.includes("focus-trail-return.png") && sequenceMap.includes("peekSource"), "sequence feature map must name FTR / proof / no peekSource");
+
+
 
 
 

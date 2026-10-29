@@ -9103,6 +9103,27 @@ function clearFocusTrail() {
   syncFocusTrailChip();
 }
 
+/** ADE FTR — chip click returns to Map with pinned community lit (graph-only). */
+function returnToFocusTrailMap() {
+  if (!focusTrail || !focusTrail.bubbleId) return false;
+  const id = String(focusTrail.bubbleId);
+  if (typeof setWorkspace === "function") setWorkspace("map", true);
+  // Remount chip + paint after Map paint settles.
+  if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
+  if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
+  const card =
+    (canvas && canvas.querySelector('.bubble-card[data-bubble="' + id + '"]')) ||
+    document.querySelector('.bubble-card[data-bubble="' + id + '"]');
+  if (card && typeof card.scrollIntoView === "function") {
+    try {
+      card.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+    } catch (_) {
+      try { card.scrollIntoView(); } catch (__) {}
+    }
+  }
+  return true;
+}
+
 function focusTrailMemberIds() {
   if (!focusTrail || !focusTrail.bubbleId) return new Set();
   const want = String(focusTrail.bubbleId);
@@ -9129,7 +9150,7 @@ function focusTrailChipHtml() {
   const sparkPct = Math.max(8, Math.min(100, n * 8));
   return (
     '<div class="cft-trail" data-cft="1" role="group" aria-label="Cross-desk focus trail">' +
-    '<button type="button" class="cft-chip on" data-cft-chip="1" aria-pressed="true" title="Focus trail · Escape to clear">' +
+    '<button type="button" class="cft-chip on" data-cft-chip="1" aria-pressed="true" title="Return to Map community · Escape to clear">' +
     '<span class="cft-k">Trail</span> <b class="cft-label">' +
     esc(focusTrail.label || focusTrail.bubbleId) +
     '</b> <i class="cft-n">' +
@@ -9185,7 +9206,13 @@ function bindFocusTrailChip() {
     el.onclick = (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      clearFocusTrail();
+      // ADE FTR — chip returns to Map pin; Clear still clears.
+      if (explorerWs === "map") {
+        // Already on Map: re-scroll/highlight the pinned card.
+        returnToFocusTrailMap();
+        return;
+      }
+      returnToFocusTrailMap();
     };
   });
 }

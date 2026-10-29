@@ -112,4 +112,9 @@ no source / Evidence pane.
 
 When a Map community is pinned (`focusTrail`), Sequence remounts `.cft-trail` / `.cft-chip` / `.cft-spark` and paints `#seqHops .seq-hop` with `cft-hit` / `cft-dim` when hop endpoints are trail members. Escape clears. Graph-only — no `peekSource`. Screenshot `verification/cross-desk-focus-trail.png`. Asserts CFT1–CFT3.
 
+## ADE FTR — Focus Trail Return
+
+Sequence `.cft-chip` click returns to the pinned Map community via `returnToFocusTrailMap`. Clear / Escape still clear. Graph-only — no `peekSource`. Screenshot `verification/focus-trail-return.png`. Asserts FTR1–FTR3.
+
+
 
