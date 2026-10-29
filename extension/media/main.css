@@ -2382,6 +2382,101 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 2px;
 }
 
+/* ADE CFT — Cross-desk focus trail (Map pin → Slice/Sequence highlight) */
+.cft-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 2px 8px 6px;
+  font-size: 10px;
+  max-height: 36px;
+  overflow: hidden;
+}
+.cft-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 8px 2px 8px;
+  border: 1px solid var(--vscode-focusBorder, #6ea8fe);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 18%, var(--vscode-editor-background));
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.cft-chip .cft-k {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  font-size: 9px;
+}
+.cft-chip .cft-label { font-weight: 600; font-size: 11px; }
+.cft-chip .cft-n {
+  font-style: normal;
+  font-size: 10px;
+  opacity: 0.85;
+  min-width: 1.2em;
+  text-align: center;
+}
+.cft-spark {
+  display: inline-block;
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+.cft-spark::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--cft-spark, 8%);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 75%, transparent);
+}
+.cft-clear {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cft-clear:hover, .cft-chip:hover {
+  border-color: var(--vscode-focusBorder);
+}
+.cft-chip:focus-visible, .cft-clear:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.bubble-card.cft-dim, .vnode.cft-dim, .seq-hop.cft-dim {
+  opacity: 0.28;
+}
+.bubble-card.cft-hit {
+  outline: 2px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 85%, transparent);
+  outline-offset: 1px;
+}
+#sliceCanvas.cft-filtering .vnode.cft-hit,
+.canvas.cft-filtering .vnode.cft-hit {
+  outline: 2px solid color-mix(in srgb, var(--vscode-focusBorder, #6ea8fe) 85%, transparent);
+  outline-offset: 1px;
+}
+#seqHops.cft-filtering .seq-hop.cft-hit,
+.canvas.cft-filtering #seqHops .seq-hop.cft-hit,
+#seqHops .seq-hop.cft-hit {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #6ea8fe);
+}
+.cft-trail[data-cft="1"] {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;

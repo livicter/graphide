@@ -209,6 +209,8 @@ let mapMixFilter = null;
 let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapHopSizeFilter = null;
+/** ADE CFT — Cross-desk focus trail pin; graph-only (never peekSource). null | { bubbleId, label } */
+let focusTrail = null;
 /** ADE SHM — Slice hop-kind mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let sliceMixFilter = null;
 /** ADE CPS — Call-path scrubber depth (0 = off). Directed Calls walk from selection. */
@@ -519,6 +521,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     sliceMixFilter = null;
     applySliceMixPaint();
+    return;
+  }
+  // ADE CFT: Escape clears cross-desk focus trail when active (Map/Slice/Sequence).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    (explorerWs === "map" || explorerWs === "slice" || explorerWs === "sequence") &&
+    focusTrail
+  ) {
+    e.preventDefault();
+    focusTrail = null;
+    applyFocusTrailPaint();
+    syncFocusTrailChip();
     return;
   }
   // ADE MHS: Escape clears Map-altitude hop-size filter when active.
@@ -9043,6 +9058,180 @@ function bubbleMemberIdSet(bubbles, bubbleId) {
   return new Set(((found && found.members) || []).map(idVal));
 }
 
+/** ADE CFT — resolve bubble label for trail chip. */
+function focusTrailBubbleLabel(bubbleId) {
+  const want = String(idVal(bubbleId) || "");
+  if (!want) return "";
+  const pools = [];
+  try {
+    if (typeof mapAltitudeBubbles === "function") pools.push(mapAltitudeBubbles() || []);
+  } catch (_) {}
+  try {
+    if (typeof allBubbles === "function") pools.push(allBubbles() || []);
+  } catch (_) {}
+  for (const list of pools) {
+    const hit = (list || []).find((b) => b && idVal(b.id) === want);
+    if (hit) return shortOf(hit.label) || want;
+  }
+  return want;
+}
+
+/** ADE CFT — pin a Map community into the cross-desk focus trail (always set). */
+function setFocusTrail(bubbleId) {
+  const id = String(idVal(bubbleId) || "");
+  if (!id) return;
+  focusTrail = { bubbleId: id, label: focusTrailBubbleLabel(id) };
+  applyFocusTrailPaint();
+  syncFocusTrailChip();
+}
+
+/** ADE CFT — Shift+click toggles pin for the same bubble. */
+function toggleFocusTrail(bubbleId) {
+  const id = String(idVal(bubbleId) || "");
+  if (!id) return;
+  if (focusTrail && String(focusTrail.bubbleId) === id) {
+    clearFocusTrail();
+    return;
+  }
+  setFocusTrail(id);
+}
+
+function clearFocusTrail() {
+  if (!focusTrail) return;
+  focusTrail = null;
+  applyFocusTrailPaint();
+  syncFocusTrailChip();
+}
+
+function focusTrailMemberIds() {
+  if (!focusTrail || !focusTrail.bubbleId) return new Set();
+  const want = String(focusTrail.bubbleId);
+  const pools = [];
+  try {
+    if (typeof mapAltitudeBubbles === "function") pools.push(mapAltitudeBubbles() || []);
+  } catch (_) {}
+  try {
+    if (typeof allBubbles === "function") pools.push(allBubbles() || []);
+  } catch (_) {}
+  for (const list of pools) {
+    const hit = (list || []).find((b) => b && idVal(b.id) === want);
+    if (hit && hit.members && hit.members.length) {
+      return new Set(hit.members.map(idVal));
+    }
+  }
+  return bubbleMemberIdSet(typeof allBubbles === "function" ? allBubbles() : [], want);
+}
+
+/** ADE CFT — trail chip HTML (Map / Slice / Sequence). */
+function focusTrailChipHtml() {
+  if (!focusTrail || !focusTrail.bubbleId) return "";
+  const n = focusTrailMemberIds().size;
+  const sparkPct = Math.max(8, Math.min(100, n * 8));
+  return (
+    '<div class="cft-trail" data-cft="1" role="group" aria-label="Cross-desk focus trail">' +
+    '<button type="button" class="cft-chip on" data-cft-chip="1" aria-pressed="true" title="Focus trail · Escape to clear">' +
+    '<span class="cft-k">Trail</span> <b class="cft-label">' +
+    esc(focusTrail.label || focusTrail.bubbleId) +
+    '</b> <i class="cft-n">' +
+    n +
+    '</i><span class="cft-spark" aria-hidden="true" style="--cft-spark:' +
+    sparkPct +
+    '%"></span></button>' +
+    '<button type="button" class="cft-clear" data-cft-clear="1" title="Clear focus trail">Clear</button>' +
+    "</div>"
+  );
+}
+
+function ensureFocusTrailChip() {
+  if (!canvas) return;
+  const html = focusTrailChipHtml();
+  const stage = canvas.querySelector(".stage");
+  const host = stage || canvas;
+  let el = canvas.querySelector(".cft-trail[data-cft='1']");
+  if (!html) {
+    if (el) el.remove();
+    return;
+  }
+  if (el) {
+    el.outerHTML = html;
+  } else {
+    const anchor =
+      host.querySelector(".mhs-strip, .mcs-strip, .mac-strip, .shm-strip, .cps-strip, .flow-title") ||
+      null;
+    if (anchor) anchor.insertAdjacentHTML("beforebegin", html);
+    else if (stage) stage.insertAdjacentHTML("afterbegin", html);
+    else {
+      const seq = canvas.querySelector("#seqHops, .ws-list");
+      if (seq) seq.insertAdjacentHTML("beforebegin", html);
+    }
+  }
+  bindFocusTrailChip();
+}
+
+function syncFocusTrailChip() {
+  ensureFocusTrailChip();
+}
+
+function bindFocusTrailChip() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-cft-clear]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearFocusTrail();
+    };
+  });
+  canvas.querySelectorAll("[data-cft-chip]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearFocusTrail();
+    };
+  });
+}
+
+function applyFocusTrailPaint() {
+  if (!canvas) return;
+  const members = focusTrailMemberIds();
+  const active = !!(focusTrail && focusTrail.bubbleId && members.size);
+  canvas.classList.toggle("cft-filtering", active);
+  const sliceHost = document.getElementById("sliceCanvas");
+  if (sliceHost) sliceHost.classList.toggle("cft-filtering", active);
+  canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    el.classList.remove("cft-hit", "cft-dim");
+    if (!active) return;
+    const match = String(el.getAttribute("data-bubble")) === String(focusTrail.bubbleId);
+    el.classList.toggle("cft-hit", match);
+    el.classList.toggle("cft-dim", !match);
+  });
+  const nodeRoots = [];
+  if (sliceHost) nodeRoots.push(sliceHost);
+  nodeRoots.push(canvas);
+  for (const root of nodeRoots) {
+    root.querySelectorAll(".vnode[data-id]").forEach((el) => {
+      el.classList.remove("cft-hit", "cft-dim");
+      if (!active) return;
+      const id = idVal(el.getAttribute("data-id"));
+      const hit = members.has(id);
+      el.classList.toggle("cft-hit", hit);
+      el.classList.toggle("cft-dim", !hit);
+    });
+  }
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    el.classList.remove("cft-hit", "cft-dim");
+    if (!active) return;
+    let hit = false;
+    const i = parseInt(el.getAttribute("data-seq-i"), 10);
+    if (Number.isFinite(i) && typeof seqHops === "function") {
+      const hops = seqHops() || [];
+      const h = hops[i];
+      if (h) hit = members.has(idVal(h.from)) || members.has(idVal(h.to));
+    }
+    el.classList.toggle("cft-hit", !!hit);
+    el.classList.toggle("cft-dim", !hit);
+  });
+}
+
 function communityWantFqns(view, bubbleId) {
   const { head, parent } = deltaGraphPair();
   const headIds = bubbleMemberIdSet(allBubbles(), bubbleId);
@@ -9947,6 +10136,8 @@ function paintSequenceWorkspace(title) {
   if (host) renderSequenceCanvas(host, sequenceCanvasProps());
   else unmountSequenceCanvas();
   applyGraphFilter();
+  if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
+  if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
 }
 
 function bindSequencePage() {
@@ -17113,9 +17304,15 @@ function renderBubbleMap(clusters, opts) {
   applyMapSizePaint();
   bindMapHopSizeChart();
   applyMapHopSizePaint();
+  if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
+  if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
-    onClick: (id) => {
+    onClick: (id, el, ev) => {
+      if (ev && ev.shiftKey) {
+        toggleFocusTrail(id);
+        return;
+      }
       selectedNodeId = null;
       enterMapBubble(id);
     },
@@ -17416,6 +17613,8 @@ function renderFlowchart(msg, opts) {
   mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
   bindSliceMixChart();
   applySliceMixPaint();
+  if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
+  if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindCallPathStrip();
   applyCallPathPaint();
   bindGraphFx();

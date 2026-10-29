@@ -967,6 +967,14 @@ assert(js.includes("passportDeltaFilter") && js.includes("passportDeltaChartHtml
 assert(css.includes(".ptd-chart") && css.includes(".ptd-bar") && css.includes("ptd-hit") && css.includes("ptd-dim"), "main.css must theme Passport↔Trajectory delta mix chart + ptd-hit/ptd-dim");
 assert(passportMap.includes("PTD1") && passportMap.includes("ptd-chart") && passportMap.includes("passport-traj-delta-mix.png") && passportMap.includes("peekSource"), "passport feature map must name PTD / ptd-chart / proof / no peekSource");
 
+assert(driver.includes("CFT1") && driver.includes("CFT3") && driver.includes("cross-desk-focus-trail.png") && driver.includes("cft-trail"), "verify driver must prove Cross-desk focus trail CFT1–CFT3");
+assert(js.includes("focusTrail") && js.includes("setFocusTrail") && js.includes("applyFocusTrailPaint") && js.includes("ensureFocusTrailChip") && js.includes("focusTrailChipHtml"), "desk.js must own Cross-desk focus trail helpers");
+assert(css.includes(".cft-trail") && css.includes(".cft-chip") && css.includes("cft-hit") && css.includes("cft-dim") && css.includes(".cft-spark"), "main.css must theme Cross-desk focus trail + cft-hit/cft-dim/spark");
+assert(mapMap.includes("CFT1") && mapMap.includes("cft-trail") && mapMap.includes("cross-desk-focus-trail.png") && mapMap.includes("peekSource"), "map feature map must name CFT / cft-trail / proof / no peekSource");
+assert(openSliceMap.includes("CFT1") && openSliceMap.includes("cft-trail") && openSliceMap.includes("cross-desk-focus-trail.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name CFT / cft-trail / proof / no peekSource");
+assert(sequenceMap.includes("CFT1") && sequenceMap.includes("cft-trail") && sequenceMap.includes("cross-desk-focus-trail.png") && sequenceMap.includes("peekSource"), "sequence feature map must name CFT / cft-trail / proof / no peekSource");
+
+
 
 
 

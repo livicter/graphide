@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: e44b707b367fcd3269cd66275ce0e97c6bfa0155ff5c5e97f87a9592ee2a4dec
+# seal-sha256: c5dc837c0452f1adb9a06a02e26f1042f486144e41c61f2538b308c4b454f757
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -35,9 +35,9 @@ e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills
 ef11d6896efb00ac302bccb41242f1fceea9b31cc7ea3cad5e96582a69161011  .cursor/skills/verify-graphide/references/features/lifecycle.md
 4e01accd5d288a4b5be0c02321da67980b6c77b757dc34881e4d2b0fc636988f  .cursor/skills/verify-graphide/references/features/lineage.md
 ff17ad44b157f26013472c8f7394fa3ce09a32a19337c0f785fbd214b312a40b  .cursor/skills/verify-graphide/references/features/map-offview.md
-f3001fb5bce10aa9102b12c926e0d92137c72ef75711f1abd4c7b52ca4f834c2  .cursor/skills/verify-graphide/references/features/map.md
+88795551191fc6028b4ad2e0c6bcd6b964aeb9fb3a63460af5bbadbec785367e  .cursor/skills/verify-graphide/references/features/map.md
 539caca8f7312e46d660d45b08d07c5a436f390f493fcbee7c752814c301a546  .cursor/skills/verify-graphide/references/features/open-evidence.md
-2b3133195b3bb5cfec90afc657924366af36f53567e5512b6d4176e2a212b3b6  .cursor/skills/verify-graphide/references/features/open-slice.md
+f5c990aa3e34ae8de83240bd871c8750e37d2129346d30d895893ab1e46017aa  .cursor/skills/verify-graphide/references/features/open-slice.md
 c859a688ee02bf3b3994ee8bd5faa856ebaf1134b69efde7a4c05c069f3cfc10  .cursor/skills/verify-graphide/references/features/overview.md
 5f197a6e9b33422bb91ad70fe6f1c912ca4dc582d8255221ccbe559fd07ae2c5  .cursor/skills/verify-graphide/references/features/panel-timeout.md
 3510e88d98c14fa80f0cff2ebec5cc4d2fc90f0956e579d2b8d4633279e01c4e  .cursor/skills/verify-graphide/references/features/passport.md
@@ -52,7 +52,7 @@ e1ea0d4de1a9f29967298123e38778f8625bbe5a094db45325d71865b4d1fddc  .cursor/skills
 94e3d44eaa4a9b6a7fb53a1969c2c5d4070b7216713bcdf82ac7bf7a04af936a  .cursor/skills/verify-graphide/references/features/scroll-drive.md
 996e7f192f4913a73d978ee5501c60a6a9d528aa13fa7ef3a587dd9e5482cf56  .cursor/skills/verify-graphide/references/features/search.md
 3f4fe990b810259d182042c70826853e7e951cee2a6b900341acdd5e5198458b  .cursor/skills/verify-graphide/references/features/self-review.md
-7a2c099128d8a3fa8780d7cb912cb37dc9f7ba588569a7512dee8079fa08f8f5  .cursor/skills/verify-graphide/references/features/sequence.md
+001dc5684a0252b0c42deac3d91cc8de32342cf39f4e87d46182c8d8470eccf2  .cursor/skills/verify-graphide/references/features/sequence.md
 08beba40c98a3c61ce9c308fd11b84622fa1117e38ca1b9ae51bc556dc751954  .cursor/skills/verify-graphide/references/features/slice-enter-recycle.md
 4c083096601f3ebca8bce1908d6299efadd21903462c47f1b40ee68428406a3d  .cursor/skills/verify-graphide/references/features/slice-grey.md
 702b74d30b330c209b7ed9801dc58487fd654faae80a6ce87f99ad18a9acb01d  .cursor/skills/verify-graphide/references/features/slice-runs.md
@@ -68,6 +68,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-d1461d5975b362b6a27e95bbb99c3663611e9bf3b23a6c7852c9585fc142625e  extension/scripts/check-map.js
+dc3b7f0f7f61e0b7d1bb509e9221642ba33fe3336c7a4bbbbc154632c5fa1754  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-88434d2216fc774cbef8d20643088fea97eb06d22e2e4f15129e2e88c81581a6  scripts/verify-graphide.js
+5f487569995eee89e2f8ab9663b33621cb139c84b4c505ffe28175d457883f6c  scripts/verify-graphide.js

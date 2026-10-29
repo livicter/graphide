@@ -39027,6 +39027,173 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Cross-desk focus trail (CFT1–CFT5) — pin Map community; chip+highlight carries to Slice/Sequence
+    {
+      const cftUrl = origin + "/scripts/webview-harness.html?mode=explorer&probe=0&ws=map";
+      console.log("cft-trail", cftUrl);
+      await page.goto(cftUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector('#workspaces [data-ws="map"]', { timeout: 10000 });
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+      await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+      await page.waitForTimeout(80);
+
+      const cft1 = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+        if (!cards.length) return { ok: false, reason: "no cards" };
+        // Prefer a mid-size community with members (not the sole start card).
+        let card = cards.find((c) => (c.querySelectorAll(".members span, .members .chip").length || 0) >= 1) || cards[0];
+        const id = card.getAttribute("data-bubble") || "";
+        card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, view: window }));
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip");
+        const spark = document.querySelector(".cft-trail .cft-spark");
+        const hit = document.querySelectorAll(".bubble-card.cft-hit").length;
+        const dim = document.querySelectorAll(".bubble-card.cft-dim").length;
+        const filtering = !!(document.querySelector(".cft-filtering") || document.querySelector("#canvas.cft-filtering") || document.body.querySelector(".cft-filtering"));
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          id,
+          chip: !!chip,
+          label: chip ? (chip.querySelector(".cft-label") || {}).textContent || "" : "",
+          spark: !!spark,
+          hit,
+          dim,
+          filtering,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const cft1ok = !!(
+        cft1 &&
+        cft1.ok &&
+        cft1.chip &&
+        cft1.spark &&
+        cft1.hit >= 1 &&
+        cft1.dim >= 1 &&
+        cft1.srcHidden
+      );
+      record(
+        "CFT1",
+        "Map Shift+click pins focus trail: chip+spark, cft-hit/cft-dim on cards; no source pane",
+        !!cft1ok,
+        JSON.stringify(cft1)
+      );
+
+      await page.click('#workspaces [data-ws="slice"]');
+      await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
+      await page.waitForSelector("#sliceCanvas .vnode[data-id], #sliceCanvas .react-flow__node", { timeout: 10000 });
+      await page.waitForTimeout(100);
+
+      const cft2 = await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip");
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+        const hit = nodes.filter((el) => el.classList.contains("cft-hit"));
+        const dim = nodes.filter((el) => el.classList.contains("cft-dim"));
+        const filtering = !!(
+          document.querySelector("#sliceCanvas.cft-filtering") ||
+          document.querySelector("#canvas.cft-filtering") ||
+          document.querySelector(".cft-filtering")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          chip: !!chip,
+          label: chip ? (chip.querySelector(".cft-label") || {}).textContent || "" : "",
+          nodes: nodes.length,
+          hit: hit.length,
+          dim: dim.length,
+          filtering,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const cft2ok = !!(
+        cft2 &&
+        cft2.chip &&
+        cft2.nodes >= 1 &&
+        cft2.hit >= 1 &&
+        cft2.filtering &&
+        cft2.srcHidden
+      );
+      record(
+        "CFT2",
+        "Slice carries focus trail: chip present, member vnodes cft-hit; no source pane",
+        !!cft2ok,
+        JSON.stringify(cft2)
+      );
+
+      await page.click('#workspaces [data-ws="sequence"]');
+      await page.waitForSelector('#workspaces [data-ws="sequence"].on', { timeout: 8000 });
+      await page.waitForTimeout(120);
+      const cft2b = await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip");
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const hit = hops.filter((el) => el.classList.contains("cft-hit")).length;
+        const dim = hops.filter((el) => el.classList.contains("cft-dim")).length;
+        const src = document.getElementById("sourcePane");
+        return { chip: !!chip, hops: hops.length, hit, dim, srcHidden: !src || src.hidden };
+      });
+      // Sequence may have zero Steiner hops in some fixtures; chip must still carry.
+      const cft2bOk = !!(cft2b && cft2b.chip && cft2b.srcHidden && (cft2b.hops === 0 || cft2b.hit + cft2b.dim === cft2b.hops));
+      record(
+        "CFT2b",
+        "Sequence carries focus trail chip (hop hit/dim when hops exist)",
+        !!cft2bOk,
+        JSON.stringify(cft2b)
+      );
+
+      // Return to Slice for Escape + screenshot proof
+      await page.click('#workspaces [data-ws="slice"]');
+      await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
+      await page.waitForTimeout(60);
+
+      const cft3 = await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        const chip = document.querySelector(".cft-trail[data-cft='1']");
+        const hit = document.querySelectorAll(".cft-hit").length;
+        const filtering = !!document.querySelector(".cft-filtering");
+        return { chip: !!chip, hit, filtering };
+      });
+      const cft3ok = !!(cft3 && !cft3.chip && cft3.hit === 0 && !cft3.filtering);
+      record(
+        "CFT3",
+        "Escape clears cross-desk focus trail",
+        !!cft3ok,
+        JSON.stringify(cft3)
+      );
+
+      // Re-pin for screenshot
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+      await page.waitForTimeout(60);
+      await page.evaluate(() => {
+        const card = document.querySelector(".bubble-card[data-bubble]");
+        if (card) card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, view: window }));
+      });
+      await page.click('#workspaces [data-ws="slice"]');
+      await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
+      await page.waitForSelector(".cft-trail[data-cft='1']", { timeout: 5000 });
+      await page.waitForTimeout(80);
+      await shot(page, "cross-desk-focus-trail.png");
+      const cftShot = checks.find((c) => c.id === "shot:cross-desk-focus-trail.png");
+      const cft4ok = !!(cft1ok && cft2ok && cft3ok && cftShot && cftShot.pass);
+      record(
+        "CFT4",
+        "screenshot cross-desk-focus-trail.png not black; Cross-desk focus trail proven",
+        !!cft4ok,
+        JSON.stringify({
+          shot: cftShot ? cftShot.detail : "missing",
+          cft1: !!cft1ok,
+          cft2: !!cft2ok,
+          cft2b: !!cft2bOk,
+          cft3: !!cft3ok,
+        })
+      );
+      assertNoStampDir("CFT5", "Cross-desk focus trail step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      await page.waitForTimeout(40);
+    }
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

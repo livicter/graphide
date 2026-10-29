@@ -19,6 +19,7 @@ Not a second canvas, not a stamp, and not a rewrite of UnmatchedHint.
 
 - ADE SHM (Slice hop-kind mix): Slice stage shows `.shm-strip` / `.shm-chart` / `.shm-bar` kind+hop mix from the current flow Steiner tree. Click / Enter / Space toggles `sliceMixFilter` and paints `#sliceCanvas` `.vnode` / `.react-flow__edge` with `shm-hit` / `shm-dim` (kind = node kind; hop = edge verb). Second click or Escape (Slice-only, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/slice-hop-kind-mix.png`. Asserts SHM1–SHM3.
 - ADE CPS (Call-path scrubber): same `.cps-strip` / `#cpsDepth` as Overview on Slice Steiner; paints `cps-hit` / `cps-dim` / `cps-branch`. Escape clears when depth > 0. Graph-only — no peekSource. Screenshot `verification/call-path-scrubber.png`. Asserts CPS1–CPS3.
+- ADE CFT (Cross-desk focus trail): when `focusTrail` is pinned on Map, Slice remounts `.cft-trail` chip and paints Steiner `#sliceCanvas .vnode` members with `cft-hit` / `cft-dim`. Escape clears. Graph-only — no `peekSource`. Screenshot `verification/cross-desk-focus-trail.png`. Asserts CFT1–CFT3.
 
 ## How to get to it (user POV)
 
