@@ -56,6 +56,12 @@ Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-
 
 ![Slice hop-kind mix](UIUX_sample/slice-hop-kind-mix.png)
 
+### Route
+
+PATH between two nodes. Play walks the directed hops. Hop-kind mix chart filters which path hops stay lit (Calls / Reads / Writes / Publishes / Subscribes).
+
+![Route hop-kind mix](UIUX_sample/route-hop-kind-mix.png)
+
 ### Sequence
 
 Story-rich hops with participant highlight.
@@ -96,6 +102,6 @@ Stamps, skips, and broken attestations.
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM).
 
-Parked next: Route depth polish / DAM (dsh NEXT_AFTER ROUTE).
+Parked next: DAM (dsh NEXT_AFTER after RKM).

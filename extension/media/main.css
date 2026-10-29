@@ -2053,6 +2053,99 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+
+/* ADE RKM — Route hop-kind mix chart (SHM/OMC parity on PATH receipt) */
+.rkm-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 2px 0 4px;
+  font-size: 10px;
+  max-height: 40px;
+  overflow: hidden;
+}
+.rkm-stat {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.rkm-stat .k {
+  opacity: 0.7;
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.rkm-stat .n {
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.rkm-chart {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.rkm-bar {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  min-width: 56px;
+  max-width: 110px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 5px;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 18px;
+  flex: 0 1 auto;
+}
+.rkm-bar .rkm-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--rkm-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  pointer-events: none;
+}
+.rkm-bar .rkm-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  white-space: nowrap;
+}
+.rkm-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.rkm-bar.on .rkm-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 45%, transparent);
+}
+.rkm-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+#routeReceipt.rkm-filtering .route-hop.rkm-dim {
+  opacity: 0.32;
+}
+#routeReceipt.rkm-filtering .route-hop.rkm-hit {
+  outline: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+  outline-offset: 0;
+}
+.vnode.rkm-dim, .comm-node.rkm-dim, .seq-part.rkm-dim, .df-node.rkm-dim, .seq-hop.rkm-dim, .bubble-card.rkm-dim, path.rkm-dim {
+  opacity: 0.28;
+}
+.vnode.rkm-hit, .comm-node.rkm-hit, .seq-part.rkm-hit, .df-node.rkm-hit, .bubble-card.rkm-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;
