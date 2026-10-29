@@ -20,7 +20,7 @@ Graphs-only Review surfaces on `main`.
 
 ### Overview
 
-Scorecard, Play, and interactive mix and community-size charts. Call-path scrubber grows directed Calls depth from the selected focus (path lights, branches fade). Story captions name behavior (kind · role · verb), not file:line.
+Scorecard, Play, and interactive mix and community-size charts. Call-path scrubber grows directed Calls depth from the selected focus (path lights, branches fade). Click a function for an inline CFG expand (callers → focus → callees) with IR edge-kind labels; Escape clears. Story captions name behavior (kind · role · verb), not file:line.
 
 ![Live suite](UIUX_sample/live-suite.png)
 
@@ -33,6 +33,8 @@ Scorecard, Play, and interactive mix and community-size charts. Call-path scrubb
 ![Story behavior captions](UIUX_sample/story-behavior-captions.png)
 
 ![Call-path scrubber](UIUX_sample/call-path-scrubber.png)
+
+![CFG expand-on-click](UIUX_sample/cfg-expand-onclick.png)
 
 ### Map
 
@@ -114,6 +116,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE).
 
-Parked next: CFG expand-on-click (CEO) or cross-module sequence / structural diff.
+Parked next: cross-module sequence swimlane (dsh NEXT_AFTER) or structural diff.

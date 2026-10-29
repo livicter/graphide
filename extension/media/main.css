@@ -2593,6 +2593,73 @@ button.stat-chip.omc-chip:focus-visible {
   padding: 2px 4px;
 }
 
+/* ADE CFE — CFG expand-on-click (inline callers|focus|callees; edge labels = IR kind) */
+.cfe-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 2px 8px 6px;
+  font-size: 10px;
+  max-height: 88px;
+  overflow: hidden;
+}
+.cfe-stat { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cfe-stat .k { opacity: 0.7; font-style: normal; }
+.cfe-stat .n { font-size: 12px; font-weight: 600; }
+.cfe-hint { opacity: 0.65; }
+.cfe-cfg {
+  display: inline-flex;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.cfe-col { display: inline-flex; flex-direction: column; gap: 2px; min-width: 72px; }
+.cfe-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 85%, transparent);
+  color: inherit;
+  cursor: pointer;
+  max-width: 160px;
+}
+.cfe-edge-label { font-size: 9px; opacity: 0.75; font-weight: 600; color: var(--vscode-charts-purple, #b180d7); }
+.cfe-chip-name { font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 148px; }
+.cfe-focus-chip.on, .cfe-chip.on {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.cfe-clear {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cfe-clear:focus-visible, .cfe-chip:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.cfe-none { opacity: 0.55; font-style: italic; }
+.cfe-panel.cfe-filtering {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 50%, transparent);
+  outline-offset: 2px;
+}
+#sliceCanvas.cfe-filtering .vnode.cfe-dim,
+#sliceCanvas.cfe-filtering .react-flow__edge.cfe-dim {
+  opacity: 0.22;
+}
+#sliceCanvas.cfe-filtering .vnode.cfe-hit {
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;

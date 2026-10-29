@@ -984,6 +984,11 @@ assert(driver.includes("VTS1") && driver.includes("VTS3") && driver.includes("va
 assert(js.includes("valueTrailFocus") && js.includes("setValueTrailFocus") && js.includes("renderValueTrailStrip") && js.includes("applyValueTrailPaint") && js.includes("valueTrailOf"), "desk.js must own Value-trail Sankey helpers");
 assert(css.includes(".vts-strip") && css.includes(".vts-sankey") && css.includes("vts-hit") && css.includes("vts-dim") && css.includes(".vts-chip"), "main.css must theme Value-trail Sankey + vts-hit/vts-dim");
 assert(dataflowMap.includes("VTS1") && dataflowMap.includes("vts-sankey") && dataflowMap.includes("value-trail-sankey.png") && dataflowMap.includes("peekSource"), "dataflow feature map must name VTS / vts-sankey / proof / no peekSource");
+assert(driver.includes("CFE1") && driver.includes("CFE3") && driver.includes("cfg-expand-onclick.png") && driver.includes("cfe-cfg"), "verify driver must prove CFG expand-on-click CFE1–CFE3");
+assert(js.includes("cfgExpandFocus") && js.includes("setCfgExpandFocus") && js.includes("cfgExpandPanelHtml") && js.includes("applyCfgExpandPaint") && js.includes("cfgExpandOf"), "desk.js must own CFG expand-on-click helpers");
+assert(css.includes(".cfe-panel") && css.includes(".cfe-cfg") && css.includes("cfe-hit") && css.includes("cfe-dim") && css.includes(".cfe-edge-label"), "main.css must theme CFG expand + cfe-hit/cfe-dim");
+assert(overviewMap.includes("CFE1") && overviewMap.includes("cfe-cfg") && overviewMap.includes("cfg-expand-onclick.png") && overviewMap.includes("peekSource"), "overview feature map must name CFE / cfe-cfg / proof / no peekSource");
+
 
 
 

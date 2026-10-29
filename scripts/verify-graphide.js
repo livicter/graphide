@@ -39454,6 +39454,118 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE CFG expand-on-click (CFE1–CFE5) — click Overview function → inline callers|focus|callees
+    {
+      const cfeUrl = origin + "/scripts/webview-harness.html?mode=explorer&probe=0&ws=overview";
+      console.log("cfe-expand", cfeUrl);
+      await page.goto(cfeUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector("#sliceCanvas .vnode[data-id]", { timeout: 15000 });
+      await page.waitForSelector(".cfe-panel[data-cfe='1']", { timeout: 8000 });
+      const cfe1 = await page.evaluate(() => {
+        const panel = document.querySelector(".cfe-panel[data-cfe='1']");
+        const empty = !!(panel && panel.getAttribute("data-cfe-empty") === "1");
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+        const src = document.getElementById("sourcePane");
+        return { panel: !!panel, empty, nodes: nodes.length, srcHidden: !src || src.hidden };
+      });
+      const cfe1ok = !!(cfe1 && cfe1.panel && cfe1.empty && cfe1.nodes >= 2 && cfe1.srcHidden);
+      record(
+        "CFE1",
+        "Overview .cfe-panel present (empty hint) with CFG nodes; no source pane",
+        !!cfe1ok,
+        JSON.stringify(cfe1)
+      );
+
+      const pickId = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+        const pick =
+          nodes.find((el) => (el.getAttribute("data-kind") || "").includes("Function")) ||
+          nodes[Math.min(1, nodes.length - 1)] ||
+          nodes[0];
+        return pick ? pick.getAttribute("data-id") || "" : "";
+      });
+      if (pickId) {
+        await page.locator('#sliceCanvas .vnode[data-id="' + pickId + '"]').first().click();
+        await page.waitForTimeout(120);
+      }
+      const cfe2 = await page.evaluate((expected) => {
+        const panel = document.querySelector(".cfe-panel[data-cfe='1']");
+        const cfg = document.querySelector(".cfe-cfg[data-cfe-cfg='1']");
+        const labels = [...document.querySelectorAll(".cfe-edge-label[data-cfe-edge-label='1']")];
+        const focus = panel && panel.getAttribute("data-cfe-focus");
+        const filtering = !!(document.querySelector("#sliceCanvas.cfe-filtering"));
+        const hit = [...document.querySelectorAll("#sliceCanvas .vnode.cfe-hit")].length;
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          pick: expected || "",
+          focus: focus || "",
+          cfg: !!cfg,
+          labels: labels.length,
+          filtering,
+          hit,
+          srcHidden: !src || src.hidden,
+        };
+      }, pickId);
+      const cfe2ok = !!(
+        cfe2 &&
+        cfe2.ok &&
+        cfe2.cfg &&
+        cfe2.focus &&
+        cfe2.focus === cfe2.pick &&
+        cfe2.hit >= 1 &&
+        cfe2.srcHidden
+      );
+      record(
+        "CFE2",
+        "Click CFG node opens .cfe-cfg expand; hit paint; no source pane",
+        !!cfe2ok,
+        JSON.stringify(cfe2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const cfe3 = await page.evaluate(() => {
+        const panel = document.querySelector(".cfe-panel[data-cfe='1']");
+        const empty = !!(panel && panel.getAttribute("data-cfe-empty") === "1");
+        const cfg = document.querySelector(".cfe-cfg[data-cfe-cfg='1']");
+        const filtering = !!(document.querySelector("#sliceCanvas.cfe-filtering"));
+        const hit = [...document.querySelectorAll("#sliceCanvas .vnode.cfe-hit")].length;
+        const src = document.getElementById("sourcePane");
+        return { empty, cfg: !!cfg, filtering, hit, srcHidden: !src || src.hidden };
+      });
+      const cfe3ok = !!(cfe3 && cfe3.empty && !cfe3.cfg && !cfe3.filtering && cfe3.hit === 0 && cfe3.srcHidden);
+      record("CFE3", "Escape clears CFG expand focus", !!cfe3ok, JSON.stringify(cfe3));
+
+      const pickId2 = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+        const pick =
+          nodes.find((el) => (el.getAttribute("data-kind") || "").includes("Function")) ||
+          nodes[Math.min(1, nodes.length - 1)] ||
+          nodes[0];
+        return pick ? pick.getAttribute("data-id") || "" : "";
+      });
+      if (pickId2) {
+        await page.locator('#sliceCanvas .vnode[data-id="' + pickId2 + '"]').first().click();
+        await page.waitForTimeout(120);
+      }
+      await shot(page, "cfg-expand-onclick.png");
+      const cfeShot = checks.find((c) => c.id === "shot:cfg-expand-onclick.png");
+      const cfe4ok = !!(cfe1ok && cfe2ok && cfe3ok && cfeShot && cfeShot.pass);
+      record(
+        "CFE4",
+        "screenshot cfg-expand-onclick.png not black; CFG expand proven",
+        !!cfe4ok,
+        JSON.stringify({ shot: cfeShot ? cfeShot.detail : "missing", cfe1: !!cfe1ok, cfe2: !!cfe2ok, cfe3: !!cfe3ok })
+      );
+      assertNoStampDir("CFE5", "CFG expand-on-click step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const clear = document.querySelector("[data-cfe-clear]");
+        if (clear) clear.click();
+      });
+      await page.waitForTimeout(40);
+    }
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

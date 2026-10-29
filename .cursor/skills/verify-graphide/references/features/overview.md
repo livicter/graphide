@@ -26,6 +26,11 @@ product. Stamp / skip stay human.
   Graph-only — must not open Evidence / `peekSource` / source pane.
   Screenshot `verification/overview-mix-chart.png`. Asserts OMC1–OMC3.
 - ADE CPS (Call-path scrubber): `.cps-strip` / `#cpsDepth` hop-depth range from selected `#sliceCanvas` focus. Depth N lights directed Calls/Publishes/Subscribes reach (`cps-hit`); others `cps-dim`; off-spine `cps-branch` fades harder. Escape (Overview/Slice, when depth &gt; 0) clears. Graph-only — scrubber must not open Evidence / `peekSource`. Screenshot `verification/call-path-scrubber.png`. Asserts CPS1–CPS3.
+- ADE CFE (CFG expand-on-click): click a `#sliceCanvas` Function →
+  `.cfe-panel[data-cfe="1"]` / `.cfe-cfg` shows callers | focus | callees with
+  `.cfe-edge-label` = IR edge kind (Honest: no invented predicates). Paint
+  `cfe-hit`/`cfe-dim` on the overview CFG. Clear / Escape clears. Graph-only —
+  never peekSource. Screenshot `verification/cfg-expand-onclick.png`. Asserts CFE1–CFE5.
 - ADE CSC (Community Size Chart): Communities keep the total + **Open map**
   and add `.csc-chart` / `.csc-bar[data-csc-bubble]` sized by derived member
   counts (`mapAltitudeBubbles`). Click / Enter / Space toggles

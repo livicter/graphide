@@ -216,6 +216,7 @@ let focusTrail = null;
 let sliceMixFilter = null;
 /** ADE CPS — Call-path scrubber depth (0 = off). Directed Calls walk from selection. */
 let callPathDepth = 0;
+let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
 /** ADE RKM — Route hop-kind mix filter; graph-only (never peekSource). null | kind string */
 let routeMixFilter = null;
 const CAM_MIN = 0.35;
@@ -427,7 +428,10 @@ document.addEventListener("keydown", (e) => {
     if (findEsc) graphSearch.blur();
     if (promptEsc) prompt.blur();
   } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
-    return;
+    // ADE CFE+CPS: Escape on #cpsDepth (or inside .cfe-panel) still clears expand/scrubber.
+    if (!(e.key === "Escape" && e.target.closest("#cpsDepth, .cfe-panel, .cps-strip"))) {
+      return;
+    }
   }
   if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
     e.preventDefault();
@@ -487,6 +491,23 @@ document.addEventListener("keydown", (e) => {
     syncDecisionAttestBars();
     return;
   }
+  // ADE CFE+CPS: one Escape clears CFG expand and/or call-path depth (graph-only).
+  // Overview select closes Evidence first so this runs without a source-close steal.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    (explorerWs === "overview" || explorerWs === "slice") &&
+    (cfgExpandFocus || callPathDepth > 0)
+  ) {
+    e.preventDefault();
+    cfgExpandFocus = null;
+    callPathDepth = 0;
+    // Avoid full Overview keep-paint (it can re-read stale #cpsDepth before sync).
+    if (typeof syncCallPathStrip === "function") syncCallPathStrip();
+    if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+    if (typeof applyCallPathPaint === "function") applyCallPathPaint();
+    return;
+  }
   // ADE CSC: Escape clears Overview community-size filter when active.
   if (
     e.key === "Escape" &&
@@ -497,19 +518,6 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     overviewCommunityFilter = null;
     applyOverviewCommunityPaint();
-    return;
-  }
-  // ADE CPS: Escape clears call-path scrubber depth when active.
-  if (
-    e.key === "Escape" &&
-    !e.defaultPrevented &&
-    (explorerWs === "overview" || explorerWs === "slice") &&
-    callPathDepth > 0
-  ) {
-    e.preventDefault();
-    callPathDepth = 0;
-    applyCallPathPaint();
-    syncCallPathStrip();
     return;
   }
   // ADE SHM: Escape clears Slice hop-kind mix filter when active.
@@ -5156,6 +5164,11 @@ function bindGraphFx() {
           enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
           return;
         }
+        // ADE CFE — Overview stays graph-only; Slice keeps Evidence on dblclick.
+        if (explorerWs === "overview") {
+          selectNode(id, { peek: false });
+          return;
+        }
         peekSource(id);
       });
     }
@@ -6356,7 +6369,7 @@ function peekSource(id) {
       preview: "",
     });
   }
-  vscode.postMessage({ type: "peekSource", id: sid });
+  if (explorerWs !== "overview") vscode.postMessage({ type: "peekSource", id: sid });
 }
 
 function revealSourcePane() {
@@ -6381,6 +6394,7 @@ function revealSourcePane() {
 
 function showSource(msg, opts) {
   if (!sourcePane) return;
+  if (explorerWs === "overview") return; // ADE CFE graph-only
   // S1ab — host may stamp workspaceFolder on source / flowchart posts.
   if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
     if (typeof setScrollDriveWorkspaceKey === "function") {
@@ -7330,10 +7344,23 @@ function selectNode(id, opts) {
   if (selectedNodeId && selectedNodeId !== sid) pathEnds = [selectedNodeId, sid];
   else if (pathEnds.length < 2) pathEnds = [sid];
   selectedNodeId = sid;
+  // ADE CFE — Overview/Slice select expands inline CFG (callers|focus|callees).
+  if (explorerWs === "overview" || explorerWs === "slice") {
+    cfgExpandFocus = sid;
+    if (
+      explorerWs === "overview" &&
+      sourcePane &&
+      !sourcePane.hidden &&
+      typeof closeSourcePane === "function"
+    ) {
+      closeSourcePane();
+    }
+  }
   highlightCommunity(sid);
   applyEgoPaint();
   if (typeof applyCallPathPaint === "function") applyCallPathPaint();
   if (typeof syncCallPathStrip === "function") syncCallPathStrip();
+  if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
   // S1v — while Evidence ScrollDrive has a live base on Slice, skip hard zoomToEl
   // so peekSource → showSource can soft-follow the new vnode (one camera path).
   // S1w — also skip when a same-source last-stay snapshot is fresh (Present→reopen
@@ -7349,7 +7376,11 @@ function selectNode(id, opts) {
     // showSource owns S1w softRestore (do not seed base here — that would make
     // softStayScrollDriveAcrossSourceHop treat Present→reopen as a file hop).
   }
-  if (!opts || opts.peek !== false) peekSource(sid);
+  // ADE CFE graph-only on Overview: arm expand and skip peekSource unless peek:true.
+  // Slice keeps default peek so Evidence / S1* scroll-drive tests still open source.
+  const cfeSkipPeek =
+    explorerWs === "overview" && !(opts && opts.peek === true);
+  if ((!opts || opts.peek !== false) && !cfeSkipPeek) peekSource(sid);
 }
 
 function shortestPath(from, to) {
@@ -15257,12 +15288,201 @@ function callPathMaxDepth(id) {
   return max;
 }
 
+
+/** ADE CFE — local CFG neighborhood (callers/callees) for one focus; edge labels = IR kind. */
+function cfgExpandOf(focusId) {
+  const fid = focusId ? idVal(focusId) : "";
+  if (!fid) return { focus: "", callers: [], callees: [], memberIds: new Set(), edgeKeys: new Set() };
+  const callers = [];
+  const callees = [];
+  const memberIds = new Set([fid]);
+  const edgeKeys = new Set();
+  const CALLISH = { Calls: 1, Publishes: 1, Subscribes: 1 };
+  const edges = ((snapshot && snapshot.graph && snapshot.graph.edges) || []).concat(
+    (((currentFlow() || defaultRunFlow() || {}).tree || {}).edges) || []
+  );
+  const seen = new Set();
+  for (const e of edges) {
+    if (!e) continue;
+    const kind = String(e.kind || "Calls");
+    if (!CALLISH[kind]) continue;
+    const from = idVal(e.from);
+    const to = idVal(e.to);
+    if (!from || !to) continue;
+    const key = from + "\0" + to + "\0" + kind;
+    if (seen.has(key)) continue;
+    if (to === fid) {
+      seen.add(key);
+      callers.push({ id: from, fqn: fqnOf(snapshot.graph, from), kind });
+      memberIds.add(from);
+      edgeKeys.add(key);
+    } else if (from === fid) {
+      seen.add(key);
+      callees.push({ id: to, fqn: fqnOf(snapshot.graph, to), kind });
+      memberIds.add(to);
+      edgeKeys.add(key);
+    }
+  }
+  return {
+    focus: fid,
+    fqn: fqnOf(snapshot.graph, fid),
+    kind: kindOf(snapshot.graph, fid) || "Function",
+    callers,
+    callees,
+    memberIds,
+    edgeKeys,
+  };
+}
+
+function setCfgExpandFocus(id) {
+  const sid = id ? idVal(id) : "";
+  if (!sid) {
+    cfgExpandFocus = null;
+  } else {
+    cfgExpandFocus = sid;
+    selectedNodeId = sid;
+  }
+  paint({ animate: "none" });
+}
+
+/** ADE CFE — swap .cfe-panel in place (no full paint) after selectNode. */
+function refreshCfgExpandPanel() {
+  if (!canvas) return;
+  const html = cfgExpandPanelHtml();
+  const old = canvas.querySelector(".cfe-panel[data-cfe='1']");
+  if (old) {
+    old.outerHTML = html;
+  } else {
+    const cps = canvas.querySelector(".cps-strip[data-cps='1']");
+    if (cps) cps.insertAdjacentHTML("beforebegin", html);
+    else {
+      const stage = canvas.querySelector(".stage .viewport") || canvas.querySelector(".stage") || canvas.querySelector(".expl-wrap");
+      if (stage) stage.insertAdjacentHTML("afterbegin", html);
+    }
+  }
+  bindCfgExpandPanel();
+  applyCfgExpandPaint();
+}
+
+function clearCfgExpandFocus() {
+  if (!cfgExpandFocus) return;
+  cfgExpandFocus = null;
+  if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+  else paint({ animate: "none" });
+}
+
+function cfgExpandPanelHtml() {
+  const focus = cfgExpandFocus ? idVal(cfgExpandFocus) : "";
+  if (!focus) {
+    return (
+      '<div class="cfe-panel" data-cfe="1" data-cfe-empty="1" role="region" aria-label="CFG expand">' +
+      '<span class="cfe-stat"><i class="k">CFG expand</i> <b class="n">click a function</b></span>' +
+      '<span class="cfe-hint">Inline callers → focus → callees · edge labels = IR kind</span>' +
+      "</div>"
+    );
+  }
+  const trail = cfgExpandOf(focus);
+  const focusName = shortOf(trail.fqn || focus);
+  const chip = (side, p) =>
+    '<button type="button" class="cfe-chip cfe-' +
+    side +
+    '" data-cfe-id="' +
+    esc(idVal(p.id)) +
+    '" title="' +
+    esc((p.kind || "") + " · " + (p.fqn || "")) +
+    '"><span class="cfe-edge-label" data-cfe-edge-label="1">' +
+    esc(p.kind || "Calls") +
+    '</span><span class="cfe-chip-name">' +
+    esc(shortOf(p.fqn)) +
+    "</span></button>";
+  const callers =
+    trail.callers.length
+      ? trail.callers.map((p) => chip("caller", p)).join("")
+      : '<span class="cfe-none">no callers</span>';
+  const callees =
+    trail.callees.length
+      ? trail.callees.map((p) => chip("callee", p)).join("")
+      : '<span class="cfe-none">no callees</span>';
+  return (
+    '<div class="cfe-panel cfe-active" data-cfe="1" data-cfe-focus="' +
+    esc(focus) +
+    '" role="region" aria-label="CFG expand for ' +
+    esc(focusName) +
+    '">' +
+    '<span class="cfe-stat"><i class="k">CFG expand</i> <b class="n">' +
+    esc(focusName) +
+    "</b> · " +
+    trail.callers.length +
+    "→" +
+    trail.callees.length +
+    "</span>" +
+    '<div class="cfe-cfg" data-cfe-cfg="1">' +
+    '<div class="cfe-col cfe-callers" aria-label="Callers">' +
+    callers +
+    "</div>" +
+    '<div class="cfe-col cfe-focus">' +
+    '<button type="button" class="cfe-chip cfe-focus-chip on" data-cfe-id="' +
+    esc(focus) +
+    '" aria-pressed="true"><span class="cfe-chip-name">' +
+    esc(focusName) +
+    "</span></button>" +
+    "</div>" +
+    '<div class="cfe-col cfe-callees" aria-label="Callees">' +
+    callees +
+    "</div>" +
+    "</div>" +
+    '<button type="button" class="cfe-clear" data-cfe-clear="1" title="Clear CFG expand" aria-label="Clear CFG expand">Clear</button>' +
+    "</div>"
+  );
+}
+
+function applyCfgExpandPaint() {
+  const host = document.getElementById("sliceCanvas");
+  const focus = cfgExpandFocus ? idVal(cfgExpandFocus) : "";
+  const trail = focus ? cfgExpandOf(focus) : null;
+  const members = (trail && trail.memberIds) || new Set();
+  const panel = canvas.querySelector(".cfe-panel");
+  // Hit-highlight only — do NOT toggle cfe-filtering / cfe-dim on the canvas.
+  // Ego / distance opacity (EG3d, SG4*) owns dim; CFE panel carries the expand.
+  if (panel) panel.classList.toggle("cfe-filtering", !!focus);
+  if (host) host.classList.remove("cfe-filtering");
+  if (!host) return;
+  host.querySelectorAll(".vnode").forEach((el) => {
+    const id = idVal(el.getAttribute("data-id"));
+    const hit = !!(focus && members.has(id));
+    el.classList.toggle("cfe-hit", hit);
+    el.classList.remove("cfe-dim");
+  });
+  host.querySelectorAll(".react-flow__edge").forEach((el) => {
+    el.classList.remove("cfe-hit", "cfe-dim");
+  });
+}
+
+function bindCfgExpandPanel() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".cfe-chip[data-cfe-id]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = el.getAttribute("data-cfe-id");
+      if (!id) return;
+      setCfgExpandFocus(id);
+    };
+  });
+  canvas.querySelectorAll("[data-cfe-clear]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      clearCfgExpandFocus();
+    };
+  });
+}
+
 function callPathStripHtml() {
   const sid = selectedNodeId ? idVal(selectedNodeId) : "";
   const max = sid ? Math.max(1, callPathMaxDepth(sid)) : 1;
   const depth = callPathDepth > 0 ? Math.min(callPathDepth, max) : 0;
   const label = sid ? shortToken(sid) : "select a node";
   return (
+    cfgExpandPanelHtml() +
     '<div class="cps-strip" data-cps="1" role="group" aria-label="Call-path scrubber">' +
     '<span class="cps-stat"><i class="k">Call path</i> <b class="n" data-cps-focus="1">' +
     esc(label) +
@@ -16141,6 +16361,11 @@ function renderExplorerList(ws, opts) {
     applyOverviewCommunityPaint();
     bindCallPathStrip();
     applyCallPathPaint();
+    if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+    else {
+      bindCfgExpandPanel();
+      applyCfgExpandPaint();
+    }
     bindGraphFx();
     applyEgoPaint();
     const treeIds = ((flow && flow.tree && flow.tree.nodes) || []).map((id) => nodeById.get(idVal(id)) || { id, kind: kindOf(snapshot.graph, id), fqn: fqnOf(snapshot.graph, id) });
@@ -16170,6 +16395,9 @@ function renderExplorerList(ws, opts) {
     };
   });
   canvas.querySelectorAll("[data-flow]").forEach((el) => {
+    // ADE CFE — Overview/Slice XYFlow vnodes carry data-flow for captions; their
+    // click is owned by onNodeClick / selectNode (inline CFG expand), not tab hop.
+    if (el.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
     el.onclick = () => {
       const name = el.getAttribute("data-flow");
       if (!name) return;
@@ -17850,6 +18078,8 @@ function renderFlowchart(msg, opts) {
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindCallPathStrip();
   applyCallPathPaint();
+  bindCfgExpandPanel();
+  applyCfgExpandPaint();
   bindGraphFx();
   setZoomUi(true);
   applyGraphFilter();
@@ -17884,7 +18114,7 @@ function scarSet(findings, flowName) {
 function sliceWorkspaceKey() {
   const flow = currentFlow() || defaultRunFlow();
   const tree = (flow && flow.tree) || { nodes: [], edges: [] };
-  return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
+  return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || "", cfgExpandFocus || ""].join("\0");
 }
 
 function enterWorkspaceKey(inner) {
@@ -17985,6 +18215,11 @@ function sliceCanvasProps(flow, graph, scars) {
     embed: true,
     onNodeClick: (id) => {
       if (!id) return;
+      // ADE CFE — Overview select arms expand without peek; Slice keeps Evidence peek.
+      if (explorerWs === "overview") {
+        selectNode(id, { peek: false });
+        return;
+      }
       selectNode(id);
     },
     onHopClick: (iOrHop) => {

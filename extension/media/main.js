@@ -20088,6 +20088,7 @@
     let focusTrail = null;
     let sliceMixFilter = null;
     let callPathDepth = 0;
+    let cfgExpandFocus = null;
     let routeMixFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
@@ -20287,7 +20288,9 @@
         if (findEsc) graphSearch.blur();
         if (promptEsc) prompt.blur();
       } else if (e.target && e.target.closest && e.target.closest("input:not([type=checkbox]), textarea, [contenteditable]")) {
-        return;
+        if (!(e.key === "Escape" && e.target.closest("#cpsDepth, .cfe-panel, .cps-strip"))) {
+          return;
+        }
       }
       if (e.key === "Escape" && sourcePane && !sourcePane.hidden) {
         e.preventDefault();
@@ -20334,17 +20337,19 @@
         syncDecisionAttestBars();
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && (cfgExpandFocus || callPathDepth > 0)) {
+        e.preventDefault();
+        cfgExpandFocus = null;
+        callPathDepth = 0;
+        if (typeof syncCallPathStrip === "function") syncCallPathStrip();
+        if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+        if (typeof applyCallPathPaint === "function") applyCallPathPaint();
+        return;
+      }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewCommunityFilter) {
         e.preventDefault();
         overviewCommunityFilter = null;
         applyOverviewCommunityPaint();
-        return;
-      }
-      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && callPathDepth > 0) {
-        e.preventDefault();
-        callPathDepth = 0;
-        applyCallPathPaint();
-        syncCallPathStrip();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceMixFilter) {
@@ -24199,6 +24204,10 @@
               enterRun(run.getAttribute("data-flow"), run.getAttribute("data-bubble"), run);
               return;
             }
+            if (explorerWs === "overview") {
+              selectNode(id2, { peek: false });
+              return;
+            }
             peekSource(id2);
           });
         }
@@ -25255,7 +25264,7 @@
           preview: ""
         });
       }
-      vscode.postMessage({ type: "peekSource", id: sid });
+      if (explorerWs !== "overview") vscode.postMessage({ type: "peekSource", id: sid });
     }
     function revealSourcePane() {
       if (!sourcePane) return;
@@ -25276,6 +25285,7 @@
     }
     function showSource(msg, opts) {
       if (!sourcePane) return;
+      if (explorerWs === "overview") return;
       if (msg && (msg.workspaceFolder != null || msg.workspaceRoot != null || msg.ws != null)) {
         if (typeof setScrollDriveWorkspaceKey === "function") {
           setScrollDriveWorkspaceKey(msg.workspaceFolder != null ? msg.workspaceFolder : msg.workspaceRoot != null ? msg.workspaceRoot : msg.ws);
@@ -25983,17 +25993,25 @@
       if (selectedNodeId && selectedNodeId !== sid) pathEnds = [selectedNodeId, sid];
       else if (pathEnds.length < 2) pathEnds = [sid];
       selectedNodeId = sid;
+      if (explorerWs === "overview" || explorerWs === "slice") {
+        cfgExpandFocus = sid;
+        if (explorerWs === "overview" && sourcePane && !sourcePane.hidden && typeof closeSourcePane === "function") {
+          closeSourcePane();
+        }
+      }
       highlightCommunity(sid);
       applyEgoPaint();
       if (typeof applyCallPathPaint === "function") applyCallPathPaint();
       if (typeof syncCallPathStrip === "function") syncCallPathStrip();
+      if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
       if (opts && opts.zoomEl) {
         const presenting = typeof isPresenting === "function" && isPresenting();
         const lastStayMatch = typeof scrollDriveLastStayMatches === "function" && scrollDriveLastStayMatches(sid);
         const softHop = !presenting && (!!scrollDriveBase && sourcePane && !sourcePane.hidden || lastStayMatch);
         if (!softHop) zoomToEl(opts.zoomEl, Math.min(CAM_MAX, Math.max(2.6, camTo.k * 1.45)));
       }
-      if (!opts || opts.peek !== false) peekSource(sid);
+      const cfeSkipPeek = explorerWs === "overview" && !(opts && opts.peek === true);
+      if ((!opts || opts.peek !== false) && !cfeSkipPeek) peekSource(sid);
     }
     function shortestPath(from, to) {
       const a = idVal(from), b = idVal(to);
@@ -31174,12 +31192,136 @@
       }
       return max;
     }
+    function cfgExpandOf(focusId) {
+      const fid = focusId ? idVal(focusId) : "";
+      if (!fid) return { focus: "", callers: [], callees: [], memberIds: /* @__PURE__ */ new Set(), edgeKeys: /* @__PURE__ */ new Set() };
+      const callers = [];
+      const callees = [];
+      const memberIds = /* @__PURE__ */ new Set([fid]);
+      const edgeKeys = /* @__PURE__ */ new Set();
+      const CALLISH = { Calls: 1, Publishes: 1, Subscribes: 1 };
+      const edges = (snapshot && snapshot.graph && snapshot.graph.edges || []).concat(
+        ((currentFlow() || defaultRunFlow() || {}).tree || {}).edges || []
+      );
+      const seen = /* @__PURE__ */ new Set();
+      for (const e of edges) {
+        if (!e) continue;
+        const kind = String(e.kind || "Calls");
+        if (!CALLISH[kind]) continue;
+        const from = idVal(e.from);
+        const to = idVal(e.to);
+        if (!from || !to) continue;
+        const key = from + "\0" + to + "\0" + kind;
+        if (seen.has(key)) continue;
+        if (to === fid) {
+          seen.add(key);
+          callers.push({ id: from, fqn: fqnOf(snapshot.graph, from), kind });
+          memberIds.add(from);
+          edgeKeys.add(key);
+        } else if (from === fid) {
+          seen.add(key);
+          callees.push({ id: to, fqn: fqnOf(snapshot.graph, to), kind });
+          memberIds.add(to);
+          edgeKeys.add(key);
+        }
+      }
+      return {
+        focus: fid,
+        fqn: fqnOf(snapshot.graph, fid),
+        kind: kindOf(snapshot.graph, fid) || "Function",
+        callers,
+        callees,
+        memberIds,
+        edgeKeys
+      };
+    }
+    function setCfgExpandFocus(id2) {
+      const sid = id2 ? idVal(id2) : "";
+      if (!sid) {
+        cfgExpandFocus = null;
+      } else {
+        cfgExpandFocus = sid;
+        selectedNodeId = sid;
+      }
+      paint({ animate: "none" });
+    }
+    function refreshCfgExpandPanel() {
+      if (!canvas) return;
+      const html = cfgExpandPanelHtml();
+      const old = canvas.querySelector(".cfe-panel[data-cfe='1']");
+      if (old) {
+        old.outerHTML = html;
+      } else {
+        const cps = canvas.querySelector(".cps-strip[data-cps='1']");
+        if (cps) cps.insertAdjacentHTML("beforebegin", html);
+        else {
+          const stage = canvas.querySelector(".stage .viewport") || canvas.querySelector(".stage") || canvas.querySelector(".expl-wrap");
+          if (stage) stage.insertAdjacentHTML("afterbegin", html);
+        }
+      }
+      bindCfgExpandPanel();
+      applyCfgExpandPaint();
+    }
+    function clearCfgExpandFocus() {
+      if (!cfgExpandFocus) return;
+      cfgExpandFocus = null;
+      if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+      else paint({ animate: "none" });
+    }
+    function cfgExpandPanelHtml() {
+      const focus = cfgExpandFocus ? idVal(cfgExpandFocus) : "";
+      if (!focus) {
+        return '<div class="cfe-panel" data-cfe="1" data-cfe-empty="1" role="region" aria-label="CFG expand"><span class="cfe-stat"><i class="k">CFG expand</i> <b class="n">click a function</b></span><span class="cfe-hint">Inline callers → focus → callees · edge labels = IR kind</span></div>';
+      }
+      const trail = cfgExpandOf(focus);
+      const focusName = shortOf(trail.fqn || focus);
+      const chip = (side, p) => '<button type="button" class="cfe-chip cfe-' + side + '" data-cfe-id="' + esc(idVal(p.id)) + '" title="' + esc((p.kind || "") + " · " + (p.fqn || "")) + '"><span class="cfe-edge-label" data-cfe-edge-label="1">' + esc(p.kind || "Calls") + '</span><span class="cfe-chip-name">' + esc(shortOf(p.fqn)) + "</span></button>";
+      const callers = trail.callers.length ? trail.callers.map((p) => chip("caller", p)).join("") : '<span class="cfe-none">no callers</span>';
+      const callees = trail.callees.length ? trail.callees.map((p) => chip("callee", p)).join("") : '<span class="cfe-none">no callees</span>';
+      return '<div class="cfe-panel cfe-active" data-cfe="1" data-cfe-focus="' + esc(focus) + '" role="region" aria-label="CFG expand for ' + esc(focusName) + '"><span class="cfe-stat"><i class="k">CFG expand</i> <b class="n">' + esc(focusName) + "</b> · " + trail.callers.length + "→" + trail.callees.length + '</span><div class="cfe-cfg" data-cfe-cfg="1"><div class="cfe-col cfe-callers" aria-label="Callers">' + callers + '</div><div class="cfe-col cfe-focus"><button type="button" class="cfe-chip cfe-focus-chip on" data-cfe-id="' + esc(focus) + '" aria-pressed="true"><span class="cfe-chip-name">' + esc(focusName) + '</span></button></div><div class="cfe-col cfe-callees" aria-label="Callees">' + callees + '</div></div><button type="button" class="cfe-clear" data-cfe-clear="1" title="Clear CFG expand" aria-label="Clear CFG expand">Clear</button></div>';
+    }
+    function applyCfgExpandPaint() {
+      const host = document.getElementById("sliceCanvas");
+      const focus = cfgExpandFocus ? idVal(cfgExpandFocus) : "";
+      const trail = focus ? cfgExpandOf(focus) : null;
+      const members = trail && trail.memberIds || /* @__PURE__ */ new Set();
+      const panel = canvas.querySelector(".cfe-panel");
+      if (panel) panel.classList.toggle("cfe-filtering", !!focus);
+      if (host) host.classList.remove("cfe-filtering");
+      if (!host) return;
+      host.querySelectorAll(".vnode").forEach((el2) => {
+        const id2 = idVal(el2.getAttribute("data-id"));
+        const hit = !!(focus && members.has(id2));
+        el2.classList.toggle("cfe-hit", hit);
+        el2.classList.remove("cfe-dim");
+      });
+      host.querySelectorAll(".react-flow__edge").forEach((el2) => {
+        el2.classList.remove("cfe-hit", "cfe-dim");
+      });
+    }
+    function bindCfgExpandPanel() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".cfe-chip[data-cfe-id]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          const id2 = el2.getAttribute("data-cfe-id");
+          if (!id2) return;
+          setCfgExpandFocus(id2);
+        };
+      });
+      canvas.querySelectorAll("[data-cfe-clear]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          clearCfgExpandFocus();
+        };
+      });
+    }
     function callPathStripHtml() {
       const sid = selectedNodeId ? idVal(selectedNodeId) : "";
       const max = sid ? Math.max(1, callPathMaxDepth(sid)) : 1;
       const depth = callPathDepth > 0 ? Math.min(callPathDepth, max) : 0;
       const label = sid ? shortToken(sid) : "select a node";
-      return '<div class="cps-strip" data-cps="1" role="group" aria-label="Call-path scrubber"><span class="cps-stat"><i class="k">Call path</i> <b class="n" data-cps-focus="1">' + esc(label) + '</b></span><label class="cps-slider-wrap"><span class="cps-depth-label">depth <b data-cps-depth-val="1">' + depth + '</b></span><input type="range" id="cpsDepth" class="cps-depth" min="0" max="' + max + '" value="' + depth + '" step="1" aria-label="Call-path hop depth" ' + (sid ? "" : "disabled ") + '/></label><span class="cps-hint">lights Calls path · branches fade</span></div>';
+      return cfgExpandPanelHtml() + '<div class="cps-strip" data-cps="1" role="group" aria-label="Call-path scrubber"><span class="cps-stat"><i class="k">Call path</i> <b class="n" data-cps-focus="1">' + esc(label) + '</b></span><label class="cps-slider-wrap"><span class="cps-depth-label">depth <b data-cps-depth-val="1">' + depth + '</b></span><input type="range" id="cpsDepth" class="cps-depth" min="0" max="' + max + '" value="' + depth + '" step="1" aria-label="Call-path hop depth" ' + (sid ? "" : "disabled ") + '/></label><span class="cps-hint">lights Calls path · branches fade</span></div>';
     }
     function syncCallPathStrip() {
       if (!canvas) return;
@@ -31811,6 +31953,11 @@
         applyOverviewCommunityPaint();
         bindCallPathStrip();
         applyCallPathPaint();
+        if (typeof refreshCfgExpandPanel === "function") refreshCfgExpandPanel();
+        else {
+          bindCfgExpandPanel();
+          applyCfgExpandPaint();
+        }
         bindGraphFx();
         applyEgoPaint();
         const treeIds = (flow && flow.tree && flow.tree.nodes || []).map((id2) => nodeById.get(idVal(id2)) || { id: id2, kind: kindOf(snapshot.graph, id2), fqn: fqnOf(snapshot.graph, id2) });
@@ -31840,6 +31987,7 @@
         };
       });
       canvas.querySelectorAll("[data-flow]").forEach((el2) => {
+        if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
         el2.onclick = () => {
           const name = el2.getAttribute("data-flow");
           if (!name) return;
@@ -33040,6 +33188,8 @@
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
       bindCallPathStrip();
       applyCallPathPaint();
+      bindCfgExpandPanel();
+      applyCfgExpandPaint();
       bindGraphFx();
       setZoomUi(true);
       applyGraphFilter();
@@ -33069,7 +33219,7 @@
     function sliceWorkspaceKey() {
       const flow = currentFlow() || defaultRunFlow();
       const tree = flow && flow.tree || { nodes: [], edges: [] };
-      return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || ""].join("\0");
+      return [explorerWs, flow && flow.name, (tree.nodes || []).length, (tree.edges || []).length, graphFilter.q || "", cfgExpandFocus || ""].join("\0");
     }
     function enterWorkspaceKey(inner) {
       const nodes = (inner && inner.nodes || []).map((n) => String(idVal(n.id)));
@@ -33164,6 +33314,10 @@
         embed: true,
         onNodeClick: (id2) => {
           if (!id2) return;
+          if (explorerWs === "overview") {
+            selectNode(id2, { peek: false });
+            return;
+          }
           selectNode(id2);
         },
         onHopClick: (iOrHop) => {
