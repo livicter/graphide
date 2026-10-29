@@ -108,3 +108,8 @@ no source / Evidence pane.
   when no Steiner Calls/Publishes/Subscribes — invent nothing.
 - Asserts SSR1–SSR3. Proof `verification/sequence-story-richness.png`.
 
+## ADE CFT — Cross-desk focus trail (chip carry-through)
+
+When a Map community is pinned (`focusTrail`), Sequence remounts `.cft-trail` / `.cft-chip` / `.cft-spark` and paints `#seqHops .seq-hop` with `cft-hit` / `cft-dim` when hop endpoints are trail members. Escape clears. Graph-only — no `peekSource`. Screenshot `verification/cross-desk-focus-trail.png`. Asserts CFT1–CFT3.
+
+
