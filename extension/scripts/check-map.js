@@ -341,8 +341,9 @@ assert(
     rootReadme.includes("## Features") &&
     rootReadme.includes("## Progress") &&
     rootReadme.includes("Map-altitude community mix") &&
-    rootReadme.includes("Map-altitude community-size"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Map-altitude community-size (no full #371…#443 history dump)"
+    rootReadme.includes("Map-altitude community-size") &&
+    rootReadme.includes("Map-altitude community-hop-size"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Map-altitude community-hop-size (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -927,6 +928,10 @@ assert(driver.includes("MCS1") && driver.includes("MCS3") && driver.includes("ma
 assert(js.includes("mapSizeFilter") && js.includes("mapSizeChartHtml") && js.includes("applyMapSizePaint") && js.includes("bindMapSizeChart"), "desk.js must own Map-altitude size filter helpers");
 assert(css.includes(".mcs-chart") && css.includes(".mcs-bar") && css.includes("mcs-hit") && css.includes("mcs-dim"), "main.css must theme Map-altitude size chart + mcs-hit/mcs-dim");
 assert(mapMap.includes("MCS1") && mapMap.includes("mcs-chart") && mapMap.includes("map-altitude-community-size.png") && mapMap.includes("peekSource"), "map feature map must name MCS / mcs-chart / proof / no peekSource");
+assert(driver.includes("MHS1") && driver.includes("MHS3") && driver.includes("map-altitude-community-hop-size.png") && driver.includes("mhs-bar"), "verify driver must prove Map-altitude community-hop-size MHS1–MHS3");
+assert(js.includes("mapHopSizeFilter") && js.includes("mapHopSizeChartHtml") && js.includes("applyMapHopSizePaint") && js.includes("bindMapHopSizeChart"), "desk.js must own Map-altitude hop-size filter helpers");
+assert(css.includes(".mhs-chart") && css.includes(".mhs-bar") && css.includes("mhs-hit") && css.includes("mhs-dim"), "main.css must theme Map-altitude hop-size chart + mhs-hit/mhs-dim");
+assert(mapMap.includes("MHS1") && mapMap.includes("mhs-chart") && mapMap.includes("map-altitude-community-hop-size.png") && mapMap.includes("peekSource"), "map feature map must name MHS / mhs-chart / proof / no peekSource");
 
 
 

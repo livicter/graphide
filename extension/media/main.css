@@ -1880,6 +1880,93 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE MHS — Map-altitude community hop×size chart (score = hops * size; under MCS) */
+.mhs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 0 8px 4px;
+  font-size: 10px;
+  max-height: 52px;
+  overflow: hidden;
+}
+.mhs-stat {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.mhs-stat .k {
+  opacity: 0.7;
+  font-style: normal;
+  flex: 0 0 auto;
+}
+.mhs-stat .n {
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.mhs-chart {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.mhs-bar {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  min-width: 72px;
+  max-width: 140px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 5px;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 18px;
+  flex: 0 1 auto;
+}
+.mhs-bar .mhs-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--mhs-pct, 0%);
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 28%, transparent);
+  pointer-events: none;
+}
+.mhs-bar .mhs-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  white-space: nowrap;
+}
+.mhs-bar.on {
+  border-color: color-mix(in srgb, var(--accent, #6ea8fe) 70%, transparent);
+}
+.mhs-bar.on .mhs-fill {
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 45%, transparent);
+}
+.mhs-bar:focus-visible {
+  outline: 2px solid var(--accent, #6ea8fe);
+  outline-offset: 1px;
+}
+.comm-wrap.mhs-filtering .bubble-card.mhs-dim,
+.programs-view.mhs-filtering .bubble-card.mhs-dim {
+  opacity: 0.28;
+}
+.comm-wrap.mhs-filtering .bubble-card.mhs-hit,
+.programs-view .bubble-card.mhs-hit {
+  outline: 2px solid color-mix(in srgb, var(--accent, #6ea8fe) 80%, transparent);
+  outline-offset: 1px;
+}
+
 .path-row {
   display: flex;
   flex-wrap: wrap;

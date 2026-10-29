@@ -13203,6 +13203,202 @@ async function main() {
     assertNoStampDir("MCS5", "Map-altitude community-size mix step did not write .graphide/stamps/");
 
 
+    // ADE Map-altitude community-hop-size mix (MHS1–MHS3) — hop×size score bars; graph-only .bubble-card filter
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+    await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+    await page.waitForSelector(".mhs-strip .mhs-chart .mhs-bar[data-mhs-bubble]", { timeout: 8000 });
+    await page.waitForTimeout(60);
+    const mhs1 = await page.evaluate(() => {
+      const strip = document.querySelector(".mhs-strip[data-mhs='1']");
+      const chart = document.querySelector(".mhs-chart[data-mhs-chart='1']");
+      const bars = [...document.querySelectorAll(".mhs-chart .mhs-bar[data-mhs-bubble]")];
+      const cards = document.querySelectorAll(".bubble-card[data-bubble]").length;
+      return {
+        strip: !!strip,
+        chart: !!chart,
+        bars: bars.length,
+        cards,
+        enter: !!document.getElementById("enterCanvas"),
+      };
+    });
+    const mhs1ok = !!(
+      mhs1 &&
+      mhs1.strip &&
+      mhs1.chart &&
+      mhs1.bars >= 2 &&
+      mhs1.cards >= 8
+    );
+    record(
+      "MHS1",
+      "Map altitude .mhs-strip/.mhs-chart/.mhs-bar present with community cards",
+      !!mhs1ok,
+      JSON.stringify(mhs1)
+    );
+
+    const mhs2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mhs-chart .mhs-bar[data-mhs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      let picked = null;
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mhs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mhs-dim").length;
+        if (hits === 1 && dims > 0) {
+          picked = {
+            id: candidate.getAttribute("data-mhs-bubble") || "",
+            hits,
+            dims,
+            filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mhs-filtering")),
+            pressed: candidate.getAttribute("aria-pressed") === "true",
+          };
+          break;
+        }
+        candidate.click();
+      }
+      if (!picked) {
+        return { ok: false, reason: "no discriminative hop-size bar", tried: bars.map((b) => b.getAttribute("data-mhs-bubble")) };
+      }
+      const bar = document.querySelector('.mhs-bar[data-mhs-bubble="' + picked.id + '"]');
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      if (bar) bar.click();
+      const hits2 = document.querySelectorAll(".bubble-card.mhs-hit").length;
+      const dims2 = document.querySelectorAll(".bubble-card.mhs-dim").length;
+      const filtering2 = !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mhs-filtering"));
+      const pressed2 = bar ? bar.getAttribute("aria-pressed") === "true" : true;
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        ...picked,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const mhs2ok = !!(
+      mhs2 &&
+      mhs2.ok &&
+      mhs2.hits === 1 &&
+      mhs2.dims > 0 &&
+      mhs2.filtering &&
+      mhs2.pressed &&
+      mhs2.srcHidden &&
+      mhs2.hits2 === 0 &&
+      mhs2.dims2 === 0 &&
+      !mhs2.filtering2 &&
+      !mhs2.pressed2 &&
+      mhs2.srcHidden2
+    );
+    record(
+      "MHS2",
+      "Click hop-size bar filters one .bubble-card mhs-hit/mhs-dim without opening source; second click restores",
+      !!mhs2ok,
+      JSON.stringify(mhs2)
+    );
+
+    const mhs3BarSel = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mhs-chart .mhs-bar[data-mhs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mhs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mhs-dim").length;
+        candidate.click();
+        if (hits === 1 && dims > 0) {
+          candidate.setAttribute("data-mhs-probe", "1");
+          return '.mhs-bar[data-mhs-probe="1"]';
+        }
+      }
+      return "";
+    });
+    if (!mhs3BarSel) throw new Error("no discriminative hop-size bar for MHS3");
+    await page.focus(mhs3BarSel);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const mhs3on = await page.evaluate(() => {
+      const bar = document.querySelector('.mhs-bar[data-mhs-probe="1"]') || document.querySelector(".mhs-chart .mhs-bar[data-mhs-bubble]");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: document.querySelectorAll(".bubble-card.mhs-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mhs-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const mhs3off = await page.evaluate(() => {
+      const bar = document.querySelector('.mhs-bar[data-mhs-probe="1"]') || document.querySelector(".mhs-chart .mhs-bar[data-mhs-bubble]");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: document.querySelectorAll(".bubble-card.mhs-hit").length,
+        filtering: !!(document.querySelector(".comm-wrap") && document.querySelector(".comm-wrap").classList.contains("mhs-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const mhs3ok = !!(
+      mhs3on &&
+      mhs3on.pressed &&
+      mhs3on.hits === 1 &&
+      mhs3on.filtering &&
+      mhs3on.srcHidden &&
+      mhs3off &&
+      !mhs3off.pressed &&
+      mhs3off.hits === 0 &&
+      !mhs3off.filtering &&
+      mhs3off.srcHidden
+    );
+    record(
+      "MHS3",
+      "Enter toggles hop-size filter; Escape clears Map-only without opening source",
+      !!mhs3ok,
+      JSON.stringify({ on: mhs3on, off: mhs3off })
+    );
+
+    // Clear any leftover filter then pick a discriminative bar for the shot
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".mhs-chart .mhs-bar[data-mhs-bubble]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll(".bubble-card.mhs-hit").length;
+        const dims = document.querySelectorAll(".bubble-card.mhs-dim").length;
+        if (hits === 1 && dims > 0) return;
+        candidate.click();
+      }
+      const fallback = document.querySelector(".mhs-bar[data-mhs-bubble]");
+      if (fallback) fallback.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "map-altitude-community-hop-size.png");
+    const mhsShot = checks.find((c) => c.id === "shot:map-altitude-community-hop-size.png");
+    const mhs4ok = !!(mhs1ok && mhs2ok && mhs3ok && mhsShot && mhsShot.pass);
+    record(
+      "MHS4",
+      "screenshot map-altitude-community-hop-size.png not black; Map-altitude community-hop-size mix proven",
+      !!mhs4ok,
+      JSON.stringify({
+        shot: mhsShot ? mhsShot.detail : "missing",
+        mhs1: !!mhs1ok,
+        mhs2: !!mhs2ok,
+        mhs3: !!mhs3ok,
+      })
+    );
+    assertNoStampDir("MHS5", "Map-altitude community-hop-size mix step did not write .graphide/stamps/");
+
+
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });

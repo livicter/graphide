@@ -34,13 +34,15 @@ Scorecard, Play, and interactive mix and community-size charts. Story captions n
 
 ### Map
 
-Communities on the walk. Altitude mix chart filters communities by kind or hop. Community-size chart filters the same cards by member count. Enter a bubble for behavior captions. Leaf browse stays graph-only.
+Communities on the walk. Altitude mix chart filters communities by kind or hop. Community-size chart filters the same cards by member count. Hop×size chart ranks communities that are both large and high-hop. Enter a bubble for behavior captions. Leaf browse stays graph-only.
 
 ![Map communities](UIUX_sample/map-communities.png)
 
 ![Map altitude mix](UIUX_sample/map-altitude-mix.png)
 
 ![Map altitude community size](UIUX_sample/map-altitude-community-size.png)
+
+![Map altitude community hop-size](UIUX_sample/map-altitude-community-hop-size.png)
 
 ![Map enter behavior](UIUX_sample/map-enter-behavior.png)
 
@@ -90,6 +92,6 @@ Stamps, skips, and broken attestations.
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS).
 
-Parked next: Map-altitude community-hop-size mix (MHS).
+Parked next: Slice hop-kind mix (SHM).
