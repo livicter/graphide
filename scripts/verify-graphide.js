@@ -1506,6 +1506,146 @@ async function main() {
     await shot(page, "decisions.png");
     assertNoStampDir("DC4", "Decisions step did not write .graphide/stamps/");
 
+    // ADE Decisions attestation mix (DAM1–DAM5) — interactive stamp/skip/broken bars
+    await page.waitForSelector(".dam-strip .dam-chart .dam-bar[data-dam-kind]", { timeout: 8000 });
+    const dam1 = await page.evaluate(() => {
+      const strip = document.querySelector(".dam-strip[data-dam='1']");
+      const bars = [...document.querySelectorAll(".dam-chart .dam-bar[data-dam-kind]")];
+      const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision][data-attest]")];
+      const kinds = bars.map((b) => b.getAttribute("data-dam-kind"));
+      const src = document.getElementById("sourcePane");
+      return {
+        strip: !!strip,
+        bars: bars.length,
+        kinds,
+        cards: cards.length,
+        hasBroken: kinds.includes("broken"),
+        hasSkip: kinds.includes("skip"),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const dam1ok = !!(
+      dam1 &&
+      dam1.strip &&
+      dam1.bars >= 1 &&
+      dam1.cards >= 1 &&
+      dam1.hasBroken &&
+      dam1.srcHidden
+    );
+    record(
+      "DAM1",
+      "Decisions .dam-strip/.dam-chart/.dam-bar present with attestation cards",
+      !!dam1ok,
+      JSON.stringify(dam1)
+    );
+
+    const dam2 = await page.evaluate(() => {
+      const brokenBar = document.querySelector('.dam-bar[data-dam-kind="broken"]');
+      if (!brokenBar) return { ok: false, reason: "no broken bar" };
+      brokenBar.click();
+      const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision][data-attest]")];
+      const visible = cards.filter((el) => !el.classList.contains("off"));
+      const hit = cards.filter((el) => el.classList.contains("dam-hit"));
+      const dim = cards.filter((el) => el.classList.contains("dam-dim"));
+      const filtering = !!(document.querySelector(".ws-list.dam-filtering") || document.querySelector(".dam-strip.dam-filtering"));
+      const pressed = [...document.querySelectorAll(".dam-bar[data-dam-kind]")].some(
+        (b) => b.getAttribute("data-dam-kind") === "broken" && b.getAttribute("aria-pressed") === "true"
+      );
+      const allVisibleBroken = visible.every((el) => (el.getAttribute("data-attest") || "") === "broken");
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        filtering,
+        pressed,
+        visible: visible.length,
+        hit: hit.length,
+        dim: dim.length,
+        cards: cards.length,
+        allVisibleBroken,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const dam2ok = !!(
+      dam2 &&
+      dam2.ok &&
+      dam2.filtering &&
+      dam2.pressed &&
+      dam2.hit >= 1 &&
+      dam2.visible >= 1 &&
+      dam2.allVisibleBroken &&
+      dam2.srcHidden &&
+      dam2.hit + dam2.dim === dam2.cards
+    );
+    record(
+      "DAM2",
+      "Broken bar filters Decision cards dam-hit/dam-dim without opening source",
+      !!dam2ok,
+      JSON.stringify(dam2)
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const dam3 = await page.evaluate(() => {
+      const filtering = !!(document.querySelector(".ws-list.dam-filtering") || document.querySelector(".dam-strip.dam-filtering"));
+      const hit = document.querySelectorAll("#canvas .expl-card.dam-hit").length;
+      const pressed = [...document.querySelectorAll(".dam-bar[aria-pressed='true']")].length;
+      const off = document.querySelectorAll("#canvas .expl-card[data-decision].off").length;
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+      const src = document.getElementById("sourcePane");
+      return {
+        ws,
+        filtering,
+        hit,
+        pressed,
+        off,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const dam3ok = !!(
+      dam3 &&
+      dam3.ws === "decisions" &&
+      !dam3.filtering &&
+      dam3.hit === 0 &&
+      dam3.pressed === 0 &&
+      dam3.off === 0 &&
+      dam3.srcHidden
+    );
+    record(
+      "DAM3",
+      "Escape clears Decisions attestation filter without leaving Decisions or opening source",
+      !!dam3ok,
+      JSON.stringify(dam3)
+    );
+
+    // Re-enable Broken for proof shot
+    await page.evaluate(() => {
+      const brokenBar = document.querySelector('.dam-bar[data-dam-kind="broken"]');
+      if (brokenBar) brokenBar.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "decisions-attestation-mix.png");
+    const damShot = checks.find((c) => c.id === "shot:decisions-attestation-mix.png");
+    const dam4ok = !!(dam1ok && dam2ok && dam3ok && damShot && damShot.pass);
+    record(
+      "DAM4",
+      "screenshot decisions-attestation-mix.png not black; Decisions attestation mix proven",
+      !!dam4ok,
+      JSON.stringify({
+        shot: damShot ? damShot.detail : "missing",
+        dam1: !!dam1ok,
+        dam2: !!dam2ok,
+        dam3: !!dam3ok,
+      })
+    );
+    assertNoStampDir("DAM5", "Decisions attestation mix step did not write .graphide/stamps/");
+    // Clear leftover DAM filter so later UH / Open-slice asserts stay honest
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".dam-bar[aria-pressed='true']")];
+      for (const el of bars) el.click();
+    });
+    await page.waitForTimeout(40);
+
+
     const beforeUhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const unmatchedDesk = await page.evaluate(() => {
       const cov = document.getElementById("coverage");

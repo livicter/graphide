@@ -2146,6 +2146,81 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE DAM — Decisions attestation mix (stamp/skip/broken) */
+.dam-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-end;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.dam-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  flex: 1 1 160px;
+}
+.dam-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.dam-stat .n { font-size: 12px; font-weight: 600; }
+.dam-chart {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: stretch;
+}
+.dam-bar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 64px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-focusBorder) 12%);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.dam-bar .dam-fill {
+  position: absolute;
+  left: 0; bottom: 0; top: 0;
+  width: var(--dam-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
+  pointer-events: none;
+}
+.dam-bar .dam-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.dam-bar.on {
+  border-color: var(--vscode-focusBorder);
+}
+.dam-bar.on .dam-fill {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+}
+.dam-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.ws-list.dam-filtering .expl-card.dam-dim {
+  opacity: 0.35;
+}
+.ws-list.dam-filtering .expl-card.dam-hit {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;

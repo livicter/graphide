@@ -23,6 +23,9 @@ Not a graph canvas. Stamp / skip stay host-only.
   `extension.ts`. The harness stub only records `window.__vscodePosts`.
 - `LIST_WORKSPACES` hides `#ledgerPane`. No XYFlow on this list.
 
+
+- ADE DAM (Decisions attestation mix): Decisions list shows `.dam-strip` / `.dam-chart` / `.dam-bar` stamp/skip/broken mix from `decisionRecords()` via `attestationBucket`. Click / Enter / Space toggles `decisionAttestFilter` and paints `.expl-card[data-attest]` with `dam-hit` / `dam-dim` (non-matching also `.off`). Second click or Escape (Decisions-only, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/decisions-attestation-mix.png`. Asserts DAM1–DAM3.
+
 ## How to get to it (user POV)
 
 1. Review a folder. Land on Overview.
