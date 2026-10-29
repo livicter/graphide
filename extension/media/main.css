@@ -2306,6 +2306,82 @@ button.stat-chip.omc-chip:focus-visible {
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
+
+/* ADE PTD — Passport↔Trajectory delta mix (planned/residual/extra) */
+.ptd-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 2px 8px 4px;
+  font-size: 10px;
+  max-height: 40px;
+  overflow: hidden;
+}
+.ptd-stat { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ptd-stat .k { opacity: 0.7; font-style: normal; }
+.ptd-stat .n { font-size: 12px; font-weight: 600; }
+.ptd-chart {
+  display: inline-flex;
+  gap: 4px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.ptd-bar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 72px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, transparent);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.ptd-bar .ptd-fill {
+  position: absolute;
+  left: 0; bottom: 0; top: 0;
+  width: var(--ptd-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-charts-orange, #e0a100) 35%, transparent);
+  pointer-events: none;
+}
+.ptd-bar .ptd-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ptd-bar.on { border-color: var(--vscode-focusBorder); }
+.ptd-bar.on .ptd-fill {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #e0a100) 55%, transparent);
+}
+.ptd-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+#trajCanvas.ptd-filtering .traj-node.ptd-dim,
+.traj-page.ptd-filtering .traj-node.ptd-dim {
+  opacity: 0.22;
+}
+#trajCanvas.ptd-filtering .traj-node.ptd-hit,
+.traj-page.ptd-filtering .traj-node.ptd-hit {
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+#passportGate.ptd-filtering .passport-gate-path.ptd-dim,
+.passport-residual.ptd-filtering ~ * .passport-gate-path.ptd-dim {
+  opacity: 0.35;
+}
+#passportGate.ptd-filtering .passport-gate-path.ptd-hit {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.ptd-strip.ptd-filtering {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 50%, transparent);
+  outline-offset: 2px;
+}
+
 /* ADE CPS — Call-path scrubber (hop-depth; path lights, branches fade) */
 .cps-strip {
   display: flex;

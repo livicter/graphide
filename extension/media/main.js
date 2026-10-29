@@ -27,9 +27,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../graphide-ade-lfo/node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../graphide-ade-lfo/node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -300,9 +300,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../graphide-ade-lfo/node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -312,9 +312,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../graphide-ade-lfo/node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../graphide-ade-lfo/node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -565,9 +565,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../graphide-ade-lfo/node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -577,9 +577,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../graphide-ade-lfo/node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../graphide-ade-lfo/node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7187,9 +7187,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../graphide-ade-lfo/node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7213,9 +7213,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../graphide-ade-lfo/node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../graphide-ade-lfo/node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7244,9 +7244,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../graphide-ade-lfo/node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../graphide-ade-lfo/node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7269,9 +7269,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../graphide-ade-lfo/node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7281,9 +7281,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
+  // ../graphide-ade-lfo/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js
   var require_use_sync_external_store_shim_production = __commonJS({
-    "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
+    "../graphide-ade-lfo/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports) {
       "use strict";
       var React = require_react();
       function is(x, y) {
@@ -7334,9 +7334,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/shim/index.js
+  // ../graphide-ade-lfo/node_modules/use-sync-external-store/shim/index.js
   var require_shim = __commonJS({
-    "node_modules/use-sync-external-store/shim/index.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/use-sync-external-store/shim/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_use_sync_external_store_shim_production();
@@ -7346,9 +7346,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
+  // ../graphide-ade-lfo/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js
   var require_with_selector_production = __commonJS({
-    "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
+    "../graphide-ade-lfo/node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports) {
       "use strict";
       var React = require_react();
       var shim = require_shim();
@@ -7415,9 +7415,9 @@
     }
   });
 
-  // node_modules/use-sync-external-store/shim/with-selector.js
+  // ../graphide-ade-lfo/node_modules/use-sync-external-store/shim/with-selector.js
   var require_with_selector = __commonJS({
-    "node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
+    "../graphide-ade-lfo/node_modules/use-sync-external-store/shim/with-selector.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_with_selector_production();
@@ -7926,11 +7926,11 @@
     return fn2();
   }
 
-  // node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-lfo/node_modules/@xyflow/react/dist/esm/index.js
   var import_jsx_runtime10 = __toESM(require_jsx_runtime());
   var import_react2 = __toESM(require_react());
 
-  // node_modules/classcat/index.js
+  // ../graphide-ade-lfo/node_modules/classcat/index.js
   function cc(names) {
     if (typeof names === "string" || typeof names === "number") return "" + names;
     let out = "";
@@ -7948,7 +7948,7 @@
     return out;
   }
 
-  // node_modules/d3-dispatch/src/dispatch.js
+  // ../graphide-ade-lfo/node_modules/d3-dispatch/src/dispatch.js
   var noop = { value: () => {
   } };
   function dispatch() {
@@ -8018,7 +8018,7 @@
   }
   var dispatch_default = dispatch;
 
-  // node_modules/d3-selection/src/namespaces.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/namespaces.js
   var xhtml = "http://www.w3.org/1999/xhtml";
   var namespaces_default = {
     svg: "http://www.w3.org/2000/svg",
@@ -8028,14 +8028,14 @@
     xmlns: "http://www.w3.org/2000/xmlns/"
   };
 
-  // node_modules/d3-selection/src/namespace.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/namespace.js
   function namespace_default(name) {
     var prefix = name += "", i = prefix.indexOf(":");
     if (i >= 0 && (prefix = name.slice(0, i)) !== "xmlns") name = name.slice(i + 1);
     return namespaces_default.hasOwnProperty(prefix) ? { space: namespaces_default[prefix], local: name } : name;
   }
 
-  // node_modules/d3-selection/src/creator.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/creator.js
   function creatorInherit(name) {
     return function() {
       var document2 = this.ownerDocument, uri = this.namespaceURI;
@@ -8052,7 +8052,7 @@
     return (fullname.local ? creatorFixed : creatorInherit)(fullname);
   }
 
-  // node_modules/d3-selection/src/selector.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selector.js
   function none() {
   }
   function selector_default(selector) {
@@ -8061,7 +8061,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/select.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/select.js
   function select_default(select) {
     if (typeof select !== "function") select = selector_default(select);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8075,12 +8075,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // node_modules/d3-selection/src/array.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/array.js
   function array(x) {
     return x == null ? [] : Array.isArray(x) ? x : Array.from(x);
   }
 
-  // node_modules/d3-selection/src/selectorAll.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selectorAll.js
   function empty() {
     return [];
   }
@@ -8090,7 +8090,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/selectAll.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/selectAll.js
   function arrayAll(select) {
     return function() {
       return array(select.apply(this, arguments));
@@ -8110,7 +8110,7 @@
     return new Selection(subgroups, parents);
   }
 
-  // node_modules/d3-selection/src/matcher.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/matcher.js
   function matcher_default(selector) {
     return function() {
       return this.matches(selector);
@@ -8122,7 +8122,7 @@
     };
   }
 
-  // node_modules/d3-selection/src/selection/selectChild.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/selectChild.js
   var find = Array.prototype.find;
   function childFind(match) {
     return function() {
@@ -8136,7 +8136,7 @@
     return this.select(match == null ? childFirst : childFind(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // node_modules/d3-selection/src/selection/selectChildren.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/selectChildren.js
   var filter = Array.prototype.filter;
   function children() {
     return Array.from(this.children);
@@ -8150,7 +8150,7 @@
     return this.selectAll(match == null ? children : childrenFilter(typeof match === "function" ? match : childMatcher(match)));
   }
 
-  // node_modules/d3-selection/src/selection/filter.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/filter.js
   function filter_default(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -8163,12 +8163,12 @@
     return new Selection(subgroups, this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/sparse.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/sparse.js
   function sparse_default(update) {
     return new Array(update.length);
   }
 
-  // node_modules/d3-selection/src/selection/enter.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/enter.js
   function enter_default() {
     return new Selection(this._enter || this._groups.map(sparse_default), this._parents);
   }
@@ -8195,14 +8195,14 @@
     }
   };
 
-  // node_modules/d3-selection/src/constant.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/constant.js
   function constant_default(x) {
     return function() {
       return x;
     };
   }
 
-  // node_modules/d3-selection/src/selection/data.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/data.js
   function bindIndex(parent, group, enter, update, exit, data) {
     var i = 0, node, groupLength = group.length, dataLength = data.length;
     for (; i < dataLength; ++i) {
@@ -8274,12 +8274,12 @@
     return typeof data === "object" && "length" in data ? data : Array.from(data);
   }
 
-  // node_modules/d3-selection/src/selection/exit.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/exit.js
   function exit_default() {
     return new Selection(this._exit || this._groups.map(sparse_default), this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/join.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/join.js
   function join_default(onenter, onupdate, onexit) {
     var enter = this.enter(), update = this, exit = this.exit();
     if (typeof onenter === "function") {
@@ -8297,7 +8297,7 @@
     return enter && update ? enter.merge(update).order() : update;
   }
 
-  // node_modules/d3-selection/src/selection/merge.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/merge.js
   function merge_default(context) {
     var selection2 = context.selection ? context.selection() : context;
     for (var groups0 = this._groups, groups1 = selection2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -8313,7 +8313,7 @@
     return new Selection(merges, this._parents);
   }
 
-  // node_modules/d3-selection/src/selection/order.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/order.js
   function order_default() {
     for (var groups = this._groups, j = -1, m = groups.length; ++j < m; ) {
       for (var group = groups[j], i = group.length - 1, next = group[i], node; --i >= 0; ) {
@@ -8326,7 +8326,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/sort.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/sort.js
   function sort_default(compare) {
     if (!compare) compare = ascending;
     function compareNode(a, b) {
@@ -8346,7 +8346,7 @@
     return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
   }
 
-  // node_modules/d3-selection/src/selection/call.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/call.js
   function call_default() {
     var callback = arguments[0];
     arguments[0] = this;
@@ -8354,12 +8354,12 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/nodes.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/nodes.js
   function nodes_default() {
     return Array.from(this);
   }
 
-  // node_modules/d3-selection/src/selection/node.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/node.js
   function node_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length; i < n; ++i) {
@@ -8370,19 +8370,19 @@
     return null;
   }
 
-  // node_modules/d3-selection/src/selection/size.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/size.js
   function size_default() {
     let size = 0;
     for (const node of this) ++size;
     return size;
   }
 
-  // node_modules/d3-selection/src/selection/empty.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/empty.js
   function empty_default() {
     return !this.node();
   }
 
-  // node_modules/d3-selection/src/selection/each.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/each.js
   function each_default(callback) {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8392,7 +8392,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/attr.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/attr.js
   function attrRemove(name) {
     return function() {
       this.removeAttribute(name);
@@ -8436,12 +8436,12 @@
     return this.each((value == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value));
   }
 
-  // node_modules/d3-selection/src/window.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/window.js
   function window_default(node) {
     return node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView;
   }
 
-  // node_modules/d3-selection/src/selection/style.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/style.js
   function styleRemove(name) {
     return function() {
       this.style.removeProperty(name);
@@ -8466,7 +8466,7 @@
     return node.style.getPropertyValue(name) || window_default(node).getComputedStyle(node, null).getPropertyValue(name);
   }
 
-  // node_modules/d3-selection/src/selection/property.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/property.js
   function propertyRemove(name) {
     return function() {
       delete this[name];
@@ -8488,7 +8488,7 @@
     return arguments.length > 1 ? this.each((value == null ? propertyRemove : typeof value === "function" ? propertyFunction : propertyConstant)(name, value)) : this.node()[name];
   }
 
-  // node_modules/d3-selection/src/selection/classed.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/classed.js
   function classArray(string) {
     return string.trim().split(/^|\s+/);
   }
@@ -8551,7 +8551,7 @@
     return this.each((typeof value === "function" ? classedFunction : value ? classedTrue : classedFalse)(names, value));
   }
 
-  // node_modules/d3-selection/src/selection/text.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/text.js
   function textRemove() {
     this.textContent = "";
   }
@@ -8570,7 +8570,7 @@
     return arguments.length ? this.each(value == null ? textRemove : (typeof value === "function" ? textFunction : textConstant)(value)) : this.node().textContent;
   }
 
-  // node_modules/d3-selection/src/selection/html.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/html.js
   function htmlRemove() {
     this.innerHTML = "";
   }
@@ -8589,7 +8589,7 @@
     return arguments.length ? this.each(value == null ? htmlRemove : (typeof value === "function" ? htmlFunction : htmlConstant)(value)) : this.node().innerHTML;
   }
 
-  // node_modules/d3-selection/src/selection/raise.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/raise.js
   function raise() {
     if (this.nextSibling) this.parentNode.appendChild(this);
   }
@@ -8597,7 +8597,7 @@
     return this.each(raise);
   }
 
-  // node_modules/d3-selection/src/selection/lower.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/lower.js
   function lower() {
     if (this.previousSibling) this.parentNode.insertBefore(this, this.parentNode.firstChild);
   }
@@ -8605,7 +8605,7 @@
     return this.each(lower);
   }
 
-  // node_modules/d3-selection/src/selection/append.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/append.js
   function append_default(name) {
     var create2 = typeof name === "function" ? name : creator_default(name);
     return this.select(function() {
@@ -8613,7 +8613,7 @@
     });
   }
 
-  // node_modules/d3-selection/src/selection/insert.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/insert.js
   function constantNull() {
     return null;
   }
@@ -8624,7 +8624,7 @@
     });
   }
 
-  // node_modules/d3-selection/src/selection/remove.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/remove.js
   function remove() {
     var parent = this.parentNode;
     if (parent) parent.removeChild(this);
@@ -8633,7 +8633,7 @@
     return this.each(remove);
   }
 
-  // node_modules/d3-selection/src/selection/clone.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/clone.js
   function selection_cloneShallow() {
     var clone = this.cloneNode(false), parent = this.parentNode;
     return parent ? parent.insertBefore(clone, this.nextSibling) : clone;
@@ -8646,12 +8646,12 @@
     return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
   }
 
-  // node_modules/d3-selection/src/selection/datum.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/datum.js
   function datum_default(value) {
     return arguments.length ? this.property("__data__", value) : this.node().__data__;
   }
 
-  // node_modules/d3-selection/src/selection/on.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/on.js
   function contextListener(listener) {
     return function(event) {
       listener.call(this, event, this.__data__);
@@ -8714,7 +8714,7 @@
     return this;
   }
 
-  // node_modules/d3-selection/src/selection/dispatch.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/dispatch.js
   function dispatchEvent(node, type, params) {
     var window2 = window_default(node), event = window2.CustomEvent;
     if (typeof event === "function") {
@@ -8740,7 +8740,7 @@
     return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type, params));
   }
 
-  // node_modules/d3-selection/src/selection/iterator.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/iterator.js
   function* iterator_default() {
     for (var groups = this._groups, j = 0, m = groups.length; j < m; ++j) {
       for (var group = groups[j], i = 0, n = group.length, node; i < n; ++i) {
@@ -8749,7 +8749,7 @@
     }
   }
 
-  // node_modules/d3-selection/src/selection/index.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/selection/index.js
   var root = [null];
   function Selection(groups, parents) {
     this._groups = groups;
@@ -8801,19 +8801,19 @@
   };
   var selection_default = selection;
 
-  // node_modules/d3-selection/src/select.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/select.js
   function select_default2(selector) {
     return typeof selector === "string" ? new Selection([[document.querySelector(selector)]], [document.documentElement]) : new Selection([[selector]], root);
   }
 
-  // node_modules/d3-selection/src/sourceEvent.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/sourceEvent.js
   function sourceEvent_default(event) {
     let sourceEvent;
     while (sourceEvent = event.sourceEvent) event = sourceEvent;
     return event;
   }
 
-  // node_modules/d3-selection/src/pointer.js
+  // ../graphide-ade-lfo/node_modules/d3-selection/src/pointer.js
   function pointer_default(event, node) {
     event = sourceEvent_default(event);
     if (node === void 0) node = event.currentTarget;
@@ -8833,7 +8833,7 @@
     return [event.pageX, event.pageY];
   }
 
-  // node_modules/d3-drag/src/noevent.js
+  // ../graphide-ade-lfo/node_modules/d3-drag/src/noevent.js
   var nonpassive = { passive: false };
   var nonpassivecapture = { capture: true, passive: false };
   function nopropagation(event) {
@@ -8844,7 +8844,7 @@
     event.stopImmediatePropagation();
   }
 
-  // node_modules/d3-drag/src/nodrag.js
+  // ../graphide-ade-lfo/node_modules/d3-drag/src/nodrag.js
   function nodrag_default(view) {
     var root3 = view.document.documentElement, selection2 = select_default2(view).on("dragstart.drag", noevent_default, nonpassivecapture);
     if ("onselectstart" in root3) {
@@ -8870,10 +8870,10 @@
     }
   }
 
-  // node_modules/d3-drag/src/constant.js
+  // ../graphide-ade-lfo/node_modules/d3-drag/src/constant.js
   var constant_default2 = (x) => () => x;
 
-  // node_modules/d3-drag/src/event.js
+  // ../graphide-ade-lfo/node_modules/d3-drag/src/event.js
   function DragEvent(type, {
     sourceEvent,
     subject,
@@ -8905,7 +8905,7 @@
     return value === this._ ? this : value;
   };
 
-  // node_modules/d3-drag/src/drag.js
+  // ../graphide-ade-lfo/node_modules/d3-drag/src/drag.js
   function defaultFilter(event) {
     return !event.ctrlKey && !event.button;
   }
@@ -9050,7 +9050,7 @@
     return drag;
   }
 
-  // node_modules/d3-color/src/define.js
+  // ../graphide-ade-lfo/node_modules/d3-color/src/define.js
   function define_default(constructor, factory, prototype) {
     constructor.prototype = factory.prototype = prototype;
     prototype.constructor = constructor;
@@ -9061,7 +9061,7 @@
     return prototype;
   }
 
-  // node_modules/d3-color/src/color.js
+  // ../graphide-ade-lfo/node_modules/d3-color/src/color.js
   function Color() {
   }
   var darker = 0.7;
@@ -9398,7 +9398,7 @@
     return (h < 60 ? m1 + (m2 - m1) * h / 60 : h < 180 ? m2 : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60 : m1) * 255;
   }
 
-  // node_modules/d3-interpolate/src/basis.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/basis.js
   function basis(t1, v0, v1, v2, v3) {
     var t2 = t1 * t1, t3 = t2 * t1;
     return ((1 - 3 * t1 + 3 * t2 - t3) * v0 + (4 - 6 * t2 + 3 * t3) * v1 + (1 + 3 * t1 + 3 * t2 - 3 * t3) * v2 + t3 * v3) / 6;
@@ -9411,7 +9411,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/basisClosed.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/basisClosed.js
   function basisClosed_default(values) {
     var n = values.length;
     return function(t) {
@@ -9420,10 +9420,10 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/constant.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/constant.js
   var constant_default3 = (x) => () => x;
 
-  // node_modules/d3-interpolate/src/color.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/color.js
   function linear(a, d) {
     return function(t) {
       return a + t * d;
@@ -9444,7 +9444,7 @@
     return d ? linear(a, d) : constant_default3(isNaN(a) ? b : a);
   }
 
-  // node_modules/d3-interpolate/src/rgb.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/rgb.js
   var rgb_default = (function rgbGamma(y) {
     var color2 = gamma(y);
     function rgb2(start2, end) {
@@ -9484,7 +9484,7 @@
   var rgbBasis = rgbSpline(basis_default);
   var rgbBasisClosed = rgbSpline(basisClosed_default);
 
-  // node_modules/d3-interpolate/src/numberArray.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/numberArray.js
   function numberArray_default(a, b) {
     if (!b) b = [];
     var n = a ? Math.min(b.length, a.length) : 0, c = b.slice(), i;
@@ -9497,7 +9497,7 @@
     return ArrayBuffer.isView(x) && !(x instanceof DataView);
   }
 
-  // node_modules/d3-interpolate/src/array.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/array.js
   function genericArray(a, b) {
     var nb = b ? b.length : 0, na = a ? Math.min(nb, a.length) : 0, x = new Array(na), c = new Array(nb), i;
     for (i = 0; i < na; ++i) x[i] = value_default(a[i], b[i]);
@@ -9508,7 +9508,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/date.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/date.js
   function date_default(a, b) {
     var d = /* @__PURE__ */ new Date();
     return a = +a, b = +b, function(t) {
@@ -9516,14 +9516,14 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/number.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/number.js
   function number_default(a, b) {
     return a = +a, b = +b, function(t) {
       return a * (1 - t) + b * t;
     };
   }
 
-  // node_modules/d3-interpolate/src/object.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/object.js
   function object_default(a, b) {
     var i = {}, c = {}, k;
     if (a === null || typeof a !== "object") a = {};
@@ -9541,7 +9541,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/string.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/string.js
   var reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
   var reB = new RegExp(reA.source, "g");
   function zero(b) {
@@ -9583,13 +9583,13 @@
     });
   }
 
-  // node_modules/d3-interpolate/src/value.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/value.js
   function value_default(a, b) {
     var t = typeof b, c;
     return b == null || t === "boolean" ? constant_default3(b) : (t === "number" ? number_default : t === "string" ? (c = color(b)) ? (b = c, rgb_default) : string_default : b instanceof color ? rgb_default : b instanceof Date ? date_default : isNumberArray(b) ? numberArray_default : Array.isArray(b) ? genericArray : typeof b.valueOf !== "function" && typeof b.toString !== "function" || isNaN(b) ? object_default : number_default)(a, b);
   }
 
-  // node_modules/d3-interpolate/src/transform/decompose.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/transform/decompose.js
   var degrees = 180 / Math.PI;
   var identity = {
     translateX: 0,
@@ -9615,7 +9615,7 @@
     };
   }
 
-  // node_modules/d3-interpolate/src/transform/parse.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/transform/parse.js
   var svgNode;
   function parseCss(value) {
     const m = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value + "");
@@ -9630,7 +9630,7 @@
     return decompose_default(value.a, value.b, value.c, value.d, value.e, value.f);
   }
 
-  // node_modules/d3-interpolate/src/transform/index.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/transform/index.js
   function interpolateTransform(parse, pxComma, pxParen, degParen) {
     function pop(s) {
       return s.length ? s.pop() + " " : "";
@@ -9685,7 +9685,7 @@
   var interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
   var interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
 
-  // node_modules/d3-interpolate/src/zoom.js
+  // ../graphide-ade-lfo/node_modules/d3-interpolate/src/zoom.js
   var epsilon2 = 1e-12;
   function cosh(x) {
     return ((x = Math.exp(x)) + 1 / x) / 2;
@@ -9730,7 +9730,7 @@
     return zoom;
   })(Math.SQRT2, 2, 4);
 
-  // node_modules/d3-timer/src/timer.js
+  // ../graphide-ade-lfo/node_modules/d3-timer/src/timer.js
   var frame = 0;
   var timeout = 0;
   var interval = 0;
@@ -9832,7 +9832,7 @@
     }
   }
 
-  // node_modules/d3-timer/src/timeout.js
+  // ../graphide-ade-lfo/node_modules/d3-timer/src/timeout.js
   function timeout_default(callback, delay, time) {
     var t = new Timer();
     delay = delay == null ? 0 : +delay;
@@ -9843,7 +9843,7 @@
     return t;
   }
 
-  // node_modules/d3-transition/src/transition/schedule.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/schedule.js
   var emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
   var emptyTween = [];
   var CREATED = 0;
@@ -9954,7 +9954,7 @@
     }
   }
 
-  // node_modules/d3-transition/src/interrupt.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/interrupt.js
   function interrupt_default(node, name) {
     var schedules = node.__transition, schedule, active, empty2 = true, i;
     if (!schedules) return;
@@ -9973,14 +9973,14 @@
     if (empty2) delete node.__transition;
   }
 
-  // node_modules/d3-transition/src/selection/interrupt.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/selection/interrupt.js
   function interrupt_default2(name) {
     return this.each(function() {
       interrupt_default(this, name);
     });
   }
 
-  // node_modules/d3-transition/src/transition/tween.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/tween.js
   function tweenRemove(id2, name) {
     var tween0, tween1;
     return function() {
@@ -10041,13 +10041,13 @@
     };
   }
 
-  // node_modules/d3-transition/src/transition/interpolate.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/interpolate.js
   function interpolate_default(a, b) {
     var c;
     return (typeof b === "number" ? number_default : b instanceof color ? rgb_default : (c = color(b)) ? (b = c, rgb_default) : string_default)(a, b);
   }
 
-  // node_modules/d3-transition/src/transition/attr.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/attr.js
   function attrRemove2(name) {
     return function() {
       this.removeAttribute(name);
@@ -10097,7 +10097,7 @@
     return this.attrTween(name, typeof value === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i, tweenValue(this, "attr." + name, value)) : value == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i, value));
   }
 
-  // node_modules/d3-transition/src/transition/attrTween.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/attrTween.js
   function attrInterpolate(name, i) {
     return function(t) {
       this.setAttribute(name, i.call(this, t));
@@ -10137,7 +10137,7 @@
     return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value));
   }
 
-  // node_modules/d3-transition/src/transition/delay.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/delay.js
   function delayFunction(id2, value) {
     return function() {
       init(this, id2).delay = +value.apply(this, arguments);
@@ -10153,7 +10153,7 @@
     return arguments.length ? this.each((typeof value === "function" ? delayFunction : delayConstant)(id2, value)) : get2(this.node(), id2).delay;
   }
 
-  // node_modules/d3-transition/src/transition/duration.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/duration.js
   function durationFunction(id2, value) {
     return function() {
       set2(this, id2).duration = +value.apply(this, arguments);
@@ -10169,7 +10169,7 @@
     return arguments.length ? this.each((typeof value === "function" ? durationFunction : durationConstant)(id2, value)) : get2(this.node(), id2).duration;
   }
 
-  // node_modules/d3-transition/src/transition/ease.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/ease.js
   function easeConstant(id2, value) {
     if (typeof value !== "function") throw new Error();
     return function() {
@@ -10181,7 +10181,7 @@
     return arguments.length ? this.each(easeConstant(id2, value)) : get2(this.node(), id2).ease;
   }
 
-  // node_modules/d3-transition/src/transition/easeVarying.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/easeVarying.js
   function easeVarying(id2, value) {
     return function() {
       var v = value.apply(this, arguments);
@@ -10194,7 +10194,7 @@
     return this.each(easeVarying(this._id, value));
   }
 
-  // node_modules/d3-transition/src/transition/filter.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/filter.js
   function filter_default2(match) {
     if (typeof match !== "function") match = matcher_default(match);
     for (var groups = this._groups, m = groups.length, subgroups = new Array(m), j = 0; j < m; ++j) {
@@ -10207,7 +10207,7 @@
     return new Transition(subgroups, this._parents, this._name, this._id);
   }
 
-  // node_modules/d3-transition/src/transition/merge.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/merge.js
   function merge_default2(transition2) {
     if (transition2._id !== this._id) throw new Error();
     for (var groups0 = this._groups, groups1 = transition2._groups, m0 = groups0.length, m1 = groups1.length, m = Math.min(m0, m1), merges = new Array(m0), j = 0; j < m; ++j) {
@@ -10223,7 +10223,7 @@
     return new Transition(merges, this._parents, this._name, this._id);
   }
 
-  // node_modules/d3-transition/src/transition/on.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/on.js
   function start(name) {
     return (name + "").trim().split(/^|\s+/).every(function(t) {
       var i = t.indexOf(".");
@@ -10244,7 +10244,7 @@
     return arguments.length < 2 ? get2(this.node(), id2).on.on(name) : this.each(onFunction(id2, name, listener));
   }
 
-  // node_modules/d3-transition/src/transition/remove.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/remove.js
   function removeFunction(id2) {
     return function() {
       var parent = this.parentNode;
@@ -10256,7 +10256,7 @@
     return this.on("end.remove", removeFunction(this._id));
   }
 
-  // node_modules/d3-transition/src/transition/select.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/select.js
   function select_default3(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selector_default(select);
@@ -10272,7 +10272,7 @@
     return new Transition(subgroups, this._parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/transition/selectAll.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/selectAll.js
   function selectAll_default2(select) {
     var name = this._name, id2 = this._id;
     if (typeof select !== "function") select = selectorAll_default(select);
@@ -10292,13 +10292,13 @@
     return new Transition(subgroups, parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/transition/selection.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/selection.js
   var Selection2 = selection_default.prototype.constructor;
   function selection_default2() {
     return new Selection2(this._groups, this._parents);
   }
 
-  // node_modules/d3-transition/src/transition/style.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/style.js
   function styleNull(name, interpolate) {
     var string00, string10, interpolate0;
     return function() {
@@ -10339,7 +10339,7 @@
     return value == null ? this.styleTween(name, styleNull(name, i)).on("end.style." + name, styleRemove2(name)) : typeof value === "function" ? this.styleTween(name, styleFunction2(name, i, tweenValue(this, "style." + name, value))).each(styleMaybeRemove(this._id, name)) : this.styleTween(name, styleConstant2(name, i, value), priority).on("end.style." + name, null);
   }
 
-  // node_modules/d3-transition/src/transition/styleTween.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/styleTween.js
   function styleInterpolate(name, i, priority) {
     return function(t) {
       this.style.setProperty(name, i.call(this, t), priority);
@@ -10363,7 +10363,7 @@
     return this.tween(key, styleTween(name, value, priority == null ? "" : priority));
   }
 
-  // node_modules/d3-transition/src/transition/text.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/text.js
   function textConstant2(value) {
     return function() {
       this.textContent = value;
@@ -10379,7 +10379,7 @@
     return this.tween("text", typeof value === "function" ? textFunction2(tweenValue(this, "text", value)) : textConstant2(value == null ? "" : value + ""));
   }
 
-  // node_modules/d3-transition/src/transition/textTween.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/textTween.js
   function textInterpolate(i) {
     return function(t) {
       this.textContent = i.call(this, t);
@@ -10403,7 +10403,7 @@
     return this.tween(key, textTween(value));
   }
 
-  // node_modules/d3-transition/src/transition/transition.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/transition.js
   function transition_default() {
     var name = this._name, id0 = this._id, id1 = newId();
     for (var groups = this._groups, m = groups.length, j = 0; j < m; ++j) {
@@ -10422,7 +10422,7 @@
     return new Transition(groups, this._parents, name, id1);
   }
 
-  // node_modules/d3-transition/src/transition/end.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/end.js
   function end_default() {
     var on0, on1, that = this, id2 = that._id, size = that.size();
     return new Promise(function(resolve, reject) {
@@ -10443,7 +10443,7 @@
     });
   }
 
-  // node_modules/d3-transition/src/transition/index.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/transition/index.js
   var id = 0;
   function Transition(groups, parents, name, id2) {
     this._groups = groups;
@@ -10491,12 +10491,12 @@
     [Symbol.iterator]: selection_prototype[Symbol.iterator]
   };
 
-  // node_modules/d3-ease/src/cubic.js
+  // ../graphide-ade-lfo/node_modules/d3-ease/src/cubic.js
   function cubicInOut(t) {
     return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;
   }
 
-  // node_modules/d3-transition/src/selection/transition.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/selection/transition.js
   var defaultTiming = {
     time: null,
     // Set on use.
@@ -10530,14 +10530,14 @@
     return new Transition(groups, this._parents, name, id2);
   }
 
-  // node_modules/d3-transition/src/selection/index.js
+  // ../graphide-ade-lfo/node_modules/d3-transition/src/selection/index.js
   selection_default.prototype.interrupt = interrupt_default2;
   selection_default.prototype.transition = transition_default2;
 
-  // node_modules/d3-zoom/src/constant.js
+  // ../graphide-ade-lfo/node_modules/d3-zoom/src/constant.js
   var constant_default4 = (x) => () => x;
 
-  // node_modules/d3-zoom/src/event.js
+  // ../graphide-ade-lfo/node_modules/d3-zoom/src/event.js
   function ZoomEvent(type, {
     sourceEvent,
     target,
@@ -10553,7 +10553,7 @@
     });
   }
 
-  // node_modules/d3-zoom/src/transform.js
+  // ../graphide-ade-lfo/node_modules/d3-zoom/src/transform.js
   function Transform(k, x, y) {
     this.k = k;
     this.x = x;
@@ -10602,7 +10602,7 @@
     return node.__zoom;
   }
 
-  // node_modules/d3-zoom/src/noevent.js
+  // ../graphide-ade-lfo/node_modules/d3-zoom/src/noevent.js
   function nopropagation2(event) {
     event.stopImmediatePropagation();
   }
@@ -10611,7 +10611,7 @@
     event.stopImmediatePropagation();
   }
 
-  // node_modules/d3-zoom/src/zoom.js
+  // ../graphide-ade-lfo/node_modules/d3-zoom/src/zoom.js
   function defaultFilter2(event) {
     return (!event.ctrlKey || event.type === "wheel") && !event.button;
   }
@@ -10926,7 +10926,7 @@
     return zoom;
   }
 
-  // node_modules/@xyflow/system/dist/esm/index.js
+  // ../graphide-ade-lfo/node_modules/@xyflow/system/dist/esm/index.js
   var errorMessages = {
     error001: (lib = "react") => `Seems like you have not used ${lib === "svelte" ? "SvelteFlowProvider" : "ReactFlowProvider"} as an ancestor. Help: https://${lib}flow.dev/error#001`,
     error002: () => "It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them.",
@@ -13586,11 +13586,11 @@
     };
   }
 
-  // node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-lfo/node_modules/zustand/esm/traditional.mjs
   var import_react = __toESM(require_react(), 1);
   var import_with_selector = __toESM(require_with_selector(), 1);
 
-  // node_modules/zustand/esm/vanilla.mjs
+  // ../graphide-ade-lfo/node_modules/zustand/esm/vanilla.mjs
   var import_meta = {};
   var createStoreImpl = (createState) => {
     let state;
@@ -13623,7 +13623,7 @@
   };
   var createStore = (createState) => createState ? createStoreImpl(createState) : createStoreImpl;
 
-  // node_modules/zustand/esm/traditional.mjs
+  // ../graphide-ade-lfo/node_modules/zustand/esm/traditional.mjs
   var { useDebugValue } = import_react.default;
   var { useSyncExternalStoreWithSelector } = import_with_selector.default;
   var identity3 = (arg) => arg;
@@ -13646,7 +13646,7 @@
   };
   var createWithEqualityFn = (createState, defaultEqualityFn) => createState ? createWithEqualityFnImpl(createState, defaultEqualityFn) : createWithEqualityFnImpl;
 
-  // node_modules/zustand/esm/shallow.mjs
+  // ../graphide-ade-lfo/node_modules/zustand/esm/shallow.mjs
   function shallow$1(objA, objB) {
     if (Object.is(objA, objB)) {
       return true;
@@ -13684,7 +13684,7 @@
     return true;
   }
 
-  // node_modules/@xyflow/react/dist/esm/index.js
+  // ../graphide-ade-lfo/node_modules/@xyflow/react/dist/esm/index.js
   var import_react_dom = __toESM(require_react_dom());
   var StoreContext = (0, import_react2.createContext)(null);
   var Provider$1 = StoreContext.Provider;
@@ -17083,7 +17083,7 @@
   var import_client = __toESM(require_client());
   var import_react_dom2 = __toESM(require_react_dom());
 
-  // node_modules/@dagrejs/dagre/dist/dagre.esm.js
+  // ../graphide-ade-lfo/node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var Te = Object.defineProperty;
   var In = (e, n, t) => n in e ? Te(e, n, { enumerable: true, configurable: true, writable: true, value: t }) : e[n] = t;
   var Sn = (e, n) => {
@@ -20073,6 +20073,7 @@
     let lineageFanFilter = null;
     let decisionOutcomeFilter = "";
     let decisionAttestFilter = null;
+    let passportDeltaFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
     let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -20378,6 +20379,13 @@
         e.preventDefault();
         dfRoleFilter = null;
         paint({ animate: "none" });
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && passportDeltaFilter) {
+        e.preventDefault();
+        passportDeltaFilter = null;
+        applyPassportDeltaPaint();
+        syncPassportDeltaBars();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && trajResidualFilter) {
@@ -23786,9 +23794,14 @@
         stageFitRo = null;
       }
       const ADE_RESIDUAL_WS = { trace: 1, passport: 1 };
-      if (prevWs !== name && ADE_RESIDUAL_WS[prevWs] && !ADE_RESIDUAL_WS[name] && trajResidualFilter) {
-        trajResidualFilter = false;
-        if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+      if (prevWs !== name && ADE_RESIDUAL_WS[prevWs] && !ADE_RESIDUAL_WS[name]) {
+        if (trajResidualFilter) {
+          trajResidualFilter = false;
+          if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+        }
+        if (passportDeltaFilter) {
+          passportDeltaFilter = null;
+        }
       }
       explorerWs = name;
       if (typeof syncKeysRRow === "function") syncKeysRRow(name);
@@ -29103,6 +29116,11 @@
         const residualFiltered = trajResidualFilter && !residualBearing;
         const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
         const residualFilteredAttr = residualFiltered ? ' data-residual-filtered="1"' : "";
+        const ptdKind = passportDeltaKind(n.id);
+        const ptdKindAttr = ptdKind ? ' data-ptd-kind="' + esc(ptdKind) + '"' : "";
+        const ptdHit = !!(passportDeltaFilter && ptdKind === passportDeltaFilter);
+        const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
+        const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
         const dim = focusOn && !near.has(n.id) ? " dim" : "";
         const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
         const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
@@ -29112,7 +29130,7 @@
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
         const nodeInfo = trajNodeInfoLabel(n, fix);
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + ptdClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ptdKindAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
@@ -29178,7 +29196,7 @@
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + residualFilterCountChip + legendClearFilterCue + "</div>";
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + passportDeltaStripHtml() + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -29579,6 +29597,8 @@
         };
       });
       if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+      if (typeof bindPassportDeltaChart === "function") bindPassportDeltaChart();
+      if (typeof applyPassportDeltaPaint === "function") applyPassportDeltaPaint();
       bindAdeHopButtons();
       bindAdePassportHlHops();
       const detail = document.getElementById("trajDetail");
@@ -30119,6 +30139,113 @@
       }
       return ids;
     }
+    function passportLinkedTrajIds() {
+      const ids = /* @__PURE__ */ new Set();
+      const fx = getPassport();
+      const collect = (rows) => {
+        for (const row of rows || []) {
+          const tid = resolvePassportTrajId(row);
+          if (tid) ids.add(tid);
+        }
+      };
+      collect(fx.targets);
+      collect(fx.contracts);
+      collect(fx.risks);
+      collect(fx.testStrategy);
+      collect(fx.gatedWrites);
+      const impact = fx.impact || {};
+      collect(impact.callGraphs);
+      collect(impact.apiContracts);
+      return ids;
+    }
+    function passportDeltaKind(trajId) {
+      if (!trajId || !trajIdExists(trajId)) return "";
+      if (passportResidualTrajIds().has(trajId)) return "residual";
+      if (passportLinkedTrajIds().has(trajId)) return "planned";
+      return "extra";
+    }
+    function passportDeltaCounts() {
+      const map = /* @__PURE__ */ new Map();
+      for (const n of trajectoryFixture().nodes || []) {
+        const k = passportDeltaKind(n.id);
+        if (!k) continue;
+        map.set(k, (map.get(k) || 0) + 1);
+      }
+      return map;
+    }
+    function passportDeltaChartHtml(map) {
+      const order = ["planned", "residual", "extra"];
+      const labels = { planned: "Planned", residual: "Residual", extra: "Extra" };
+      const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(passportDeltaFilter && String(passportDeltaFilter) === String(e[0]));
+        return '<button type="button" class="ptd-bar' + (on2 ? " on" : "") + '" data-ptd-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(labels[e[0]] || e[0]) + " · " + e[1] + '" style="--ptd-pct:' + pct + '%"><span class="ptd-fill" aria-hidden="true"></span><span class="ptd-label"><b>' + esc(labels[e[0]] || e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="ptd-chart" role="group" aria-label="Passport trajectory delta mix bars" data-ptd-axis-group="delta">' + bars + "</div>";
+    }
+    function passportDeltaStripHtml() {
+      const map = passportDeltaCounts();
+      const chart = passportDeltaChartHtml(map);
+      if (!chart) return "";
+      const total = [...map.values()].reduce((a, b) => a + b, 0);
+      return '<div class="ptd-strip" data-ptd="1" role="group" aria-label="Passport trajectory delta mix"><span class="ptd-stat"><i class="k">Delta</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function togglePassportDeltaFilter(kind) {
+      if (!kind) return;
+      if (passportDeltaFilter && String(passportDeltaFilter) === String(kind)) passportDeltaFilter = null;
+      else passportDeltaFilter = String(kind);
+      applyPassportDeltaPaint();
+      syncPassportDeltaBars();
+    }
+    function syncPassportDeltaBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".ptd-bar[data-ptd-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-ptd-kind") || "";
+        const on2 = !!(passportDeltaFilter && String(passportDeltaFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".ptd-strip");
+      if (strip) strip.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+      const page = canvas.querySelector(".traj-page, .passport-page, #passportPage, .traj-canvas, #trajCanvas");
+      if (page) page.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+      const canvasHost = document.getElementById("trajCanvas");
+      if (canvasHost) canvasHost.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+      const gate = document.getElementById("passportGate");
+      if (gate) gate.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+    }
+    function bindPassportDeltaChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".ptd-bar[data-ptd-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          togglePassportDeltaFilter(el2.getAttribute("data-ptd-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          togglePassportDeltaFilter(el2.getAttribute("data-ptd-kind"));
+        };
+      });
+    }
+    function applyPassportDeltaPaint() {
+      if (!canvas) return;
+      const filter2 = passportDeltaFilter ? String(passportDeltaFilter) : "";
+      canvas.querySelectorAll("[data-ptd-kind]").forEach((el2) => {
+        if (el2.classList.contains("ptd-bar")) return;
+        const k = el2.getAttribute("data-ptd-kind") || "";
+        const hit = !!(filter2 && k === filter2);
+        const dim = !!(filter2 && k && k !== filter2);
+        el2.classList.toggle("ptd-hit", hit);
+        el2.classList.toggle("ptd-dim", dim);
+      });
+      syncPassportDeltaBars();
+    }
     function passportRowActiveAttr(trajId) {
       return trajId && trajSelectedId && trajId === trajSelectedId ? ' data-ade-traj-active="1"' : "";
     }
@@ -30244,7 +30371,7 @@
       const hasPassportFilterCount = trajResidualFilter && filterBearingN > 0;
       const residualFilterCountAttr = hasPassportFilterCount ? ' data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterBearingN)) + '"' : "";
       const residualFilterCountChip = hasPassportFilterCount ? '<span class="passport-residual-filter-count" data-residual-filter-count="1" data-filter-residual-count="' + esc(String(filterBearingN)) + '" tabindex="0" role="status" title="Residual filter matches ' + esc(String(filterBearingN)) + '. Clear filter or Escape to clear" aria-label="Residual filter matches ' + esc(String(filterBearingN)) + '. Clear filter or Escape to clear">filter · ' + esc(String(filterBearingN)) + "</span>" : "";
-      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + residualFilterCountAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + residualFilterToggle + residualFilterCountChip + stickyClearFilterCue + clearCue + "</div>";
+      return '<div class="passport-residual" data-passport-residual="1" data-residual-state="' + esc(residualState) + '" data-residual-count="' + esc(String(globalN)) + '"' + scopeAttrs + residualFilterAttr + residualFilterCountAttr + '><span class="passport-residual-badge">' + esc(String(n)) + '</span><span class="passport-residual-copy">' + esc(copy) + "</span>" + passportDeltaStripHtml() + residualFilterToggle + residualFilterCountChip + stickyClearFilterCue + clearCue + "</div>";
     }
     function renderPassportGate(fx, state) {
       const unlocked = state === "approved";
@@ -30262,6 +30389,11 @@
         const residualFiltered = trajResidualFilter && !residualBearing;
         const residualFilteredClass = residualFiltered ? " residual-filtered" : "";
         const residualFilteredAttr = residualFiltered ? ' data-residual-filtered="1"' : "";
+        const ptdKind = trajId ? passportDeltaKind(trajId) : "";
+        const ptdKindAttr = ptdKind ? ' data-ptd-kind="' + esc(ptdKind) + '"' : "";
+        const ptdHit = !!(passportDeltaFilter && ptdKind === passportDeltaFilter);
+        const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
+        const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
         const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
         const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
         const hopResidual = '<span class="passport-hop-residual" data-passport-hop-residual="1" data-hop-residual-state="' + esc(hopState) + '" data-hop-path="' + esc(w.path || "") + '"><span class="passport-hop-residual-badge">' + esc(hopBadge) + "</span></span>";
@@ -30269,7 +30401,7 @@
         const adjClass = isAdj ? " passport-adj-residual" : "";
         const adjAttr = isAdj ? ' data-passport-adj-residual="1"' : "";
         const adjCue = isAdj ? '<span class="passport-adj-residual-cue" aria-hidden="true">adj residual</span>' : "";
-        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + residualFilteredClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + residualBearingAttr + residualFilteredAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
+        return '<li class="passport-gate-path' + passportRowActiveClass(trajId) + adjClass + residualFilteredClass + ptdClass + '" data-passport-path="' + esc(w.path || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + adjAttr + residualBearingAttr + residualFilteredAttr + ptdKindAttr + blocked + '><span class="passport-path-state">' + (unlocked ? "open" : "blocked") + "</span>" + hopResidual + adjCue + "<code>" + esc(w.path || "") + "</code>" + (w.reason ? '<span class="passport-path-reason">' + esc(w.reason) + "</span>" : "") + renderAdeTrajHop(trajId) + "</li>";
       }).join("");
       return '<div id="passportGate" class="passport-gate" data-passport-state="' + esc(state) + '"' + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + '><div class="passport-gate-head"><div class="passport-gate-summary"><span class="passport-gate-chip" data-gate-chip="' + esc(chip) + '">' + esc(chip) + '</span><div class="passport-gate-state">' + esc(label) + '</div></div></div><ul class="passport-gate-paths">' + paths + "</ul>" + renderResidualFilterEmptyChrome("passport") + "</div>";
     }
@@ -30475,6 +30607,8 @@
         };
       });
       if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+      if (typeof bindPassportDeltaChart === "function") bindPassportDeltaChart();
+      if (typeof applyPassportDeltaPaint === "function") applyPassportDeltaPaint();
       bindPassportImpactRows();
       bindAdeHopButtons();
       bindAdeTrajHops();

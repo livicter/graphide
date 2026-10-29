@@ -38896,6 +38896,136 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE Passport↔Trajectory delta mix (PTD1–PTD5) — planned/residual/extra bars on Trace
+    {
+      const ptdUrl =
+        origin +
+        "/scripts/webview-harness.html?trace=1&passport=1&probe=0&ws=trace";
+      console.log("ptd-delta", ptdUrl);
+      await page.goto(ptdUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector("#trajCanvas .traj-node[data-id]", { timeout: 15000 });
+      await page.waitForSelector(".ptd-strip .ptd-chart .ptd-bar[data-ptd-kind]", { timeout: 8000 });
+      const ptd1 = await page.evaluate(() => {
+        const strip = document.querySelector(".ptd-strip[data-ptd='1']");
+        const bars = [...document.querySelectorAll(".ptd-chart .ptd-bar[data-ptd-kind]")];
+        const nodes = [...document.querySelectorAll("#trajCanvas .traj-node[data-ptd-kind]")];
+        const kinds = bars.map((b) => b.getAttribute("data-ptd-kind"));
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          bars: bars.length,
+          kinds,
+          nodes: nodes.length,
+          hasResidual: kinds.includes("residual"),
+          hasPlanned: kinds.includes("planned") || kinds.includes("extra"),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const ptd1ok = !!(
+        ptd1 &&
+        ptd1.strip &&
+        ptd1.bars >= 2 &&
+        ptd1.nodes >= 1 &&
+        ptd1.hasResidual &&
+        ptd1.srcHidden
+      );
+      record(
+        "PTD1",
+        "Trace .ptd-strip/.ptd-chart/.ptd-bar present with delta-tagged traj nodes",
+        !!ptd1ok,
+        JSON.stringify(ptd1)
+      );
+
+      const ptd2 = await page.evaluate(() => {
+        const residualBar = document.querySelector('.ptd-bar[data-ptd-kind="residual"]');
+        if (!residualBar) return { ok: false, reason: "no residual bar" };
+        residualBar.click();
+        const nodes = [...document.querySelectorAll("#trajCanvas .traj-node[data-ptd-kind]")];
+        const hit = nodes.filter((el) => el.classList.contains("ptd-hit"));
+        const dim = nodes.filter((el) => el.classList.contains("ptd-dim"));
+        const filtering = !!(
+          document.querySelector("#trajCanvas.ptd-filtering") ||
+          document.querySelector(".ptd-strip.ptd-filtering") ||
+          document.querySelector(".traj-page.ptd-filtering")
+        );
+        const pressed = [...document.querySelectorAll(".ptd-bar[data-ptd-kind]")].some(
+          (b) => b.getAttribute("data-ptd-kind") === "residual" && b.getAttribute("aria-pressed") === "true"
+        );
+        const allHitResidual = hit.every((el) => (el.getAttribute("data-ptd-kind") || "") === "residual");
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          filtering,
+          pressed,
+          hit: hit.length,
+          dim: dim.length,
+          nodes: nodes.length,
+          allHitResidual,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const ptd2ok = !!(
+        ptd2 &&
+        ptd2.ok &&
+        ptd2.filtering &&
+        ptd2.pressed &&
+        ptd2.hit >= 1 &&
+        ptd2.dim >= 1 &&
+        ptd2.allHitResidual &&
+        ptd2.srcHidden
+      );
+      record(
+        "PTD2",
+        "Residual bar filters Trace DAG: hit residual nodes, dim others; no source pane",
+        !!ptd2ok,
+        JSON.stringify(ptd2)
+      );
+
+      const ptd3 = await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        const pressed = [...document.querySelectorAll(".ptd-bar[aria-pressed='true']")].length;
+        const hit = [...document.querySelectorAll("#trajCanvas .traj-node.ptd-hit")].length;
+        const filtering = !!(
+          document.querySelector("#trajCanvas.ptd-filtering") ||
+          document.querySelector(".ptd-strip.ptd-filtering")
+        );
+        return { pressed, hit, filtering };
+      });
+      const ptd3ok = !!(ptd3 && ptd3.pressed === 0 && ptd3.hit === 0 && !ptd3.filtering);
+      record(
+        "PTD3",
+        "Escape clears Passport↔Trajectory delta mix filter",
+        !!ptd3ok,
+        JSON.stringify(ptd3)
+      );
+
+      // Re-engage residual for screenshot proof
+      await page.evaluate(() => {
+        const residualBar = document.querySelector('.ptd-bar[data-ptd-kind="residual"]');
+        if (residualBar) residualBar.click();
+      });
+      await page.waitForTimeout(80);
+      await shot(page, "passport-traj-delta-mix.png");
+      const ptdShot = checks.find((c) => c.id === "shot:passport-traj-delta-mix.png");
+      const ptd4ok = !!(ptd1ok && ptd2ok && ptd3ok && ptdShot && ptdShot.pass);
+      record(
+        "PTD4",
+        "screenshot passport-traj-delta-mix.png not black; Passport↔Trajectory delta mix proven",
+        !!ptd4ok,
+        JSON.stringify({
+          shot: ptdShot ? ptdShot.detail : "missing",
+          ptd1: !!ptd1ok,
+          ptd2: !!ptd2ok,
+          ptd3: !!ptd3ok,
+        })
+      );
+      assertNoStampDir("PTD5", "Passport↔Trajectory delta mix step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const bars = [...document.querySelectorAll(".ptd-bar[aria-pressed='true']")];
+        for (const el of bars) el.click();
+      });
+      await page.waitForTimeout(40);
+    }
 
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
