@@ -204,6 +204,8 @@ let overviewCommunityFilter = null;
 let mapMixFilter = null;
 /** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapSizeFilter = null;
+/** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
+let mapHopSizeFilter = null;
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -450,6 +452,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     overviewCommunityFilter = null;
     applyOverviewCommunityPaint();
+    return;
+  }
+  // ADE MHS: Escape clears Map-altitude hop-size filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "map" &&
+    mapHopSizeFilter
+  ) {
+    e.preventDefault();
+    mapHopSizeFilter = null;
+    applyMapHopSizePaint();
     return;
   }
   // ADE MCS: Escape clears Map-altitude community-size filter when active.
@@ -14250,6 +14264,10 @@ function toggleMapMixFilter(axis, value) {
       mapSizeFilter = null;
       applyMapSizePaint();
     }
+    if (mapHopSizeFilter) {
+      mapHopSizeFilter = null;
+      applyMapHopSizePaint();
+    }
   }
   applyMapMixPaint();
 }
@@ -14383,6 +14401,10 @@ function toggleMapSizeFilter(bubbleId) {
       mapMixFilter = null;
       applyMapMixPaint();
     }
+    if (mapHopSizeFilter) {
+      mapHopSizeFilter = null;
+      applyMapHopSizePaint();
+    }
   }
   applyMapSizePaint();
 }
@@ -14439,6 +14461,174 @@ function refreshMapSizeStrip(bubbles) {
     const mac = stage.querySelector(".mac-strip");
     const title = stage.querySelector(".flow-title");
     if (mac) mac.insertAdjacentHTML("afterend", html);
+    else if (title) title.insertAdjacentHTML("afterend", html);
+    else stage.insertAdjacentHTML("afterbegin", html);
+  }
+}
+
+
+/** ADE MHS — incident hop count for one Map-altitude bubble (member endpoints). */
+function bubbleHopCount(b) {
+  const members = (b && b.members) || [];
+  const want = new Set(members.map((m) => idVal(m)).filter(Boolean));
+  if (!want.size) return 0;
+  const edges = (snapshot && snapshot.graph && snapshot.graph.edges) || [];
+  let n = 0;
+  for (const e of edges) {
+    if (want.has(idVal(e.from)) || want.has(idVal(e.to))) n += 1;
+  }
+  return n;
+}
+
+/** ADE MHS — hop×size score bars (score = hops * members); answers large AND high-hop. */
+function mapHopSizeChartHtml(bubbles) {
+  const entries = (bubbles || [])
+    .map((b) => {
+      const id = idVal(b.id);
+      const size = (b.members || []).length;
+      const hops = bubbleHopCount(b);
+      return {
+        id,
+        label: shortOf(b.label) || "bubble",
+        size,
+        hops,
+        score: hops * size,
+      };
+    })
+    .filter((e) => e.id && e.size > 0 && e.hops > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.hops - a.hops ||
+        b.size - a.size ||
+        String(a.label).localeCompare(String(b.label))
+    )
+    .slice(0, 12);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e.score));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e.score / max) * 100);
+      const on = !!(mapHopSizeFilter && String(mapHopSizeFilter) === String(e.id));
+      return (
+        '<button type="button" class="mhs-bar' +
+        (on ? " on" : "") +
+        '" data-mhs-bubble="' +
+        esc(e.id) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e.label) +
+        " · " +
+        e.hops +
+        " hops · " +
+        e.size +
+        ' nodes" style="--mhs-pct:' +
+        pct +
+        '%"><span class="mhs-fill" aria-hidden="true"></span><span class="mhs-label"><b>' +
+        esc(e.label) +
+        "</b> " +
+        e.hops +
+        "h·" +
+        e.size +
+        "n</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="mhs-chart" role="group" aria-label="Map community hop-size" data-mhs-chart="1">' +
+    bars +
+    "</div>"
+  );
+}
+
+/** ADE MHS — strip under MCS; Map-altitude community hop×size chart. */
+function mapHopSizeStripHtml(bubbles) {
+  const chart = mapHopSizeChartHtml(bubbles);
+  if (!chart) return "";
+  const n = (bubbles || []).filter((b) => (b.members || []).length > 0 && bubbleHopCount(b) > 0).length;
+  return (
+    '<div class="mhs-strip" data-mhs="1" role="group" aria-label="Map altitude community hop-size">' +
+    '<span class="mhs-stat"><i class="k">Hop×size</i> <b class="n">' +
+    n +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleMapHopSizeFilter(bubbleId) {
+  if (!bubbleId) return;
+  if (mapHopSizeFilter && String(mapHopSizeFilter) === String(bubbleId)) {
+    mapHopSizeFilter = null;
+  } else {
+    mapHopSizeFilter = String(bubbleId);
+    if (mapMixFilter) {
+      mapMixFilter = null;
+      applyMapMixPaint();
+    }
+    if (mapSizeFilter) {
+      mapSizeFilter = null;
+      applyMapSizePaint();
+    }
+  }
+  applyMapHopSizePaint();
+}
+
+function applyMapHopSizePaint() {
+  const filter = mapHopSizeFilter;
+  if (!canvas) return;
+  canvas.querySelectorAll(".mhs-bar[data-mhs-bubble]").forEach((el) => {
+    const on = !!(filter && String(el.getAttribute("data-mhs-bubble")) === String(filter));
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const host = canvas.querySelector(".comm-wrap") || canvas;
+  host.classList.toggle("mhs-filtering", !!filter);
+  canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    el.classList.remove("mhs-hit", "mhs-dim");
+    if (!filter) return;
+    const match = String(el.getAttribute("data-bubble")) === String(filter);
+    el.classList.toggle("mhs-hit", match);
+    el.classList.toggle("mhs-dim", !match);
+  });
+}
+
+function bindMapHopSizeChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll("[data-mhs-bubble]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapHopSizeFilter(el.getAttribute("data-mhs-bubble"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleMapHopSizeFilter(el.getAttribute("data-mhs-bubble"));
+    };
+  });
+}
+
+function refreshMapHopSizeStrip(bubbles) {
+  if (!canvas) return;
+  const stage = canvas.querySelector(".stage");
+  if (!stage) return;
+  const html = mapHopSizeStripHtml(bubbles);
+  let strip = stage.querySelector(".mhs-strip");
+  if (!html) {
+    if (strip) strip.remove();
+    return;
+  }
+  if (strip) {
+    strip.outerHTML = html;
+  } else {
+    const mcs = stage.querySelector(".mcs-strip");
+    const mac = stage.querySelector(".mac-strip");
+    const title = stage.querySelector(".flow-title");
+    if (mcs) mcs.insertAdjacentHTML("afterend", html);
+    else if (mac) mac.insertAdjacentHTML("afterend", html);
     else if (title) title.insertAdjacentHTML("afterend", html);
     else stage.insertAdjacentHTML("afterbegin", html);
   }
@@ -15814,6 +16004,7 @@ function renderBubbleMap(clusters, opts) {
     recycleBubbleMap(clusters, ids, pathIds, edges, laid, pathRank, path);
     refreshMapMixStrip(clusters);
     refreshMapSizeStrip(clusters);
+    refreshMapHopSizeStrip(clusters);
     bindStage(canvas.querySelector(".stage"), { reset: false });
   } else {
     const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -15857,6 +16048,7 @@ function renderBubbleMap(clusters, opts) {
       "</div>" +
       mapMixStripHtml(clusters) +
       mapSizeStripHtml(clusters) +
+      mapHopSizeStripHtml(clusters) +
       '<div class="viewport" data-lod="0">' +
       '<div class="comm-wrap" style="width:' +
       W +
@@ -15877,6 +16069,8 @@ function renderBubbleMap(clusters, opts) {
   applyMapMixPaint();
   bindMapSizeChart();
   applyMapSizePaint();
+  bindMapHopSizeChart();
+  applyMapHopSizePaint();
   bindDraggable(wrap, ".bubble-card", {
     idAttr: "data-bubble",
     onClick: (id) => {

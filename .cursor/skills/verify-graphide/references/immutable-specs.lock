@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: 043c2117e009f3bb049602f9aa89771bb14c1b1e63882c53c3dfbf030852e7e6
+# seal-sha256: c453656337b589db1f94b5452e84598be22dc232ca07979f03d4cb42953a11a4
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -35,7 +35,7 @@ e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills
 ef11d6896efb00ac302bccb41242f1fceea9b31cc7ea3cad5e96582a69161011  .cursor/skills/verify-graphide/references/features/lifecycle.md
 0edf57486c6b7957a051b0b2e47b23bf96b865d8f76744f549c53149c254434d  .cursor/skills/verify-graphide/references/features/lineage.md
 ff17ad44b157f26013472c8f7394fa3ce09a32a19337c0f785fbd214b312a40b  .cursor/skills/verify-graphide/references/features/map-offview.md
-5b10e1a29a18e7a7c2d38d58b74a5a0b69d19e5bc8d0c92af22b91af95828b42  .cursor/skills/verify-graphide/references/features/map.md
+f3001fb5bce10aa9102b12c926e0d92137c72ef75711f1abd4c7b52ca4f834c2  .cursor/skills/verify-graphide/references/features/map.md
 539caca8f7312e46d660d45b08d07c5a436f390f493fcbee7c752814c301a546  .cursor/skills/verify-graphide/references/features/open-evidence.md
 9dc6dfebec597a80b5c65c40b755c3164fd95294477caf9daef2a6de75003d5d  .cursor/skills/verify-graphide/references/features/open-slice.md
 ffa48f0883c6e4acab2d927b295fc2225eef42a70e495894d6064f29b6be133d  .cursor/skills/verify-graphide/references/features/overview.md
@@ -68,6 +68,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-699003c31d23bd75df6125814cd726b0c0eac92a4bd1c9c72cb9448f71e85172  extension/scripts/check-map.js
+0849f618aa0bcc4aea03fcc46167b2639a9accd07fb75ce04c3cb69e048325cd  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-af00fdd4a20aed15278d6593d4f8b70ab1912360ef259f5290f7283ae172f1e5  scripts/verify-graphide.js
+35edae81469f328469cca2ca1a74727d59e5dcedaeb6db28ca4b0787e7568f18  scripts/verify-graphide.js
