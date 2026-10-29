@@ -74,9 +74,11 @@ Story-rich hops with participant highlight. Map focus trail chip carries here an
 
 ### Data-flow
 
-Richer lanes on the same graph-only walk.
+Richer lanes on the same graph-only walk. Click a node for its value-trail Sankey (producers → focus → consumers); Escape clears.
 
 ![Data-flow richer lanes](UIUX_sample/dataflow-richer-lanes.png)
+
+![Value-trail Sankey](UIUX_sample/value-trail-sankey.png)
 
 ### Trace and Passport
 
@@ -112,6 +114,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS).
 
-Parked next: VTS (value-trail Sankey — dsh NEXT_AFTER after FTR) or CEO alt CFG expand.
+Parked next: CFG expand-on-click (CEO) or cross-module sequence / structural diff.

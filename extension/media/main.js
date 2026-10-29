@@ -20062,6 +20062,7 @@
     let dfWalk = { playing: false, timer: 0 };
     let dfBodyKey = "";
     let dfRoleFilter = null;
+    let valueTrailFocus = null;
     let lcCursor = -1;
     let lcWalk = { playing: false, timer: 0 };
     let lcBodyKey = "";
@@ -20381,6 +20382,12 @@
         e.preventDefault();
         overviewMixFilter = null;
         applyOverviewMixPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "dataflow" && valueTrailFocus) {
+        e.preventDefault();
+        valueTrailFocus = null;
+        paint({ animate: "none" });
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "dataflow" && dfRoleFilter) {
@@ -28394,6 +28401,7 @@
       stopDfWalk();
       dfCursor = -1;
       dfRoleFilter = null;
+      valueTrailFocus = null;
       paint({ animate: "none" });
     }
     function focusDfHop(hop) {
@@ -28425,6 +28433,100 @@
     }
     function dfNodeLaneDim(n) {
       return !!(dfRoleFilter && n && n.role !== dfRoleFilter);
+    }
+    function valueTrailOf(focusId) {
+      const fid = focusId ? idVal(focusId) : "";
+      if (!fid) return { focus: "", producers: [], consumers: [], hopIdx: [], kinds: [] };
+      const hops = dfHops();
+      const nodes = dfNodes();
+      const byId = new Map(nodes.map((n) => [idVal(n.id), n]));
+      const producers = [];
+      const consumers = [];
+      const hopIdx = [];
+      const kindSet = /* @__PURE__ */ new Map();
+      hops.forEach((h, i) => {
+        const from = idVal(h.from);
+        const to = idVal(h.to);
+        if (to === fid) {
+          hopIdx.push(i);
+          producers.push({ id: from, fqn: h.from_fqn, kind: h.kind || "", hopI: i });
+          kindSet.set(h.kind || "?", (kindSet.get(h.kind || "?") || 0) + 1);
+        } else if (from === fid) {
+          hopIdx.push(i);
+          consumers.push({ id: to, fqn: h.to_fqn, kind: h.kind || "", hopI: i });
+          kindSet.set(h.kind || "?", (kindSet.get(h.kind || "?") || 0) + 1);
+        }
+      });
+      const focus = byId.get(fid) || { id: fid, fqn: fid, role: "", kind: "" };
+      const kinds = [...kindSet.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+      return { focus, producers, consumers, hopIdx, kinds };
+    }
+    function valueTrailMemberIds(trail) {
+      const ids = /* @__PURE__ */ new Set();
+      if (!trail || !trail.focus) return ids;
+      ids.add(idVal(trail.focus.id || trail.focus));
+      (trail.producers || []).forEach((p) => ids.add(idVal(p.id)));
+      (trail.consumers || []).forEach((c) => ids.add(idVal(c.id)));
+      return ids;
+    }
+    function setValueTrailFocus(id2) {
+      const sid = id2 ? idVal(id2) : "";
+      if (!sid) {
+        valueTrailFocus = null;
+      } else if (valueTrailFocus && idVal(valueTrailFocus) === sid) {
+        valueTrailFocus = null;
+      } else {
+        valueTrailFocus = sid;
+        selectedNodeId = sid;
+      }
+      paint({ animate: "none" });
+    }
+    function clearValueTrailFocus() {
+      if (!valueTrailFocus) return;
+      valueTrailFocus = null;
+      paint({ animate: "none" });
+    }
+    function renderValueTrailStrip() {
+      const focus = valueTrailFocus ? idVal(valueTrailFocus) : "";
+      if (!focus) {
+        return '<div class="vts-strip" data-vts="1" data-vts-empty="1" role="group" aria-label="Value trail"><span class="vts-stat"><i class="k">Value trail</i> <b class="n">click a node</b></span><span class="vts-hint">Pick one symbol → producers → consumers (graph-only)</span></div>';
+      }
+      const trail = valueTrailOf(focus);
+      const focusName = shortOf(trail.focus && trail.focus.fqn || focus);
+      const chip = (side, p) => '<button type="button" class="vts-chip vts-' + side + '" data-vts-id="' + esc(idVal(p.id)) + '" data-vts-hop="' + p.hopI + '" title="' + esc((p.kind || "") + " · " + (p.fqn || "")) + '"><span class="vts-chip-kind">' + esc(p.kind || "") + '</span><span class="vts-chip-name">' + esc(shortOf(p.fqn)) + "</span></button>";
+      const prod = trail.producers.length ? trail.producers.map((p) => chip("prod", p)).join("") : '<span class="vts-none">no producers</span>';
+      const cons = trail.consumers.length ? trail.consumers.map((c) => chip("cons", c)).join("") : '<span class="vts-none">no consumers</span>';
+      const flows = (trail.kinds || []).map((e) => {
+        const pct = Math.max(8, Math.round(100 * e[1] / Math.max(1, trail.hopIdx.length)));
+        return '<span class="vts-flow" data-vts-kind="' + esc(e[0]) + '" style="--vts-pct:' + pct + '%"><span class="vts-flow-fill" aria-hidden="true"></span><span class="vts-flow-label">' + esc(e[0]) + " · " + e[1] + "</span></span>";
+      }).join("");
+      return '<div class="vts-strip vts-active" data-vts="1" data-vts-focus="' + esc(focus) + '" role="group" aria-label="Value trail for ' + esc(focusName) + '"><span class="vts-stat"><i class="k">Value trail</i> <b class="n">' + esc(focusName) + "</b> · " + trail.producers.length + "→" + trail.consumers.length + '</span><div class="vts-sankey" data-vts-sankey="1"><div class="vts-col vts-prod" aria-label="Producers">' + prod + '</div><div class="vts-flows" aria-hidden="true">' + (flows || '<span class="vts-none">—</span>') + '</div><div class="vts-col vts-focus"><button type="button" class="vts-chip vts-focus-chip on" data-vts-id="' + esc(focus) + '" aria-pressed="true"><span class="vts-chip-name">' + esc(focusName) + '</span></button></div><div class="vts-flows" aria-hidden="true">' + (flows || '<span class="vts-none">—</span>') + '</div><div class="vts-col vts-cons" aria-label="Consumers">' + cons + '</div></div><button type="button" class="vts-clear" data-vts-clear="1" title="Clear value trail" aria-label="Clear value trail">Clear</button></div>';
+    }
+    function applyValueTrailPaint() {
+      const focus = valueTrailFocus ? idVal(valueTrailFocus) : "";
+      const trail = focus ? valueTrailOf(focus) : null;
+      const members = valueTrailMemberIds(trail);
+      const hopSet = new Set(trail && trail.hopIdx || []);
+      const page = canvas.querySelector(".df-page");
+      if (page) page.classList.toggle("vts-filtering", !!focus);
+      const strip = canvas.querySelector(".vts-strip");
+      if (strip) strip.classList.toggle("vts-filtering", !!focus);
+      canvas.querySelectorAll("#dfStages .df-node, #dfCanvas .df-node").forEach((el2) => {
+        const id2 = idVal(el2.getAttribute("data-id"));
+        const hit = !!(focus && members.has(id2));
+        const dim = !!(focus && !members.has(id2));
+        el2.classList.toggle("vts-hit", hit);
+        el2.classList.toggle("vts-dim", dim);
+        if (focus) el2.setAttribute("data-vts-member", hit ? "1" : "0");
+        else el2.removeAttribute("data-vts-member");
+      });
+      canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
+        const i = parseInt(el2.getAttribute("data-df-i"), 10);
+        const hit = !!(focus && hopSet.has(i));
+        const dim = !!(focus && !hopSet.has(i));
+        el2.classList.toggle("vts-hit", hit);
+        el2.classList.toggle("vts-dim", dim);
+      });
     }
     function renderDataflowBody() {
       const flow = dataflowFlow();
@@ -28474,12 +28576,12 @@
         const hopDim = !!(dfRoleFilter && fromN && toN && fromN.role !== dfRoleFilter && toN.role !== dfRoleFilter);
         return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + (hopDim ? " dim" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) + "</div></article>";
       }).join("");
-      return '<div class="df-page" data-rdf="1">' + review + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
+      return '<div class="df-page' + (valueTrailFocus ? " vts-filtering" : "") + '" data-rdf="1"' + (valueTrailFocus ? ' data-vts-filtering="1"' : "") + ">" + review + renderValueTrailStrip() + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
     }
     function dataflowWorkspaceKey() {
       const flow = dataflowFlow();
       const reading = dataflowOf(flow);
-      return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || "", dfRoleFilter || ""].join("\0");
+      return [flow && flow.name, reading.nodes.length, reading.hops.length, graphFilter.q || "", dfRoleFilter || "", valueTrailFocus || ""].join("\0");
     }
     function dataflowCanvasProps() {
       const reading = dataflowOf(dataflowFlow());
@@ -28511,8 +28613,7 @@
         cursor: dfCursor,
         onNodeClick: (id2) => {
           if (!id2) return;
-          selectedNodeId = id2;
-          paint({ animate: "none" });
+          setValueTrailFocus(id2);
         },
         onHopClick: (i) => {
           if (!Number.isFinite(i)) return;
@@ -28578,6 +28679,7 @@
       if (host) renderDataflowCanvas(host, dataflowCanvasProps());
       else unmountReviewCanvas();
       applyGraphFilter();
+      applyValueTrailPaint();
     }
     function bindDataflowPage() {
       canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
@@ -28602,8 +28704,21 @@
           ev.stopPropagation();
           const id2 = el2.getAttribute("data-id");
           if (!id2) return;
-          selectedNodeId = id2;
-          paint({ animate: "none" });
+          setValueTrailFocus(id2);
+        };
+      });
+      canvas.querySelectorAll(".vts-chip[data-vts-id]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          const id2 = el2.getAttribute("data-vts-id");
+          if (!id2) return;
+          setValueTrailFocus(id2);
+        };
+      });
+      canvas.querySelectorAll("[data-vts-clear]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.stopPropagation();
+          clearValueTrailFocus();
         };
       });
       canvas.querySelectorAll(".df-empty [data-ws]").forEach((el2) => {

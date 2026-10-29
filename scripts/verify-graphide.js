@@ -39329,6 +39329,131 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Value-trail Sankey (VTS1–VTS5) — pick Data-flow node → producers|focus|consumers
+    {
+      const vtsUrl =
+        origin +
+        "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
+      console.log("vts-sankey", vtsUrl);
+      await page.goto(vtsUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector("#dfStages .df-node[data-id]", { timeout: 15000 });
+      await page.waitForSelector(".vts-strip[data-vts='1']", { timeout: 8000 });
+      const vts1 = await page.evaluate(() => {
+        const strip = document.querySelector(".vts-strip[data-vts='1']");
+        const empty = !!(strip && strip.getAttribute("data-vts-empty") === "1");
+        const nodes = [...document.querySelectorAll("#dfStages .df-node[data-id]")];
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          empty,
+          nodes: nodes.length,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const vts1ok = !!(vts1 && vts1.strip && vts1.empty && vts1.nodes >= 1 && vts1.srcHidden);
+      record(
+        "VTS1",
+        "Data-flow .vts-strip present (empty hint) with df-nodes; no source pane",
+        !!vts1ok,
+        JSON.stringify(vts1)
+      );
+
+      const vts2 = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll("#dfStages .df-node[data-id]")];
+        // Prefer a store/mid node with both producers and consumers when possible
+        let pick =
+          nodes.find((el) => (el.getAttribute("data-df-role") || "") === "store") ||
+          nodes.find((el) => (el.getAttribute("data-df-role") || "") === "transform") ||
+          nodes[0];
+        if (!pick) return { ok: false, reason: "no df-node" };
+        pick.click();
+        const strip = document.querySelector(".vts-strip[data-vts='1']");
+        const sankey = document.querySelector(".vts-sankey[data-vts-sankey='1']");
+        const focus = strip && strip.getAttribute("data-vts-focus");
+        const page = document.querySelector(".df-page");
+        const filtering = !!(page && page.classList.contains("vts-filtering"));
+        const hit = [...document.querySelectorAll("#dfStages .df-node.vts-hit")];
+        const dim = [...document.querySelectorAll("#dfStages .df-node.vts-dim")];
+        const chips = [...document.querySelectorAll(".vts-chip[data-vts-id]")];
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          focus: focus || "",
+          pick: pick.getAttribute("data-id") || "",
+          sankey: !!sankey,
+          filtering,
+          hit: hit.length,
+          dim: dim.length,
+          chips: chips.length,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const vts2ok = !!(
+        vts2 &&
+        vts2.ok &&
+        vts2.sankey &&
+        vts2.filtering &&
+        vts2.focus &&
+        vts2.focus === vts2.pick &&
+        vts2.hit >= 1 &&
+        vts2.srcHidden
+      );
+      record(
+        "VTS2",
+        "Click df-node opens .vts-sankey trail; hit/dim paint; no source pane",
+        !!vts2ok,
+        JSON.stringify(vts2)
+      );
+
+      const vts3 = await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        const strip = document.querySelector(".vts-strip[data-vts='1']");
+        const empty = !!(strip && strip.getAttribute("data-vts-empty") === "1");
+        const sankey = document.querySelector(".vts-sankey[data-vts-sankey='1']");
+        const filtering = !!(document.querySelector(".df-page.vts-filtering"));
+        const hit = [...document.querySelectorAll("#dfStages .df-node.vts-hit")].length;
+        return { empty, sankey: !!sankey, filtering, hit };
+      });
+      const vts3ok = !!(vts3 && vts3.empty && !vts3.sankey && !vts3.filtering && vts3.hit === 0);
+      record(
+        "VTS3",
+        "Escape clears value-trail focus",
+        !!vts3ok,
+        JSON.stringify(vts3)
+      );
+
+      // Re-engage for screenshot
+      await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll("#dfStages .df-node[data-id]")];
+        const pick =
+          nodes.find((el) => (el.getAttribute("data-df-role") || "") === "store") ||
+          nodes.find((el) => (el.getAttribute("data-df-role") || "") === "transform") ||
+          nodes[0];
+        if (pick) pick.click();
+      });
+      await page.waitForTimeout(100);
+      await shot(page, "value-trail-sankey.png");
+      const vtsShot = checks.find((c) => c.id === "shot:value-trail-sankey.png");
+      const vts4ok = !!(vts1ok && vts2ok && vts3ok && vtsShot && vtsShot.pass);
+      record(
+        "VTS4",
+        "screenshot value-trail-sankey.png not black; Value-trail Sankey proven",
+        !!vts4ok,
+        JSON.stringify({
+          shot: vtsShot ? vtsShot.detail : "missing",
+          vts1: !!vts1ok,
+          vts2: !!vts2ok,
+          vts3: !!vts3ok,
+        })
+      );
+      assertNoStampDir("VTS5", "Value-trail Sankey step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const clear = document.querySelector("[data-vts-clear]");
+        if (clear) clear.click();
+      });
+      await page.waitForTimeout(40);
+    }
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

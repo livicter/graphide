@@ -37,6 +37,13 @@ workspace is the left-to-right pipeline, not a second ego tab.
   `focusDfHop` sets `selectedNodeId` only and must not call `peekSource` /
   `showHop` / open Evidence. Screenshot `verification/dataflow-richer-lanes.png`.
   Asserts RDF1–RDF3.
+
+- ADE VTS — Value-trail Sankey: click a `.df-node` to set `valueTrailFocus`.
+  `.vts-strip[data-vts="1"]` shows Producers | Focus | Consumers (`.vts-sankey`,
+  `.vts-chip`, hop-kind `.vts-flow`). Trail members get `.vts-hit`; others
+  `.vts-dim` under `.df-page.vts-filtering`. Clear / Escape clears (graph-only;
+  never `peekSource`). Screenshot `verification/value-trail-sankey.png`.
+  Asserts VTS1–VTS5.
 - Honest empty (`.df-empty[data-df-empty="1"]`) when the flow has no Steiner
   Reads / Writes / Publishes / Subscribes: points to Overview Play and
   Sequence (no invented edges).
@@ -92,6 +99,7 @@ Driver assertions:
 - `#dfStages .df-lane-head[data-df-lane]` length `4` with counts; node `.meta`
   is role·channel (RDF1); lane + Next stay graph-only (RDF2); screenshot
   `verification/dataflow-richer-lanes.png` (RDF3)
+- click a `#dfStages .df-node` → `.vts-strip .vts-sankey` producers|focus|consumers; Escape clears (VTS1–VTS3); screenshot `verification/value-trail-sankey.png` (VTS4)
 - `#dfPlay` / `#dfPrev` / `#dfNext` / `#dfOverview` / `#dfCanvas` exist
 - `#dfCanvas .react-flow__node` length `> 1` and `<= 48`
 - stepping Next past the end stays on the last `data-df-i` (no loop)
