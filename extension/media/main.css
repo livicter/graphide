@@ -2382,6 +2382,113 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 2px;
 }
 
+/* ADE VTS — Value-trail Sankey (pick node → producers|focus|consumers) */
+.vts-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 2px 8px 6px;
+  font-size: 10px;
+  max-height: 72px;
+  overflow: hidden;
+}
+.vts-stat { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.vts-stat .k { opacity: 0.7; font-style: normal; }
+.vts-stat .n { font-size: 12px; font-weight: 600; }
+.vts-hint { opacity: 0.65; }
+.vts-sankey {
+  display: inline-flex;
+  gap: 6px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.vts-col {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 64px;
+}
+.vts-flows {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  min-width: 56px;
+}
+.vts-flow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 56px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+}
+.vts-flow-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--vts-pct, 40%);
+  background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 35%, transparent);
+  pointer-events: none;
+}
+.vts-flow-label {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.vts-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 85%, transparent);
+  color: inherit;
+  cursor: pointer;
+  max-width: 140px;
+}
+.vts-chip-kind { font-size: 9px; opacity: 0.7; }
+.vts-chip-name { font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 128px; }
+.vts-focus-chip.on, .vts-chip.on {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.vts-clear {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.vts-clear:focus-visible, .vts-chip:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.vts-none { opacity: 0.55; font-style: italic; }
+.vts-strip.vts-filtering, .df-page.vts-filtering .vts-strip {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 50%, transparent);
+  outline-offset: 2px;
+}
+.df-page.vts-filtering #dfStages .df-node.vts-dim,
+.df-page.vts-filtering #dfHops .df-hop.vts-dim,
+.df-page.vts-filtering #dfCanvas .df-node.vts-dim {
+  opacity: 0.22;
+}
+.df-page.vts-filtering #dfStages .df-node.vts-hit,
+.df-page.vts-filtering #dfHops .df-hop.vts-hit,
+.df-page.vts-filtering #dfCanvas .df-node.vts-hit {
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+
 /* ADE CFT — Cross-desk focus trail (Map pin → Slice/Sequence highlight) */
 .cft-trail {
   display: flex;

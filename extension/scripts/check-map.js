@@ -980,6 +980,11 @@ assert(css.includes("→ Map") && css.includes('data-cft-chip="1"'), "main.css m
 assert(mapMap.includes("FTR1") && mapMap.includes("returnToFocusTrailMap") && mapMap.includes("focus-trail-return.png") && mapMap.includes("peekSource"), "map feature map must name FTR / returnToFocusTrailMap / proof / no peekSource");
 assert(openSliceMap.includes("FTR1") && openSliceMap.includes("focus-trail-return.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name FTR / proof / no peekSource");
 assert(sequenceMap.includes("FTR1") && sequenceMap.includes("focus-trail-return.png") && sequenceMap.includes("peekSource"), "sequence feature map must name FTR / proof / no peekSource");
+assert(driver.includes("VTS1") && driver.includes("VTS3") && driver.includes("value-trail-sankey.png") && driver.includes("vts-sankey"), "verify driver must prove Value-trail Sankey VTS1–VTS3");
+assert(js.includes("valueTrailFocus") && js.includes("setValueTrailFocus") && js.includes("renderValueTrailStrip") && js.includes("applyValueTrailPaint") && js.includes("valueTrailOf"), "desk.js must own Value-trail Sankey helpers");
+assert(css.includes(".vts-strip") && css.includes(".vts-sankey") && css.includes("vts-hit") && css.includes("vts-dim") && css.includes(".vts-chip"), "main.css must theme Value-trail Sankey + vts-hit/vts-dim");
+assert(dataflowMap.includes("VTS1") && dataflowMap.includes("vts-sankey") && dataflowMap.includes("value-trail-sankey.png") && dataflowMap.includes("peekSource"), "dataflow feature map must name VTS / vts-sankey / proof / no peekSource");
+
 
 
 
