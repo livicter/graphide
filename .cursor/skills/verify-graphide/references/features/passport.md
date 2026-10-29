@@ -165,6 +165,8 @@ Driver assertions:
 - EKH1–EKH3: residual-filter empty keyboard hints — Passport empty `desk-keys` / `data-residual-filter-empty-keys` (`<kbd>R</kbd> toggle · <kbd>Esc</kbd> clear`); Clear remains; screenshot `verification/residual-filter-empty-kbd-hints.png`
 - `.graphide/stamps/` is still empty
 
+- ADE PTD (Passport↔Trajectory delta mix): Trace + Passport residual chrome show `.ptd-strip` / `.ptd-chart` / `.ptd-bar` planned/residual/extra hop mix from plan-vs-walked (`passportDeltaKind`). Click / Enter / Space toggles `passportDeltaFilter` and paints traj nodes + gate paths with `ptd-hit` / `ptd-dim`. Second click or Escape (Trace/Passport, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/passport-traj-delta-mix.png`. Asserts PTD1–PTD3.
+
 ## Gotchas
 - Trace↔Passport context hops: see [trace-passport-deeplink.md](trace-passport-deeplink.md) (`?traj=` / `?gate=` / `data-ade-hop`).
 

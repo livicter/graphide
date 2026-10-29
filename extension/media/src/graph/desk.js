@@ -193,6 +193,7 @@ let lineageEgoId = "";
 let lineageFanFilter = null; // ADE LFO: used|informed|generated
 let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
+let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -578,6 +579,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     dfRoleFilter = null;
     paint({ animate: "none" });
+    return;
+  }
+  // ADE PTD: Escape clears Passport↔Trajectory delta mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    (explorerWs === "trace" || explorerWs === "passport") &&
+    passportDeltaFilter
+  ) {
+    e.preventDefault();
+    passportDeltaFilter = null;
+    applyPassportDeltaPaint();
+    syncPassportDeltaBars();
     return;
   }
   // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
@@ -4677,11 +4691,15 @@ function setWorkspace(name, pin) {
   if (
     prevWs !== name &&
     ADE_RESIDUAL_WS[prevWs] &&
-    !ADE_RESIDUAL_WS[name] &&
-    trajResidualFilter
+    !ADE_RESIDUAL_WS[name]
   ) {
-    trajResidualFilter = false;
-    if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+    if (trajResidualFilter) {
+      trajResidualFilter = false;
+      if (typeof syncResidualFilterLive === "function") syncResidualFilterLive(false);
+    }
+    if (passportDeltaFilter) {
+      passportDeltaFilter = null;
+    }
   }
   explorerWs = name;
   // Keep #keysPane R row in sync even while closed (RK1 keysDoc + KH workspace-aware).
@@ -11815,6 +11833,11 @@ function renderTrajectoryBody() {
       const residualFilteredAttr = residualFiltered
         ? ' data-residual-filtered="1"'
         : "";
+      const ptdKind = passportDeltaKind(n.id);
+      const ptdKindAttr = ptdKind ? ' data-ptd-kind="' + esc(ptdKind) + '"' : "";
+      const ptdHit = !!(passportDeltaFilter && ptdKind === passportDeltaFilter);
+      const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
+      const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
       const dim = focusOn && !near.has(n.id) ? " dim" : "";
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
@@ -11834,6 +11857,7 @@ function renderTrajectoryBody() {
         neighbor +
         adjResidual +
         residualFilteredClass +
+        ptdClass +
         dim +
         '" data-id="' +
         esc(n.id) +
@@ -11841,6 +11865,7 @@ function renderTrajectoryBody() {
         adjResidualAttr +
         residualBearingAttr +
         residualFilteredAttr +
+        ptdKindAttr +
         ' data-artifact="' +
         esc(art) +
         '" data-diff="' +
@@ -12170,6 +12195,7 @@ function renderTrajectoryBody() {
     "</b> deps</span>" +
     "</span>" +
     edgeLegend +
+    passportDeltaStripHtml() +
     renderTrajZoomBar() +
     renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
@@ -12715,6 +12741,8 @@ function bindTrajectoryPage() {
     };
   });
   if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+  if (typeof bindPassportDeltaChart === "function") bindPassportDeltaChart();
+  if (typeof applyPassportDeltaPaint === "function") applyPassportDeltaPaint();
   bindAdeHopButtons();
   bindAdePassportHlHops();
   const detail = document.getElementById("trajDetail");
@@ -13310,6 +13338,159 @@ function passportResidualTrajIds() {
   return ids;
 }
 
+/** ADE PTD — all traj ids linked from Passport plan surfaces. */
+function passportLinkedTrajIds() {
+  const ids = new Set();
+  const fx = getPassport();
+  const collect = (rows) => {
+    for (const row of rows || []) {
+      const tid = resolvePassportTrajId(row);
+      if (tid) ids.add(tid);
+    }
+  };
+  collect(fx.targets);
+  collect(fx.contracts);
+  collect(fx.risks);
+  collect(fx.testStrategy);
+  collect(fx.gatedWrites);
+  const impact = fx.impact || {};
+  collect(impact.callGraphs);
+  collect(impact.apiContracts);
+  return ids;
+}
+
+/** ADE PTD — planned | residual | extra for a traj id (plan vs walked). */
+function passportDeltaKind(trajId) {
+  if (!trajId || !trajIdExists(trajId)) return "";
+  if (passportResidualTrajIds().has(trajId)) return "residual";
+  if (passportLinkedTrajIds().has(trajId)) return "planned";
+  return "extra";
+}
+
+/** ADE PTD — counts over Trace fixture nodes. */
+function passportDeltaCounts() {
+  const map = new Map();
+  for (const n of trajectoryFixture().nodes || []) {
+    const k = passportDeltaKind(n.id);
+    if (!k) continue;
+    map.set(k, (map.get(k) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE PTD — interactive planned/residual/extra bars. */
+function passportDeltaChartHtml(map) {
+  const order = ["planned", "residual", "extra"];
+  const labels = { planned: "Planned", residual: "Residual", extra: "Extra" };
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(passportDeltaFilter && String(passportDeltaFilter) === String(e[0]));
+      return (
+        '<button type="button" class="ptd-bar' +
+        (on ? " on" : "") +
+        '" data-ptd-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--ptd-pct:' +
+        pct +
+        '%"><span class="ptd-fill" aria-hidden="true"></span><span class="ptd-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="ptd-chart" role="group" aria-label="Passport trajectory delta mix bars" data-ptd-axis-group="delta">' +
+    bars +
+    "</div>"
+  );
+}
+
+function passportDeltaStripHtml() {
+  const map = passportDeltaCounts();
+  const chart = passportDeltaChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="ptd-strip" data-ptd="1" role="group" aria-label="Passport trajectory delta mix">' +
+    '<span class="ptd-stat"><i class="k">Delta</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function togglePassportDeltaFilter(kind) {
+  if (!kind) return;
+  if (passportDeltaFilter && String(passportDeltaFilter) === String(kind)) passportDeltaFilter = null;
+  else passportDeltaFilter = String(kind);
+  applyPassportDeltaPaint();
+  syncPassportDeltaBars();
+}
+
+function syncPassportDeltaBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".ptd-bar[data-ptd-kind]").forEach((el) => {
+    const k = el.getAttribute("data-ptd-kind") || "";
+    const on = !!(passportDeltaFilter && String(passportDeltaFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".ptd-strip");
+  if (strip) strip.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+  const page = canvas.querySelector(".traj-page, .passport-page, #passportPage, .traj-canvas, #trajCanvas");
+  if (page) page.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+  const canvasHost = document.getElementById("trajCanvas");
+  if (canvasHost) canvasHost.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+  const gate = document.getElementById("passportGate");
+  if (gate) gate.classList.toggle("ptd-filtering", !!passportDeltaFilter);
+}
+
+function bindPassportDeltaChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".ptd-bar[data-ptd-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      togglePassportDeltaFilter(el.getAttribute("data-ptd-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      togglePassportDeltaFilter(el.getAttribute("data-ptd-kind"));
+    };
+  });
+}
+
+function applyPassportDeltaPaint() {
+  if (!canvas) return;
+  const filter = passportDeltaFilter ? String(passportDeltaFilter) : "";
+  canvas.querySelectorAll("[data-ptd-kind]").forEach((el) => {
+    // skip the bars themselves
+    if (el.classList.contains("ptd-bar")) return;
+    const k = el.getAttribute("data-ptd-kind") || "";
+    const hit = !!(filter && k === filter);
+    const dim = !!(filter && k && k !== filter);
+    el.classList.toggle("ptd-hit", hit);
+    el.classList.toggle("ptd-dim", dim);
+  });
+  syncPassportDeltaBars();
+}
+
+
 function passportRowActiveAttr(trajId) {
   return trajId && trajSelectedId && trajId === trajSelectedId
     ? ' data-ade-traj-active="1"'
@@ -13582,6 +13763,7 @@ function renderPassportResidual(fx, state) {
     '</span><span class="passport-residual-copy">' +
     esc(copy) +
     "</span>" +
+    passportDeltaStripHtml() +
     residualFilterToggle +
     residualFilterCountChip +
     stickyClearFilterCue +
@@ -13619,6 +13801,11 @@ function renderPassportGate(fx, state) {
       const residualFilteredAttr = residualFiltered
         ? ' data-residual-filtered="1"'
         : "";
+      const ptdKind = trajId ? passportDeltaKind(trajId) : "";
+      const ptdKindAttr = ptdKind ? ' data-ptd-kind="' + esc(ptdKind) + '"' : "";
+      const ptdHit = !!(passportDeltaFilter && ptdKind === passportDeltaFilter);
+      const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
+      const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
       const hopState = unlocked ? "approved" : state === "rejected" ? "rejected" : "pending";
       const hopBadge = unlocked ? "open" : state === "rejected" ? "blocked" : "incomplete";
       const hopResidual =
@@ -13645,6 +13832,7 @@ function renderPassportGate(fx, state) {
         passportRowActiveClass(trajId) +
         adjClass +
         residualFilteredClass +
+        ptdClass +
         '" data-passport-path="' +
         esc(w.path || "") +
         '"' +
@@ -13653,6 +13841,7 @@ function renderPassportGate(fx, state) {
         adjAttr +
         residualBearingAttr +
         residualFilteredAttr +
+        ptdKindAttr +
         blocked +
         '><span class="passport-path-state">' +
         (unlocked ? "open" : "blocked") +
@@ -14225,6 +14414,8 @@ function bindPassportPage() {
     };
   });
   if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
+  if (typeof bindPassportDeltaChart === "function") bindPassportDeltaChart();
+  if (typeof applyPassportDeltaPaint === "function") applyPassportDeltaPaint();
   bindPassportImpactRows();
   bindAdeHopButtons();
   bindAdeTrajHops();

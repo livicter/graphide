@@ -962,6 +962,13 @@ assert(js.includes("lineageFanFilter") && js.includes("lineageFanChartHtml") && 
 assert(css.includes(".lfo-chart") && css.includes(".lfo-bar") && css.includes("lfo-hit") && css.includes("lfo-dim"), "main.css must theme Lineage fan size mix chart + lfo-hit/lfo-dim");
 assert(lineageMap.includes("LFO1") && lineageMap.includes("lfo-chart") && lineageMap.includes("lineage-fan-size-mix.png") && lineageMap.includes("peekSource"), "lineage feature map must name LFO / lfo-chart / proof / no peekSource");
 
+assert(driver.includes("PTD1") && driver.includes("PTD3") && driver.includes("passport-traj-delta-mix.png") && driver.includes("ptd-bar"), "verify driver must prove Passport↔Trajectory delta mix PTD1–PTD3");
+assert(js.includes("passportDeltaFilter") && js.includes("passportDeltaChartHtml") && js.includes("bindPassportDeltaChart") && js.includes("togglePassportDeltaFilter") && js.includes("passportDeltaKind"), "desk.js must own Passport↔Trajectory delta mix filter helpers");
+assert(css.includes(".ptd-chart") && css.includes(".ptd-bar") && css.includes("ptd-hit") && css.includes("ptd-dim"), "main.css must theme Passport↔Trajectory delta mix chart + ptd-hit/ptd-dim");
+assert(passportMap.includes("PTD1") && passportMap.includes("ptd-chart") && passportMap.includes("passport-traj-delta-mix.png") && passportMap.includes("peekSource"), "passport feature map must name PTD / ptd-chart / proof / no peekSource");
+
+
+
 
 
 
