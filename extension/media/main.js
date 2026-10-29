@@ -27330,6 +27330,25 @@
       applyFocusTrailPaint();
       syncFocusTrailChip();
     }
+    function returnToFocusTrailMap() {
+      if (!focusTrail || !focusTrail.bubbleId) return false;
+      const id2 = String(focusTrail.bubbleId);
+      if (typeof setWorkspace === "function") setWorkspace("map", true);
+      if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
+      if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
+      const card = canvas && canvas.querySelector('.bubble-card[data-bubble="' + id2 + '"]') || document.querySelector('.bubble-card[data-bubble="' + id2 + '"]');
+      if (card && typeof card.scrollIntoView === "function") {
+        try {
+          card.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+        } catch (_) {
+          try {
+            card.scrollIntoView();
+          } catch (__) {
+          }
+        }
+      }
+      return true;
+    }
     function focusTrailMemberIds() {
       if (!focusTrail || !focusTrail.bubbleId) return /* @__PURE__ */ new Set();
       const want = String(focusTrail.bubbleId);
@@ -27354,7 +27373,7 @@
       if (!focusTrail || !focusTrail.bubbleId) return "";
       const n = focusTrailMemberIds().size;
       const sparkPct = Math.max(8, Math.min(100, n * 8));
-      return '<div class="cft-trail" data-cft="1" role="group" aria-label="Cross-desk focus trail"><button type="button" class="cft-chip on" data-cft-chip="1" aria-pressed="true" title="Focus trail · Escape to clear"><span class="cft-k">Trail</span> <b class="cft-label">' + esc(focusTrail.label || focusTrail.bubbleId) + '</b> <i class="cft-n">' + n + '</i><span class="cft-spark" aria-hidden="true" style="--cft-spark:' + sparkPct + '%"></span></button><button type="button" class="cft-clear" data-cft-clear="1" title="Clear focus trail">Clear</button></div>';
+      return '<div class="cft-trail" data-cft="1" role="group" aria-label="Cross-desk focus trail"><button type="button" class="cft-chip on" data-cft-chip="1" aria-pressed="true" title="Return to Map community · Escape to clear"><span class="cft-k">Trail</span> <b class="cft-label">' + esc(focusTrail.label || focusTrail.bubbleId) + '</b> <i class="cft-n">' + n + '</i><span class="cft-spark" aria-hidden="true" style="--cft-spark:' + sparkPct + '%"></span></button><button type="button" class="cft-clear" data-cft-clear="1" title="Clear focus trail">Clear</button></div>';
     }
     function ensureFocusTrailChip() {
       if (!canvas) return;
@@ -27395,7 +27414,11 @@
         el2.onclick = (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
-          clearFocusTrail();
+          if (explorerWs === "map") {
+            returnToFocusTrailMap();
+            return;
+          }
+          returnToFocusTrailMap();
         };
       });
     }

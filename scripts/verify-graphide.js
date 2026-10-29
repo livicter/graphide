@@ -39194,6 +39194,141 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Focus Trail Return (FTR1–FTR5) — chip from Slice/Sequence returns to pinned Map community
+    {
+      const ftrUrl = origin + "/scripts/webview-harness.html?mode=explorer&probe=0&ws=map";
+      console.log("ftr-return", ftrUrl);
+      await page.goto(ftrUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector('#workspaces [data-ws="map"]', { timeout: 10000 });
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 });
+      await page.waitForTimeout(60);
+      const pinned = await page.evaluate(() => {
+        const card = document.querySelector(".bubble-card[data-bubble]");
+        if (!card) return null;
+        const id = card.getAttribute("data-bubble") || "";
+        card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, view: window }));
+        return id;
+      });
+      await page.waitForSelector(".cft-trail[data-cft='1']", { timeout: 5000 });
+      await page.click('#workspaces [data-ws="slice"]');
+      await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
+      await page.waitForSelector(".cft-trail[data-cft='1'] .cft-chip", { timeout: 5000 });
+      await page.waitForTimeout(60);
+
+      const ftr1 = await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip[data-cft-chip]");
+        const ws = document.querySelector('#workspaces [data-ws="slice"].on');
+        const src = document.getElementById("sourcePane");
+        return { chip: !!chip, sliceOn: !!ws, srcHidden: !src || src.hidden };
+      });
+      const ftr1ok = !!(ftr1 && ftr1.chip && ftr1.sliceOn && ftr1.srcHidden);
+      record(
+        "FTR1",
+        "Slice shows focus trail chip while Map pin is active; no source pane",
+        !!ftr1ok,
+        JSON.stringify({ ...ftr1, pinned })
+      );
+
+      const ftr2 = await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip[data-cft-chip]");
+        if (!chip) return { ok: false, reason: "no chip" };
+        chip.click();
+        const mapOn = !!document.querySelector('#workspaces [data-ws="map"].on');
+        const chip2 = document.querySelector(".cft-trail[data-cft='1'] .cft-chip");
+        const hit = [...document.querySelectorAll(".bubble-card.cft-hit")];
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          mapOn,
+          chip: !!chip2,
+          hit: hit.length,
+          hitId: hit[0] ? hit[0].getAttribute("data-bubble") : "",
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const ftr2ok = !!(
+        ftr2 &&
+        ftr2.ok &&
+        ftr2.mapOn &&
+        ftr2.chip &&
+        ftr2.hit >= 1 &&
+        ftr2.srcHidden &&
+        (!pinned || ftr2.hitId === pinned)
+      );
+      record(
+        "FTR2",
+        "Chip click returns to Map with pinned community cft-hit; no source pane",
+        !!ftr2ok,
+        JSON.stringify({ ...ftr2, pinned })
+      );
+
+      // Sequence path: pin again if cleared, go Sequence, chip returns
+      await page.evaluate(() => {
+        // ensure trail still on; if cleared somehow, re-pin first card
+        if (!document.querySelector(".cft-trail[data-cft='1']")) {
+          const card = document.querySelector(".bubble-card[data-bubble]");
+          if (card) card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, view: window }));
+        }
+      });
+      await page.click('#workspaces [data-ws="sequence"]');
+      await page.waitForSelector('#workspaces [data-ws="sequence"].on', { timeout: 8000 });
+      await page.waitForSelector(".cft-trail[data-cft='1'] .cft-chip", { timeout: 5000 });
+      await page.waitForTimeout(60);
+      const ftr3 = await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip[data-cft-chip]");
+        if (!chip) return { ok: false, reason: "no chip on sequence" };
+        chip.click();
+        const mapOn = !!document.querySelector('#workspaces [data-ws="map"].on');
+        const hit = document.querySelectorAll(".bubble-card.cft-hit").length;
+        const clear = document.querySelector(".cft-trail [data-cft-clear]");
+        if (clear) clear.click();
+        const chipGone = !document.querySelector(".cft-trail[data-cft='1']");
+        const src = document.getElementById("sourcePane");
+        return { ok: true, mapOn, hit, chipGone, srcHidden: !src || src.hidden };
+      });
+      const ftr3ok = !!(ftr3 && ftr3.ok && ftr3.mapOn && ftr3.hit >= 1 && ftr3.chipGone && ftr3.srcHidden);
+      record(
+        "FTR3",
+        "Sequence chip returns to Map; Clear removes trail; no source pane",
+        !!ftr3ok,
+        JSON.stringify(ftr3)
+      );
+
+      // Re-pin for screenshot from Slice→Map
+      await page.evaluate(() => {
+        const card = document.querySelector(".bubble-card[data-bubble]");
+        if (card) card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, view: window }));
+      });
+      await page.click('#workspaces [data-ws="slice"]');
+      await page.waitForSelector(".cft-trail[data-cft='1'] .cft-chip", { timeout: 5000 });
+      await page.evaluate(() => {
+        const chip = document.querySelector(".cft-trail[data-cft='1'] .cft-chip[data-cft-chip]");
+        if (chip) chip.click();
+      });
+      await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 5000 });
+      await page.waitForTimeout(80);
+      await shot(page, "focus-trail-return.png");
+      const ftrShot = checks.find((c) => c.id === "shot:focus-trail-return.png");
+      const ftr4ok = !!(ftr1ok && ftr2ok && ftr3ok && ftrShot && ftrShot.pass);
+      record(
+        "FTR4",
+        "screenshot focus-trail-return.png not black; Focus Trail Return proven",
+        !!ftr4ok,
+        JSON.stringify({
+          shot: ftrShot ? ftrShot.detail : "missing",
+          ftr1: !!ftr1ok,
+          ftr2: !!ftr2ok,
+          ftr3: !!ftr3ok,
+        })
+      );
+      assertNoStampDir("FTR5", "Focus Trail Return step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      await page.waitForTimeout(40);
+    }
+
     await shot(page, "lineage.png");
     assertNoStampDir("Y9", "Lineage step did not write .graphide/stamps/");
 

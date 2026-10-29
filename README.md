@@ -36,7 +36,7 @@ Scorecard, Play, and interactive mix and community-size charts. Call-path scrubb
 
 ### Map
 
-Communities on the walk. Altitude mix chart filters communities by kind or hop. Community-size chart filters the same cards by member count. Hop×size chart ranks communities that are both large and high-hop. Shift+click a community to pin a cross-desk focus trail (chip + spark); the same members stay lit on Slice and Sequence. Enter a bubble for behavior captions. Leaf browse stays graph-only.
+Communities on the walk. Altitude mix chart filters communities by kind or hop. Community-size chart filters the same cards by member count. Hop×size chart ranks communities that are both large and high-hop. Shift+click a community to pin a cross-desk focus trail (chip + spark); the same members stay lit on Slice and Sequence. Click the trail chip to return to the pinned Map community. Enter a bubble for behavior captions. Leaf browse stays graph-only.
 
 ![Map communities](UIUX_sample/map-communities.png)
 
@@ -50,9 +50,11 @@ Communities on the walk. Altitude mix chart filters communities by kind or hop. 
 
 ![Cross-desk focus trail](UIUX_sample/cross-desk-focus-trail.png)
 
+![Focus trail return](UIUX_sample/focus-trail-return.png)
+
 ### Slice
 
-Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-kind mix chart filters lit nodes and hops by kind or edge verb. Same call-path scrubber as Overview on the Steiner canvas. A Map-pinned focus trail chip carries here and lights the same community members.
+Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-kind mix chart filters lit nodes and hops by kind or edge verb. Same call-path scrubber as Overview on the Steiner canvas. A Map-pinned focus trail chip carries here and lights the same community members. Click the chip to jump back to that Map community.
 
 ![Slice control-flow](UIUX_sample/slice-control-flow.png)
 
@@ -66,7 +68,7 @@ PATH between two nodes. Play walks the directed hops. Hop-kind mix chart filters
 
 ### Sequence
 
-Story-rich hops with participant highlight. Map focus trail chip carries here and dims non-member hops.
+Story-rich hops with participant highlight. Map focus trail chip carries here and dims non-member hops. Click the chip to jump back to the pinned Map community.
 
 ![Sequence story richness](UIUX_sample/sequence-story-richness.png)
 
@@ -110,6 +112,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR).
 
-Parked next: FTR (Focus Trail Return — dsh NEXT_AFTER after CFT) or CEO alt value-trail / CFG expand.
+Parked next: VTS (value-trail Sankey — dsh NEXT_AFTER after FTR) or CEO alt CFG expand.
