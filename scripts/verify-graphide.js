@@ -13399,6 +13399,206 @@ async function main() {
     assertNoStampDir("MHS5", "Map-altitude community-hop-size mix step did not write .graphide/stamps/");
 
 
+    // ADE Slice hop-kind mix (SHM1–SHM3) — interactive kind/hop bars; graph-only #sliceCanvas filter
+    await page.click('#workspaces [data-ws="slice"]');
+    await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
+    await page.waitForSelector("#sliceCanvas .vnode, #sliceCanvas .react-flow__node", { timeout: 12000 });
+    await page.waitForSelector(".shm-strip .shm-chart .shm-bar[data-shm-axis]", { timeout: 8000 });
+    await page.waitForTimeout(80);
+    const shm1 = await page.evaluate(() => {
+      const strip = document.querySelector(".shm-strip[data-shm='1']");
+      const kindChart = document.querySelector('.shm-chart--kind, .shm-chart[data-shm-axis-group="kind"]');
+      const hopChart = document.querySelector('.shm-chart--hop, .shm-chart[data-shm-axis-group="hop"]');
+      const bars = [...document.querySelectorAll(".shm-chart .shm-bar[data-shm-axis][data-shm-value]")];
+      const nodes = document.querySelectorAll("#sliceCanvas .vnode").length;
+      return {
+        strip: !!strip,
+        kindBars: kindChart ? kindChart.querySelectorAll(".shm-bar").length : 0,
+        hopBars: hopChart ? hopChart.querySelectorAll(".shm-bar").length : 0,
+        bars: bars.length,
+        nodes,
+      };
+    });
+    const shm1ok = !!(shm1 && shm1.strip && shm1.bars >= 2 && shm1.nodes >= 2);
+    record(
+      "SHM1",
+      "Slice .shm-strip/.shm-chart/.shm-bar present with #sliceCanvas vnodes",
+      !!shm1ok,
+      JSON.stringify(shm1)
+    );
+
+    const shm2 = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".shm-chart .shm-bar[data-shm-axis][data-shm-value]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      let picked = null;
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length;
+        const dims = document.querySelectorAll("#sliceCanvas .vnode.shm-dim").length;
+        if (hits >= 1 && dims >= 1) {
+          picked = {
+            axis: candidate.getAttribute("data-shm-axis") || "",
+            value: candidate.getAttribute("data-shm-value") || "",
+            hits,
+            dims,
+            filtering: !!(document.getElementById("sliceCanvas") && document.getElementById("sliceCanvas").classList.contains("shm-filtering")),
+            pressed: candidate.getAttribute("aria-pressed") === "true",
+          };
+          break;
+        }
+        candidate.click();
+      }
+      if (!picked) {
+        return { ok: false, reason: "no discriminative shm bar", tried: bars.map((b) => b.getAttribute("data-shm-axis") + ":" + b.getAttribute("data-shm-value")) };
+      }
+      const sel = '.shm-bar[data-shm-axis="' + picked.axis + '"][data-shm-value="' + picked.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"]';
+      const bar = document.querySelector(sel);
+      const src = document.getElementById("sourcePane");
+      const srcHidden = !src || src.hidden;
+      if (bar) bar.click();
+      const hits2 = document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length;
+      const dims2 = document.querySelectorAll("#sliceCanvas .vnode.shm-dim").length;
+      const filtering2 = !!(document.getElementById("sliceCanvas") && document.getElementById("sliceCanvas").classList.contains("shm-filtering"));
+      const pressed2 = bar ? bar.getAttribute("aria-pressed") === "true" : true;
+      const src2 = document.getElementById("sourcePane");
+      const srcHidden2 = !src2 || src2.hidden;
+      return {
+        ok: true,
+        ...picked,
+        srcHidden,
+        hits2,
+        dims2,
+        filtering2,
+        pressed2,
+        srcHidden2,
+      };
+    });
+    const shm2ok = !!(
+      shm2 &&
+      shm2.ok &&
+      shm2.hits >= 1 &&
+      shm2.dims >= 1 &&
+      shm2.filtering &&
+      shm2.pressed &&
+      shm2.srcHidden &&
+      shm2.hits2 === 0 &&
+      shm2.dims2 === 0 &&
+      !shm2.filtering2 &&
+      !shm2.pressed2 &&
+      shm2.srcHidden2
+    );
+    record(
+      "SHM2",
+      "Click hop-kind bar filters #sliceCanvas vnode shm-hit/shm-dim without opening source; second click restores",
+      !!shm2ok,
+      JSON.stringify(shm2)
+    );
+
+    const shm3BarSel = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".shm-chart .shm-bar[data-shm-axis][data-shm-value]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length;
+        const dims = document.querySelectorAll("#sliceCanvas .vnode.shm-dim").length;
+        candidate.click();
+        if (hits >= 1 && dims >= 1) {
+          candidate.setAttribute("data-shm-probe", "1");
+          return '.shm-bar[data-shm-probe="1"]';
+        }
+      }
+      return "";
+    });
+    if (!shm3BarSel) throw new Error("no discriminative hop-kind bar for SHM3");
+    await page.focus(shm3BarSel);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(40);
+    const shm3on = await page.evaluate(() => {
+      const bar = document.querySelector('.shm-bar[data-shm-probe="1"]') || document.querySelector(".shm-chart .shm-bar");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : false,
+        hits: document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length,
+        filtering: !!(document.getElementById("sliceCanvas") && document.getElementById("sliceCanvas").classList.contains("shm-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const shm3off = await page.evaluate(() => {
+      const bar = document.querySelector('.shm-bar[data-shm-probe="1"]') || document.querySelector(".shm-chart .shm-bar");
+      const src = document.getElementById("sourcePane");
+      return {
+        pressed: bar ? bar.getAttribute("aria-pressed") === "true" : true,
+        hits: document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length,
+        filtering: !!(document.getElementById("sliceCanvas") && document.getElementById("sliceCanvas").classList.contains("shm-filtering")),
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const shm3ok = !!(
+      shm3on &&
+      shm3on.pressed &&
+      shm3on.hits >= 1 &&
+      shm3on.filtering &&
+      shm3on.srcHidden &&
+      shm3off &&
+      !shm3off.pressed &&
+      shm3off.hits === 0 &&
+      !shm3off.filtering &&
+      shm3off.srcHidden
+    );
+    record(
+      "SHM3",
+      "Enter toggles Slice hop-kind filter; Escape clears Slice-only without opening source",
+      !!shm3ok,
+      JSON.stringify({ on: shm3on, off: shm3off })
+    );
+
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".shm-chart .shm-bar[data-shm-axis][data-shm-value]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+      for (const candidate of bars) {
+        candidate.click();
+        const hits = document.querySelectorAll("#sliceCanvas .vnode.shm-hit").length;
+        const dims = document.querySelectorAll("#sliceCanvas .vnode.shm-dim").length;
+        if (hits >= 1 && dims >= 1) return;
+        candidate.click();
+      }
+      const fallback = document.querySelector(".shm-bar[data-shm-axis]");
+      if (fallback) fallback.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "slice-hop-kind-mix.png");
+    const shmShot = checks.find((c) => c.id === "shot:slice-hop-kind-mix.png");
+    const shm4ok = !!(shm1ok && shm2ok && shm3ok && shmShot && shmShot.pass);
+    record(
+      "SHM4",
+      "screenshot slice-hop-kind-mix.png not black; Slice hop-kind mix proven",
+      !!shm4ok,
+      JSON.stringify({
+        shot: shmShot ? shmShot.detail : "missing",
+        shm1: !!shm1ok,
+        shm2: !!shm2ok,
+        shm3: !!shm3ok,
+      })
+    );
+    assertNoStampDir("SHM5", "Slice hop-kind mix step did not write .graphide/stamps/");
+    // Clear leftover hop-kind filter so later Slice Ego/Find/Route opacity asserts stay honest
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".shm-chart .shm-bar[data-shm-axis][data-shm-value]")];
+      for (const el of bars) {
+        if (el.getAttribute("aria-pressed") === "true") el.click();
+      }
+    });
+    await page.waitForTimeout(40);
+
+
     // ADE Story Behavior Captions (SBC1–SBC3) — derived rail captions; graph-only path walk
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });

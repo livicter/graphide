@@ -342,8 +342,9 @@ assert(
     rootReadme.includes("## Progress") &&
     rootReadme.includes("Map-altitude community mix") &&
     rootReadme.includes("Map-altitude community-size") &&
-    rootReadme.includes("Map-altitude community-hop-size"),
-  "root README must stay lean: Features + Progress naming ADE Phase 1 and Map-altitude community-hop-size (no full #371…#443 history dump)"
+    rootReadme.includes("Map-altitude community-hop-size") &&
+    rootReadme.includes("Slice hop-kind"),
+  "root README must stay lean: Features + Progress naming ADE Phase 1 and Slice hop-kind (no full #371…#443 history dump)"
 );
 assert(featReadme.includes("canvas-recycle.md") && featReadme.includes("canvas-recycle.png"), "feature README must list canvas-recycle.md");
 assert(featReadme.includes("delta-onanalysis.md") && featReadme.includes("delta-onanalysis.png"), "feature README must list delta-onanalysis.md");
@@ -467,6 +468,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
 const mapMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map.md"), "utf8");
+const openSliceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/open-slice.md"), "utf8");
 const lineageMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
 const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
@@ -932,6 +934,10 @@ assert(driver.includes("MHS1") && driver.includes("MHS3") && driver.includes("ma
 assert(js.includes("mapHopSizeFilter") && js.includes("mapHopSizeChartHtml") && js.includes("applyMapHopSizePaint") && js.includes("bindMapHopSizeChart"), "desk.js must own Map-altitude hop-size filter helpers");
 assert(css.includes(".mhs-chart") && css.includes(".mhs-bar") && css.includes("mhs-hit") && css.includes("mhs-dim"), "main.css must theme Map-altitude hop-size chart + mhs-hit/mhs-dim");
 assert(mapMap.includes("MHS1") && mapMap.includes("mhs-chart") && mapMap.includes("map-altitude-community-hop-size.png") && mapMap.includes("peekSource"), "map feature map must name MHS / mhs-chart / proof / no peekSource");
+assert(driver.includes("SHM1") && driver.includes("SHM3") && driver.includes("slice-hop-kind-mix.png") && driver.includes("shm-bar"), "verify driver must prove Slice hop-kind mix SHM1–SHM3");
+assert(js.includes("sliceMixFilter") && js.includes("sliceMixChartHtml") && js.includes("applySliceMixPaint") && js.includes("bindSliceMixChart"), "desk.js must own Slice hop-kind mix filter helpers");
+assert(css.includes(".shm-chart") && css.includes(".shm-bar") && css.includes("shm-hit") && css.includes("shm-dim"), "main.css must theme Slice hop-kind mix chart + shm-hit/shm-dim");
+assert(openSliceMap.includes("SHM1") && openSliceMap.includes("shm-chart") && openSliceMap.includes("slice-hop-kind-mix.png") && openSliceMap.includes("peekSource"), "open-slice feature map must name SHM / shm-chart / proof / no peekSource");
 
 
 

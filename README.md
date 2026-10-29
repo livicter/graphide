@@ -48,9 +48,11 @@ Communities on the walk. Altitude mix chart filters communities by kind or hop. 
 
 ### Slice
 
-Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes.
+Steiner control-flow along Calls, Reads, Writes, Publishes, and Subscribes. Hop-kind mix chart filters lit nodes and hops by kind or edge verb.
 
 ![Slice control-flow](UIUX_sample/slice-control-flow.png)
+
+![Slice hop-kind mix](UIUX_sample/slice-hop-kind-mix.png)
 
 ### Sequence
 
@@ -92,6 +94,6 @@ Stamps, skips, and broken attestations.
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM).
 
-Parked next: Slice hop-kind mix (SHM).
+Parked next: Call-path scrubber (CPS).
