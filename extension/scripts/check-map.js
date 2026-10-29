@@ -988,6 +988,11 @@ assert(driver.includes("CFE1") && driver.includes("CFE3") && driver.includes("cf
 assert(js.includes("cfgExpandFocus") && js.includes("setCfgExpandFocus") && js.includes("cfgExpandPanelHtml") && js.includes("applyCfgExpandPaint") && js.includes("cfgExpandOf"), "desk.js must own CFG expand-on-click helpers");
 assert(css.includes(".cfe-panel") && css.includes(".cfe-cfg") && css.includes("cfe-hit") && css.includes("cfe-dim") && css.includes(".cfe-edge-label"), "main.css must theme CFG expand + cfe-hit/cfe-dim");
 assert(overviewMap.includes("CFE1") && overviewMap.includes("cfe-cfg") && overviewMap.includes("cfg-expand-onclick.png") && overviewMap.includes("peekSource"), "overview feature map must name CFE / cfe-cfg / proof / no peekSource");
+assert(driver.includes("CMS1") && driver.includes("CMS3") && driver.includes("sequence-module-swimlane.png") && driver.includes("seq-module-lane"), "verify driver must prove Cross-module sequence swimlane CMS1–CMS3");
+assert(js.includes("seqModuleOf") && js.includes("seqModuleLanes") && js.includes("seq-module-lane") && js.includes("data-cms"), "desk.js must own Cross-module sequence swimlane helpers");
+assert(css.includes(".seq-module-lane") && css.includes(".seq-module-label") && css.includes("cms-active-lane") && css.includes("cms-cross"), "main.css must theme module swimlanes + cms-active/cross");
+assert(sequenceMap.includes("CMS1") && sequenceMap.includes("seq-module-lane") && sequenceMap.includes("sequence-module-swimlane.png") && sequenceMap.includes("peekSource"), "sequence feature map must name CMS / seq-module-lane / proof / no peekSource");
+
 
 
 

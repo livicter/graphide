@@ -37568,6 +37568,130 @@ async function main() {
     );
     assertNoStampDir("SSR4", "Sequence story richness step did not write .graphide/stamps/");
 
+    // ADE Cross-module sequence swimlane (CMS1–CMS5) — module lanes + cross-module hop paint
+    {
+      await page.click("#seqOverview");
+      await page.waitForTimeout(60);
+      await page.waitForSelector(".seq-module-lane[data-cms-lane='1'], #seqParts.seq-swimlanes", { timeout: 8000 });
+      const cms1 = await page.evaluate(() => {
+        const lanes = [...document.querySelectorAll(".seq-module-lane[data-cms-lane='1']")];
+        const mods = lanes.map((el) => el.getAttribute("data-module") || "");
+        const parts = [...document.querySelectorAll("#seqParts .seq-part[data-lane-id]")];
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const cross = hops.filter((el) => el.getAttribute("data-cms-cross") === "1" || el.classList.contains("cms-cross"));
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!document.querySelector('.seq-page[data-cms="1"]'),
+          lanes: lanes.length,
+          mods,
+          parts: parts.length,
+          hops: hops.length,
+          cross: cross.length,
+          srcHidden: !src || src.hidden,
+          play: !!document.getElementById("seqPlay"),
+        };
+      });
+      const cms1ok = !!(
+        cms1 &&
+        cms1.page &&
+        cms1.lanes >= 2 &&
+        cms1.parts >= 2 &&
+        cms1.hops >= 1 &&
+        cms1.srcHidden &&
+        cms1.play
+      );
+      record(
+        "CMS1",
+        "Sequence shows ≥2 module swimlanes with lane-tagged participants; no source pane",
+        !!cms1ok,
+        JSON.stringify(cms1)
+      );
+
+      // Prefer a cross-module hop; else step Next until one lights, else first hop.
+      await page.evaluate(() => {
+        const cross = [...document.querySelectorAll("#seqHops .seq-hop.cms-cross, #seqHops .seq-hop[data-cms-cross='1']")];
+        const hop = cross[0] || document.querySelector("#seqHops .seq-hop");
+        if (hop) hop.click();
+      });
+      await page.waitForTimeout(80);
+      const cms2 = await page.evaluate(() => {
+        const hot = document.querySelector("#seqHops .seq-hop.on");
+        const active = [...document.querySelectorAll(".seq-module-lane.cms-active-lane")];
+        const crossHot = !!(hot && (hot.classList.contains("cms-cross") || hot.getAttribute("data-cms-cross") === "1"));
+        const src = document.getElementById("sourcePane");
+        const hopCard = document.getElementById("hopCard");
+        return {
+          hot: !!hot,
+          active: active.length,
+          activeMods: active.map((el) => el.getAttribute("data-module") || ""),
+          crossHot,
+          laneFrom: hot ? hot.getAttribute("data-lane-from") || "" : "",
+          laneTo: hot ? hot.getAttribute("data-lane-to") || "" : "",
+          srcHidden: !src || src.hidden,
+          hopHidden: !hopCard || hopCard.hidden,
+        };
+      });
+      const cms2ok = !!(
+        cms2 &&
+        cms2.hot &&
+        cms2.active >= 1 &&
+        cms2.srcHidden &&
+        cms2.hopHidden
+      );
+      record(
+        "CMS2",
+        "Hop focus lights module lane(s); graph-only (no Evidence / hop card)",
+        !!cms2ok,
+        JSON.stringify(cms2)
+      );
+
+      await page.click("#seqOverview");
+      await page.waitForTimeout(40);
+      await page.click("#seqNext");
+      await page.waitForTimeout(80);
+      const cms3 = await page.evaluate(() => {
+        const playhead = document.querySelector("#seqHops .seq-hop.on");
+        const active = document.querySelectorAll(".seq-module-lane.cms-active-lane").length;
+        const page = document.querySelector('.seq-page[data-cms="1"]');
+        return {
+          playhead: !!playhead,
+          active,
+          crossHotPage: !!(page && page.getAttribute("data-cms-cross-hot") === "1"),
+        };
+      });
+      const cms3ok = !!(cms3 && cms3.playhead && cms3.active >= 1);
+      record(
+        "CMS3",
+        "seq Next playhead keeps an active module lane",
+        !!cms3ok,
+        JSON.stringify(cms3)
+      );
+
+      // Prefer screenshot with a cross-module hop lit when available
+      await page.evaluate(() => {
+        const cross = [...document.querySelectorAll("#seqHops .seq-hop.cms-cross, #seqHops .seq-hop[data-cms-cross='1']")];
+        if (cross[0]) cross[0].click();
+      });
+      await page.waitForTimeout(100);
+      await shot(page, "sequence-module-swimlane.png");
+      const cmsShot = checks.find((c) => c.id === "shot:sequence-module-swimlane.png");
+      const cms4ok = !!(cms1ok && cms2ok && cms3ok && cmsShot && cmsShot.pass);
+      record(
+        "CMS4",
+        "screenshot sequence-module-swimlane.png not black; Cross-module swimlane proven",
+        !!cms4ok,
+        JSON.stringify({
+          shot: cmsShot ? cmsShot.detail : "missing",
+          cms1: !!cms1ok,
+          cms2: !!cms2ok,
+          cms3: !!cms3ok,
+        })
+      );
+      assertNoStampDir("CMS5", "Cross-module sequence swimlane step did not write .graphide/stamps/");
+      await page.click("#seqOverview");
+      await page.waitForTimeout(40);
+    }
+
     assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
     const dataflowSnap = loadDataflowSnap();

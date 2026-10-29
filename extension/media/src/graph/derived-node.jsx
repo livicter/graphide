@@ -132,6 +132,10 @@ export function DerivedNode({ data }) {
   }
   if (d.side) attrs["data-side"] = d.side;
   if (d.file) attrs["data-file"] = d.file;
+  if (d.module) {
+    attrs["data-module"] = d.module;
+    attrs["data-lane-id"] = d.module;
+  }
   if (d.flow) attrs["data-flow"] = d.flow;
   if (d.hops) attrs["data-hops"] = d.hops;
   if (d.dist != null) attrs["data-dist"] = String(d.dist);

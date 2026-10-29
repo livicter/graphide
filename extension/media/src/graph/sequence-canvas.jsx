@@ -301,6 +301,7 @@ export function renderSequenceCanvas(host, props) {
       // Behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
       meta: p.caption || "",
       file: p.file || "",
+      module: p.module || "",
       dim: !!p.dim,
       hit: !!p.hit,
       surface: "seq-part",
