@@ -196,6 +196,7 @@ let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
+let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -629,6 +630,19 @@ document.addEventListener("keydown", (e) => {
     structuralDiffFilter = null;
     applyStructuralDiffPaint();
     syncStructuralDiffBars();
+    return;
+  }
+  // ADE LSC: Escape clears Lifecycle transition overlay filter when active (Lifecycle stays open).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "lifecycle" &&
+    lifecycleTransitionFilter
+  ) {
+    e.preventDefault();
+    lifecycleTransitionFilter = null;
+    applyLifecycleTransitionPaint();
+    syncLifecycleTransitionBars();
     return;
   }
   // ADE PTD: Escape clears Passport↔Trajectory delta mix filter when active.
@@ -9132,6 +9146,181 @@ function applyStructuralDiffPaint() {
   syncStructuralDiffBars();
 }
 
+
+/** ADE LSC — Lifecycle transition overlay counts from derived review-machine hops. */
+function lifecycleTransitionCounts() {
+  const map = new Map();
+  const order = ["play", "wait", "stamp", "skip", "break", "recover"];
+  for (const h of lcTrans()) {
+    const ev = String((h && h.label) || "");
+    if (!order.includes(ev)) continue;
+    map.set(ev, (map.get(ev) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE LSC — interactive play/wait/stamp/skip/break/recover bars. */
+function lifecycleTransitionChartHtml(map) {
+  const order = ["play", "wait", "stamp", "skip", "break", "recover"];
+  const labels = {
+    play: "Play",
+    wait: "Wait",
+    stamp: "Stamp",
+    skip: "Skip",
+    break: "Break",
+    recover: "Recover",
+  };
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(lifecycleTransitionFilter && String(lifecycleTransitionFilter) === String(e[0]));
+      return (
+        '<button type="button" class="lsc-bar' +
+        (on ? " on" : "") +
+        '" data-lsc-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--lsc-pct:' +
+        pct +
+        '%"><span class="lsc-fill" aria-hidden="true"></span><span class="lsc-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="lsc-chart" role="group" aria-label="Lifecycle transition overlay event bars" data-lsc-axis-group="event">' +
+    bars +
+    "</div>"
+  );
+}
+
+function lifecycleTransitionStripHtml() {
+  const map = lifecycleTransitionCounts();
+  const chart = lifecycleTransitionChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="lsc-strip" data-lsc="1" role="group" aria-label="Lifecycle transition overlay">' +
+    '<span class="lsc-stat"><i class="k">Transitions</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleLifecycleTransitionFilter(kind) {
+  if (!kind) return;
+  if (lifecycleTransitionFilter && String(lifecycleTransitionFilter) === String(kind)) lifecycleTransitionFilter = null;
+  else lifecycleTransitionFilter = String(kind);
+  applyLifecycleTransitionPaint();
+  syncLifecycleTransitionBars();
+}
+
+function syncLifecycleTransitionBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".lsc-bar[data-lsc-kind]").forEach((el) => {
+    const k = el.getAttribute("data-lsc-kind") || "";
+    const on = !!(lifecycleTransitionFilter && String(lifecycleTransitionFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".lsc-strip");
+  if (strip) strip.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+  const page = canvas.querySelector(".lc-page");
+  if (page) page.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+  const canvasHost = document.getElementById("lcCanvas");
+  if (canvasHost) canvasHost.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+  const lanes = document.getElementById("lcLanes");
+  if (lanes) lanes.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+}
+
+function bindLifecycleTransitionChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".lsc-bar[data-lsc-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleLifecycleTransitionFilter(el.getAttribute("data-lsc-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleLifecycleTransitionFilter(el.getAttribute("data-lsc-kind"));
+    };
+  });
+}
+
+function applyLifecycleTransitionPaint() {
+  if (!canvas) return;
+  const filter = lifecycleTransitionFilter ? String(lifecycleTransitionFilter) : "";
+  const hitIds = new Set();
+  canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el) => {
+    const ev = el.getAttribute("data-lc-event") || "";
+    const hit = !!(filter && ev === filter);
+    const dim = !!(filter && ev !== filter);
+    el.classList.toggle("lsc-hit", hit);
+    el.classList.toggle("lsc-dim", dim);
+    if (hit) {
+      const from = el.getAttribute("data-from") || "";
+      const to = el.getAttribute("data-to") || "";
+      if (from) hitIds.add(from);
+      if (to) hitIds.add(to);
+    }
+  });
+  canvas.querySelectorAll("#lcLanes .lc-state").forEach((el) => {
+    const id = el.getAttribute("data-lc-id") || "";
+    const hit = !!(filter && hitIds.has(id));
+    const dim = !!(filter && !hitIds.has(id));
+    el.classList.toggle("lsc-hit", hit);
+    el.classList.toggle("lsc-dim", dim);
+  });
+  const host = document.getElementById("lcCanvas");
+  const nodes = host
+    ? host.querySelectorAll(".vnode, .react-flow__node, .lc-state")
+    : [];
+  nodes.forEach((el) => {
+    if (el.classList.contains("lsc-bar")) return;
+    const id =
+      el.getAttribute("data-lc-id") ||
+      el.getAttribute("data-id") ||
+      el.getAttribute("data-node-id") ||
+      "";
+    const hit = !!(filter && id && hitIds.has(id));
+    const dim = !!(filter && (!id || !hitIds.has(id)));
+    el.classList.toggle("lsc-hit", hit);
+    el.classList.toggle("lsc-dim", dim);
+  });
+  // Edges: dim non-matching hop edges when present
+  if (host) {
+    host.querySelectorAll(".react-flow__edge, .lc-edge, [data-lc-event]").forEach((el) => {
+      if (el.classList.contains("lsc-bar") || el.classList.contains("lc-trans")) return;
+      const ev = el.getAttribute("data-lc-event") || el.getAttribute("data-kind") || "";
+      if (!filter) {
+        el.classList.remove("lsc-hit", "lsc-dim");
+        return;
+      }
+      if (ev) {
+        el.classList.toggle("lsc-hit", ev === filter);
+        el.classList.toggle("lsc-dim", ev !== filter);
+      }
+    });
+  }
+  syncLifecycleTransitionBars();
+}
+
 function applyDeltaFactView(fact) {
   if (!fact) return;
   if (fact.class === "community") {
@@ -11672,6 +11861,7 @@ function renderLifecycleBody() {
     : "";
   return (
     '<div class="lc-page">' +
+    lifecycleTransitionStripHtml() +
     review +
     '<div class="lc-lanes" id="lcLanes" style="--lc-n:' +
     lanes.length +
@@ -11788,6 +11978,7 @@ function paintLifecycleWorkspace(title) {
   if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
   else unmountReviewCanvas();
   applyGraphFilter();
+  applyLifecycleTransitionPaint();
 }
 
 function bindLifecyclePage() {
@@ -11842,6 +12033,8 @@ function bindLifecyclePage() {
       stepLcWalk(1);
     };
   if (play) play.onclick = () => toggleLcReview();
+  bindLifecycleTransitionChart();
+  applyLifecycleTransitionPaint();
 }
 
 

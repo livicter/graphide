@@ -98,3 +98,11 @@ Driver assertions:
   are the product hooks.
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.lc-state.vnode`
   from `main.css`. Shape is `data-shape` on `.vnode` from `derived-node.jsx`.
+
+## ADE LSC — Lifecycle transition overlay
+
+Interactive event bars (`.lsc-bar` play / wait / stamp / skip / break / recover)
+filter `#lcTrans` and related canvas/lane states. Escape clears. Graph-only —
+no `peekSource`. Screenshot `verification/lifecycle-transition-overlay.png`.
+Asserts LSC1–LSC5. See [lifecycle-transition-overlay.md](lifecycle-transition-overlay.md).
+
