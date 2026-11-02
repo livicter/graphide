@@ -126,3 +126,11 @@ Human reads which modules talk, and in what order, from Sequence alone — no so
 - Canvas layout bands Y by module lane (`layoutSequence` / `groupParticipantsByModule`); nodes expose `data-module`.
 - Asserts CMS1–CMS5. Proof `verification/sequence-module-swimlane.png`.
 
+## ADE SHK — Sequence hop-kind mix
+
+Interactive Calls / Reads / Writes / Publishes / Subscribes / type bars on
+Sequence. Matching hops light (`shk-hit`); others dim. Escape clears. Graph-only
+— no `peekSource`. Composes with SSR captions and CMS swimlanes. Asserts SHK1–SHK5.
+Proof `verification/sequence-hop-kind-mix.png`.
+
+
