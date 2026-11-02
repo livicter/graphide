@@ -3623,6 +3623,56 @@ html.bright .route-hop {
   text-decoration: underline;
 }
 
+
+/* ADE CMS — Cross-module sequence swimlane */
+.seq-parts.seq-swimlanes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.seq-module-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-panel-border, rgba(127,127,127,0.35));
+  border-radius: var(--g-radius, 6px);
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, var(--vscode-focusBorder, #2f81f7) 8%);
+}
+.seq-module-lane.cms-active-lane {
+  outline: 2px solid var(--vscode-focusBorder, #2f81f7);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 14%, var(--vscode-editor-background, #1e1e1e));
+}
+.seq-module-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+.seq-module-parts {
+  display: grid;
+  grid-template-columns: repeat(var(--seq-n, 2), minmax(72px, 1fr));
+  gap: 8px;
+}
+.seq-hop.cms-cross {
+  border-left: 3px solid color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 80%, transparent);
+}
+.seq-hop.cms-cross-hot,
+.seq-hop.on.cms-cross {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 55%, transparent);
+}
+.seq-page[data-cms-cross-hot="1"] #seqStatus::after {
+  content: " · cross-module";
+  opacity: 0.72;
+}
+#seqCanvas .react-flow__node[data-module] {
+  /* lane banding comes from layoutSequence Y */
+}
+
+
 /* ADE A1a — Trace trajectory DAG (fixture, read-only) */
 .traj-page { display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
 .traj-strip {

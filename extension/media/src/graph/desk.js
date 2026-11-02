@@ -9829,6 +9829,41 @@ function deriveSequence(flow) {
   return { participants, hops };
 }
 
+
+/** ADE CMS — module lane id from file stem or FQN (crate::bus::x → bus). */
+function seqModuleOf(p) {
+  const file = (p && p.file) || "";
+  if (file) {
+    const norm = String(file).replace(/\\/g, "/");
+    const bits = norm.split("/").filter(Boolean);
+    const baseName = bits[bits.length - 1] || "";
+    const stem = baseName.replace(/\.[^.]+$/, "");
+    if (stem && stem !== "lib" && stem !== "mod" && stem !== "main" && stem !== "index") return stem;
+    if (bits.length >= 2) return bits[bits.length - 2];
+  }
+  const fqn = (p && p.fqn) || "";
+  const segs = String(fqn).split(/::|\./).filter(Boolean);
+  if (segs[0] === "crate" && segs[1]) return segs[1];
+  if (segs[0] === "pkg" && segs[1]) return segs[1];
+  if (segs.length >= 2) return segs[segs.length - 2];
+  if (segs[0]) return segs[0];
+  return "module";
+}
+
+function seqModuleLanes(parts) {
+  const lanes = [];
+  const index = new Map();
+  for (const p of parts || []) {
+    const mod = seqModuleOf(p);
+    if (!index.has(mod)) {
+      index.set(mod, lanes.length);
+      lanes.push({ id: mod, label: mod, members: [] });
+    }
+    lanes[index.get(mod)].members.push(p);
+  }
+  return lanes;
+}
+
 function seqHops() {
   return sequenceOf(sequenceFlow()).hops;
 }
@@ -9997,43 +10032,80 @@ function renderSequenceBody() {
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
     "</span></div>";
   const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
-  const heads = parts
-    .map((p) => {
-      const pid = idVal(p.id);
-      const on =
-        (hot && (idVal(hot.from) === pid || idVal(hot.to) === pid)) ||
-        (focusId && focusId === pid);
-      const match = seqPartMatch(p);
-      const caption = p.caption || seqPartCaption(p, hops);
-      const focusDim = !!(focusId && focusId !== pid);
+  // ADE CMS — group participants into module swimlanes (file/FQN prefix).
+  const lanes = seqModuleLanes(parts);
+  const partModule = new Map();
+  for (const lane of lanes) {
+    for (const p of lane.members) partModule.set(idVal(p.id), lane.id);
+  }
+  const hotFromMod = hot ? partModule.get(idVal(hot.from)) || "" : "";
+  const hotToMod = hot ? partModule.get(idVal(hot.to)) || "" : "";
+  const hotCross = !!(hot && hotFromMod && hotToMod && hotFromMod !== hotToMod);
+  const heads = lanes
+    .map((lane) => {
+      const laneOn = !!(hot && (lane.id === hotFromMod || lane.id === hotToMod));
+      const membersHtml = lane.members
+        .map((p) => {
+          const pid = idVal(p.id);
+          const on =
+            (hot && (idVal(hot.from) === pid || idVal(hot.to) === pid)) ||
+            (focusId && focusId === pid);
+          const match = seqPartMatch(p);
+          const caption = p.caption || seqPartCaption(p, hops);
+          const focusDim = !!(focusId && focusId !== pid);
+          return (
+            '<button type="button" class="seq-part vnode kind-' +
+            esc(p.kind || "Function") +
+            (on ? " on" : "") +
+            (focusId && focusId === pid ? " ssr-hit" : "") +
+            (focusDim ? " ssr-dim" : "") +
+            (seqQ && match ? " hit" : "") +
+            (seqQ && !match ? " dim" : "") +
+            '" data-id="' +
+            esc(pid) +
+            '" data-fqn="' +
+            esc(p.fqn) +
+            '" data-kind="' +
+            esc(p.kind || "") +
+            '" data-lane-id="' +
+            esc(lane.id) +
+            '" data-module="' +
+            esc(lane.id) +
+            '"' +
+            (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
+            (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
+            ' aria-pressed="' +
+            (focusId && focusId === pid ? "true" : "false") +
+            '"><span class="name">' +
+            esc(shortOf(p.fqn)) +
+            '</span> <span class="meta">' +
+            esc(p.kind || "") +
+            "</span>" +
+            (caption
+              ? '<span class="seq-part-caption">' + esc(caption) + "</span>"
+              : "") +
+            "</button>"
+          );
+        })
+        .join("");
       return (
-        '<button type="button" class="seq-part vnode kind-' +
-        esc(p.kind || "Function") +
-        (on ? " on" : "") +
-        (focusId && focusId === pid ? " ssr-hit" : "") +
-        (focusDim ? " ssr-dim" : "") +
-        (seqQ && match ? " hit" : "") +
-        (seqQ && !match ? " dim" : "") +
-        '" data-id="' +
-        esc(pid) +
-        '" data-fqn="' +
-        esc(p.fqn) +
-        '" data-kind="' +
-        esc(p.kind || "") +
-        '"' +
-        (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
-        (p.file ? ' data-file="' + esc(p.file) + '"' : "") +
-        ' aria-pressed="' +
-        (focusId && focusId === pid ? "true" : "false") +
-        '"><span class="name">' +
-        esc(shortOf(p.fqn)) +
-        '</span> <span class="meta">' +
-        esc(p.kind || "") +
-        "</span>" +
-        (caption
-          ? '<span class="seq-part-caption">' + esc(caption) + "</span>"
-          : "") +
-        "</button>"
+        '<div class="seq-module-lane' +
+        (laneOn ? " cms-active-lane" : "") +
+        '" data-module="' +
+        esc(lane.id) +
+        '" data-lane-id="' +
+        esc(lane.id) +
+        '" data-testid="seq-module-lane-' +
+        esc(lane.id) +
+        '" data-cms-lane="1">' +
+        '<div class="seq-module-label">' +
+        esc(lane.label) +
+        "</div>" +
+        '<div class="seq-module-parts" style="--seq-n:' +
+        lane.members.length +
+        '">' +
+        membersHtml +
+        "</div></div>"
       );
     })
     .join("");
@@ -10041,11 +10113,16 @@ function renderSequenceBody() {
     .map(({ h, i }) => {
       const caption = h.caption || seqHopCaption(h);
       const related = focusId ? seqPartRelated(h, focusId) : true;
+      const fromMod = partModule.get(idVal(h.from)) || seqModuleOf({ fqn: h.from_fqn, file: h.file });
+      const toMod = partModule.get(idVal(h.to)) || seqModuleOf({ fqn: h.to_fqn, file: h.file });
+      const cross = !!(fromMod && toMod && fromMod !== toMod);
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
         (focusId && related ? " ssr-hit" : "") +
         (focusId && !related ? " ssr-dim" : "") +
+        (cross ? " cms-cross" : "") +
+        (i === seqCursor && cross ? " cms-cross-hot" : "") +
         '" data-seq-i="' +
         i +
         '" data-kind="' +
@@ -10056,9 +10133,15 @@ function renderSequenceBody() {
         esc(idVal(h.from)) +
         '" data-to="' +
         esc(idVal(h.to)) +
+        '" data-lane-from="' +
+        esc(fromMod) +
+        '" data-lane-to="' +
+        esc(toMod) +
         '" data-fqn="' +
         esc(h.from_fqn) +
         '"' +
+        (cross ? ' data-cms-cross="1"' : "") +
+        (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") +
         (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") +
         '"><div class="k">' +
         esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) +
@@ -10071,10 +10154,14 @@ function renderSequenceBody() {
     })
     .join("");
   return (
-    '<div class="seq-page" data-ssr="1">' +
+    '<div class="seq-page" data-ssr="1" data-cms="1"' +
+    (hotCross ? ' data-cms-cross-hot="1"' : "") +
+    ">" +
     review +
-    '<div class="seq-parts" id="seqParts" style="--seq-n:' +
+    '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' +
     parts.length +
+    ";--seq-lanes:" +
+    lanes.length +
     '">' +
     heads +
     "</div>" +
@@ -10114,6 +10201,7 @@ function sequenceCanvasProps() {
         label: shortOf(p.fqn),
         caption: caption,
         file: paint.file || p.file || "",
+        module: seqModuleOf({ fqn: p.fqn, file: paint.file || p.file || "" }),
         dim: paint.dim || focusDim,
         hit: paint.hit || (!!focusId && focusId === pid),
       };

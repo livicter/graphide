@@ -70,9 +70,11 @@ PATH between two nodes. Play walks the directed hops. Hop-kind mix chart filters
 
 ### Sequence
 
-Story-rich hops with participant highlight. Map focus trail chip carries here and dims non-member hops. Click the chip to jump back to the pinned Map community.
+Story-rich hops with participant highlight. Participants group into module swimlanes; cross-module hops light both lanes as Play walks. Map focus trail chip carries here and dims non-member hops. Click the chip to jump back to the pinned Map community.
 
 ![Sequence story richness](UIUX_sample/sequence-story-richness.png)
+
+![Cross-module sequence swimlane](UIUX_sample/sequence-module-swimlane.png)
 
 ### Data-flow
 
@@ -116,6 +118,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS).
 
-Parked next: cross-module sequence swimlane (dsh NEXT_AFTER) or structural diff.
+Parked next: structural diff overlay (SDO).

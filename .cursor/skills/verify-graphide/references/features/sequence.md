@@ -116,5 +116,13 @@ When a Map community is pinned (`focusTrail`), Sequence remounts `.cft-trail` / 
 
 Sequence `.cft-chip` click returns to the pinned Map community via `returnToFocusTrailMap`. Clear / Escape still clear. Graph-only — no `peekSource`. Screenshot `verification/focus-trail-return.png`. Asserts FTR1–FTR3.
 
+## ADE CMS — Cross-module sequence swimlane
 
+Human reads which modules talk, and in what order, from Sequence alone — no source pane.
+
+- `#seqParts.seq-swimlanes` groups `.seq-part` into `.seq-module-lane[data-module]` with `.seq-module-label` (module from file stem / FQN prefix).
+- Each `.seq-part` carries `data-lane-id` / `data-module`. Hops carry `data-lane-from` / `data-lane-to`; cross-module hops get `.cms-cross` / `data-cms-cross="1"`.
+- Play / hop focus lights `.cms-active-lane` on the from/to modules and keeps the existing playhead (`.seq-hop.on`). Graph-only — no `peekSource`.
+- Canvas layout bands Y by module lane (`layoutSequence` / `groupParticipantsByModule`); nodes expose `data-module`.
+- Asserts CMS1–CMS5. Proof `verification/sequence-module-swimlane.png`.
 

@@ -17051,6 +17051,10 @@
     }
     if (d.side) attrs["data-side"] = d.side;
     if (d.file) attrs["data-file"] = d.file;
+    if (d.module) {
+      attrs["data-module"] = d.module;
+      attrs["data-lane-id"] = d.module;
+    }
     if (d.flow) attrs["data-flow"] = d.flow;
     if (d.hops) attrs["data-hops"] = d.hops;
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
@@ -19053,15 +19057,58 @@
       nodes: nodes.map((n) => ({ ...n, y: (n.y || 0) + need }))
     };
   }
+  function seqModuleOf(p) {
+    const file = p && p.file || "";
+    if (file) {
+      const norm = String(file).replace(/\\/g, "/");
+      const parts = norm.split("/").filter(Boolean);
+      const base = parts[parts.length - 1] || "";
+      const stem = base.replace(/\.[^.]+$/, "");
+      if (stem && stem !== "lib" && stem !== "mod" && stem !== "main" && stem !== "index") return stem;
+      if (parts.length >= 2) return parts[parts.length - 2];
+    }
+    const fqn = p && p.fqn || "";
+    const segs = String(fqn).split(/::|\./).filter(Boolean);
+    if (segs[0] === "crate" && segs[1]) return segs[1];
+    if (segs[0] === "pkg" && segs[1]) return segs[1];
+    if (segs.length >= 2) return segs[segs.length - 2];
+    if (segs[0]) return segs[0];
+    return "module";
+  }
+  function groupParticipantsByModule(participants) {
+    const lanes = [];
+    const index2 = /* @__PURE__ */ new Map();
+    for (const p of participants || []) {
+      const mod = seqModuleOf(p);
+      if (!index2.has(mod)) {
+        index2.set(mod, lanes.length);
+        lanes.push({ id: mod, label: mod, members: [] });
+      }
+      lanes[index2.get(mod)].members.push(p);
+    }
+    return lanes;
+  }
   function layoutSequence(participants, hops) {
     const capped = capSequence(participants, hops);
-    const laid = layoutGraph(capped.participants, capped.hops, {
+    const lanes = groupParticipantsByModule(capped.participants);
+    const ordered = [];
+    for (const lane of lanes) ordered.push(...lane.members);
+    const laid = layoutGraph(ordered.length ? ordered : capped.participants, capped.hops, {
       nodeCap: SEQ_NODE_CAP,
       hopCap: SEQ_HOP_CAP,
       nodeW: DEFAULT_W,
       nodeH: DEFAULT_H
     });
-    return laid;
+    const laneOf = /* @__PURE__ */ new Map();
+    lanes.forEach((lane, li) => {
+      for (const m of lane.members) laneOf.set(String(m.id), li);
+    });
+    const laneH = DEFAULT_H + 48;
+    const nodes = laid.nodes.map((n) => {
+      const li = laneOf.has(n.id) ? laneOf.get(n.id) : 0;
+      return { ...n, y: 24 + li * laneH, laneId: lanes[li] ? lanes[li].id : "module", laneIndex: li };
+    });
+    return { ...laid, nodes, lanes, hops: laid.hops, width: DEFAULT_W, height: DEFAULT_H };
   }
   function layoutLineage(nodes, hops, opts) {
     opts = opts || {};
@@ -19376,6 +19423,7 @@
         // Behavior caption on canvas meta (kind · role/channel · verb) — not file:line.
         meta: p.caption || "",
         file: p.file || "",
+        module: p.module || "",
         dim: !!p.dim,
         hit: !!p.hit,
         surface: "seq-part"
@@ -27864,6 +27912,37 @@
       }
       return { participants, hops };
     }
+    function seqModuleOf2(p) {
+      const file = p && p.file || "";
+      if (file) {
+        const norm = String(file).replace(/\\/g, "/");
+        const bits = norm.split("/").filter(Boolean);
+        const baseName = bits[bits.length - 1] || "";
+        const stem = baseName.replace(/\.[^.]+$/, "");
+        if (stem && stem !== "lib" && stem !== "mod" && stem !== "main" && stem !== "index") return stem;
+        if (bits.length >= 2) return bits[bits.length - 2];
+      }
+      const fqn = p && p.fqn || "";
+      const segs = String(fqn).split(/::|\./).filter(Boolean);
+      if (segs[0] === "crate" && segs[1]) return segs[1];
+      if (segs[0] === "pkg" && segs[1]) return segs[1];
+      if (segs.length >= 2) return segs[segs.length - 2];
+      if (segs[0]) return segs[0];
+      return "module";
+    }
+    function seqModuleLanes(parts) {
+      const lanes = [];
+      const index2 = /* @__PURE__ */ new Map();
+      for (const p of parts || []) {
+        const mod = seqModuleOf2(p);
+        if (!index2.has(mod)) {
+          index2.set(mod, lanes.length);
+          lanes.push({ id: mod, label: mod, members: [] });
+        }
+        lanes[index2.get(mod)].members.push(p);
+      }
+      return lanes;
+    }
     function seqHops() {
       return sequenceOf(sequenceFlow()).hops;
     }
@@ -27989,20 +28068,35 @@
       const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
       const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
-      const heads = parts.map((p) => {
-        const pid = idVal(p.id);
-        const on2 = hot && (idVal(hot.from) === pid || idVal(hot.to) === pid) || focusId && focusId === pid;
-        const match = seqPartMatch(p);
-        const caption = p.caption || seqPartCaption(p, hops);
-        const focusDim = !!(focusId && focusId !== pid);
-        return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (focusId && focusId === pid ? " ssr-hit" : "") + (focusDim ? " ssr-dim" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(pid) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + ' aria-pressed="' + (focusId && focusId === pid ? "true" : "false") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span>" + (caption ? '<span class="seq-part-caption">' + esc(caption) + "</span>" : "") + "</button>";
+      const lanes = seqModuleLanes(parts);
+      const partModule = /* @__PURE__ */ new Map();
+      for (const lane of lanes) {
+        for (const p of lane.members) partModule.set(idVal(p.id), lane.id);
+      }
+      const hotFromMod = hot ? partModule.get(idVal(hot.from)) || "" : "";
+      const hotToMod = hot ? partModule.get(idVal(hot.to)) || "" : "";
+      const hotCross = !!(hot && hotFromMod && hotToMod && hotFromMod !== hotToMod);
+      const heads = lanes.map((lane) => {
+        const laneOn = !!(hot && (lane.id === hotFromMod || lane.id === hotToMod));
+        const membersHtml = lane.members.map((p) => {
+          const pid = idVal(p.id);
+          const on2 = hot && (idVal(hot.from) === pid || idVal(hot.to) === pid) || focusId && focusId === pid;
+          const match = seqPartMatch(p);
+          const caption = p.caption || seqPartCaption(p, hops);
+          const focusDim = !!(focusId && focusId !== pid);
+          return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (focusId && focusId === pid ? " ssr-hit" : "") + (focusDim ? " ssr-dim" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(pid) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '" data-lane-id="' + esc(lane.id) + '" data-module="' + esc(lane.id) + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + ' aria-pressed="' + (focusId && focusId === pid ? "true" : "false") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span>" + (caption ? '<span class="seq-part-caption">' + esc(caption) + "</span>" : "") + "</button>";
+        }).join("");
+        return '<div class="seq-module-lane' + (laneOn ? " cms-active-lane" : "") + '" data-module="' + esc(lane.id) + '" data-lane-id="' + esc(lane.id) + '" data-testid="seq-module-lane-' + esc(lane.id) + '" data-cms-lane="1"><div class="seq-module-label">' + esc(lane.label) + '</div><div class="seq-module-parts" style="--seq-n:' + lane.members.length + '">' + membersHtml + "</div></div>";
       }).join("");
       const list = hopCards.map(({ h, i }) => {
         const caption = h.caption || seqHopCaption(h);
         const related = focusId ? seqPartRelated(h, focusId) : true;
-        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
+        const fromMod = partModule.get(idVal(h.from)) || seqModuleOf2({ fqn: h.from_fqn, file: h.file });
+        const toMod = partModule.get(idVal(h.to)) || seqModuleOf2({ fqn: h.to_fqn, file: h.file });
+        const cross = !!(fromMod && toMod && fromMod !== toMod);
+        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
-      return '<div class="seq-page" data-ssr="1">' + review + '<div class="seq-parts" id="seqParts" style="--seq-n:' + parts.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      return '<div class="seq-page" data-ssr="1" data-cms="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -28025,6 +28119,7 @@
             label: shortOf(p.fqn),
             caption,
             file: paint2.file || p.file || "",
+            module: seqModuleOf2({ fqn: p.fqn, file: paint2.file || p.file || "" }),
             dim: paint2.dim || focusDim,
             hit: paint2.hit || !!focusId && focusId === pid
           };

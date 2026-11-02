@@ -111,15 +111,64 @@ export function reserveBackChannel(laid) {
   };
 }
 
+
+/** Module id from file stem or FQN prefix (crate::bus::x → bus). */
+export function seqModuleOf(p) {
+  const file = (p && p.file) || "";
+  if (file) {
+    const norm = String(file).replace(/\\/g, "/");
+    const parts = norm.split("/").filter(Boolean);
+    const base = parts[parts.length - 1] || "";
+    const stem = base.replace(/\.[^.]+$/, "");
+    if (stem && stem !== "lib" && stem !== "mod" && stem !== "main" && stem !== "index") return stem;
+    if (parts.length >= 2) return parts[parts.length - 2];
+  }
+  const fqn = (p && p.fqn) || "";
+  const segs = String(fqn).split(/::|\./).filter(Boolean);
+  if (segs[0] === "crate" && segs[1]) return segs[1];
+  if (segs[0] === "pkg" && segs[1]) return segs[1];
+  if (segs.length >= 2) return segs[segs.length - 2];
+  if (segs[0]) return segs[0];
+  return "module";
+}
+
+/** Ordered unique module lanes preserving first-seen participant order. */
+export function groupParticipantsByModule(participants) {
+  const lanes = [];
+  const index = new Map();
+  for (const p of participants || []) {
+    const mod = seqModuleOf(p);
+    if (!index.has(mod)) {
+      index.set(mod, lanes.length);
+      lanes.push({ id: mod, label: mod, members: [] });
+    }
+    lanes[index.get(mod)].members.push(p);
+  }
+  return lanes;
+}
+
 export function layoutSequence(participants, hops) {
   const capped = capSequence(participants, hops);
-  const laid = layoutGraph(capped.participants, capped.hops, {
+  const lanes = groupParticipantsByModule(capped.participants);
+  // Keep dagre X; band Y by module lane so the canvas reads as a swimlane.
+  const ordered = [];
+  for (const lane of lanes) ordered.push(...lane.members);
+  const laid = layoutGraph(ordered.length ? ordered : capped.participants, capped.hops, {
     nodeCap: SEQ_NODE_CAP,
     hopCap: SEQ_HOP_CAP,
     nodeW: DEFAULT_W,
     nodeH: DEFAULT_H,
   });
-  return laid;
+  const laneOf = new Map();
+  lanes.forEach((lane, li) => {
+    for (const m of lane.members) laneOf.set(String(m.id), li);
+  });
+  const laneH = DEFAULT_H + 48;
+  const nodes = laid.nodes.map((n) => {
+    const li = laneOf.has(n.id) ? laneOf.get(n.id) : 0;
+    return { ...n, y: 24 + li * laneH, laneId: lanes[li] ? lanes[li].id : "module", laneIndex: li };
+  });
+  return { ...laid, nodes, lanes, hops: laid.hops, width: DEFAULT_W, height: DEFAULT_H };
 }
 
 /** Rank columns: upstream (left) | focus | downstream (right). Dagre nodesep. */
