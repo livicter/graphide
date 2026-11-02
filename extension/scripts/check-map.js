@@ -363,6 +363,7 @@ assert(featReadme.includes("program-chips.md") && featReadme.includes("program-c
 assert(featReadme.includes("all-programs.md") && featReadme.includes("all-programs.png"), "feature README must list all-programs.md");
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
 assert(featReadme.includes("delta-sticky-views.md") && featReadme.includes("delta-sticky-views.png"), "feature README must list delta-sticky-views.md");
+assert(featReadme.includes("structural-diff-overlay.md") && featReadme.includes("structural-diff-overlay.png"), "feature README must list structural-diff-overlay.md");
 const stickyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md"), "utf8");
 assert(
   stickyMap.includes("## Sub-features") &&
@@ -468,6 +469,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/stamp-recheck.md")), "stamp-recheck feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/structural-diff-overlay.md")), "structural-diff-overlay feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
@@ -992,6 +994,20 @@ assert(driver.includes("CMS1") && driver.includes("CMS3") && driver.includes("se
 assert(js.includes("seqModuleOf") && js.includes("seqModuleLanes") && js.includes("seq-module-lane") && js.includes("data-cms"), "desk.js must own Cross-module sequence swimlane helpers");
 assert(css.includes(".seq-module-lane") && css.includes(".seq-module-label") && css.includes("cms-active-lane") && css.includes("cms-cross"), "main.css must theme module swimlanes + cms-active/cross");
 assert(sequenceMap.includes("CMS1") && sequenceMap.includes("seq-module-lane") && sequenceMap.includes("sequence-module-swimlane.png") && sequenceMap.includes("peekSource"), "sequence feature map must name CMS / seq-module-lane / proof / no peekSource");
+
+const sdoMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/structural-diff-overlay.md"), "utf8");
+assert(
+  sdoMap.includes("## Sub-features") &&
+    sdoMap.includes("## How to get to it (user POV)") &&
+    sdoMap.includes("## Driving it with the harness") &&
+    sdoMap.includes("## Gotchas"),
+  "structural-diff-overlay feature map must use the four headings"
+);
+
+assert(driver.includes("SDO1") && driver.includes("SDO3") && driver.includes("structural-diff-overlay.png") && driver.includes("sdo-bar"), "verify driver must prove Structural diff overlay SDO1–SDO3");
+assert(js.includes("structuralDiffFilter") && js.includes("structuralDiffChartHtml") && js.includes("bindStructuralDiffChart") && js.includes("toggleStructuralDiffFilter") && js.includes("applyStructuralDiffPaint"), "desk.js must own Structural diff overlay filter helpers");
+assert(css.includes(".sdo-chart") && css.includes(".sdo-bar") && css.includes("sdo-hit") && css.includes("sdo-dim"), "main.css must theme Structural diff overlay chart + sdo-hit/sdo-dim");
+assert(sdoMap.includes("SDO1") && sdoMap.includes("sdo-chart") && sdoMap.includes("structural-diff-overlay.png") && sdoMap.includes("peekSource"), "structural-diff-overlay feature map must name SDO / sdo-chart / proof / no peekSource");
 
 
 

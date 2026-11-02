@@ -1,14 +1,14 @@
 # graphide immutable specs v1
-# seal-sha256: 34e648657a97ec2b6d87d4d2efa667c29d588722afa2c1c0644bc5f2b962e268
+# seal-sha256: 81dafdf274b00e342970d407bf3e14d271c44be9d8cc51b82563f858b69c3752
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
-2e6f8188d2b6179f61b653104e9741ad09be74a943a5aab9f712fa8de2f532c4  .cursor/skills/verify-graphide/references/features/README.md
+d177b9bc8fb801c27bba4fa19d4168a66e9471c6bda3b3b99406134f5041d795  .cursor/skills/verify-graphide/references/features/README.md
 f5a35dc3f3c3ae3b7252cc5aec3e49f238de19650a70ce8a8cb72965789b78eb  .cursor/skills/verify-graphide/references/features/all-programs.md
 7c7d00eadb50157f5657847d7af7beb74aa40f151ea3c4e39b038b2ae01b93d5  .cursor/skills/verify-graphide/references/features/appearance.md
 1b3c3df8548e0c7fada59be5dd9853df5c2aab4140a81b50467191c5eb4eb0f0  .cursor/skills/verify-graphide/references/features/apple-chrome-icons.md
 c24abe2bf41b40b719f714fb7e6d146194e34b5e5c97ac12e7383f56706d14fa  .cursor/skills/verify-graphide/references/features/apple-chrome.md
-dfc2b73c08acd789df5921e3b60094f847ac411552ef37b03001e48835179769  .cursor/skills/verify-graphide/references/features/architecture-delta.md
+ee7ab4a145600387ef8e93722b96ee9f79945e1a5f6030a50227ba61ddd40161  .cursor/skills/verify-graphide/references/features/architecture-delta.md
 dcb660a3ab50616f329b70de41fc4a655227839d4e98d545ba562bd389b20cd1  .cursor/skills/verify-graphide/references/features/ask.md
 67c36decc45ef5798dda1034042dff795e2911ed6b431ab3d344b517b01fd1de  .cursor/skills/verify-graphide/references/features/cancel-review.md
 010397ccd32a39676acd91f4da6d2c5bb3738e3404489975e332b878ecbcd0eb  .cursor/skills/verify-graphide/references/features/canvas-recycle.md
@@ -59,6 +59,7 @@ e1ea0d4de1a9f29967298123e38778f8625bbe5a094db45325d71865b4d1fddc  .cursor/skills
 b7bdab4c9df6790939e0136b51c1f5f2829d5bbce092d58af7e6ecb5336d615d  .cursor/skills/verify-graphide/references/features/stamp-recheck.md
 08aa69f1986811a5d8baae56a1e4a42f7447b196e97120dc1a2fe510431ed5a2  .cursor/skills/verify-graphide/references/features/stamp-skip.md
 337da263ea618b1d06ac38e19fc8ab43b80327e9b7dd990e93214ad49882d83e  .cursor/skills/verify-graphide/references/features/sticky-clusters.md
+fa38a7cc888952b53043de229e06eeeab386a1950da8e6335b36c40923026108  .cursor/skills/verify-graphide/references/features/structural-diff-overlay.md
 393a56de71e2fc3881fd97d7b7d4ba2b99168fbc68927347c55a21747d41e319  .cursor/skills/verify-graphide/references/features/timeline.md
 f0f44e6459997186c6a3f86d12c92f92c8936eb8a5e57423896f6c9b13777dd7  .cursor/skills/verify-graphide/references/features/trace-passport-deeplink.md
 bc1bd91ed4c95ffe9c0280e9efc07270daac3c995cfafd1a7816e0fd7a996a3b  .cursor/skills/verify-graphide/references/features/trace.md
@@ -68,6 +69,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-00a8e6d9aad1812865730412a98a431b68ecea7c46f2d2e084166adf6c6b8649  extension/scripts/check-map.js
+5f3840c3d9ea54ad060941fec7504c248b70c58019049271bc76a70aab5282eb  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-4a7bcf5e4c7961ac2d5fc2fb41fb8aa8716e1b2044e21b0dab8d0ff13953f33c  scripts/verify-graphide.js
+7c170e0c5b213fcde83c7c7ff17211ce1e2a00a7dde4c7a984a7b7de18d0540b  scripts/verify-graphide.js

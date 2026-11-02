@@ -37036,6 +37036,167 @@ async function main() {
     );
     assertNoStampDir("SV5", "Delta sticky views did not write .graphide/stamps/");
 
+    // ADE Structural diff overlay (SDO1–SDO5) — status bars filter Delta facts + canvas
+    {
+      const sdoUrl =
+        origin + "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
+      console.log("sdo-overlay", sdoUrl);
+      await page.goto(sdoUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector('#workspaces [data-ws="delta"].on, .delta-page', { timeout: 15000 });
+      await page.waitForSelector(".sdo-strip .sdo-chart .sdo-bar[data-sdo-kind]", { timeout: 8000 });
+      const sdo1 = await page.evaluate(() => {
+        const strip = document.querySelector('.sdo-strip[data-sdo="1"]');
+        const bars = [...document.querySelectorAll(".sdo-chart .sdo-bar[data-sdo-kind]")];
+        const facts = [...document.querySelectorAll("#deltaFacts .delta-fact[data-delta-kind]")];
+        const kinds = bars.map((b) => b.getAttribute("data-sdo-kind"));
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="delta"]');
+        return {
+          strip: !!strip,
+          bars: bars.length,
+          kinds,
+          facts: facts.length,
+          hasAdded: kinds.includes("added"),
+          deltaOn: !!(ws && ws.classList.contains("on")),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sdo1ok = !!(
+        sdo1 &&
+        sdo1.strip &&
+        sdo1.bars >= 1 &&
+        sdo1.facts >= 1 &&
+        sdo1.hasAdded &&
+        sdo1.deltaOn &&
+        sdo1.srcHidden
+      );
+      record(
+        "SDO1",
+        "Delta .sdo-strip/.sdo-chart/.sdo-bar present with status-tagged facts",
+        !!sdo1ok,
+        JSON.stringify(sdo1)
+      );
+
+      const sdo2 = await page.evaluate(() => {
+        const addedBar = document.querySelector('.sdo-bar[data-sdo-kind="added"]');
+        if (!addedBar) return { ok: false, reason: "no added bar" };
+        addedBar.click();
+        const facts = [...document.querySelectorAll("#deltaFacts .delta-fact[data-delta-kind]")];
+        const hitFacts = facts.filter((el) => el.classList.contains("sdo-hit"));
+        const dimFacts = facts.filter((el) => el.classList.contains("sdo-dim"));
+        const nodes = [
+          ...document.querySelectorAll(
+            "#deltaCanvas .vnode[data-delta-state], #deltaCanvas .react-flow__node[data-delta-state]"
+          ),
+        ];
+        const hitNodes = nodes.filter((el) => el.classList.contains("sdo-hit"));
+        const dimNodes = nodes.filter((el) => el.classList.contains("sdo-dim"));
+        const filtering = !!(
+          document.querySelector("#deltaCanvas.sdo-filtering") ||
+          document.querySelector(".sdo-strip.sdo-filtering") ||
+          document.querySelector(".delta-page.sdo-filtering")
+        );
+        const pressed = [...document.querySelectorAll(".sdo-bar[data-sdo-kind]")].some(
+          (b) => b.getAttribute("data-sdo-kind") === "added" && b.getAttribute("aria-pressed") === "true"
+        );
+        const allHitAdded = hitFacts.every((el) => (el.getAttribute("data-delta-kind") || "") === "added");
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="delta"]');
+        return {
+          ok: true,
+          filtering,
+          pressed,
+          hitFacts: hitFacts.length,
+          dimFacts: dimFacts.length,
+          hitNodes: hitNodes.length,
+          dimNodes: dimNodes.length,
+          nodes: nodes.length,
+          allHitAdded,
+          deltaOn: !!(ws && ws.classList.contains("on")),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sdo2ok = !!(
+        sdo2 &&
+        sdo2.ok &&
+        sdo2.filtering &&
+        sdo2.pressed &&
+        sdo2.hitFacts >= 1 &&
+        sdo2.dimFacts >= 1 &&
+        sdo2.allHitAdded &&
+        sdo2.deltaOn &&
+        sdo2.srcHidden
+      );
+      record(
+        "SDO2",
+        "Added bar filters Delta facts/nodes: hit added, dim others; Delta stays; no source",
+        !!sdo2ok,
+        JSON.stringify(sdo2)
+      );
+
+      const sdo3 = await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        const pressed = [...document.querySelectorAll(".sdo-bar[aria-pressed='true']")].length;
+        const hit = [...document.querySelectorAll("#deltaFacts .delta-fact.sdo-hit")].length;
+        const filtering = !!(
+          document.querySelector("#deltaCanvas.sdo-filtering") ||
+          document.querySelector(".sdo-strip.sdo-filtering") ||
+          document.querySelector(".delta-page.sdo-filtering")
+        );
+        const ws = document.querySelector('#workspaces [data-ws="delta"]');
+        const pageEl = document.querySelector(".delta-page");
+        return {
+          pressed,
+          hit,
+          filtering,
+          deltaOn: !!(ws && ws.classList.contains("on")),
+          pagePresent: !!pageEl,
+        };
+      });
+      const sdo3ok = !!(
+        sdo3 &&
+        sdo3.pressed === 0 &&
+        sdo3.hit === 0 &&
+        !sdo3.filtering &&
+        sdo3.deltaOn &&
+        sdo3.pagePresent
+      );
+      record(
+        "SDO3",
+        "Escape clears Structural diff overlay filter without closing Delta",
+        !!sdo3ok,
+        JSON.stringify(sdo3)
+      );
+
+      // Re-engage added for screenshot proof
+      await page.evaluate(() => {
+        const addedBar = document.querySelector('.sdo-bar[data-sdo-kind="added"]');
+        if (addedBar) addedBar.click();
+      });
+      await page.waitForTimeout(80);
+      await shot(page, "structural-diff-overlay.png");
+      const sdoShot = checks.find((c) => c.id === "shot:structural-diff-overlay.png");
+      const sdo4ok = !!(sdo1ok && sdo2ok && sdo3ok && sdoShot && sdoShot.pass);
+      record(
+        "SDO4",
+        "screenshot structural-diff-overlay.png not black; Structural diff overlay proven",
+        !!sdo4ok,
+        JSON.stringify({
+          shot: sdoShot ? sdoShot.detail : "missing",
+          sdo1: !!sdo1ok,
+          sdo2: !!sdo2ok,
+          sdo3: !!sdo3ok,
+        })
+      );
+      assertNoStampDir("SDO5", "Structural diff overlay step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const bars = [...document.querySelectorAll(".sdo-bar[aria-pressed='true']")];
+        for (const el of bars) el.click();
+      });
+      await page.waitForTimeout(40);
+    }
+
+
     // Member file path is not an FQN token. Same Delta fact filter as semantic file match (file half of deltaFacts).
     // fixtures/demo vs demo-parent exposes added crate::bus::sneaky_helper on src/bus.rs so a file query can keep the fact.
     const deltaFactsBeforeFile = await page.evaluate(() => document.querySelectorAll("#deltaFacts .delta-fact").length);
@@ -41812,7 +41973,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
