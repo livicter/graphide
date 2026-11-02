@@ -38524,7 +38524,175 @@ async function main() {
       if (box && box.blur) box.blur();
     });
 
+
     assertNoStampDir("L8", "Lifecycle step did not write .graphide/stamps/");
+
+    // ADE Lifecycle transition overlay (LSC1–LSC5) — event bars filter Lifecycle transitions + canvas
+    {
+      const lscUrl =
+        origin + "/scripts/webview-harness.html?lifecycle=1&probe=0&require=1&ws=lifecycle";
+      console.log("lsc-overlay", lscUrl);
+      await page.goto(lscUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector('#workspaces [data-ws="lifecycle"].on, .lc-page', { timeout: 15000 });
+      await page.waitForSelector(".lsc-strip .lsc-chart .lsc-bar[data-lsc-kind]", { timeout: 8000 });
+      const lsc1 = await page.evaluate(() => {
+        const strip = document.querySelector('.lsc-strip[data-lsc="1"]');
+        const bars = [...document.querySelectorAll(".lsc-chart .lsc-bar[data-lsc-kind]")];
+        const hops = [...document.querySelectorAll("#lcTrans .lc-trans[data-lc-event]")];
+        const kinds = bars.map((b) => b.getAttribute("data-lsc-kind"));
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="lifecycle"]');
+        const review = document.getElementById("lcReview");
+        return {
+          strip: !!strip,
+          bars: bars.length,
+          kinds,
+          hops: hops.length,
+          hasRecover: kinds.includes("recover"),
+          hasPlay: kinds.includes("play"),
+          lifecycleOn: !!(ws && ws.classList.contains("on")),
+          review: !!review,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lsc1ok = !!(
+        lsc1 &&
+        lsc1.strip &&
+        lsc1.bars >= 1 &&
+        lsc1.hops >= 1 &&
+        lsc1.hasRecover &&
+        lsc1.hasPlay &&
+        lsc1.lifecycleOn &&
+        lsc1.review &&
+        lsc1.srcHidden
+      );
+      record(
+        "LSC1",
+        "Lifecycle .lsc-strip/.lsc-chart/.lsc-bar present with event-tagged transitions",
+        !!lsc1ok,
+        JSON.stringify(lsc1)
+      );
+
+      const lsc2 = await page.evaluate(() => {
+        const recoverBar = document.querySelector('.lsc-bar[data-lsc-kind="recover"]');
+        if (!recoverBar) return { ok: false, reason: "no recover bar" };
+        recoverBar.click();
+        const hops = [...document.querySelectorAll("#lcTrans .lc-trans[data-lc-event]")];
+        const hitHops = hops.filter((el) => el.classList.contains("lsc-hit"));
+        const dimHops = hops.filter((el) => el.classList.contains("lsc-dim"));
+        const states = [...document.querySelectorAll("#lcLanes .lc-state[data-lc-id]")];
+        const hitStates = states.filter((el) => el.classList.contains("lsc-hit"));
+        const dimStates = states.filter((el) => el.classList.contains("lsc-dim"));
+        const filtering = !!(
+          document.querySelector("#lcCanvas.lsc-filtering") ||
+          document.querySelector(".lsc-strip.lsc-filtering") ||
+          document.querySelector(".lc-page.lsc-filtering")
+        );
+        const pressed = [...document.querySelectorAll(".lsc-bar[data-lsc-kind]")].some(
+          (b) => b.getAttribute("data-lsc-kind") === "recover" && b.getAttribute("aria-pressed") === "true"
+        );
+        const allHitRecover = hitHops.every((el) => (el.getAttribute("data-lc-event") || "") === "recover");
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="lifecycle"]');
+        const review = document.getElementById("lcReview");
+        return {
+          ok: true,
+          filtering,
+          pressed,
+          hitHops: hitHops.length,
+          dimHops: dimHops.length,
+          hitStates: hitStates.length,
+          dimStates: dimStates.length,
+          states: states.length,
+          allHitRecover,
+          lifecycleOn: !!(ws && ws.classList.contains("on")),
+          review: !!review,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lsc2ok = !!(
+        lsc2 &&
+        lsc2.ok &&
+        lsc2.filtering &&
+        lsc2.pressed &&
+        lsc2.hitHops >= 1 &&
+        lsc2.dimHops >= 1 &&
+        lsc2.allHitRecover &&
+        lsc2.lifecycleOn &&
+        lsc2.review &&
+        lsc2.srcHidden
+      );
+      record(
+        "LSC2",
+        "Recover bar filters Lifecycle hops/states: hit recover, dim others; Lifecycle stays; no source",
+        !!lsc2ok,
+        JSON.stringify(lsc2)
+      );
+
+      const lsc3 = await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        const pressed = [...document.querySelectorAll(".lsc-bar[aria-pressed='true']")].length;
+        const hit = [...document.querySelectorAll("#lcTrans .lc-trans.lsc-hit")].length;
+        const filtering = !!(
+          document.querySelector("#lcCanvas.lsc-filtering") ||
+          document.querySelector(".lsc-strip.lsc-filtering") ||
+          document.querySelector(".lc-page.lsc-filtering")
+        );
+        const ws = document.querySelector('#workspaces [data-ws="lifecycle"]');
+        const pageEl = document.querySelector(".lc-page");
+        const review = document.getElementById("lcReview");
+        return {
+          pressed,
+          hit,
+          filtering,
+          lifecycleOn: !!(ws && ws.classList.contains("on")),
+          pagePresent: !!pageEl,
+          review: !!review,
+        };
+      });
+      const lsc3ok = !!(
+        lsc3 &&
+        lsc3.pressed === 0 &&
+        lsc3.hit === 0 &&
+        !lsc3.filtering &&
+        lsc3.lifecycleOn &&
+        lsc3.pagePresent &&
+        lsc3.review
+      );
+      record(
+        "LSC3",
+        "Escape clears Lifecycle transition overlay filter without leaving Lifecycle",
+        !!lsc3ok,
+        JSON.stringify(lsc3)
+      );
+
+      // Re-engage recover for screenshot proof
+      await page.evaluate(() => {
+        const recoverBar = document.querySelector('.lsc-bar[data-lsc-kind="recover"]');
+        if (recoverBar) recoverBar.click();
+      });
+      await page.waitForTimeout(80);
+      await shot(page, "lifecycle-transition-overlay.png");
+      const lscShot = checks.find((c) => c.id === "shot:lifecycle-transition-overlay.png");
+      const lsc4ok = !!(lsc1ok && lsc2ok && lsc3ok && lscShot && lscShot.pass);
+      record(
+        "LSC4",
+        "screenshot lifecycle-transition-overlay.png not black; Lifecycle transition overlay proven",
+        !!lsc4ok,
+        JSON.stringify({
+          shot: lscShot ? lscShot.detail : "missing",
+          lsc1: !!lsc1ok,
+          lsc2: !!lsc2ok,
+          lsc3: !!lsc3ok,
+        })
+      );
+      assertNoStampDir("LSC5", "Lifecycle transition overlay step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const bars = [...document.querySelectorAll(".lsc-bar[aria-pressed='true']")];
+        for (const el of bars) el.click();
+      });
+      await page.waitForTimeout(40);
+    }
 
     const lineageUrl = origin + LINEAGE_HARNESS;
     console.log("lineage " + lineageUrl);
@@ -41973,7 +42141,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

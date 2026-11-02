@@ -20124,6 +20124,7 @@
     let decisionAttestFilter = null;
     let passportDeltaFilter = null;
     let structuralDiffFilter = null;
+    let lifecycleTransitionFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
     let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -20455,6 +20456,13 @@
         structuralDiffFilter = null;
         applyStructuralDiffPaint();
         syncStructuralDiffBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "lifecycle" && lifecycleTransitionFilter) {
+        e.preventDefault();
+        lifecycleTransitionFilter = null;
+        applyLifecycleTransitionPaint();
+        syncLifecycleTransitionBars();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && passportDeltaFilter) {
@@ -27354,6 +27362,133 @@
       });
       syncStructuralDiffBars();
     }
+    function lifecycleTransitionCounts() {
+      const map = /* @__PURE__ */ new Map();
+      const order = ["play", "wait", "stamp", "skip", "break", "recover"];
+      for (const h of lcTrans()) {
+        const ev = String(h && h.label || "");
+        if (!order.includes(ev)) continue;
+        map.set(ev, (map.get(ev) || 0) + 1);
+      }
+      return map;
+    }
+    function lifecycleTransitionChartHtml(map) {
+      const order = ["play", "wait", "stamp", "skip", "break", "recover"];
+      const labels = {
+        play: "Play",
+        wait: "Wait",
+        stamp: "Stamp",
+        skip: "Skip",
+        break: "Break",
+        recover: "Recover"
+      };
+      const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(lifecycleTransitionFilter && String(lifecycleTransitionFilter) === String(e[0]));
+        return '<button type="button" class="lsc-bar' + (on2 ? " on" : "") + '" data-lsc-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(labels[e[0]] || e[0]) + " · " + e[1] + '" style="--lsc-pct:' + pct + '%"><span class="lsc-fill" aria-hidden="true"></span><span class="lsc-label"><b>' + esc(labels[e[0]] || e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="lsc-chart" role="group" aria-label="Lifecycle transition overlay event bars" data-lsc-axis-group="event">' + bars + "</div>";
+    }
+    function lifecycleTransitionStripHtml() {
+      const map = lifecycleTransitionCounts();
+      const chart = lifecycleTransitionChartHtml(map);
+      if (!chart) return "";
+      const total = [...map.values()].reduce((a, b) => a + b, 0);
+      return '<div class="lsc-strip" data-lsc="1" role="group" aria-label="Lifecycle transition overlay"><span class="lsc-stat"><i class="k">Transitions</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function toggleLifecycleTransitionFilter(kind) {
+      if (!kind) return;
+      if (lifecycleTransitionFilter && String(lifecycleTransitionFilter) === String(kind)) lifecycleTransitionFilter = null;
+      else lifecycleTransitionFilter = String(kind);
+      applyLifecycleTransitionPaint();
+      syncLifecycleTransitionBars();
+    }
+    function syncLifecycleTransitionBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".lsc-bar[data-lsc-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-lsc-kind") || "";
+        const on2 = !!(lifecycleTransitionFilter && String(lifecycleTransitionFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".lsc-strip");
+      if (strip) strip.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+      const page = canvas.querySelector(".lc-page");
+      if (page) page.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+      const canvasHost = document.getElementById("lcCanvas");
+      if (canvasHost) canvasHost.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+      const lanes = document.getElementById("lcLanes");
+      if (lanes) lanes.classList.toggle("lsc-filtering", !!lifecycleTransitionFilter);
+    }
+    function bindLifecycleTransitionChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".lsc-bar[data-lsc-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleLifecycleTransitionFilter(el2.getAttribute("data-lsc-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleLifecycleTransitionFilter(el2.getAttribute("data-lsc-kind"));
+        };
+      });
+    }
+    function applyLifecycleTransitionPaint() {
+      if (!canvas) return;
+      const filter2 = lifecycleTransitionFilter ? String(lifecycleTransitionFilter) : "";
+      const hitIds = /* @__PURE__ */ new Set();
+      canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
+        const ev = el2.getAttribute("data-lc-event") || "";
+        const hit = !!(filter2 && ev === filter2);
+        const dim = !!(filter2 && ev !== filter2);
+        el2.classList.toggle("lsc-hit", hit);
+        el2.classList.toggle("lsc-dim", dim);
+        if (hit) {
+          const from = el2.getAttribute("data-from") || "";
+          const to = el2.getAttribute("data-to") || "";
+          if (from) hitIds.add(from);
+          if (to) hitIds.add(to);
+        }
+      });
+      canvas.querySelectorAll("#lcLanes .lc-state").forEach((el2) => {
+        const id2 = el2.getAttribute("data-lc-id") || "";
+        const hit = !!(filter2 && hitIds.has(id2));
+        const dim = !!(filter2 && !hitIds.has(id2));
+        el2.classList.toggle("lsc-hit", hit);
+        el2.classList.toggle("lsc-dim", dim);
+      });
+      const host = document.getElementById("lcCanvas");
+      const nodes = host ? host.querySelectorAll(".vnode, .react-flow__node, .lc-state") : [];
+      nodes.forEach((el2) => {
+        if (el2.classList.contains("lsc-bar")) return;
+        const id2 = el2.getAttribute("data-lc-id") || el2.getAttribute("data-id") || el2.getAttribute("data-node-id") || "";
+        const hit = !!(filter2 && id2 && hitIds.has(id2));
+        const dim = !!(filter2 && (!id2 || !hitIds.has(id2)));
+        el2.classList.toggle("lsc-hit", hit);
+        el2.classList.toggle("lsc-dim", dim);
+      });
+      if (host) {
+        host.querySelectorAll(".react-flow__edge, .lc-edge, [data-lc-event]").forEach((el2) => {
+          if (el2.classList.contains("lsc-bar") || el2.classList.contains("lc-trans")) return;
+          const ev = el2.getAttribute("data-lc-event") || el2.getAttribute("data-kind") || "";
+          if (!filter2) {
+            el2.classList.remove("lsc-hit", "lsc-dim");
+            return;
+          }
+          if (ev) {
+            el2.classList.toggle("lsc-hit", ev === filter2);
+            el2.classList.toggle("lsc-dim", ev !== filter2);
+          }
+        });
+      }
+      syncLifecycleTransitionBars();
+    }
     function applyDeltaFactView(fact) {
       if (!fact) return;
       if (fact.class === "community") {
@@ -29166,7 +29301,7 @@
         return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + (lcQ && match ? " hit" : "") + (lcQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"' + (e.file ? ' data-file="' + esc(e.file) + '"' : "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
       }).join("");
       const endsBlock = ends.length ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>" : "";
-      return '<div class="lc-page">' + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
+      return '<div class="lc-page">' + lifecycleTransitionStripHtml() + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
     }
     function lifecycleWorkspaceKey() {
       const flow = lifecycleFlow();
@@ -29254,6 +29389,7 @@
       if (host) renderLifecycleCanvas(host, lifecycleCanvasProps());
       else unmountReviewCanvas();
       applyGraphFilter();
+      applyLifecycleTransitionPaint();
     }
     function bindLifecyclePage() {
       canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
@@ -29307,6 +29443,8 @@
           stepLcWalk(1);
         };
       if (play) play.onclick = () => toggleLcReview();
+      bindLifecycleTransitionChart();
+      applyLifecycleTransitionPaint();
     }
     function isTrajectoryFixture(v) {
       if (!(v && typeof v === "object" && typeof v.id === "string" && Array.isArray(v.nodes) && Array.isArray(v.edges))) {

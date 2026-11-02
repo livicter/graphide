@@ -2453,6 +2453,81 @@ button.stat-chip.omc-chip:focus-visible {
 }
 
 
+
+/* ADE LSC — Lifecycle transition overlay (event bars on Lifecycle) */
+.lsc-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 2px 8px 4px;
+  font-size: 10px;
+  max-height: 40px;
+  overflow: hidden;
+}
+.lsc-stat { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lsc-stat .k { opacity: 0.7; font-style: normal; }
+.lsc-stat .n { font-size: 12px; font-weight: 600; }
+.lsc-chart {
+  display: inline-flex;
+  gap: 4px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.lsc-bar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 64px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, transparent);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.lsc-bar .lsc-fill {
+  position: absolute;
+  left: 0; bottom: 0; top: 0;
+  width: var(--lsc-pct, 0%);
+  background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 35%, transparent);
+  pointer-events: none;
+}
+.lsc-bar .lsc-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.lsc-bar.on { border-color: var(--vscode-focusBorder); }
+.lsc-bar.on .lsc-fill {
+  background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 55%, transparent);
+}
+.lsc-bar:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.lc-page.lsc-filtering #lcTrans .lc-trans.lsc-dim,
+.lc-page.lsc-filtering #lcLanes .lc-state.lsc-dim,
+#lcCanvas.lsc-filtering .vnode.lsc-dim,
+#lcCanvas.lsc-filtering .react-flow__node.lsc-dim,
+#lcLanes.lsc-filtering .lc-state.lsc-dim {
+  opacity: 0.22;
+}
+.lc-page.lsc-filtering #lcTrans .lc-trans.lsc-hit,
+.lc-page.lsc-filtering #lcLanes .lc-state.lsc-hit,
+#lcCanvas.lsc-filtering .vnode.lsc-hit,
+#lcCanvas.lsc-filtering .react-flow__node.lsc-hit,
+#lcLanes.lsc-filtering .lc-state.lsc-hit {
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+.lsc-strip.lsc-filtering {
+  outline: 1px dashed color-mix(in srgb, var(--vscode-focusBorder) 50%, transparent);
+  outline-offset: 2px;
+}
+
 /* ADE VTS — Value-trail Sankey (pick node → producers|focus|consumers) */
 .vts-strip {
   display: flex;

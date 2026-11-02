@@ -364,6 +364,7 @@ assert(featReadme.includes("all-programs.md") && featReadme.includes("all-progra
 assert(featReadme.includes("sticky-clusters.md") && featReadme.includes("sticky-clusters.png"), "feature README must list sticky-clusters.md");
 assert(featReadme.includes("delta-sticky-views.md") && featReadme.includes("delta-sticky-views.png"), "feature README must list delta-sticky-views.md");
 assert(featReadme.includes("structural-diff-overlay.md") && featReadme.includes("structural-diff-overlay.png"), "feature README must list structural-diff-overlay.md");
+assert(featReadme.includes("lifecycle-transition-overlay.md") && featReadme.includes("lifecycle-transition-overlay.png"), "feature README must list lifecycle-transition-overlay.md");
 const stickyMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md"), "utf8");
 assert(
   stickyMap.includes("## Sub-features") &&
@@ -470,6 +471,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sticky-clusters.md")), "sticky-clusters feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-sticky-views.md")), "delta-sticky-views feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/structural-diff-overlay.md")), "structural-diff-overlay feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-transition-overlay.md")), "lifecycle-transition-overlay feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md")), "lineage feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md")), "overview feature map missing");
 const overviewMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/overview.md"), "utf8");
@@ -478,6 +480,7 @@ const openSliceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/
 const routeMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/route.md"), "utf8");
 const lineageMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage.md"), "utf8");
 const dataflowMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow.md"), "utf8");
+const lifecycleMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle.md"), "utf8");
 const sequenceMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/python-desk.md")), "python-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
@@ -1008,6 +1011,22 @@ assert(driver.includes("SDO1") && driver.includes("SDO3") && driver.includes("st
 assert(js.includes("structuralDiffFilter") && js.includes("structuralDiffChartHtml") && js.includes("bindStructuralDiffChart") && js.includes("toggleStructuralDiffFilter") && js.includes("applyStructuralDiffPaint"), "desk.js must own Structural diff overlay filter helpers");
 assert(css.includes(".sdo-chart") && css.includes(".sdo-bar") && css.includes("sdo-hit") && css.includes("sdo-dim"), "main.css must theme Structural diff overlay chart + sdo-hit/sdo-dim");
 assert(sdoMap.includes("SDO1") && sdoMap.includes("sdo-chart") && sdoMap.includes("structural-diff-overlay.png") && sdoMap.includes("peekSource"), "structural-diff-overlay feature map must name SDO / sdo-chart / proof / no peekSource");
+
+const lscMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-transition-overlay.md"), "utf8");
+assert(
+  lscMap.includes("## Sub-features") &&
+    lscMap.includes("## How to get to it (user POV)") &&
+    lscMap.includes("## Driving it with the harness") &&
+    lscMap.includes("## Gotchas"),
+  "lifecycle-transition-overlay feature map must use the four headings"
+);
+
+assert(driver.includes("LSC1") && driver.includes("LSC3") && driver.includes("lifecycle-transition-overlay.png") && driver.includes("lsc-bar"), "verify driver must prove Lifecycle transition overlay LSC1–LSC3");
+assert(js.includes("lifecycleTransitionFilter") && js.includes("lifecycleTransitionChartHtml") && js.includes("bindLifecycleTransitionChart") && js.includes("toggleLifecycleTransitionFilter") && js.includes("applyLifecycleTransitionPaint"), "desk.js must own Lifecycle transition overlay filter helpers");
+assert(css.includes(".lsc-chart") && css.includes(".lsc-bar") && css.includes("lsc-hit") && css.includes("lsc-dim"), "main.css must theme Lifecycle transition overlay chart + lsc-hit/lsc-dim");
+assert(lscMap.includes("LSC1") && lscMap.includes("lsc-chart") && lscMap.includes("lifecycle-transition-overlay.png") && lscMap.includes("peekSource"), "lifecycle-transition-overlay feature map must name LSC / lsc-chart / proof / no peekSource");
+assert(lifecycleMap.includes("LSC1") && lifecycleMap.includes("lsc-bar") && lifecycleMap.includes("lifecycle-transition-overlay.png"), "lifecycle feature map must point at LSC overlay");
+
 
 
 
