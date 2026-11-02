@@ -41,6 +41,7 @@ owns this folder.
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |
+| [registry-audit-kind-mix.md](registry-audit-kind-mix.md) | Registry audit kind-mix bars | explorer · `registry-audit-kind-mix.png` |
 | [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |

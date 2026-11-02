@@ -197,6 +197,7 @@ let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
 let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
+let registryAuditFilter = null; // ADE RAK: review|stamp|skip|broken|finding
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -491,6 +492,19 @@ document.addEventListener("keydown", (e) => {
     decisionAttestFilter = null;
     applyDecisionListFilters();
     syncDecisionAttestBars();
+    return;
+  }
+  // ADE RAK: Escape clears Registry audit kind-mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "registry" &&
+    registryAuditFilter
+  ) {
+    e.preventDefault();
+    registryAuditFilter = null;
+    applyRegistryAuditPaint();
+    syncRegistryAuditBars();
     return;
   }
   // ADE CFE+CPS: one Escape clears CFG expand and/or call-path depth (graph-only).
@@ -8870,6 +8884,143 @@ function renderDecisionBody() {
   );
 }
 
+
+/** ADE RAK — review|stamp|skip|broken|finding bucket for a registry audit row. */
+function registryAuditBucket(e) {
+  if (!e) return "";
+  if (e.kind === "review") return "review";
+  if (e.kind === "skip") return "skip";
+  if (e.kind === "stamp" && e.verdict === "holds") return "stamp";
+  if (e.kind === "stamp" || e.verdict === "broken") return "broken";
+  if (e.kind === "finding") return "finding";
+  return "";
+}
+
+/** ADE RAK — counts for interactive Registry audit kind bars (registryEvents only). */
+function registryAuditCounts(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const b = registryAuditBucket(r);
+    if (!b) continue;
+    map.set(b, (map.get(b) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE RAK — CSS bar mix for Registry; max-scaled (DAM/SDO/LSC parity). */
+function registryAuditChartHtml(map) {
+  const order = ["review", "stamp", "skip", "broken", "finding"];
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const labels = {
+    review: "Review",
+    stamp: "Stamp",
+    skip: "Skip",
+    broken: "Broken",
+    finding: "Finding",
+  };
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(registryAuditFilter && String(registryAuditFilter) === String(e[0]));
+      return (
+        '<button type="button" class="rak-bar' +
+        (on ? " on" : "") +
+        '" data-rak-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--rak-pct:' +
+        pct +
+        '%"><span class="rak-fill" aria-hidden="true"></span><span class="rak-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="rak-chart" role="group" aria-label="Registry audit kind-mix bars" data-rak-axis-group="kind">' +
+    bars +
+    "</div>"
+  );
+}
+
+function registryAuditStripHtml(rows) {
+  const map = registryAuditCounts(rows);
+  const chart = registryAuditChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="rak-strip" data-rak="1" role="group" aria-label="Registry audit kind-mix">' +
+    '<span class="rak-stat"><i class="k">Audit</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleRegistryAuditFilter(kind) {
+  if (!kind) return;
+  if (registryAuditFilter && String(registryAuditFilter) === String(kind)) registryAuditFilter = null;
+  else registryAuditFilter = String(kind);
+  applyRegistryAuditPaint();
+  syncRegistryAuditBars();
+}
+
+function syncRegistryAuditBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".rak-bar[data-rak-kind]").forEach((el) => {
+    const k = el.getAttribute("data-rak-kind") || "";
+    const on = !!(registryAuditFilter && String(registryAuditFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".rak-strip");
+  if (strip) strip.classList.toggle("rak-filtering", !!registryAuditFilter);
+  const list = canvas.querySelector(".ws-list");
+  if (list) list.classList.toggle("rak-filtering", !!registryAuditFilter);
+  const table = canvas.querySelector("table.audit");
+  if (table) table.classList.toggle("rak-filtering", !!registryAuditFilter);
+}
+
+function bindRegistryAuditChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".rak-bar[data-rak-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleRegistryAuditFilter(el.getAttribute("data-rak-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleRegistryAuditFilter(el.getAttribute("data-rak-kind"));
+    };
+  });
+}
+
+function applyRegistryAuditPaint() {
+  if (!canvas) return;
+  const filter = registryAuditFilter ? String(registryAuditFilter) : "";
+  canvas.querySelectorAll("table.audit tbody tr[data-rak-kind]").forEach((el) => {
+    const bucket = el.getAttribute("data-rak-kind") || "";
+    const hit = !!(filter && bucket === filter);
+    const dim = !!(filter && bucket !== filter);
+    el.classList.toggle("rak-hit", hit);
+    el.classList.toggle("rak-dim", dim);
+  });
+  syncRegistryAuditBars();
+}
+
 function renderRegistryBody() {
   const ev = registryEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -8884,13 +9035,19 @@ function renderRegistryBody() {
     }
     return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
   }
+  const rakStrip = registryAuditStripHtml(ev);
   return (
+    '<div class="ws-list">' +
+    rakStrip +
     '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' +
     ev
       .map((e) => {
+        const bucket = registryAuditBucket(e);
         return (
-          "<tr class=\"" +
+          '<tr class="' +
           esc(e.verdict || e.kind) +
+          '" data-rak-kind="' +
+          esc(bucket) +
           '"' +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
           "><td><span class=\"mut mut-" +
@@ -8905,7 +9062,7 @@ function renderRegistryBody() {
         );
       })
       .join("") +
-    "</tbody></table>"
+    "</tbody></table></div>"
   );
 }
 
@@ -16932,6 +17089,8 @@ function applyTimelineScrub() {
 function bindWorkbenchPages() {
   applyDecisionListFilters();
   bindDecisionAttestChart();
+  applyRegistryAuditPaint();
+  bindRegistryAuditChart();
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();

@@ -1862,6 +1862,159 @@ async function main() {
     await shot(page, "registry.png");
     assertNoStampDir("RG3", "Registry step did not write .graphide/stamps/");
 
+    // ADE Registry audit kind-mix (RAK1–RAK5) — interactive review/stamp/skip/broken/finding bars
+    await page.waitForSelector(".rak-strip .rak-chart .rak-bar[data-rak-kind]", { timeout: 8000 });
+    const rak1 = await page.evaluate(() => {
+      const strip = document.querySelector(".rak-strip[data-rak='1']");
+      const bars = [...document.querySelectorAll(".rak-chart .rak-bar[data-rak-kind]")];
+      const rows = [...document.querySelectorAll("table.audit tbody tr[data-rak-kind]")];
+      const kinds = bars.map((b) => b.getAttribute("data-rak-kind"));
+      const src = document.getElementById("sourcePane");
+      return {
+        strip: !!strip,
+        bars: bars.length,
+        kinds,
+        rows: rows.length,
+        hasReview: kinds.includes("review"),
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const rak1ok = !!(
+      rak1 &&
+      rak1.strip &&
+      rak1.bars >= 1 &&
+      rak1.rows >= 1 &&
+      rak1.hasReview &&
+      rak1.xy === 0 &&
+      rak1.srcHidden
+    );
+    record(
+      "RAK1",
+      "Registry .rak-strip/.rak-chart/.rak-bar present with audit rows (no XYFlow)",
+      !!rak1ok,
+      JSON.stringify(rak1)
+    );
+
+    const rak2 = await page.evaluate(() => {
+      const prefer =
+        document.querySelector('.rak-bar[data-rak-kind="broken"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="finding"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="stamp"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="skip"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="review"]');
+      if (!prefer) return { ok: false, reason: "no bar" };
+      const kind = prefer.getAttribute("data-rak-kind") || "";
+      prefer.click();
+      const rows = [...document.querySelectorAll("table.audit tbody tr[data-rak-kind]")];
+      const hit = rows.filter((el) => el.classList.contains("rak-hit"));
+      const dim = rows.filter((el) => el.classList.contains("rak-dim"));
+      const filtering = !!(
+        document.querySelector(".ws-list.rak-filtering") ||
+        document.querySelector("table.audit.rak-filtering") ||
+        document.querySelector(".rak-strip.rak-filtering")
+      );
+      const pressed = [...document.querySelectorAll(".rak-bar[data-rak-kind]")].some(
+        (b) => b.getAttribute("data-rak-kind") === kind && b.getAttribute("aria-pressed") === "true"
+      );
+      const allHitMatch = hit.every((el) => (el.getAttribute("data-rak-kind") || "") === kind);
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        kind,
+        filtering,
+        pressed,
+        hit: hit.length,
+        dim: dim.length,
+        rows: rows.length,
+        allHitMatch,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const rak2ok = !!(
+      rak2 &&
+      rak2.ok &&
+      rak2.filtering &&
+      rak2.pressed &&
+      rak2.hit >= 1 &&
+      rak2.allHitMatch &&
+      rak2.srcHidden &&
+      rak2.hit + rak2.dim === rak2.rows
+    );
+    record(
+      "RAK2",
+      "Kind bar paints table.audit rak-hit/rak-dim without opening source",
+      !!rak2ok,
+      JSON.stringify(rak2)
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const rak3 = await page.evaluate(() => {
+      const filtering = !!(
+        document.querySelector(".ws-list.rak-filtering") ||
+        document.querySelector("table.audit.rak-filtering") ||
+        document.querySelector(".rak-strip.rak-filtering")
+      );
+      const hit = document.querySelectorAll("table.audit tbody tr.rak-hit").length;
+      const pressed = [...document.querySelectorAll(".rak-bar[aria-pressed='true']")].length;
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+      const src = document.getElementById("sourcePane");
+      return {
+        ws,
+        filtering,
+        hit,
+        pressed,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const rak3ok = !!(
+      rak3 &&
+      rak3.ws === "registry" &&
+      !rak3.filtering &&
+      rak3.hit === 0 &&
+      rak3.pressed === 0 &&
+      rak3.srcHidden
+    );
+    record(
+      "RAK3",
+      "Escape clears Registry audit kind filter without leaving Registry or opening source",
+      !!rak3ok,
+      JSON.stringify(rak3)
+    );
+
+    // Re-enable a bar for proof shot
+    await page.evaluate(() => {
+      const bar =
+        document.querySelector('.rak-bar[data-rak-kind="broken"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="finding"]') ||
+        document.querySelector('.rak-bar[data-rak-kind="review"]');
+      if (bar) bar.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "registry-audit-kind-mix.png");
+    const rakShot = checks.find((c) => c.id === "shot:registry-audit-kind-mix.png");
+    const rak4ok = !!(rak1ok && rak2ok && rak3ok && rakShot && rakShot.pass);
+    record(
+      "RAK4",
+      "screenshot registry-audit-kind-mix.png not black; Registry audit kind-mix proven",
+      !!rak4ok,
+      JSON.stringify({
+        shot: rakShot ? rakShot.detail : "missing",
+        rak1: !!rak1ok,
+        rak2: !!rak2ok,
+        rak3: !!rak3ok,
+      })
+    );
+    assertNoStampDir("RAK5", "Registry audit kind-mix step did not write .graphide/stamps/");
+    // Clear leftover RAK filter
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".rak-bar[aria-pressed='true']")];
+      for (const el of bars) el.click();
+    });
+    await page.waitForTimeout(40);
+
+
     await page.click('#workspaces [data-ws="timeline"]');
     await page.waitForFunction(
       () => {
@@ -42141,7 +42294,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 
