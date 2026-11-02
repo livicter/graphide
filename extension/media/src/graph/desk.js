@@ -195,6 +195,7 @@ let lineageFanFilter = null; // ADE LFO: used|informed|generated
 let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
+let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -615,6 +616,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     dfRoleFilter = null;
     paint({ animate: "none" });
+    return;
+  }
+  // ADE SDO: Escape clears Structural diff overlay filter when active (Delta stays open).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "delta" &&
+    structuralDiffFilter
+  ) {
+    e.preventDefault();
+    structuralDiffFilter = null;
+    applyStructuralDiffPaint();
+    syncStructuralDiffBars();
     return;
   }
   // ADE PTD: Escape clears Passport↔Trajectory delta mix filter when active.
@@ -8977,6 +8991,147 @@ function deltaMarker(status) {
   return "·";
 }
 
+
+/** ADE SDO — Structural diff overlay status counts (non-community node/hop facts only). */
+function structuralDiffCounts() {
+  const map = new Map();
+  for (const f of deltaFacts()) {
+    if (!f || f.class === "community") continue;
+    const st = String(f.status || "");
+    if (st !== "added" && st !== "removed" && st !== "changed" && st !== "moved" && st !== "rerouted") continue;
+    map.set(st, (map.get(st) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE SDO — interactive Added/Removed/Changed/Moved/Rerouted bars. */
+function structuralDiffChartHtml(map) {
+  const order = ["added", "removed", "changed", "moved", "rerouted"];
+  const labels = {
+    added: "Added",
+    removed: "Removed",
+    changed: "Changed",
+    moved: "Moved",
+    rerouted: "Rerouted",
+  };
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(structuralDiffFilter && String(structuralDiffFilter) === String(e[0]));
+      return (
+        '<button type="button" class="sdo-bar' +
+        (on ? " on" : "") +
+        '" data-sdo-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--sdo-pct:' +
+        pct +
+        '%"><span class="sdo-fill" aria-hidden="true"></span><span class="sdo-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="sdo-chart" role="group" aria-label="Structural diff overlay status bars" data-sdo-axis-group="status">' +
+    bars +
+    "</div>"
+  );
+}
+
+function structuralDiffStripHtml() {
+  const map = structuralDiffCounts();
+  const chart = structuralDiffChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="sdo-strip" data-sdo="1" role="group" aria-label="Structural diff overlay">' +
+    '<span class="sdo-stat"><i class="k">Structural</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleStructuralDiffFilter(kind) {
+  if (!kind) return;
+  if (structuralDiffFilter && String(structuralDiffFilter) === String(kind)) structuralDiffFilter = null;
+  else structuralDiffFilter = String(kind);
+  applyStructuralDiffPaint();
+  syncStructuralDiffBars();
+}
+
+function syncStructuralDiffBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".sdo-bar[data-sdo-kind]").forEach((el) => {
+    const k = el.getAttribute("data-sdo-kind") || "";
+    const on = !!(structuralDiffFilter && String(structuralDiffFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".sdo-strip");
+  if (strip) strip.classList.toggle("sdo-filtering", !!structuralDiffFilter);
+  const page = canvas.querySelector(".delta-page");
+  if (page) page.classList.toggle("sdo-filtering", !!structuralDiffFilter);
+  const canvasHost = document.getElementById("deltaCanvas");
+  if (canvasHost) canvasHost.classList.toggle("sdo-filtering", !!structuralDiffFilter);
+}
+
+function bindStructuralDiffChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".sdo-bar[data-sdo-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleStructuralDiffFilter(el.getAttribute("data-sdo-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleStructuralDiffFilter(el.getAttribute("data-sdo-kind"));
+    };
+  });
+}
+
+function applyStructuralDiffPaint() {
+  if (!canvas) return;
+  const filter = structuralDiffFilter ? String(structuralDiffFilter) : "";
+  canvas.querySelectorAll("#deltaFacts .delta-fact").forEach((el) => {
+    const k = el.getAttribute("data-delta-kind") || "";
+    const hit = !!(filter && k === filter);
+    const dim = !!(filter && k !== filter);
+    el.classList.toggle("sdo-hit", hit);
+    el.classList.toggle("sdo-dim", dim);
+  });
+  const host = document.getElementById("deltaCanvas");
+  const nodes = host
+    ? host.querySelectorAll(".vnode[data-delta-state], .react-flow__node[data-delta-state], .vnode, .react-flow__node")
+    : [];
+  nodes.forEach((el) => {
+    if (el.classList.contains("sdo-bar")) return;
+    const k = el.getAttribute("data-delta-state") || "";
+    const hit = !!(filter && k === filter);
+    const dim = !!(filter && k && k !== filter);
+    // When filtering, unmarked/same nodes also dim so hits stand out.
+    const dimSame = !!(filter && (!k || k === "same"));
+    el.classList.toggle("sdo-hit", hit);
+    el.classList.toggle("sdo-dim", dim || dimSame);
+  });
+  syncStructuralDiffBars();
+}
+
 function applyDeltaFactView(fact) {
   if (!fact) return;
   if (fact.class === "community") {
@@ -9489,6 +9644,7 @@ function patchDeltaChrome() {
     play.classList.toggle("on", !!deltaWalk.playing);
     play.setAttribute("aria-pressed", deltaWalk.playing ? "true" : "false");
   }
+  if (typeof applyStructuralDiffPaint === "function") applyStructuralDiffPaint();
 }
 
 function paintDeltaWorkspace(title) {
@@ -9511,6 +9667,8 @@ function paintDeltaWorkspace(title) {
   const host = document.getElementById("deltaCanvas");
   if (host && !host.classList.contains("empty")) mountDeltaCanvas(host, deltaCanvasProps());
   else if (!host) unmountReviewCanvas();
+  if (typeof bindStructuralDiffChart === "function") bindStructuralDiffChart();
+  if (typeof applyStructuralDiffPaint === "function") applyStructuralDiffPaint();
 }
 
 function renderDeltaBody() {
@@ -9615,6 +9773,7 @@ function renderDeltaBody() {
   return (
     '<div class="delta-page">' +
     switcher +
+    structuralDiffStripHtml() +
     review +
     '<div class="ws-split">' +
     '<div class="ws-list" id="deltaFacts">' +
@@ -9667,6 +9826,8 @@ function bindDeltaPage() {
       stepDeltaWalk(1);
     };
   if (play) play.onclick = () => toggleDeltaReview();
+  if (typeof bindStructuralDiffChart === "function") bindStructuralDiffChart();
+  if (typeof applyStructuralDiffPaint === "function") applyStructuralDiffPaint();
 }
 
 function isInteractionKind(kind) {

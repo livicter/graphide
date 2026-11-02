@@ -33,6 +33,7 @@ walks that list once and stops.
   Classification is semantic / topology / presentation only — no
   blast radius, no merge safety.
 - Stamp / skip stay human. Delta never writes `.graphide/stamps/`.
+- Structural status bars (SDO): see [structural-diff-overlay.md](structural-diff-overlay.md).
 
 ## How to get to it (user POV)
 
