@@ -1028,6 +1028,24 @@ assert(lscMap.includes("LSC1") && lscMap.includes("lsc-chart") && lscMap.include
 assert(lifecycleMap.includes("LSC1") && lifecycleMap.includes("lsc-bar") && lifecycleMap.includes("lifecycle-transition-overlay.png"), "lifecycle feature map must point at LSC overlay");
 
 
+const rakMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-audit-kind-mix.md"), "utf8");
+assert(
+  rakMap.includes("## Sub-features") &&
+    rakMap.includes("## How to get to it (user POV)") &&
+    rakMap.includes("## Driving it with the harness") &&
+    rakMap.includes("## Gotchas"),
+  "registry-audit-kind-mix feature map must use the four headings"
+);
+
+assert(driver.includes("RAK1") && driver.includes("RAK3") && driver.includes("registry-audit-kind-mix.png") && driver.includes("rak-bar"), "verify driver must prove Registry audit kind-mix RAK1–RAK3");
+assert(js.includes("registryAuditFilter") && js.includes("registryAuditChartHtml") && js.includes("bindRegistryAuditChart") && js.includes("toggleRegistryAuditFilter") && js.includes("applyRegistryAuditPaint"), "desk.js must own Registry audit kind-mix filter helpers");
+assert(css.includes(".rak-chart") && css.includes(".rak-bar") && css.includes("rak-hit") && css.includes("rak-dim"), "main.css must theme Registry audit kind-mix chart + rak-hit/rak-dim");
+assert(rakMap.includes("RAK1") && rakMap.includes("rak-chart") && rakMap.includes("registry-audit-kind-mix.png") && rakMap.includes("peekSource"), "registry-audit-kind-mix feature map must name RAK / rak-chart / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-audit-kind-mix.md")), "registry-audit-kind-mix feature map missing");
+assert(featReadme.includes("registry-audit-kind-mix.md") && featReadme.includes("registry-audit-kind-mix.png"), "feature README must list registry-audit-kind-mix.md");
+
+
+
 
 
 

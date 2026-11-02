@@ -20125,6 +20125,7 @@
     let passportDeltaFilter = null;
     let structuralDiffFilter = null;
     let lifecycleTransitionFilter = null;
+    let registryAuditFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
     let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -20385,6 +20386,13 @@
         decisionAttestFilter = null;
         applyDecisionListFilters();
         syncDecisionAttestBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "registry" && registryAuditFilter) {
+        e.preventDefault();
+        registryAuditFilter = null;
+        applyRegistryAuditPaint();
+        syncRegistryAuditBars();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && (cfgExpandFocus || callPathDepth > 0)) {
@@ -27200,6 +27208,100 @@
       const damStrip = decisionAttestStripHtml(rows);
       return '<div class="ws-split"><div class="ws-list">' + damStrip + strip + list + '</div><div class="ws-detail"><div class="k">Decision record</div><div class="t">' + esc(selected2.title) + '</div><div class="outcome ' + esc(selected2.verdict || "") + '">' + esc(selected2.outcome || selected2.verdict || "") + "</div>" + (selected2.flow ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected2.flow) + '">Open slice</button>' : "") + '<div class="flow-title">Causal chain · ' + chain.length + " step" + (chain.length === 1 ? "" : "s") + " on the derived graph</div>" + renderChain(chain) + "</div></div>";
     }
+    function registryAuditBucket(e) {
+      if (!e) return "";
+      if (e.kind === "review") return "review";
+      if (e.kind === "skip") return "skip";
+      if (e.kind === "stamp" && e.verdict === "holds") return "stamp";
+      if (e.kind === "stamp" || e.verdict === "broken") return "broken";
+      if (e.kind === "finding") return "finding";
+      return "";
+    }
+    function registryAuditCounts(rows) {
+      const map = /* @__PURE__ */ new Map();
+      for (const r of rows || []) {
+        const b = registryAuditBucket(r);
+        if (!b) continue;
+        map.set(b, (map.get(b) || 0) + 1);
+      }
+      return map;
+    }
+    function registryAuditChartHtml(map) {
+      const order = ["review", "stamp", "skip", "broken", "finding"];
+      const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const labels = {
+        review: "Review",
+        stamp: "Stamp",
+        skip: "Skip",
+        broken: "Broken",
+        finding: "Finding"
+      };
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(registryAuditFilter && String(registryAuditFilter) === String(e[0]));
+        return '<button type="button" class="rak-bar' + (on2 ? " on" : "") + '" data-rak-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(labels[e[0]] || e[0]) + " · " + e[1] + '" style="--rak-pct:' + pct + '%"><span class="rak-fill" aria-hidden="true"></span><span class="rak-label"><b>' + esc(labels[e[0]] || e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="rak-chart" role="group" aria-label="Registry audit kind-mix bars" data-rak-axis-group="kind">' + bars + "</div>";
+    }
+    function registryAuditStripHtml(rows) {
+      const map = registryAuditCounts(rows);
+      const chart = registryAuditChartHtml(map);
+      if (!chart) return "";
+      const total = [...map.values()].reduce((a, b) => a + b, 0);
+      return '<div class="rak-strip" data-rak="1" role="group" aria-label="Registry audit kind-mix"><span class="rak-stat"><i class="k">Audit</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function toggleRegistryAuditFilter(kind) {
+      if (!kind) return;
+      if (registryAuditFilter && String(registryAuditFilter) === String(kind)) registryAuditFilter = null;
+      else registryAuditFilter = String(kind);
+      applyRegistryAuditPaint();
+      syncRegistryAuditBars();
+    }
+    function syncRegistryAuditBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".rak-bar[data-rak-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-rak-kind") || "";
+        const on2 = !!(registryAuditFilter && String(registryAuditFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".rak-strip");
+      if (strip) strip.classList.toggle("rak-filtering", !!registryAuditFilter);
+      const list = canvas.querySelector(".ws-list");
+      if (list) list.classList.toggle("rak-filtering", !!registryAuditFilter);
+      const table = canvas.querySelector("table.audit");
+      if (table) table.classList.toggle("rak-filtering", !!registryAuditFilter);
+    }
+    function bindRegistryAuditChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".rak-bar[data-rak-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleRegistryAuditFilter(el2.getAttribute("data-rak-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleRegistryAuditFilter(el2.getAttribute("data-rak-kind"));
+        };
+      });
+    }
+    function applyRegistryAuditPaint() {
+      if (!canvas) return;
+      const filter2 = registryAuditFilter ? String(registryAuditFilter) : "";
+      canvas.querySelectorAll("table.audit tbody tr[data-rak-kind]").forEach((el2) => {
+        const bucket = el2.getAttribute("data-rak-kind") || "";
+        const hit = !!(filter2 && bucket === filter2);
+        const dim = !!(filter2 && bucket !== filter2);
+        el2.classList.toggle("rak-hit", hit);
+        el2.classList.toggle("rak-dim", dim);
+      });
+      syncRegistryAuditBars();
+    }
     function renderRegistryBody() {
       const ev = registryEvents().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27210,9 +27312,11 @@
         }
         return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
       }
-      return '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
-        return '<tr class="' + esc(e.verdict || e.kind) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
-      }).join("") + "</tbody></table>";
+      const rakStrip = registryAuditStripHtml(ev);
+      return '<div class="ws-list">' + rakStrip + '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
+        const bucket = registryAuditBucket(e);
+        return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
     }
     function renderTimelineBody() {
       const ev = timelineEvents().filter(
@@ -32418,6 +32522,8 @@
     function bindWorkbenchPages() {
       applyDecisionListFilters();
       bindDecisionAttestChart();
+      applyRegistryAuditPaint();
+      bindRegistryAuditChart();
       canvas.querySelectorAll("[data-outcome-filter]").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

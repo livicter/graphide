@@ -50,6 +50,8 @@ Driver assertions:
 - screenshot `verification/registry.png` is not a black frame
 - `.graphide/stamps/` is still empty
 
+
+Interactive kind-mix bars (RAK1–RAK5) live in [registry-audit-kind-mix.md](registry-audit-kind-mix.md) — `.rak-bar` filters `table.audit` without XYFlow.
 ## Gotchas
 
 - Do not duplicate StampBroken / UnmatchedHint as a second findings pass.
