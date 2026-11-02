@@ -2058,6 +2058,169 @@ async function main() {
     await shot(page, "timeline.png");
     assertNoStampDir("TL3", "Timeline step did not write .graphide/stamps/");
 
+
+    // ADE Timeline kind-mix (TKM1–TKM5) — interactive parent/coverage/stamp/skip/broken/hint bars
+    await page.waitForSelector(".tkm-strip .tkm-chart .tkm-bar[data-tkm-kind]", { timeout: 8000 });
+    const tkm1 = await page.evaluate(() => {
+      const strip = document.querySelector(".tkm-strip[data-tkm='1']");
+      const bars = [...document.querySelectorAll(".tkm-chart .tkm-bar[data-tkm-kind]")];
+      const items = [...document.querySelectorAll(".tl-item[data-tkm-kind]")];
+      const kinds = bars.map((b) => b.getAttribute("data-tkm-kind"));
+      const scrub = document.getElementById("tlScrub");
+      const src = document.getElementById("sourcePane");
+      return {
+        strip: !!strip,
+        bars: bars.length,
+        kinds,
+        items: items.length,
+        hasParent: kinds.includes("parent"),
+        hasCoverage: kinds.includes("coverage"),
+        scrub: !!scrub,
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const tkm1ok = !!(
+      tkm1 &&
+      tkm1.strip &&
+      tkm1.bars >= 1 &&
+      tkm1.items >= 1 &&
+      tkm1.hasParent &&
+      tkm1.hasCoverage &&
+      tkm1.scrub &&
+      tkm1.xy === 0 &&
+      tkm1.srcHidden
+    );
+    record(
+      "TKM1",
+      "Timeline .tkm-strip/.tkm-chart/.tkm-bar present; scrubber intact (no XYFlow)",
+      !!tkm1ok,
+      JSON.stringify(tkm1)
+    );
+
+    const tkm2 = await page.evaluate(() => {
+      const prefer =
+        document.querySelector('.tkm-bar[data-tkm-kind="broken"]') ||
+        document.querySelector('.tkm-bar[data-tkm-kind="skip"]') ||
+        document.querySelector('.tkm-bar[data-tkm-kind="coverage"]') ||
+        document.querySelector('.tkm-bar[data-tkm-kind="parent"]');
+      if (!prefer) return { ok: false, reason: "no bar" };
+      const kind = prefer.getAttribute("data-tkm-kind") || "";
+      prefer.click();
+      const items = [...document.querySelectorAll(".tl-item[data-tkm-kind]")];
+      const hit = items.filter((el) => el.classList.contains("tkm-hit"));
+      const dim = items.filter((el) => el.classList.contains("tkm-dim"));
+      const filtering = !!(
+        document.querySelector(".tl-page.tkm-filtering") ||
+        document.querySelector(".tl-rail.tkm-filtering") ||
+        document.querySelector(".tkm-strip.tkm-filtering")
+      );
+      const pressed = [...document.querySelectorAll(".tkm-bar[data-tkm-kind]")].some(
+        (b) => b.getAttribute("data-tkm-kind") === kind && b.getAttribute("aria-pressed") === "true"
+      );
+      const allHitMatch = hit.every((el) => (el.getAttribute("data-tkm-kind") || "") === kind);
+      const scrub = document.getElementById("tlScrub");
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        kind,
+        filtering,
+        pressed,
+        hit: hit.length,
+        dim: dim.length,
+        items: items.length,
+        allHitMatch,
+        scrub: !!scrub,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const tkm2ok = !!(
+      tkm2 &&
+      tkm2.ok &&
+      tkm2.filtering &&
+      tkm2.pressed &&
+      tkm2.hit >= 1 &&
+      tkm2.allHitMatch &&
+      tkm2.scrub &&
+      tkm2.srcHidden &&
+      tkm2.hit + tkm2.dim === tkm2.items
+    );
+    record(
+      "TKM2",
+      "Kind bar paints .tl-item tkm-hit/tkm-dim without opening source; scrubber stays",
+      !!tkm2ok,
+      JSON.stringify(tkm2)
+    );
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(40);
+    const tkm3 = await page.evaluate(() => {
+      const filtering = !!(
+        document.querySelector(".tl-page.tkm-filtering") ||
+        document.querySelector(".tl-rail.tkm-filtering") ||
+        document.querySelector(".tkm-strip.tkm-filtering")
+      );
+      const hit = document.querySelectorAll(".tl-item.tkm-hit").length;
+      const pressed = [...document.querySelectorAll(".tkm-bar[aria-pressed='true']")].length;
+      const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+      const scrub = document.getElementById("tlScrub");
+      const src = document.getElementById("sourcePane");
+      return {
+        ws,
+        filtering,
+        hit,
+        pressed,
+        scrub: !!scrub,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const tkm3ok = !!(
+      tkm3 &&
+      tkm3.ws === "timeline" &&
+      !tkm3.filtering &&
+      tkm3.hit === 0 &&
+      tkm3.pressed === 0 &&
+      tkm3.scrub &&
+      tkm3.srcHidden
+    );
+    record(
+      "TKM3",
+      "Escape clears Timeline kind filter without leaving Timeline or opening source",
+      !!tkm3ok,
+      JSON.stringify(tkm3)
+    );
+
+    await page.evaluate(() => {
+      const bar =
+        document.querySelector('.tkm-bar[data-tkm-kind="broken"]') ||
+        document.querySelector('.tkm-bar[data-tkm-kind="coverage"]') ||
+        document.querySelector('.tkm-bar[data-tkm-kind="parent"]');
+      if (bar) bar.click();
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "timeline-kind-mix.png");
+    const tkmShot = checks.find((c) => c.id === "shot:timeline-kind-mix.png");
+    const tkm4ok = !!(tkm1ok && tkm2ok && tkm3ok && tkmShot && tkmShot.pass);
+    record(
+      "TKM4",
+      "screenshot timeline-kind-mix.png not black; Timeline kind-mix proven",
+      !!tkm4ok,
+      JSON.stringify({
+        shot: tkmShot ? tkmShot.detail : "missing",
+        tkm1: !!tkm1ok,
+        tkm2: !!tkm2ok,
+        tkm3: !!tkm3ok,
+      })
+    );
+    assertNoStampDir("TKM5", "Timeline kind-mix step did not write .graphide/stamps/");
+    await page.evaluate(() => {
+      const bars = [...document.querySelectorAll(".tkm-bar[aria-pressed='true']")];
+      for (const el of bars) el.click();
+    });
+    await page.waitForTimeout(40);
+
+
+
     const beforeUnPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const uncoveredDesk = await page.evaluate(() => {
       const cov = document.getElementById("coverage");
@@ -42294,7 +42457,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

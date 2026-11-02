@@ -20126,6 +20126,7 @@
     let structuralDiffFilter = null;
     let lifecycleTransitionFilter = null;
     let registryAuditFilter = null;
+    let timelineKindFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
     let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -20393,6 +20394,13 @@
         registryAuditFilter = null;
         applyRegistryAuditPaint();
         syncRegistryAuditBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "timeline" && timelineKindFilter) {
+        e.preventDefault();
+        timelineKindFilter = null;
+        applyTimelineKindPaint();
+        syncTimelineKindBars();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && (cfgExpandFocus || callPathDepth > 0)) {
@@ -27318,6 +27326,106 @@
         return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
       }).join("") + "</tbody></table></div>";
     }
+    function timelineKindBucket(e) {
+      if (!e) return "";
+      if (e.kind === "parent") return "parent";
+      if (e.kind === "coverage") return "coverage";
+      if (e.kind === "skip") return "skip";
+      if (e.kind === "stamp" && e.verdict === "holds") return "stamp";
+      if (e.kind === "stamp" || e.verdict === "broken") return "broken";
+      if (e.verdict === "hint" || e.kind === "hint") return "hint";
+      if (e.kind === "finding" && e.verdict === "hint") return "hint";
+      if (e.kind === "finding" && e.verdict === "broken") return "broken";
+      if (e.verdict === "skipped") return "skip";
+      if (e.verdict === "holds") return "stamp";
+      return "";
+    }
+    function timelineKindCounts(rows) {
+      const map = /* @__PURE__ */ new Map();
+      for (const r of rows || []) {
+        const b = timelineKindBucket(r);
+        if (!b) continue;
+        map.set(b, (map.get(b) || 0) + 1);
+      }
+      return map;
+    }
+    function timelineKindChartHtml(map) {
+      const order = ["parent", "coverage", "stamp", "skip", "broken", "hint"];
+      const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const labels = {
+        parent: "Parent",
+        coverage: "Uncovered",
+        stamp: "Stamp",
+        skip: "Skip",
+        broken: "Broken",
+        hint: "Hint"
+      };
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(timelineKindFilter && String(timelineKindFilter) === String(e[0]));
+        return '<button type="button" class="tkm-bar' + (on2 ? " on" : "") + '" data-tkm-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(labels[e[0]] || e[0]) + " · " + e[1] + '" style="--tkm-pct:' + pct + '%"><span class="tkm-fill" aria-hidden="true"></span><span class="tkm-label"><b>' + esc(labels[e[0]] || e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="tkm-chart" role="group" aria-label="Timeline kind-mix bars" data-tkm-axis-group="kind">' + bars + "</div>";
+    }
+    function timelineKindStripHtml(rows) {
+      const map = timelineKindCounts(rows);
+      const chart = timelineKindChartHtml(map);
+      if (!chart) return "";
+      const total = [...map.values()].reduce((a, b) => a + b, 0);
+      return '<div class="tkm-strip" data-tkm="1" role="group" aria-label="Timeline kind-mix"><span class="tkm-stat"><i class="k">Kinds</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function toggleTimelineKindFilter(kind) {
+      if (!kind) return;
+      if (timelineKindFilter && String(timelineKindFilter) === String(kind)) timelineKindFilter = null;
+      else timelineKindFilter = String(kind);
+      applyTimelineKindPaint();
+      syncTimelineKindBars();
+    }
+    function syncTimelineKindBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".tkm-bar[data-tkm-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-tkm-kind") || "";
+        const on2 = !!(timelineKindFilter && String(timelineKindFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".tkm-strip");
+      if (strip) strip.classList.toggle("tkm-filtering", !!timelineKindFilter);
+      const page = canvas.querySelector(".tl-page");
+      if (page) page.classList.toggle("tkm-filtering", !!timelineKindFilter);
+      const rail = canvas.querySelector(".tl-rail");
+      if (rail) rail.classList.toggle("tkm-filtering", !!timelineKindFilter);
+    }
+    function bindTimelineKindChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".tkm-bar[data-tkm-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleTimelineKindFilter(el2.getAttribute("data-tkm-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleTimelineKindFilter(el2.getAttribute("data-tkm-kind"));
+        };
+      });
+    }
+    function applyTimelineKindPaint() {
+      if (!canvas) return;
+      const filter2 = timelineKindFilter ? String(timelineKindFilter) : "";
+      canvas.querySelectorAll(".tl-item[data-tkm-kind]").forEach((el2) => {
+        const bucket = el2.getAttribute("data-tkm-kind") || "";
+        const hit = !!(filter2 && bucket === filter2);
+        const dim = !!(filter2 && bucket !== filter2);
+        el2.classList.toggle("tkm-hit", hit);
+        el2.classList.toggle("tkm-dim", dim);
+      });
+      syncTimelineKindBars();
+    }
     function renderTimelineBody() {
       const ev = timelineEvents().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27331,8 +27439,10 @@
       if (timelineCursor >= ev.length) timelineCursor = ev.length - 1;
       if (timelineCursor < 0) timelineCursor = 0;
       const cur = ev[timelineCursor];
-      return '<div class="tl-page"><div class="tl-scrub"><label>Watch this review <input id="tlScrub" type="range" min="0" max="' + (ev.length - 1) + '" value="' + timelineCursor + '" /></label><span id="tlScrubMeta">t' + timelineCursor + " · " + esc(cur && cur.title || "event") + '</span></div><div class="tl-rail">' + ev.map((e, i) => {
-        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
+      const tkmStrip = timelineKindStripHtml(ev);
+      return '<div class="tl-page">' + tkmStrip + '<div class="tl-scrub"><label>Watch this review <input id="tlScrub" type="range" min="0" max="' + (ev.length - 1) + '" value="' + timelineCursor + '" /></label><span id="tlScrubMeta">t' + timelineCursor + " · " + esc(cur && cur.title || "event") + '</span></div><div class="tl-rail">' + ev.map((e, i) => {
+        const bucket = timelineKindBucket(e);
+        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '" data-tkm-kind="' + esc(bucket) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
       }).join("") + "</div></div>";
     }
     function clusterFacts() {
@@ -32524,6 +32634,8 @@
       bindDecisionAttestChart();
       applyRegistryAuditPaint();
       bindRegistryAuditChart();
+      applyTimelineKindPaint();
+      bindTimelineKindChart();
       canvas.querySelectorAll("[data-outcome-filter]").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();
