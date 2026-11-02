@@ -38169,6 +38169,206 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+
+    // ADE Sequence hop-kind mix (SHK1–SHK5) — interactive Calls/Reads/Writes/Publishes/Subscribes/type bars
+    {
+      await page.waitForSelector(".shk-strip .shk-chart .shk-bar[data-shk-kind]", { timeout: 8000 });
+      const shk1 = await page.evaluate(() => {
+        const strip = document.querySelector(".shk-strip[data-shk='1']");
+        const bars = [...document.querySelectorAll(".shk-chart .shk-bar[data-shk-kind]")];
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop[data-kind]")];
+        const kinds = bars.map((b) => b.getAttribute("data-shk-kind"));
+        const order = ["Calls", "Reads", "Writes", "Publishes", "Subscribes", "type"];
+        const ordered = kinds.every((k, i, arr) => {
+          if (i === 0) return true;
+          return order.indexOf(k) >= order.indexOf(arr[i - 1]);
+        });
+        const src = document.getElementById("sourcePane");
+        const pageEl = document.querySelector('.seq-page[data-shk="1"]');
+        return {
+          strip: !!strip,
+          bars: bars.length,
+          kinds,
+          ordered,
+          hops: hops.length,
+          play: !!document.getElementById("seqPlay"),
+          page: !!pageEl,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shk1ok = !!(
+        shk1 &&
+        shk1.strip &&
+        shk1.bars >= 1 &&
+        shk1.hops >= 1 &&
+        shk1.ordered &&
+        shk1.play &&
+        shk1.page &&
+        shk1.srcHidden
+      );
+      record(
+        "SHK1",
+        "Sequence .shk-strip/.shk-chart/.shk-bar present; Play intact; kinds ordered",
+        !!shk1ok,
+        JSON.stringify(shk1)
+      );
+
+      const shk2 = await page.evaluate(() => {
+        const prefer =
+          document.querySelector('.shk-bar[data-shk-kind="Calls"]') ||
+          document.querySelector(".shk-bar[data-shk-kind]");
+        if (!prefer) return { ok: false, reason: "no bar" };
+        const kind = prefer.getAttribute("data-shk-kind") || "";
+        prefer.click();
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop[data-kind]")];
+        const hit = hops.filter((el) => el.classList.contains("shk-hit"));
+        const dim = hops.filter((el) => el.classList.contains("shk-dim"));
+        const filtering = !!(
+          document.querySelector(".seq-page.shk-filtering") ||
+          document.querySelector("#seqHops.shk-filtering") ||
+          document.querySelector(".shk-strip.shk-filtering")
+        );
+        const pressed = [...document.querySelectorAll(".shk-bar[data-shk-kind]")].some(
+          (b) => b.getAttribute("data-shk-kind") === kind && b.getAttribute("aria-pressed") === "true"
+        );
+        const allHitMatch = hit.every((el) => {
+          let k = (el.getAttribute("data-kind") || "").trim();
+          const known = ["Calls", "Reads", "Writes", "Publishes", "Subscribes", "type"];
+          if (!known.includes(k)) k = "type";
+          return k === kind;
+        });
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          kind,
+          filtering,
+          pressed,
+          hit: hit.length,
+          dim: dim.length,
+          hops: hops.length,
+          allHitMatch,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shk2ok = !!(
+        shk2 &&
+        shk2.ok &&
+        shk2.filtering &&
+        shk2.pressed &&
+        shk2.hit >= 1 &&
+        shk2.allHitMatch &&
+        shk2.srcHidden &&
+        shk2.hit + shk2.dim === shk2.hops
+      );
+      record(
+        "SHK2",
+        "Kind bar paints .seq-hop shk-hit/shk-dim without opening source",
+        !!shk2ok,
+        JSON.stringify(shk2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const shk3 = await page.evaluate(() => {
+        const filtering = !!(
+          document.querySelector(".seq-page.shk-filtering") ||
+          document.querySelector("#seqHops.shk-filtering") ||
+          document.querySelector(".shk-strip.shk-filtering")
+        );
+        const hit = document.querySelectorAll("#seqHops .seq-hop.shk-hit").length;
+        const pressed = [...document.querySelectorAll(".shk-bar[aria-pressed='true']")].length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          filtering,
+          hit,
+          pressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shk3ok = !!(
+        shk3 &&
+        shk3.ws === "sequence" &&
+        !shk3.filtering &&
+        shk3.hit === 0 &&
+        shk3.pressed === 0 &&
+        shk3.srcHidden
+      );
+      record(
+        "SHK3",
+        "Escape clears Sequence hop-kind filter without leaving Sequence or opening source",
+        !!shk3ok,
+        JSON.stringify(shk3)
+      );
+
+      // SHK4 — filter on again; SSR/CMS chrome still present
+      await page.evaluate(() => {
+        const bar =
+          document.querySelector('.shk-bar[data-shk-kind="Calls"]') ||
+          document.querySelector(".shk-bar[data-shk-kind]");
+        if (bar) bar.click();
+      });
+      await page.waitForTimeout(80);
+      const shk4 = await page.evaluate(() => {
+        const pageEl = document.querySelector('.seq-page[data-ssr="1"][data-cms="1"][data-shk="1"]');
+        const lanes =
+          document.querySelectorAll(".seq-module-lane[data-cms-lane='1']").length ||
+          (document.querySelector("#seqParts.seq-swimlanes") ? 1 : 0);
+        const captions = document.querySelectorAll("[data-ssr-caption], .seq-hop .caption, .seq-part .caption, [data-ssr='1']").length;
+        const filtering = !!(
+          document.querySelector(".seq-page.shk-filtering") ||
+          document.querySelector("#seqHops.shk-filtering")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          lanes,
+          captions,
+          filtering,
+          play: !!document.getElementById("seqPlay"),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shk4ok = !!(
+        shk4 &&
+        shk4.page &&
+        shk4.lanes >= 1 &&
+        shk4.filtering &&
+        shk4.play &&
+        shk4.srcHidden
+      );
+      record(
+        "SHK4",
+        "SHK filter composes with SSR/CMS; Sequence chrome intact; no source",
+        !!shk4ok,
+        JSON.stringify(shk4)
+      );
+
+      await shot(page, "sequence-hop-kind-mix.png");
+      const shkShot = checks.find((c) => c.id === "shot:sequence-hop-kind-mix.png");
+      const shk5ok = !!(shk1ok && shk2ok && shk3ok && shk4ok && shkShot && shkShot.pass);
+      record(
+        "SHK5",
+        "screenshot sequence-hop-kind-mix.png not black; Sequence hop-kind mix proven",
+        !!shk5ok,
+        JSON.stringify({
+          shot: shkShot ? shkShot.detail : "missing",
+          shk1: !!shk1ok,
+          shk2: !!shk2ok,
+          shk3: !!shk3ok,
+          shk4: !!shk4ok,
+        })
+      );
+      assertNoStampDir("SHK5b", "Sequence hop-kind mix step did not write .graphide/stamps/");
+      await page.evaluate(() => {
+        const bars = [...document.querySelectorAll(".shk-bar[aria-pressed='true']")];
+        for (const el of bars) el.click();
+      });
+      await page.waitForTimeout(40);
+    }
+
+
     assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
     const dataflowSnap = loadDataflowSnap();
@@ -42457,7 +42657,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

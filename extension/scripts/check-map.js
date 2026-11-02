@@ -1061,6 +1061,24 @@ assert(tkmMap.includes("TKM1") && tkmMap.includes("tkm-chart") && tkmMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-kind-mix.md")), "timeline-kind-mix feature map missing");
 assert(featReadme.includes("timeline-kind-mix.md") && featReadme.includes("timeline-kind-mix.png"), "feature README must list timeline-kind-mix.md");
 
+const shkMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-kind-mix.md"), "utf8");
+assert(
+  shkMap.includes("## Sub-features") &&
+    shkMap.includes("## How to get to it (user POV)") &&
+    shkMap.includes("## Driving it with the harness") &&
+    shkMap.includes("## Gotchas"),
+  "sequence-hop-kind-mix feature map must use the four headings"
+);
+
+assert(driver.includes("SHK1") && driver.includes("SHK3") && driver.includes("sequence-hop-kind-mix.png") && driver.includes("shk-bar"), "verify driver must prove Sequence hop-kind mix SHK1–SHK3");
+assert(js.includes("seqHopKindFilter") && js.includes("seqHopKindChartHtml") && js.includes("bindSeqHopKindChart") && js.includes("toggleSeqHopKindFilter") && js.includes("applySeqHopKindPaint"), "desk.js must own Sequence hop-kind mix filter helpers");
+assert(css.includes(".shk-chart") && css.includes(".shk-bar") && css.includes("shk-hit") && css.includes("shk-dim"), "main.css must theme Sequence hop-kind mix chart + shk-hit/shk-dim");
+assert(shkMap.includes("SHK1") && shkMap.includes("shk-chart") && shkMap.includes("sequence-hop-kind-mix.png") && shkMap.includes("peekSource"), "sequence-hop-kind-mix feature map must name SHK / shk-chart / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-kind-mix.md")), "sequence-hop-kind-mix feature map missing");
+assert(featReadme.includes("sequence-hop-kind-mix.md") && featReadme.includes("sequence-hop-kind-mix.png"), "feature README must list sequence-hop-kind-mix.md");
+
+
+
 
 
 

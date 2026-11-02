@@ -20142,6 +20142,7 @@
     let callPathDepth = 0;
     let cfgExpandFocus = null;
     let routeMixFilter = null;
+    let seqHopKindFilter = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20401,6 +20402,12 @@
         timelineKindFilter = null;
         applyTimelineKindPaint();
         syncTimelineKindBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqHopKindFilter) {
+        e.preventDefault();
+        seqHopKindFilter = null;
+        applySeqHopKindPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && (cfgExpandFocus || callPathDepth > 0)) {
@@ -23273,7 +23280,7 @@
       exportMenu.classList.toggle("open", !!on2);
       if (exportBtn) exportBtn.classList.toggle("on", !!on2);
     }
-    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "rkm-hit", "rkm-dim", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
+    const EXPORT_STRIP = ["on", "dim", "hit", "focus", "selected", "ego-dim", "ego", "press", "flash-holds", "flash-skip", "present", "route-dim", "on-route", "on-route-hot", "rkm-hit", "rkm-dim", "shk-hit", "shk-dim", "lens-dim", "lens-on", "away", "hot", "flowing", "on-path", "now", "past", "ahead", "here", "walk", "dragging", "panning", "scroll-cfg-hot", "scroll-cfg-dim", "scroll-cfg-ahead", "scroll-macro-hot", "scroll-macro-dim", "scroll-anchor-api", "scroll-anchor-db", "scroll-anchor-svc", "scroll-anchor-util", "scroll-linemap-hit", "scroll-linemap-miss"];
     function exportDiagramRoot() {
       return document.getElementById("seqCanvas") || document.getElementById("dfCanvas") || document.getElementById("lcCanvas") || document.getElementById("deltaCanvas") || document.getElementById("sliceCanvas") || document.getElementById("lineageCanvas") || document.querySelector("#canvas .stage") || document.getElementById("canvas");
     }
@@ -28498,6 +28505,113 @@
       const pid = idVal(partId);
       return !!(pid && (idVal(h.from) === pid || idVal(h.to) === pid));
     }
+    const SEQ_HOP_KINDS = ["Calls", "Reads", "Writes", "Publishes", "Subscribes", "type"];
+    function seqHopKindCounts(hops) {
+      const map = /* @__PURE__ */ new Map();
+      for (const h of hops || []) {
+        let k = String(h && h.kind || "").trim();
+        if (!k) continue;
+        if (!SEQ_HOP_KINDS.includes(k)) k = "type";
+        map.set(k, (map.get(k) || 0) + 1);
+      }
+      return map;
+    }
+    function seqHopKindChartHtml(map) {
+      const entries = SEQ_HOP_KINDS.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+      if (!entries.length) return "";
+      const max = Math.max(1, ...entries.map((e) => e[1]));
+      const bars = entries.map((e) => {
+        const pct = Math.round(e[1] / max * 100);
+        const on2 = !!(seqHopKindFilter && String(seqHopKindFilter) === String(e[0]));
+        return '<button type="button" class="shk-bar' + (on2 ? " on" : "") + '" data-shk-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '" style="--shk-pct:' + pct + '%"><span class="shk-fill" aria-hidden="true"></span><span class="shk-label"><b>' + esc(e[0]) + "</b> " + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="shk-chart" role="group" aria-label="Sequence hop-kind mix bars" data-shk-axis-group="kind">' + bars + "</div>";
+    }
+    function seqHopKindStripHtml(hops) {
+      const map = seqHopKindCounts(hops);
+      const chart = seqHopKindChartHtml(map);
+      if (!chart) return "";
+      const total = [...map.values()].reduce((a, b) => a + b, 0);
+      return '<div class="shk-strip" data-shk="1" role="group" aria-label="Sequence hop-kind mix"><span class="shk-stat"><i class="k">Kinds</i> <b class="n">' + total + "</b> " + chart + "</span></div>";
+    }
+    function toggleSeqHopKindFilter(kind) {
+      if (!kind) return;
+      let k = String(kind);
+      if (!SEQ_HOP_KINDS.includes(k)) k = "type";
+      if (seqHopKindFilter && String(seqHopKindFilter) === k) seqHopKindFilter = null;
+      else seqHopKindFilter = k;
+      applySeqHopKindPaint();
+    }
+    function syncSeqHopKindBars() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".shk-bar[data-shk-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-shk-kind") || "";
+        const on2 = !!(seqHopKindFilter && String(seqHopKindFilter) === k);
+        el2.classList.toggle("on", on2);
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".shk-strip");
+      if (strip) strip.classList.toggle("shk-filtering", !!seqHopKindFilter);
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("shk-filtering", !!seqHopKindFilter);
+      const hops = canvas.querySelector("#seqHops");
+      if (hops) hops.classList.toggle("shk-filtering", !!seqHopKindFilter);
+    }
+    function bindSeqHopKindChart() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".shk-bar[data-shk-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleSeqHopKindFilter(el2.getAttribute("data-shk-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleSeqHopKindFilter(el2.getAttribute("data-shk-kind"));
+        };
+      });
+    }
+    function seqHopKindBucket(kind) {
+      const k = String(kind || "").trim();
+      if (!k) return "";
+      if (SEQ_HOP_KINDS.includes(k)) return k;
+      return "type";
+    }
+    function applySeqHopKindPaint() {
+      if (!canvas) return;
+      const filter2 = seqHopKindFilter ? String(seqHopKindFilter) : "";
+      const hitIds = /* @__PURE__ */ new Set();
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        const bucket = seqHopKindBucket(el2.getAttribute("data-kind") || "");
+        const hit = !!(filter2 && bucket === filter2);
+        const dim = !!(filter2 && bucket !== filter2);
+        el2.classList.toggle("shk-hit", hit);
+        el2.classList.toggle("shk-dim", dim);
+        if (hit) {
+          const from = el2.getAttribute("data-from") || "";
+          const to = el2.getAttribute("data-to") || "";
+          if (from) hitIds.add(from);
+          if (to) hitIds.add(to);
+        }
+      });
+      canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
+        const id2 = el2.getAttribute("data-id") || "";
+        const hit = !!(filter2 && hitIds.has(id2));
+        const dim = !!(filter2 && !hitIds.has(id2));
+        el2.classList.toggle("shk-hit", hit);
+        el2.classList.toggle("shk-dim", dim);
+      });
+      syncSeqHopKindBars();
+      const host = document.getElementById("seqCanvas");
+      if (host && typeof renderSequenceCanvas === "function") {
+        try {
+          renderSequenceCanvas(host, sequenceCanvasProps());
+        } catch (_) {
+        }
+      }
+    }
     function renderSequenceBody() {
       const flow = sequenceFlow();
       const reading = sequenceOf(flow);
@@ -28555,7 +28669,8 @@
         const cross = !!(fromMod && toMod && fromMod !== toMod);
         return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
-      return '<div class="seq-page" data-ssr="1" data-cms="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
+      return '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -28565,12 +28680,24 @@
     function sequenceCanvasProps() {
       const reading = sequenceOf(sequenceFlow());
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
+      const shk = seqHopKindFilter ? String(seqHopKindFilter) : "";
+      const shkHitIds = /* @__PURE__ */ new Set();
+      if (shk) {
+        for (const h of reading.hops || []) {
+          if (seqHopKindBucket(h.kind) === shk) {
+            shkHitIds.add(idVal(h.from));
+            shkHitIds.add(idVal(h.to));
+          }
+        }
+      }
       return {
         participants: reading.participants.map((p) => {
           const paint2 = graphNodePaint(p.id, { fqn: p.fqn, kind: p.kind || "Function", file: p.file || "" });
           const pid = idVal(p.id);
           const caption = p.caption || seqPartCaption(p, reading.hops);
           const focusDim = !!(focusId && focusId !== pid);
+          const shkDim = !!(shk && !shkHitIds.has(pid));
+          const shkHit = !!(shk && shkHitIds.has(pid));
           return {
             id: pid,
             fqn: p.fqn,
@@ -28579,22 +28706,29 @@
             caption,
             file: paint2.file || p.file || "",
             module: seqModuleOf2({ fqn: p.fqn, file: paint2.file || p.file || "" }),
-            dim: paint2.dim || focusDim,
-            hit: paint2.hit || !!focusId && focusId === pid
+            dim: paint2.dim || focusDim || shkDim,
+            hit: paint2.hit || !!focusId && focusId === pid || shkHit
           };
         }),
-        hops: reading.hops.map((h, i) => ({
-          i,
-          from: idVal(h.from),
-          to: idVal(h.to),
-          kind: h.kind || "",
-          variant: h.variant || "default",
-          fromLabel: shortOf(h.from_fqn),
-          toLabel: shortOf(h.to_fqn),
-          caption: h.caption || seqHopCaption(h),
-          dim: !!(focusId && !seqPartRelated(h, focusId)),
-          hit: !!(focusId && seqPartRelated(h, focusId))
-        })),
+        hops: reading.hops.map((h, i) => {
+          const bucket = seqHopKindBucket(h.kind);
+          const shkHit = !!(shk && bucket === shk);
+          const shkDim = !!(shk && bucket !== shk);
+          const focusHit = !!(focusId && seqPartRelated(h, focusId));
+          const focusDim = !!(focusId && !seqPartRelated(h, focusId));
+          return {
+            i,
+            from: idVal(h.from),
+            to: idVal(h.to),
+            kind: h.kind || "",
+            variant: h.variant || "default",
+            fromLabel: shortOf(h.from_fqn),
+            toLabel: shortOf(h.to_fqn),
+            caption: h.caption || seqHopCaption(h),
+            dim: focusDim || shkDim,
+            hit: focusHit || shkHit
+          };
+        }),
         cursor: seqCursor,
         onNodeClick: (id2) => {
           if (!id2) return;
@@ -28659,10 +28793,14 @@
       if (host) renderSequenceCanvas(host, sequenceCanvasProps());
       else unmountSequenceCanvas();
       applyGraphFilter();
+      applySeqHopKindPaint();
+      bindSeqHopKindChart();
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
     }
     function bindSequencePage() {
+      bindSeqHopKindChart();
+      applySeqHopKindPaint();
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();
