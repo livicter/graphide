@@ -53,6 +53,8 @@ Driver assertions:
 - screenshot `verification/timeline.png` is not a black frame
 - `.graphide/stamps/` is still empty
 
+
+Interactive kind-mix bars (TKM1–TKM5) live in [timeline-kind-mix.md](timeline-kind-mix.md) — `.tkm-bar` filters `.tl-item` without removing the scrubber.
 ## Gotchas
 
 - Timeline is the scar list. Architecture Delta is the derived parent vs

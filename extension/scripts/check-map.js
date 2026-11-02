@@ -1045,6 +1045,24 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(featReadme.includes("registry-audit-kind-mix.md") && featReadme.includes("registry-audit-kind-mix.png"), "feature README must list registry-audit-kind-mix.md");
 
 
+const tkmMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-kind-mix.md"), "utf8");
+assert(
+  tkmMap.includes("## Sub-features") &&
+    tkmMap.includes("## How to get to it (user POV)") &&
+    tkmMap.includes("## Driving it with the harness") &&
+    tkmMap.includes("## Gotchas"),
+  "timeline-kind-mix feature map must use the four headings"
+);
+
+assert(driver.includes("TKM1") && driver.includes("TKM3") && driver.includes("timeline-kind-mix.png") && driver.includes("tkm-bar"), "verify driver must prove Timeline kind-mix TKM1–TKM3");
+assert(js.includes("timelineKindFilter") && js.includes("timelineKindChartHtml") && js.includes("bindTimelineKindChart") && js.includes("toggleTimelineKindFilter") && js.includes("applyTimelineKindPaint"), "desk.js must own Timeline kind-mix filter helpers");
+assert(css.includes(".tkm-chart") && css.includes(".tkm-bar") && css.includes("tkm-hit") && css.includes("tkm-dim"), "main.css must theme Timeline kind-mix chart + tkm-hit/tkm-dim");
+assert(tkmMap.includes("TKM1") && tkmMap.includes("tkm-chart") && tkmMap.includes("timeline-kind-mix.png") && tkmMap.includes("peekSource"), "timeline-kind-mix feature map must name TKM / tkm-chart / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-kind-mix.md")), "timeline-kind-mix feature map missing");
+assert(featReadme.includes("timeline-kind-mix.md") && featReadme.includes("timeline-kind-mix.png"), "feature README must list timeline-kind-mix.md");
+
+
+
 
 
 

@@ -198,6 +198,7 @@ let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
 let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
 let registryAuditFilter = null; // ADE RAK: review|stamp|skip|broken|finding
+let timelineKindFilter = null; // ADE TKM: parent|coverage|stamp|skip|broken|hint
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -505,6 +506,19 @@ document.addEventListener("keydown", (e) => {
     registryAuditFilter = null;
     applyRegistryAuditPaint();
     syncRegistryAuditBars();
+    return;
+  }
+  // ADE TKM: Escape clears Timeline kind-mix filter when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "timeline" &&
+    timelineKindFilter
+  ) {
+    e.preventDefault();
+    timelineKindFilter = null;
+    applyTimelineKindPaint();
+    syncTimelineKindBars();
     return;
   }
   // ADE CFE+CPS: one Escape clears CFG expand and/or call-path depth (graph-only).
@@ -9066,6 +9080,150 @@ function renderRegistryBody() {
   );
 }
 
+
+/** ADE TKM — parent|coverage|stamp|skip|broken|hint bucket for a timeline event. */
+function timelineKindBucket(e) {
+  if (!e) return "";
+  if (e.kind === "parent") return "parent";
+  if (e.kind === "coverage") return "coverage";
+  if (e.kind === "skip") return "skip";
+  if (e.kind === "stamp" && e.verdict === "holds") return "stamp";
+  if (e.kind === "stamp" || e.verdict === "broken") return "broken";
+  if (e.verdict === "hint" || e.kind === "hint") return "hint";
+  if (e.kind === "finding" && e.verdict === "hint") return "hint";
+  if (e.kind === "finding" && e.verdict === "broken") return "broken";
+  // decisionRecords scars may use verdict skipped/holds/broken with kind stamp/skip/finding
+  if (e.verdict === "skipped") return "skip";
+  if (e.verdict === "holds") return "stamp";
+  return "";
+}
+
+/** ADE TKM — counts for interactive Timeline kind bars (timelineEvents only). */
+function timelineKindCounts(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const b = timelineKindBucket(r);
+    if (!b) continue;
+    map.set(b, (map.get(b) || 0) + 1);
+  }
+  return map;
+}
+
+/** ADE TKM — CSS bar mix for Timeline; max-scaled (RAK/DAM parity). */
+function timelineKindChartHtml(map) {
+  const order = ["parent", "coverage", "stamp", "skip", "broken", "hint"];
+  const entries = order.filter((k) => (map.get(k) || 0) > 0).map((k) => [k, map.get(k)]);
+  if (!entries.length) return "";
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  const labels = {
+    parent: "Parent",
+    coverage: "Uncovered",
+    stamp: "Stamp",
+    skip: "Skip",
+    broken: "Broken",
+    hint: "Hint",
+  };
+  const bars = entries
+    .map((e) => {
+      const pct = Math.round((e[1] / max) * 100);
+      const on = !!(timelineKindFilter && String(timelineKindFilter) === String(e[0]));
+      return (
+        '<button type="button" class="tkm-bar' +
+        (on ? " on" : "") +
+        '" data-tkm-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(labels[e[0]] || e[0]) +
+        " · " +
+        e[1] +
+        '" style="--tkm-pct:' +
+        pct +
+        '%"><span class="tkm-fill" aria-hidden="true"></span><span class="tkm-label"><b>' +
+        esc(labels[e[0]] || e[0]) +
+        "</b> " +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="tkm-chart" role="group" aria-label="Timeline kind-mix bars" data-tkm-axis-group="kind">' +
+    bars +
+    "</div>"
+  );
+}
+
+function timelineKindStripHtml(rows) {
+  const map = timelineKindCounts(rows);
+  const chart = timelineKindChartHtml(map);
+  if (!chart) return "";
+  const total = [...map.values()].reduce((a, b) => a + b, 0);
+  return (
+    '<div class="tkm-strip" data-tkm="1" role="group" aria-label="Timeline kind-mix">' +
+    '<span class="tkm-stat"><i class="k">Kinds</i> <b class="n">' +
+    total +
+    "</b> " +
+    chart +
+    "</span></div>"
+  );
+}
+
+function toggleTimelineKindFilter(kind) {
+  if (!kind) return;
+  if (timelineKindFilter && String(timelineKindFilter) === String(kind)) timelineKindFilter = null;
+  else timelineKindFilter = String(kind);
+  applyTimelineKindPaint();
+  syncTimelineKindBars();
+}
+
+function syncTimelineKindBars() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".tkm-bar[data-tkm-kind]").forEach((el) => {
+    const k = el.getAttribute("data-tkm-kind") || "";
+    const on = !!(timelineKindFilter && String(timelineKindFilter) === k);
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".tkm-strip");
+  if (strip) strip.classList.toggle("tkm-filtering", !!timelineKindFilter);
+  const page = canvas.querySelector(".tl-page");
+  if (page) page.classList.toggle("tkm-filtering", !!timelineKindFilter);
+  const rail = canvas.querySelector(".tl-rail");
+  if (rail) rail.classList.toggle("tkm-filtering", !!timelineKindFilter);
+}
+
+function bindTimelineKindChart() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".tkm-bar[data-tkm-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleTimelineKindFilter(el.getAttribute("data-tkm-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleTimelineKindFilter(el.getAttribute("data-tkm-kind"));
+    };
+  });
+}
+
+function applyTimelineKindPaint() {
+  if (!canvas) return;
+  const filter = timelineKindFilter ? String(timelineKindFilter) : "";
+  canvas.querySelectorAll(".tl-item[data-tkm-kind]").forEach((el) => {
+    const bucket = el.getAttribute("data-tkm-kind") || "";
+    const hit = !!(filter && bucket === filter);
+    const dim = !!(filter && bucket !== filter);
+    el.classList.toggle("tkm-hit", hit);
+    el.classList.toggle("tkm-dim", dim);
+  });
+  syncTimelineKindBars();
+}
+
 function renderTimelineBody() {
   const ev = timelineEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -9083,8 +9241,10 @@ function renderTimelineBody() {
   if (timelineCursor >= ev.length) timelineCursor = ev.length - 1;
   if (timelineCursor < 0) timelineCursor = 0;
   const cur = ev[timelineCursor];
+  const tkmStrip = timelineKindStripHtml(ev);
   return (
     '<div class="tl-page">' +
+    tkmStrip +
     '<div class="tl-scrub">' +
     '<label>Watch this review <input id="tlScrub" type="range" min="0" max="' +
     (ev.length - 1) +
@@ -9099,12 +9259,15 @@ function renderTimelineBody() {
     '<div class="tl-rail">' +
     ev
       .map((e, i) => {
+        const bucket = timelineKindBucket(e);
         return (
           '<article class="tl-item ' +
           esc(e.kind || e.verdict || "") +
           (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") +
           '" data-t="' +
           i +
+          '" data-tkm-kind="' +
+          esc(bucket) +
           '"' +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
           '><i class="tl-dot"></i><div class="tl-when">t' +
@@ -9124,6 +9287,7 @@ function renderTimelineBody() {
     "</div></div>"
   );
 }
+
 
 function clusterFacts() {
   return ((snapshot && snapshot.delta && snapshot.delta.cluster_facts) || []).map((c) => ({
@@ -17091,6 +17255,8 @@ function bindWorkbenchPages() {
   bindDecisionAttestChart();
   applyRegistryAuditPaint();
   bindRegistryAuditChart();
+  applyTimelineKindPaint();
+  bindTimelineKindChart();
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
