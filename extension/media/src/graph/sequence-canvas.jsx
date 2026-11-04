@@ -176,6 +176,9 @@ function ReviewCanvas({
           label: (h.kind || h.label || "") + (ret ? " return" : ""),
           className:
             (on ? "on" : "") +
+            (h.story === "past" ? " sss-past" : "") +
+            (h.story === "now" ? " sss-now" : "") +
+            (h.story === "ahead" ? " sss-ahead" : "") +
             (ret ? " ret" : "") +
             (h.scar ? " scar" : "") +
             (state ? " delta-" + state : ""),

@@ -19310,7 +19310,7 @@
             target: String(h.to),
             type: back ? "reviewBack" : "step",
             label: (h.kind || h.label || "") + (ret ? " return" : ""),
-            className: (on2 ? "on" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
+            className: (on2 ? "on" : "") + (h.story === "past" ? " sss-past" : "") + (h.story === "now" ? " sss-now" : "") + (h.story === "ahead" ? " sss-ahead" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
             data: {
               i: h.i,
               from: String(h.from),
@@ -20408,6 +20408,14 @@
         e.preventDefault();
         seqHopKindFilter = null;
         applySeqHopKindPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqCursor >= 0) {
+        e.preventDefault();
+        stopSeqWalk();
+        seqCursor = -1;
+        applySeqStoryScrubPaint();
+        syncSeqStoryScrub();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "overview" || explorerWs === "slice") && (cfgExpandFocus || callPathDepth > 0)) {
@@ -28612,6 +28620,104 @@
         }
       }
     }
+    function seqStoryScrubHtml(hops) {
+      const n = hops && hops.length || 0;
+      if (n < 1) return "";
+      const max = Math.max(0, n - 1);
+      const active = seqCursor >= 0;
+      const val = active ? Math.min(seqCursor, max) : 0;
+      return '<div class="sss-strip" data-sss="1" role="group" aria-label="Sequence story scrubber"><span class="sss-stat"><i class="k">Story</i> <b class="n" data-sss-meta="1">' + (active ? seqCursor + 1 + "/" + n : "idle · " + n + " hops") + '</b></span><label class="sss-slider-wrap"><span class="sss-depth-label">hop <b data-sss-val="1">' + (active ? String(seqCursor + 1) : "—") + '</b></span><input type="range" id="sssScrub" class="sss-scrub" min="0" max="' + max + '" value="' + val + '" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + val + '" aria-label="Scrub sequence story hop" /></label><span class="sss-hint">past · now · ahead on hops and lanes</span></div>';
+    }
+    function syncSeqStoryScrub() {
+      const hops = typeof seqHops === "function" ? seqHops() || [] : [];
+      const n = hops.length;
+      const max = Math.max(0, n - 1);
+      const active = seqCursor >= 0 && n > 0;
+      const input = document.getElementById("sssScrub");
+      if (input) {
+        input.max = String(max);
+        input.setAttribute("aria-valuemax", String(max));
+        if (active) {
+          input.value = String(Math.min(seqCursor, max));
+          input.setAttribute("aria-valuenow", input.value);
+        }
+      }
+      const strip = canvas.querySelector(".sss-strip[data-sss='1']");
+      if (strip) {
+        strip.classList.toggle("sss-scrubbing", active);
+        const meta2 = strip.querySelector("[data-sss-meta='1']");
+        if (meta2) meta2.textContent = active ? seqCursor + 1 + "/" + n : "idle · " + n + " hops";
+        const valEl = strip.querySelector("[data-sss-val='1']");
+        if (valEl) valEl.textContent = active ? String(seqCursor + 1) : "—";
+      }
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("sss-scrubbing", active);
+      const list = canvas.querySelector("#seqHops");
+      if (list) list.classList.toggle("sss-scrubbing", active);
+    }
+    function bindSeqStoryScrub() {
+      const input = document.getElementById("sssScrub");
+      if (!input || input.dataset.sssBound === "1") return;
+      input.dataset.sssBound = "1";
+      input.addEventListener("input", () => {
+        const hops = seqHops() || [];
+        if (!hops.length) return;
+        stopSeqWalk();
+        const v = parseInt(input.value, 10);
+        if (!Number.isFinite(v)) return;
+        seqCursor = Math.max(0, Math.min(v, hops.length - 1));
+        applySeqStoryScrubPaint();
+        syncSeqStoryScrub();
+        if (typeof focusSeqHop === "function") focusSeqHop(hops[seqCursor]);
+        if (typeof patchSequenceChrome === "function") patchSequenceChrome();
+        const host = document.getElementById("seqCanvas");
+        if (host && typeof renderSequenceCanvas === "function") {
+          renderSequenceCanvas(host, sequenceCanvasProps());
+        }
+      });
+    }
+    function applySeqStoryScrubPaint() {
+      const hops = typeof seqHops === "function" ? seqHops() || [] : [];
+      const active = seqCursor >= 0 && hops.length > 0;
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("sss-scrubbing", active);
+      const list = canvas.querySelector("#seqHops");
+      if (list) list.classList.toggle("sss-scrubbing", active);
+      const strip = canvas.querySelector(".sss-strip[data-sss='1']");
+      if (strip) strip.classList.toggle("sss-scrubbing", active);
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        el2.classList.remove("sss-past", "sss-now", "sss-ahead");
+        if (!active) return;
+        const i = parseInt(el2.getAttribute("data-seq-i"), 10);
+        if (!Number.isFinite(i)) return;
+        if (i < seqCursor) el2.classList.add("sss-past");
+        else if (i === seqCursor) el2.classList.add("sss-now");
+        else el2.classList.add("sss-ahead");
+      });
+      const spokenPast = /* @__PURE__ */ new Set();
+      const spokenNow = /* @__PURE__ */ new Set();
+      const spokenAhead = /* @__PURE__ */ new Set();
+      if (active) {
+        canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+          const i = parseInt(el2.getAttribute("data-seq-i"), 10);
+          if (!Number.isFinite(i)) return;
+          const lf = el2.getAttribute("data-lane-from") || "";
+          const lt2 = el2.getAttribute("data-lane-to") || "";
+          const bucket = i < seqCursor ? spokenPast : i === seqCursor ? spokenNow : spokenAhead;
+          if (lf) bucket.add(lf);
+          if (lt2) bucket.add(lt2);
+        });
+      }
+      canvas.querySelectorAll(".seq-module-lane[data-cms-lane='1']").forEach((el2) => {
+        el2.classList.remove("sss-past-lane", "sss-now-lane", "sss-ahead-lane");
+        if (!active) return;
+        const id2 = el2.getAttribute("data-lane-id") || el2.getAttribute("data-module") || "";
+        if (!id2) return;
+        if (spokenNow.has(id2)) el2.classList.add("sss-now-lane");
+        else if (spokenPast.has(id2)) el2.classList.add("sss-past-lane");
+        else if (spokenAhead.has(id2)) el2.classList.add("sss-ahead-lane");
+      });
+    }
     function renderSequenceBody() {
       const flow = sequenceFlow();
       const reading = sequenceOf(flow);
@@ -28639,7 +28745,7 @@
       if (seqCursor >= hops.length) seqCursor = hops.length - 1;
       const hot = seqCursor >= 0 ? hops[seqCursor] : null;
       const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => seqHopMatch(h));
-      const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
+      const review = '<div class="review-strip" id="seqReview"><button type="button" class="review-step" id="seqOverview">Overview</button><button type="button" class="review-step" id="seqPrev">Prev</button><button type="button" class="review-step' + (seqWalk.playing ? " on" : "") + '" id="seqPlay" aria-pressed="' + (seqWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="seqNext">Next</button><span id="seqStatus">' + (hot ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>" + seqStoryScrubHtml(hops);
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       const lanes = seqModuleLanes(parts);
       const partModule = /* @__PURE__ */ new Map();
@@ -28649,6 +28755,18 @@
       const hotFromMod = hot ? partModule.get(idVal(hot.from)) || "" : "";
       const hotToMod = hot ? partModule.get(idVal(hot.to)) || "" : "";
       const hotCross = !!(hot && hotFromMod && hotToMod && hotFromMod !== hotToMod);
+      const sssPastLanes = /* @__PURE__ */ new Set();
+      const sssNowLanes = /* @__PURE__ */ new Set();
+      const sssAheadLanes = /* @__PURE__ */ new Set();
+      if (seqCursor >= 0) {
+        hops.forEach((h, i) => {
+          const fm = partModule.get(idVal(h.from)) || seqModuleOf2({ fqn: h.from_fqn, file: h.file });
+          const tm = partModule.get(idVal(h.to)) || seqModuleOf2({ fqn: h.to_fqn, file: h.file });
+          const bucket = i < seqCursor ? sssPastLanes : i === seqCursor ? sssNowLanes : sssAheadLanes;
+          if (fm) bucket.add(fm);
+          if (tm) bucket.add(tm);
+        });
+      }
       const heads = lanes.map((lane) => {
         const laneOn = !!(hot && (lane.id === hotFromMod || lane.id === hotToMod));
         const membersHtml = lane.members.map((p) => {
@@ -28659,7 +28777,7 @@
           const focusDim = !!(focusId && focusId !== pid);
           return '<button type="button" class="seq-part vnode kind-' + esc(p.kind || "Function") + (on2 ? " on" : "") + (focusId && focusId === pid ? " ssr-hit" : "") + (focusDim ? " ssr-dim" : "") + (seqQ && match ? " hit" : "") + (seqQ && !match ? " dim" : "") + '" data-id="' + esc(pid) + '" data-fqn="' + esc(p.fqn) + '" data-kind="' + esc(p.kind || "") + '" data-lane-id="' + esc(lane.id) + '" data-module="' + esc(lane.id) + '"' + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + (p.file ? ' data-file="' + esc(p.file) + '"' : "") + ' aria-pressed="' + (focusId && focusId === pid ? "true" : "false") + '"><span class="name">' + esc(shortOf(p.fqn)) + '</span> <span class="meta">' + esc(p.kind || "") + "</span>" + (caption ? '<span class="seq-part-caption">' + esc(caption) + "</span>" : "") + "</button>";
         }).join("");
-        return '<div class="seq-module-lane' + (laneOn ? " cms-active-lane" : "") + '" data-module="' + esc(lane.id) + '" data-lane-id="' + esc(lane.id) + '" data-testid="seq-module-lane-' + esc(lane.id) + '" data-cms-lane="1"><div class="seq-module-label">' + esc(lane.label) + '</div><div class="seq-module-parts" style="--seq-n:' + lane.members.length + '">' + membersHtml + "</div></div>";
+        return '<div class="seq-module-lane' + (laneOn ? " cms-active-lane" : "") + (seqCursor >= 0 && sssNowLanes.has(lane.id) ? " sss-now-lane" : "") + (seqCursor >= 0 && !sssNowLanes.has(lane.id) && sssPastLanes.has(lane.id) ? " sss-past-lane" : "") + (seqCursor >= 0 && !sssNowLanes.has(lane.id) && !sssPastLanes.has(lane.id) && sssAheadLanes.has(lane.id) ? " sss-ahead-lane" : "") + '" data-module="' + esc(lane.id) + '" data-lane-id="' + esc(lane.id) + '" data-testid="seq-module-lane-' + esc(lane.id) + '" data-cms-lane="1"><div class="seq-module-label">' + esc(lane.label) + '</div><div class="seq-module-parts" style="--seq-n:' + lane.members.length + '">' + membersHtml + "</div></div>";
       }).join("");
       const list = hopCards.map(({ h, i }) => {
         const caption = h.caption || seqHopCaption(h);
@@ -28667,10 +28785,10 @@
         const fromMod = partModule.get(idVal(h.from)) || seqModuleOf2({ fqn: h.from_fqn, file: h.file });
         const toMod = partModule.get(idVal(h.to)) || seqModuleOf2({ fqn: h.to_fqn, file: h.file });
         const cross = !!(fromMod && toMod && fromMod !== toMod);
-        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
+        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (seqCursor >= 0 && i < seqCursor ? " sss-past" : "") + (seqCursor >= 0 && i === seqCursor ? " sss-now" : "") + (seqCursor >= 0 && i > seqCursor ? " sss-ahead" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
       const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
-      return '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      return '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1" data-sss="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -28716,6 +28834,7 @@
           const shkDim = !!(shk && bucket !== shk);
           const focusHit = !!(focusId && seqPartRelated(h, focusId));
           const focusDim = !!(focusId && !seqPartRelated(h, focusId));
+          const story = seqCursor < 0 ? "" : i < seqCursor ? "past" : i === seqCursor ? "now" : "ahead";
           return {
             i,
             from: idVal(h.from),
@@ -28726,7 +28845,9 @@
             toLabel: shortOf(h.to_fqn),
             caption: h.caption || seqHopCaption(h),
             dim: focusDim || shkDim,
-            hit: focusHit || shkHit
+            hit: focusHit || shkHit,
+            story,
+            hot: i === seqCursor
           };
         }),
         cursor: seqCursor,
@@ -28750,6 +28871,8 @@
         const i = parseInt(el2.getAttribute("data-seq-i"), 10);
         el2.classList.toggle("on", i === seqCursor);
       });
+      applySeqStoryScrubPaint();
+      syncSeqStoryScrub();
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
@@ -28795,12 +28918,18 @@
       applyGraphFilter();
       applySeqHopKindPaint();
       bindSeqHopKindChart();
+      bindSeqStoryScrub();
+      applySeqStoryScrubPaint();
+      syncSeqStoryScrub();
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
     }
     function bindSequencePage() {
       bindSeqHopKindChart();
       applySeqHopKindPaint();
+      bindSeqStoryScrub();
+      applySeqStoryScrubPaint();
+      syncSeqStoryScrub();
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();
