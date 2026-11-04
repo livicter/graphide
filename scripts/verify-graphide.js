@@ -38368,6 +38368,190 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Sequence story scrubber (SSS1–SSS5) — past/now/ahead scrub on seqCursor
+    {
+      await page.waitForSelector(".sss-strip #sssScrub, #seqPlay", { timeout: 8000 });
+      const sss1 = await page.evaluate(() => {
+        const strip = document.querySelector(".sss-strip[data-sss='1']");
+        const scrub = document.getElementById("sssScrub");
+        const hops = document.querySelectorAll("#seqHops .seq-hop").length;
+        const play = document.getElementById("seqPlay");
+        const pageEl = document.querySelector('.seq-page[data-sss="1"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          hops,
+          play: !!play,
+          page: !!pageEl,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sss1ok = !!(
+        sss1 &&
+        sss1.strip &&
+        sss1.scrub &&
+        sss1.hops >= 1 &&
+        sss1.play &&
+        sss1.page &&
+        sss1.srcHidden &&
+        Number(sss1.max) >= 0
+      );
+      record(
+        "SSS1",
+        "Sequence .sss-strip / #sssScrub present beside Play; hops available",
+        !!sss1ok,
+        JSON.stringify(sss1)
+      );
+
+      const sss2 = await page.evaluate(() => {
+        const scrub = document.getElementById("sssScrub");
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        if (!scrub || hops.length < 1) return { ok: false, reason: "no scrub/hops" };
+        const target = Math.min(1, hops.length - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const past = hops.filter((el) => el.classList.contains("sss-past")).length;
+        const now = hops.filter((el) => el.classList.contains("sss-now")).length;
+        const ahead = hops.filter((el) => el.classList.contains("sss-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".seq-page.sss-scrubbing") ||
+          document.querySelector("#seqHops.sss-scrubbing") ||
+          document.querySelector(".sss-strip.sss-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          hops: hops.length,
+          scrubbing,
+          sum: past + now + ahead,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sss2ok = !!(
+        sss2 &&
+        sss2.ok &&
+        sss2.scrubbing &&
+        sss2.now === 1 &&
+        sss2.sum === sss2.hops &&
+        sss2.srcHidden
+      );
+      record(
+        "SSS2",
+        "Story scrub paints seq-hop sss-past/sss-now/sss-ahead without opening source",
+        !!sss2ok,
+        JSON.stringify(sss2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const sss3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".seq-page.sss-scrubbing") ||
+          document.querySelector("#seqHops.sss-scrubbing") ||
+          document.querySelector(".sss-strip.sss-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#seqHops .seq-hop.sss-past, #seqHops .seq-hop.sss-now, #seqHops .seq-hop.sss-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sss3ok = !!(
+        sss3 &&
+        sss3.ws === "sequence" &&
+        !sss3.scrubbing &&
+        sss3.painted === 0 &&
+        sss3.srcHidden
+      );
+      record(
+        "SSS3",
+        "Escape clears Sequence story scrub without leaving Sequence or opening source",
+        !!sss3ok,
+        JSON.stringify(sss3)
+      );
+
+      // SSS4 — scrub again; SHK/SSR/CMS chrome still present
+      await page.evaluate(() => {
+        const scrub = document.getElementById("sssScrub");
+        const hops = document.querySelectorAll("#seqHops .seq-hop").length;
+        if (!scrub || hops < 1) return;
+        scrub.value = String(Math.min(1, hops - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const sss4 = await page.evaluate(() => {
+        const pageEl = document.querySelector(
+          '.seq-page[data-ssr="1"][data-cms="1"][data-shk="1"][data-sss="1"]'
+        );
+        const lanes =
+          document.querySelectorAll(".seq-module-lane[data-cms-lane='1']").length ||
+          (document.querySelector("#seqParts.seq-swimlanes") ? 1 : 0);
+        const shk = !!document.querySelector(".shk-strip[data-shk='1']");
+        const scrubbing = !!(
+          document.querySelector(".seq-page.sss-scrubbing") ||
+          document.querySelector("#seqHops.sss-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          lanes,
+          shk,
+          scrubbing,
+          play: !!document.getElementById("seqPlay"),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sss4ok = !!(
+        sss4 &&
+        sss4.page &&
+        sss4.lanes >= 1 &&
+        sss4.shk &&
+        sss4.scrubbing &&
+        sss4.play &&
+        sss4.srcHidden
+      );
+      record(
+        "SSS4",
+        "SSS scrub composes with SSR/CMS/SHK; Sequence chrome intact; no source",
+        !!sss4ok,
+        JSON.stringify(sss4)
+      );
+
+      await shot(page, "sequence-story-scrubber.png");
+      const sssShot = checks.find((c) => c.id === "shot:sequence-story-scrubber.png");
+      const sss5ok = !!(sss1ok && sss2ok && sss3ok && sss4ok && sssShot && sssShot.pass);
+      record(
+        "SSS5",
+        "screenshot sequence-story-scrubber.png not black; Sequence story scrubber proven",
+        !!sss5ok,
+        JSON.stringify({
+          shot: sssShot ? sssShot.detail : "missing",
+          sss1: !!sss1ok,
+          sss2: !!sss2ok,
+          sss3: !!sss3ok,
+          sss4: !!sss4ok,
+        })
+      );
+      assertNoStampDir("SSS5b", "Sequence story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
 
     assertNoStampDir("Q8", "Sequence step did not write .graphide/stamps/");
 
@@ -42657,7 +42841,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

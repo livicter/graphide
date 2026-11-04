@@ -1077,6 +1077,21 @@ assert(shkMap.includes("SHK1") && shkMap.includes("shk-chart") && shkMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-kind-mix.md")), "sequence-hop-kind-mix feature map missing");
 assert(featReadme.includes("sequence-hop-kind-mix.md") && featReadme.includes("sequence-hop-kind-mix.png"), "feature README must list sequence-hop-kind-mix.md");
 
+const sssMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-story-scrubber.md"), "utf8");
+assert(
+  sssMap.includes("## Sub-features") &&
+    sssMap.includes("## How to get to it (user POV)") &&
+    sssMap.includes("## Driving it with the harness") &&
+    sssMap.includes("## Gotchas"),
+  "sequence-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("SSS1") && driver.includes("SSS3") && driver.includes("sequence-story-scrubber.png") && driver.includes("sssScrub"), "verify driver must prove Sequence story scrubber SSS1–SSS3");
+assert(js.includes("seqStoryScrubHtml") && js.includes("bindSeqStoryScrub") && js.includes("applySeqStoryScrubPaint") && js.includes("syncSeqStoryScrub") && chrome.includes("seqStoryScrubHtml"), "desk.js must own Sequence story scrubber helpers");
+assert(css.includes(".sss-strip") && css.includes(".sss-scrub") && css.includes("sss-past") && css.includes("sss-now") && css.includes("sss-ahead"), "main.css must theme Sequence story scrubber + past/now/ahead");
+assert(sssMap.includes("SSS1") && sssMap.includes("sss-strip") && sssMap.includes("sequence-story-scrubber.png") && sssMap.includes("peekSource"), "sequence-story-scrubber feature map must name SSS / sss-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-story-scrubber.md")), "sequence-story-scrubber feature map missing");
+assert(featReadme.includes("sequence-story-scrubber.md") && featReadme.includes("sequence-story-scrubber.png"), "feature README must list sequence-story-scrubber.md");
+
 
 
 

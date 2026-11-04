@@ -134,3 +134,7 @@ Sequence. Matching hops light (`shk-hit`); others dim. Escape clears. Graph-only
 Proof `verification/sequence-hop-kind-mix.png`.
 
 
+
+## Sequence story scrubber (SSS)
+
+See [sequence-story-scrubber.md](sequence-story-scrubber.md). Past/now/ahead scrub on `seqCursor`.

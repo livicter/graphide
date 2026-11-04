@@ -173,6 +173,7 @@ let deltaView = "delta";
 let deltaCursor = -1;
 let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
+/** ADE SSS — Sequence story scrub active when seqCursor >= 0 (past/now/ahead paint). */
 let seqWalk = { playing: false, timer: 0 };
 let seqBodyKey = "";
 /** ADE SSR — participant focus id; graph-only highlight (null clears). */
@@ -532,6 +533,20 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     seqHopKindFilter = null;
     applySeqHopKindPaint();
+    return;
+  }
+  // ADE SSS: Escape clears Sequence story scrub (seqCursor → idle) when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "sequence" &&
+    seqCursor >= 0
+  ) {
+    e.preventDefault();
+    stopSeqWalk();
+    seqCursor = -1;
+    applySeqStoryScrubPaint();
+    syncSeqStoryScrub();
     return;
   }
   // ADE CFE+CPS: one Escape clears CFG expand and/or call-path depth (graph-only).
@@ -10807,6 +10822,132 @@ function applySeqHopKindPaint() {
   }
 }
 
+/** ADE SSS — story scrub strip (Timeline/CPS parity) bound to seqCursor. */
+function seqStoryScrubHtml(hops) {
+  const n = (hops && hops.length) || 0;
+  if (n < 1) return "";
+  const max = Math.max(0, n - 1);
+  const active = seqCursor >= 0;
+  const val = active ? Math.min(seqCursor, max) : 0;
+  return (
+    '<div class="sss-strip" data-sss="1" role="group" aria-label="Sequence story scrubber">' +
+    '<span class="sss-stat"><i class="k">Story</i> <b class="n" data-sss-meta="1">' +
+    (active ? seqCursor + 1 + "/" + n : "idle · " + n + " hops") +
+    "</b></span>" +
+    '<label class="sss-slider-wrap">' +
+    '<span class="sss-depth-label">hop <b data-sss-val="1">' +
+    (active ? String(seqCursor + 1) : "—") +
+    "</b></span>" +
+    '<input type="range" id="sssScrub" class="sss-scrub" min="0" max="' +
+    max +
+    '" value="' +
+    val +
+    '" aria-valuemin="0" aria-valuemax="' +
+    max +
+    '" aria-valuenow="' +
+    val +
+    '" aria-label="Scrub sequence story hop" />' +
+    "</label>" +
+    '<span class="sss-hint">past · now · ahead on hops and lanes</span>' +
+    "</div>"
+  );
+}
+
+function syncSeqStoryScrub() {
+  const hops = typeof seqHops === "function" ? seqHops() || [] : [];
+  const n = hops.length;
+  const max = Math.max(0, n - 1);
+  const active = seqCursor >= 0 && n > 0;
+  const input = document.getElementById("sssScrub");
+  if (input) {
+    input.max = String(max);
+    input.setAttribute("aria-valuemax", String(max));
+    if (active) {
+      input.value = String(Math.min(seqCursor, max));
+      input.setAttribute("aria-valuenow", input.value);
+    }
+  }
+  const strip = canvas.querySelector(".sss-strip[data-sss='1']");
+  if (strip) {
+    strip.classList.toggle("sss-scrubbing", active);
+    const meta = strip.querySelector("[data-sss-meta='1']");
+    if (meta) meta.textContent = active ? seqCursor + 1 + "/" + n : "idle · " + n + " hops";
+    const valEl = strip.querySelector("[data-sss-val='1']");
+    if (valEl) valEl.textContent = active ? String(seqCursor + 1) : "—";
+  }
+  const page = canvas.querySelector(".seq-page");
+  if (page) page.classList.toggle("sss-scrubbing", active);
+  const list = canvas.querySelector("#seqHops");
+  if (list) list.classList.toggle("sss-scrubbing", active);
+}
+
+function bindSeqStoryScrub() {
+  const input = document.getElementById("sssScrub");
+  if (!input || input.dataset.sssBound === "1") return;
+  input.dataset.sssBound = "1";
+  input.addEventListener("input", () => {
+    const hops = seqHops() || [];
+    if (!hops.length) return;
+    stopSeqWalk();
+    const v = parseInt(input.value, 10);
+    if (!Number.isFinite(v)) return;
+    seqCursor = Math.max(0, Math.min(v, hops.length - 1));
+    applySeqStoryScrubPaint();
+    syncSeqStoryScrub();
+    if (typeof focusSeqHop === "function") focusSeqHop(hops[seqCursor]);
+    if (typeof patchSequenceChrome === "function") patchSequenceChrome();
+    const host = document.getElementById("seqCanvas");
+    if (host && typeof renderSequenceCanvas === "function") {
+      renderSequenceCanvas(host, sequenceCanvasProps());
+    }
+  });
+}
+
+function applySeqStoryScrubPaint() {
+  const hops = typeof seqHops === "function" ? seqHops() || [] : [];
+  const active = seqCursor >= 0 && hops.length > 0;
+  const page = canvas.querySelector(".seq-page");
+  if (page) page.classList.toggle("sss-scrubbing", active);
+  const list = canvas.querySelector("#seqHops");
+  if (list) list.classList.toggle("sss-scrubbing", active);
+  const strip = canvas.querySelector(".sss-strip[data-sss='1']");
+  if (strip) strip.classList.toggle("sss-scrubbing", active);
+
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    el.classList.remove("sss-past", "sss-now", "sss-ahead");
+    if (!active) return;
+    const i = parseInt(el.getAttribute("data-seq-i"), 10);
+    if (!Number.isFinite(i)) return;
+    if (i < seqCursor) el.classList.add("sss-past");
+    else if (i === seqCursor) el.classList.add("sss-now");
+    else el.classList.add("sss-ahead");
+  });
+
+  const spokenPast = new Set();
+  const spokenNow = new Set();
+  const spokenAhead = new Set();
+  if (active) {
+    canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+      const i = parseInt(el.getAttribute("data-seq-i"), 10);
+      if (!Number.isFinite(i)) return;
+      const lf = el.getAttribute("data-lane-from") || "";
+      const lt = el.getAttribute("data-lane-to") || "";
+      const bucket = i < seqCursor ? spokenPast : i === seqCursor ? spokenNow : spokenAhead;
+      if (lf) bucket.add(lf);
+      if (lt) bucket.add(lt);
+    });
+  }
+  canvas.querySelectorAll(".seq-module-lane[data-cms-lane='1']").forEach((el) => {
+    el.classList.remove("sss-past-lane", "sss-now-lane", "sss-ahead-lane");
+    if (!active) return;
+    const id = el.getAttribute("data-lane-id") || el.getAttribute("data-module") || "";
+    if (!id) return;
+    if (spokenNow.has(id)) el.classList.add("sss-now-lane");
+    else if (spokenPast.has(id)) el.classList.add("sss-past-lane");
+    else if (spokenAhead.has(id)) el.classList.add("sss-ahead-lane");
+  });
+}
+
 function renderSequenceBody() {
   const flow = sequenceFlow();
   const reading = sequenceOf(flow);
@@ -10865,7 +11006,8 @@ function renderSequenceBody() {
     (hot
       ? seqCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
-    "</span></div>";
+    "</span></div>" +
+    seqStoryScrubHtml(hops);
   const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   // ADE CMS — group participants into module swimlanes (file/FQN prefix).
   const lanes = seqModuleLanes(parts);
@@ -10876,6 +11018,18 @@ function renderSequenceBody() {
   const hotFromMod = hot ? partModule.get(idVal(hot.from)) || "" : "";
   const hotToMod = hot ? partModule.get(idVal(hot.to)) || "" : "";
   const hotCross = !!(hot && hotFromMod && hotToMod && hotFromMod !== hotToMod);
+  const sssPastLanes = new Set();
+  const sssNowLanes = new Set();
+  const sssAheadLanes = new Set();
+  if (seqCursor >= 0) {
+    hops.forEach((h, i) => {
+      const fm = partModule.get(idVal(h.from)) || seqModuleOf({ fqn: h.from_fqn, file: h.file });
+      const tm = partModule.get(idVal(h.to)) || seqModuleOf({ fqn: h.to_fqn, file: h.file });
+      const bucket = i < seqCursor ? sssPastLanes : i === seqCursor ? sssNowLanes : sssAheadLanes;
+      if (fm) bucket.add(fm);
+      if (tm) bucket.add(tm);
+    });
+  }
   const heads = lanes
     .map((lane) => {
       const laneOn = !!(hot && (lane.id === hotFromMod || lane.id === hotToMod));
@@ -10926,6 +11080,9 @@ function renderSequenceBody() {
       return (
         '<div class="seq-module-lane' +
         (laneOn ? " cms-active-lane" : "") +
+        (seqCursor >= 0 && sssNowLanes.has(lane.id) ? " sss-now-lane" : "") +
+        (seqCursor >= 0 && !sssNowLanes.has(lane.id) && sssPastLanes.has(lane.id) ? " sss-past-lane" : "") +
+        (seqCursor >= 0 && !sssNowLanes.has(lane.id) && !sssPastLanes.has(lane.id) && sssAheadLanes.has(lane.id) ? " sss-ahead-lane" : "") +
         '" data-module="' +
         esc(lane.id) +
         '" data-lane-id="' +
@@ -10954,6 +11111,9 @@ function renderSequenceBody() {
       return (
         '<article class="seq-hop expl-card' +
         (i === seqCursor ? " on" : "") +
+        (seqCursor >= 0 && i < seqCursor ? " sss-past" : "") +
+        (seqCursor >= 0 && i === seqCursor ? " sss-now" : "") +
+        (seqCursor >= 0 && i > seqCursor ? " sss-ahead" : "") +
         (focusId && related ? " ssr-hit" : "") +
         (focusId && !related ? " ssr-dim" : "") +
         (cross ? " cms-cross" : "") +
@@ -10990,7 +11150,7 @@ function renderSequenceBody() {
     .join("");
   const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
   return (
-    '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1"' +
+    '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1" data-sss="1"' +
     (hotCross ? ' data-cms-cross-hot="1"' : "") +
     ">" +
     review +
@@ -11061,6 +11221,8 @@ function sequenceCanvasProps() {
       const shkDim = !!(shk && bucket !== shk);
       const focusHit = !!(focusId && seqPartRelated(h, focusId));
       const focusDim = !!(focusId && !seqPartRelated(h, focusId));
+      const story =
+        seqCursor < 0 ? "" : i < seqCursor ? "past" : i === seqCursor ? "now" : "ahead";
       return {
       i,
       from: idVal(h.from),
@@ -11072,6 +11234,8 @@ function sequenceCanvasProps() {
       caption: h.caption || seqHopCaption(h),
       dim: focusDim || shkDim,
       hit: focusHit || shkHit,
+      story,
+      hot: i === seqCursor,
     };
     }),
     cursor: seqCursor,
@@ -11097,6 +11261,8 @@ function patchSequenceChrome() {
     const i = parseInt(el.getAttribute("data-seq-i"), 10);
     el.classList.toggle("on", i === seqCursor);
   });
+  applySeqStoryScrubPaint();
+  syncSeqStoryScrub();
   const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     const id = el.getAttribute("data-id");
@@ -11153,6 +11319,9 @@ function paintSequenceWorkspace(title) {
   applyGraphFilter();
   applySeqHopKindPaint();
   bindSeqHopKindChart();
+  bindSeqStoryScrub();
+  applySeqStoryScrubPaint();
+  syncSeqStoryScrub();
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
 }
@@ -11160,6 +11329,9 @@ function paintSequenceWorkspace(title) {
 function bindSequencePage() {
   bindSeqHopKindChart();
   applySeqHopKindPaint();
+  bindSeqStoryScrub();
+  applySeqStoryScrubPaint();
+  syncSeqStoryScrub();
   canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
