@@ -19310,7 +19310,10 @@
             target: String(h.to),
             type: back ? "reviewBack" : "step",
             label: (h.kind || h.label || "") + (ret ? " return" : ""),
-            className: (on2 ? "on" : "") + (h.story === "past" ? " sss-past" : "") + (h.story === "now" ? " sss-now" : "") + (h.story === "ahead" ? " sss-ahead" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : ""),
+            className: (() => {
+              const pref = h.storyPrefix || "sss";
+              return (on2 ? "on" : "") + (h.story === "past" ? " " + pref + "-past" : "") + (h.story === "now" ? " " + pref + "-now" : "") + (h.story === "ahead" ? " " + pref + "-ahead" : "") + (ret ? " ret" : "") + (h.scar ? " scar" : "") + (state ? " delta-" + state : "");
+            })(),
             data: {
               i: h.i,
               from: String(h.from),
@@ -20474,6 +20477,19 @@
         e.preventDefault();
         valueTrailFocus = null;
         paint({ animate: "none" });
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "dataflow" && dfCursor >= 0) {
+        e.preventDefault();
+        stopDfWalk();
+        dfCursor = -1;
+        applyDfStoryScrubPaint();
+        syncDfStoryScrub();
+        if (typeof patchDataflowChrome === "function") patchDataflowChrome();
+        const host = document.getElementById("dfCanvas");
+        if (host && typeof renderDataflowCanvas === "function") {
+          renderDataflowCanvas(host, dataflowCanvasProps());
+        }
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "dataflow" && dfRoleFilter) {
@@ -29367,6 +29383,104 @@
         el2.classList.toggle("vts-dim", dim);
       });
     }
+    function dfStoryScrubHtml(hops) {
+      const n = hops && hops.length || 0;
+      if (n < 1) return "";
+      const max = Math.max(0, n - 1);
+      const active = dfCursor >= 0;
+      const val = active ? Math.min(dfCursor, max) : 0;
+      return '<div class="dss-strip" data-dss="1" role="group" aria-label="Data-flow story scrubber"><span class="dss-stat"><i class="k">Pipeline</i> <b class="n" data-dss-meta="1">' + (active ? dfCursor + 1 + "/" + n : "idle · " + n + " hops") + '</b></span><label class="dss-slider-wrap"><span class="dss-depth-label">hop <b data-dss-val="1">' + (active ? String(dfCursor + 1) : "—") + '</b></span><input type="range" id="dssScrub" class="dss-scrub" min="0" max="' + max + '" value="' + val + '" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + val + '" aria-label="Scrub data-flow pipeline hop" /></label><span class="dss-hint">past · now · ahead on hops and stages</span></div>';
+    }
+    function syncDfStoryScrub() {
+      const hops = typeof dfHops === "function" ? dfHops() || [] : [];
+      const n = hops.length;
+      const max = Math.max(0, n - 1);
+      const active = dfCursor >= 0 && n > 0;
+      const input = document.getElementById("dssScrub");
+      if (input) {
+        input.max = String(max);
+        input.setAttribute("aria-valuemax", String(max));
+        if (active) {
+          input.value = String(Math.min(dfCursor, max));
+          input.setAttribute("aria-valuenow", input.value);
+        }
+      }
+      const strip = canvas.querySelector(".dss-strip[data-dss='1']");
+      if (strip) {
+        strip.classList.toggle("dss-scrubbing", active);
+        const meta2 = strip.querySelector("[data-dss-meta='1']");
+        if (meta2) meta2.textContent = active ? dfCursor + 1 + "/" + n : "idle · " + n + " hops";
+        const valEl = strip.querySelector("[data-dss-val='1']");
+        if (valEl) valEl.textContent = active ? String(dfCursor + 1) : "—";
+      }
+      const page = canvas.querySelector(".df-page");
+      if (page) page.classList.toggle("dss-scrubbing", active);
+      const list = canvas.querySelector("#dfHops");
+      if (list) list.classList.toggle("dss-scrubbing", active);
+    }
+    function bindDfStoryScrub() {
+      const input = document.getElementById("dssScrub");
+      if (!input || input.dataset.dssBound === "1") return;
+      input.dataset.dssBound = "1";
+      input.addEventListener("input", () => {
+        const hops = dfHops() || [];
+        if (!hops.length) return;
+        stopDfWalk();
+        const v = parseInt(input.value, 10);
+        if (!Number.isFinite(v)) return;
+        dfCursor = Math.max(0, Math.min(v, hops.length - 1));
+        applyDfStoryScrubPaint();
+        syncDfStoryScrub();
+        if (typeof focusDfHop === "function") focusDfHop(hops[dfCursor]);
+        if (typeof patchDataflowChrome === "function") patchDataflowChrome();
+        const host = document.getElementById("dfCanvas");
+        if (host && typeof renderDataflowCanvas === "function") {
+          renderDataflowCanvas(host, dataflowCanvasProps());
+        }
+      });
+    }
+    function applyDfStoryScrubPaint() {
+      const hops = typeof dfHops === "function" ? dfHops() || [] : [];
+      const nodes = typeof dfNodes === "function" ? dfNodes() || [] : [];
+      const byId = new Map(nodes.map((n) => [idVal(n.id), n]));
+      const active = dfCursor >= 0 && hops.length > 0;
+      const page = canvas.querySelector(".df-page");
+      if (page) page.classList.toggle("dss-scrubbing", active);
+      const list = canvas.querySelector("#dfHops");
+      if (list) list.classList.toggle("dss-scrubbing", active);
+      const strip = canvas.querySelector(".dss-strip[data-dss='1']");
+      if (strip) strip.classList.toggle("dss-scrubbing", active);
+      canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
+        el2.classList.remove("dss-past", "dss-now", "dss-ahead");
+        if (!active) return;
+        const i = parseInt(el2.getAttribute("data-df-i"), 10);
+        if (!Number.isFinite(i)) return;
+        if (i < dfCursor) el2.classList.add("dss-past");
+        else if (i === dfCursor) el2.classList.add("dss-now");
+        else el2.classList.add("dss-ahead");
+      });
+      const spokenPast = /* @__PURE__ */ new Set();
+      const spokenNow = /* @__PURE__ */ new Set();
+      const spokenAhead = /* @__PURE__ */ new Set();
+      if (active) {
+        hops.forEach((h, i) => {
+          const fromN = byId.get(idVal(h.from));
+          const toN = byId.get(idVal(h.to));
+          const bucket = i < dfCursor ? spokenPast : i === dfCursor ? spokenNow : spokenAhead;
+          if (fromN && fromN.role) bucket.add(fromN.role);
+          if (toN && toN.role) bucket.add(toN.role);
+        });
+      }
+      canvas.querySelectorAll("#dfStages .df-stage[data-df-role]").forEach((el2) => {
+        el2.classList.remove("dss-past-lane", "dss-now-lane", "dss-ahead-lane");
+        if (!active) return;
+        const role = el2.getAttribute("data-df-role") || "";
+        if (!role) return;
+        if (spokenNow.has(role)) el2.classList.add("dss-now-lane");
+        else if (spokenPast.has(role)) el2.classList.add("dss-past-lane");
+        else if (spokenAhead.has(role)) el2.classList.add("dss-ahead-lane");
+      });
+    }
     function renderDataflowBody() {
       const flow = dataflowFlow();
       const reading = dataflowOf(flow);
@@ -29394,8 +29508,20 @@
       if (dfCursor >= hops.length) dfCursor = hops.length - 1;
       const hot = dfCursor >= 0 ? hops[dfCursor] : null;
       const hopCards = hops.map((h, i) => ({ h, i })).filter(({ h }) => dfHopMatch(h));
-      const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>";
+      const review = '<div class="review-strip" id="dfReview"><button type="button" class="review-step" id="dfOverview">Overview</button><button type="button" class="review-step" id="dfPrev">Prev</button><button type="button" class="review-step' + (dfWalk.playing ? " on" : "") + '" id="dfPlay" aria-pressed="' + (dfWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="dfNext">Next</button><span id="dfStatus">' + (hot ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn) : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) + "</span></div>" + dfStoryScrubHtml(hops);
       const stages = ["source", "transform", "store", "sink"];
+      const dssPastLanes = /* @__PURE__ */ new Set();
+      const dssNowLanes = /* @__PURE__ */ new Set();
+      const dssAheadLanes = /* @__PURE__ */ new Set();
+      if (dfCursor >= 0) {
+        hops.forEach((h, i) => {
+          const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+          const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+          const bucket = i < dfCursor ? dssPastLanes : i === dfCursor ? dssNowLanes : dssAheadLanes;
+          if (fromN && fromN.role) bucket.add(fromN.role);
+          if (toN && toN.role) bucket.add(toN.role);
+        });
+      }
       const stageCols = stages.map((role) => {
         const col = nodes.filter((n) => n.role === role);
         const laneOn = dfRoleFilter === role;
@@ -29407,15 +29533,15 @@
           const meta2 = dfNodeMeta(n);
           return '<button type="button" class="df-node vnode kind-' + esc(n.kind || "Function") + (on2 ? " on" : "") + (dfQ && match ? " hit" : "") + (dfQ && !match || roleDim ? " dim" : "") + (roleDim ? " df-lane-dim" : "") + (!roleDim && dfRoleFilter ? " df-lane-hit" : "") + '" data-id="' + esc(idVal(n.id)) + '" data-fqn="' + esc(n.fqn) + '" data-kind="' + esc(n.kind || "") + '" data-df-role="' + esc(n.role) + '" data-rdf-meta="1"' + (n.end_role ? ' data-end-role="' + esc(n.end_role) + '"' : "") + (n.channel ? ' data-channel="' + esc(n.channel) + '"' : "") + (n.file ? ' data-file="' + esc(n.file) + '"' : "") + '><span class="name">' + esc(shortOf(n.fqn)) + '</span> <span class="meta">' + esc(meta2) + "</span></button>";
         }).join("");
-        return '<div class="df-stage' + (laneOn ? " on" : "") + (laneDim ? " dim" : "") + '" data-df-role="' + role + '"><button type="button" class="df-lane-head' + (laneOn ? " on" : "") + '" data-df-lane="' + role + '" aria-pressed="' + (laneOn ? "true" : "false") + '"><span class="k">' + esc(dfRoleLabel(role)) + '</span><span class="df-lane-count" data-df-count="' + col.length + '">' + col.length + "</span></button>" + (cards || '<div class="df-lane-empty">none</div>') + "</div>";
+        return '<div class="df-stage' + (laneOn ? " on" : "") + (laneDim ? " dim" : "") + (dfCursor >= 0 && dssNowLanes.has(role) ? " dss-now-lane" : "") + (dfCursor >= 0 && !dssNowLanes.has(role) && dssPastLanes.has(role) ? " dss-past-lane" : "") + (dfCursor >= 0 && !dssNowLanes.has(role) && !dssPastLanes.has(role) && dssAheadLanes.has(role) ? " dss-ahead-lane" : "") + '" data-df-role="' + role + '"><button type="button" class="df-lane-head' + (laneOn ? " on" : "") + '" data-df-lane="' + role + '" aria-pressed="' + (laneOn ? "true" : "false") + '"><span class="k">' + esc(dfRoleLabel(role)) + '</span><span class="df-lane-count" data-df-count="' + col.length + '">' + col.length + "</span></button>" + (cards || '<div class="df-lane-empty">none</div>') + "</div>";
       }).join("");
       const list = hopCards.map(({ h, i }) => {
         const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
         const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
         const hopDim = !!(dfRoleFilter && fromN && toN && fromN.role !== dfRoleFilter && toN.role !== dfRoleFilter);
-        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + (hopDim ? " dim" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) + "</div></article>";
+        return '<article class="df-hop expl-card' + (i === dfCursor ? " on" : "") + (dfCursor >= 0 && i < dfCursor ? " dss-past" : "") + (dfCursor >= 0 && i === dfCursor ? " dss-now" : "") + (dfCursor >= 0 && i > dfCursor ? " dss-ahead" : "") + (hopDim ? " dim" : "") + '" data-df-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-fqn="' + esc(h.from_fqn) + '"><div class="k">' + esc(h.kind || "") + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b">' + esc((fromN ? dfNodeMeta(fromN) : "Source") + " → " + (toN ? dfNodeMeta(toN) : "Sink")) + "</div></article>";
       }).join("");
-      return '<div class="df-page' + (valueTrailFocus ? " vts-filtering" : "") + '" data-rdf="1"' + (valueTrailFocus ? ' data-vts-filtering="1"' : "") + ">" + review + renderValueTrailStrip() + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
+      return '<div class="df-page' + (valueTrailFocus ? " vts-filtering" : "") + '" data-rdf="1" data-dss="1"' + (valueTrailFocus ? ' data-vts-filtering="1"' : "") + ">" + review + renderValueTrailStrip() + '<div class="df-stages" id="dfStages" style="--df-n:' + stages.length + '">' + stageCols + '</div><div class="ws-split"><div class="ws-list" id="dfHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · pipeline</div><div id="dfCanvas" class="df-canvas seq-canvas"></div></div></div></div>';
     }
     function dataflowWorkspaceKey() {
       const flow = dataflowFlow();
@@ -29443,12 +29569,18 @@
             ep: meta2
           };
         }),
-        hops: reading.hops.map((h, i) => ({
-          i,
-          from: idVal(h.from),
-          to: idVal(h.to),
-          kind: h.kind || ""
-        })),
+        hops: reading.hops.map((h, i) => {
+          const story = dfCursor < 0 ? "" : i < dfCursor ? "past" : i === dfCursor ? "now" : "ahead";
+          return {
+            i,
+            from: idVal(h.from),
+            to: idVal(h.to),
+            kind: h.kind || "",
+            story,
+            storyPrefix: "dss",
+            hot: i === dfCursor
+          };
+        }),
         cursor: dfCursor,
         onNodeClick: (id2) => {
           if (!id2) return;
@@ -29470,6 +29602,8 @@
         const i = parseInt(el2.getAttribute("data-df-i"), 10);
         el2.classList.toggle("on", i === dfCursor);
       });
+      applyDfStoryScrubPaint();
+      syncDfStoryScrub();
       canvas.querySelectorAll("#dfStages .df-node").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
         const role = el2.getAttribute("data-df-role");
@@ -29519,8 +29653,14 @@
       else unmountReviewCanvas();
       applyGraphFilter();
       applyValueTrailPaint();
+      bindDfStoryScrub();
+      applyDfStoryScrubPaint();
+      syncDfStoryScrub();
     }
     function bindDataflowPage() {
+      bindDfStoryScrub();
+      applyDfStoryScrubPaint();
+      syncDfStoryScrub();
       canvas.querySelectorAll("#dfHops .df-hop").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

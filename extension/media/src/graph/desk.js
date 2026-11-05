@@ -180,6 +180,7 @@ let seqBodyKey = "";
 let seqPartFocusId = null;
 let deltaBodyKey = "";
 let dfCursor = -1;
+/** ADE DSS — Dataflow story scrub active when dfCursor >= 0 (past/now/ahead paint). */
 let dfWalk = { playing: false, timer: 0 };
 let dfBodyKey = "";
 let dfRoleFilter = null; // ADE RDF — lane role filter (graph-only)
@@ -661,6 +662,25 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     valueTrailFocus = null;
     paint({ animate: "none" });
+    return;
+  }
+  // ADE DSS: Escape clears Data-flow story scrub (dfCursor → idle) when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "dataflow" &&
+    dfCursor >= 0
+  ) {
+    e.preventDefault();
+    stopDfWalk();
+    dfCursor = -1;
+    applyDfStoryScrubPaint();
+    syncDfStoryScrub();
+    if (typeof patchDataflowChrome === "function") patchDataflowChrome();
+    const host = document.getElementById("dfCanvas");
+    if (host && typeof renderDataflowCanvas === "function") {
+      renderDataflowCanvas(host, dataflowCanvasProps());
+    }
     return;
   }
   // ADE RDF: Escape clears Data-flow lane filter when active.
@@ -11877,6 +11897,133 @@ function applyValueTrailPaint() {
   });
 }
 
+
+/** ADE DSS — story scrub strip (SSS/Timeline parity) bound to dfCursor. */
+function dfStoryScrubHtml(hops) {
+  const n = (hops && hops.length) || 0;
+  if (n < 1) return "";
+  const max = Math.max(0, n - 1);
+  const active = dfCursor >= 0;
+  const val = active ? Math.min(dfCursor, max) : 0;
+  return (
+    '<div class="dss-strip" data-dss="1" role="group" aria-label="Data-flow story scrubber">' +
+    '<span class="dss-stat"><i class="k">Pipeline</i> <b class="n" data-dss-meta="1">' +
+    (active ? dfCursor + 1 + "/" + n : "idle · " + n + " hops") +
+    "</b></span>" +
+    '<label class="dss-slider-wrap">' +
+    '<span class="dss-depth-label">hop <b data-dss-val="1">' +
+    (active ? String(dfCursor + 1) : "—") +
+    "</b></span>" +
+    '<input type="range" id="dssScrub" class="dss-scrub" min="0" max="' +
+    max +
+    '" value="' +
+    val +
+    '" aria-valuemin="0" aria-valuemax="' +
+    max +
+    '" aria-valuenow="' +
+    val +
+    '" aria-label="Scrub data-flow pipeline hop" />' +
+    "</label>" +
+    '<span class="dss-hint">past · now · ahead on hops and stages</span>' +
+    "</div>"
+  );
+}
+
+function syncDfStoryScrub() {
+  const hops = typeof dfHops === "function" ? dfHops() || [] : [];
+  const n = hops.length;
+  const max = Math.max(0, n - 1);
+  const active = dfCursor >= 0 && n > 0;
+  const input = document.getElementById("dssScrub");
+  if (input) {
+    input.max = String(max);
+    input.setAttribute("aria-valuemax", String(max));
+    if (active) {
+      input.value = String(Math.min(dfCursor, max));
+      input.setAttribute("aria-valuenow", input.value);
+    }
+  }
+  const strip = canvas.querySelector(".dss-strip[data-dss='1']");
+  if (strip) {
+    strip.classList.toggle("dss-scrubbing", active);
+    const meta = strip.querySelector("[data-dss-meta='1']");
+    if (meta) meta.textContent = active ? dfCursor + 1 + "/" + n : "idle · " + n + " hops";
+    const valEl = strip.querySelector("[data-dss-val='1']");
+    if (valEl) valEl.textContent = active ? String(dfCursor + 1) : "—";
+  }
+  const page = canvas.querySelector(".df-page");
+  if (page) page.classList.toggle("dss-scrubbing", active);
+  const list = canvas.querySelector("#dfHops");
+  if (list) list.classList.toggle("dss-scrubbing", active);
+}
+
+function bindDfStoryScrub() {
+  const input = document.getElementById("dssScrub");
+  if (!input || input.dataset.dssBound === "1") return;
+  input.dataset.dssBound = "1";
+  input.addEventListener("input", () => {
+    const hops = dfHops() || [];
+    if (!hops.length) return;
+    stopDfWalk();
+    const v = parseInt(input.value, 10);
+    if (!Number.isFinite(v)) return;
+    dfCursor = Math.max(0, Math.min(v, hops.length - 1));
+    applyDfStoryScrubPaint();
+    syncDfStoryScrub();
+    if (typeof focusDfHop === "function") focusDfHop(hops[dfCursor]);
+    if (typeof patchDataflowChrome === "function") patchDataflowChrome();
+    const host = document.getElementById("dfCanvas");
+    if (host && typeof renderDataflowCanvas === "function") {
+      renderDataflowCanvas(host, dataflowCanvasProps());
+    }
+  });
+}
+
+function applyDfStoryScrubPaint() {
+  const hops = typeof dfHops === "function" ? dfHops() || [] : [];
+  const nodes = typeof dfNodes === "function" ? dfNodes() || [] : [];
+  const byId = new Map(nodes.map((n) => [idVal(n.id), n]));
+  const active = dfCursor >= 0 && hops.length > 0;
+  const page = canvas.querySelector(".df-page");
+  if (page) page.classList.toggle("dss-scrubbing", active);
+  const list = canvas.querySelector("#dfHops");
+  if (list) list.classList.toggle("dss-scrubbing", active);
+  const strip = canvas.querySelector(".dss-strip[data-dss='1']");
+  if (strip) strip.classList.toggle("dss-scrubbing", active);
+
+  canvas.querySelectorAll("#dfHops .df-hop").forEach((el) => {
+    el.classList.remove("dss-past", "dss-now", "dss-ahead");
+    if (!active) return;
+    const i = parseInt(el.getAttribute("data-df-i"), 10);
+    if (!Number.isFinite(i)) return;
+    if (i < dfCursor) el.classList.add("dss-past");
+    else if (i === dfCursor) el.classList.add("dss-now");
+    else el.classList.add("dss-ahead");
+  });
+
+  const spokenPast = new Set();
+  const spokenNow = new Set();
+  const spokenAhead = new Set();
+  if (active) {
+    hops.forEach((h, i) => {
+      const fromN = byId.get(idVal(h.from));
+      const toN = byId.get(idVal(h.to));
+      const bucket = i < dfCursor ? spokenPast : i === dfCursor ? spokenNow : spokenAhead;
+      if (fromN && fromN.role) bucket.add(fromN.role);
+      if (toN && toN.role) bucket.add(toN.role);
+    });
+  }
+  canvas.querySelectorAll("#dfStages .df-stage[data-df-role]").forEach((el) => {
+    el.classList.remove("dss-past-lane", "dss-now-lane", "dss-ahead-lane");
+    if (!active) return;
+    const role = el.getAttribute("data-df-role") || "";
+    if (!role) return;
+    if (spokenNow.has(role)) el.classList.add("dss-now-lane");
+    else if (spokenPast.has(role)) el.classList.add("dss-past-lane");
+    else if (spokenAhead.has(role)) el.classList.add("dss-ahead-lane");
+  });
+}
+
 function renderDataflowBody() {
   const flow = dataflowFlow();
   const reading = dataflowOf(flow);
@@ -11935,9 +12082,22 @@ function renderDataflowBody() {
     (hot
       ? dfCursor + 1 + "/" + hops.length + " · " + (hot.kind || "") + " " + shortOf(hot.from_fqn) + " → " + shortOf(hot.to_fqn)
       : hops.length + " hops · " + (flow && flow.name ? flow.name : "flow")) +
-    "</span></div>";
+    "</span></div>" +
+    dfStoryScrubHtml(hops);
   // ADE RDF — always show all four lanes with counts (empty lanes stay visible).
   const stages = ["source", "transform", "store", "sink"];
+  const dssPastLanes = new Set();
+  const dssNowLanes = new Set();
+  const dssAheadLanes = new Set();
+  if (dfCursor >= 0) {
+    hops.forEach((h, i) => {
+      const fromN = nodes.find((n) => idVal(n.id) === idVal(h.from));
+      const toN = nodes.find((n) => idVal(n.id) === idVal(h.to));
+      const bucket = i < dfCursor ? dssPastLanes : i === dfCursor ? dssNowLanes : dssAheadLanes;
+      if (fromN && fromN.role) bucket.add(fromN.role);
+      if (toN && toN.role) bucket.add(toN.role);
+    });
+  }
   const stageCols = stages
     .map((role) => {
       const col = nodes.filter((n) => n.role === role);
@@ -11983,6 +12143,9 @@ function renderDataflowBody() {
         '<div class="df-stage' +
         (laneOn ? " on" : "") +
         (laneDim ? " dim" : "") +
+        (dfCursor >= 0 && dssNowLanes.has(role) ? " dss-now-lane" : "") +
+        (dfCursor >= 0 && !dssNowLanes.has(role) && dssPastLanes.has(role) ? " dss-past-lane" : "") +
+        (dfCursor >= 0 && !dssNowLanes.has(role) && !dssPastLanes.has(role) && dssAheadLanes.has(role) ? " dss-ahead-lane" : "") +
         '" data-df-role="' +
         role +
         '"><button type="button" class="df-lane-head' +
@@ -12012,6 +12175,9 @@ function renderDataflowBody() {
       return (
         '<article class="df-hop expl-card' +
         (i === dfCursor ? " on" : "") +
+        (dfCursor >= 0 && i < dfCursor ? " dss-past" : "") +
+        (dfCursor >= 0 && i === dfCursor ? " dss-now" : "") +
+        (dfCursor >= 0 && i > dfCursor ? " dss-ahead" : "") +
         (hopDim ? " dim" : "") +
         '" data-df-i="' +
         i +
@@ -12036,7 +12202,7 @@ function renderDataflowBody() {
   return (
     '<div class="df-page' +
     (valueTrailFocus ? " vts-filtering" : "") +
-    '" data-rdf="1"' +
+    '" data-rdf="1" data-dss="1"' +
     (valueTrailFocus ? ' data-vts-filtering="1"' : "") +
     ">" +
     review +
@@ -12085,12 +12251,19 @@ function dataflowCanvasProps() {
         ep: meta,
       };
     }),
-    hops: reading.hops.map((h, i) => ({
-      i,
-      from: idVal(h.from),
-      to: idVal(h.to),
-      kind: h.kind || "",
-    })),
+    hops: reading.hops.map((h, i) => {
+      const story =
+        dfCursor < 0 ? "" : i < dfCursor ? "past" : i === dfCursor ? "now" : "ahead";
+      return {
+        i,
+        from: idVal(h.from),
+        to: idVal(h.to),
+        kind: h.kind || "",
+        story,
+        storyPrefix: "dss",
+        hot: i === dfCursor,
+      };
+    }),
     cursor: dfCursor,
     onNodeClick: (id) => {
       if (!id) return;
@@ -12114,6 +12287,8 @@ function patchDataflowChrome() {
     const i = parseInt(el.getAttribute("data-df-i"), 10);
     el.classList.toggle("on", i === dfCursor);
   });
+  applyDfStoryScrubPaint();
+  syncDfStoryScrub();
   canvas.querySelectorAll("#dfStages .df-node").forEach((el) => {
     const id = el.getAttribute("data-id");
     const role = el.getAttribute("data-df-role");
@@ -12174,9 +12349,15 @@ function paintDataflowWorkspace(title) {
   else unmountReviewCanvas();
   applyGraphFilter();
   applyValueTrailPaint();
+  bindDfStoryScrub();
+  applyDfStoryScrubPaint();
+  syncDfStoryScrub();
 }
 
 function bindDataflowPage() {
+  bindDfStoryScrub();
+  applyDfStoryScrubPaint();
+  syncDfStoryScrub();
   canvas.querySelectorAll("#dfHops .df-hop").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();

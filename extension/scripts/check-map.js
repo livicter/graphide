@@ -1092,6 +1092,22 @@ assert(sssMap.includes("SSS1") && sssMap.includes("sss-strip") && sssMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-story-scrubber.md")), "sequence-story-scrubber feature map missing");
 assert(featReadme.includes("sequence-story-scrubber.md") && featReadme.includes("sequence-story-scrubber.png"), "feature README must list sequence-story-scrubber.md");
 
+const dssMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-story-scrubber.md"), "utf8");
+assert(
+  dssMap.includes("## Sub-features") &&
+    dssMap.includes("## How to get to it (user POV)") &&
+    dssMap.includes("## Driving it with the harness") &&
+    dssMap.includes("## Gotchas"),
+  "dataflow-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("DSS1") && driver.includes("DSS3") && driver.includes("dataflow-story-scrubber.png") && driver.includes("dssScrub"), "verify driver must prove Dataflow story scrubber DSS1–DSS3");
+assert(js.includes("dfStoryScrubHtml") && js.includes("bindDfStoryScrub") && js.includes("applyDfStoryScrubPaint") && js.includes("syncDfStoryScrub") && chrome.includes("dfStoryScrubHtml"), "desk.js must own Dataflow story scrubber helpers");
+assert(css.includes(".dss-strip") && css.includes(".dss-scrub") && css.includes("dss-past") && css.includes("dss-now") && css.includes("dss-ahead"), "main.css must theme Dataflow story scrubber + past/now/ahead");
+assert(dssMap.includes("DSS1") && dssMap.includes("dss-strip") && dssMap.includes("dataflow-story-scrubber.png") && dssMap.includes("peekSource"), "dataflow-story-scrubber feature map must name DSS / dss-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-story-scrubber.md")), "dataflow-story-scrubber feature map missing");
+assert(featReadme.includes("dataflow-story-scrubber.md") && featReadme.includes("dataflow-story-scrubber.png"), "feature README must list dataflow-story-scrubber.md");
+
+
 
 
 

@@ -174,14 +174,18 @@ function ReviewCanvas({
           target: String(h.to),
           type: back ? "reviewBack" : "step",
           label: (h.kind || h.label || "") + (ret ? " return" : ""),
-          className:
-            (on ? "on" : "") +
-            (h.story === "past" ? " sss-past" : "") +
-            (h.story === "now" ? " sss-now" : "") +
-            (h.story === "ahead" ? " sss-ahead" : "") +
-            (ret ? " ret" : "") +
-            (h.scar ? " scar" : "") +
-            (state ? " delta-" + state : ""),
+          className: (() => {
+            const pref = h.storyPrefix || "sss";
+            return (
+              (on ? "on" : "") +
+              (h.story === "past" ? " " + pref + "-past" : "") +
+              (h.story === "now" ? " " + pref + "-now" : "") +
+              (h.story === "ahead" ? " " + pref + "-ahead" : "") +
+              (ret ? " ret" : "") +
+              (h.scar ? " scar" : "") +
+              (state ? " delta-" + state : "")
+            );
+          })(),
           data: {
             i: h.i,
             from: String(h.from),
