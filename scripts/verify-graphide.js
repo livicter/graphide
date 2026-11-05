@@ -40607,6 +40607,191 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Dataflow story scrubber (DSS1–DSS5) — past/now/ahead scrub on dfCursor
+    {
+      const dssUrl =
+        origin + "/scripts/webview-harness.html?dataflow=1&probe=0&require=1&ws=dataflow";
+      console.log("dataflow-story-scrubber", dssUrl);
+      await page.goto(dssUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForSelector("#dfHops .df-hop, #dfPlay", { timeout: 15000 });
+      await page.waitForSelector(".dss-strip #dssScrub, #dfPlay", { timeout: 8000 });
+      const dss1 = await page.evaluate(() => {
+        const strip = document.querySelector(".dss-strip[data-dss='1']");
+        const scrub = document.getElementById("dssScrub");
+        const hops = document.querySelectorAll("#dfHops .df-hop").length;
+        const play = document.getElementById("dfPlay");
+        const pageEl = document.querySelector('.df-page[data-dss="1"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          hops,
+          play: !!play,
+          page: !!pageEl,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dss1ok = !!(
+        dss1 &&
+        dss1.strip &&
+        dss1.scrub &&
+        dss1.hops >= 1 &&
+        dss1.play &&
+        dss1.page &&
+        dss1.srcHidden &&
+        Number(dss1.max) >= 0
+      );
+      record(
+        "DSS1",
+        "Data-flow .dss-strip / #dssScrub present beside Play; hops available",
+        !!dss1ok,
+        JSON.stringify(dss1)
+      );
+
+      const dss2 = await page.evaluate(() => {
+        const scrub = document.getElementById("dssScrub");
+        const hops = [...document.querySelectorAll("#dfHops .df-hop")];
+        if (!scrub || hops.length < 1) return { ok: false, reason: "no scrub/hops" };
+        const target = Math.min(1, hops.length - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const past = hops.filter((el) => el.classList.contains("dss-past")).length;
+        const now = hops.filter((el) => el.classList.contains("dss-now")).length;
+        const ahead = hops.filter((el) => el.classList.contains("dss-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".df-page.dss-scrubbing") ||
+          document.querySelector("#dfHops.dss-scrubbing") ||
+          document.querySelector(".dss-strip.dss-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          hops: hops.length,
+          scrubbing,
+          sum: past + now + ahead,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dss2ok = !!(
+        dss2 &&
+        dss2.ok &&
+        dss2.scrubbing &&
+        dss2.now === 1 &&
+        dss2.sum === dss2.hops &&
+        dss2.srcHidden
+      );
+      record(
+        "DSS2",
+        "Pipeline scrub paints df-hop dss-past/dss-now/dss-ahead without opening source",
+        !!dss2ok,
+        JSON.stringify(dss2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const dss3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".df-page.dss-scrubbing") ||
+          document.querySelector("#dfHops.dss-scrubbing") ||
+          document.querySelector(".dss-strip.dss-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#dfHops .df-hop.dss-past, #dfHops .df-hop.dss-now, #dfHops .df-hop.dss-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dss3ok = !!(
+        dss3 &&
+        dss3.ws === "dataflow" &&
+        !dss3.scrubbing &&
+        dss3.painted === 0 &&
+        dss3.srcHidden
+      );
+      record(
+        "DSS3",
+        "Escape clears Data-flow story scrub without leaving Data-flow or opening source",
+        !!dss3ok,
+        JSON.stringify(dss3)
+      );
+
+      // DSS4 — scrub again; RDF/VTS chrome still present
+      await page.evaluate(() => {
+        const scrub = document.getElementById("dssScrub");
+        const hops = document.querySelectorAll("#dfHops .df-hop").length;
+        if (!scrub || hops < 1) return;
+        scrub.value = String(Math.min(1, hops - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const dss4 = await page.evaluate(() => {
+        const pageEl = document.querySelector('.df-page[data-rdf="1"][data-dss="1"]');
+        const stages = document.querySelectorAll("#dfStages .df-stage[data-df-role]").length;
+        const vts = !!document.querySelector(".vts-strip[data-vts='1']");
+        const scrubbing = !!(
+          document.querySelector(".df-page.dss-scrubbing") ||
+          document.querySelector("#dfHops.dss-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          stages,
+          vts,
+          scrubbing,
+          play: !!document.getElementById("dfPlay"),
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dss4ok = !!(
+        dss4 &&
+        dss4.page &&
+        dss4.stages >= 1 &&
+        dss4.vts &&
+        dss4.scrubbing &&
+        dss4.play &&
+        dss4.srcHidden
+      );
+      record(
+        "DSS4",
+        "DSS scrub composes with RDF/VTS; Data-flow chrome intact; no source",
+        !!dss4ok,
+        JSON.stringify(dss4)
+      );
+
+      await shot(page, "dataflow-story-scrubber.png");
+      const dssShot = checks.find((c) => c.id === "shot:dataflow-story-scrubber.png");
+      const dss5ok = !!(dss1ok && dss2ok && dss3ok && dss4ok && dssShot && dssShot.pass);
+      record(
+        "DSS5",
+        "screenshot dataflow-story-scrubber.png not black; Dataflow story scrubber proven",
+        !!dss5ok,
+        JSON.stringify({
+          shot: dssShot ? dssShot.detail : "missing",
+          dss1: !!dss1ok,
+          dss2: !!dss2ok,
+          dss3: !!dss3ok,
+          dss4: !!dss4ok,
+        })
+      );
+      assertNoStampDir("DSS5b", "Dataflow story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE CFG expand-on-click (CFE1–CFE5) — click Overview function → inline callers|focus|callees
     {
       const cfeUrl = origin + "/scripts/webview-harness.html?mode=explorer&probe=0&ws=overview";
@@ -42841,7 +43026,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

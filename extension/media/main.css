@@ -2527,6 +2527,81 @@ table.audit.rak-filtering tbody tr.rak-hit {
   stroke-width: 2.25;
 }
 
+/* ADE DSS — Dataflow story scrubber (past / now / ahead) */
+.dss-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.dss-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.dss-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.dss-stat .n { font-size: 12px; font-weight: 600; }
+.dss-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.dss-depth-label { font-size: 11px; white-space: nowrap; }
+.dss-scrub {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--vscode-focusBorder);
+}
+.dss-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.df-page.dss-scrubbing .df-hop.dss-past,
+#dfHops.dss-scrubbing .df-hop.dss-past {
+  opacity: 0.72;
+}
+.df-page.dss-scrubbing .df-hop.dss-ahead,
+#dfHops.dss-scrubbing .df-hop.dss-ahead {
+  opacity: 0.38;
+}
+.df-page.dss-scrubbing .df-hop.dss-now,
+#dfHops.dss-scrubbing .df-hop.dss-now {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.df-page.dss-scrubbing .df-stage.dss-past-lane {
+  opacity: 0.85;
+}
+.df-page.dss-scrubbing .df-stage.dss-ahead-lane {
+  opacity: 0.45;
+}
+.df-page.dss-scrubbing .df-stage.dss-now-lane {
+  box-shadow: inset 0 0 0 1px var(--vscode-focusBorder);
+}
+.df-canvas.seq-canvas .react-flow__edge.dss-past path,
+.seq-canvas .react-flow__edge.dss-past path {
+  opacity: 0.7;
+}
+.df-canvas.seq-canvas .react-flow__edge.dss-ahead path,
+.seq-canvas .react-flow__edge.dss-ahead path {
+  opacity: 0.35;
+}
+.df-canvas.seq-canvas .react-flow__edge.dss-now path,
+.seq-canvas .react-flow__edge.dss-now path {
+  stroke-width: 2.25;
+}
+
 /* ADE LFO — Lineage fan size mix (Used/Informed/Generated) */
 .lfo-strip {
   display: flex;

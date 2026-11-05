@@ -94,11 +94,13 @@ Derived review machine. Transition event bars filter Play / Wait / Stamp / Skip 
 
 ### Data-flow
 
-Richer lanes on the same graph-only walk. Click a node for its value-trail Sankey (producers → focus → consumers); Escape clears.
+Richer lanes on the same graph-only walk. Click a node for its value-trail Sankey (producers → focus → consumers); Escape clears. Pipeline story scrubber paints past / now / ahead on hops and RDF stages so you can freeze the value walk after N hops.
 
 ![Data-flow richer lanes](UIUX_sample/dataflow-richer-lanes.png)
 
 ![Value-trail Sankey](UIUX_sample/value-trail-sankey.png)
+
+![Data-flow story scrubber](UIUX_sample/dataflow-story-scrubber.png)
 
 ### Trace and Passport
 
@@ -144,6 +146,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS).
 
-Parked next: none (SSS shipped).
+Parked next: none (DSS shipped).

@@ -123,3 +123,7 @@ Driver assertions:
 - Do not vendor Archify's Node renderer. XYFlow nodes reuse `.df-node.vnode`
   / kind pills from `main.css`. Shape is `data-shape` on `.vnode` from
   `derived-node.jsx`. Do not invent SQL columns.
+
+## ADE DSS — Dataflow story scrubber (pipeline-prefix)
+
+See [dataflow-story-scrubber.md](dataflow-story-scrubber.md). Past/now/ahead scrub on `dfCursor`.

@@ -16,6 +16,7 @@ owns this folder.
 | [delta-sticky-views.md](delta-sticky-views.md) | Community focus across revisions | `?delta=1` · `verification/delta-sticky-views.png` |
 | [sequence.md](sequence.md) | Sequence workspace | `?sequence=1` · `verification/sequence.png` |
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
+| [dataflow-story-scrubber.md](dataflow-story-scrubber.md) | Dataflow story scrubber | explorer · `dataflow-story-scrubber.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
 | [lifecycle-transition-overlay.md](lifecycle-transition-overlay.md) | Lifecycle transition event bars | `?lifecycle=1` · `verification/lifecycle-transition-overlay.png` |
 | [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 · ZC1–ZC3 zoom chrome |
