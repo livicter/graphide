@@ -96,7 +96,7 @@ pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, 
         };
 
         if let Some(use_node) = cap("use") {
-            collect_use(text_of(use_node, bytes), &mut imports);
+            collect_use(&file, text_of(use_node, bytes), &mut imports);
         }
 
         if let (Some(name), Some(def)) = (cap("type.name"), cap("type.def")) {
@@ -120,7 +120,7 @@ pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, 
         if let (Some(ty), Some(method), Some(def)) =
             (cap("impl.type"), cap("method.name"), cap("method.def"))
         {
-            let tfqn = qualify_type(&module_fqn, text_of(ty, bytes));
+            let tfqn = qualify_type(&file, &module_fqn, text_of(ty, bytes));
             if !nodes
                 .iter()
                 .any(|n| n.fqn == tfqn && n.kind == NodeKind::Type)
@@ -258,10 +258,10 @@ pub fn extract_file(repo_relative: &str, source: &str) -> Result<ExtractResult, 
     })
 }
 
-fn qualify_type(module_fqn: &str, ty: &str) -> String {
+fn qualify_type(file: &str, module_fqn: &str, ty: &str) -> String {
     let ty = ty.trim();
     if ty.starts_with("crate::") {
-        return ty.split('<').next().unwrap_or(ty).trim().to_string();
+        return rebase_crate_path(file, ty.split('<').next().unwrap_or(ty).trim());
     }
     let base = ty.split('<').next().unwrap_or(ty).trim();
     let base = base.split("::").last().unwrap_or(base);
@@ -314,7 +314,7 @@ fn emit_call(
     span: Span,
 ) {
     let short = callee.split("::").last().unwrap_or(callee).trim();
-    let Some(to) = resolve_name(short, defs, imports, Some(NodeKind::Function)) else {
+    let Some(to) = resolve_name(span.file.as_str(), short, defs, imports, Some(NodeKind::Function)) else {
         return;
     };
     push_resolved(
@@ -337,7 +337,7 @@ fn emit_type_use(
     name: &str,
     span: Span,
 ) {
-    let Some(to) = resolve_name(name, defs, imports, Some(NodeKind::Type)) else {
+    let Some(to) = resolve_name(span.file.as_str(), name, defs, imports, Some(NodeKind::Type)) else {
         return;
     };
     if defs.iter().any(|d| d.fqn == to && d.kind == NodeKind::Type)
@@ -365,8 +365,8 @@ fn emit_endpoint_ref(
     span: Span,
 ) {
     let to = if name.starts_with("crate::") {
-        name.to_string()
-    } else if let Some(resolved) = resolve_name(name, defs, imports, Some(NodeKind::Endpoint)) {
+        rebase_crate_path(span.file.as_str(), name)
+    } else if let Some(resolved) = resolve_name(span.file.as_str(), name, defs, imports, Some(NodeKind::Endpoint)) {
         resolved
     } else {
         return;
@@ -431,13 +431,14 @@ fn push_resolved(
 }
 
 fn resolve_name(
+    file: &str,
     name: &str,
     defs: &[NodeDef],
     imports: &HashMap<String, String>,
     prefer: Option<NodeKind>,
 ) -> Option<String> {
     if name.starts_with("crate::") {
-        return Some(name.to_string());
+        return Some(rebase_crate_path(file, name));
     }
     let short = name.split("::").last().unwrap_or(name);
     let mut hits: Vec<&NodeDef> = defs
@@ -497,7 +498,7 @@ pub fn endpoint_meta(name: &str, ty: &str, whole: &str) -> Option<EndpointMeta> 
     Some(EndpointMeta { role, channel })
 }
 
-fn collect_use(txt: &str, imports: &mut HashMap<String, String>) {
+fn collect_use(file: &str, txt: &str, imports: &mut HashMap<String, String>) {
     let cleaned = txt
         .trim()
         .trim_start_matches("pub")
@@ -515,12 +516,12 @@ fn collect_use(txt: &str, imports: &mut HashMap<String, String>) {
                 continue;
             }
             let short = name.split(" as ").next().unwrap_or(name).trim();
-            imports.insert(short.to_string(), format!("{prefix}::{short}"));
+            imports.insert(short.to_string(), rebase_crate_path(file, &format!("{prefix}::{short}")));
         }
     } else {
         let path = cleaned.split(" as ").next().unwrap_or(cleaned).trim();
         if let Some(short) = path.split("::").last() {
-            imports.insert(short.to_string(), path.to_string());
+            imports.insert(short.to_string(), rebase_crate_path(file, path));
         }
     }
 }
@@ -567,6 +568,37 @@ fn module_fqn_from_path(path: &str) -> String {
     } else {
         format!("crate::{}", parts.join("::"))
     }
+}
+
+/// ADE DCR — crate root FQN for a repo-relative rust path.
+/// `src/bus.rs` → `crate`. `crates/foo/src/stamp.rs` → `crate::crates::foo::src`.
+fn crate_root_fqn(path: &str) -> String {
+    let p = normalize_path(path);
+    let p = p.strip_prefix("./").unwrap_or(&p);
+    if p == "src" || p.starts_with("src/") {
+        return "crate".into();
+    }
+    if let Some(i) = p.find("/src/") {
+        let before = &p[..i];
+        if before.is_empty() {
+            return "crate".into();
+        }
+        return format!("crate::{}::src", before.replace('/', "::"));
+    }
+    "crate".into()
+}
+
+/// ADE DCR — rebase `crate::…` onto the file's crate `src/` prefix.
+/// Identity when the review root already is that crate (`src/…` paths).
+fn rebase_crate_path(file: &str, name: &str) -> String {
+    if name != "crate" && !name.starts_with("crate::") {
+        return name.to_string();
+    }
+    let root = crate_root_fqn(file);
+    if root == "crate" {
+        return name.to_string();
+    }
+    format!("{root}{}", name.strip_prefix("crate").unwrap_or(name))
 }
 
 fn span_of(file: &str, node: Node) -> Span {
@@ -689,5 +721,74 @@ pub fn subscribe(_bus: Bus) {
                 "extract {src:?} panicked instead of returning a Result"
             );
         }
+    }
+
+    #[test]
+    fn workspace_crate_refs_use_src_prefix() {
+        let src = r#"
+use crate::steiner::steiner_tree;
+use crate::bus::events;
+pub fn stamp_from_graph() {
+    steiner_tree();
+    let _ = events;
+}
+pub fn publish() {
+    let _ = events;
+}
+"#;
+        let nested = extract_file("crates/foo/src/stamp.rs", src).expect("extract nested");
+        assert!(
+            nested.extract.nodes.iter().any(|n| {
+                n.fqn == "crate::crates::foo::src::stamp::stamp_from_graph"
+                    && n.kind == NodeKind::Function
+            }),
+            "nodes={:?}",
+            nested.extract.nodes
+        );
+        assert!(
+            nested.extract.refs.iter().any(|e| {
+                e.from == "crate::crates::foo::src::stamp::stamp_from_graph"
+                    && e.to.as_deref() == Some("crate::crates::foo::src::steiner::steiner_tree")
+                    && (e.kind == EdgeKind::Calls || e.kind == EdgeKind::Imports)
+            }),
+            "refs={:?}",
+            nested.extract.refs
+        );
+        assert!(
+            nested.extract.refs.iter().any(|e| {
+                e.to.as_deref() == Some("crate::crates::foo::src::bus::events")
+                    && (e.kind == EdgeKind::Publishes
+                        || e.kind == EdgeKind::Subscribes
+                        || e.kind == EdgeKind::Reads
+                        || e.kind == EdgeKind::Imports)
+            }),
+            "events refs={:?}",
+            nested.extract.refs
+        );
+
+        let official = extract_file("src/stamp.rs", src).expect("extract official");
+        assert!(
+            official.extract.nodes.iter().any(|n| {
+                n.fqn == "crate::stamp::stamp_from_graph" && n.kind == NodeKind::Function
+            }),
+            "official nodes={:?}",
+            official.extract.nodes
+        );
+        assert!(
+            official.extract.refs.iter().any(|e| {
+                e.from == "crate::stamp::stamp_from_graph"
+                    && e.to.as_deref() == Some("crate::steiner::steiner_tree")
+                    && (e.kind == EdgeKind::Calls || e.kind == EdgeKind::Imports)
+            }),
+            "official refs={:?}",
+            official.extract.refs
+        );
+        assert!(
+            official.extract.refs.iter().any(|e| {
+                e.to.as_deref() == Some("crate::bus::events")
+            }),
+            "official events refs={:?}",
+            official.extract.refs
+        );
     }
 }

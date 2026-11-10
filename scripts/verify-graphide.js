@@ -1252,6 +1252,48 @@ function assertSelfReviewSnap(snap) {
     "function paint missing or KindMismatch to desk.paint"
   );
 
+  // ADE DCR — workspace crate:: refs must join (stamp_from_graph → steiner_tree).
+  const stampFn = "crate::crates::graphide-engine::src::stamp::stamp_from_graph";
+  const steinerFn = "crate::crates::graphide-engine::src::steiner::steiner_tree";
+  const byId = new Map(nodes.map((n) => [n && n.id, n]));
+  const fqnOf = (id) => {
+    const n = byId.get(id);
+    return n ? String(n.fqn || "") : "";
+  };
+  const stampToSteiner = edges.some(
+    (e) =>
+      e &&
+      e.kind === "Calls" &&
+      fqnOf(e.from) === stampFn &&
+      fqnOf(e.to) === steinerFn
+  );
+  const demoPub = edges.some((e) => {
+    if (!e || e.kind !== "Publishes") return false;
+    const a = fqnOf(e.from);
+    const b = fqnOf(e.to);
+    return (
+      a === "crate::fixtures::demo::src::bus::Bus::publish" &&
+      b === "crate::fixtures::demo::src::bus::events"
+    );
+  });
+  record(
+    "DCR0",
+    "self-review stamp_from_graph Calls steiner_tree across crate modules",
+    stampToSteiner,
+    stampToSteiner ? "joined" : "missing Calls stamp_from_graph → steiner_tree"
+  );
+  record(
+    "DCR0b",
+    "self-review fixtures/demo Publishes Bus::publish to events",
+    demoPub,
+    demoPub ? "joined" : "missing live demo Publishes"
+  );
+  failSnapChecks(
+    /^DCR0/,
+    "Deriver crate-root refs snapshot failed structural checks (desk not driven).",
+    "workspace crate:: refs did not join after link"
+  );
+
   failSnapChecks(
     /^G\d/,
     "Self-review snapshot failed structural checks (desk not driven).",
@@ -43146,6 +43188,50 @@ async function main() {
     await page.waitForTimeout(300);
     assertNoStampDir("DEH2", "Deriver endpoint honesty step did not write .graphide/stamps/");
 
+    // ADE DCR — graphide-engine chip on live Map; workspace crate:: hops already asserted on the snap.
+    const dcrChip = await page.evaluate(() => {
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      const hit = programs.find((el) => /graphide-engine/i.test(el.textContent || ""));
+      if (!hit) return { ok: false, text: "", i: null, chips: programs.length };
+      hit.click();
+      return {
+        ok: true,
+        text: (hit.textContent || "").replace(/\s+/g, " ").trim(),
+        i: Number(hit.getAttribute("data-prog")),
+        chips: programs.length,
+      };
+    });
+    await page.waitForTimeout(400);
+    const dcrMap = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        cards: cards.length,
+        names: names.slice(0, 16),
+        hasSteiner: names.some((n) => /steiner_tree/.test(n)),
+        hasStamp: names.some((n) => /stamp_from_graph/.test(n)),
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "DCR1",
+      "self-review graphide-engine chip paints a Map with crate-module cards",
+      dcrChip.ok && dcrMap.ws === "map" && dcrMap.cards >= 1 && dcrMap.xy === 0,
+      JSON.stringify({ chip: dcrChip, map: { ws: dcrMap.ws, cards: dcrMap.cards, names: dcrMap.names } })
+    );
+    await shot(page, "deriver-crate-root-refs.png");
+    // Return to All programs so later PC1 chip counts stay the full desk.
+    await page.evaluate(() => {
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      if (all) all.click();
+    });
+    await page.waitForTimeout(300);
+    assertNoStampDir("DCR2", "Deriver crate-root refs step did not write .graphide/stamps/");
+
     const readProgDesk = () =>
       page.evaluate(() => {
         const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
@@ -50885,7 +50971,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · deriver-endpoint-honesty · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · deriver-endpoint-honesty · deriver-crate-root-refs · lineage · export · present · preset · route · lens"
   );
 }
 
