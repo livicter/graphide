@@ -20130,6 +20130,7 @@
     let structuralDiffFilter = null;
     let lifecycleTransitionFilter = null;
     let registryAuditFilter = null;
+    let registrySnapshotFocus = null;
     let timelineKindFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
@@ -20413,6 +20414,12 @@
         registryAuditFilter = null;
         applyRegistryAuditPaint();
         syncRegistryAuditBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "registry" && registrySnapshotFocus) {
+        e.preventDefault();
+        registrySnapshotFocus = null;
+        applyRegistrySnapshotGraphicPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "timeline" && timelineKindFilter) {
@@ -27511,6 +27518,78 @@
       });
       syncRegistryAuditBars();
     }
+    function registrySnapshotMetrics() {
+      const s = snapshot && snapshot.stats || {};
+      const graph = snapshot && snapshot.graph || {};
+      return {
+        nodes: (graph.nodes || []).length,
+        edges: (graph.edges || []).length,
+        files: Number(s.files) || 0,
+        plugin: snapshot && snapshot.plugin || "",
+        elapsed: s.elapsed_ms
+      };
+    }
+    function registrySnapshotGraphicHtml() {
+      const m = registrySnapshotMetrics();
+      const max = Math.max(1, m.nodes, m.edges, m.files);
+      const tiles = [
+        ["nodes", "Nodes", m.nodes],
+        ["edges", "Edges", m.edges],
+        ["files", "Files", m.files]
+      ];
+      const focus = registrySnapshotFocus;
+      const tileHtml = tiles.map(([key, label, n]) => {
+        const pct = Math.max(3, Math.round(n / max * 100));
+        const on2 = focus === key;
+        const dim = !!(focus && focus !== key);
+        return '<button type="button" class="rsg-tile' + (on2 ? " rsg-now" : "") + (dim ? " rsg-dim" : "") + '" data-rsg-metric="' + key + '" aria-pressed="' + (on2 ? "true" : "false") + '" aria-label="' + label + " " + n + '"><span class="rsg-k">' + label + '</span><b class="rsg-n" data-rsg-n="' + key + '">' + n + '</b><svg class="rsg-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="rsg-bar-track" x="0" y="0" width="100" height="8" rx="2"></rect><rect class="rsg-bar-fill" x="0" y="0" width="' + pct + '" height="8" rx="2"></rect></svg></button>';
+      }).join("");
+      const cap = m.plugin ? esc(m.plugin) + (m.elapsed != null ? " · " + m.elapsed + "ms" : "") : "this review";
+      return '<div class="rsg-strip" data-rsg="1" role="group" aria-label="Registry snapshot graphic"><span class="rsg-stat"><i class="k">Snapshot</i> <b class="n" data-rsg-meta="1">' + cap + '</b></span><div class="rsg-tiles">' + tileHtml + "</div></div>";
+    }
+    function applyRegistrySnapshotGraphicPaint() {
+      const strip = canvas.querySelector('.rsg-strip[data-rsg="1"]');
+      if (!strip) return;
+      const focus = registrySnapshotFocus;
+      strip.classList.toggle("rsg-focusing", !!focus);
+      strip.querySelectorAll(".rsg-tile[data-rsg-metric]").forEach((el2) => {
+        const key = el2.getAttribute("data-rsg-metric") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("rsg-now", on2);
+        el2.classList.toggle("rsg-dim", !!(focus && !on2));
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const row = canvas.querySelector("table.audit tbody tr[data-rsg-row='snapshot']");
+      if (row) row.classList.toggle("rsg-row-now", !!focus);
+      const meta2 = strip.querySelector("[data-rsg-meta='1']");
+      if (meta2 && focus) {
+        const label = { nodes: "Nodes", edges: "Edges", files: "Files" }[focus] || focus;
+        meta2.textContent = label + " focused · Escape clears";
+      } else if (meta2) {
+        const m = registrySnapshotMetrics();
+        meta2.textContent = m.plugin ? m.plugin + (m.elapsed != null ? " · " + m.elapsed + "ms" : "") : "this review";
+      }
+    }
+    function bindRegistrySnapshotGraphic() {
+      const strip = canvas.querySelector('.rsg-strip[data-rsg="1"]');
+      if (!strip) return;
+      if (strip.dataset.rsgBound === "1") {
+        applyRegistrySnapshotGraphicPaint();
+        return;
+      }
+      strip.dataset.rsgBound = "1";
+      strip.querySelectorAll(".rsg-tile[data-rsg-metric]").forEach((el2) => {
+        el2.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const key = el2.getAttribute("data-rsg-metric") || "";
+          if (!key) return;
+          registrySnapshotFocus = registrySnapshotFocus === key ? null : key;
+          applyRegistrySnapshotGraphicPaint();
+        });
+      });
+      applyRegistrySnapshotGraphicPaint();
+    }
     function renderRegistryBody() {
       const ev = registryEvents().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27522,9 +27601,10 @@
         return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
       }
       const rakStrip = registryAuditStripHtml(ev);
-      return '<div class="ws-list">' + rakStrip + '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
+      return '<div class="ws-list">' + registrySnapshotGraphicHtml() + rakStrip + '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
         const bucket = registryAuditBucket(e);
-        return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
+        const snapshotRow = bucket === "review" || e.kind === "review";
+        return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (snapshotRow ? ' data-rsg-row="snapshot"' : "") + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
       }).join("") + "</tbody></table></div>";
     }
     function timelineKindBucket(e) {
@@ -33565,6 +33645,8 @@
       bindDecisionAttestChart();
       applyRegistryAuditPaint();
       bindRegistryAuditChart();
+      bindRegistrySnapshotGraphic();
+      applyRegistrySnapshotGraphicPaint();
       applyTimelineKindPaint();
       bindTimelineKindChart();
       canvas.querySelectorAll("[data-outcome-filter]").forEach((el2) => {

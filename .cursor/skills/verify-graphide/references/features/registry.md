@@ -51,6 +51,8 @@ Driver assertions:
 - `.graphide/stamps/` is still empty
 
 
+- ADE RSG (Registry snapshot graphic): above the RAK strip, `.rsg-strip[data-rsg="1"]` shows Nodes / Edges / Files tiles whose counts come from `snapshot.graph` and `stats.files` (same as the Review snapshot row — not invented). Click focuses a measure (`.rsg-now`) and the snapshot table row; Escape clears after RAK. Graph-only — must not open Evidence / `peekSource` / source pane, and must not add XYFlow (`#canvas .react-flow__node` stays 0). Screenshot `verification/registry-snapshot-graphic.png`. Asserts RSG1–RSG3. See [registry-snapshot-graphic.md](registry-snapshot-graphic.md).
+
 Interactive kind-mix bars (RAK1–RAK5) live in [registry-audit-kind-mix.md](registry-audit-kind-mix.md) — `.rak-bar` filters `table.audit` without XYFlow.
 ## Gotchas
 
