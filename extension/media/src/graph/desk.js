@@ -237,6 +237,7 @@ let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
 /** ADE RKM — Route hop-kind mix filter; graph-only (never peekSource). null | kind string */
 let routeMixFilter = null;
 let seqHopKindFilter = null; // ADE SHK: Calls|Reads|Writes|Publishes|Subscribes|type
+let sequenceModuleCutFocus = null; // ADE SMC: same|cross
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -627,6 +628,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     seqHopKindFilter = null;
     applySeqHopKindPaint();
+    return;
+  }
+  // ADE SMC: Escape clears Sequence module-cut graphic focus when active (cursor stays).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "sequence" &&
+    sequenceModuleCutFocus
+  ) {
+    e.preventDefault();
+    sequenceModuleCutFocus = null;
+    applySequenceModuleCutPaint();
     return;
   }
   // ADE SSS: Escape clears Sequence story scrub (seqCursor → idle) when active.
@@ -12002,6 +12015,169 @@ function applySeqHopKindPaint() {
   }
 }
 
+
+/** ADE SMC — same- vs cross-module hop mass for this Sequence flow. */
+function sequenceModuleCutPartMap(reading) {
+  const parts = (reading && reading.participants) || [];
+  const lanes = typeof seqModuleLanes === "function" ? seqModuleLanes(parts) : [];
+  const partModule = new Map();
+  for (const lane of lanes) {
+    for (const p of (lane && lane.members) || []) {
+      const id = idVal(p.id);
+      if (id) partModule.set(id, lane.id);
+    }
+  }
+  return partModule;
+}
+
+function hopModuleCut(h, partModule) {
+  if (!h) return "";
+  const fromId = idVal(h.from);
+  const toId = idVal(h.to);
+  const fromMod =
+    (partModule && fromId && partModule.get(fromId)) ||
+    seqModuleOf({ fqn: h.from_fqn, file: h.file });
+  const toMod =
+    (partModule && toId && partModule.get(toId)) ||
+    seqModuleOf({ fqn: h.to_fqn, file: h.file });
+  if (fromMod && toMod && fromMod !== toMod) return "cross";
+  if (fromMod && toMod && fromMod === toMod) return "same";
+  return "";
+}
+
+function sequenceModuleCutMetrics() {
+  const flow = typeof sequenceFlow === "function" ? sequenceFlow() : null;
+  const reading = typeof sequenceOf === "function" ? sequenceOf(flow) : { hops: [] };
+  const hops = (reading && reading.hops) || [];
+  const partModule = sequenceModuleCutPartMap(reading);
+  let same = 0;
+  let cross = 0;
+  for (const h of hops) {
+    const cut = hopModuleCut(h, partModule);
+    if (cut === "cross") cross += 1;
+    else if (cut === "same") same += 1;
+  }
+  return { hops: hops.length, same, cross };
+}
+
+function sequenceModuleCutGraphicHtml() {
+  const m = sequenceModuleCutMetrics();
+  if (!m.hops) return "";
+  const total = Math.max(m.same + m.cross, 0);
+  const sameW = total > 0 ? Math.round((m.same / total) * 100) : 0;
+  const crossW = total > 0 ? Math.max(0, 100 - sameW) : 0;
+  const focusing = !!sequenceModuleCutFocus;
+  const onFor = (key) => !!(sequenceModuleCutFocus && String(sequenceModuleCutFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="smc-stat' +
+    (onFor(key) ? " smc-now" : focusing ? " smc-idle" : "") +
+    '" data-smc="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-smc-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, width, n) => {
+    if (width <= 0 && n <= 0) return "";
+    return (
+      '<button type="button" class="smc-seg smc-' +
+      esc(key) +
+      (onFor(key) ? " smc-now" : focusing ? " smc-idle" : "") +
+      '" data-smc="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      Math.max(width, n > 0 ? 1 : 0) +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="smc-strip' +
+    (focusing ? " smc-focusing" : "") +
+    '" data-smc="1" role="group" aria-label="Sequence module-cut graphic">' +
+    '<span class="smc-meta">Module cut</span>' +
+    '<span class="smc-counts">' +
+    stat("same", "same", m.same) +
+    stat("cross", "cross", m.cross) +
+    "</span>" +
+    '<div class="smc-bar" aria-hidden="true">' +
+    (total === 0
+      ? '<span class="smc-bar-empty"></span>'
+      : seg("same", sameW, m.same) + seg("cross", crossW, m.cross)) +
+    "</div></div>"
+  );
+}
+
+function jumpSequenceModuleCut(which) {
+  if (!which) return;
+  const key = String(which);
+  if (sequenceModuleCutFocus && String(sequenceModuleCutFocus) === key) {
+    sequenceModuleCutFocus = null;
+  } else {
+    sequenceModuleCutFocus = key;
+  }
+  applySequenceModuleCutPaint();
+}
+
+function syncSequenceModuleCutChrome() {
+  if (!canvas) return;
+  const focus = sequenceModuleCutFocus ? String(sequenceModuleCutFocus) : "";
+  canvas.querySelectorAll("[data-smc]").forEach((el) => {
+    if (!el.classList.contains("smc-stat") && !el.classList.contains("smc-seg")) return;
+    const key = el.getAttribute("data-smc") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("smc-now", on);
+    el.classList.toggle("smc-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".smc-strip");
+  if (strip) strip.classList.toggle("smc-focusing", !!focus);
+  const page = canvas.querySelector(".seq-page");
+  if (page) page.classList.toggle("smc-focusing", !!focus);
+  const hopsEl = canvas.querySelector("#seqHops");
+  if (hopsEl) hopsEl.classList.toggle("smc-focusing", !!focus);
+}
+
+function applySequenceModuleCutPaint() {
+  if (!canvas) return;
+  const focus = sequenceModuleCutFocus ? String(sequenceModuleCutFocus) : "";
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    const cross = el.getAttribute("data-cms-cross") === "1";
+    const cut = cross ? "cross" : "same";
+    const hit = !!(focus && cut === focus);
+    const dim = !!(focus && cut !== focus);
+    el.classList.toggle("smc-hit", hit);
+    el.classList.toggle("smc-dim", dim);
+  });
+  syncSequenceModuleCutChrome();
+}
+
+function bindSequenceModuleCutGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".smc-stat[data-smc], .smc-seg[data-smc]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSequenceModuleCut(el.getAttribute("data-smc"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSequenceModuleCut(el.getAttribute("data-smc"));
+    };
+  });
+  applySequenceModuleCutPaint();
+}
+
 /** ADE SSS — story scrub strip (Timeline/CPS parity) bound to seqCursor. */
 function seqStoryScrubHtml(hops) {
   const n = (hops && hops.length) || 0;
@@ -12329,12 +12505,16 @@ function renderSequenceBody() {
     })
     .join("");
   const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
+  const smcStrip = sequenceModuleCutGraphicHtml();
   return (
-    '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1" data-sss="1"' +
+    '<div class="seq-page' +
+    (sequenceModuleCutFocus ? " smc-focusing" : "") +
+    '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1"' +
     (hotCross ? ' data-cms-cross-hot="1"' : "") +
     ">" +
     review +
     shkStrip +
+    smcStrip +
     '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' +
     parts.length +
     ";--seq-lanes:" +
@@ -12443,6 +12623,7 @@ function patchSequenceChrome() {
   });
   applySeqStoryScrubPaint();
   syncSeqStoryScrub();
+  if (typeof applySequenceModuleCutPaint === "function") applySequenceModuleCutPaint();
   const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     const id = el.getAttribute("data-id");
@@ -12502,6 +12683,8 @@ function paintSequenceWorkspace(title) {
   bindSeqStoryScrub();
   applySeqStoryScrubPaint();
   syncSeqStoryScrub();
+  bindSequenceModuleCutGraphic();
+  applySequenceModuleCutPaint();
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
 }
@@ -12512,6 +12695,8 @@ function bindSequencePage() {
   bindSeqStoryScrub();
   applySeqStoryScrubPaint();
   syncSeqStoryScrub();
+  bindSequenceModuleCutGraphic();
+  applySequenceModuleCutPaint();
   canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();

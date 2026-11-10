@@ -1287,6 +1287,23 @@ assert(mwcMap.includes("MWC1") && mwcMap.includes("mwc-strip") && mwcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-walk-cut.md")), "map-walk-cut feature map missing");
 assert(featReadme.includes("map-walk-cut.md") && featReadme.includes("map-walk-cut.png"), "feature README must list map-walk-cut.md");
 
+const smcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-module-cut.md"), "utf8");
+assert(
+  smcMap.includes("## Sub-features") &&
+    smcMap.includes("## How to get to it (user POV)") &&
+    smcMap.includes("## Driving it with the harness") &&
+    smcMap.includes("## Gotchas"),
+  "sequence-module-cut feature map must use the four headings"
+);
+assert(driver.includes("SMC1") && driver.includes("SMC3") && driver.includes("sequence-module-cut.png") && driver.includes("smc-stat"), "verify driver must prove Sequence module-cut graphic SMC1–SMC3");
+assert(js.includes("sequenceModuleCutGraphicHtml") && js.includes("bindSequenceModuleCutGraphic") && js.includes("applySequenceModuleCutPaint") && chrome.includes("sequenceModuleCutGraphicHtml"), "desk.js must own Sequence module-cut graphic helpers");
+assert(css.includes(".smc-strip") && css.includes(".smc-stat") && css.includes("smc-now") && css.includes("smc-bar"), "main.css must theme Sequence module-cut graphic + module bar");
+assert(smcMap.includes("SMC1") && smcMap.includes("smc-strip") && smcMap.includes("sequence-module-cut.png") && smcMap.includes("peekSource"), "sequence-module-cut feature map must name SMC / smc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-module-cut.md")), "sequence-module-cut feature map missing");
+assert(featReadme.includes("sequence-module-cut.md") && featReadme.includes("sequence-module-cut.png"), "feature README must list sequence-module-cut.md");
+
+
+
 
 
 

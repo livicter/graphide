@@ -15790,6 +15790,231 @@ async function main() {
     );
     assertNoStampDir("MHS5", "Map-altitude community-hop-size mix step did not write .graphide/stamps/");
 
+    // ADE Sequence module-cut graphic (SMC1–SMC5) — same-document Sequence visit; do not page.goto.
+    // Later SHM clicks Slice itself.
+    {
+      const beforeSmcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      await page.click('#workspaces [data-ws="sequence"]');
+      await page.waitForSelector('#workspaces [data-ws="sequence"].on', { timeout: 8000 });
+      await page.waitForSelector("#seqHops .seq-hop", { timeout: 12000 });
+      await page.waitForSelector(".smc-strip[data-smc='1']", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const smc1 = await page.evaluate(() => {
+        const strip = document.querySelector(".smc-strip[data-smc='1']");
+        const sameStat = document.querySelector('.smc-stat[data-smc="same"] b[data-smc-n="same"]');
+        const crossStat = document.querySelector('.smc-stat[data-smc="cross"] b[data-smc-n="cross"]');
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const sameN = sameStat ? parseInt(sameStat.textContent, 10) : -1;
+        const crossN = crossStat ? parseInt(crossStat.textContent, 10) : -1;
+        const crossDom = hops.filter((el) => el.getAttribute("data-cms-cross") === "1").length;
+        const sameDom = hops.length - crossDom;
+        const src = document.getElementById("sourcePane");
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute("data-ws") || "";
+        return {
+          strip: !!strip,
+          sameN,
+          crossN,
+          hops: hops.length,
+          sameDom,
+          crossDom,
+          match: sameN === sameDom && crossN === crossDom && sameN + crossN === hops.length,
+          seqCanvas: !!document.getElementById("seqCanvas"),
+          srcHidden: !src || src.hidden,
+          ws,
+          focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+        };
+      });
+      const smc1ok = !!(
+        smc1 &&
+        smc1.strip &&
+        smc1.hops >= 7 &&
+        smc1.crossN >= 1 &&
+        smc1.match &&
+        smc1.sameN === 0 &&
+        smc1.crossN === 9 &&
+        smc1.hops === 9 &&
+        smc1.seqCanvas &&
+        smc1.srcHidden &&
+        smc1.ws === "sequence" &&
+        !smc1.focusing
+      );
+      record(
+        "SMC1",
+        "Sequence .smc-strip present; explorer module-cut is 0 same / 9 cross; no source",
+        !!smc1ok,
+        JSON.stringify(smc1)
+      );
+
+      const smc2 = await page.evaluate(() => {
+        const cross = document.querySelector('.smc-stat[data-smc="cross"], .smc-seg[data-smc="cross"]');
+        if (cross) cross.click();
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const src = document.getElementById("sourcePane");
+        const first = {
+          pressed: !!(document.querySelector('.smc-stat[data-smc="cross"]') && document.querySelector('.smc-stat[data-smc="cross"]').getAttribute("aria-pressed") === "true"),
+          hits: hops.filter((el) => el.classList.contains("smc-hit")).length,
+          dims: hops.filter((el) => el.classList.contains("smc-dim")).length,
+          focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute("data-ws") || "",
+        };
+        if (cross) cross.click();
+        const hops2 = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const src2 = document.getElementById("sourcePane");
+        return {
+          first,
+          second: {
+            pressed: !!(document.querySelector('.smc-stat[data-smc="cross"]') && document.querySelector('.smc-stat[data-smc="cross"]').getAttribute("aria-pressed") === "true"),
+            hits: hops2.filter((el) => el.classList.contains("smc-hit")).length,
+            dims: hops2.filter((el) => el.classList.contains("smc-dim")).length,
+            focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+            srcHidden: !src2 || src2.hidden,
+          },
+        };
+      });
+      const smc2ok = !!(
+        smc2 &&
+        smc2.first &&
+        smc2.first.pressed &&
+        smc2.first.hits === 9 &&
+        smc2.first.dims === 0 &&
+        smc2.first.focusing &&
+        smc2.first.srcHidden &&
+        smc2.first.ws === "sequence" &&
+        smc2.second &&
+        !smc2.second.pressed &&
+        smc2.second.hits === 0 &&
+        smc2.second.dims === 0 &&
+        !smc2.second.focusing &&
+        smc2.second.srcHidden
+      );
+      record(
+        "SMC2",
+        "Click Cross highlights 9 cross-module hops; second click clears; no source; Sequence stays",
+        !!smc2ok,
+        JSON.stringify(smc2)
+      );
+
+      await page.focus('.smc-stat[data-smc="cross"]');
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(40);
+      const smc3on = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.smc-stat[data-smc="cross"]') && document.querySelector('.smc-stat[data-smc="cross"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#seqHops .seq-hop.smc-hit").length,
+          focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute("data-ws") || "",
+        };
+      });
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const smc3off = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.smc-stat[data-smc="cross"]') && document.querySelector('.smc-stat[data-smc="cross"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#seqHops .seq-hop.smc-hit").length,
+          focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute("data-ws") || "",
+        };
+      });
+      const smc3ok = !!(
+        smc3on &&
+        smc3on.pressed &&
+        smc3on.hits === 9 &&
+        smc3on.focusing &&
+        smc3on.srcHidden &&
+        smc3on.ws === "sequence" &&
+        smc3off &&
+        !smc3off.pressed &&
+        smc3off.hits === 0 &&
+        !smc3off.focusing &&
+        smc3off.srcHidden &&
+        smc3off.ws === "sequence"
+      );
+      record(
+        "SMC3",
+        "Enter toggles Cross focus; Escape clears module-cut focus without leaving Sequence or opening source",
+        !!smc3ok,
+        JSON.stringify({ on: smc3on, off: smc3off })
+      );
+
+      const smc4 = await page.evaluate(() => {
+        const same = document.querySelector('.smc-stat[data-smc="same"]');
+        if (same) same.click();
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const src = document.getElementById("sourcePane");
+        const sameCut = {
+          pressed: !!(same && same.getAttribute("aria-pressed") === "true"),
+          hits: hops.filter((el) => el.classList.contains("smc-hit")).length,
+          dims: hops.filter((el) => el.classList.contains("smc-dim")).length,
+          focusing: !!(document.querySelector(".seq-page") && document.querySelector(".seq-page").classList.contains("smc-focusing")),
+          srcHidden: !src || src.hidden,
+        };
+        const cross = document.querySelector('.smc-stat[data-smc="cross"]');
+        if (cross) cross.click();
+        const hops2 = [...document.querySelectorAll("#seqHops .seq-hop")];
+        return {
+          sameCut,
+          crossNow: {
+            pressed: !!(cross && cross.getAttribute("aria-pressed") === "true"),
+            hits: hops2.filter((el) => el.classList.contains("smc-hit")).length,
+            shk: !!document.querySelector(".shk-strip[data-shk='1']"),
+            sss: !!document.querySelector(".sss-strip[data-sss='1']"),
+            cms: !!document.querySelector(".seq-page[data-cms='1']"),
+          },
+        };
+      });
+      const smc4ok = !!(
+        smc4 &&
+        smc4.sameCut &&
+        smc4.sameCut.pressed &&
+        smc4.sameCut.hits === 0 &&
+        smc4.sameCut.dims === 9 &&
+        smc4.sameCut.focusing &&
+        smc4.sameCut.srcHidden &&
+        smc4.crossNow &&
+        smc4.crossNow.pressed &&
+        smc4.crossNow.hits === 9 &&
+        smc4.crossNow.shk &&
+        smc4.crossNow.sss &&
+        smc4.crossNow.cms
+      );
+      record(
+        "SMC4",
+        "Click Same is an honest 0-hit cut; Cross composes with SHK/SSS/CMS; no source",
+        !!smc4ok,
+        JSON.stringify(smc4)
+      );
+
+      await shot(page, "sequence-module-cut.png");
+      const smcShot = checks.find((c) => c.id === "shot:sequence-module-cut.png");
+      const smc5ok = !!(smc1ok && smc2ok && smc3ok && smc4ok && smcShot && smcShot.pass);
+      record(
+        "SMC5",
+        "screenshot sequence-module-cut.png not black; Sequence module-cut graphic proven",
+        !!smc5ok,
+        JSON.stringify({
+          shot: smcShot ? smcShot.detail : "missing",
+          smc1: !!smc1ok,
+          smc2: !!smc2ok,
+          smc3: !!smc3ok,
+          smc4: !!smc4ok,
+        })
+      );
+      assertNoStampDir("SMC5b", "Sequence module-cut graphic step did not write .graphide/stamps/");
+      const afterSmcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      record(
+        "SMC5c",
+        "Sequence module-cut clicks did not post peekSource / open source",
+        afterSmcPosts === beforeSmcPosts,
+        "posts " + beforeSmcPosts + "→" + afterSmcPosts
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
 
     // ADE Slice hop-kind mix (SHM1–SHM3) — interactive kind/hop bars; graph-only #sliceCanvas filter
     await page.click('#workspaces [data-ws="slice"]');
