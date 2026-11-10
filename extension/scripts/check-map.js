@@ -1374,6 +1374,20 @@ assert(mccMap.includes("MCC1") && mccMap.includes("mcc-strip") && mccMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-community-cut.md")), "map-community-cut feature map missing");
 assert(featReadme.includes("map-community-cut.md") && featReadme.includes("map-community-cut.png"), "feature README must list map-community-cut.md");
 
+const swhMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-hop.md"), "utf8");
+assert(
+  swhMap.includes("## Sub-features") &&
+    swhMap.includes("## How to get to it (user POV)") &&
+    swhMap.includes("## Driving it with the harness") &&
+    swhMap.includes("## Gotchas"),
+  "slice-walk-hop feature map must use the four headings"
+);
+assert(driver.includes("SWH1") && driver.includes("SWH3") && driver.includes("slice-walk-hop.png") && driver.includes("swh-stat"), "verify driver must prove Slice walk-hop graphic SWH1–SWH3");
+assert(css.includes(".swh-strip") && css.includes(".swh-stat") && css.includes(".swh-bar") && css.includes("swh-hit"), "main.css must style Slice walk-hop graphic");
+assert(swhMap.includes("SWH1") && swhMap.includes("swh-strip") && swhMap.includes("slice-walk-hop.png") && swhMap.includes("peekSource"), "slice-walk-hop feature map must name SWH / swh-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-hop.md")), "slice-walk-hop feature map missing");
+assert(featReadme.includes("slice-walk-hop.md") && featReadme.includes("slice-walk-hop.png"), "feature README must list slice-walk-hop.md");
+
 
 
 
