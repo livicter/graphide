@@ -1402,6 +1402,20 @@ assert(sxcMap.includes("SXC1") && sxcMap.includes("sxc-strip") && sxcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-exchange-cut.md")), "sequence-exchange-cut feature map missing");
 assert(featReadme.includes("sequence-exchange-cut.md") && featReadme.includes("sequence-exchange-cut.png"), "feature README must list sequence-exchange-cut.md");
 
+const mrcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-run-cut.md"), "utf8");
+assert(
+  mrcMap.includes("## Sub-features") &&
+    mrcMap.includes("## How to get to it (user POV)") &&
+    mrcMap.includes("## Driving it with the harness") &&
+    mrcMap.includes("## Gotchas"),
+  "map-run-cut feature map must use the four headings"
+);
+assert(driver.includes("MRC1") && driver.includes("MRC3") && driver.includes("map-run-cut.png") && driver.includes("mrc-stat"), "verify driver must prove Map run-cut graphic MRC1–MRC3");
+assert(css.includes(".mrc-strip") && css.includes(".mrc-stat") && css.includes(".mrc-bar") && css.includes("mrc-hit") && css.includes(".map-title-cuts"), "main.css must style Map run-cut graphic and map-title-cuts");
+assert(mrcMap.includes("MRC1") && mrcMap.includes("mrc-strip") && mrcMap.includes("map-run-cut.png") && mrcMap.includes("peekSource"), "map-run-cut feature map must name MRC / mrc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-run-cut.md")), "map-run-cut feature map missing");
+assert(featReadme.includes("map-run-cut.md") && featReadme.includes("map-run-cut.png"), "feature README must list map-run-cut.md");
+
 
 
 
