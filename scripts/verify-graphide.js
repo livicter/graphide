@@ -1294,6 +1294,42 @@ function assertSelfReviewSnap(snap) {
     "workspace crate:: refs did not join after link"
   );
 
+  // ADE DPR — Python from pkg.bus import events must join the workspace-prefixed Endpoint.
+  const pySub = "fixtures.python.pkg.sub.subscribe";
+  const pyEvents = "fixtures.python.pkg.bus.events";
+  const pyBus = "fixtures.python.pkg.bus.Bus";
+  const pySubToEvents = edges.some(
+    (e) =>
+      e &&
+      e.kind === "Subscribes" &&
+      fqnOf(e.from) === pySub &&
+      fqnOf(e.to) === pyEvents
+  );
+  const pySubToBus = edges.some(
+    (e) =>
+      e &&
+      (e.kind === "TypeUses" || e.kind === "Imports") &&
+      fqnOf(e.from) === pySub &&
+      fqnOf(e.to) === pyBus
+  );
+  record(
+    "DPR0",
+    "self-review python subscribe Subscribes fixtures.python.pkg.bus.events",
+    pySubToEvents,
+    pySubToEvents ? "joined" : "missing Subscribes subscribe → events"
+  );
+  record(
+    "DPR0b",
+    "self-review python subscribe TypeUses or Imports fixtures.python.pkg.bus.Bus",
+    pySubToBus,
+    pySubToBus ? "joined" : "missing TypeUses/Imports subscribe → Bus"
+  );
+  failSnapChecks(
+    /^DPR0/,
+    "Deriver package refs snapshot failed structural checks (desk not driven).",
+    "workspace python pkg.bus refs did not join after link"
+  );
+
   failSnapChecks(
     /^G\d/,
     "Self-review snapshot failed structural checks (desk not driven).",
@@ -43232,6 +43268,47 @@ async function main() {
     await page.waitForTimeout(300);
     assertNoStampDir("DCR2", "Deriver crate-root refs step did not write .graphide/stamps/");
 
+    // ADE DPR — fixtures chip on live Map; python pkg.bus hops already asserted on the snap.
+    const dprChip = await page.evaluate(() => {
+      const programs = [...document.querySelectorAll("#legend [data-prog]")].filter(
+        (el) => Number(el.getAttribute("data-prog")) >= 0
+      );
+      const hit = programs.find((el) => /\bfixtures\b/i.test(el.textContent || ""));
+      if (!hit) return { ok: false, text: "", i: null, chips: programs.length };
+      hit.click();
+      return {
+        ok: true,
+        text: (hit.textContent || "").replace(/\s+/g, " ").trim(),
+        i: Number(hit.getAttribute("data-prog")),
+        chips: programs.length,
+      };
+    });
+    await page.waitForTimeout(400);
+    const dprMap = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const on = document.querySelector("#workspaces [data-ws].on");
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        cards: cards.length,
+        names: names.slice(0, 16),
+        xy: document.querySelectorAll(".react-flow__node").length,
+      };
+    });
+    record(
+      "DPR1",
+      "self-review fixtures chip paints a Map after package-ref join",
+      dprChip.ok && dprMap.ws === "map" && dprMap.cards >= 1 && dprMap.xy === 0,
+      JSON.stringify({ chip: dprChip, map: { ws: dprMap.ws, cards: dprMap.cards, names: dprMap.names } })
+    );
+    await shot(page, "deriver-package-refs.png");
+    await page.evaluate(() => {
+      const all = document.querySelector('#legend [data-prog="-1"]');
+      if (all) all.click();
+    });
+    await page.waitForTimeout(300);
+    assertNoStampDir("DPR2", "Deriver package refs step did not write .graphide/stamps/");
+
     const readProgDesk = () =>
       page.evaluate(() => {
         const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
@@ -50971,7 +51048,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · deriver-endpoint-honesty · deriver-crate-root-refs · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · deriver-endpoint-honesty · deriver-crate-root-refs · deriver-package-refs · lineage · export · present · preset · route · lens"
   );
 }
 

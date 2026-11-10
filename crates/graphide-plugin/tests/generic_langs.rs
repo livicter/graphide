@@ -382,6 +382,63 @@ def subscribe():
     }));
 }
 
+
+#[test]
+fn workspace_python_package_refs_use_path_prefix() {
+    let src = r#"
+from pkg.bus import Bus, events
+
+def subscribe(bus: Bus):
+    decode()
+    return events
+
+def decode():
+    handle()
+
+def handle():
+    pass
+"#;
+    let nested = extract("fixtures/python/pkg/sub.py", src);
+    assert!(
+        nested.refs.iter().any(|r| {
+            r.from == "fixtures.python.pkg.sub.subscribe"
+                && r.to.as_deref() == Some("fixtures.python.pkg.bus.events")
+                && (r.kind == EdgeKind::Subscribes || r.kind == EdgeKind::Imports)
+        }),
+        "expected workspace-prefixed events refs, got: {:?}",
+        nested.refs
+    );
+    assert!(
+        nested.refs.iter().any(|r| {
+            r.from == "fixtures.python.pkg.sub.subscribe"
+                && r.to.as_deref() == Some("fixtures.python.pkg.bus.Bus")
+                && (r.kind == EdgeKind::TypeUses || r.kind == EdgeKind::Imports)
+        }),
+        "expected workspace-prefixed Bus refs, got: {:?}",
+        nested.refs
+    );
+
+    let official = extract("pkg/sub.py", src);
+    assert!(
+        official.refs.iter().any(|r| {
+            r.from == "pkg.sub.subscribe"
+                && r.to.as_deref() == Some("pkg.bus.events")
+                && (r.kind == EdgeKind::Subscribes || r.kind == EdgeKind::Imports)
+        }),
+        "expected identity events refs, got: {:?}",
+        official.refs
+    );
+    assert!(
+        official.refs.iter().all(|r| {
+            !r.to
+                .as_deref()
+                .is_some_and(|to| to.starts_with("fixtures.python."))
+        }),
+        "identity extraction must not gain workspace prefix: {:?}",
+        official.refs
+    );
+}
+
 #[test]
 fn javascript_endpoint_subscribes() {
     let src = r#"
