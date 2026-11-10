@@ -2429,6 +2429,68 @@ table.audit tbody tr[data-rsg-row="snapshot"].rsg-row-now {
   box-shadow: inset 3px 0 0 var(--vscode-focusBorder, #2f81f7);
 }
 
+/* ADE RAS — Registry audit-subject cards (kind ticks, not a RAK/RSG/PFL clone). */
+.ras-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.ras-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.ras-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.ras-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 8px;
+  min-width: 88px;
+  border-radius: 6px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-focusBorder) 8%);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.ras-card .ras-name { font-size: 12px; font-weight: 650; }
+.ras-card .ras-n { font-size: 11px; font-variant-numeric: tabular-nums; opacity: 0.8; }
+.ras-ticks { display: flex; gap: 3px; height: 8px; width: 100%; }
+.ras-tick {
+  flex: 1 1 auto;
+  min-width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 45%, transparent);
+}
+.ras-tick[data-ras-kind="review"] { background: color-mix(in srgb, var(--vscode-descriptionForeground, #888) 70%, transparent); }
+.ras-tick[data-ras-kind="stamp"] { background: color-mix(in srgb, var(--vscode-testing-iconPassed, #3fb950) 70%, transparent); }
+.ras-tick[data-ras-kind="skip"] { background: color-mix(in srgb, var(--vscode-descriptionForeground, #888) 55%, transparent); }
+.ras-tick[data-ras-kind="broken"] { background: color-mix(in srgb, var(--vscode-errorForeground, #f85149) 70%, transparent); }
+.ras-tick[data-ras-kind="finding"] { background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #d29922) 70%, transparent); }
+.ras-card.ras-now {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: inset 0 0 0 1px var(--vscode-focusBorder, #2f81f7);
+}
+.ras-strip.ras-focusing .ras-card.ras-idle { opacity: 0.55; }
+table.audit tbody tr[data-ras-subject].ras-row-now {
+  box-shadow: inset 3px 0 0 var(--vscode-charts-orange, #e36209);
+}
+/* RAK dim wins when both filters/focuses are on. */
+.ws-list.ras-focusing table.audit tbody tr.ras-row-dim:not(.rak-dim) {
+  opacity: 0.34;
+}
+
 /* ADE TKM — Timeline kind-mix (parent/coverage/stamp/skip/broken/hint) */
 .tkm-strip {
   display: flex;

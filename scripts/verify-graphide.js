@@ -2395,6 +2395,219 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+
+    // ADE Registry audit subjects (RAS1–RAS5) — subject cards + kind ticks from the same rows.
+    // Stay on the RSG Registry document. Do not page.goto (Timeline follows with its own click).
+    {
+      await page.waitForSelector(".ras-strip[data-ras='1'] .ras-card[data-ras-subject], table.audit tbody tr", {
+        timeout: 8000,
+      });
+      const ras1 = await page.evaluate(() => {
+        const strip = document.querySelector(".ras-strip[data-ras='1']");
+        const cards = [...document.querySelectorAll(".ras-card[data-ras-subject]")].map((el) => {
+          const key = el.getAttribute("data-ras-subject") || "";
+          const n = Number((el.querySelector("[data-ras-n]") || {}).textContent || 0);
+          const ticks = [...el.querySelectorAll(".ras-tick[data-ras-kind]")].map((t) => t.getAttribute("data-ras-kind") || "");
+          return { key, n, ticks };
+        });
+        const byCard = Object.fromEntries(cards.map((c) => [c.key, c.n]));
+        const rows = [...document.querySelectorAll("table.audit tbody tr[data-ras-subject]")];
+        const byRow = {};
+        for (const el of rows) {
+          const k = el.getAttribute("data-ras-subject") || "";
+          if (!k) continue;
+          byRow[k] = (byRow[k] || 0) + 1;
+        }
+        const same =
+          Object.keys(byCard).length > 0 &&
+          Object.keys(byCard).every((k) => byCard[k] === byRow[k]) &&
+          Object.keys(byRow).every((k) => byCard[k] === byRow[k]);
+        const boot = cards.find((c) => c.key === "boot");
+        const rsg = !!document.querySelector(".rsg-strip[data-rsg='1']");
+        const rak = !!document.querySelector(".rak-strip .rak-chart .rak-bar, .rak-strip .rak-bar");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          strip: !!strip,
+          cards: cards.length,
+          same,
+          byCard,
+          byRow,
+          bootN: boot ? boot.n : -1,
+          bootTicks: boot ? boot.ticks.slice() : [],
+          bootKinds: !!(boot && boot.ticks.includes("broken") && boot.ticks.includes("finding") && boot.ticks.length >= 2),
+          rsg,
+          rak,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const ras1ok = !!(
+        ras1 &&
+        ras1.strip &&
+        ras1.cards >= 3 &&
+        ras1.same &&
+        ras1.bootN === 3 &&
+        ras1.bootKinds &&
+        ras1.rsg &&
+        ras1.rak &&
+        ras1.srcHidden &&
+        ras1.xy === 0 &&
+        ras1.ws === "registry"
+      );
+      record(
+        "RAS1",
+        "Registry .ras-strip cards match row subjects; boot has broken+finding ticks; RAK/RSG stay; no XYFlow; no source",
+        !!ras1ok,
+        JSON.stringify(ras1)
+      );
+
+      const ras2 = await page.evaluate(() => {
+        const card =
+          document.querySelector('.ras-card[data-ras-subject="boot"]') ||
+          document.querySelector(".ras-card[data-ras-subject]");
+        if (!card) return { ok: false, reason: "no card" };
+        const subject = card.getAttribute("data-ras-subject") || "";
+        card.click();
+        const now = document.querySelectorAll(".ras-card.ras-now").length;
+        const rowNow = [...document.querySelectorAll("table.audit tbody tr.ras-row-now")].map(
+          (el) => el.getAttribute("data-ras-subject") || ""
+        );
+        const dim = document.querySelectorAll("table.audit tbody tr.ras-row-dim").length;
+        const total = document.querySelectorAll("table.audit tbody tr[data-ras-subject]").length;
+        const focusing = !!document.querySelector(".ras-strip.ras-focusing, .ws-list.ras-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          ok: true,
+          subject,
+          now,
+          rowNow,
+          allBoot: rowNow.length > 0 && rowNow.every((s) => s === subject),
+          dim,
+          total,
+          dimOk: dim === total - rowNow.length,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const ras2ok = !!(
+        ras2 &&
+        ras2.ok &&
+        ras2.focusing &&
+        ras2.now === 1 &&
+        ras2.allBoot &&
+        ras2.rowNow.length === 3 &&
+        ras2.dimOk &&
+        ras2.srcHidden &&
+        ras2.xy === 0 &&
+        ras2.ws === "registry"
+      );
+      record(
+        "RAS2",
+        "Click subject card focuses matching audit rows; Registry stays; no source; no XYFlow",
+        !!ras2ok,
+        JSON.stringify(ras2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const ras3 = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".ras-strip.ras-focusing, .ws-list.ras-focusing");
+        const now = document.querySelectorAll(".ras-card.ras-now").length;
+        const rowNow = document.querySelectorAll("table.audit tbody tr.ras-row-now").length;
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          focusing,
+          now,
+          rowNow,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const ras3ok = !!(
+        ras3 &&
+        ras3.ws === "registry" &&
+        !ras3.focusing &&
+        ras3.now === 0 &&
+        ras3.rowNow === 0 &&
+        ras3.srcHidden &&
+        ras3.xy === 0
+      );
+      record(
+        "RAS3",
+        "Escape clears audit-subject focus without leaving Registry or opening source",
+        !!ras3ok,
+        JSON.stringify(ras3)
+      );
+
+      await page.evaluate(() => {
+        const card =
+          document.querySelector('.ras-card[data-ras-subject="boot"]') ||
+          document.querySelector(".ras-card[data-ras-subject]");
+        if (card) card.click();
+      });
+      await page.waitForTimeout(40);
+      const ras4 = await page.evaluate(() => {
+        const strip = document.querySelector(".ras-strip[data-ras='1']");
+        const rsg = !!document.querySelector(".rsg-strip[data-rsg='1']");
+        const rak = !!document.querySelector(".rak-strip .rak-chart .rak-bar, .rak-strip .rak-bar");
+        const focusing = !!document.querySelector(".ras-strip.ras-focusing, .ws-list.ras-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        return {
+          strip: !!strip,
+          rsg,
+          rak,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+        };
+      });
+      const ras4ok = !!(
+        ras4 &&
+        ras4.strip &&
+        ras4.rsg &&
+        ras4.rak &&
+        ras4.focusing &&
+        ras4.srcHidden &&
+        ras4.xy === 0
+      );
+      record(
+        "RAS4",
+        "RAS composes with RAK and RSG; Registry chrome intact; no source; no XYFlow",
+        !!ras4ok,
+        JSON.stringify(ras4)
+      );
+
+      await shot(page, "registry-audit-subjects.png");
+      const rasShot = checks.find((c) => c.id === "shot:registry-audit-subjects.png");
+      const ras5ok = !!(ras1ok && ras2ok && ras3ok && ras4ok && rasShot && rasShot.pass);
+      record(
+        "RAS5",
+        "screenshot registry-audit-subjects.png not black; Registry audit subjects proven",
+        !!ras5ok,
+        JSON.stringify({
+          shot: rasShot ? rasShot.detail : "missing",
+          ras1: !!ras1ok,
+          ras2: !!ras2ok,
+          ras3: !!ras3ok,
+          ras4: !!ras4ok,
+        })
+      );
+      assertNoStampDir("RAS5b", "Registry audit-subject graphic step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     await page.click('#workspaces [data-ws="timeline"]');
     await page.waitForFunction(
       () => {

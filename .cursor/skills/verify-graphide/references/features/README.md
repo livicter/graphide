@@ -49,6 +49,7 @@ owns this folder.
 | [decisions-causal-graph.md](decisions-causal-graph.md) | Decisions causal graph | explorer · `verification/decisions-causal-graph.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |
 | [registry-snapshot-graphic.md](registry-snapshot-graphic.md) | Registry snapshot graphic | explorer · `verification/registry-snapshot-graphic.png` |
+| [registry-audit-subjects.md](registry-audit-subjects.md) | Registry audit-subject graphic | explorer · `verification/registry-audit-subjects.png` |
 | [registry-audit-kind-mix.md](registry-audit-kind-mix.md) | Registry audit kind-mix bars | explorer · `registry-audit-kind-mix.png` |
 | [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [timeline-kind-mix.md](timeline-kind-mix.md) | Timeline kind-mix bars | explorer · `timeline-kind-mix.png` |

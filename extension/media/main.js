@@ -20131,6 +20131,7 @@
     let lifecycleTransitionFilter = null;
     let registryAuditFilter = null;
     let registrySnapshotFocus = null;
+    let registryAuditSubjectFocus = null;
     let fixtureLensKind = null;
     let timelineKindFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
@@ -20428,6 +20429,12 @@
         e.preventDefault();
         registrySnapshotFocus = null;
         applyRegistrySnapshotGraphicPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "registry" && registryAuditSubjectFocus) {
+        e.preventDefault();
+        registryAuditSubjectFocus = null;
+        if (typeof applyRegistryAuditSubjectPaint === "function") applyRegistryAuditSubjectPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "timeline" && timelineKindFilter) {
@@ -27598,6 +27605,98 @@
       });
       applyRegistrySnapshotGraphicPaint();
     }
+    function registryAuditSubject(e) {
+      if (!e) return "";
+      if (e.kind === "review" || e.title === "Review snapshot") return "Review snapshot";
+      if (e.flow) return String(e.flow);
+      return String(e.title || "subject");
+    }
+    function registryAuditSubjectEntries(rows) {
+      const map = /* @__PURE__ */ new Map();
+      const order = [];
+      for (const r of rows || []) {
+        const s = registryAuditSubject(r);
+        if (!s) continue;
+        if (!map.has(s)) {
+          map.set(s, { n: 0, kinds: /* @__PURE__ */ new Map() });
+          order.push(s);
+        }
+        const rec = map.get(s);
+        rec.n += 1;
+        const b = registryAuditBucket(r);
+        if (b) rec.kinds.set(b, (rec.kinds.get(b) || 0) + 1);
+      }
+      return order.map((s) => [s, map.get(s)]);
+    }
+    function registryAuditSubjectGraphicHtml(rows) {
+      const entries = registryAuditSubjectEntries(rows);
+      if (!entries.length) return "";
+      const kindOrder = ["review", "stamp", "skip", "broken", "finding"];
+      const labels = { review: "Review", stamp: "Stamp", skip: "Skip", broken: "Broken", finding: "Finding" };
+      const cards = entries.map((pair) => {
+        const s = pair[0];
+        const rec = pair[1];
+        const on2 = !!(registryAuditSubjectFocus && String(registryAuditSubjectFocus) === String(s));
+        const ticks = kindOrder.filter((k) => rec.kinds.get(k)).map((k) => {
+          return '<i class="ras-tick" data-ras-kind="' + esc(k) + '" data-ras-tick-n="' + rec.kinds.get(k) + '" title="' + esc((labels[k] || k) + " · " + rec.kinds.get(k)) + '"></i>';
+        }).join("");
+        return '<button type="button" class="ras-card' + (on2 ? " ras-now" : registryAuditSubjectFocus ? " ras-idle" : "") + '" data-ras-subject="' + esc(s) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(s + " · " + rec.n) + '"><span class="ras-name">' + esc(s) + '</span><span class="ras-n" data-ras-n="' + esc(s) + '">' + rec.n + '</span><span class="ras-ticks" aria-hidden="true">' + ticks + "</span></button>";
+      }).join("");
+      return '<div class="ras-strip' + (registryAuditSubjectFocus ? " ras-focusing" : "") + '" data-ras="1" role="group" aria-label="Registry audit subjects"><span class="ras-meta">Subjects</span><span class="ras-cards">' + cards + "</span></div>";
+    }
+    function toggleRegistryAuditSubject(subject) {
+      if (!subject) return;
+      if (registryAuditSubjectFocus && String(registryAuditSubjectFocus) === String(subject)) {
+        registryAuditSubjectFocus = null;
+      } else {
+        registryAuditSubjectFocus = String(subject);
+      }
+      applyRegistryAuditSubjectPaint();
+    }
+    function syncRegistryAuditSubjectCards() {
+      if (!canvas) return;
+      const focusing = !!registryAuditSubjectFocus;
+      canvas.querySelectorAll(".ras-card[data-ras-subject]").forEach((el2) => {
+        const s = el2.getAttribute("data-ras-subject") || "";
+        const on2 = !!(registryAuditSubjectFocus && String(registryAuditSubjectFocus) === s);
+        el2.classList.toggle("ras-now", on2);
+        el2.classList.toggle("ras-idle", !!(focusing && !on2));
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".ras-strip");
+      if (strip) strip.classList.toggle("ras-focusing", focusing);
+      const list = canvas.querySelector(".ws-list");
+      if (list) list.classList.toggle("ras-focusing", focusing);
+    }
+    function applyRegistryAuditSubjectPaint() {
+      if (!canvas) return;
+      const focus = registryAuditSubjectFocus ? String(registryAuditSubjectFocus) : "";
+      canvas.querySelectorAll("table.audit tbody tr[data-ras-subject]").forEach((el2) => {
+        const s = el2.getAttribute("data-ras-subject") || "";
+        const hit = !!(focus && s === focus);
+        const dim = !!(focus && s !== focus);
+        el2.classList.toggle("ras-row-now", hit);
+        el2.classList.toggle("ras-row-dim", dim);
+      });
+      syncRegistryAuditSubjectCards();
+    }
+    function bindRegistryAuditSubjectGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".ras-card[data-ras-subject]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleRegistryAuditSubject(el2.getAttribute("data-ras-subject"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleRegistryAuditSubject(el2.getAttribute("data-ras-subject"));
+        };
+      });
+      applyRegistryAuditSubjectPaint();
+    }
     function renderRegistryBody() {
       const ev = registryEvents().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27609,10 +27708,12 @@
         return '<div class="empty">Review first — the registry is this snapshot’s audit log.</div>';
       }
       const rakStrip = registryAuditStripHtml(ev);
-      return '<div class="ws-list">' + registrySnapshotGraphicHtml() + rakStrip + '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
+      const rasStrip = registryAuditSubjectGraphicHtml(ev);
+      return '<div class="ws-list' + (registryAuditSubjectFocus ? " ras-focusing" : "") + '">' + registrySnapshotGraphicHtml() + rakStrip + rasStrip + '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' + ev.map((e) => {
         const bucket = registryAuditBucket(e);
         const snapshotRow = bucket === "review" || e.kind === "review";
-        return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (snapshotRow ? ' data-rsg-row="snapshot"' : "") + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
+        const subject = registryAuditSubject(e);
+        return '<tr class="' + esc(e.verdict || e.kind) + '" data-rak-kind="' + esc(bucket) + '"' + (snapshotRow ? ' data-rsg-row="snapshot"' : "") + (subject ? ' data-ras-subject="' + esc(subject) + '"' : "") + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><td><span class="mut mut-' + esc(e.verdict || e.kind) + '">' + esc(e.verdict || e.kind) + "</span></td><td>" + esc(e.title) + "</td><td>" + esc(e.body) + "</td></tr>";
       }).join("") + "</tbody></table></div>";
     }
     function timelineKindBucket(e) {
@@ -33743,6 +33844,7 @@
       applyRegistryAuditPaint();
       bindRegistryAuditChart();
       bindRegistrySnapshotGraphic();
+      if (typeof bindRegistryAuditSubjectGraphic === "function") bindRegistryAuditSubjectGraphic();
       applyRegistrySnapshotGraphicPaint();
       applyTimelineKindPaint();
       bindTimelineKindChart();
