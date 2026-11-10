@@ -15391,7 +15391,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
         n0.click();
         const src = document.getElementById("sourcePane");
@@ -15581,7 +15581,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -15783,7 +15783,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -15837,6 +15837,204 @@ async function main() {
           "Map enter-polarity clicks did not post peekSource / enterRun / selectNode",
           afterMepPosts.after === afterMepPosts.before && !afterMepPosts.peek && !afterMepPosts.enterRun,
           JSON.stringify(afterMepPosts)
+        );
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+
+
+      // ADE Map enter verb-span graphic (MEV1–MEV5) — mix vs mono incident verbs; same enter desk as MEP
+      {
+        await page.waitForSelector(".mev-strip[data-mev='1']", { timeout: 8000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .vnode[data-mev-cut]").length >= 24,
+          { timeout: 8000 }
+        );
+        await page.waitForTimeout(80);
+        const beforeMevPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+        const mev1 = await page.evaluate(() => {
+          const strip = document.querySelector(".mev-strip[data-mev='1']");
+          const cluster = document.querySelector(".enter-title-cuts[data-enter-cuts='1']");
+          const stats = [...document.querySelectorAll(".mev-stat[data-mev-band]")].map((el) => ({
+            band: el.getAttribute("data-mev-band"),
+            n: Number((el.querySelector("[data-mev-n]") || el).textContent.trim()),
+            pressed: el.getAttribute("aria-pressed") === "true",
+          }));
+          const segs = [...document.querySelectorAll(".mev-seg[data-mev-band]")].map((el) => el.getAttribute("data-mev-band"));
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mev-cut], #enterCanvas .vnode")];
+          const byCut = { mix: 0, mono: 0 };
+          for (const n of nodes) {
+            const c = n.getAttribute("data-mev-cut") || "";
+            if (c === "mix" || c === "mono") byCut[c] += 1;
+          }
+          const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+          const src = document.getElementById("sourcePane");
+          const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+          return {
+            strip: !!strip,
+            cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".mep-strip[data-mep='1']") && cluster.querySelector(".mea-strip[data-mea='1']") && cluster.querySelector(".med-strip") && cluster.querySelector(".mwc-strip")),
+            mep: !!document.querySelector(".mep-strip[data-mep='1']"),
+            mea: !!document.querySelector(".mea-strip[data-mea='1']"),
+            med: !!document.querySelector(".med-strip"),
+            mwc: !!document.querySelector(".mwc-strip"),
+            enter: !!document.getElementById("enterCanvas"),
+            stats,
+            segs,
+            nodes: nodes.length,
+            stamped: byCut.mix + byCut.mono,
+            byCut,
+            mix: nOf("mix"),
+            mono: nOf("mono"),
+            sum: nOf("mix") + nOf("mono"),
+            kindBand: stats.some((s) => s.band === "Calls" || s.band === "Reads") || segs.includes("Calls") || segs.includes("Reads"),
+            n0: n0 ? n0.getAttribute("data-mev-cut") : "",
+            srcHidden: !src || src.hidden,
+            pressed: stats.filter((s) => s.pressed).length,
+          };
+        });
+        const mev1ok =
+          mev1.strip &&
+          mev1.cluster &&
+          mev1.mep &&
+          mev1.mea &&
+          mev1.med &&
+          mev1.mwc &&
+          mev1.enter &&
+          mev1.mix === 15 &&
+          mev1.mono === 9 &&
+          mev1.sum === 24 &&
+          mev1.stamped === 24 &&
+          mev1.byCut.mix === 15 &&
+          mev1.byCut.mono === 9 &&
+          mev1.segs.length === 2 &&
+          !mev1.kindBand &&
+          mev1.n0 === "mix" &&
+          mev1.pressed === 0 &&
+          mev1.srcHidden;
+        record(
+          "MEV1",
+          "Map enter verb-span graphic shows 15 mix / 9 mono of 24, matching data-mev-cut; MEP/MEA/MED/MWC stay; no source",
+          !!mev1ok,
+          JSON.stringify(mev1)
+        );
+
+        const mixBtn = page.locator('.mev-stat[data-mev-band="mix"]').first();
+        await mixBtn.click();
+        await page.waitForTimeout(80);
+        const mev2 = await page.evaluate(() => {
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mev-cut]")];
+          const hits = nodes.filter((el) => el.classList.contains("mev-hit"));
+          const idles = nodes.filter((el) => el.classList.contains("mev-idle"));
+          const mixHits = hits.filter((el) => el.getAttribute("data-mev-cut") === "mix");
+          const mixPressed = document.querySelector('.mev-stat[data-mev-band="mix"][aria-pressed="true"]');
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            nodes: nodes.length,
+            hits: hits.length,
+            idles: idles.length,
+            mixHits: mixHits.length,
+            mixPressed: !!mixPressed,
+            srcHidden: !src || src.hidden,
+          };
+        });
+        const mev2ok =
+          mev2.enter &&
+          mev2.hits === 15 &&
+          mev2.mixHits === 15 &&
+          mev2.idles === 9 &&
+          mev2.mixPressed &&
+          mev2.srcHidden;
+        record(
+          "MEV2",
+          "Click Mix highlights the 15 mix enter leaves; enter stays; no source",
+          !!mev2ok,
+          JSON.stringify(mev2)
+        );
+
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(80);
+        const mev3 = await page.evaluate(() => {
+          const hits = document.querySelectorAll("#enterCanvas .vnode.mev-hit").length;
+          const pressed = document.querySelectorAll('.mev-stat[aria-pressed="true"]').length;
+          const focusing = !!document.querySelector(".mev-strip.mev-focusing, .stage.mev-focusing");
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            hits,
+            pressed,
+            focusing,
+            srcHidden: !src || src.hidden,
+          };
+        });
+        record(
+          "MEV3",
+          "Escape clears verb-span graphic focus; enter stays; no source",
+          !!(mev3.enter && mev3.hits === 0 && mev3.pressed === 0 && !mev3.focusing && mev3.srcHidden),
+          JSON.stringify(mev3)
+        );
+
+        const mev4 = await page.evaluate(() => {
+          const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+          if (!n0) return { missing: true };
+          const r = n0.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          const top = document.elementFromPoint(x, y);
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
+          const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
+          const src = document.getElementById("sourcePane");
+          return {
+            x,
+            y,
+            top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+            hitStrip,
+            inNode,
+            srcHidden: !src || src.hidden,
+            enter: !!document.getElementById("enterCanvas"),
+          };
+        });
+        const mev4ok = !!(mev4 && !mev4.missing && mev4.inNode && !mev4.hitStrip && mev4.srcHidden && mev4.enter);
+        record(
+          "MEV4",
+          "Title-band cluster does not intercept #enterCanvas n0 clicks; enter stays; no source",
+          !!mev4ok,
+          JSON.stringify(mev4)
+        );
+
+        await mixBtn.click();
+        await page.waitForTimeout(80);
+        await shot(page, "map-enter-verb-span.png");
+        const mevShot = checks.find((c) => c.id === "shot:map-enter-verb-span.png");
+        const mev5ok = !!(mev1ok && mev2ok && mev3 && mev3.enter && mev4ok && mevShot && mevShot.pass);
+        record(
+          "MEV5",
+          "screenshot map-enter-verb-span.png is not a black frame; Map enter verb-span graphic proven",
+          !!mev5ok,
+          JSON.stringify({
+            shot: mevShot ? mevShot.detail : "missing",
+            mev1: !!mev1ok,
+            mev2: !!mev2ok,
+            mev3: !!(mev3 && mev3.enter && mev3.hits === 0),
+            mev4: !!mev4ok,
+          })
+        );
+        assertNoStampDir("MEV5b", "Map enter verb-span graphic step did not write .graphide/stamps/");
+        const afterMevPosts = await page.evaluate((before) => {
+          const posts = window.__vscodePosts || [];
+          const added = posts.slice(before);
+          return {
+            before,
+            after: posts.length,
+            peek: added.some((m) => m && (m.type === "peekSource" || m.type === "enterRun" || m.type === "selectNode")),
+            enterRun: added.some((m) => m && m.type === "enterRun"),
+          };
+        }, beforeMevPosts);
+        record(
+          "MEV5c",
+          "Map enter verb-span clicks did not post peekSource / enterRun / selectNode",
+          afterMevPosts.after === afterMevPosts.before && !afterMevPosts.peek && !afterMevPosts.enterRun,
+          JSON.stringify(afterMevPosts)
         );
         await page.keyboard.press("Escape");
         await page.waitForTimeout(40);

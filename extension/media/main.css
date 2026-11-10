@@ -7675,7 +7675,7 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 #sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
 
-/* ADE MWC + MED + MEA + MEP — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE MWC + MED + MEA + MEP + MEV — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.enter-title-cuts) > .flow-title,
 .stage:has(.mwc-strip) > .flow-title { max-width: calc(100% - 420px); }
 .enter-title-cuts {
@@ -7696,7 +7696,8 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 .enter-title-cuts .mwc-strip,
 .enter-title-cuts .med-strip,
 .enter-title-cuts .mea-strip,
-.enter-title-cuts .mep-strip {
+.enter-title-cuts .mep-strip,
+.enter-title-cuts .mev-strip {
   position: static;
   top: auto;
   right: auto;
@@ -7828,7 +7829,8 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 .enter-title-cuts .mwc-bar,
 .enter-title-cuts .med-bar,
 .enter-title-cuts .mea-bar,
-.enter-title-cuts .mep-bar { min-width: 48px; flex: 1 1 64px; }
+.enter-title-cuts .mep-bar,
+.enter-title-cuts .mev-bar { min-width: 48px; flex: 1 1 64px; }
 .med-bar-empty { flex: 1; }
 .med-seg {
   margin: 0;
@@ -7990,6 +7992,77 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
     0 0 0 1px var(--vscode-debugConsole-sourceForeground, #4ec9b0);
 }
 
+
+/* ADE MEV — Map enter verb-span graphic (mix vs mono incident verbs; not MEA / MEP / kind-mix). */
+.mev-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.mev-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.mev-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.mev-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mev-stat b { font-variant-numeric: tabular-nums; }
+.mev-stat.mev-now, .mev-seg.mev-now {
+  border-color: #a78bfa;
+  box-shadow: inset 0 0 0 1px #a78bfa;
+}
+.mev-strip.mev-focusing .mev-stat.mev-idle,
+.mev-strip.mev-focusing .mev-seg.mev-idle { opacity: 0.55; }
+.mev-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.mev-bar-empty { flex: 1; }
+.mev-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.mev-seg.mev-mix { background: color-mix(in srgb, #a78bfa 75%, transparent); }
+.mev-seg.mev-mono { background: color-mix(in srgb, #94a3b8 70%, transparent); }
+#enterCanvas .vnode.mev-hit:not(.dim):not(.ego-dim) {
+  box-shadow:
+    inset 3px 0 0 #a78bfa,
+    0 0 0 1px #a78bfa;
+}
 
 
 /* S1m — Present stage pauses ScrollDrive camera (Evidence exclusive with stage).
