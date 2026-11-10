@@ -20135,6 +20135,7 @@
     let registryAuditSubjectFocus = null;
     let fixtureLensKind = null;
     let timelineKindFilter = null;
+    let timelineParentCutFocus = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
     let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -20443,6 +20444,12 @@
         timelineKindFilter = null;
         applyTimelineKindPaint();
         syncTimelineKindBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "timeline" && timelineParentCutFocus) {
+        e.preventDefault();
+        timelineParentCutFocus = null;
+        if (typeof applyTimelineParentCutPaint === "function") applyTimelineParentCutPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqHopKindFilter) {
@@ -27823,6 +27830,94 @@
       });
       syncTimelineKindBars();
     }
+    function timelineParentCutMetrics() {
+      const cov = snapshot && snapshot.coverage || {};
+      const changedList = (cov.changed || []).map((id2) => idVal(id2));
+      const uncoveredList = (cov.uncovered || []).map((id2) => idVal(id2));
+      const changedN = changedList.length;
+      const uncoveredN = uncoveredList.length;
+      const uncSet = new Set(uncoveredList);
+      let coveredN = 0;
+      for (const id2 of changedList) {
+        if (!uncSet.has(id2)) coveredN += 1;
+      }
+      return { changed: changedN, uncovered: uncoveredN, covered: coveredN };
+    }
+    function timelineParentCutGraphicHtml() {
+      const m = timelineParentCutMetrics();
+      const total = Math.max(m.changed, m.uncovered, 0);
+      const covW = total > 0 ? Math.round(m.covered / total * 100) : 0;
+      const uncW = total > 0 ? Math.max(0, 100 - covW) : 0;
+      const focusing = !!timelineParentCutFocus;
+      const onFor = (key) => !!(timelineParentCutFocus && String(timelineParentCutFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="tpc-stat' + (onFor(key) ? " tpc-now" : focusing ? " tpc-idle" : "") + '" data-tpc="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-tpc-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, width, n) => {
+        if (width <= 0 && n <= 0) return "";
+        return '<button type="button" class="tpc-seg tpc-' + esc(key) + (onFor(key) || key === "covered" && onFor("changed") ? " tpc-now" : focusing ? " tpc-idle" : "") + '" data-tpc="' + esc(key) + '" style="flex-grow:' + Math.max(width, n > 0 ? 1 : 0) + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="tpc-strip' + (focusing ? " tpc-focusing" : "") + '" data-tpc="1" role="group" aria-label="Timeline parent-cut graphic"><span class="tpc-meta">Parent cut</span><span class="tpc-counts">' + stat("changed", "changed", m.changed) + stat("uncovered", "uncovered", m.uncovered) + stat("covered", "covered", m.covered) + '</span><div class="tpc-bar" aria-hidden="true">' + (total === 0 ? '<span class="tpc-bar-empty"></span>' : seg("covered", covW, m.covered) + seg("uncovered", uncW, m.uncovered)) + "</div></div>";
+    }
+    function jumpTimelineParentCut(which) {
+      if (!which) return;
+      const key = String(which);
+      const title = key === "uncovered" ? "Uncovered" : "Parent cut";
+      const item = canvas && [...canvas.querySelectorAll(".tl-item")].find((el2) => {
+        const t = ((el2.querySelector(".t") || {}).textContent || "").trim();
+        return t === title;
+      }) || canvas && canvas.querySelector('.tl-item[data-tpc-cut="' + (key === "uncovered" ? "uncovered" : "changed") + '"]');
+      if (item) {
+        const t = parseInt(item.getAttribute("data-t"), 10);
+        if (Number.isFinite(t)) timelineCursor = t;
+        if (typeof applyTimelineScrub === "function") applyTimelineScrub();
+      }
+      if (timelineParentCutFocus && String(timelineParentCutFocus) === key) {
+        timelineParentCutFocus = null;
+      } else {
+        timelineParentCutFocus = key;
+      }
+      applyTimelineParentCutPaint();
+    }
+    function syncTimelineParentCutChrome() {
+      if (!canvas) return;
+      const focus = timelineParentCutFocus ? String(timelineParentCutFocus) : "";
+      canvas.querySelectorAll("[data-tpc]").forEach((el2) => {
+        if (!el2.classList.contains("tpc-stat") && !el2.classList.contains("tpc-seg")) return;
+        const key = el2.getAttribute("data-tpc") || "";
+        const on2 = !!(focus && (key === focus || key === "covered" && focus === "changed" || key === "changed" && focus === "covered"));
+        el2.classList.toggle("tpc-now", on2);
+        el2.classList.toggle("tpc-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".tpc-strip");
+      if (strip) strip.classList.toggle("tpc-focusing", !!focus);
+      const page = canvas.querySelector(".tl-page");
+      if (page) page.classList.toggle("tpc-focusing", !!focus);
+      canvas.querySelectorAll(".tl-item[data-tpc-cut]").forEach((el2) => {
+        const cut = el2.getAttribute("data-tpc-cut") || "";
+        const hit = !!(focus && (focus === "uncovered" && cut === "uncovered" || (focus === "changed" || focus === "covered") && cut === "changed"));
+        el2.classList.toggle("tpc-hit", hit);
+      });
+    }
+    function applyTimelineParentCutPaint() {
+      syncTimelineParentCutChrome();
+    }
+    function bindTimelineParentCutGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".tpc-stat[data-tpc], .tpc-seg[data-tpc]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpTimelineParentCut(el2.getAttribute("data-tpc"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpTimelineParentCut(el2.getAttribute("data-tpc"));
+        };
+      });
+      applyTimelineParentCutPaint();
+    }
     function renderTimelineBody() {
       const ev = timelineEvents().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27837,9 +27932,11 @@
       if (timelineCursor < 0) timelineCursor = 0;
       const cur = ev[timelineCursor];
       const tkmStrip = timelineKindStripHtml(ev);
-      return '<div class="tl-page">' + tkmStrip + '<div class="tl-scrub"><label>Watch this review <input id="tlScrub" type="range" min="0" max="' + (ev.length - 1) + '" value="' + timelineCursor + '" /></label><span id="tlScrubMeta">t' + timelineCursor + " · " + esc(cur && cur.title || "event") + '</span></div><div class="tl-rail">' + ev.map((e, i) => {
+      const tpcStrip = timelineParentCutGraphicHtml();
+      return '<div class="tl-page' + (timelineParentCutFocus ? " tpc-focusing" : "") + '">' + tkmStrip + tpcStrip + '<div class="tl-scrub"><label>Watch this review <input id="tlScrub" type="range" min="0" max="' + (ev.length - 1) + '" value="' + timelineCursor + '" /></label><span id="tlScrubMeta">t' + timelineCursor + " · " + esc(cur && cur.title || "event") + '</span></div><div class="tl-rail">' + ev.map((e, i) => {
         const bucket = timelineKindBucket(e);
-        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '" data-tkm-kind="' + esc(bucket) + '"' + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
+        const tpcCut = e.kind === "parent" || e.title === "Parent cut" ? "changed" : e.kind === "coverage" || e.title === "Uncovered" ? "uncovered" : "";
+        return '<article class="tl-item ' + esc(e.kind || e.verdict || "") + (i === timelineCursor ? " now" : i < timelineCursor ? " past" : " ahead") + '" data-t="' + i + '" data-tkm-kind="' + esc(bucket) + '"' + (tpcCut ? ' data-tpc-cut="' + esc(tpcCut) + '"' : "") + (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") + '><i class="tl-dot"></i><div class="tl-when">t' + i + '</div><div class="k">' + esc(e.kind || e.verdict || "") + '</div><div class="t">' + esc(e.title) + '</div><div class="b">' + esc(e.body) + "</div>" + renderUncoveredDraft(e) + "</article>";
       }).join("") + "</div></div>";
     }
     function clusterFacts() {
@@ -33985,6 +34082,7 @@
       applyRegistrySnapshotGraphicPaint();
       applyTimelineKindPaint();
       bindTimelineKindChart();
+      if (typeof bindTimelineParentCutGraphic === "function") bindTimelineParentCutGraphic();
       canvas.querySelectorAll("[data-outcome-filter]").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

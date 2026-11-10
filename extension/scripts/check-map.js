@@ -1242,6 +1242,21 @@ assert(pilMap.includes("PIL1") && pilMap.includes("pil-strip") && pilMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport-impact-layer.md")), "passport-impact-layer feature map missing");
 assert(featReadme.includes("passport-impact-layer.md") && featReadme.includes("passport-impact-layer.png"), "feature README must list passport-impact-layer.md");
 
+const tpcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-parent-cut.md"), "utf8");
+assert(
+  tpcMap.includes("## Sub-features") &&
+    tpcMap.includes("## How to get to it (user POV)") &&
+    tpcMap.includes("## Driving it with the harness") &&
+    tpcMap.includes("## Gotchas"),
+  "timeline-parent-cut feature map must use the four headings"
+);
+assert(driver.includes("TPC1") && driver.includes("TPC3") && driver.includes("timeline-parent-cut.png") && driver.includes("tpc-stat"), "verify driver must prove Timeline parent-cut graphic TPC1–TPC3");
+assert(js.includes("timelineParentCutGraphicHtml") && js.includes("bindTimelineParentCutGraphic") && js.includes("applyTimelineParentCutPaint") && chrome.includes("timelineParentCutGraphicHtml"), "desk.js must own Timeline parent-cut graphic helpers");
+assert(css.includes(".tpc-strip") && css.includes(".tpc-stat") && css.includes("tpc-now") && css.includes("tpc-bar"), "main.css must theme Timeline parent-cut graphic + cut bar");
+assert(tpcMap.includes("TPC1") && tpcMap.includes("tpc-strip") && tpcMap.includes("timeline-parent-cut.png") && tpcMap.includes("peekSource"), "timeline-parent-cut feature map must name TPC / tpc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-parent-cut.md")), "timeline-parent-cut feature map missing");
+assert(featReadme.includes("timeline-parent-cut.md") && featReadme.includes("timeline-parent-cut.png"), "feature README must list timeline-parent-cut.md");
+
 
 
 
