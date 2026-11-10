@@ -2919,6 +2919,66 @@ table.audit tbody tr[data-ras-subject].ras-row-now {
   box-shadow: inset 3px 0 0 var(--vscode-focusBorder, #2f81f7);
 }
 
+/* ADE SHV — Sequence hop-variant graphic (call / return / direct) */
+.shv-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+}
+.shv-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.shv-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.shv-stat {
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+.shv-stat b { font-variant-numeric: tabular-nums; }
+.shv-stat.shv-now, .shv-seg.shv-now {
+  border-color: var(--vscode-charts-purple, #b180d7);
+  box-shadow: inset 0 0 0 1px var(--vscode-charts-purple, #b180d7);
+}
+.shv-strip.shv-focusing .shv-stat.shv-idle,
+.shv-strip.shv-focusing .shv-seg.shv-idle { opacity: 0.55; }
+.shv-bar {
+  flex: 1 1 180px;
+  display: flex;
+  height: 10px;
+  min-width: 120px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.shv-bar-empty { flex: 1; }
+.shv-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.shv-seg.shv-call { background: color-mix(in srgb, var(--vscode-textLink-foreground, #2f81f7) 55%, transparent); }
+.shv-seg.shv-return { background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 70%, transparent); }
+.shv-seg.shv-default { background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 70%, transparent); }
+.seq-page.shv-focusing #seqHops .seq-hop.shv-hit:not(.dim):not(.shk-dim):not(.smc-dim) {
+  box-shadow: inset 3px 0 0 var(--vscode-charts-purple, #b180d7);
+}
+
 /* ADE DSS — Dataflow story scrubber (past / now / ahead) */
 .dss-strip {
   display: flex;

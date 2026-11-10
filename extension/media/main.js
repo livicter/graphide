@@ -20159,6 +20159,7 @@
     let routeMixFilter = null;
     let seqHopKindFilter = null;
     let sequenceModuleCutFocus = null;
+    let sequenceHopVariantFocus = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20475,6 +20476,12 @@
         e.preventDefault();
         sequenceModuleCutFocus = null;
         applySequenceModuleCutPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && sequenceHopVariantFocus) {
+        e.preventDefault();
+        sequenceHopVariantFocus = null;
+        if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqCursor >= 0) {
@@ -29495,6 +29502,91 @@
       });
       applySequenceModuleCutPaint();
     }
+    function sequenceHopVariantOf(h) {
+      const v = String(h && h.variant || "default");
+      if (v === "call" || v === "return") return v;
+      return "default";
+    }
+    function sequenceHopVariantMetrics() {
+      const flow = typeof sequenceFlow === "function" ? sequenceFlow() : null;
+      const reading = typeof sequenceOf === "function" ? sequenceOf(flow) : { hops: [] };
+      const hops = reading && reading.hops || [];
+      const m = { call: 0, ret: 0, direct: 0, hops: hops.length };
+      for (const h of hops) {
+        const v = sequenceHopVariantOf(h);
+        if (v === "call") m.call += 1;
+        else if (v === "return") m.ret += 1;
+        else m.direct += 1;
+      }
+      return m;
+    }
+    function sequenceHopVariantGraphicHtml() {
+      const m = sequenceHopVariantMetrics();
+      if (!m.hops) return "";
+      const focusing = !!sequenceHopVariantFocus;
+      const onFor = (key) => !!(sequenceHopVariantFocus && String(sequenceHopVariantFocus) === String(key));
+      const labelOf = (key) => key === "default" ? "direct" : key;
+      const nOf = (key) => key === "call" ? m.call : key === "return" ? m.ret : m.direct;
+      const stat = (key) => {
+        const n = nOf(key);
+        return '<button type="button" class="shv-stat' + (onFor(key) ? " shv-now" : focusing ? " shv-idle" : "") + '" data-shv-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(labelOf(key) + " · " + n) + '"><b data-shv-n="' + esc(key) + '">' + n + "</b> " + esc(labelOf(key)) + "</button>";
+      };
+      const seg = (key) => {
+        const n = nOf(key);
+        if (n <= 0) return "";
+        return '<button type="button" class="shv-seg shv-' + esc(key) + (onFor(key) ? " shv-now" : focusing ? " shv-idle" : "") + '" data-shv-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(labelOf(key) + " · " + n) + '"></button>';
+      };
+      return '<div class="shv-strip' + (focusing ? " shv-focusing" : "") + '" data-shv="1" role="group" aria-label="Sequence hop-variant graphic"><span class="shv-meta">Hop variant</span><span class="shv-counts">' + stat("call") + stat("return") + stat("default") + '</span><div class="shv-bar" aria-hidden="true">' + (m.hops === 0 ? '<span class="shv-bar-empty"></span>' : seg("call") + seg("return") + seg("default")) + "</div></div>";
+    }
+    function jumpSequenceHopVariant(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sequenceHopVariantFocus && String(sequenceHopVariantFocus) === key) sequenceHopVariantFocus = null;
+      else sequenceHopVariantFocus = key;
+      applySequenceHopVariantPaint();
+    }
+    function applySequenceHopVariantPaint() {
+      if (!canvas) return;
+      const focus = sequenceHopVariantFocus ? String(sequenceHopVariantFocus) : "";
+      canvas.querySelectorAll(".shv-stat[data-shv-band], .shv-seg[data-shv-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-shv-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("shv-now", on2);
+        el2.classList.toggle("shv-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".shv-strip");
+      if (strip) strip.classList.toggle("shv-focusing", !!focus);
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("shv-focusing", !!focus);
+      const hopsEl = canvas.querySelector("#seqHops");
+      if (hopsEl) hopsEl.classList.toggle("shv-focusing", !!focus);
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        const v = sequenceHopVariantOf({ variant: el2.getAttribute("data-seq-variant") || "default" });
+        const hit = !!(focus && v === focus);
+        const dim = !!(focus && v !== focus);
+        el2.classList.toggle("shv-hit", hit);
+        el2.classList.toggle("shv-dim", dim);
+      });
+    }
+    function bindSequenceHopVariantGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".shv-stat[data-shv-band], .shv-seg[data-shv-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-shv-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceHopVariant(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceHopVariant(key);
+        };
+      });
+      applySequenceHopVariantPaint();
+    }
     function seqStoryScrubHtml(hops) {
       const n = hops && hops.length || 0;
       if (n < 1) return "";
@@ -29664,7 +29756,8 @@
       }).join("");
       const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
       const smcStrip = sequenceModuleCutGraphicHtml();
-      return '<div class="seq-page' + (sequenceModuleCutFocus ? " smc-focusing" : "") + '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + smcStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      const shvStrip = sequenceHopVariantGraphicHtml();
+      return '<div class="seq-page' + (sequenceModuleCutFocus ? " smc-focusing" : "") + (sequenceHopVariantFocus ? " shv-focusing" : "") + '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1" data-shv="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + smcStrip + shvStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -29750,6 +29843,7 @@
       applySeqStoryScrubPaint();
       syncSeqStoryScrub();
       if (typeof applySequenceModuleCutPaint === "function") applySequenceModuleCutPaint();
+      if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
@@ -29800,6 +29894,8 @@
       syncSeqStoryScrub();
       bindSequenceModuleCutGraphic();
       applySequenceModuleCutPaint();
+      bindSequenceHopVariantGraphic();
+      applySequenceHopVariantPaint();
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
     }
@@ -29811,6 +29907,8 @@
       syncSeqStoryScrub();
       bindSequenceModuleCutGraphic();
       applySequenceModuleCutPaint();
+      bindSequenceHopVariantGraphic();
+      applySequenceHopVariantPaint();
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

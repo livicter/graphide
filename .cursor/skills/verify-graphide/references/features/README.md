@@ -59,6 +59,7 @@ owns this folder.
 | [sequence-hop-kind-mix.md](sequence-hop-kind-mix.md) | Sequence hop-kind mix bars | explorer · `sequence-hop-kind-mix.png` |
 | [sequence-story-scrubber.md](sequence-story-scrubber.md) | Sequence story scrubber | explorer · `sequence-story-scrubber.png` |
 | [sequence-module-cut.md](sequence-module-cut.md) | Sequence module-cut graphic | explorer · `verification/sequence-module-cut.png` |
+| [sequence-hop-variant.md](sequence-hop-variant.md) | Sequence hop-variant graphic | explorer · `verification/sequence-hop-variant.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [map-walk-cut.md](map-walk-cut.md) | Map walk-cut graphic | explorer enter · `verification/map-walk-cut.png` |
 | [map-enter-distance-cut.md](map-enter-distance-cut.md) | Map enter distance-cut graphic | explorer enter · `verification/map-enter-distance-cut.png` |

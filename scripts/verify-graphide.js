@@ -16295,6 +16295,163 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Sequence hop-variant graphic (SHV1–SHV5) — call / return / direct mass; same Sequence desk as SMC
+    {
+      await page.waitForSelector(".shv-strip[data-shv='1']", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const beforeShvPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const shv1 = await page.evaluate(() => {
+        const strip = document.querySelector(".shv-strip[data-shv='1']");
+        const stats = [...document.querySelectorAll(".shv-stat[data-shv-band]")].map((el) => ({
+          band: el.getAttribute("data-shv-band"),
+          n: Number((el.querySelector("[data-shv-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".shv-seg[data-shv-band]")].map((el) => el.getAttribute("data-shv-band"));
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const byVar = { call: 0, return: 0, default: 0 };
+        for (const h of hops) {
+          const v = h.getAttribute("data-seq-variant") || "default";
+          if (v === "call" || v === "return") byVar[v] += 1;
+          else byVar.default += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        const srcOpen = !!(
+          document.querySelector("#sourcePane.open, .source-pane.open, [data-source-open='1']") ||
+          (document.body && document.body.classList.contains("source-open"))
+        );
+        return {
+          strip: !!strip,
+          smc: !!document.querySelector(".smc-strip[data-smc='1']"),
+          seqOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#seqCanvas"),
+          stats,
+          segs,
+          hops: hops.length,
+          byVar,
+          call: nOf("call"),
+          ret: nOf("return"),
+          direct: nOf("default"),
+          sum: nOf("call") + nOf("return") + nOf("default"),
+          srcOpen,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const shv1ok =
+        shv1.strip &&
+        shv1.smc &&
+        shv1.seqOn &&
+        shv1.canvas &&
+        shv1.hops === 9 &&
+        shv1.call === 3 &&
+        shv1.ret === 3 &&
+        shv1.direct === 3 &&
+        shv1.sum === 9 &&
+        shv1.call === shv1.byVar.call &&
+        shv1.ret === shv1.byVar.return &&
+        shv1.direct === shv1.byVar.default &&
+        shv1.segs.length === 3 &&
+        shv1.pressed === 0 &&
+        !shv1.srcOpen;
+      record(
+        "SHV1",
+        "Sequence hop-variant graphic shows 3 call / 3 return / 3 direct of 9 hops, matching data-seq-variant",
+        shv1ok,
+        JSON.stringify(shv1)
+      );
+
+      const retBtn = page.locator('.shv-stat[data-shv-band="return"]').first();
+      await retBtn.click();
+      await page.waitForTimeout(80);
+      const shv2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const hits = hops.filter((el) => el.classList.contains("shv-hit"));
+        const dims = hops.filter((el) => el.classList.contains("shv-dim"));
+        const retHits = hits.filter((el) => el.getAttribute("data-seq-variant") === "return");
+        const retPressed = document.querySelector('.shv-stat[data-shv-band="return"][aria-pressed="true"]');
+        const srcOpen = !!(
+          document.querySelector("#sourcePane.open, .source-pane.open, [data-source-open='1']") ||
+          (document.body && document.body.classList.contains("source-open"))
+        );
+        return {
+          seqOn: !!(ws && ws.classList.contains("on")),
+          hops: hops.length,
+          hits: hits.length,
+          dims: dims.length,
+          retHits: retHits.length,
+          retPressed: !!retPressed,
+          srcOpen,
+        };
+      });
+      const shv2ok =
+        shv2.seqOn &&
+        shv2.hits === 3 &&
+        shv2.retHits === 3 &&
+        shv2.dims === 6 &&
+        shv2.retPressed &&
+        !shv2.srcOpen;
+      record(
+        "SHV2",
+        "Click Return highlights the 3 return hops; Sequence stays; no source",
+        shv2ok,
+        JSON.stringify(shv2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const shv3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        const hits = document.querySelectorAll("#seqHops .seq-hop.shv-hit").length;
+        const pressed = document.querySelectorAll('.shv-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".shv-strip.shv-focusing, .seq-page.shv-focusing");
+        return {
+          seqOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+        };
+      });
+      record(
+        "SHV3",
+        "Escape clears hop-variant graphic focus; Sequence stays",
+        shv3.seqOn && shv3.hits === 0 && shv3.pressed === 0 && !shv3.focusing,
+        JSON.stringify(shv3)
+      );
+
+      await retBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "sequence-hop-variant.png");
+      const shvShot = checks.find((c) => c.id === "shot:sequence-hop-variant.png");
+      record(
+        "SHV4",
+        "verification/sequence-hop-variant.png is not a black frame",
+        !!(shvShot && shvShot.pass),
+        shvShot ? shvShot.detail : "missing"
+      );
+
+      const afterShvPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      record(
+        "SHV5",
+        "Sequence hop-variant clicks did not post peekSource / open source",
+        afterShvPosts === beforeShvPosts,
+        "posts " + beforeShvPosts + "→" + afterShvPosts
+      );
+      assertNoStampDir("SHV5b", "Sequence hop-variant graphic step did not write .graphide/stamps/");
+      record(
+        "SHV5c",
+        "Sequence hop-variant graphic left Sequence on for later Slice tests",
+        await page.evaluate(() => {
+          const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+          return !!(ws && ws.classList.contains("on"));
+        }),
+        "stay on Sequence"
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Slice hop-kind mix (SHM1–SHM3) — interactive kind/hop bars; graph-only #sliceCanvas filter
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });
