@@ -55,6 +55,8 @@ Driver assertions:
 
 
 Interactive kind-mix bars (TKM1–TKM5) live in [timeline-kind-mix.md](timeline-kind-mix.md) — `.tkm-bar` filters `.tl-item` without removing the scrubber.
+- ADE TPC (Timeline parent-cut graphic): below the TKM strip, `.tpc-strip[data-tpc="1"]` shows changed / uncovered / covered counts from the same `snapshot.coverage` arrays as the Parent cut and Uncovered rail rows (not invented), plus a stacked cut bar. Click jumps the rail to that item; Escape clears after TKM (cursor stays). Graph-only — must not open Evidence / `peekSource` / source pane, and must not add XYFlow. Screenshot `verification/timeline-parent-cut.png`. Asserts TPC1–TPC5. See [timeline-parent-cut.md](timeline-parent-cut.md).
+
 ## Gotchas
 
 - Timeline is the scar list. Architecture Delta is the derived parent vs

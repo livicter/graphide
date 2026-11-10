@@ -54,6 +54,7 @@ owns this folder.
 | [registry-audit-kind-mix.md](registry-audit-kind-mix.md) | Registry audit kind-mix bars | explorer · `registry-audit-kind-mix.png` |
 | [timeline.md](timeline.md) | Parent cut / coverage / scars | explorer · `timeline.png` |
 | [timeline-kind-mix.md](timeline-kind-mix.md) | Timeline kind-mix bars | explorer · `timeline-kind-mix.png` |
+| [timeline-parent-cut.md](timeline-parent-cut.md) | Timeline parent-cut graphic | explorer · `verification/timeline-parent-cut.png` |
 | [sequence-hop-kind-mix.md](sequence-hop-kind-mix.md) | Sequence hop-kind mix bars | explorer · `sequence-hop-kind-mix.png` |
 | [sequence-story-scrubber.md](sequence-story-scrubber.md) | Sequence story scrubber | explorer · `sequence-story-scrubber.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |

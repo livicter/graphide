@@ -2812,7 +2812,215 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE Timeline parent-cut graphic (TPC1–TPC5) — stay on Timeline; do not page.goto.
+    {
+      const beforeTpcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const tpc1 = await page.evaluate(() => {
+        const strip = document.querySelector('.tpc-strip[data-tpc="1"]');
+        const n = (key) => {
+          const el = document.querySelector('[data-tpc-n="' + key + '"]');
+          return el ? Number((el.textContent || "").trim()) : NaN;
+        };
+        const parent = [...document.querySelectorAll("#canvas .tl-item")].find((el) =>
+          /^Parent cut$/i.test(((el.querySelector(".t") || {}).textContent || "").trim())
+        );
+        const unc = [...document.querySelectorAll("#canvas .tl-item")].find((el) =>
+          /^Uncovered$/i.test(((el.querySelector(".t") || {}).textContent || "").trim())
+        );
+        const parentBody = parent ? ((parent.querySelector(".b") || {}).textContent || "").replace(/\s+/g, " ").trim() : "";
+        const uncBody = unc ? ((unc.querySelector(".b") || {}).textContent || "").replace(/\s+/g, " ").trim() : "";
+        const parentN = Number((parentBody.match(/(\d+)\s+nodes changed vs parent/i) || [])[1] || NaN);
+        const uncN = Number((uncBody.match(/(\d+)\s+changed nodes sit off/i) || [])[1] || NaN);
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          changed: n("changed"),
+          uncovered: n("uncovered"),
+          covered: n("covered"),
+          parentN,
+          uncN,
+          parentCutAttr: parent ? parent.getAttribute("data-tpc-cut") : "",
+          uncCutAttr: unc ? unc.getAttribute("data-tpc-cut") : "",
+          tkm: !!document.querySelector(".tkm-strip, .tkm-bar"),
+          scrub: !!document.getElementById("tlScrub"),
+          bar: !!document.querySelector(".tpc-bar"),
+          covSeg: !!document.querySelector(".tpc-seg.tpc-covered"),
+          uncSeg: !!document.querySelector(".tpc-seg.tpc-uncovered"),
+          emptyBar: !!document.querySelector(".tpc-bar-empty"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const sumOk =
+        Number.isFinite(tpc1.changed) &&
+        Number.isFinite(tpc1.covered) &&
+        Number.isFinite(tpc1.uncovered) &&
+        tpc1.covered + tpc1.uncovered === tpc1.changed;
+      const tpc1ok = !!(
+        tpc1 &&
+        tpc1.strip &&
+        tpc1.tkm &&
+        tpc1.scrub &&
+        tpc1.bar &&
+        tpc1.changed === tpc1.parentN &&
+        tpc1.uncovered === tpc1.uncN &&
+        tpc1.changed === 1123 &&
+        tpc1.uncovered === 1123 &&
+        tpc1.covered === 0 &&
+        sumOk &&
+        tpc1.parentCutAttr === "changed" &&
+        tpc1.uncCutAttr === "uncovered" &&
+        !tpc1.covSeg &&
+        tpc1.uncSeg &&
+        !tpc1.emptyBar &&
+        tpc1.srcHidden &&
+        tpc1.xy === 0 &&
+        tpc1.ws === "timeline"
+      );
+      record(
+        "TPC1",
+        "Timeline .tpc-strip counts match Parent cut / Uncovered rail text; covered+uncovered=changed; TKM+scrub stay; no XYFlow; no source",
+        !!tpc1ok,
+        JSON.stringify(tpc1)
+      );
 
+      const tpc2 = await page.evaluate(() => {
+        const btn = document.querySelector('.tpc-stat[data-tpc="uncovered"]');
+        if (btn) btn.click();
+        const unc = document.querySelector('.tl-item[data-tpc-cut="uncovered"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          clicked: !!btn,
+          now: !!(unc && unc.classList.contains("now")),
+          tpcNow: !!document.querySelector('.tpc-stat[data-tpc="uncovered"].tpc-now'),
+          hit: !!(unc && unc.classList.contains("tpc-hit")),
+          focusing: !!document.querySelector(".tpc-strip.tpc-focusing, .tl-page.tpc-focusing"),
+          scrub: ((document.getElementById("tlScrubMeta") || {}).textContent || "").trim(),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const tpc2ok = !!(
+        tpc2 &&
+        tpc2.clicked &&
+        tpc2.now &&
+        tpc2.tpcNow &&
+        tpc2.hit &&
+        tpc2.focusing &&
+        /Uncovered/i.test(tpc2.scrub) &&
+        tpc2.srcHidden &&
+        tpc2.xy === 0 &&
+        tpc2.ws === "timeline"
+      );
+      record(
+        "TPC2",
+        "Click Uncovered jumps the rail to that item (.now + .tpc-now); Timeline stays; no source",
+        !!tpc2ok,
+        JSON.stringify(tpc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const tpc3 = await page.evaluate(() => {
+        const unc = document.querySelector('.tl-item[data-tpc-cut="uncovered"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          focusing: !!document.querySelector(".tpc-strip.tpc-focusing, .tl-page.tpc-focusing"),
+          tpcNow: document.querySelectorAll(".tpc-stat.tpc-now, .tpc-seg.tpc-now").length,
+          hit: document.querySelectorAll(".tl-item.tpc-hit").length,
+          stillNow: !!(unc && unc.classList.contains("now")),
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        };
+      });
+      const tpc3ok = !!(
+        tpc3 &&
+        tpc3.ws === "timeline" &&
+        !tpc3.focusing &&
+        tpc3.tpcNow === 0 &&
+        tpc3.hit === 0 &&
+        tpc3.stillNow &&
+        tpc3.srcHidden &&
+        tpc3.xy === 0
+      );
+      record(
+        "TPC3",
+        "Escape clears parent-cut graphic focus; Timeline stays; scrub cursor remains",
+        !!tpc3ok,
+        JSON.stringify(tpc3)
+      );
+
+      const tpc4 = await page.evaluate(() => {
+        const tkm = !!document.querySelector(".tkm-strip, .tkm-bar");
+        const scrub = !!document.getElementById("tlScrub");
+        const btn = document.querySelector('.tpc-stat[data-tpc="changed"]');
+        if (btn) btn.click();
+        const parent = document.querySelector('.tl-item[data-tpc-cut="changed"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          tkm,
+          scrub,
+          clicked: !!btn,
+          now: !!(parent && parent.classList.contains("now")),
+          tpcNow: !!document.querySelector('.tpc-stat[data-tpc="changed"].tpc-now'),
+          hit: !!(parent && parent.classList.contains("tpc-hit")),
+          focusing: !!document.querySelector(".tpc-strip.tpc-focusing, .tl-page.tpc-focusing"),
+          scrubMeta: ((document.getElementById("tlScrubMeta") || {}).textContent || "").trim(),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const tpc4ok = !!(
+        tpc4 &&
+        tpc4.tkm &&
+        tpc4.scrub &&
+        tpc4.clicked &&
+        tpc4.now &&
+        tpc4.tpcNow &&
+        tpc4.hit &&
+        tpc4.focusing &&
+        /Parent cut/i.test(tpc4.scrubMeta) &&
+        tpc4.srcHidden &&
+        tpc4.xy === 0 &&
+        tpc4.ws === "timeline"
+      );
+      record(
+        "TPC4",
+        "Click Changed jumps to Parent cut; TKM+scrub compose; no source; no XYFlow",
+        !!tpc4ok,
+        JSON.stringify(tpc4)
+      );
+
+      await shot(page, "timeline-parent-cut.png");
+      const tpcShot = checks.find((c) => c.id === "shot:timeline-parent-cut.png");
+      const tpc5ok = !!(tpc1ok && tpc2ok && tpc3ok && tpc4ok && tpcShot && tpcShot.pass);
+      record(
+        "TPC5",
+        "screenshot timeline-parent-cut.png not black; Timeline parent-cut graphic proven",
+        !!tpc5ok,
+        JSON.stringify({
+          shot: tpcShot ? tpcShot.detail : "missing",
+          tpc1: !!tpc1ok,
+          tpc2: !!tpc2ok,
+          tpc3: !!tpc3ok,
+          tpc4: !!tpc4ok,
+        })
+      );
+      assertNoStampDir("TPC5b", "Timeline parent-cut graphic step did not write .graphide/stamps/");
+      const afterTpcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      record(
+        "TPC5c",
+        "Timeline parent-cut clicks did not post peekSource / open source",
+        afterTpcPosts === beforeTpcPosts,
+        "posts " + beforeTpcPosts + "→" + afterTpcPosts
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
 
     const beforeUnPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const uncoveredDesk = await page.evaluate(() => {

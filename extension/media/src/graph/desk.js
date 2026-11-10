@@ -209,6 +209,7 @@ let registrySnapshotFocus = null; // ADE RSG: nodes|edges|files or null
 let registryAuditSubjectFocus = null; // ADE RAS: audit subject key or null
 let fixtureLensKind = null; // ADE PFL: fixture node kind or null
 let timelineKindFilter = null; // ADE TKM: parent|coverage|stamp|skip|broken|hint
+let timelineParentCutFocus = null; // ADE TPC: changed|uncovered|covered or null
 let layoutPins = new Map();
 let zoomPopReady = false;
 let pathWalk = { i: -1, playing: false, timer: 0 };
@@ -588,6 +589,18 @@ document.addEventListener("keydown", (e) => {
     timelineKindFilter = null;
     applyTimelineKindPaint();
     syncTimelineKindBars();
+    return;
+  }
+  // ADE TPC: Escape clears Timeline parent-cut graphic focus when active (cursor stays).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "timeline" &&
+    timelineParentCutFocus
+  ) {
+    e.preventDefault();
+    timelineParentCutFocus = null;
+    if (typeof applyTimelineParentCutPaint === "function") applyTimelineParentCutPaint();
     return;
   }
   // ADE SHK: Escape clears Sequence hop-kind mix filter when active.
@@ -9891,6 +9904,152 @@ function applyTimelineKindPaint() {
   syncTimelineKindBars();
 }
 
+
+/** ADE TPC — parent-cut mass from the same coverage arrays as the first two rail items. */
+function timelineParentCutMetrics() {
+  const cov = (snapshot && snapshot.coverage) || {};
+  const changedList = (cov.changed || []).map((id) => idVal(id));
+  const uncoveredList = (cov.uncovered || []).map((id) => idVal(id));
+  const changedN = changedList.length;
+  const uncoveredN = uncoveredList.length;
+  const uncSet = new Set(uncoveredList);
+  let coveredN = 0;
+  for (const id of changedList) {
+    if (!uncSet.has(id)) coveredN += 1;
+  }
+  return { changed: changedN, uncovered: uncoveredN, covered: coveredN };
+}
+
+function timelineParentCutGraphicHtml() {
+  const m = timelineParentCutMetrics();
+  const total = Math.max(m.changed, m.uncovered, 0);
+  const covW = total > 0 ? Math.round((m.covered / total) * 100) : 0;
+  const uncW = total > 0 ? Math.max(0, 100 - covW) : 0;
+  const focusing = !!timelineParentCutFocus;
+  const onFor = (key) =>
+    !!(timelineParentCutFocus && String(timelineParentCutFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="tpc-stat' +
+    (onFor(key) ? " tpc-now" : focusing ? " tpc-idle" : "") +
+    '" data-tpc="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-tpc-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, width, n) => {
+    if (width <= 0 && n <= 0) return "";
+    return (
+      '<button type="button" class="tpc-seg tpc-' +
+      esc(key) +
+      (onFor(key) || (key === "covered" && onFor("changed")) ? " tpc-now" : focusing ? " tpc-idle" : "") +
+      '" data-tpc="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      Math.max(width, n > 0 ? 1 : 0) +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="tpc-strip' +
+    (focusing ? " tpc-focusing" : "") +
+    '" data-tpc="1" role="group" aria-label="Timeline parent-cut graphic">' +
+    '<span class="tpc-meta">Parent cut</span>' +
+    '<span class="tpc-counts">' +
+    stat("changed", "changed", m.changed) +
+    stat("uncovered", "uncovered", m.uncovered) +
+    stat("covered", "covered", m.covered) +
+    "</span>" +
+    '<div class="tpc-bar" aria-hidden="true">' +
+    (total === 0
+      ? '<span class="tpc-bar-empty"></span>'
+      : seg("covered", covW, m.covered) + seg("uncovered", uncW, m.uncovered)) +
+    "</div></div>"
+  );
+}
+
+function jumpTimelineParentCut(which) {
+  if (!which) return;
+  const key = String(which);
+  const title = key === "uncovered" ? "Uncovered" : "Parent cut";
+  const item =
+    (canvas &&
+      [...canvas.querySelectorAll(".tl-item")].find((el) => {
+        const t = ((el.querySelector(".t") || {}).textContent || "").trim();
+        return t === title;
+      })) ||
+    (canvas && canvas.querySelector('.tl-item[data-tpc-cut="' + (key === "uncovered" ? "uncovered" : "changed") + '"]'));
+  if (item) {
+    const t = parseInt(item.getAttribute("data-t"), 10);
+    if (Number.isFinite(t)) timelineCursor = t;
+    if (typeof applyTimelineScrub === "function") applyTimelineScrub();
+  }
+  if (timelineParentCutFocus && String(timelineParentCutFocus) === key) {
+    timelineParentCutFocus = null;
+  } else {
+    timelineParentCutFocus = key;
+  }
+  applyTimelineParentCutPaint();
+}
+
+function syncTimelineParentCutChrome() {
+  if (!canvas) return;
+  const focus = timelineParentCutFocus ? String(timelineParentCutFocus) : "";
+  canvas.querySelectorAll("[data-tpc]").forEach((el) => {
+    if (!el.classList.contains("tpc-stat") && !el.classList.contains("tpc-seg")) return;
+    const key = el.getAttribute("data-tpc") || "";
+    const on =
+      !!(focus && (key === focus || (key === "covered" && focus === "changed") || (key === "changed" && focus === "covered")));
+    el.classList.toggle("tpc-now", on);
+    el.classList.toggle("tpc-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".tpc-strip");
+  if (strip) strip.classList.toggle("tpc-focusing", !!focus);
+  const page = canvas.querySelector(".tl-page");
+  if (page) page.classList.toggle("tpc-focusing", !!focus);
+  canvas.querySelectorAll(".tl-item[data-tpc-cut]").forEach((el) => {
+    const cut = el.getAttribute("data-tpc-cut") || "";
+    const hit = !!(
+      focus &&
+      ((focus === "uncovered" && cut === "uncovered") ||
+        ((focus === "changed" || focus === "covered") && cut === "changed"))
+    );
+    el.classList.toggle("tpc-hit", hit);
+  });
+}
+
+function applyTimelineParentCutPaint() {
+  syncTimelineParentCutChrome();
+}
+
+function bindTimelineParentCutGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".tpc-stat[data-tpc], .tpc-seg[data-tpc]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpTimelineParentCut(el.getAttribute("data-tpc"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpTimelineParentCut(el.getAttribute("data-tpc"));
+    };
+  });
+  applyTimelineParentCutPaint();
+}
+
 function renderTimelineBody() {
   const ev = timelineEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -9909,9 +10068,13 @@ function renderTimelineBody() {
   if (timelineCursor < 0) timelineCursor = 0;
   const cur = ev[timelineCursor];
   const tkmStrip = timelineKindStripHtml(ev);
+  const tpcStrip = timelineParentCutGraphicHtml();
   return (
-    '<div class="tl-page">' +
+    '<div class="tl-page' +
+    (timelineParentCutFocus ? " tpc-focusing" : "") +
+    '">' +
     tkmStrip +
+    tpcStrip +
     '<div class="tl-scrub">' +
     '<label>Watch this review <input id="tlScrub" type="range" min="0" max="' +
     (ev.length - 1) +
@@ -9927,6 +10090,12 @@ function renderTimelineBody() {
     ev
       .map((e, i) => {
         const bucket = timelineKindBucket(e);
+        const tpcCut =
+          e.kind === "parent" || e.title === "Parent cut"
+            ? "changed"
+            : e.kind === "coverage" || e.title === "Uncovered"
+              ? "uncovered"
+              : "";
         return (
           '<article class="tl-item ' +
           esc(e.kind || e.verdict || "") +
@@ -9936,6 +10105,7 @@ function renderTimelineBody() {
           '" data-tkm-kind="' +
           esc(bucket) +
           '"' +
+          (tpcCut ? ' data-tpc-cut="' + esc(tpcCut) + '"' : "") +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
           '><i class="tl-dot"></i><div class="tl-when">t' +
           i +
@@ -19214,6 +19384,7 @@ function bindWorkbenchPages() {
   applyRegistrySnapshotGraphicPaint();
   applyTimelineKindPaint();
   bindTimelineKindChart();
+  if (typeof bindTimelineParentCutGraphic === "function") bindTimelineParentCutGraphic();
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
