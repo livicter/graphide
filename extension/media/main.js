@@ -24412,6 +24412,7 @@
     }
     function showTip(text, ev) {
       if (!tip || !text) return;
+      if (typeof hideSliceHopTip === "function") hideSliceHopTip();
       tip.textContent = text;
       tip.hidden = false;
       const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - tip.offsetWidth);
@@ -24535,6 +24536,7 @@
           g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
           g.addEventListener("pointerleave", hideTip);
         });
+        if (typeof scheduleSliceHopTipBind === "function") scheduleSliceHopTipBind();
         if (!xyHost.dataset.fxBound) {
           xyHost.dataset.fxBound = "1";
           xyHost.addEventListener("click", (e) => {
@@ -37409,6 +37411,154 @@
       if (!placeSliceTitleCut(cluster, ".sfd-strip[data-sfd='1']", html)) return;
       bindSliceFanDegreeGraphic();
     }
+    function sliceHopTipEl() {
+      let el2 = document.getElementById("sliceHopTip");
+      if (!el2) {
+        el2 = document.createElement("div");
+        el2.id = "sliceHopTip";
+        el2.hidden = true;
+        el2.setAttribute("data-sht", "1");
+        el2.setAttribute("role", "tooltip");
+        el2.setAttribute("aria-hidden", "true");
+        document.body.appendChild(el2);
+      }
+      return el2;
+    }
+    function sliceHopTipName(id2) {
+      const sid = String(id2 || "");
+      if (!sid) return "";
+      const host = document.getElementById("sliceCanvas");
+      const node = host && host.querySelector('.vnode[data-id="' + sid + '"]');
+      const fqn = node && (node.getAttribute("data-fqn") || "") || "";
+      if (fqn) return shortOf(fqn) || sid;
+      let n = null;
+      if (typeof nodeById !== "undefined" && nodeById && typeof nodeById.get === "function") {
+        n = nodeById.get(sid) || nodeById.get(idVal(sid));
+      }
+      if (!n && snapshot && snapshot.graph && snapshot.graph.nodes) {
+        n = snapshot.graph.nodes.find((x) => sameId(x.id, sid) || String(idVal(x.id)) === sid);
+      }
+      const label = n && (n.fqn || n.label) || "";
+      return label && shortOf(label) || sid;
+    }
+    function sliceHopTipCuts(edge) {
+      if (!edge) return { swh: "", ste: "", shc: "" };
+      const hop = {
+        from: edge.getAttribute("data-from") || "",
+        to: edge.getAttribute("data-to") || "",
+        kind: edge.getAttribute("data-kind") || "Calls"
+      };
+      let swh = edge.getAttribute("data-swh-cut") || "";
+      let ste = edge.getAttribute("data-ste-cut") || "";
+      let shc = edge.getAttribute("data-shc-cut") || "";
+      if (!swh && typeof sliceWalkHopOf === "function") swh = sliceWalkHopOf(hop) || "";
+      if (!ste && typeof sliceTreeEdgeOf === "function") ste = sliceTreeEdgeOf(hop) || "";
+      if (!shc && typeof sliceHopCommunityOf === "function") shc = sliceHopCommunityOf(hop) || "";
+      return { swh, ste, shc };
+    }
+    function hideSliceHopTip() {
+      const el2 = document.getElementById("sliceHopTip");
+      if (!el2) return;
+      el2.hidden = true;
+      el2.setAttribute("aria-hidden", "true");
+      el2.removeAttribute("data-from");
+      el2.removeAttribute("data-to");
+      el2.removeAttribute("data-kind");
+      el2.removeAttribute("data-swh-cut");
+      el2.removeAttribute("data-ste-cut");
+      el2.removeAttribute("data-shc-cut");
+      el2.removeAttribute("data-tip-place");
+      el2.innerHTML = "";
+    }
+    function positionSliceHopTip(el2, ev) {
+      if (!el2) return;
+      const margin = 10;
+      const tipW = el2.offsetWidth || 160;
+      const tipH = el2.offsetHeight || 48;
+      let x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+      let y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+      x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+      y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+      el2.style.left = x + "px";
+      el2.style.top = y + "px";
+      el2.setAttribute("data-tip-place", "cursor");
+    }
+    function showSliceHopTip(edge, ev) {
+      if (!edge || !ev) return;
+      if (typeof hideTip === "function") hideTip();
+      const el2 = sliceHopTipEl();
+      const from = edge.getAttribute("data-from") || "";
+      const to = edge.getAttribute("data-to") || "";
+      const kind = edge.getAttribute("data-kind") || "";
+      const cuts = sliceHopTipCuts(edge);
+      const fromName = sliceHopTipName(from);
+      const toName = sliceHopTipName(to);
+      el2.setAttribute("data-from", from);
+      el2.setAttribute("data-to", to);
+      el2.setAttribute("data-kind", kind);
+      if (cuts.swh) el2.setAttribute("data-swh-cut", cuts.swh);
+      else el2.removeAttribute("data-swh-cut");
+      if (cuts.ste) el2.setAttribute("data-ste-cut", cuts.ste);
+      else el2.removeAttribute("data-ste-cut");
+      if (cuts.shc) el2.setAttribute("data-shc-cut", cuts.shc);
+      else el2.removeAttribute("data-shc-cut");
+      let html = '<div class="sht-head"><span class="sht-kind" data-sht-kind="1">' + esc(kind || "hop") + "</span></div>";
+      html += '<div class="sht-hop" data-sht-hop="1"><code data-sht-from="1">' + esc(fromName) + '</code><span class="sht-arrow" aria-hidden="true">→</span><code data-sht-to="1">' + esc(toName) + "</code></div>";
+      const chips = [
+        ["swh", cuts.swh],
+        ["ste", cuts.ste],
+        ["shc", cuts.shc]
+      ].filter((x) => x[1]);
+      if (chips.length) {
+        html += '<div class="sht-meta" data-sht-meta="1">';
+        for (const [key, val] of chips) {
+          html += '<span class="sht-chip sht-chip--' + esc(key) + " sht-chip--" + esc(val) + '" data-sht-chip="' + esc(key) + '" data-sht-cut="' + esc(val) + '">' + esc(val) + "</span>";
+        }
+        html += "</div>";
+      }
+      el2.innerHTML = html;
+      el2.hidden = false;
+      el2.setAttribute("aria-hidden", "false");
+      positionSliceHopTip(el2, ev);
+    }
+    function bindSliceHopTip() {
+      const host = document.getElementById("sliceCanvas");
+      if (!host) return;
+      if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+      host.querySelectorAll(".react-flow__edge[data-from][data-to][data-kind]").forEach((edge) => {
+        if (edge.dataset.shtBound) return;
+        edge.dataset.shtBound = "1";
+        edge.addEventListener("pointerenter", (ev) => {
+          showSliceHopTip(edge, ev);
+        });
+        edge.addEventListener("pointermove", (ev) => {
+          const tipEl = document.getElementById("sliceHopTip");
+          if (tipEl && !tipEl.hidden) positionSliceHopTip(tipEl, ev);
+        });
+        edge.addEventListener("pointerleave", () => hideSliceHopTip());
+      });
+      host.querySelectorAll(".vnode").forEach((g) => {
+        if (g.dataset.shtNodeBound) return;
+        g.dataset.shtNodeBound = "1";
+        g.addEventListener("pointerenter", () => hideSliceHopTip());
+      });
+    }
+    function scheduleSliceHopTipBind() {
+      if (typeof hideSliceHopTip === "function" && !document.getElementById("sliceCanvas")) {
+        hideSliceHopTip();
+        return;
+      }
+      const run = () => {
+        if (typeof bindSliceHopTip === "function") bindSliceHopTip();
+      };
+      run();
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => {
+          run();
+          requestAnimationFrame(run);
+        });
+      }
+    }
     function sliceCanvasProps(flow, graph, scars) {
       const treeNodes = flow && flow.tree && flow.tree.nodes || [];
       const treeEdges = flow && flow.tree && flow.tree.edges || [];
@@ -37524,6 +37674,7 @@
     function mountSliceCanvas(flow, graph, scars) {
       const host = document.getElementById("sliceCanvas");
       if (!host || !flow) {
+        if (typeof hideSliceHopTip === "function") hideSliceHopTip();
         if (!host) unmountReviewCanvas();
         return;
       }
@@ -37537,6 +37688,7 @@
       if (typeof scheduleSliceHopCommunityPaint === "function") scheduleSliceHopCommunityPaint();
       if (typeof scheduleSliceHaloHomePaint === "function") scheduleSliceHaloHomePaint();
       if (typeof scheduleSliceFanDegreePaint === "function") scheduleSliceFanDegreePaint();
+      if (typeof scheduleSliceHopTipBind === "function") scheduleSliceHopTipBind();
     }
     function renderSteiner(flow, graph, animate, scars) {
       const nodes = flow.tree?.nodes || [];

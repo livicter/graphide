@@ -1557,6 +1557,21 @@ assert(ehdMap.includes("EHD1") && ehdMap.includes("ehd-strip") && ehdMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-hop-distance.md")), "map-enter-hop-distance feature map missing");
 assert(featReadme.includes("map-enter-hop-distance.md") && featReadme.includes("map-enter-hop-distance.png"), "feature README must list map-enter-hop-distance.md");
 
+const shtMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-tip.md"), "utf8");
+assert(
+  shtMap.includes("## Sub-features") &&
+    shtMap.includes("## How to get to it (user POV)") &&
+    shtMap.includes("## Driving it with the harness") &&
+    shtMap.includes("## Gotchas"),
+  "slice-hop-tip feature map must use the four headings"
+);
+assert(driver.includes("SHT1") && driver.includes("SHT3") && driver.includes("slice-hop-tip.png") && driver.includes("sliceHopTip"), "verify driver must prove Slice hop tip SHT1–SHT3");
+assert(css.includes("#sliceHopTip") && css.includes("cursor: help") && /#sliceCanvas \.react-flow__edge/.test(css), "main.css must style #sliceHopTip and Slice edge cursor:help");
+assert(js.includes("showSliceHopTip") && js.includes("hideSliceHopTip") && js.includes("sliceHopTipEl") && js.includes('data-sht'), "desk.js Slice hop tip helpers missing");
+assert(shtMap.includes("SHT1") && shtMap.includes("sliceHopTip") && shtMap.includes("slice-hop-tip.png") && shtMap.includes("peekSource"), "slice-hop-tip feature map must name SHT / sliceHopTip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-tip.md")), "slice-hop-tip feature map missing");
+assert(featReadme.includes("slice-hop-tip.md") && featReadme.includes("slice-hop-tip.png"), "feature README must list slice-hop-tip.md");
+
 
 
 

@@ -5539,6 +5539,7 @@ function hideTip() {
 
 function showTip(text, ev) {
   if (!tip || !text) return;
+  if (typeof hideSliceHopTip === "function") hideSliceHopTip();
   tip.textContent = text;
   tip.hidden = false;
   const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - tip.offsetWidth);
@@ -5664,6 +5665,7 @@ function bindGraphFx() {
       g.addEventListener("pointermove", (ev) => showTip(fqn, ev));
       g.addEventListener("pointerleave", hideTip);
     });
+    if (typeof scheduleSliceHopTipBind === "function") scheduleSliceHopTipBind();
     // Desk camera used to steal pointerdown (vanilla bindDraggable stopped it).
     // Host click keeps Evidence / select on Slice Steiner after the XYFlow port.
     if (!xyHost.dataset.fxBound) {
@@ -24139,6 +24141,183 @@ function syncSliceFanDegreeGraphic(flow, graph, scars) {
 }
 
 
+
+/** SHT: floating Slice hop hover tip (kind · from→to · walk/tree/community); TEH pattern, no SVG <title>. */
+function sliceHopTipEl() {
+  let el = document.getElementById("sliceHopTip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "sliceHopTip";
+    el.hidden = true;
+    el.setAttribute("data-sht", "1");
+    el.setAttribute("role", "tooltip");
+    el.setAttribute("aria-hidden", "true");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function sliceHopTipName(id) {
+  const sid = String(id || "");
+  if (!sid) return "";
+  const host = document.getElementById("sliceCanvas");
+  const node = host && host.querySelector('.vnode[data-id="' + sid + '"]');
+  const fqn = (node && (node.getAttribute("data-fqn") || "")) || "";
+  if (fqn) return shortOf(fqn) || sid;
+  let n = null;
+  if (typeof nodeById !== "undefined" && nodeById && typeof nodeById.get === "function") {
+    n = nodeById.get(sid) || nodeById.get(idVal(sid));
+  }
+  if (!n && snapshot && snapshot.graph && snapshot.graph.nodes) {
+    n = snapshot.graph.nodes.find((x) => sameId(x.id, sid) || String(idVal(x.id)) === sid);
+  }
+  const label = (n && (n.fqn || n.label)) || "";
+  return (label && shortOf(label)) || sid;
+}
+
+function sliceHopTipCuts(edge) {
+  if (!edge) return { swh: "", ste: "", shc: "" };
+  const hop = {
+    from: edge.getAttribute("data-from") || "",
+    to: edge.getAttribute("data-to") || "",
+    kind: edge.getAttribute("data-kind") || "Calls",
+  };
+  let swh = edge.getAttribute("data-swh-cut") || "";
+  let ste = edge.getAttribute("data-ste-cut") || "";
+  let shc = edge.getAttribute("data-shc-cut") || "";
+  if (!swh && typeof sliceWalkHopOf === "function") swh = sliceWalkHopOf(hop) || "";
+  if (!ste && typeof sliceTreeEdgeOf === "function") ste = sliceTreeEdgeOf(hop) || "";
+  if (!shc && typeof sliceHopCommunityOf === "function") shc = sliceHopCommunityOf(hop) || "";
+  return { swh, ste, shc };
+}
+
+function hideSliceHopTip() {
+  const el = document.getElementById("sliceHopTip");
+  if (!el) return;
+  el.hidden = true;
+  el.setAttribute("aria-hidden", "true");
+  el.removeAttribute("data-from");
+  el.removeAttribute("data-to");
+  el.removeAttribute("data-kind");
+  el.removeAttribute("data-swh-cut");
+  el.removeAttribute("data-ste-cut");
+  el.removeAttribute("data-shc-cut");
+  el.removeAttribute("data-tip-place");
+  el.innerHTML = "";
+}
+
+function positionSliceHopTip(el, ev) {
+  if (!el) return;
+  const margin = 10;
+  const tipW = el.offsetWidth || 160;
+  const tipH = el.offsetHeight || 48;
+  let x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+  let y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+  x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+  y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  el.setAttribute("data-tip-place", "cursor");
+}
+
+function showSliceHopTip(edge, ev) {
+  if (!edge || !ev) return;
+  if (typeof hideTip === "function") hideTip();
+  const el = sliceHopTipEl();
+  const from = edge.getAttribute("data-from") || "";
+  const to = edge.getAttribute("data-to") || "";
+  const kind = edge.getAttribute("data-kind") || "";
+  const cuts = sliceHopTipCuts(edge);
+  const fromName = sliceHopTipName(from);
+  const toName = sliceHopTipName(to);
+  el.setAttribute("data-from", from);
+  el.setAttribute("data-to", to);
+  el.setAttribute("data-kind", kind);
+  if (cuts.swh) el.setAttribute("data-swh-cut", cuts.swh);
+  else el.removeAttribute("data-swh-cut");
+  if (cuts.ste) el.setAttribute("data-ste-cut", cuts.ste);
+  else el.removeAttribute("data-ste-cut");
+  if (cuts.shc) el.setAttribute("data-shc-cut", cuts.shc);
+  else el.removeAttribute("data-shc-cut");
+  let html =
+    '<div class="sht-head"><span class="sht-kind" data-sht-kind="1">' +
+    esc(kind || "hop") +
+    "</span></div>";
+  html +=
+    '<div class="sht-hop" data-sht-hop="1"><code data-sht-from="1">' +
+    esc(fromName) +
+    '</code><span class="sht-arrow" aria-hidden="true">→</span><code data-sht-to="1">' +
+    esc(toName) +
+    "</code></div>";
+  const chips = [
+    ["swh", cuts.swh],
+    ["ste", cuts.ste],
+    ["shc", cuts.shc],
+  ].filter((x) => x[1]);
+  if (chips.length) {
+    html += '<div class="sht-meta" data-sht-meta="1">';
+    for (const [key, val] of chips) {
+      html +=
+        '<span class="sht-chip sht-chip--' +
+        esc(key) +
+        " sht-chip--" +
+        esc(val) +
+        '" data-sht-chip="' +
+        esc(key) +
+        '" data-sht-cut="' +
+        esc(val) +
+        '">' +
+        esc(val) +
+        "</span>";
+    }
+    html += "</div>";
+  }
+  el.innerHTML = html;
+  el.hidden = false;
+  el.setAttribute("aria-hidden", "false");
+  positionSliceHopTip(el, ev);
+}
+
+function bindSliceHopTip() {
+  const host = document.getElementById("sliceCanvas");
+  if (!host) return;
+  if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+  host.querySelectorAll(".react-flow__edge[data-from][data-to][data-kind]").forEach((edge) => {
+    if (edge.dataset.shtBound) return;
+    edge.dataset.shtBound = "1";
+    edge.addEventListener("pointerenter", (ev) => {
+      showSliceHopTip(edge, ev);
+    });
+    edge.addEventListener("pointermove", (ev) => {
+      const tipEl = document.getElementById("sliceHopTip");
+      if (tipEl && !tipEl.hidden) positionSliceHopTip(tipEl, ev);
+    });
+    edge.addEventListener("pointerleave", () => hideSliceHopTip());
+  });
+  host.querySelectorAll(".vnode").forEach((g) => {
+    if (g.dataset.shtNodeBound) return;
+    g.dataset.shtNodeBound = "1";
+    g.addEventListener("pointerenter", () => hideSliceHopTip());
+  });
+}
+
+function scheduleSliceHopTipBind() {
+  if (typeof hideSliceHopTip === "function" && !document.getElementById("sliceCanvas")) {
+    hideSliceHopTip();
+    return;
+  }
+  const run = () => {
+    if (typeof bindSliceHopTip === "function") bindSliceHopTip();
+  };
+  run();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      run();
+      requestAnimationFrame(run);
+    });
+  }
+}
+
 function sliceCanvasProps(flow, graph, scars) {
   const treeNodes = (flow && flow.tree && flow.tree.nodes) || [];
   const treeEdges = (flow && flow.tree && flow.tree.edges) || [];
@@ -24260,6 +24439,7 @@ function sliceCanvasProps(flow, graph, scars) {
 function mountSliceCanvas(flow, graph, scars) {
   const host = document.getElementById("sliceCanvas");
   if (!host || !flow) {
+    if (typeof hideSliceHopTip === "function") hideSliceHopTip();
     if (!host) unmountReviewCanvas();
     return;
   }
@@ -24273,6 +24453,7 @@ function mountSliceCanvas(flow, graph, scars) {
   if (typeof scheduleSliceHopCommunityPaint === "function") scheduleSliceHopCommunityPaint();
   if (typeof scheduleSliceHaloHomePaint === "function") scheduleSliceHaloHomePaint();
   if (typeof scheduleSliceFanDegreePaint === "function") scheduleSliceFanDegreePaint();
+  if (typeof scheduleSliceHopTipBind === "function") scheduleSliceHopTipBind();
 }
 
 function renderSteiner(flow, graph, animate, scars) {
