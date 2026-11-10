@@ -20131,6 +20131,7 @@
     let lifecycleTransitionFilter = null;
     let registryAuditFilter = null;
     let registrySnapshotFocus = null;
+    let fixtureLensKind = null;
     let timelineKindFilter = null;
     let layoutPins = /* @__PURE__ */ new Map();
     let zoomPopReady = false;
@@ -20374,6 +20375,13 @@
       if (e.key === "Escape" && lensOpen) {
         e.preventDefault();
         setLensOpen(false);
+        return;
+      }
+      if (e.key === "Escape" && fixtureLensKind) {
+        e.preventDefault();
+        fixtureLensKind = null;
+        if (typeof applyFixtureLensPaint === "function") applyFixtureLensPaint();
+        if (typeof syncFixtureLensChips === "function") syncFixtureLensChips();
         return;
       }
       if (e.key === "Escape" && isPresenting()) {
@@ -30950,10 +30958,94 @@
       const vmax = Math.round(TRAJ_SCALE_MAX * 100);
       return '<span id="trajZoomBar" class="traj-zoom-bar" data-traj-zoom-chrome="1" role="group" aria-label="Trajectory zoom"><button type="button" id="trajZoomOut" class="traj-zoom-btn" title="Zoom out (−)" aria-label="Zoom out">−</button><span id="trajZoomPct" class="traj-zoom-pct" data-traj-zoom-pct="1" tabindex="0" role="slider" aria-label="Trajectory zoom percentage" aria-valuemin="' + esc(String(vmin)) + '" aria-valuemax="' + esc(String(vmax)) + '" aria-valuenow="' + esc(String(now2)) + '" aria-valuetext="' + esc(pct) + '" aria-keyshortcuts="ArrowUp ArrowDown Home" title="Arrow keys zoom · Home fits">' + pct + '</span><button type="button" id="trajZoomIn" class="traj-zoom-btn" title="Zoom in (+)" aria-label="Zoom in">+</button><button type="button" id="trajZoomFit" class="traj-zoom-btn traj-zoom-fit" title="Fit (0)" aria-label="Fit">Fit</button></span>';
     }
+    const FIXTURE_LENS_ORDER = ["plan", "edit", "fixture", "diff", "verify", "harness", "gate", "ship"];
+    function fixtureLensCounts(fix) {
+      const map = /* @__PURE__ */ new Map();
+      for (const n of fix && fix.nodes || []) {
+        const k = String(n && n.kind ? n.kind : "").trim();
+        if (!k) continue;
+        map.set(k, (map.get(k) || 0) + 1);
+      }
+      return map;
+    }
+    function fixtureLensEntries(fix) {
+      const map = fixtureLensCounts(fix);
+      const keys = [];
+      for (const k of FIXTURE_LENS_ORDER) {
+        if (map.has(k)) keys.push(k);
+      }
+      for (const k of map.keys()) {
+        if (keys.indexOf(k) < 0) keys.push(k);
+      }
+      return keys.map((k) => [k, map.get(k)]);
+    }
+    function fixtureLensStripHtml(fix) {
+      const entries = fixtureLensEntries(fix);
+      if (!entries.length) return "";
+      const fid = fix && (fix.id || fix.title) || "";
+      const chips = entries.map((e) => {
+        const on2 = !!(fixtureLensKind && String(fixtureLensKind) === String(e[0]));
+        return '<button type="button" class="pfl-chip' + (on2 ? " pfl-now" : fixtureLensKind ? " pfl-idle" : "") + '" data-pfl-kind="' + esc(e[0]) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(e[0]) + " · " + e[1] + '"><span class="pfl-k">' + esc(e[0]) + '</span><span class="pfl-n" data-pfl-n="' + esc(e[0]) + '">' + e[1] + "</span></button>";
+      }).join("");
+      return '<div class="pfl-strip' + (fixtureLensKind ? " pfl-lensing" : "") + '" data-pfl="1" role="group" aria-label="Present fixture lens"><span class="pfl-meta" data-pfl-fixture="1">fixture ' + esc(fid) + '</span><span class="pfl-chips">' + chips + "</span></div>";
+    }
+    function toggleFixtureLens(kind) {
+      if (!kind) return;
+      if (fixtureLensKind && String(fixtureLensKind) === String(kind)) fixtureLensKind = null;
+      else fixtureLensKind = String(kind);
+      applyFixtureLensPaint();
+      syncFixtureLensChips();
+    }
+    function syncFixtureLensChips() {
+      if (!canvas) return;
+      const focusing = !!fixtureLensKind;
+      canvas.querySelectorAll(".pfl-chip[data-pfl-kind]").forEach((el2) => {
+        const k = el2.getAttribute("data-pfl-kind") || "";
+        const on2 = !!(fixtureLensKind && String(fixtureLensKind) === k);
+        el2.classList.toggle("pfl-now", on2);
+        el2.classList.toggle("pfl-idle", !!(focusing && !on2));
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".pfl-strip");
+      if (strip) strip.classList.toggle("pfl-lensing", focusing);
+      const page = canvas.querySelector(".traj-page");
+      if (page) page.classList.toggle("pfl-lensing", focusing);
+      const host = document.getElementById("trajCanvas");
+      if (host) host.classList.toggle("pfl-lensing", focusing);
+    }
+    function applyFixtureLensPaint() {
+      if (!canvas) return;
+      const filter2 = fixtureLensKind ? String(fixtureLensKind) : "";
+      canvas.querySelectorAll(".traj-node").forEach((el2) => {
+        const kind = el2.getAttribute("data-kind") || "";
+        const hit = !!(filter2 && kind === filter2);
+        const dim = !!(filter2 && kind !== filter2);
+        el2.classList.toggle("pfl-on", hit);
+        el2.classList.toggle("pfl-dim", dim);
+      });
+      syncFixtureLensChips();
+    }
+    function bindFixtureLens() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".pfl-chip[data-pfl-kind]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleFixtureLens(el2.getAttribute("data-pfl-kind"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleFixtureLens(el2.getAttribute("data-pfl-kind"));
+        };
+      });
+      applyFixtureLensPaint();
+    }
     function renderTrajectoryEmptyBody(fix) {
       const title = fix.title || "Execution trajectory";
       const sub = fix.subtitle || "No subtasks yet";
-      return '<div class="traj-page traj-page--empty" data-traj-empty="1"><div class="traj-strip"><span class="traj-strip-title">' + esc(title) + '</span><span class="traj-strip-sub">' + esc(sub) + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>0</b> done</span><span class="traj-stat" data-stat="running"><b>0</b> running</span><span class="traj-stat" data-stat="pending"><b>0</b> pending</span><span class="traj-stat" data-stat="deps"><b>0</b> deps</span></span>' + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' + esc(fix.id || "ade-empty-fixture") + '" data-empty="1" tabindex="0"><div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status"><b class="traj-empty-title">No trajectory nodes</b><div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div><div class="traj-empty-action">' + renderAdeHop("passport", "Open Passport →") + "</div></div></div>" + renderTrajectoryDetail(fix, "") + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '" data-empty="1">0 subtasks · 0 deps · empty fixture ' + esc(fix.id || "ade-empty-fixture") + (fix.version ? " v" + esc(String(fix.version)) : "") + " · Open Passport to continue</div></div>";
+      return '<div class="traj-page traj-page--empty" data-traj-empty="1"><div class="traj-strip"><span class="traj-strip-title">' + esc(title) + '</span><span class="traj-strip-sub">' + esc(sub) + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>0</b> done</span><span class="traj-stat" data-stat="running"><b>0</b> running</span><span class="traj-stat" data-stat="pending"><b>0</b> pending</span><span class="traj-stat" data-stat="deps"><b>0</b> deps</span></span>' + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + "</div>" + fixtureLensStripHtml(fix) + '<div class="traj-layout"><div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' + esc(fix.id || "ade-empty-fixture") + '" data-empty="1" tabindex="0"><div class="traj-empty desk-empty" data-traj-empty-chrome="1" role="status"><b class="traj-empty-title">No trajectory nodes</b><div class="traj-empty-copy">This trace has no DAG subtasks yet. Open Passport to inspect the gate, or load a trajectory fixture.</div><div class="traj-empty-action">' + renderAdeHop("passport", "Open Passport →") + "</div></div></div>" + renderTrajectoryDetail(fix, "") + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '" data-empty="1">0 subtasks · 0 deps · empty fixture ' + esc(fix.id || "ade-empty-fixture") + (fix.version ? " v" + esc(String(fix.version)) : "") + " · Open Passport to continue</div></div>";
     }
     function renderTrajectoryBody() {
       seedTrajectoryFocus();
@@ -30996,6 +31088,9 @@
         const dim = focusOn && !near.has(n.id) ? " dim" : "";
         const storyIdx = trajStoryIndexOf(nodes, n.id);
         const storyCls = trajStoryClassForIndex(storyIdx);
+        const pflHit = !!(fixtureLensKind && String(n.kind || "") === String(fixtureLensKind));
+        const pflDimN = !!(fixtureLensKind && String(n.kind || "") !== String(fixtureLensKind));
+        const pflClass = (pflHit ? " pfl-on" : "") + (pflDimN ? " pfl-dim" : "");
         const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
         const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
         const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
@@ -31004,7 +31099,7 @@
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
         const nodeInfo = trajNodeInfoLabel(n, fix);
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + ptdClass + dim + storyCls + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ptdKindAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + ptdClass + dim + storyCls + pflClass + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ptdKindAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
@@ -31071,7 +31166,7 @@
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + residualFilterCountChip + legendClearFilterCue + "</div>";
       const tssActive = trajStoryCursor >= 0;
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + (tssActive ? " tss-scrubbing" : "") + '" data-tss="1">' + trajStoryScrubHtml(nodes) + '<div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + passportDeltaStripHtml() + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + (tssActive ? " tss-scrubbing" : "") + (fixtureLensKind ? " pfl-lensing" : "") + '" data-tss="1">' + trajStoryScrubHtml(nodes) + '<div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + passportDeltaStripHtml() + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + "</div>" + fixtureLensStripHtml(fix) + '<div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -31083,6 +31178,7 @@
       bindTrajStoryScrub();
       applyTrajStoryScrubPaint();
       syncTrajStoryScrub();
+      if (typeof bindFixtureLens === "function") bindFixtureLens();
     }
     function stepTrajectory(dir) {
       const nodes = trajectoryFixture().nodes || [];
@@ -31351,6 +31447,7 @@
       bindTrajStoryScrub();
       applyTrajStoryScrubPaint();
       syncTrajStoryScrub();
+      if (typeof bindFixtureLens === "function") bindFixtureLens();
       hideTrajPinTip();
       if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
       host.querySelectorAll(".traj-node").forEach((el2) => {

@@ -32,6 +32,7 @@ owns this folder.
 | [lineage-story-scrubber.md](lineage-story-scrubber.md) | Lineage story scrubber | `?lineage=1` · `verification/lineage-story-scrubber.png` |
 | [export.md](export.md) | PNG / SVG / Share Card | explorer Map · `export-share.png` |
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |
+| [present-fixture-lens.md](present-fixture-lens.md) | Present/fixture lens | explorer Trace · `verification/present-fixture-lens.png` |
 | [route.md](route.md) | PATH probe | Sequence snap · `R` · `route.png` |
 | [lens.md](lens.md) | Role compare | Sequence snap · `L` · `lens.png` |
 | [ego.md](ego.md) | k-hop neighborhood | explorer enter / Slice · `ego.png` |

@@ -115,3 +115,5 @@ Driver assertions:
 - Export already strips focus / play / search. Presentation class is
   viewer chrome — the clone is `#canvas` / a workspace stage.
 - No WebM. No brand-mark marketplace. No editorial fourth preset.
+
+- ADE PFL (Present/fixture lens): on Trace, `.pfl-strip[data-pfl="1"]` chips isolate fixture node kinds on the DAG. The strip lives in `#canvas`, so it stays on Presentation Stage. Escape clears the lens *before* exiting Present. Does not steal `L` (IR Lens). Screenshot `verification/present-fixture-lens.png`. See [present-fixture-lens.md](present-fixture-lens.md).

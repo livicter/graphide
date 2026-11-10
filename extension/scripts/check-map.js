@@ -1197,6 +1197,21 @@ assert(rsgMap.includes("RSG1") && rsgMap.includes("rsg-strip") && rsgMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-snapshot-graphic.md")), "registry-snapshot-graphic feature map missing");
 assert(featReadme.includes("registry-snapshot-graphic.md") && featReadme.includes("registry-snapshot-graphic.png"), "feature README must list registry-snapshot-graphic.md");
 
+const pflMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/present-fixture-lens.md"), "utf8");
+assert(
+  pflMap.includes("## Sub-features") &&
+    pflMap.includes("## How to get to it (user POV)") &&
+    pflMap.includes("## Driving it with the harness") &&
+    pflMap.includes("## Gotchas"),
+  "present-fixture-lens feature map must use the four headings"
+);
+assert(driver.includes("PFL1") && driver.includes("PFL3") && driver.includes("present-fixture-lens.png") && driver.includes("pfl-chip"), "verify driver must prove Present/fixture lens PFL1–PFL3");
+assert(js.includes("fixtureLensStripHtml") && js.includes("bindFixtureLens") && js.includes("applyFixtureLensPaint") && chrome.includes("fixtureLensStripHtml"), "desk.js must own Present/fixture lens helpers");
+assert(css.includes(".pfl-strip") && css.includes(".pfl-chip") && css.includes("pfl-now") && css.includes("pfl-dim"), "main.css must theme Present/fixture lens + isolate paint");
+assert(pflMap.includes("PFL1") && pflMap.includes("pfl-strip") && pflMap.includes("present-fixture-lens.png") && pflMap.includes("peekSource"), "present-fixture-lens feature map must name PFL / pfl-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/present-fixture-lens.md")), "present-fixture-lens feature map missing");
+assert(featReadme.includes("present-fixture-lens.md") && featReadme.includes("present-fixture-lens.png"), "feature README must list present-fixture-lens.md");
+
 
 
 

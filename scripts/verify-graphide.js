@@ -4224,6 +4224,262 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+
+    // ADE Present/fixture lens (PFL1–PFL5) — fixture-kind chips on Trace, stage-safe.
+    // Stay on the TSS Trace document. Do not page.goto (Passport follows with its own click).
+    {
+      await page.waitForSelector(".pfl-strip[data-pfl='1'] .pfl-chip[data-pfl-kind], #trajCanvas .traj-node", {
+        timeout: 8000,
+      });
+      const pfl1 = await page.evaluate(() => {
+        const strip = document.querySelector(".pfl-strip[data-pfl='1']");
+        const chips = [...document.querySelectorAll(".pfl-chip[data-pfl-kind]")].map((el) => ({
+          key: el.getAttribute("data-pfl-kind") || "",
+          n: Number((el.querySelector("[data-pfl-n]") || {}).textContent || 0),
+        }));
+        const byChip = Object.fromEntries(chips.map((c) => [c.key, c.n]));
+        const nodes = [...document.querySelectorAll("#trajCanvas .traj-node")];
+        const byNode = {};
+        for (const el of nodes) {
+          const k = el.getAttribute("data-kind") || "";
+          if (!k) continue;
+          byNode[k] = (byNode[k] || 0) + 1;
+        }
+        const same =
+          Object.keys(byChip).length > 0 &&
+          Object.keys(byChip).every((k) => byChip[k] === byNode[k]) &&
+          Object.keys(byNode).every((k) => byChip[k] === byNode[k]);
+        const fid = ((strip && strip.querySelector("[data-pfl-fixture]")) || {}).textContent || "";
+        const canvasFid = (document.getElementById("trajCanvas") || {}).getAttribute?.("data-fixture") || "";
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        const tss = !!document.querySelector(".tss-strip, .tss-scrub, [data-tss='1']");
+        return {
+          strip: !!strip,
+          chips: chips.length,
+          same,
+          byChip,
+          byNode,
+          fixtureMatch: !!(canvasFid && fid.indexOf(canvasFid) >= 0),
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+          tss,
+          presenting: !!(document.body && document.body.classList.contains("present")),
+        };
+      });
+      const pfl1ok = !!(
+        pfl1 &&
+        pfl1.strip &&
+        pfl1.chips >= 3 &&
+        pfl1.same &&
+        pfl1.fixtureMatch &&
+        pfl1.tss &&
+        pfl1.srcHidden &&
+        pfl1.xy === 0 &&
+        pfl1.ws === "trace" &&
+        !pfl1.presenting
+      );
+      record(
+        "PFL1",
+        "Trace .pfl-strip chips match fixture node kinds; TSS stays; no XYFlow; no source",
+        !!pfl1ok,
+        JSON.stringify(pfl1)
+      );
+
+      const pfl2 = await page.evaluate(() => {
+        const tile =
+          document.querySelector('.pfl-chip[data-pfl-kind="fixture"]') ||
+          document.querySelector(".pfl-chip[data-pfl-kind]");
+        if (!tile) return { ok: false, reason: "no chip" };
+        const kind = tile.getAttribute("data-pfl-kind") || "";
+        tile.click();
+        const now = document.querySelectorAll(".pfl-chip.pfl-now").length;
+        const on = [...document.querySelectorAll("#trajCanvas .traj-node.pfl-on")].map(
+          (el) => el.getAttribute("data-kind") || ""
+        );
+        const dim = document.querySelectorAll("#trajCanvas .traj-node.pfl-dim").length;
+        const total = document.querySelectorAll("#trajCanvas .traj-node").length;
+        const focusing = !!document.querySelector(".pfl-strip.pfl-lensing, .traj-page.pfl-lensing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          ok: true,
+          kind,
+          now,
+          on,
+          onAllKind: on.length > 0 && on.every((k) => k === kind),
+          dim,
+          total,
+          dimOk: dim === total - on.length,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const pfl2ok = !!(
+        pfl2 &&
+        pfl2.ok &&
+        pfl2.focusing &&
+        pfl2.now === 1 &&
+        pfl2.onAllKind &&
+        pfl2.dimOk &&
+        pfl2.srcHidden &&
+        pfl2.xy === 0 &&
+        pfl2.ws === "trace"
+      );
+      record(
+        "PFL2",
+        "Click fixture-lens chip isolates that kind on the DAG; Trace stays; no source; no XYFlow",
+        !!pfl2ok,
+        JSON.stringify(pfl2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const pfl3 = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".pfl-strip.pfl-lensing, .traj-page.pfl-lensing");
+        const now = document.querySelectorAll(".pfl-chip.pfl-now").length;
+        const on = document.querySelectorAll("#trajCanvas .traj-node.pfl-on").length;
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        const presenting = !!(document.body && document.body.classList.contains("present"));
+        return {
+          focusing,
+          now,
+          on,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+          presenting,
+        };
+      });
+      const pfl3ok = !!(
+        pfl3 &&
+        pfl3.ws === "trace" &&
+        !pfl3.focusing &&
+        pfl3.now === 0 &&
+        pfl3.on === 0 &&
+        !pfl3.presenting &&
+        pfl3.srcHidden &&
+        pfl3.xy === 0
+      );
+      record(
+        "PFL3",
+        "Escape clears fixture-lens focus without leaving Trace, opening source, or entering Present",
+        !!pfl3ok,
+        JSON.stringify(pfl3)
+      );
+
+      await page.evaluate(() => {
+        const tile =
+          document.querySelector('.pfl-chip[data-pfl-kind="verify"]') ||
+          document.querySelector(".pfl-chip[data-pfl-kind]");
+        if (tile) tile.click();
+      });
+      await page.waitForTimeout(40);
+      const presentBtn = await page.$("#presentBtn");
+      if (presentBtn) await presentBtn.click();
+      await page.waitForTimeout(80);
+      const pfl4 = await page.evaluate(() => {
+        const strip = document.querySelector(".pfl-strip[data-pfl='1']");
+        const tss = !!document.querySelector(".tss-strip, .tss-scrub, [data-tss='1']");
+        const zoom = !!document.getElementById("trajZoomBar") || !!document.getElementById("trajZoomFit");
+        const focusing = !!document.querySelector(".pfl-strip.pfl-lensing, .traj-page.pfl-lensing");
+        const on = document.querySelectorAll("#trajCanvas .traj-node.pfl-on").length;
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const presenting = !!(document.body && document.body.classList.contains("present"));
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        const lensBtn = document.getElementById("lensBtn");
+        return {
+          strip: !!strip,
+          tss,
+          zoom,
+          focusing,
+          on,
+          srcHidden: !src || src.hidden,
+          xy,
+          presenting,
+          ws,
+          lensNotOn: !(lensBtn && lensBtn.classList.contains("on")),
+        };
+      });
+      const pfl4ok = !!(
+        pfl4 &&
+        pfl4.strip &&
+        pfl4.tss &&
+        pfl4.zoom &&
+        pfl4.focusing &&
+        pfl4.on >= 1 &&
+        pfl4.presenting &&
+        pfl4.ws === "trace" &&
+        pfl4.lensNotOn &&
+        pfl4.srcHidden &&
+        pfl4.xy === 0
+      );
+      record(
+        "PFL4",
+        "PFL stays on Presentation Stage and composes with TSS/zoom; IR Lens unstolen; no source; no XYFlow",
+        !!pfl4ok,
+        JSON.stringify(pfl4)
+      );
+
+      await shot(page, "present-fixture-lens.png");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const pfl5stage = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".pfl-strip.pfl-lensing, .traj-page.pfl-lensing");
+        const now = document.querySelectorAll(".pfl-chip.pfl-now").length;
+        const presenting = !!(document.body && document.body.classList.contains("present"));
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        const src = document.getElementById("sourcePane");
+        return { focusing, now, presenting, ws, srcHidden: !document.getElementById("sourcePane") || document.getElementById("sourcePane").hidden };
+      });
+      // Second Escape exits Present so later Passport tests see the desk chrome.
+      if (pfl5stage && pfl5stage.presenting) {
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+      const pfl5exit = await page.evaluate(() => {
+        return !!(document.body && document.body.classList.contains("present"));
+      });
+      const pflShot = checks.find((c) => c.id === "shot:present-fixture-lens.png");
+      const pfl5ok = !!(
+        pfl1ok &&
+        pfl2ok &&
+        pfl3ok &&
+        pfl4ok &&
+        pflShot &&
+        pflShot.pass &&
+        pfl5stage &&
+        !pfl5stage.focusing &&
+        pfl5stage.now === 0 &&
+        pfl5stage.presenting &&
+        pfl5stage.ws === "trace" &&
+        !pfl5exit
+      );
+      record(
+        "PFL5",
+        "screenshot present-fixture-lens.png not black; Escape clears lens then exits Present",
+        !!pfl5ok,
+        JSON.stringify({
+          shot: pflShot ? pflShot.detail : "missing",
+          stage: pfl5stage,
+          stillPresent: !!pfl5exit,
+          pfl1: !!pfl1ok,
+          pfl2: !!pfl2ok,
+          pfl3: !!pfl3ok,
+          pfl4: !!pfl4ok,
+        })
+      );
+      assertNoStampDir("PFL5b", "Present/fixture lens step did not write .graphide/stamps/");
+    }
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(

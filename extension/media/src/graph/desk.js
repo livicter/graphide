@@ -205,6 +205,7 @@ let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|reroute
 let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
 let registryAuditFilter = null; // ADE RAK: review|stamp|skip|broken|finding
 let registrySnapshotFocus = null; // ADE RSG: nodes|edges|files or null
+let fixtureLensKind = null; // ADE PFL: fixture node kind or null
 let timelineKindFilter = null; // ADE TKM: parent|coverage|stamp|skip|broken|hint
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -470,6 +471,14 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && lensOpen) {
     e.preventDefault();
     setLensOpen(false);
+    return;
+  }
+  // ADE PFL: Escape clears fixture-lens focus first; stays on Presentation Stage if presenting.
+  if (e.key === "Escape" && fixtureLensKind) {
+    e.preventDefault();
+    fixtureLensKind = null;
+    if (typeof applyFixtureLensPaint === "function") applyFixtureLensPaint();
+    if (typeof syncFixtureLensChips === "function") syncFixtureLensChips();
     return;
   }
   if (e.key === "Escape" && isPresenting()) {
@@ -14387,6 +14396,130 @@ function renderTrajZoomBar() {
   );
 }
 
+
+/** ADE PFL — stable fixture node-kind order (plan…ship, then any extras). */
+const FIXTURE_LENS_ORDER = ["plan", "edit", "fixture", "diff", "verify", "harness", "gate", "ship"];
+
+function fixtureLensCounts(fix) {
+  const map = new Map();
+  for (const n of (fix && fix.nodes) || []) {
+    const k = String(n && n.kind ? n.kind : "").trim();
+    if (!k) continue;
+    map.set(k, (map.get(k) || 0) + 1);
+  }
+  return map;
+}
+
+function fixtureLensEntries(fix) {
+  const map = fixtureLensCounts(fix);
+  const keys = [];
+  for (const k of FIXTURE_LENS_ORDER) {
+    if (map.has(k)) keys.push(k);
+  }
+  for (const k of map.keys()) {
+    if (keys.indexOf(k) < 0) keys.push(k);
+  }
+  return keys.map((k) => [k, map.get(k)]);
+}
+
+function fixtureLensStripHtml(fix) {
+  const entries = fixtureLensEntries(fix);
+  if (!entries.length) return "";
+  const fid = (fix && (fix.id || fix.title)) || "";
+  const chips = entries
+    .map((e) => {
+      const on = !!(fixtureLensKind && String(fixtureLensKind) === String(e[0]));
+      return (
+        '<button type="button" class="pfl-chip' +
+        (on ? " pfl-now" : fixtureLensKind ? " pfl-idle" : "") +
+        '" data-pfl-kind="' +
+        esc(e[0]) +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" title="' +
+        esc(e[0]) +
+        " · " +
+        e[1] +
+        '"><span class="pfl-k">' +
+        esc(e[0]) +
+        '</span><span class="pfl-n" data-pfl-n="' +
+        esc(e[0]) +
+        '">' +
+        e[1] +
+        "</span></button>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="pfl-strip' +
+    (fixtureLensKind ? " pfl-lensing" : "") +
+    '" data-pfl="1" role="group" aria-label="Present fixture lens">' +
+    '<span class="pfl-meta" data-pfl-fixture="1">fixture ' +
+    esc(fid) +
+    "</span>" +
+    '<span class="pfl-chips">' +
+    chips +
+    "</span></div>"
+  );
+}
+
+function toggleFixtureLens(kind) {
+  if (!kind) return;
+  if (fixtureLensKind && String(fixtureLensKind) === String(kind)) fixtureLensKind = null;
+  else fixtureLensKind = String(kind);
+  applyFixtureLensPaint();
+  syncFixtureLensChips();
+}
+
+function syncFixtureLensChips() {
+  if (!canvas) return;
+  const focusing = !!fixtureLensKind;
+  canvas.querySelectorAll(".pfl-chip[data-pfl-kind]").forEach((el) => {
+    const k = el.getAttribute("data-pfl-kind") || "";
+    const on = !!(fixtureLensKind && String(fixtureLensKind) === k);
+    el.classList.toggle("pfl-now", on);
+    el.classList.toggle("pfl-idle", !!(focusing && !on));
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".pfl-strip");
+  if (strip) strip.classList.toggle("pfl-lensing", focusing);
+  const page = canvas.querySelector(".traj-page");
+  if (page) page.classList.toggle("pfl-lensing", focusing);
+  const host = document.getElementById("trajCanvas");
+  if (host) host.classList.toggle("pfl-lensing", focusing);
+}
+
+function applyFixtureLensPaint() {
+  if (!canvas) return;
+  const filter = fixtureLensKind ? String(fixtureLensKind) : "";
+  canvas.querySelectorAll(".traj-node").forEach((el) => {
+    const kind = el.getAttribute("data-kind") || "";
+    const hit = !!(filter && kind === filter);
+    const dim = !!(filter && kind !== filter);
+    el.classList.toggle("pfl-on", hit);
+    el.classList.toggle("pfl-dim", dim);
+  });
+  syncFixtureLensChips();
+}
+
+function bindFixtureLens() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".pfl-chip[data-pfl-kind]").forEach((el) => {
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleFixtureLens(el.getAttribute("data-pfl-kind"));
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleFixtureLens(el.getAttribute("data-pfl-kind"));
+    };
+  });
+  applyFixtureLensPaint();
+}
+
 function renderTrajectoryEmptyBody(fix) {
   const title = fix.title || "Execution trajectory";
   const sub = fix.subtitle || "No subtasks yet";
@@ -14408,6 +14541,7 @@ function renderTrajectoryEmptyBody(fix) {
     renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
+    fixtureLensStripHtml(fix) +
     '<div class="traj-layout">' +
     '<div id="trajCanvas" class="traj-canvas traj-canvas--empty" data-testid="trajectory-dag" data-fixture="' +
     esc(fix.id || "ade-empty-fixture") +
@@ -14485,6 +14619,9 @@ function renderTrajectoryBody() {
       const dim = focusOn && !near.has(n.id) ? " dim" : "";
       const storyIdx = trajStoryIndexOf(nodes, n.id);
       const storyCls = trajStoryClassForIndex(storyIdx);
+      const pflHit = !!(fixtureLensKind && String(n.kind || "") === String(fixtureLensKind));
+      const pflDimN = !!(fixtureLensKind && String(n.kind || "") !== String(fixtureLensKind));
+      const pflClass = (pflHit ? " pfl-on" : "") + (pflDimN ? " pfl-dim" : "");
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
       const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
@@ -14506,6 +14643,7 @@ function renderTrajectoryBody() {
         ptdClass +
         dim +
         storyCls +
+        pflClass +
         '" data-id="' +
         esc(n.id) +
         '"' +
@@ -14821,6 +14959,7 @@ function renderTrajectoryBody() {
     '<div class="traj-page' +
     (focusOn ? " has-focus" : "") +
     (tssActive ? " tss-scrubbing" : "") +
+    (fixtureLensKind ? " pfl-lensing" : "") +
     '" data-tss="1">' +
     trajStoryScrubHtml(nodes) +
     '<div class="traj-strip">' +
@@ -14850,6 +14989,7 @@ function renderTrajectoryBody() {
     renderSealStatusChip() +
     renderAdeHop("passport", "Open Passport →") +
     "</div>" +
+    fixtureLensStripHtml(fix) +
     '<div class="traj-layout">' +
     '<div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' +
     esc(fix.id) +
@@ -14918,6 +15058,7 @@ function paintTrajectoryWorkspace(title) {
   bindTrajStoryScrub();
   applyTrajStoryScrubPaint();
   syncTrajStoryScrub();
+  if (typeof bindFixtureLens === "function") bindFixtureLens();
 }
 
 function stepTrajectory(dir) {
@@ -15275,6 +15416,7 @@ function bindTrajectoryPage() {
   bindTrajStoryScrub();
   applyTrajStoryScrubPaint();
   syncTrajStoryScrub();
+  if (typeof bindFixtureLens === "function") bindFixtureLens();
   hideTrajPinTip();
   if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   host.querySelectorAll(".traj-node").forEach((el) => {

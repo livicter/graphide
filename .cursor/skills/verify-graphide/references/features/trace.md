@@ -176,3 +176,7 @@ Driver assertions:
 ## ADE TSS — Trajectory story scrubber (story-prefix)
 
 See [trajectory-story-scrubber.md](trajectory-story-scrubber.md). Past/now/ahead scrub on `trajStoryCursor`.
+
+## ADE PFL — Present/fixture lens
+
+See [present-fixture-lens.md](present-fixture-lens.md). Fixture-kind chips on Trace, visible on Presentation Stage. Escape clears before exiting Present. Does not steal `L`.
