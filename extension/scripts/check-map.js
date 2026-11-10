@@ -1302,6 +1302,23 @@ assert(smcMap.includes("SMC1") && smcMap.includes("smc-strip") && smcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-module-cut.md")), "sequence-module-cut feature map missing");
 assert(featReadme.includes("sequence-module-cut.md") && featReadme.includes("sequence-module-cut.png"), "feature README must list sequence-module-cut.md");
 
+const medMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-distance-cut.md"), "utf8");
+assert(
+  medMap.includes("## Sub-features") &&
+    medMap.includes("## How to get to it (user POV)") &&
+    medMap.includes("## Driving it with the harness") &&
+    medMap.includes("## Gotchas"),
+  "map-enter-distance-cut feature map must use the four headings"
+);
+assert(driver.includes("MED1") && driver.includes("MED3") && driver.includes("map-enter-distance-cut.png") && driver.includes("med-stat"), "verify driver must prove Map enter distance-cut graphic MED1–MED3");
+assert(js.includes("mapEnterDistGraphicHtml") && js.includes("bindMapEnterDistGraphic") && js.includes("applyMapEnterDistPaint") && chrome.includes("mapEnterDistGraphicHtml"), "desk.js must own Map enter distance-cut graphic helpers");
+assert(css.includes(".med-strip") && css.includes(".med-stat") && css.includes("med-now") && css.includes("med-bar") && css.includes(".enter-title-cuts"), "main.css must theme Map enter distance-cut graphic + title-band cluster");
+assert(medMap.includes("MED1") && medMap.includes("med-strip") && medMap.includes("map-enter-distance-cut.png") && medMap.includes("peekSource"), "map-enter-distance-cut feature map must name MED / med-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-distance-cut.md")), "map-enter-distance-cut feature map missing");
+assert(featReadme.includes("map-enter-distance-cut.md") && featReadme.includes("map-enter-distance-cut.png"), "feature README must list map-enter-distance-cut.md");
+
+
+
 
 
 
