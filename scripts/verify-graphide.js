@@ -15391,7 +15391,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .ehd-strip, .enter-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
         n0.click();
         const src = document.getElementById("sourcePane");
@@ -15581,7 +15581,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .ehd-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -15783,7 +15783,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .ehd-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -15981,7 +15981,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .ehd-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -16035,6 +16035,209 @@ async function main() {
           "Map enter verb-span clicks did not post peekSource / enterRun / selectNode",
           afterMevPosts.after === afterMevPosts.before && !afterMevPosts.peek && !afterMevPosts.enterRun,
           JSON.stringify(afterMevPosts)
+        );
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+
+
+      // ADE Map enter hop-distance graphic (EHD1–EHD5) — out vs in painted hops; same enter desk as MEV
+      {
+        await page.waitForSelector(".ehd-strip[data-ehd='1']", { timeout: 8000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .react-flow__edge[data-ehd-cut]").length >= 10,
+          { timeout: 8000 }
+        );
+        await page.waitForTimeout(80);
+        const beforeEhdPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+        const ehd1 = await page.evaluate(() => {
+          const strip = document.querySelector(".ehd-strip[data-ehd='1']");
+          const cluster = document.querySelector(".enter-title-cuts[data-enter-cuts='1']");
+          const stats = [...document.querySelectorAll(".ehd-stat[data-ehd-band]")].map((el) => ({
+            band: el.getAttribute("data-ehd-band"),
+            n: Number((el.querySelector("[data-ehd-n]") || el).textContent.trim()),
+            pressed: el.getAttribute("aria-pressed") === "true",
+          }));
+          const segs = [...document.querySelectorAll(".ehd-seg[data-ehd-band]")].map((el) => el.getAttribute("data-ehd-band"));
+          const edges = [...document.querySelectorAll("#enterCanvas .react-flow__edge[data-ehd-cut]")];
+          const byCut = { out: 0, in: 0 };
+          for (const e of edges) {
+            const c = e.getAttribute("data-ehd-cut") || "";
+            if (c === "out" || c === "in") byCut[c] += 1;
+          }
+          const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+          const src = document.getElementById("sourcePane");
+          const enterOn = !!document.getElementById("enterCanvas");
+          return {
+            strip: !!strip,
+            cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".mev-strip[data-mev='1']") && cluster.querySelector(".mep-strip[data-mep='1']") && cluster.querySelector(".mea-strip[data-mea='1']") && cluster.querySelector(".med-strip") && cluster.querySelector(".mwc-strip")),
+            mev: !!document.querySelector(".mev-strip[data-mev='1']"),
+            mep: !!document.querySelector(".mep-strip[data-mep='1']"),
+            mea: !!document.querySelector(".mea-strip[data-mea='1']"),
+            med: !!document.querySelector(".med-strip"),
+            mwc: !!document.querySelector(".mwc-strip"),
+            enterOn,
+            stats,
+            segs,
+            edges: edges.length,
+            stamped: byCut.out + byCut.in,
+            byCut,
+            out: nOf("out"),
+            inn: nOf("in"),
+            sum: nOf("out") + nOf("in"),
+            levelBand: stats.some((s) => s.band === "level") || segs.includes("level"),
+            srcHidden: !src || src.hidden,
+            pressed: stats.filter((s) => s.pressed).length,
+          };
+        });
+        const ehd1ok =
+          ehd1.strip &&
+          ehd1.cluster &&
+          ehd1.mev &&
+          ehd1.mep &&
+          ehd1.mea &&
+          ehd1.med &&
+          ehd1.mwc &&
+          ehd1.enterOn &&
+          ehd1.out === 5 &&
+          ehd1.inn === 5 &&
+          ehd1.sum === 10 &&
+          ehd1.stamped === 10 &&
+          ehd1.byCut.out === 5 &&
+          ehd1.byCut.in === 5 &&
+          ehd1.segs.length === 2 &&
+          !ehd1.levelBand &&
+          ehd1.pressed === 0 &&
+          ehd1.srcHidden;
+        record(
+          "EHD1",
+          "Map enter hop-distance graphic shows 5 out / 5 in of 10, matching data-ehd-cut; MEV/MEP/MEA/MED/MWC stay; no level band; no source",
+          !!ehd1ok,
+          JSON.stringify(ehd1)
+        );
+
+        const outBtn = page.locator('.ehd-stat[data-ehd-band="out"]').first();
+        await outBtn.click();
+        await page.waitForTimeout(80);
+        const ehd2 = await page.evaluate(() => {
+          const enterOn = !!document.getElementById("enterCanvas");
+          const edges = [...document.querySelectorAll("#enterCanvas .react-flow__edge[data-ehd-cut]")];
+          const hits = edges.filter((el) => el.classList.contains("ehd-hit"));
+          const idles = edges.filter((el) => el.classList.contains("ehd-idle"));
+          const outHits = hits.filter((el) => el.getAttribute("data-ehd-cut") === "out");
+          const outPressed = document.querySelector('.ehd-stat[data-ehd-band="out"][aria-pressed="true"]');
+          const src = document.getElementById("sourcePane");
+          return {
+            enterOn,
+            edges: edges.length,
+            hits: hits.length,
+            idles: idles.length,
+            outHits: outHits.length,
+            outPressed: !!outPressed,
+            srcHidden: !src || src.hidden,
+          };
+        });
+        const ehd2ok =
+          ehd2.enterOn &&
+          ehd2.hits === 5 &&
+          ehd2.outHits === 5 &&
+          ehd2.idles === 5 &&
+          ehd2.outPressed &&
+          ehd2.srcHidden;
+        record(
+          "EHD2",
+          "Click Out highlights the 5 outbound enter hops; enter stays; no source",
+          !!ehd2ok,
+          JSON.stringify(ehd2)
+        );
+
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(80);
+        const ehd3 = await page.evaluate(() => {
+          const enterOn = !!document.getElementById("enterCanvas");
+          const hits = document.querySelectorAll("#enterCanvas .react-flow__edge.ehd-hit").length;
+          const pressed = document.querySelectorAll('.ehd-stat[aria-pressed="true"]').length;
+          const focusing = !!document.querySelector(".ehd-strip.ehd-focusing, .stage.ehd-focusing");
+          const stamped = document.querySelectorAll("#enterCanvas .react-flow__edge[data-ehd-cut]").length;
+          const src = document.getElementById("sourcePane");
+          return {
+            enterOn,
+            hits,
+            pressed,
+            focusing,
+            stamped,
+            srcHidden: !src || src.hidden,
+          };
+        });
+        record(
+          "EHD3",
+          "Escape clears hop-distance graphic focus; enter stays; no source",
+          !!(ehd3.enterOn && ehd3.hits === 0 && ehd3.pressed === 0 && !ehd3.focusing && ehd3.stamped === 10 && ehd3.srcHidden),
+          JSON.stringify(ehd3)
+        );
+
+        const ehd4 = await page.evaluate(() => {
+          const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+          if (!n0) return { missing: true };
+          const r = n0.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          const top = document.elementFromPoint(x, y);
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .mev-strip, .ehd-strip, .enter-title-cuts"));
+          const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
+          const src = document.getElementById("sourcePane");
+          return {
+            x,
+            y,
+            top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+            hitStrip,
+            inNode,
+            srcHidden: !src || src.hidden,
+            enter: !!document.getElementById("enterCanvas"),
+          };
+        });
+        const ehd4ok = !!(ehd4 && !ehd4.missing && ehd4.inNode && !ehd4.hitStrip && ehd4.srcHidden && ehd4.enter);
+        record(
+          "EHD4",
+          "Title-band cluster does not intercept #enterCanvas n0 clicks; enter stays; no source",
+          !!ehd4ok,
+          JSON.stringify(ehd4)
+        );
+
+        await outBtn.click();
+        await page.waitForTimeout(80);
+        await shot(page, "map-enter-hop-distance.png");
+        const ehdShot = checks.find((c) => c.id === "shot:map-enter-hop-distance.png");
+        const ehd5ok = !!(ehd1ok && ehd2ok && ehd3 && ehd3.enterOn && ehd4ok && ehdShot && ehdShot.pass);
+        record(
+          "EHD5",
+          "screenshot map-enter-hop-distance.png is not a black frame; Map enter hop-distance graphic proven",
+          !!ehd5ok,
+          JSON.stringify({
+            shot: ehdShot ? ehdShot.detail : "missing",
+            ehd1: !!ehd1ok,
+            ehd2: !!ehd2ok,
+            ehd3: !!(ehd3 && ehd3.enterOn && ehd3.hits === 0),
+            ehd4: !!ehd4ok,
+          })
+        );
+        assertNoStampDir("EHD5b", "Map enter hop-distance graphic step did not write .graphide/stamps/");
+        const afterEhdPosts = await page.evaluate((before) => {
+          const posts = window.__vscodePosts || [];
+          const added = posts.slice(before);
+          return {
+            before,
+            after: posts.length,
+            peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop" || m.type === "enterRun" || m.type === "selectNode")),
+            showHop: added.some((m) => m && m.type === "showHop"),
+            enterRun: added.some((m) => m && m.type === "enterRun"),
+          };
+        }, beforeEhdPosts);
+        record(
+          "EHD5c",
+          "Map enter hop-distance clicks did not post peekSource / showHop / enterRun / selectNode",
+          afterEhdPosts.after === afterEhdPosts.before && !afterEhdPosts.peek && !afterEhdPosts.showHop && !afterEhdPosts.enterRun,
+          JSON.stringify(afterEhdPosts)
         );
         await page.keyboard.press("Escape");
         await page.waitForTimeout(40);

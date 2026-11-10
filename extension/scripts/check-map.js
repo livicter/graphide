@@ -1543,6 +1543,21 @@ assert(mevMap.includes("MEV1") && mevMap.includes("mev-strip") && mevMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-verb-span.md")), "map-enter-verb-span feature map missing");
 assert(featReadme.includes("map-enter-verb-span.md") && featReadme.includes("map-enter-verb-span.png"), "feature README must list map-enter-verb-span.md");
 
+const ehdMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-hop-distance.md"), "utf8");
+assert(
+  ehdMap.includes("## Sub-features") &&
+    ehdMap.includes("## How to get to it (user POV)") &&
+    ehdMap.includes("## Driving it with the harness") &&
+    ehdMap.includes("## Gotchas"),
+  "map-enter-hop-distance feature map must use the four headings"
+);
+assert(driver.includes("EHD1") && driver.includes("EHD3") && driver.includes("map-enter-hop-distance.png") && driver.includes("ehd-stat"), "verify driver must prove Map enter hop-distance graphic EHD1–EHD3");
+assert(css.includes(".ehd-strip") && css.includes(".ehd-stat") && css.includes(".ehd-bar") && css.includes("ehd-hit"), "main.css must style Map enter hop-distance graphic");
+assert(ehdMap.includes("EHD1") && ehdMap.includes("ehd-strip") && ehdMap.includes("map-enter-hop-distance.png") && ehdMap.includes("peekSource"), "map-enter-hop-distance feature map must name EHD / ehd-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-hop-distance.md")), "map-enter-hop-distance feature map missing");
+assert(featReadme.includes("map-enter-hop-distance.md") && featReadme.includes("map-enter-hop-distance.png"), "feature README must list map-enter-hop-distance.md");
+
+
 
 
 
