@@ -1332,6 +1332,20 @@ assert(swrMap.includes("SWR1") && swrMap.includes("swr-strip") && swrMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-role.md")), "slice-walk-role feature map missing");
 assert(featReadme.includes("slice-walk-role.md") && featReadme.includes("slice-walk-role.png"), "feature README must list slice-walk-role.md");
 
+const shvMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-variant.md"), "utf8");
+assert(
+  shvMap.includes("## Sub-features") &&
+    shvMap.includes("## How to get to it (user POV)") &&
+    shvMap.includes("## Driving it with the harness") &&
+    shvMap.includes("## Gotchas"),
+  "sequence-hop-variant feature map must use the four headings"
+);
+assert(driver.includes("SHV1") && driver.includes("SHV3") && driver.includes("sequence-hop-variant.png") && driver.includes("shv-stat"), "verify driver must prove Sequence hop-variant graphic SHV1–SHV3");
+assert(css.includes(".shv-strip") && css.includes(".shv-stat") && css.includes(".shv-bar") && css.includes("shv-hit"), "main.css must style Sequence hop-variant graphic");
+assert(shvMap.includes("SHV1") && shvMap.includes("shv-strip") && shvMap.includes("sequence-hop-variant.png") && shvMap.includes("peekSource"), "sequence-hop-variant feature map must name SHV / shv-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-variant.md")), "sequence-hop-variant feature map missing");
+assert(featReadme.includes("sequence-hop-variant.md") && featReadme.includes("sequence-hop-variant.png"), "feature README must list sequence-hop-variant.md");
+
 
 
 

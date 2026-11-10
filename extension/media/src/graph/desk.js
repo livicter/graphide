@@ -240,6 +240,7 @@ let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
 let routeMixFilter = null;
 let seqHopKindFilter = null; // ADE SHK: Calls|Reads|Writes|Publishes|Subscribes|type
 let sequenceModuleCutFocus = null; // ADE SMC: same|cross
+let sequenceHopVariantFocus = null; // ADE SHV: call|return|default
 const CAM_MIN = 0.35;
 const CAM_MAX = 6.5;
 const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -642,6 +643,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     sequenceModuleCutFocus = null;
     applySequenceModuleCutPaint();
+    return;
+  }
+  // ADE SHV: Escape clears Sequence hop-variant graphic focus when active (cursor stays).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "sequence" &&
+    sequenceHopVariantFocus
+  ) {
+    e.preventDefault();
+    sequenceHopVariantFocus = null;
+    if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
     return;
   }
   // ADE SSS: Escape clears Sequence story scrub (seqCursor → idle) when active.
@@ -12206,6 +12219,142 @@ function bindSequenceModuleCutGraphic() {
 }
 
 /** ADE SSS — story scrub strip (Timeline/CPS parity) bound to seqCursor. */
+
+/** ADE SHV — call / return / direct hop-variant mass for this Sequence flow. */
+function sequenceHopVariantOf(h) {
+  const v = String((h && h.variant) || "default");
+  if (v === "call" || v === "return") return v;
+  return "default";
+}
+
+function sequenceHopVariantMetrics() {
+  const flow = typeof sequenceFlow === "function" ? sequenceFlow() : null;
+  const reading = typeof sequenceOf === "function" ? sequenceOf(flow) : { hops: [] };
+  const hops = (reading && reading.hops) || [];
+  const m = { call: 0, ret: 0, direct: 0, hops: hops.length };
+  for (const h of hops) {
+    const v = sequenceHopVariantOf(h);
+    if (v === "call") m.call += 1;
+    else if (v === "return") m.ret += 1;
+    else m.direct += 1;
+  }
+  return m;
+}
+
+function sequenceHopVariantGraphicHtml() {
+  const m = sequenceHopVariantMetrics();
+  if (!m.hops) return "";
+  const focusing = !!sequenceHopVariantFocus;
+  const onFor = (key) => !!(sequenceHopVariantFocus && String(sequenceHopVariantFocus) === String(key));
+  const labelOf = (key) => (key === "default" ? "direct" : key);
+  const nOf = (key) => (key === "call" ? m.call : key === "return" ? m.ret : m.direct);
+  const stat = (key) => {
+    const n = nOf(key);
+    return (
+      '<button type="button" class="shv-stat' +
+      (onFor(key) ? " shv-now" : focusing ? " shv-idle" : "") +
+      '" data-shv-band="' +
+      esc(key) +
+      '" aria-pressed="' +
+      (onFor(key) ? "true" : "false") +
+      '" title="' +
+      esc(labelOf(key) + " · " + n) +
+      '"><b data-shv-n="' +
+      esc(key) +
+      '">' +
+      n +
+      "</b> " +
+      esc(labelOf(key)) +
+      "</button>"
+    );
+  };
+  const seg = (key) => {
+    const n = nOf(key);
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="shv-seg shv-' +
+      esc(key) +
+      (onFor(key) ? " shv-now" : focusing ? " shv-idle" : "") +
+      '" data-shv-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(labelOf(key) + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="shv-strip' +
+    (focusing ? " shv-focusing" : "") +
+    '" data-shv="1" role="group" aria-label="Sequence hop-variant graphic">' +
+    '<span class="shv-meta">Hop variant</span>' +
+    '<span class="shv-counts">' +
+    stat("call") +
+    stat("return") +
+    stat("default") +
+    "</span>" +
+    '<div class="shv-bar" aria-hidden="true">' +
+    (m.hops === 0
+      ? '<span class="shv-bar-empty"></span>'
+      : seg("call") + seg("return") + seg("default")) +
+    "</div></div>"
+  );
+}
+
+function jumpSequenceHopVariant(which) {
+  if (!which) return;
+  const key = String(which);
+  if (sequenceHopVariantFocus && String(sequenceHopVariantFocus) === key) sequenceHopVariantFocus = null;
+  else sequenceHopVariantFocus = key;
+  applySequenceHopVariantPaint();
+}
+
+function applySequenceHopVariantPaint() {
+  if (!canvas) return;
+  const focus = sequenceHopVariantFocus ? String(sequenceHopVariantFocus) : "";
+  canvas.querySelectorAll(".shv-stat[data-shv-band], .shv-seg[data-shv-band]").forEach((el) => {
+    const key = el.getAttribute("data-shv-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("shv-now", on);
+    el.classList.toggle("shv-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".shv-strip");
+  if (strip) strip.classList.toggle("shv-focusing", !!focus);
+  const page = canvas.querySelector(".seq-page");
+  if (page) page.classList.toggle("shv-focusing", !!focus);
+  const hopsEl = canvas.querySelector("#seqHops");
+  if (hopsEl) hopsEl.classList.toggle("shv-focusing", !!focus);
+  canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
+    const v = sequenceHopVariantOf({ variant: el.getAttribute("data-seq-variant") || "default" });
+    const hit = !!(focus && v === focus);
+    const dim = !!(focus && v !== focus);
+    el.classList.toggle("shv-hit", hit);
+    el.classList.toggle("shv-dim", dim);
+  });
+}
+
+function bindSequenceHopVariantGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".shv-stat[data-shv-band], .shv-seg[data-shv-band]").forEach((el) => {
+    const key = el.getAttribute("data-shv-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSequenceHopVariant(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSequenceHopVariant(key);
+    };
+  });
+  applySequenceHopVariantPaint();
+}
+
+
 function seqStoryScrubHtml(hops) {
   const n = (hops && hops.length) || 0;
   if (n < 1) return "";
@@ -12533,15 +12682,18 @@ function renderSequenceBody() {
     .join("");
   const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
   const smcStrip = sequenceModuleCutGraphicHtml();
+  const shvStrip = sequenceHopVariantGraphicHtml();
   return (
     '<div class="seq-page' +
     (sequenceModuleCutFocus ? " smc-focusing" : "") +
-    '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1"' +
+    (sequenceHopVariantFocus ? " shv-focusing" : "") +
+    '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1" data-shv="1"' +
     (hotCross ? ' data-cms-cross-hot="1"' : "") +
     ">" +
     review +
     shkStrip +
     smcStrip +
+    shvStrip +
     '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' +
     parts.length +
     ";--seq-lanes:" +
@@ -12651,6 +12803,7 @@ function patchSequenceChrome() {
   applySeqStoryScrubPaint();
   syncSeqStoryScrub();
   if (typeof applySequenceModuleCutPaint === "function") applySequenceModuleCutPaint();
+  if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
   const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
   canvas.querySelectorAll("#seqParts .seq-part").forEach((el) => {
     const id = el.getAttribute("data-id");
@@ -12712,6 +12865,8 @@ function paintSequenceWorkspace(title) {
   syncSeqStoryScrub();
   bindSequenceModuleCutGraphic();
   applySequenceModuleCutPaint();
+  bindSequenceHopVariantGraphic();
+  applySequenceHopVariantPaint();
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
 }
@@ -12724,6 +12879,8 @@ function bindSequencePage() {
   syncSeqStoryScrub();
   bindSequenceModuleCutGraphic();
   applySequenceModuleCutPaint();
+  bindSequenceHopVariantGraphic();
+  applySequenceHopVariantPaint();
   canvas.querySelectorAll("#seqHops .seq-hop").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
