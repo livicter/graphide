@@ -1572,6 +1572,21 @@ assert(shtMap.includes("SHT1") && shtMap.includes("sliceHopTip") && shtMap.inclu
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-tip.md")), "slice-hop-tip feature map missing");
 assert(featReadme.includes("slice-hop-tip.md") && featReadme.includes("slice-hop-tip.png"), "feature README must list slice-hop-tip.md");
 
+const dhtMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-hop-tip.md"), "utf8");
+assert(
+  dhtMap.includes("## Sub-features") &&
+    dhtMap.includes("## How to get to it (user POV)") &&
+    dhtMap.includes("## Driving it with the harness") &&
+    dhtMap.includes("## Gotchas"),
+  "dataflow-hop-tip feature map must use the four headings"
+);
+assert(driver.includes("DHT1") && driver.includes("DHT3") && driver.includes("dataflow-hop-tip.png") && driver.includes("dataflowHopTip"), "verify driver must prove Dataflow hop tip DHT1–DHT3");
+assert(css.includes("#dataflowHopTip") && css.includes("cursor: help") && /#dfCanvas \.react-flow__edge/.test(css), "main.css must style #dataflowHopTip and Data-flow edge cursor:help");
+assert(js.includes("showDataflowHopTip") && js.includes("hideDataflowHopTip") && js.includes("dataflowHopTipEl") && js.includes('data-dht'), "desk.js Dataflow hop tip helpers missing");
+assert(dhtMap.includes("DHT1") && dhtMap.includes("dataflowHopTip") && dhtMap.includes("dataflow-hop-tip.png") && dhtMap.includes("peekSource"), "dataflow-hop-tip feature map must name DHT / dataflowHopTip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-hop-tip.md")), "dataflow-hop-tip feature map missing");
+assert(featReadme.includes("dataflow-hop-tip.md") && featReadme.includes("dataflow-hop-tip.png"), "feature README must list dataflow-hop-tip.md");
+
 
 
 

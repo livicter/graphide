@@ -20694,6 +20694,7 @@
         const host = document.getElementById("dfCanvas");
         if (host && typeof renderDataflowCanvas === "function") {
           renderDataflowCanvas(host, dataflowCanvasProps());
+          if (typeof scheduleDataflowHopTipBind === "function") scheduleDataflowHopTipBind();
         }
         return;
       }
@@ -24413,6 +24414,7 @@
     function showTip(text, ev) {
       if (!tip || !text) return;
       if (typeof hideSliceHopTip === "function") hideSliceHopTip();
+      if (typeof hideDataflowHopTip === "function") hideDataflowHopTip();
       tip.textContent = text;
       tip.hidden = false;
       const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - tip.offsetWidth);
@@ -30625,6 +30627,7 @@
         const host = document.getElementById("dfCanvas");
         if (host && typeof renderDataflowCanvas === "function") {
           renderDataflowCanvas(host, dataflowCanvasProps());
+          if (typeof scheduleDataflowHopTipBind === "function") scheduleDataflowHopTipBind();
         }
       });
     }
@@ -30825,6 +30828,160 @@
         play.setAttribute("aria-pressed", dfWalk.playing ? "true" : "false");
       }
     }
+    function dataflowHopTipEl() {
+      let el2 = document.getElementById("dataflowHopTip");
+      if (!el2) {
+        el2 = document.createElement("div");
+        el2.id = "dataflowHopTip";
+        el2.hidden = true;
+        el2.setAttribute("data-dht", "1");
+        el2.setAttribute("role", "tooltip");
+        el2.setAttribute("aria-hidden", "true");
+        document.body.appendChild(el2);
+      }
+      return el2;
+    }
+    function dataflowHopTipName(id2) {
+      const sid = String(id2 || "");
+      if (!sid) return "";
+      const host = document.getElementById("dfCanvas");
+      const node = host && host.querySelector('.vnode[data-id="' + sid + '"], .df-node[data-id="' + sid + '"]');
+      const fqn = node && (node.getAttribute("data-fqn") || "") || "";
+      if (fqn) return shortOf(fqn) || sid;
+      const nodes = typeof dfNodes === "function" ? dfNodes() : [];
+      const n = (nodes || []).find((x) => String(idVal(x.id)) === sid);
+      const label = n && n.fqn || "";
+      return label && shortOf(label) || sid;
+    }
+    function dataflowHopTipRole(id2) {
+      const sid = String(id2 || "");
+      if (!sid) return "";
+      const host = document.getElementById("dfCanvas");
+      const node = host && host.querySelector('.vnode[data-id="' + sid + '"], .df-node[data-id="' + sid + '"]');
+      const role = node && (node.getAttribute("data-df-role") || "") || "";
+      if (role) return role;
+      const nodes = typeof dfNodes === "function" ? dfNodes() : [];
+      const n = (nodes || []).find((x) => String(idVal(x.id)) === sid);
+      return n && n.role || "";
+    }
+    function hideDataflowHopTip() {
+      const el2 = document.getElementById("dataflowHopTip");
+      if (!el2) return;
+      el2.hidden = true;
+      el2.setAttribute("aria-hidden", "true");
+      el2.removeAttribute("data-from");
+      el2.removeAttribute("data-to");
+      el2.removeAttribute("data-kind");
+      el2.removeAttribute("data-from-role");
+      el2.removeAttribute("data-to-role");
+      el2.removeAttribute("data-tip-place");
+      el2.innerHTML = "";
+    }
+    function positionDataflowHopTip(el2, ev, edge) {
+      if (!el2) return;
+      const margin = 8;
+      const tipW = el2.offsetWidth || 160;
+      const tipH = el2.offsetHeight || 48;
+      let x;
+      let y;
+      if (edge && typeof edge.getBoundingClientRect === "function") {
+        const r = edge.getBoundingClientRect();
+        x = r.left + r.width / 2 - tipW / 2;
+        y = r.bottom + 8;
+        if (y + tipH > window.innerHeight - margin) {
+          y = r.top - tipH - 8;
+          el2.setAttribute("data-tip-place", "above");
+        } else {
+          el2.setAttribute("data-tip-place", "below");
+        }
+      } else {
+        x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+        y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+        el2.setAttribute("data-tip-place", "cursor");
+      }
+      x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+      y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+      el2.style.left = x + "px";
+      el2.style.top = y + "px";
+    }
+    function showDataflowHopTip(edge, ev) {
+      if (!edge) return;
+      if (ev && ev.pointerType === "touch") return;
+      if (typeof hideTip === "function") hideTip();
+      if (typeof hideSliceHopTip === "function") hideSliceHopTip();
+      const el2 = dataflowHopTipEl();
+      const from = edge.getAttribute("data-from") || "";
+      const to = edge.getAttribute("data-to") || "";
+      const kind = edge.getAttribute("data-kind") || "";
+      const fromName = dataflowHopTipName(from);
+      const toName = dataflowHopTipName(to);
+      const fromRole = dataflowHopTipRole(from);
+      const toRole = dataflowHopTipRole(to);
+      el2.setAttribute("data-from", from);
+      el2.setAttribute("data-to", to);
+      el2.setAttribute("data-kind", kind);
+      if (fromRole) el2.setAttribute("data-from-role", fromRole);
+      else el2.removeAttribute("data-from-role");
+      if (toRole) el2.setAttribute("data-to-role", toRole);
+      else el2.removeAttribute("data-to-role");
+      let html = '<div class="dht-head"><span class="dht-kind" data-dht-kind="1">' + esc(kind || "hop") + "</span></div>";
+      html += '<div class="dht-ends dht-hop" data-dht-hop="1"><code data-dht-from="1">' + esc(fromName) + '</code><span class="dht-arrow" aria-hidden="true">→</span><code data-dht-to="1">' + esc(toName) + "</code></div>";
+      const chips = [
+        ["from", fromRole],
+        ["to", toRole]
+      ].filter((x) => x[1]);
+      if (chips.length) {
+        html += '<div class="dht-chips dht-meta" data-dht-meta="1">';
+        for (const [end, role] of chips) {
+          html += '<span class="dht-chip dht-chip--' + esc(role) + '" data-df-role="' + esc(role) + '" data-dht-end="' + esc(end) + '">' + esc(role) + "</span>";
+        }
+        html += "</div>";
+      }
+      el2.innerHTML = html;
+      el2.hidden = false;
+      el2.setAttribute("aria-hidden", "false");
+      positionDataflowHopTip(el2, ev, edge);
+    }
+    function bindDataflowHopTip() {
+      const host = document.getElementById("dfCanvas");
+      if (!host) return;
+      if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+      host.querySelectorAll(".react-flow__edge[data-from][data-to][data-kind]").forEach((edge) => {
+        if (edge.dataset.dhtBound) return;
+        edge.dataset.dhtBound = "1";
+        edge.addEventListener("pointerenter", (ev) => {
+          if (ev && ev.pointerType === "touch") return;
+          showDataflowHopTip(edge, ev);
+        });
+        edge.addEventListener("pointermove", (ev) => {
+          if (ev && ev.pointerType === "touch") return;
+          const tipEl = document.getElementById("dataflowHopTip");
+          if (tipEl && !tipEl.hidden) positionDataflowHopTip(tipEl, ev, edge);
+        });
+        edge.addEventListener("pointerleave", () => hideDataflowHopTip());
+      });
+      host.querySelectorAll(".vnode, .df-node").forEach((g) => {
+        if (g.dataset.dhtNodeBound) return;
+        g.dataset.dhtNodeBound = "1";
+        g.addEventListener("pointerenter", () => hideDataflowHopTip());
+      });
+    }
+    function scheduleDataflowHopTipBind() {
+      if (typeof hideDataflowHopTip === "function" && !document.getElementById("dfCanvas")) {
+        hideDataflowHopTip();
+        return;
+      }
+      const run = () => {
+        if (typeof bindDataflowHopTip === "function") bindDataflowHopTip();
+      };
+      run();
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => {
+          run();
+          requestAnimationFrame(run);
+        });
+      }
+    }
     function paintDataflowWorkspace(title) {
       canvas.className = "play explorer-list";
       const html = renderDataflowBody();
@@ -30845,8 +31002,10 @@
       bindDfStoryScrub();
       applyDfStoryScrubPaint();
       syncDfStoryScrub();
+      if (typeof scheduleDataflowHopTipBind === "function") scheduleDataflowHopTipBind();
     }
     function bindDataflowPage() {
+      if (typeof scheduleDataflowHopTipBind === "function") scheduleDataflowHopTipBind();
       bindDfStoryScrub();
       applyDfStoryScrubPaint();
       syncDfStoryScrub();

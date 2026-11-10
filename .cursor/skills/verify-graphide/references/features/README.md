@@ -18,6 +18,7 @@ owns this folder.
 | [sequence.md](sequence.md) | Sequence workspace | `?sequence=1` · `verification/sequence.png` |
 | [dataflow.md](dataflow.md) | Data-flow workspace | `?dataflow=1` · `verification/dataflow.png` |
 | [dataflow-story-scrubber.md](dataflow-story-scrubber.md) | Dataflow story scrubber | explorer · `dataflow-story-scrubber.png` |
+| [dataflow-hop-tip.md](dataflow-hop-tip.md) | Dataflow hop tip | `?dataflow=1` · `verification/dataflow-hop-tip.png` |
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
 | [lifecycle-transition-overlay.md](lifecycle-transition-overlay.md) | Lifecycle transition event bars | `?lifecycle=1` · `verification/lifecycle-transition-overlay.png` |
 | [lifecycle-story-scrubber.md](lifecycle-story-scrubber.md) | Lifecycle story scrubber | `?lifecycle=1` · `verification/lifecycle-story-scrubber.png` |
