@@ -227,6 +227,7 @@ let mapEnterDistFocus = null; // ADE MED: 0|1|2|3 (3 means 3+)
 let mapEnterAttachFocus = null; // ADE MEA: attached|isolated
 let mapEnterPolarityFocus = null; // ADE MEP: out|in|both
 let mapEnterVerbSpanFocus = null; // ADE MEV: mix|mono
+let mapEnterHopDistanceFocus = null; // ADE EHD: out|in
 /** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
@@ -983,6 +984,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     mapEnterVerbSpanFocus = null;
     if (typeof applyMapEnterVerbSpanPaint === "function") applyMapEnterVerbSpanPaint();
+    return;
+  }
+  // ADE EHD: Escape clears Map enter hop-distance graphic focus when enter is open (stay in community).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    typeof enterCanvasActive === "function" &&
+    enterCanvasActive() &&
+    mapEnterHopDistanceFocus
+  ) {
+    e.preventDefault();
+    mapEnterHopDistanceFocus = null;
+    if (typeof applyMapEnterHopDistancePaint === "function") applyMapEnterHopDistancePaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -25254,10 +25268,207 @@ function syncMapEnterVerbSpanGraphic(inner) {
 }
 
 
+
+/** ADE EHD — painted enter hop walks farther from the Steiner tree (out) vs closer or level (in). */
+function mapEnterHopDistanceDistById(inner) {
+  const dist = {};
+  if (canvas) {
+    canvas.querySelectorAll("#enterCanvas .vnode[data-id][data-slice-dist]").forEach((el) => {
+      const id = el.getAttribute("data-id") || "";
+      const d = Number(el.getAttribute("data-slice-dist"));
+      if (id && Number.isFinite(d)) dist[id] = d;
+    });
+  }
+  for (const n of (inner && inner.nodes) || []) {
+    const id = String(idVal(n.id));
+    if (!id || dist[id] != null) continue;
+    const d = n.distance != null ? Number(n.distance) : n.sliceDist != null ? Number(n.sliceDist) : NaN;
+    if (Number.isFinite(d)) dist[id] = d;
+  }
+  return dist;
+}
+
+function mapEnterHopDistanceOf(hop, distById) {
+  if (!hop) return null;
+  if (hop.ehdCut === "out" || hop.ehdCut === "in") return hop.ehdCut;
+  const from = distById ? distById[String(idVal(hop.from))] : undefined;
+  const to = distById ? distById[String(idVal(hop.to))] : undefined;
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return from < to ? "out" : "in";
+}
+
+function mapEnterHopDistanceMetrics(inner) {
+  const hops = typeof enterEdgesAmong === "function" ? enterEdgesAmong((inner && inner.nodes) || []) : [];
+  const dist = mapEnterHopDistanceDistById(inner);
+  const m = { out: 0, in: 0, total: 0 };
+  for (const h of hops) {
+    const cut = mapEnterHopDistanceOf(h, dist);
+    if (cut === "out") m.out += 1;
+    else if (cut === "in") m.in += 1;
+    else continue;
+    m.total += 1;
+  }
+  return m;
+}
+
+function mapEnterHopDistanceGraphicHtml(inner) {
+  const m = mapEnterHopDistanceMetrics(inner);
+  if (!m.total) return "";
+  const focusing = !!mapEnterHopDistanceFocus;
+  const onFor = (key) => !!(mapEnterHopDistanceFocus && String(mapEnterHopDistanceFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="ehd-stat' +
+    (onFor(key) ? " ehd-now" : focusing ? " ehd-idle" : "") +
+    '" data-ehd-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-ehd-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="ehd-seg ehd-' +
+      esc(key) +
+      (onFor(key) ? " ehd-now" : focusing ? " ehd-idle" : "") +
+      '" data-ehd-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="ehd-strip' +
+    (focusing ? " ehd-focusing" : "") +
+    '" data-ehd="1" role="group" aria-label="Map enter hop-distance graphic">' +
+    '<span class="ehd-meta">Hop distance</span>' +
+    '<span class="ehd-counts">' +
+    stat("out", "out", m.out) +
+    stat("in", "in", m.in) +
+    "</span>" +
+    '<div class="ehd-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="ehd-bar-empty"></span>'
+      : seg("out", m.out) + seg("in", m.in)) +
+    "</div></div>"
+  );
+}
+
+function jumpMapEnterHopDistance(which) {
+  if (!which) return;
+  const key = String(which);
+  if (mapEnterHopDistanceFocus && String(mapEnterHopDistanceFocus) === key) mapEnterHopDistanceFocus = null;
+  else mapEnterHopDistanceFocus = key;
+  applyMapEnterHopDistancePaint();
+}
+
+function applyMapEnterHopDistancePaint(inner) {
+  if (!canvas) return;
+  const focus = mapEnterHopDistanceFocus ? String(mapEnterHopDistanceFocus) : "";
+  canvas.querySelectorAll(".ehd-stat[data-ehd-band], .ehd-seg[data-ehd-band]").forEach((el) => {
+    const key = el.getAttribute("data-ehd-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("ehd-now", on);
+    el.classList.toggle("ehd-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".ehd-strip");
+  if (strip) strip.classList.toggle("ehd-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("ehd-focusing", !!focus);
+  const cluster = canvas.querySelector(".enter-title-cuts");
+  if (cluster) cluster.classList.toggle("ehd-focusing", !!focus);
+  if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+  const dist = mapEnterHopDistanceDistById(inner);
+  canvas.querySelectorAll("#enterCanvas .react-flow__edge").forEach((el) => {
+    const hop = { from: el.getAttribute("data-from") || "", to: el.getAttribute("data-to") || "" };
+    const cut = mapEnterHopDistanceOf(hop, dist);
+    if (!cut) {
+      el.removeAttribute("data-ehd-cut");
+      el.classList.remove("ehd-hit", "ehd-idle");
+      return;
+    }
+    el.setAttribute("data-ehd-cut", cut);
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("ehd-hit", hit);
+    el.classList.toggle("ehd-idle", !!(focus && !hit));
+  });
+}
+
+function scheduleMapEnterHopDistancePaint(inner) {
+  const run = () => {
+    if (typeof applyMapEnterHopDistancePaint === "function") applyMapEnterHopDistancePaint(inner);
+  };
+  run();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      run();
+      requestAnimationFrame(run);
+    });
+  }
+}
+
+function bindMapEnterHopDistanceGraphic(inner) {
+  if (!canvas) return;
+  canvas.querySelectorAll(".ehd-stat[data-ehd-band], .ehd-seg[data-ehd-band]").forEach((el) => {
+    const key = el.getAttribute("data-ehd-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterHopDistance(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterHopDistance(key);
+    };
+  });
+  scheduleMapEnterHopDistancePaint(inner);
+}
+
+function syncMapEnterHopDistanceGraphic(inner) {
+  if (!canvas || typeof enterCanvasActive !== "function" || !enterCanvasActive()) {
+    const leftover = canvas && canvas.querySelector(".ehd-strip");
+    if (leftover) leftover.remove();
+    return;
+  }
+  const cluster = typeof ensureEnterTitleCuts === "function" ? ensureEnterTitleCuts() : null;
+  if (!cluster) return;
+  const html = mapEnterHopDistanceGraphicHtml(inner);
+  if (!html) {
+    const old = cluster.querySelector(".ehd-strip") || canvas.querySelector(".ehd-strip");
+    if (old) old.remove();
+    return;
+  }
+  if (!placeEnterTitleCut(cluster, ".ehd-strip[data-ehd='1']", html)) return;
+  bindMapEnterHopDistanceGraphic(inner);
+}
+
+
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
   noteShownMembers(nodes);
   const hops = enterEdgesAmong(nodes);
+  const ehdDist = {};
+  for (const n of nodes) {
+    const id = String(idVal(n.id));
+    const d = n.distance != null ? Number(n.distance) : NaN;
+    if (id && Number.isFinite(d)) ehdDist[id] = d;
+  }
+  for (const h of hops) {
+    h.ehdCut = mapEnterHopDistanceOf(h, ehdDist);
+  }
   const attached = new Set();
   for (const h of hops) {
     if (h.from) attached.add(String(idVal(h.from)));
@@ -25351,6 +25562,7 @@ function mountEnterCanvas(inner) {
   }
   renderEnterCanvas(host, enterCanvasProps(inner));
   stampXyFlowAttrs();
+  if (typeof scheduleMapEnterHopDistancePaint === "function") scheduleMapEnterHopDistancePaint(inner);
 }
 
 function renderInner(msg, animate, opts) {
@@ -25395,6 +25607,7 @@ function renderInner(msg, animate, opts) {
     if (typeof syncMapEnterAttachGraphic === "function") syncMapEnterAttachGraphic(inner);
     if (typeof syncMapEnterPolarityGraphic === "function") syncMapEnterPolarityGraphic(inner);
     if (typeof syncMapEnterVerbSpanGraphic === "function") syncMapEnterVerbSpanGraphic(inner);
+    if (typeof syncMapEnterHopDistanceGraphic === "function") syncMapEnterHopDistanceGraphic(inner);
   } else {
     unmountReviewCanvas();
     canvas.innerHTML =
@@ -25403,6 +25616,7 @@ function renderInner(msg, animate, opts) {
       (mapEnterDistFocus ? " med-focusing" : "") +
       (typeof mapEnterPolarityFocus !== "undefined" && mapEnterPolarityFocus ? " mep-focusing" : "") +
       (typeof mapEnterVerbSpanFocus !== "undefined" && mapEnterVerbSpanFocus ? " mev-focusing" : "") +
+      (typeof mapEnterHopDistanceFocus !== "undefined" && mapEnterHopDistanceFocus ? " ehd-focusing" : "") +
       '">' +
       '<div class="flow-title">Inside this community — walk lit, siblings grey · ' +
       nodes.length +
@@ -25413,6 +25627,7 @@ function renderInner(msg, animate, opts) {
       (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") +
       (typeof mapEnterPolarityGraphicHtml === "function" ? mapEnterPolarityGraphicHtml(inner) : "") +
       (typeof mapEnterVerbSpanGraphicHtml === "function" ? mapEnterVerbSpanGraphicHtml(inner) : "") +
+      (typeof mapEnterHopDistanceGraphicHtml === "function" ? mapEnterHopDistanceGraphicHtml(inner) : "") +
       "</div>" +
       '<div class="viewport" data-lod="0">' +
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
@@ -25427,6 +25642,7 @@ function renderInner(msg, animate, opts) {
   if (typeof bindMapEnterAttachGraphic === "function") bindMapEnterAttachGraphic();
   if (typeof bindMapEnterPolarityGraphic === "function") bindMapEnterPolarityGraphic();
   if (typeof bindMapEnterVerbSpanGraphic === "function") bindMapEnterVerbSpanGraphic();
+  if (typeof bindMapEnterHopDistanceGraphic === "function") bindMapEnterHopDistanceGraphic(inner);
   applyGraphFilter();
   applyEgoPaint();
   const leafNodes = nodes

@@ -7748,7 +7748,7 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 #sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
 
-/* ADE MWC + MED + MEA + MEP + MEV — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE MWC + MED + MEA + MEP + MEV + EHD — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.enter-title-cuts) > .flow-title,
 .stage:has(.mwc-strip) > .flow-title { max-width: calc(100% - 420px); }
 .enter-title-cuts {
@@ -7770,7 +7770,8 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 .enter-title-cuts .med-strip,
 .enter-title-cuts .mea-strip,
 .enter-title-cuts .mep-strip,
-.enter-title-cuts .mev-strip {
+.enter-title-cuts .mev-strip,
+.enter-title-cuts .ehd-strip {
   position: static;
   top: auto;
   right: auto;
@@ -8135,6 +8136,81 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
   box-shadow:
     inset 3px 0 0 #a78bfa,
     0 0 0 1px #a78bfa;
+}
+
+
+/* ADE EHD — Map enter hop-distance graphic (out vs in painted hops; not MED / MEP / MEV). */
+.ehd-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.ehd-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.ehd-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.ehd-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ehd-stat b { font-variant-numeric: tabular-nums; }
+.ehd-stat.ehd-now, .ehd-seg.ehd-now {
+  border-color: #06b6d4;
+  box-shadow: inset 0 0 0 1px #06b6d4;
+}
+.ehd-strip.ehd-focusing .ehd-stat.ehd-idle,
+.ehd-strip.ehd-focusing .ehd-seg.ehd-idle { opacity: 0.55; }
+.ehd-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.ehd-bar-empty { flex: 1; }
+.ehd-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.ehd-seg.ehd-out { background: color-mix(in srgb, #06b6d4 75%, transparent); }
+.ehd-seg.ehd-in { background: color-mix(in srgb, #f97316 75%, transparent); }
+#enterCanvas .react-flow__edge.ehd-hit:not(.dim) path,
+#enterCanvas .react-flow__edge.ehd-hit:not(.dim) .react-flow__edge-path {
+  stroke: #06b6d4;
+  stroke-width: 2.5px;
+}
+#enterCanvas .react-flow__edge.ehd-idle:not(.dim) {
+  opacity: 0.28;
 }
 
 

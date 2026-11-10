@@ -67,6 +67,7 @@ owns this folder.
 | [map-enter-attach.md](map-enter-attach.md) | Map enter-attach graphic | explorer enter · `verification/map-enter-attach.png` |
 | [map-enter-polarity.md](map-enter-polarity.md) | Map enter-polarity graphic | explorer enter · `verification/map-enter-polarity.png` |
 | [map-enter-verb-span.md](map-enter-verb-span.md) | Map enter verb-span graphic | explorer enter · `verification/map-enter-verb-span.png` |
+| [map-enter-hop-distance.md](map-enter-hop-distance.md) | Map enter hop-distance graphic | explorer enter · `verification/map-enter-hop-distance.png` |
 | [map-community-cut.md](map-community-cut.md) | Map community-cut graphic | explorer Map · `verification/map-community-cut.png` |
 | [map-run-cut.md](map-run-cut.md) | Map run-cut graphic | explorer Map · `verification/map-run-cut.png` |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
