@@ -444,6 +444,46 @@ fn last_path_seg(spec: &str) -> String {
         .to_string()
 }
 
+/// ADE DPR — workspace prefix when a module FQN is nested under an
+/// import package (`fixtures.python.pkg.sub` + `pkg` → `fixtures.python`).
+/// None when the module is already rooted at that package (`pkg.sub`).
+fn package_workspace_prefix(module_fqn: &str, sep: &str, first: &str) -> Option<String> {
+    if first.is_empty() {
+        return None;
+    }
+    if module_fqn == first || module_fqn.starts_with(&format!("{first}{sep}")) {
+        return None;
+    }
+    let needle = format!("{sep}{first}{sep}");
+    if let Some(index) = module_fqn.find(&needle) {
+        return Some(module_fqn[..index].to_string());
+    }
+    let suffix = format!("{sep}{first}");
+    if let Some(prefix) = module_fqn.strip_suffix(&suffix) {
+        return Some(prefix.to_string());
+    }
+    None
+}
+
+/// ADE DPR — rebase a non-relative package target onto the file's
+/// workspace prefix. Identity for official crate-root paths (`pkg/sub.py`).
+fn rebase_package_path(file: &str, sep: &str, target: &str) -> String {
+    if target.is_empty() {
+        return target.to_string();
+    }
+    let first = target.split(sep).next().unwrap_or("");
+    let module = module_fqn_from_path(file, sep);
+    if let Some(prefix) = package_workspace_prefix(&module, sep, first) {
+        if prefix.is_empty() {
+            target.to_string()
+        } else {
+            format!("{prefix}{sep}{target}")
+        }
+    } else {
+        target.to_string()
+    }
+}
+
 fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
     let spec = strip_src_ext(spec);
     let module = if spec.starts_with('.') {
@@ -474,14 +514,16 @@ fn import_target(file: &str, sep: &str, spec: &str, name: &str) -> String {
     } else {
         spec.replace('/', sep)
     };
-    if name == last_seg(&module, sep) {
-        return if module.is_empty() {
+    let target = if name == last_seg(&module, sep) {
+        if module.is_empty() {
             name.to_string()
         } else {
             module
-        };
-    }
-    qualify(&module, sep, name)
+        }
+    } else {
+        qualify(&module, sep, name)
+    };
+    rebase_package_path(file, sep, &target)
 }
 
 const CLASS_KINDS: &[&str] = &["class_declaration", "class_definition", "class_specifier"];
