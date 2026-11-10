@@ -245,6 +245,7 @@ let sliceRunTouchFocus = null; // ADE SRT: touch|off
 let sliceBridgePolarityFocus = null; // ADE SBP: out|in
 let sliceHopCommunityFocus = null; // ADE SHC: same|cross
 let sliceHaloHomeFocus = null; // ADE SHH: home|away
+let sliceFanDegreeFocus = null; // ADE SFD: single|multi
 /** ADE CPS — Call-path scrubber depth (0 = off). Directed Calls walk from selection. */
 let callPathDepth = 0;
 let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
@@ -832,6 +833,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     sliceHaloHomeFocus = null;
     if (typeof applySliceHaloHomePaint === "function") applySliceHaloHomePaint();
+    return;
+  }
+  // ADE SFD: Escape clears Slice fan-degree graphic focus when active (stay on Slice).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "slice" &&
+    sliceFanDegreeFocus
+  ) {
+    e.preventDefault();
+    sliceFanDegreeFocus = null;
+    if (typeof applySliceFanDegreePaint === "function") applySliceFanDegreePaint();
     return;
   }
   // ADE CFT: Escape clears cross-desk focus trail when active (Map/Slice/Sequence).
@@ -22459,6 +22472,9 @@ function renderFlowchart(msg, opts) {
   if (typeof syncSliceHaloHomeGraphic === "function") {
     syncSliceHaloHomeGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
   }
+  if (typeof syncSliceFanDegreeGraphic === "function") {
+    syncSliceFanDegreeGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+  }
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindCallPathStrip();
@@ -22645,7 +22661,7 @@ function ensureSliceTitleCuts() {
     cluster = document.createElement("div");
     cluster.className = "slice-title-cuts";
     cluster.setAttribute("data-slice-cuts", "1");
-    const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip");
+    const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip");
     if (loose && loose.parentElement === stage) {
       stage.insertBefore(cluster, loose);
       cluster.appendChild(loose);
@@ -22673,7 +22689,7 @@ function placeSliceTitleCut(cluster, sel, html) {
 function clearSliceTitleCutsIfEmpty() {
   if (!canvas) return;
   const cluster = canvas.querySelector(".slice-title-cuts");
-  if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip")) cluster.remove();
+  if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip")) cluster.remove();
 }
 
 function syncSliceWalkRoleGraphic(flow, graph, scars) {
@@ -23945,6 +23961,170 @@ function syncSliceHaloHomeGraphic(flow, graph, scars) {
 }
 
 
+
+/** ADE SFD — painted-hop fan degree (exactly one vs two or more). */
+function sliceFanDegreeOf(n, hops) {
+  if (!n) return "single";
+  if (n.sfdCut === "single" || n.sfdCut === "multi") return n.sfdCut;
+  const id = String(idVal(n.id || n) || "");
+  if (!id) return "single";
+  let d = 0;
+  for (const h of hops || []) {
+    if (String(h.from || "") === id || String(h.to || "") === id) d += 1;
+  }
+  return d >= 2 ? "multi" : "single";
+}
+
+function sliceFanDegreeMetrics(flow, graph, scars) {
+  const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { nodes: [] };
+  const m = { single: 0, multi: 0, total: 0 };
+  for (const n of props.nodes || []) {
+    const cut = sliceFanDegreeOf(n);
+    if (cut === "multi") m.multi += 1;
+    else m.single += 1;
+    m.total += 1;
+  }
+  return m;
+}
+
+function sliceFanDegreeGraphicHtml(flow, graph, scars) {
+  const m = sliceFanDegreeMetrics(flow, graph, scars);
+  if (!m.total) return "";
+  const focusing = !!sliceFanDegreeFocus;
+  const onFor = (key) => !!(sliceFanDegreeFocus && String(sliceFanDegreeFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="sfd-stat' +
+    (onFor(key) ? " sfd-now" : focusing ? " sfd-idle" : "") +
+    '" data-sfd-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-sfd-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="sfd-seg sfd-' +
+      esc(key) +
+      (onFor(key) ? " sfd-now" : focusing ? " sfd-idle" : "") +
+      '" data-sfd-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="sfd-strip' +
+    (focusing ? " sfd-focusing" : "") +
+    '" data-sfd="1" role="group" aria-label="Slice fan-degree graphic">' +
+    '<span class="sfd-meta">Fan degree</span>' +
+    '<span class="sfd-counts">' +
+    stat("single", "single", m.single) +
+    stat("multi", "multi", m.multi) +
+    "</span>" +
+    '<div class="sfd-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="sfd-bar-empty"></span>'
+      : seg("single", m.single) + seg("multi", m.multi)) +
+    "</div></div>"
+  );
+}
+
+function jumpSliceFanDegree(which) {
+  if (!which) return;
+  const key = String(which);
+  if (sliceFanDegreeFocus && String(sliceFanDegreeFocus) === key) sliceFanDegreeFocus = null;
+  else sliceFanDegreeFocus = key;
+  applySliceFanDegreePaint();
+}
+
+function applySliceFanDegreePaint() {
+  if (!canvas) return;
+  const focus = sliceFanDegreeFocus ? String(sliceFanDegreeFocus) : "";
+  canvas.querySelectorAll(".sfd-stat[data-sfd-band], .sfd-seg[data-sfd-band]").forEach((el) => {
+    const key = el.getAttribute("data-sfd-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("sfd-now", on);
+    el.classList.toggle("sfd-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".sfd-strip");
+  if (strip) strip.classList.toggle("sfd-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("sfd-focusing", !!focus);
+  const cluster = canvas.querySelector(".slice-title-cuts");
+  if (cluster) cluster.classList.toggle("sfd-focusing", !!focus);
+  canvas.querySelectorAll("#sliceCanvas .vnode").forEach((el) => {
+    let cut = el.getAttribute("data-sfd-cut") || "";
+    if (!cut) return;
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("sfd-hit", hit);
+    el.classList.toggle("sfd-idle", !!(focus && !hit));
+  });
+}
+
+function scheduleSliceFanDegreePaint() {
+  if (typeof applySliceFanDegreePaint === "function") applySliceFanDegreePaint();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      if (typeof applySliceFanDegreePaint === "function") applySliceFanDegreePaint();
+      requestAnimationFrame(() => {
+        if (typeof applySliceFanDegreePaint === "function") applySliceFanDegreePaint();
+      });
+    });
+  }
+}
+
+function bindSliceFanDegreeGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".sfd-stat[data-sfd-band], .sfd-seg[data-sfd-band]").forEach((el) => {
+    const key = el.getAttribute("data-sfd-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceFanDegree(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceFanDegree(key);
+    };
+  });
+  scheduleSliceFanDegreePaint();
+}
+
+function syncSliceFanDegreeGraphic(flow, graph, scars) {
+  if (!canvas || explorerWs !== "slice") {
+    const leftover = canvas && canvas.querySelector(".sfd-strip");
+    if (leftover) leftover.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  const cluster = ensureSliceTitleCuts();
+  if (!cluster) return;
+  const html = sliceFanDegreeGraphicHtml(flow, graph, scars);
+  if (!html) {
+    const old = cluster.querySelector(".sfd-strip") || canvas.querySelector(".sfd-strip");
+    if (old) old.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  if (!placeSliceTitleCut(cluster, ".sfd-strip[data-sfd='1']", html)) return;
+  bindSliceFanDegreeGraphic();
+}
+
+
 function sliceCanvasProps(flow, graph, scars) {
   const treeNodes = (flow && flow.tree && flow.tree.nodes) || [];
   const treeEdges = (flow && flow.tree && flow.tree.edges) || [];
@@ -24041,6 +24221,7 @@ function sliceCanvasProps(flow, graph, scars) {
   }
   for (const n of items) {
     n.shhCut = sliceHaloHomeOf(n, hops, treeIdSet);
+    n.sfdCut = sliceFanDegreeOf(n, hops);
   }
   return {
     nodes: items,
@@ -24077,6 +24258,7 @@ function mountSliceCanvas(flow, graph, scars) {
   if (typeof scheduleSliceBridgePolarityPaint === "function") scheduleSliceBridgePolarityPaint();
   if (typeof scheduleSliceHopCommunityPaint === "function") scheduleSliceHopCommunityPaint();
   if (typeof scheduleSliceHaloHomePaint === "function") scheduleSliceHaloHomePaint();
+  if (typeof scheduleSliceFanDegreePaint === "function") scheduleSliceFanDegreePaint();
 }
 
 function renderSteiner(flow, graph, animate, scars) {

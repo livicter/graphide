@@ -1500,6 +1500,21 @@ assert(shhMap.includes("SHH1") && shhMap.includes("shh-strip") && shhMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-home.md")), "slice-halo-home feature map missing");
 assert(featReadme.includes("slice-halo-home.md") && featReadme.includes("slice-halo-home.png"), "feature README must list slice-halo-home.md");
 
+const sfdMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-fan-degree.md"), "utf8");
+assert(
+  sfdMap.includes("## Sub-features") &&
+    sfdMap.includes("## How to get to it (user POV)") &&
+    sfdMap.includes("## Driving it with the harness") &&
+    sfdMap.includes("## Gotchas"),
+  "slice-fan-degree feature map must use the four headings"
+);
+assert(driver.includes("SFD1") && driver.includes("SFD3") && driver.includes("slice-fan-degree.png") && driver.includes("sfd-stat"), "verify driver must prove Slice fan-degree graphic SFD1–SFD3");
+assert(css.includes(".sfd-strip") && css.includes(".sfd-stat") && css.includes(".sfd-bar") && css.includes("sfd-hit"), "main.css must style Slice fan-degree graphic");
+assert(sfdMap.includes("SFD1") && sfdMap.includes("sfd-strip") && sfdMap.includes("slice-fan-degree.png") && sfdMap.includes("peekSource"), "slice-fan-degree feature map must name SFD / sfd-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-fan-degree.md")), "slice-fan-degree feature map missing");
+assert(featReadme.includes("slice-fan-degree.md") && featReadme.includes("slice-fan-degree.png"), "feature README must list slice-fan-degree.md");
+
+
 const mepMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md"), "utf8");
 assert(
   mepMap.includes("## Sub-features") &&

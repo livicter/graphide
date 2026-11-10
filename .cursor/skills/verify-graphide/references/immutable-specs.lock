@@ -1,9 +1,9 @@
 # graphide immutable specs v1
-# seal-sha256: 60ea41573e996c88d1cead4e4b1e971f75ccf6a133761dc4d23a64e2aa48832a
+# seal-sha256: 08d4a7b2d9c8f7d1c497557f292ba32dcd79a348ed54273a47fe9405910994a2
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
-63250754bc379aad31cb1965fcf1fe449fdd25d282e02a9ed769e489c1ff030c  .cursor/skills/verify-graphide/references/features/README.md
+c438b4de870f5d2be15df574c9cba5ab32a223e1f216600ece1a62ba07e8bbda  .cursor/skills/verify-graphide/references/features/README.md
 f5a35dc3f3c3ae3b7252cc5aec3e49f238de19650a70ce8a8cb72965789b78eb  .cursor/skills/verify-graphide/references/features/all-programs.md
 7c7d00eadb50157f5657847d7af7beb74aa40f151ea3c4e39b038b2ae01b93d5  .cursor/skills/verify-graphide/references/features/appearance.md
 1b3c3df8548e0c7fada59be5dd9853df5c2aab4140a81b50467191c5eb4eb0f0  .cursor/skills/verify-graphide/references/features/apple-chrome-icons.md
@@ -79,6 +79,7 @@ bcaaace080bbf642c809cb6c560150ba73f1173896866d8a7f028003e930a0de  .cursor/skills
 4c651c43edf76017f061ddfe75f80d6e3b7c7eb154e6abc24396f5190d34c403  .cursor/skills/verify-graphide/references/features/sequence.md
 dd4e82f4ea5365ec422539a9daa1e7b76c7ba8bd7eb5034efe753894435bb947  .cursor/skills/verify-graphide/references/features/slice-bridge-polarity.md
 08beba40c98a3c61ce9c308fd11b84622fa1117e38ca1b9ae51bc556dc751954  .cursor/skills/verify-graphide/references/features/slice-enter-recycle.md
+8d54cb78700e0e5df162404ef4fa9f34f2b8ddad199b719e58d88040d10a32fb  .cursor/skills/verify-graphide/references/features/slice-fan-degree.md
 4c083096601f3ebca8bce1908d6299efadd21903462c47f1b40ee68428406a3d  .cursor/skills/verify-graphide/references/features/slice-grey.md
 5803d54e567fb9496b55f55b6b301e5c3e409ac3ad397fbdfa322a29083871ca  .cursor/skills/verify-graphide/references/features/slice-halo-attach.md
 32d27b7fff7937bdf3c9aac944dd69a40d29d42d7f46a889811c72802693cb61  .cursor/skills/verify-graphide/references/features/slice-halo-home.md
@@ -104,6 +105,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-3e5c1838c149a00a881440c72c727789c6c7b638a65109edb4ce9999616029ee  extension/scripts/check-map.js
+f69859d6514059427c09b7275470c92e49aaf78362ca497777fefdb7b7e67bad  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-1d2f9f1a86f679c1b4d13971d35bd27629c03ebd7d14b17d50c68dfd60408bb2  scripts/verify-graphide.js
+c62a7631907ee51b0fc4d5e5d3740609e4296cf5d354bdc49326bbd9a6f563c0  scripts/verify-graphide.js
