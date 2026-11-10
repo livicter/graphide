@@ -90,6 +90,7 @@ owns this folder.
 | [slice-walk-hop.md](slice-walk-hop.md) | Slice walk-hop graphic | explorer Slice · `verification/slice-walk-hop.png` |
 | [slice-halo-attach.md](slice-halo-attach.md) | Slice halo-attach graphic | explorer Slice · `verification/slice-halo-attach.png` |
 | [slice-run-touch.md](slice-run-touch.md) | Slice run-touch graphic | explorer Slice · `verification/slice-run-touch.png` |
+| [slice-bridge-polarity.md](slice-bridge-polarity.md) | Slice bridge-polarity graphic | explorer Slice · `verification/slice-bridge-polarity.png` |
 | [slice-runs.md](slice-runs.md) | Slice subsystem-run boxes + enter | explorer Slice · `.run` · `slice-runs.png` |
 | [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |

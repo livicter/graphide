@@ -17573,7 +17573,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17767,7 +17767,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17959,7 +17959,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18156,7 +18156,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18352,7 +18352,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18405,6 +18405,210 @@ async function main() {
         "Slice run-touch clicks did not post peekSource / showHop / open source",
         afterSrtPosts.after === afterSrtPosts.before && !afterSrtPosts.peek,
         JSON.stringify(afterSrtPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice bridge-polarity graphic (SBP1–SBP5) — out vs in halo-bridge hops; same Slice desk as SRT
+    {
+      await page.waitForSelector(".sbp-strip[data-sbp='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sbp-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeSbpPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const sbp1 = await page.evaluate(() => {
+        const strip = document.querySelector(".sbp-strip[data-sbp='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".sbp-stat[data-sbp-band]")].map((el) => ({
+          band: el.getAttribute("data-sbp-band"),
+          n: Number((el.querySelector("[data-sbp-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".sbp-seg[data-sbp-band]")].map((el) => el.getAttribute("data-sbp-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sbp-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { walk: 0, out: 0, in: 0, outer: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-sbp-cut") || "";
+          if (c === "walk" || c === "out" || c === "in" || c === "outer") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".srt-strip[data-srt='1']") && cluster.querySelector(".sha-strip[data-sha='1']") && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          srt: !!document.querySelector(".srt-strip[data-srt='1']"),
+          sha: !!document.querySelector(".sha-strip[data-sha='1']"),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.walk + byCut.out + byCut.in + byCut.outer,
+          byCut,
+          out: nOf("out"),
+          inn: nOf("in"),
+          sum: nOf("out") + nOf("in"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+          walkBand: !!stats.find((s) => s.band === "walk"),
+          outerBand: !!stats.find((s) => s.band === "outer"),
+        };
+      });
+      const sbp1ok =
+        sbp1.strip &&
+        sbp1.cluster &&
+        sbp1.srt &&
+        sbp1.sha &&
+        sbp1.swh &&
+        sbp1.ste &&
+        sbp1.swr &&
+        sbp1.sliceOn &&
+        sbp1.canvas &&
+        sbp1.out === 15 &&
+        sbp1.inn === 7 &&
+        sbp1.sum === 22 &&
+        sbp1.stamped === 32 &&
+        sbp1.byCut.walk === 8 &&
+        sbp1.byCut.out === 15 &&
+        sbp1.byCut.in === 7 &&
+        sbp1.byCut.outer === 2 &&
+        sbp1.segs.length === 2 &&
+        !sbp1.walkBand &&
+        !sbp1.outerBand &&
+        sbp1.pressed === 0 &&
+        sbp1.srcHidden;
+      record(
+        "SBP1",
+        "Slice bridge-polarity graphic shows 15 out / 7 in of 22 bridge hops, matching data-sbp-cut; no walk/outer band; SRT/SHA/SWH/STE/SWR stay; no source",
+        !!sbp1ok,
+        JSON.stringify(sbp1)
+      );
+
+      const inBtn = page.locator('.sbp-stat[data-sbp-band="in"]').first();
+      await inBtn.click();
+      await page.waitForTimeout(80);
+      const sbp2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sbp-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("sbp-hit"));
+        const dims = edges.filter((el) => el.classList.contains("sbp-dim"));
+        const inHits = hits.filter((el) => el.getAttribute("data-sbp-cut") === "in");
+        const inPressed = document.querySelector('.sbp-stat[data-sbp-band="in"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          inHits: inHits.length,
+          inPressed: !!inPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sbp2ok =
+        sbp2.sliceOn &&
+        sbp2.hits === 7 &&
+        sbp2.inHits === 7 &&
+        sbp2.dims === 25 &&
+        sbp2.inPressed &&
+        sbp2.srcHidden;
+      record(
+        "SBP2",
+        "Click In highlights the 7 inbound Slice hops; Slice stays; no source",
+        !!sbp2ok,
+        JSON.stringify(sbp2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const sbp3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.sbp-hit").length;
+        const pressed = document.querySelectorAll('.sbp-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".sbp-strip.sbp-focusing, .stage.sbp-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SBP3",
+        "Escape clears bridge-polarity graphic focus; Slice stays; no source",
+        !!(sbp3.sliceOn && sbp3.hits === 0 && sbp3.pressed === 0 && !sbp3.focusing && sbp3.srcHidden),
+        JSON.stringify(sbp3)
+      );
+
+      const sbp4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const sbp4ok = !!(sbp4 && !sbp4.missing && sbp4.inNode && !sbp4.hitStrip && sbp4.srcHidden && sbp4.slice);
+      record(
+        "SBP4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!sbp4ok,
+        JSON.stringify(sbp4)
+      );
+
+      await inBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-bridge-polarity.png");
+      const sbpShot = checks.find((c) => c.id === "shot:slice-bridge-polarity.png");
+      const sbp5ok = !!(sbp1ok && sbp2ok && sbp3 && sbp3.sliceOn && sbp4ok && sbpShot && sbpShot.pass);
+      record(
+        "SBP5",
+        "screenshot slice-bridge-polarity.png is not a black frame; Slice bridge-polarity graphic proven",
+        !!sbp5ok,
+        JSON.stringify({
+          shot: sbpShot ? sbpShot.detail : "missing",
+          sbp1: !!sbp1ok,
+          sbp2: !!sbp2ok,
+          sbp3: !!(sbp3 && sbp3.sliceOn && sbp3.hits === 0),
+          sbp4: !!sbp4ok,
+        })
+      );
+      assertNoStampDir("SBP5b", "Slice bridge-polarity graphic step did not write .graphide/stamps/");
+      const afterSbpPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeSbpPosts);
+      record(
+        "SBP5c",
+        "Slice bridge-polarity clicks did not post peekSource / showHop / open source",
+        afterSbpPosts.after === afterSbpPosts.before && !afterSbpPosts.peek,
+        JSON.stringify(afterSbpPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
