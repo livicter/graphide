@@ -17015,7 +17015,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17209,7 +17209,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17262,6 +17262,198 @@ async function main() {
         "Slice tree-edge clicks did not post peekSource / showHop / open source",
         afterStePosts.after === afterStePosts.before && !afterStePosts.peek,
         JSON.stringify(afterStePosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice walk-hop graphic (SWH1–SWH5) — walk vs halo hop mass; same Slice desk as STE
+    {
+      await page.waitForSelector(".swh-strip[data-swh='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-swh-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeSwhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const swh1 = await page.evaluate(() => {
+        const strip = document.querySelector(".swh-strip[data-swh='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".swh-stat[data-swh-band]")].map((el) => ({
+          band: el.getAttribute("data-swh-band"),
+          n: Number((el.querySelector("[data-swh-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".swh-seg[data-swh-band]")].map((el) => el.getAttribute("data-swh-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-swh-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { walk: 0, halo: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-swh-cut") || "";
+          if (c === "walk" || c === "halo") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.walk + byCut.halo,
+          byCut,
+          walk: nOf("walk"),
+          halo: nOf("halo"),
+          sum: nOf("walk") + nOf("halo"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const swh1ok =
+        swh1.strip &&
+        swh1.cluster &&
+        swh1.ste &&
+        swh1.swr &&
+        swh1.sliceOn &&
+        swh1.canvas &&
+        swh1.walk === 8 &&
+        swh1.halo === 24 &&
+        swh1.sum === 32 &&
+        swh1.stamped === 32 &&
+        swh1.walk === swh1.byCut.walk &&
+        swh1.halo === swh1.byCut.halo &&
+        swh1.segs.length === 2 &&
+        swh1.pressed === 0 &&
+        swh1.srcHidden;
+      record(
+        "SWH1",
+        "Slice walk-hop graphic shows 8 walk / 24 halo of 32 hops, matching data-swh-cut; STE/SWR stay; no source",
+        !!swh1ok,
+        JSON.stringify(swh1)
+      );
+
+      const haloBtn = page.locator('.swh-stat[data-swh-band="halo"]').first();
+      await haloBtn.click();
+      await page.waitForTimeout(80);
+      const swh2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-swh-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("swh-hit"));
+        const dims = edges.filter((el) => el.classList.contains("swh-dim"));
+        const haloHits = hits.filter((el) => el.getAttribute("data-swh-cut") === "halo");
+        const haloPressed = document.querySelector('.swh-stat[data-swh-band="halo"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          haloHits: haloHits.length,
+          haloPressed: !!haloPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const swh2ok =
+        swh2.sliceOn &&
+        swh2.hits === 24 &&
+        swh2.haloHits === 24 &&
+        swh2.dims === 8 &&
+        swh2.haloPressed &&
+        swh2.srcHidden;
+      record(
+        "SWH2",
+        "Click Halo highlights the 24 halo Slice hops; Slice stays; no source",
+        !!swh2ok,
+        JSON.stringify(swh2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const swh3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.swh-hit").length;
+        const pressed = document.querySelectorAll('.swh-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".swh-strip.swh-focusing, .stage.swh-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SWH3",
+        "Escape clears walk-hop graphic focus; Slice stays; no source",
+        !!(swh3.sliceOn && swh3.hits === 0 && swh3.pressed === 0 && !swh3.focusing && swh3.srcHidden),
+        JSON.stringify(swh3)
+      );
+
+      const swh4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const swh4ok = !!(swh4 && !swh4.missing && swh4.inNode && !swh4.hitStrip && swh4.srcHidden && swh4.slice);
+      record(
+        "SWH4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!swh4ok,
+        JSON.stringify(swh4)
+      );
+
+      await haloBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-walk-hop.png");
+      const swhShot = checks.find((c) => c.id === "shot:slice-walk-hop.png");
+      const swh5ok = !!(swh1ok && swh2ok && swh3 && swh3.sliceOn && swh4ok && swhShot && swhShot.pass);
+      record(
+        "SWH5",
+        "screenshot slice-walk-hop.png is not a black frame; Slice walk-hop graphic proven",
+        !!swh5ok,
+        JSON.stringify({
+          shot: swhShot ? swhShot.detail : "missing",
+          swh1: !!swh1ok,
+          swh2: !!swh2ok,
+          swh3: !!(swh3 && swh3.sliceOn && swh3.hits === 0),
+          swh4: !!swh4ok,
+        })
+      );
+      assertNoStampDir("SWH5b", "Slice walk-hop graphic step did not write .graphide/stamps/");
+      const afterSwhPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeSwhPosts);
+      record(
+        "SWH5c",
+        "Slice walk-hop clicks did not post peekSource / showHop / open source",
+        afterSwhPosts.after === afterSwhPosts.before && !afterSwhPosts.peek,
+        JSON.stringify(afterSwhPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
