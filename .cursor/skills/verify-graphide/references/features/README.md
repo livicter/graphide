@@ -24,6 +24,7 @@ owns this folder.
 | [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 · ZC1–ZC3 zoom chrome |
 | [trajectory-story-scrubber.md](trajectory-story-scrubber.md) | Trajectory story scrubber | Trace · `trajectory-story-scrubber.png` |
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` · `passport-fixtures.png` · PF1–PF5 |
+| [passport-impact-layer.md](passport-impact-layer.md) | Passport impact/layer graphic | explorer Passport · `verification/passport-impact-layer.png` |
 | [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` · `#adeSealChip` · SC1–SC3 · `seal-status-chip.png` |
 | [fs-sandbox.md](fs-sandbox.md) | Product-path FS sandbox stub (ADE) | `--gate-write` · I6–I8 |
 | [write-bus.md](write-bus.md) | Agent write-bus stub (ADE) | `agent-write-bus.js` · I9–I11 |

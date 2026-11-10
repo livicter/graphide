@@ -20127,6 +20127,7 @@
     let decisionAttestFilter = null;
     let decisionChainFocus = null;
     let passportDeltaFilter = null;
+    let passportImpactLayerFocus = null;
     let structuralDiffFilter = null;
     let lifecycleTransitionFilter = null;
     let registryAuditFilter = null;
@@ -20572,6 +20573,12 @@
         passportDeltaFilter = null;
         applyPassportDeltaPaint();
         syncPassportDeltaBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "passport" && passportImpactLayerFocus) {
+        e.preventDefault();
+        passportImpactLayerFocus = null;
+        if (typeof applyPassportImpactLayerPaint === "function") applyPassportImpactLayerPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "trace" && trajStoryCursor >= 0) {
@@ -32517,6 +32524,135 @@
       const trajId = resolvePassportTrajId(item);
       return '<li class="passport-impact-row' + staticClass + passportRowActiveClass(trajId) + '" data-impact-row="' + esc(id2) + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '"' : "") + passportRowActiveAttr(trajId) + (status2 ? ' data-delta-status="' + esc(status2) + '"' : "") + (klass ? ' data-delta-class="' + esc(klass) + '"' : "") + (cluster ? ' data-cluster-kind="' + esc(cluster) + '"' : "") + expandAttrs + '><div class="passport-impact-head">' + renderPassportDeltaChip("status", status2) + renderPassportDeltaChip("class", klass) + renderPassportDeltaChip("cluster", cluster) + '<strong class="passport-impact-label">' + esc(item.label || id2) + "</strong>" + renderAdeTrajHop(trajId) + "</div>" + (hasDetail ? '<div class="passport-impact-detail">' + esc(item.detail) + "</div>" : "") + "</li>";
     }
+    const PASSPORT_LAYER_ORDER = ["architecture", "chrome", "harness", "trace"];
+    const PASSPORT_IMPACT_FAMILIES = [
+      ["callGraphs", "Call graphs"],
+      ["apiContracts", "API contracts"],
+      ["invariants", "Invariants"]
+    ];
+    function passportLayerEntries(fx) {
+      const map = /* @__PURE__ */ new Map();
+      const seen = [];
+      for (const t of fx && fx.targets || []) {
+        const layer = String(t && t.layer || "").trim();
+        if (!layer) continue;
+        if (!map.has(layer)) {
+          map.set(layer, { n: 0, ticks: /* @__PURE__ */ new Map() });
+          seen.push(layer);
+        }
+        const rec = map.get(layer);
+        rec.n += 1;
+        const st2 = String(t && t.deltaStatus || "").trim();
+        if (st2) rec.ticks.set(st2, (rec.ticks.get(st2) || 0) + 1);
+      }
+      const order = [];
+      for (const k of PASSPORT_LAYER_ORDER) {
+        if (map.has(k)) order.push(k);
+      }
+      for (const k of seen) {
+        if (order.indexOf(k) < 0) order.push(k);
+      }
+      return order.map((k) => [k, map.get(k)]);
+    }
+    function passportImpactFamilyEntries(fx) {
+      const impact = fx && fx.impact || {};
+      const out = [];
+      for (const pair of PASSPORT_IMPACT_FAMILIES) {
+        const key = pair[0];
+        const items = impact[key] || [];
+        if (!items.length) continue;
+        const ticks = /* @__PURE__ */ new Map();
+        for (const item of items) {
+          const cls = item && typeof item === "object" ? String(item.deltaClass || "").trim() : "";
+          if (cls) ticks.set(cls, (ticks.get(cls) || 0) + 1);
+        }
+        out.push([key, { n: items.length, label: pair[1], ticks }]);
+      }
+      return out;
+    }
+    function passportImpactLayerRowHtml(axis, key, label, rec, max) {
+      const n = rec.n || 0;
+      const maxN = Math.max(1, max);
+      const pct = Math.round(n / maxN * 100);
+      const on2 = !!(passportImpactLayerFocus && passportImpactLayerFocus.axis === axis && String(passportImpactLayerFocus.value) === String(key));
+      const tickHtml = [...(rec.ticks || /* @__PURE__ */ new Map()).keys()].map((tk) => {
+        return '<i class="pil-tick" data-pil-tick="' + esc(tk) + '" title="' + esc(tk + " · " + rec.ticks.get(tk)) + '"></i>';
+      }).join("");
+      return '<button type="button" class="pil-row' + (on2 ? " pil-now" : passportImpactLayerFocus ? " pil-idle" : "") + '" data-pil-axis="' + esc(axis) + '" data-pil-key="' + esc(key) + '" aria-pressed="' + (on2 ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><span class="pil-name">' + esc(label) + '</span><span class="pil-n" data-pil-n="' + esc(axis + ":" + key) + '">' + n + '</span><svg class="pil-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="pil-bar-track" x="0" y="0" width="100" height="8"></rect><rect class="pil-bar-fill" x="0" y="0" width="' + pct + '" height="8"></rect></svg><span class="pil-ticks" aria-hidden="true">' + tickHtml + "</span></button>";
+    }
+    function passportImpactLayerGraphicHtml(fx) {
+      const layers = passportLayerEntries(fx);
+      const families = passportImpactFamilyEntries(fx);
+      if (!layers.length && !families.length) return "";
+      const layerMax = Math.max(1, ...layers.map((e) => e[1].n));
+      const impactMax = Math.max(1, ...families.map((e) => e[1].n));
+      const layerRows = layers.map((e) => passportImpactLayerRowHtml("layer", e[0], e[0], e[1], layerMax)).join("");
+      const impactRows = families.map((e) => passportImpactLayerRowHtml("impact", e[0], e[1].label, e[1], impactMax)).join("");
+      const focusing = !!passportImpactLayerFocus;
+      return '<div class="pil-strip' + (focusing ? " pil-focusing" : "") + '" data-pil="1" role="group" aria-label="Passport impact and layer graphic">' + (layerRows ? '<div class="pil-col" data-pil-col="layer"><span class="pil-col-k">Layers</span>' + layerRows + "</div>" : "") + (impactRows ? '<div class="pil-col" data-pil-col="impact"><span class="pil-col-k">Impact</span>' + impactRows + "</div>" : "") + "</div>";
+    }
+    function togglePassportImpactLayer(axis, key) {
+      if (!axis || !key) return;
+      const cur = passportImpactLayerFocus;
+      if (cur && cur.axis === axis && String(cur.value) === String(key)) {
+        passportImpactLayerFocus = null;
+      } else {
+        passportImpactLayerFocus = { axis: String(axis), value: String(key) };
+      }
+      applyPassportImpactLayerPaint();
+    }
+    function syncPassportImpactLayerRows() {
+      if (!canvas) return;
+      const cur = passportImpactLayerFocus;
+      canvas.querySelectorAll(".pil-row[data-pil-axis][data-pil-key]").forEach((el2) => {
+        const on2 = !!(cur && cur.axis === (el2.getAttribute("data-pil-axis") || "") && String(cur.value) === (el2.getAttribute("data-pil-key") || ""));
+        el2.classList.toggle("pil-now", on2);
+        el2.classList.toggle("pil-idle", !!(cur && !on2));
+        el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".pil-strip");
+      if (strip) strip.classList.toggle("pil-focusing", !!cur);
+      const page = document.getElementById("passportPage");
+      if (page) page.classList.toggle("pil-focusing", !!cur);
+    }
+    function applyPassportImpactLayerPaint() {
+      if (!canvas) return;
+      const cur = passportImpactLayerFocus;
+      const layerOn = !!(cur && cur.axis === "layer");
+      const impactOn = !!(cur && cur.axis === "impact");
+      canvas.querySelectorAll('[data-passport="targets"] [data-passport-layer]').forEach((el2) => {
+        const layer = el2.getAttribute("data-passport-layer") || "";
+        const hit = !!(layerOn && layer === cur.value);
+        const dim = !!(layerOn && layer !== cur.value);
+        el2.classList.toggle("pil-row-now", hit);
+        el2.classList.toggle("pil-row-dim", dim);
+      });
+      canvas.querySelectorAll("#passportImpact .passport-impact-card[data-impact]").forEach((el2) => {
+        const key = el2.getAttribute("data-impact") || "";
+        const hit = !!(impactOn && key === cur.value);
+        const dim = !!(impactOn && key !== cur.value);
+        el2.classList.toggle("pil-row-now", hit);
+        el2.classList.toggle("pil-row-dim", dim);
+      });
+      syncPassportImpactLayerRows();
+    }
+    function bindPassportImpactLayerGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".pil-row[data-pil-axis][data-pil-key]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          togglePassportImpactLayer(el2.getAttribute("data-pil-axis"), el2.getAttribute("data-pil-key"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          togglePassportImpactLayer(el2.getAttribute("data-pil-axis"), el2.getAttribute("data-pil-key"));
+        };
+      });
+      applyPassportImpactLayerPaint();
+    }
     function renderPassportImpact(fx) {
       const impact = fx.impact || {};
       const card = (key, title, items) => '<div class="passport-impact-card" data-impact="' + esc(key) + '"><h4>' + esc(title) + "</h4><ul>" + (items || []).map((s) => renderPassportImpactItem(s)).join("") + "</ul></div>";
@@ -32559,7 +32695,7 @@
         const trajId = resolvePassportTrajId(x);
         return '<li class="passport-row' + passportRowActiveClass(trajId) + '" data-passport-test="' + esc(x.id || "") + '"' + (trajId ? ' data-ade-traj="' + esc(trajId) + '" data-ade-test-traj="1"' : "") + passportRowActiveAttr(trajId) + '><div class="passport-row-head"><code class="passport-test-kind">' + esc(x.kind || "") + "</code> " + esc(x.desc || "") + renderAdeTrajHop(trajId) + "</div>" + (x.fixture ? '<div class="passport-row-meta" data-passport-fixture="' + esc(x.id || "") + '"><span class="passport-meta-k">fixture</span> <code>' + esc(x.fixture) + "</code></div>" : "") + (x.covers ? '<div class="passport-row-meta" data-passport-covers="' + esc(x.id || "") + '"><span class="passport-meta-k">covers</span> ' + esc(x.covers) + "</div>" : "") + "</li>";
       }).join("");
-      return '<div id="passportPage" class="passport-page"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + renderPassportSection(
+      return '<div id="passportPage" class="passport-page' + (passportImpactLayerFocus ? " pil-focusing" : "") + '"><div class="ade-hop-row">' + renderAdeHop("trace", "← Open Trace") + renderSealStatusChip() + '<span class="ade-hop-hint">preserves traj focus · gate · contract/risk/test Open in Trace · seal stub · no live Delta</span></div><div class="outcome-strip passport-outcome"><span class="outcome-k">' + esc(fx.title || "Plan Passport") + " · " + esc(fx.id || "") + ' · fixture</span><span class="passport-outcome-counts">' + (fx.targets || []).length + " targets · " + (fx.contracts || []).length + " contracts · " + (fx.risks || []).length + " risks · " + (fx.testStrategy || []).length + " tests</span></div>" + renderPassportGate(fx, state) + passportImpactLayerGraphicHtml(fx) + renderPassportSection(
         "targets",
         "Architecture targets",
         "<ul>" + targets + "</ul>",
@@ -32688,6 +32824,7 @@
       if (typeof bindResidualFilterCountChipHints === "function") bindResidualFilterCountChipHints();
       if (typeof bindPassportDeltaChart === "function") bindPassportDeltaChart();
       if (typeof applyPassportDeltaPaint === "function") applyPassportDeltaPaint();
+      if (typeof bindPassportImpactLayerGraphic === "function") bindPassportImpactLayerGraphic();
       bindPassportImpactRows();
       bindAdeHopButtons();
       bindAdeTrajHops();

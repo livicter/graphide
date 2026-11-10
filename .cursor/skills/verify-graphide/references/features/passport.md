@@ -197,3 +197,7 @@ Driver assertions:
   `architecture_delta`, `delta-snap.json`, or `#deltaCanvas`.
 - Product hooks for the vocab stub: `#passportDeltaVocab`,
   `[data-vocab-chip]`, `[data-impact-region]`. Keep sibling Delta tab.
+
+## ADE PIL — Passport impact/layer graphic
+
+See [passport-impact-layer.md](passport-impact-layer.md). Two-column plan-shape graphic of target layers and impact families after the gate. Click focuses matching rows or impact cards; Escape clears after PTD. No live `#deltaCanvas`, no peekSource, no XYFlow.
