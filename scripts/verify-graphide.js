@@ -47403,6 +47403,258 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Dataflow hop tip (DHT1–DHT5) — TEH/SHT-style hover tip on Data-flow hops; no title-band
+    await page.waitForFunction(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      return !!(edge && edge.getAttribute("data-from") && edge.getAttribute("data-to"));
+    }, { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const beforeDhtPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const dht1 = await page.evaluate(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const titled = !!edge.querySelector("title") || !!document.querySelector("#dfCanvas .react-flow__edge title, #dfCanvas svg title");
+      return {
+        ok: true,
+        from: edge.getAttribute("data-from") || "",
+        to: edge.getAttribute("data-to") || "",
+        kind: edge.getAttribute("data-kind") || "",
+        cursor: getComputedStyle(edge).cursor,
+        titled,
+      };
+    });
+    const dht1ok = !!(
+      dht1 &&
+      dht1.ok &&
+      dht1.from &&
+      dht1.to &&
+      dht1.kind === "Publishes" &&
+      dht1.cursor === "help" &&
+      !dht1.titled
+    );
+    record(
+      "DHT1",
+      "Publishes Data-flow hop carries from/to/kind; cursor:help; no SVG <title>",
+      !!dht1ok,
+      JSON.stringify(dht1)
+    );
+
+    const dht2 = await page.evaluate(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const rect = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 1,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("dataflowHopTip");
+      const tipKind = tip && tip.querySelector("[data-dht-kind]");
+      const tipHop = tip && tip.querySelector("[data-dht-hop], .dht-ends");
+      const tipFrom = tip && tip.querySelector("[data-dht-from]");
+      const tipTo = tip && tip.querySelector("[data-dht-to]");
+      const chips = tip
+        ? [...tip.querySelectorAll("[data-df-role]")].map((c) => ({
+            role: c.getAttribute("data-df-role") || "",
+            end: c.getAttribute("data-dht-end") || "",
+            text: (c.textContent || "").trim(),
+          }))
+        : [];
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        role: tip ? tip.getAttribute("role") || "" : "",
+        dht: tip ? tip.getAttribute("data-dht") || "" : "",
+        tipPe: tip ? getComputedStyle(tip).pointerEvents : "",
+        kindAttr: tip ? tip.getAttribute("data-kind") || "" : "",
+        fromRole: tip ? tip.getAttribute("data-from-role") || "" : "",
+        toRole: tip ? tip.getAttribute("data-to-role") || "" : "",
+        kindText: tipKind ? (tipKind.textContent || "").trim() : "",
+        hopText: tipHop ? (tipHop.textContent || "").replace(/\s+/g, " ").trim() : "",
+        fromText: tipFrom ? (tipFrom.textContent || "").trim() : "",
+        toText: tipTo ? (tipTo.textContent || "").trim() : "",
+        chips,
+        srcHidden: !src || src.hidden,
+        df: !!document.getElementById("dfCanvas"),
+      };
+    });
+    const dht2ok = !!(
+      dht2 &&
+      dht2.ok &&
+      dht2.tip &&
+      !dht2.tipHidden &&
+      dht2.role === "tooltip" &&
+      dht2.dht === "1" &&
+      (dht2.tipPe === "none" || dht2.tipPe === "") &&
+      dht2.kindAttr === "Publishes" &&
+      dht2.kindText.toLowerCase() === "publishes" &&
+      /publish/i.test(dht2.fromText) &&
+      /events/i.test(dht2.toText) &&
+      dht2.hopText.includes("→") &&
+      dht2.fromRole === "source" &&
+      dht2.toRole === "store" &&
+      dht2.chips.some((c) => c.role === "source" && c.text === "source") &&
+      dht2.chips.some((c) => c.role === "store" && c.text === "store") &&
+      dht2.srcHidden &&
+      dht2.df
+    );
+    record(
+      "DHT2",
+      "pointerenter on Publishes hop shows #dataflowHopTip with Publishes, publish→events, source/store chips; tip pointer-events:none; no source",
+      !!dht2ok,
+      JSON.stringify(dht2)
+    );
+
+    const dht3 = await page.evaluate(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      if (edge) {
+        edge.dispatchEvent(
+          new PointerEvent("pointerleave", {
+            bubbles: true,
+            pointerId: 1,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterLeave = document.getElementById("dataflowHopTip");
+      const hiddenAfterLeave = !tipAfterLeave || tipAfterLeave.hidden;
+      const node =
+        document.querySelector('#dfCanvas .vnode[data-df-role="source"], #dfCanvas .df-node[data-df-role="source"]') ||
+        document.querySelector("#dfCanvas .vnode, #dfCanvas .df-node");
+      if (node) {
+        const r = node.getBoundingClientRect();
+        node.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: r.left + r.width / 2,
+            clientY: r.top + r.height / 2,
+            pointerId: 2,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterNode = document.getElementById("dataflowHopTip");
+      return {
+        hiddenAfterLeave,
+        hopHiddenAfterNode: !tipAfterNode || tipAfterNode.hidden,
+        hadNode: !!node,
+      };
+    });
+    const dht3ok = !!(dht3 && dht3.hiddenAfterLeave && dht3.hopHiddenAfterNode);
+    record(
+      "DHT3",
+      "pointerleave hides Data-flow hop tip; vnode hover does not resurrect it",
+      !!dht3ok,
+      JSON.stringify(dht3)
+    );
+
+    const dht4 = await page.evaluate(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      const n =
+        document.querySelector('#dfCanvas .vnode[data-df-role="source"]') ||
+        document.querySelector('#dfCanvas .vnode[data-df-role="store"]') ||
+        document.querySelector("#dfCanvas .vnode");
+      if (!edge || !n) return { missing: true };
+      const er = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: er.left + er.width / 2,
+          clientY: er.top + er.height / 2,
+          pointerId: 3,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("dataflowHopTip");
+      const r = n.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const top = document.elementFromPoint(x, y);
+      const hitTip = !!(top && top.closest && top.closest("#dataflowHopTip"));
+      const inNode = !!(top && (top === n || (top.closest && top.closest("#dfCanvas .vnode, #dfCanvas .df-node"))));
+      const src = document.getElementById("sourcePane");
+      return {
+        x,
+        y,
+        tipVisible: !!(tip && !tip.hidden),
+        tipPe: tip ? getComputedStyle(tip).pointerEvents : "",
+        top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+        hitTip,
+        inNode,
+        srcHidden: !src || src.hidden,
+        df: !!document.getElementById("dfCanvas"),
+      };
+    });
+    const dht4ok = !!(
+      dht4 &&
+      !dht4.missing &&
+      dht4.tipVisible &&
+      (dht4.tipPe === "none" || dht4.tipPe === "") &&
+      dht4.inNode &&
+      !dht4.hitTip &&
+      dht4.srcHidden &&
+      dht4.df
+    );
+    record(
+      "DHT4",
+      "Visible #dataflowHopTip does not intercept #dfCanvas vnode clicks; Data-flow stays; no source",
+      !!dht4ok,
+      JSON.stringify(dht4)
+    );
+
+    await page.evaluate(() => {
+      const edge = document.querySelector('#dfCanvas .react-flow__edge[data-kind="Publishes"]');
+      if (!edge) return;
+      const r = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: r.left + r.width / 2,
+          clientY: r.top + r.height / 2,
+          pointerId: 4,
+          pointerType: "mouse",
+        })
+      );
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "dataflow-hop-tip.png");
+    const dhtShot = checks.find((c) => c.id === "shot:dataflow-hop-tip.png");
+    const dht5ok = !!(dht1ok && dht2ok && dht3ok && dht4ok && dhtShot && dhtShot.pass);
+    record(
+      "DHT5",
+      "screenshot dataflow-hop-tip.png is not a black frame; Dataflow hop tip proven",
+      !!dht5ok,
+      JSON.stringify({
+        shot: dhtShot ? dhtShot.detail : "missing",
+        dht1: !!dht1ok,
+        dht2: !!dht2ok,
+        dht3: !!dht3ok,
+        dht4: !!dht4ok,
+      })
+    );
+    assertNoStampDir("DHT5b", "Dataflow hop tip step did not write .graphide/stamps/");
+    const afterDhtPosts = await page.evaluate((before) => {
+      const posts = window.__vscodePosts || [];
+      const added = posts.slice(before);
+      return {
+        before,
+        after: posts.length,
+        peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop" || m.type === "selectNode" || m.type === "enterRun")),
+      };
+    }, beforeDhtPosts);
+    record(
+      "DHT5c",
+      "Dataflow hop tip hover did not post peekSource / showHop / selectNode / enterRun",
+      afterDhtPosts.after === afterDhtPosts.before && !afterDhtPosts.peek,
+      JSON.stringify(afterDhtPosts)
+    );
+
     // ADE CFG expand-on-click (CFE1–CFE5) — click Overview function → inline callers|focus|callees
     {
       const cfeUrl = origin + "/scripts/webview-harness.html?mode=explorer&probe=0&ws=overview";

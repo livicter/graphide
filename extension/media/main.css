@@ -6641,6 +6641,97 @@ html.bright .traj-hop-next {
   border-color: color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
 }
 
+/* DHT: Data-flow hop hover tip (TEH/SHT pattern). pointer-events:none so vnodes stay clickable. */
+#dfCanvas .react-flow__edge,
+#dfCanvas .react-flow__edge path,
+#dfCanvas .react-flow__edge-path,
+#dfCanvas .react-flow__edge-interaction {
+  cursor: help;
+}
+#dataflowHopTip {
+  position: fixed;
+  z-index: 30;
+  min-width: 132px;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: var(--g-radius-sm, 8px);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--vscode-editor-background)) 94%, transparent);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  box-shadow: var(--g-lift, 0 8px 22px rgba(0,0,0,0.32));
+  backdrop-filter: blur(12px);
+}
+#dataflowHopTip[hidden] { display: none !important; }
+.dht-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.dht-kind {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  opacity: 0.9;
+  color: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 85%, var(--vscode-foreground));
+}
+.dht-ends, .dht-hop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.dht-ends code, .dht-hop code {
+  font-size: 11px;
+  opacity: 0.92;
+}
+.dht-arrow {
+  opacity: 0.55;
+  font-weight: 700;
+}
+.dht-chips, .dht-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+.dht-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+.dht-chip--source {
+  background: color-mix(in srgb, var(--vscode-charts-green, #89d185) 22%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 42%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 90%, var(--vscode-foreground));
+}
+.dht-chip--store {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #75beff) 22%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-charts-blue, #75beff) 42%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-blue, #75beff) 90%, var(--vscode-foreground));
+}
+.dht-chip--sink {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #e2a66a) 22%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-charts-orange, #e2a66a) 42%, transparent);
+  color: color-mix(in srgb, var(--vscode-charts-orange, #e2a66a) 90%, var(--vscode-foreground));
+}
+.dht-chip--transform {
+  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+  border-color: color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+}
+
+
 .traj-detail {
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
   border-radius: 10px;
