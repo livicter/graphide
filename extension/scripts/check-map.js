@@ -1227,6 +1227,21 @@ assert(rasMap.includes("RAS1") && rasMap.includes("ras-strip") && rasMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-audit-subjects.md")), "registry-audit-subjects feature map missing");
 assert(featReadme.includes("registry-audit-subjects.md") && featReadme.includes("registry-audit-subjects.png"), "feature README must list registry-audit-subjects.md");
 
+const pilMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport-impact-layer.md"), "utf8");
+assert(
+  pilMap.includes("## Sub-features") &&
+    pilMap.includes("## How to get to it (user POV)") &&
+    pilMap.includes("## Driving it with the harness") &&
+    pilMap.includes("## Gotchas"),
+  "passport-impact-layer feature map must use the four headings"
+);
+assert(driver.includes("PIL1") && driver.includes("PIL3") && driver.includes("passport-impact-layer.png") && driver.includes("pil-row"), "verify driver must prove Passport impact/layer graphic PIL1–PIL3");
+assert(js.includes("passportImpactLayerGraphicHtml") && js.includes("bindPassportImpactLayerGraphic") && js.includes("applyPassportImpactLayerPaint") && chrome.includes("passportImpactLayerGraphicHtml"), "desk.js must own Passport impact/layer graphic helpers");
+assert(css.includes(".pil-strip") && css.includes(".pil-row") && css.includes("pil-now") && css.includes("pil-bar"), "main.css must theme Passport impact/layer graphic + bars");
+assert(pilMap.includes("PIL1") && pilMap.includes("pil-strip") && pilMap.includes("passport-impact-layer.png") && pilMap.includes("peekSource"), "passport-impact-layer feature map must name PIL / pil-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/passport-impact-layer.md")), "passport-impact-layer feature map missing");
+assert(featReadme.includes("passport-impact-layer.md") && featReadme.includes("passport-impact-layer.png"), "feature README must list passport-impact-layer.md");
+
 
 
 

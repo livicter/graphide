@@ -4932,6 +4932,243 @@ async function main() {
 
     assertNoStampDir("P8", "Passport sign-off did not write .graphide/stamps/");
 
+
+    // ADE Passport impact/layer graphic (PIL1–PIL5) — plan-shape layers + impact families.
+    // Stay on the PF Passport document. Do not page.goto (gate sticky follows with its own click).
+    {
+      await page.waitForSelector(".pil-strip[data-pil='1'] .pil-row[data-pil-key], #passportPage", {
+        timeout: 8000,
+      });
+      const pil1 = await page.evaluate(() => {
+        const strip = document.querySelector(".pil-strip[data-pil='1']");
+        const layerRows = [...document.querySelectorAll('.pil-row[data-pil-axis="layer"]')].map((el) => ({
+          key: el.getAttribute("data-pil-key") || "",
+          n: Number((el.querySelector("[data-pil-n]") || {}).textContent || 0),
+        }));
+        const impactRows = [...document.querySelectorAll('.pil-row[data-pil-axis="impact"]')].map((el) => ({
+          key: el.getAttribute("data-pil-key") || "",
+          n: Number((el.querySelector("[data-pil-n]") || {}).textContent || 0),
+        }));
+        const byLayer = Object.fromEntries(layerRows.map((r) => [r.key, r.n]));
+        const targetCount = {};
+        for (const el of document.querySelectorAll('[data-passport="targets"] [data-passport-layer]')) {
+          const k = el.getAttribute("data-passport-layer") || "";
+          if (!k) continue;
+          targetCount[k] = (targetCount[k] || 0) + 1;
+        }
+        const byImpact = Object.fromEntries(impactRows.map((r) => [r.key, r.n]));
+        const familyCount = {};
+        for (const card of document.querySelectorAll("#passportImpact .passport-impact-card[data-impact]")) {
+          const k = card.getAttribute("data-impact") || "";
+          familyCount[k] = card.querySelectorAll("[data-impact-row]").length || card.querySelectorAll("li").length;
+        }
+        const layerSame =
+          Object.keys(byLayer).length >= 3 &&
+          Object.keys(byLayer).every((k) => byLayer[k] === targetCount[k]) &&
+          Object.keys(targetCount).every((k) => byLayer[k] === targetCount[k]);
+        const impactSame =
+          Object.keys(byImpact).length >= 2 &&
+          Object.keys(byImpact).every((k) => byImpact[k] === familyCount[k]);
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const liveDelta = !!document.querySelector("#passportPage #deltaCanvas, #passportPage .delta-page");
+        const gate = !!document.getElementById("passportGate");
+        const vocab = !!document.getElementById("passportDeltaVocab");
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          strip: !!strip,
+          cols: document.querySelectorAll(".pil-col[data-pil-col]").length,
+          byLayer,
+          targetCount,
+          layerSame,
+          byImpact,
+          familyCount,
+          impactSame,
+          harness: byLayer.harness,
+          callGraphs: byImpact.callGraphs,
+          srcHidden: !src || src.hidden,
+          xy,
+          liveDelta,
+          gate,
+          vocab,
+          ws,
+        };
+      });
+      const pil1ok = !!(
+        pil1 &&
+        pil1.strip &&
+        pil1.cols === 2 &&
+        pil1.layerSame &&
+        pil1.impactSame &&
+        pil1.harness === 2 &&
+        pil1.callGraphs >= 4 &&
+        pil1.gate &&
+        pil1.vocab &&
+        !pil1.liveDelta &&
+        pil1.srcHidden &&
+        pil1.xy === 0 &&
+        pil1.ws === "passport"
+      );
+      record(
+        "PIL1",
+        "Passport .pil-strip layer/impact counts match target rows and impact cards; gate/vocab stay; no XYFlow; no source",
+        !!pil1ok,
+        JSON.stringify(pil1)
+      );
+
+      const pil2 = await page.evaluate(() => {
+        const row =
+          document.querySelector('.pil-row[data-pil-axis="layer"][data-pil-key="harness"]') ||
+          document.querySelector('.pil-row[data-pil-axis="layer"]');
+        if (!row) return { ok: false, reason: "no layer row" };
+        const key = row.getAttribute("data-pil-key") || "";
+        row.click();
+        const now = document.querySelectorAll(".pil-row.pil-now").length;
+        const hit = [...document.querySelectorAll('[data-passport="targets"] [data-passport-layer].pil-row-now')].map(
+          (el) => el.getAttribute("data-passport-layer") || ""
+        );
+        const dim = document.querySelectorAll('[data-passport="targets"] [data-passport-layer].pil-row-dim').length;
+        const total = document.querySelectorAll('[data-passport="targets"] [data-passport-layer]').length;
+        const focusing = !!document.querySelector(".pil-strip.pil-focusing, #passportPage.pil-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          ok: true,
+          key,
+          now,
+          hit,
+          allKey: hit.length > 0 && hit.every((s) => s === key),
+          dim,
+          total,
+          dimOk: dim === total - hit.length,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const pil2ok = !!(
+        pil2 &&
+        pil2.ok &&
+        pil2.focusing &&
+        pil2.now === 1 &&
+        pil2.allKey &&
+        pil2.hit.length === 2 &&
+        pil2.dimOk &&
+        pil2.srcHidden &&
+        pil2.xy === 0 &&
+        pil2.ws === "passport"
+      );
+      record(
+        "PIL2",
+        "Click layer row focuses matching architecture targets; Passport stays; no source; no XYFlow",
+        !!pil2ok,
+        JSON.stringify(pil2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const pil3 = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".pil-strip.pil-focusing, #passportPage.pil-focusing");
+        const now = document.querySelectorAll(".pil-row.pil-now").length;
+        const hit = document.querySelectorAll('[data-passport="targets"] [data-passport-layer].pil-row-now').length;
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          focusing,
+          now,
+          hit,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const pil3ok = !!(
+        pil3 &&
+        pil3.ws === "passport" &&
+        !pil3.focusing &&
+        pil3.now === 0 &&
+        pil3.hit === 0 &&
+        pil3.srcHidden &&
+        pil3.xy === 0
+      );
+      record(
+        "PIL3",
+        "Escape clears impact/layer focus without leaving Passport or opening source",
+        !!pil3ok,
+        JSON.stringify(pil3)
+      );
+
+      await page.evaluate(() => {
+        const row =
+          document.querySelector('.pil-row[data-pil-axis="impact"][data-pil-key="callGraphs"]') ||
+          document.querySelector('.pil-row[data-pil-axis="impact"]');
+        if (row) row.click();
+      });
+      await page.waitForTimeout(40);
+      const pil4 = await page.evaluate(() => {
+        const strip = document.querySelector(".pil-strip[data-pil='1']");
+        const focusing = !!document.querySelector(".pil-strip.pil-focusing, #passportPage.pil-focusing");
+        const cardNow = document.querySelectorAll("#passportImpact .passport-impact-card.pil-row-now").length;
+        const cardDim = document.querySelectorAll("#passportImpact .passport-impact-card.pil-row-dim").length;
+        const gate = !!document.getElementById("passportGate");
+        const vocab = !!document.getElementById("passportDeltaVocab");
+        const liveDelta = !!document.querySelector("#passportPage #deltaCanvas, #passportPage .delta-page");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        return {
+          strip: !!strip,
+          focusing,
+          cardNow,
+          cardDim,
+          gate,
+          vocab,
+          liveDelta,
+          srcHidden: !src || src.hidden,
+          xy,
+        };
+      });
+      const pil4ok = !!(
+        pil4 &&
+        pil4.strip &&
+        pil4.focusing &&
+        pil4.cardNow === 1 &&
+        pil4.cardDim >= 1 &&
+        pil4.gate &&
+        pil4.vocab &&
+        !pil4.liveDelta &&
+        pil4.srcHidden &&
+        pil4.xy === 0
+      );
+      record(
+        "PIL4",
+        "Click impact family focuses that card; gate/vocab stay; no live Delta; no source; no XYFlow",
+        !!pil4ok,
+        JSON.stringify(pil4)
+      );
+
+      await shot(page, "passport-impact-layer.png");
+      const pilShot = checks.find((c) => c.id === "shot:passport-impact-layer.png");
+      const pil5ok = !!(pil1ok && pil2ok && pil3ok && pil4ok && pilShot && pilShot.pass);
+      record(
+        "PIL5",
+        "screenshot passport-impact-layer.png not black; Passport impact/layer graphic proven",
+        !!pil5ok,
+        JSON.stringify({
+          shot: pilShot ? pilShot.detail : "missing",
+          pil1: !!pil1ok,
+          pil2: !!pil2ok,
+          pil3: !!pil3ok,
+          pil4: !!pil4ok,
+        })
+      );
+      assertNoStampDir("PIL5b", "Passport impact/layer graphic step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Passport gate/sign-off readability (Sticky Decision Rail) — GS1–GS3
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForSelector("#passportPage", { timeout: 8000 });
