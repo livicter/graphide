@@ -1834,6 +1834,214 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Decisions hop-scar graphic (DHS1–DHS5) — stay on Decisions; do not page.goto.
+    {
+      const beforeDhsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const dhs1 = await page.evaluate(() => {
+        const strip = document.querySelector('.dhs-strip[data-dhs="1"]');
+        const n = (key) => {
+          const el = document.querySelector('[data-dhs-n="' + key + '"]');
+          return el ? Number((el.textContent || "").trim()) : NaN;
+        };
+        const broken = [...document.querySelectorAll("#canvas .expl-card[data-decision]")].find((el) =>
+          /StampBroken/i.test(el.textContent || "")
+        );
+        const brokenBody = broken ? ((broken.querySelector(".b") || {}).textContent || "").replace(/\s+/g, " ").trim() : "";
+        const addedBody = Number((brokenBody.match(/(\d+)\s+added/i) || [])[1] || NaN);
+        const removedBody = Number((brokenBody.match(/(\d+)\s+removed/i) || [])[1] || NaN);
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          derived: n("derived"),
+          added: n("added"),
+          removed: n("removed"),
+          addedBody,
+          removedBody,
+          brokenCut: broken ? broken.getAttribute("data-dhs-cut") || "" : "",
+          dam: !!document.querySelector(".dam-strip, .dam-bar"),
+          dcg: !!document.querySelector(".dcg-strip[data-dcg='1']"),
+          dcgEdges: document.querySelectorAll(".dcg-strip .dcg-edge").length,
+          outcome: !!document.querySelector(".outcome-strip"),
+          bar: !!document.querySelector(".dhs-bar"),
+          derivedSeg: !!document.querySelector(".dhs-seg.dhs-derived"),
+          addedSeg: !!document.querySelector(".dhs-seg.dhs-added"),
+          removedSeg: !!document.querySelector(".dhs-seg.dhs-removed"),
+          emptyBar: !!document.querySelector(".dhs-bar-empty"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const dhs1ok = !!(
+        dhs1 &&
+        dhs1.strip &&
+        dhs1.dam &&
+        dhs1.dcg &&
+        dhs1.outcome &&
+        dhs1.bar &&
+        dhs1.derived === 7 &&
+        dhs1.added === 1 &&
+        dhs1.removed === 0 &&
+        dhs1.added === dhs1.addedBody &&
+        dhs1.removed === dhs1.removedBody &&
+        dhs1.derived + dhs1.added === dhs1.dcgEdges &&
+        /added/.test(dhs1.brokenCut) &&
+        dhs1.derivedSeg &&
+        dhs1.addedSeg &&
+        !dhs1.removedSeg &&
+        !dhs1.emptyBar &&
+        dhs1.srcHidden &&
+        dhs1.xy === 0 &&
+        dhs1.ws === "decisions"
+      );
+      record(
+        "DHS1",
+        "Decisions .dhs-strip derived/added/removed match boot tree + StampBroken body; DAM+DCG stay; no XYFlow; no source",
+        !!dhs1ok,
+        JSON.stringify(dhs1)
+      );
+
+      const dhs2 = await page.evaluate(() => {
+        const btn = document.querySelector('.dhs-stat[data-dhs="added"]');
+        if (btn) btn.click();
+        const broken = [...document.querySelectorAll("#canvas .expl-card[data-decision]")].find((el) =>
+          /StampBroken/i.test(el.textContent || "")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          clicked: !!btn,
+          now: !!(broken && broken.classList.contains("on")),
+          dhsNow: !!document.querySelector('.dhs-stat[data-dhs="added"].dhs-now'),
+          hit: !!(broken && broken.classList.contains("dhs-hit")),
+          focusing: !!document.querySelector(".dhs-strip.dhs-focusing, .ws-split.dhs-focusing"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const dhs2ok = !!(
+        dhs2 &&
+        dhs2.clicked &&
+        dhs2.now &&
+        dhs2.dhsNow &&
+        dhs2.hit &&
+        dhs2.focusing &&
+        dhs2.srcHidden &&
+        dhs2.xy === 0 &&
+        dhs2.ws === "decisions"
+      );
+      record(
+        "DHS2",
+        "Click Added highlights and selects the StampBroken card; Decisions stays; no source",
+        !!dhs2ok,
+        JSON.stringify(dhs2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const dhs3 = await page.evaluate(() => {
+        const broken = [...document.querySelectorAll("#canvas .expl-card[data-decision]")].find((el) =>
+          /StampBroken/i.test(el.textContent || "")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          focusing: !!document.querySelector(".dhs-strip.dhs-focusing, .ws-split.dhs-focusing"),
+          dhsNow: document.querySelectorAll(".dhs-stat.dhs-now, .dhs-seg.dhs-now").length,
+          hit: document.querySelectorAll(".expl-card.dhs-hit").length,
+          stillOn: !!(broken && broken.classList.contains("on")),
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+        };
+      });
+      const dhs3ok = !!(
+        dhs3 &&
+        dhs3.ws === "decisions" &&
+        !dhs3.focusing &&
+        dhs3.dhsNow === 0 &&
+        dhs3.hit === 0 &&
+        dhs3.stillOn &&
+        dhs3.srcHidden &&
+        dhs3.xy === 0
+      );
+      record(
+        "DHS3",
+        "Escape clears hop-scar graphic focus; Decisions stays; selected card remains",
+        !!dhs3ok,
+        JSON.stringify(dhs3)
+      );
+
+      const dhs4 = await page.evaluate(() => {
+        const dam = !!document.querySelector(".dam-strip, .dam-bar");
+        const dcg = !!document.querySelector(".dcg-strip[data-dcg='1']");
+        const btn = document.querySelector('.dhs-stat[data-dhs="derived"]');
+        if (btn) btn.click();
+        const stamp = [...document.querySelectorAll("#canvas .expl-card[data-decision]")].find((el) => {
+          const title = ((el.querySelector(".t") || {}).textContent || "").trim();
+          const attest = el.getAttribute("data-attest") || "";
+          return title === "boot" && attest === "broken";
+        });
+        const src = document.getElementById("sourcePane");
+        return {
+          dam,
+          dcg,
+          clicked: !!btn,
+          now: !!(stamp && stamp.classList.contains("on")),
+          dhsNow: !!document.querySelector('.dhs-stat[data-dhs="derived"].dhs-now'),
+          hit: !!(stamp && stamp.classList.contains("dhs-hit")),
+          focusing: !!document.querySelector(".dhs-strip.dhs-focusing, .ws-split.dhs-focusing"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#canvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const dhs4ok = !!(
+        dhs4 &&
+        dhs4.dam &&
+        dhs4.dcg &&
+        dhs4.clicked &&
+        dhs4.now &&
+        dhs4.dhsNow &&
+        dhs4.hit &&
+        dhs4.focusing &&
+        dhs4.srcHidden &&
+        dhs4.xy === 0 &&
+        dhs4.ws === "decisions"
+      );
+      record(
+        "DHS4",
+        "Click Derived highlights the boot stamp; DAM+DCG compose; no source; no XYFlow",
+        !!dhs4ok,
+        JSON.stringify(dhs4)
+      );
+
+      await shot(page, "decisions-hop-scar.png");
+      const dhsShot = checks.find((c) => c.id === "shot:decisions-hop-scar.png");
+      const dhs5ok = !!(dhs1ok && dhs2ok && dhs3ok && dhs4ok && dhsShot && dhsShot.pass);
+      record(
+        "DHS5",
+        "screenshot decisions-hop-scar.png not black; Decisions hop-scar graphic proven",
+        !!dhs5ok,
+        JSON.stringify({
+          shot: dhsShot ? dhsShot.detail : "missing",
+          dhs1: !!dhs1ok,
+          dhs2: !!dhs2ok,
+          dhs3: !!dhs3ok,
+          dhs4: !!dhs4ok,
+        })
+      );
+      assertNoStampDir("DHS5b", "Decisions hop-scar graphic step did not write .graphide/stamps/");
+      const afterDhsPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      record(
+        "DHS5c",
+        "Decisions hop-scar clicks did not post peekSource / open source",
+        afterDhsPosts === beforeDhsPosts,
+        "posts " + beforeDhsPosts + "→" + afterDhsPosts
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     const beforeUhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const unmatchedDesk = await page.evaluate(() => {
       const cov = document.getElementById("coverage");

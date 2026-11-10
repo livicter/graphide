@@ -48,6 +48,7 @@ owns this folder.
 | [overview.md](overview.md) | Default landing + CFG stage | explorer · `overview.png` |
 | [decisions.md](decisions.md) | Stamp / skip / broken list | explorer · `decisions.png` |
 | [decisions-causal-graph.md](decisions-causal-graph.md) | Decisions causal graph | explorer · `verification/decisions-causal-graph.png` |
+| [decisions-hop-scar.md](decisions-hop-scar.md) | Decisions hop-scar graphic | explorer · `verification/decisions-hop-scar.png` |
 | [registry.md](registry.md) | Snapshot audit table | explorer · `registry.png` |
 | [registry-snapshot-graphic.md](registry-snapshot-graphic.md) | Registry snapshot graphic | explorer · `verification/registry-snapshot-graphic.png` |
 | [registry-audit-subjects.md](registry-audit-subjects.md) | Registry audit-subject graphic | explorer · `verification/registry-audit-subjects.png` |

@@ -20126,6 +20126,7 @@
     let decisionOutcomeFilter = "";
     let decisionAttestFilter = null;
     let decisionChainFocus = null;
+    let decisionHopScarFocus = null;
     let passportDeltaFilter = null;
     let passportImpactLayerFocus = null;
     let structuralDiffFilter = null;
@@ -20418,6 +20419,12 @@
         e.preventDefault();
         decisionChainFocus = null;
         applyDecisionCausalGraphPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "decisions" && decisionHopScarFocus) {
+        e.preventDefault();
+        decisionHopScarFocus = null;
+        if (typeof applyDecisionHopScarPaint === "function") applyDecisionHopScarPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "registry" && registryAuditFilter) {
@@ -27420,6 +27427,129 @@
       });
       applyDecisionCausalGraphPaint();
     }
+    function decisionHopScarMetrics() {
+      const seenFlow = /* @__PURE__ */ new Set();
+      let derived = 0;
+      const rows = typeof decisionRecords === "function" ? decisionRecords() : [];
+      for (const r of rows) {
+        if (!r || r.kind !== "stamp" && r.kind !== "skip") continue;
+        const flowName2 = r.flow;
+        if (!flowName2 || seenFlow.has(flowName2)) continue;
+        seenFlow.add(flowName2);
+        const flow = (snapshot && snapshot.flows || []).find((f) => f.name === flowName2);
+        derived += (flow && flow.tree && flow.tree.edges || []).length;
+      }
+      const seenAdded = /* @__PURE__ */ new Set();
+      const seenRemoved = /* @__PURE__ */ new Set();
+      let added = 0;
+      let removed = 0;
+      for (const f of snapshot && snapshot.findings || []) {
+        if (findingKindOf(f) !== "StampBroken") continue;
+        for (const e of f.added || []) {
+          const k = idVal(e.from) + "\0" + idVal(e.to) + "\0" + (e.kind || "");
+          if (seenAdded.has(k)) continue;
+          seenAdded.add(k);
+          added += 1;
+        }
+        for (const e of f.removed || []) {
+          const k = idVal(e.from) + "\0" + idVal(e.to) + "\0" + (e.kind || "");
+          if (seenRemoved.has(k)) continue;
+          seenRemoved.add(k);
+          removed += 1;
+        }
+      }
+      return { derived, added, removed };
+    }
+    function decisionHopScarCutsFor(r) {
+      const cuts = [];
+      if (!r) return cuts;
+      if (r.kind === "stamp" || r.kind === "skip") {
+        const flow = (snapshot && snapshot.flows || []).find((f) => f.name === r.flow);
+        if ((flow && flow.tree && flow.tree.edges || []).length) cuts.push("derived");
+      }
+      if (r.kind === "finding") {
+        if ((r.added || []).length) cuts.push("added");
+        if ((r.removed || []).length) cuts.push("removed");
+      }
+      return cuts;
+    }
+    function decisionHopScarGraphicHtml() {
+      const m = decisionHopScarMetrics();
+      const total = Math.max(0, m.derived + m.added + m.removed);
+      const focusing = !!decisionHopScarFocus;
+      const onFor = (key) => !!(decisionHopScarFocus && String(decisionHopScarFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="dhs-stat' + (onFor(key) ? " dhs-now" : focusing ? " dhs-idle" : "") + '" data-dhs="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-dhs-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="dhs-seg dhs-' + esc(key) + (onFor(key) ? " dhs-now" : focusing ? " dhs-idle" : "") + '" data-dhs="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="dhs-strip' + (focusing ? " dhs-focusing" : "") + '" data-dhs="1" role="group" aria-label="Decisions hop-scar graphic"><span class="dhs-meta">Hop scar</span><span class="dhs-counts">' + stat("derived", "derived", m.derived) + stat("added", "added", m.added) + stat("removed", "removed", m.removed) + '</span><div class="dhs-bar" aria-hidden="true">' + (total === 0 ? '<span class="dhs-bar-empty"></span>' : seg("derived", m.derived) + seg("added", m.added) + seg("removed", m.removed)) + "</div></div>";
+    }
+    function jumpDecisionHopScar(which) {
+      if (!which) return;
+      const key = String(which);
+      if (decisionHopScarFocus && String(decisionHopScarFocus) === key) {
+        decisionHopScarFocus = null;
+        applyDecisionHopScarPaint();
+        return;
+      }
+      decisionHopScarFocus = key;
+      const rows = typeof decisionRecords === "function" ? decisionRecords() : [];
+      const match = rows.find((r) => decisionHopScarCutsFor(r).includes(key));
+      if (match && typeof decisionKey === "function") {
+        const next = decisionKey(match);
+        if (next && next !== selectedDecisionKey) {
+          selectedDecisionKey = next;
+          decisionChainFocus = null;
+          if (typeof paint === "function") {
+            paint({ animate: "none" });
+            return;
+          }
+        }
+      }
+      applyDecisionHopScarPaint();
+    }
+    function applyDecisionHopScarPaint() {
+      if (!canvas) return;
+      const focus = decisionHopScarFocus ? String(decisionHopScarFocus) : "";
+      canvas.querySelectorAll(".dhs-stat[data-dhs], .dhs-seg[data-dhs]").forEach((el2) => {
+        const key = el2.getAttribute("data-dhs") || "";
+        if (key === "1") return;
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("dhs-now", on2);
+        el2.classList.toggle("dhs-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".dhs-strip");
+      if (strip) strip.classList.toggle("dhs-focusing", !!focus);
+      const split = canvas.querySelector(".ws-split");
+      if (split) split.classList.toggle("dhs-focusing", !!focus);
+      canvas.querySelectorAll(".expl-card[data-decision]").forEach((el2) => {
+        const cuts = (el2.getAttribute("data-dhs-cut") || "").split(/\s+/).filter(Boolean);
+        const hit = !!(focus && cuts.includes(focus));
+        el2.classList.toggle("dhs-hit", hit);
+        el2.classList.toggle("dhs-idle", !!(focus && !hit));
+      });
+    }
+    function bindDecisionHopScarGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".dhs-stat[data-dhs], .dhs-seg[data-dhs]").forEach((el2) => {
+        const key = el2.getAttribute("data-dhs") || "";
+        if (key === "1") return;
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpDecisionHopScar(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpDecisionHopScar(key);
+        };
+      });
+      applyDecisionHopScarPaint();
+    }
     function renderDecisionBody() {
       const rows = decisionRecords().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27437,7 +27567,7 @@
       const chain = causalChainFor(selected2);
       const list = rows.map((r) => {
         const key = decisionKey(r);
-        return '<article class="expl-card ' + esc(r.verdict || r.kind) + (key === selectedDecisionKey ? " on" : "") + '" data-decision="' + esc(key) + '" data-outcome="' + esc(r.outcome || r.verdict || "") + '" data-attest="' + esc(attestationBucket(r)) + '"><div class="k">' + esc(r.outcome || r.verdict || r.kind) + '</div><div class="t">' + esc(r.title) + '</div><div class="b">' + esc(r.body) + "</div></article>";
+        return '<article class="expl-card ' + esc(r.verdict || r.kind) + (key === selectedDecisionKey ? " on" : "") + '" data-decision="' + esc(key) + '" data-outcome="' + esc(r.outcome || r.verdict || "") + '" data-attest="' + esc(attestationBucket(r)) + '"' + (decisionHopScarCutsFor(r).length ? ' data-dhs-cut="' + esc(decisionHopScarCutsFor(r).join(" ")) + '"' : "") + '"><div class="k">' + esc(r.outcome || r.verdict || r.kind) + '</div><div class="t">' + esc(r.title) + '</div><div class="b">' + esc(r.body) + "</div></article>";
       }).join("");
       const outcomes = [
         ["", "All"],
@@ -27451,7 +27581,8 @@
         return '<button type="button" class="outcome-filter' + on2 + '" data-outcome-filter="' + esc(pair[0]) + '">' + esc(pair[1]) + "</button>";
       }).join("") + "</div>";
       const damStrip = decisionAttestStripHtml(rows);
-      return '<div class="ws-split"><div class="ws-list">' + damStrip + strip + list + '</div><div class="ws-detail"><div class="k">Decision record</div><div class="t">' + esc(selected2.title) + '</div><div class="outcome ' + esc(selected2.verdict || "") + '">' + esc(selected2.outcome || selected2.verdict || "") + "</div>" + (selected2.flow ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected2.flow) + '">Open slice</button>' : "") + '<div class="flow-title">Causal chain · ' + chain.length + " step" + (chain.length === 1 ? "" : "s") + " on the derived graph</div>" + decisionCausalGraphHtml(chain) + renderChain(chain) + "</div></div>";
+      const dhsStrip = decisionHopScarGraphicHtml();
+      return '<div class="ws-split' + (decisionHopScarFocus ? " dhs-focusing" : "") + '"><div class="ws-list">' + damStrip + dhsStrip + strip + list + '</div><div class="ws-detail"><div class="k">Decision record</div><div class="t">' + esc(selected2.title) + '</div><div class="outcome ' + esc(selected2.verdict || "") + '">' + esc(selected2.outcome || selected2.verdict || "") + "</div>" + (selected2.flow ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected2.flow) + '">Open slice</button>' : "") + '<div class="flow-title">Causal chain · ' + chain.length + " step" + (chain.length === 1 ? "" : "s") + " on the derived graph</div>" + decisionCausalGraphHtml(chain) + renderChain(chain) + "</div></div>";
     }
     function registryAuditBucket(e) {
       if (!e) return "";
@@ -33986,6 +34117,7 @@
       });
       bindDecisionCausalGraph();
       applyDecisionCausalGraphPaint();
+      if (typeof bindDecisionHopScarGraphic === "function") bindDecisionHopScarGraphic();
       canvas.querySelectorAll("[data-flow]").forEach((el2) => {
         if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
         el2.onclick = () => {
@@ -34075,6 +34207,7 @@
     function bindWorkbenchPages() {
       applyDecisionListFilters();
       bindDecisionAttestChart();
+      if (typeof bindDecisionHopScarGraphic === "function") bindDecisionHopScarGraphic();
       applyRegistryAuditPaint();
       bindRegistryAuditChart();
       bindRegistrySnapshotGraphic();

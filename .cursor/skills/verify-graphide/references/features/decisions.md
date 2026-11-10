@@ -59,6 +59,8 @@ Driver assertions:
 - screenshot `verification/decisions.png` is not a black frame
 - `.graphide/stamps/` is still empty
 
+- ADE DHS (Decisions hop-scar graphic): below the DAM strip, `.dhs-strip[data-dhs="1"]` shows unique derived Steiner hops versus unique StampBroken added / removed edges from the same flow trees and findings `causalChainFor` already reads (not invented, not double-counted). Click highlights matching cards and selects the first; Escape clears after DCG (selection stays). Graph-only — must not open Evidence / `peekSource` / source pane / Open slice, and must not add XYFlow. Screenshot `verification/decisions-hop-scar.png`. Asserts DHS1–DHS5. See [decisions-hop-scar.md](decisions-hop-scar.md).
+
 ## Gotchas
 
 - `requestStamp` paints “holds” in the webview immediately. That local
