@@ -113,6 +113,7 @@ owns this folder.
 | [js-desk.md](js-desk.md) | JavaScript fixture desk | `?js=1` · `verification/js-desk.png` |
 | [ts-desk.md](ts-desk.md) | TypeScript fixture desk | `?ts=1` · `verification/ts-desk.png` |
 | [go-desk.md](go-desk.md) | Go fixture desk | `?go=1` · `verification/go-desk.png` |
+| [c-desk.md](c-desk.md) | C fixture desk | `?c=1` · `verification/c-desk.png` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
 
 Regression sweep: every row above must still have a source path and a

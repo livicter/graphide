@@ -284,6 +284,7 @@ assert(harness.includes("python-snap.json") && harness.includes("__graphidePytho
 assert(harness.includes("js-snap.json") && harness.includes("__graphideJs"), "javascript fixture snap loader missing");
 assert(harness.includes("ts-snap.json") && harness.includes("__graphideTs"), "typescript fixture snap loader missing");
 assert(harness.includes("go-snap.json") && harness.includes("__graphideGo"), "go fixture snap loader missing");
+assert(harness.includes("c-snap.json") && harness.includes("__graphideC"), "c fixture snap loader missing");
 assert(harness.includes('params.get("lineage")') && harness.includes("__graphideLineage"), "lineage fixture snap loader missing");
 assert(chrome.includes('id="exportBtn"'), "Export button missing from chrome");
 assert(chrome.includes('id="exportMenu"'), "Export menu missing from chrome");
@@ -359,6 +360,7 @@ assert(featReadme.includes("python-desk.md") && featReadme.includes("python-desk
 assert(featReadme.includes("js-desk.md") && featReadme.includes("js-desk.png"), "feature README must list js-desk.md");
 assert(featReadme.includes("ts-desk.md") && featReadme.includes("ts-desk.png"), "feature README must list ts-desk.md");
 assert(featReadme.includes("go-desk.md") && featReadme.includes("go-desk.png"), "feature README must list go-desk.md");
+assert(featReadme.includes("c-desk.md") && featReadme.includes("c-desk.png"), "feature README must list c-desk.md");
 assert(featReadme.includes("apple-chrome.md") && featReadme.includes("apple-chrome.png"), "feature README must list apple-chrome.md");
 assert(featReadme.includes("apple-chrome-icons.md") && featReadme.includes("apple-chrome-icons.png"), "feature README must list apple-chrome-icons.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
@@ -488,6 +490,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/js-desk.md")), "js-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/ts-desk.md")), "ts-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/go-desk.md")), "go-desk feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/c-desk.md")), "c-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
 const decisionsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
@@ -1900,6 +1903,7 @@ assert(driver.includes("python-desk.png") && driver.includes("PYTHON_HARNESS") &
 assert(driver.includes("js-desk.png") && driver.includes("JS_HARNESS") && driver.includes("JS0") && driver.includes("javascript@"), "verify driver must drive the JavaScript desk on fixtures/js");
 assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver.includes("TS0") && driver.includes("typescript@"), "verify driver must drive the TypeScript desk on fixtures/ts");
 assert(driver.includes("go-desk.png") && driver.includes("GO_HARNESS") && driver.includes("GO0") && driver.includes("go@"), "verify driver must drive the Go desk on fixtures/go");
+assert(driver.includes("c-desk.png") && driver.includes("C_HARNESS") && driver.includes("C0") && driver.includes("c@"), "verify driver must drive the C desk on fixtures/c");
 assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("M2d") && driver.includes("map-spine-hop.png") && driver.includes("b-integration") && driver.includes("data-hop-from") && driver.includes("solarsim::ext"), "verify driver must prove the Map story hop is the derived edge, not Calls between community ids");
@@ -2213,6 +2217,14 @@ assert(
     goDeskMap.includes("## Gotchas"),
   "go-desk feature map must use the four headings"
 );
+const cDeskMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/c-desk.md"), "utf8");
+assert(
+  cDeskMap.includes("## Sub-features") &&
+    cDeskMap.includes("## How to get to it (user POV)") &&
+    cDeskMap.includes("## Driving it with the harness") &&
+    cDeskMap.includes("## Gotchas"),
+  "c-desk feature map must use the four headings"
+);
 const appleChromeMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome.md"), "utf8");
 assert(
   appleChromeMap.includes("## Sub-features") &&
@@ -2245,6 +2257,8 @@ const tsFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/ts/flows.to
 assert(/name\s*=\s*"data-subscription"/.test(tsFlows) && /pkg\.sub\.subscribe/.test(tsFlows), "ts flows.toml must keep the data-subscription hit list");
 const goFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/go/flows.toml"), "utf8");
 assert(/name\s*=\s*"data-subscription"/.test(goFlows) && /pkg\.sub\.subscribe/.test(goFlows), "go flows.toml must keep the data-subscription hit list");
+const cFlows = fs.readFileSync(path.join(__dirname, "../../fixtures/c/flows.toml"), "utf8");
+assert(/name\s*=\s*"data-subscription"/.test(cFlows) && /pkg::sub::subscribe/.test(cFlows), "c flows.toml must keep the data-subscription hit list");
 assert(js.includes("function renderTabs") && js.includes('data-flow="'), "desk must render named flow chips on #tabs");
 assert(
   chrome.includes("function clusterFacts") &&
