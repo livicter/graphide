@@ -629,6 +629,7 @@ export function renderEnterCanvas(host, props) {
       showFqn: !!n.showFqn,
       shape: n.shape || "",
       sliceDist: n.sliceDist,
+      meaCut: n.meaCut || "",
     })),
     hops
   );

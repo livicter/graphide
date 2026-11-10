@@ -140,6 +140,7 @@ export function DerivedNode({ data }) {
   if (d.hops) attrs["data-hops"] = d.hops;
   if (d.dist != null) attrs["data-dist"] = String(d.dist);
   if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
+  if (d.meaCut) attrs["data-mea-cut"] = String(d.meaCut);
   if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
   if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
   if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";

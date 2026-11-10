@@ -1430,6 +1430,20 @@ assert(shaMap.includes("SHA1") && shaMap.includes("sha-strip") && shaMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-attach.md")), "slice-halo-attach feature map missing");
 assert(featReadme.includes("slice-halo-attach.md") && featReadme.includes("slice-halo-attach.png"), "feature README must list slice-halo-attach.md");
 
+const meaMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-attach.md"), "utf8");
+assert(
+  meaMap.includes("## Sub-features") &&
+    meaMap.includes("## How to get to it (user POV)") &&
+    meaMap.includes("## Driving it with the harness") &&
+    meaMap.includes("## Gotchas"),
+  "map-enter-attach feature map must use the four headings"
+);
+assert(driver.includes("MEA1") && driver.includes("MEA3") && driver.includes("map-enter-attach.png") && driver.includes("mea-stat"), "verify driver must prove Map enter-attach graphic MEA1–MEA3");
+assert(css.includes(".mea-strip") && css.includes(".mea-stat") && css.includes(".mea-bar") && css.includes("mea-hit"), "main.css must style Map enter-attach graphic");
+assert(meaMap.includes("MEA1") && meaMap.includes("mea-strip") && meaMap.includes("map-enter-attach.png") && meaMap.includes("peekSource"), "map-enter-attach feature map must name MEA / mea-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-attach.md")), "map-enter-attach feature map missing");
+assert(featReadme.includes("map-enter-attach.md") && featReadme.includes("map-enter-attach.png"), "feature README must list map-enter-attach.md");
+
 
 
 

@@ -15391,7 +15391,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .enter-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .enter-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
         n0.click();
         const src = document.getElementById("sourcePane");
@@ -15448,6 +15448,198 @@ async function main() {
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
+
+      // ADE Map enter-attach graphic (MEA1–MEA5) — stay on enter after MED; do not page.goto.
+      {
+        await page.waitForSelector(".mea-strip[data-mea='1']", { timeout: 8000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .vnode[data-mea-cut]").length >= 24,
+          { timeout: 8000 }
+        );
+        await page.waitForTimeout(80);
+        const beforeMeaPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+        const mea1 = await page.evaluate(() => {
+          const strip = document.querySelector(".mea-strip[data-mea='1']");
+          const cluster = document.querySelector(".enter-title-cuts[data-enter-cuts='1']");
+          const stats = [...document.querySelectorAll(".mea-stat[data-mea-band]")].map((el) => ({
+            band: el.getAttribute("data-mea-band"),
+            n: Number((el.querySelector("[data-mea-n]") || el).textContent.trim()),
+            pressed: el.getAttribute("aria-pressed") === "true",
+          }));
+          const segs = [...document.querySelectorAll(".mea-seg[data-mea-band]")].map((el) => el.getAttribute("data-mea-band"));
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mea-cut], #enterCanvas .vnode")];
+          const byCut = { attached: 0, isolated: 0 };
+          for (const n of nodes) {
+            const c = n.getAttribute("data-mea-cut") || "";
+            if (c === "attached" || c === "isolated") byCut[c] += 1;
+          }
+          const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+          const src = document.getElementById("sourcePane");
+          const enter = document.getElementById("enterCanvas");
+          return {
+            strip: !!strip,
+            cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".mwc-strip[data-mwc='1']") && cluster.querySelector(".med-strip[data-med='1']")),
+            mwc: !!document.querySelector(".mwc-strip[data-mwc='1']"),
+            med: !!document.querySelector(".med-strip[data-med='1']"),
+            enter: !!enter,
+            canvas: !!enter,
+            stats,
+            segs,
+            nodes: nodes.length,
+            stamped: byCut.attached + byCut.isolated,
+            byCut,
+            attached: nOf("attached"),
+            isolated: nOf("isolated"),
+            sum: nOf("attached") + nOf("isolated"),
+            srcHidden: !src || src.hidden,
+            pressed: stats.filter((s) => s.pressed).length,
+            ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          };
+        });
+        const mea1ok =
+          mea1.strip &&
+          mea1.cluster &&
+          mea1.mwc &&
+          mea1.med &&
+          mea1.enter &&
+          mea1.attached === 14 &&
+          mea1.isolated === 10 &&
+          mea1.sum === 24 &&
+          mea1.stamped === 24 &&
+          mea1.byCut.attached === 14 &&
+          mea1.byCut.isolated === 10 &&
+          mea1.segs.length === 2 &&
+          mea1.pressed === 0 &&
+          mea1.srcHidden &&
+          mea1.ws === "map";
+        record(
+          "MEA1",
+          "Map enter-attach graphic shows 14 attached / 10 isolated of 24, matching data-mea-cut; MWC/MED stay; no source",
+          !!mea1ok,
+          JSON.stringify(mea1)
+        );
+
+        const isoBtn = page.locator('.mea-stat[data-mea-band="isolated"]').first();
+        await isoBtn.click();
+        await page.waitForTimeout(80);
+        const mea2 = await page.evaluate(() => {
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mea-cut]")];
+          const hits = nodes.filter((el) => el.classList.contains("mea-hit"));
+          const isoHits = hits.filter((el) => el.getAttribute("data-mea-cut") === "isolated");
+          const isoPressed = document.querySelector('.mea-stat[data-mea-band="isolated"][aria-pressed="true"]');
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            nodes: nodes.length,
+            hits: hits.length,
+            isoHits: isoHits.length,
+            isoPressed: !!isoPressed,
+            srcHidden: !src || src.hidden,
+            ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          };
+        });
+        const mea2ok =
+          mea2.enter &&
+          mea2.hits === 10 &&
+          mea2.isoHits === 10 &&
+          mea2.isoPressed &&
+          mea2.srcHidden &&
+          mea2.ws === "map";
+        record(
+          "MEA2",
+          "Click Isolated highlights the 10 isolated enter members; enter stays; no source",
+          !!mea2ok,
+          JSON.stringify(mea2)
+        );
+
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(80);
+        const mea3 = await page.evaluate(() => {
+          const hits = document.querySelectorAll("#enterCanvas .vnode.mea-hit").length;
+          const pressed = document.querySelectorAll('.mea-stat[aria-pressed="true"]').length;
+          const focusing = !!document.querySelector(".mea-strip.mea-focusing, .stage.mea-focusing");
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            hits,
+            pressed,
+            focusing,
+            srcHidden: !src || src.hidden,
+          };
+        });
+        record(
+          "MEA3",
+          "Escape clears enter-attach graphic focus; enter stays; no source",
+          !!(mea3.enter && mea3.hits === 0 && mea3.pressed === 0 && !mea3.focusing && mea3.srcHidden),
+          JSON.stringify(mea3)
+        );
+
+        const mea4 = await page.evaluate(() => {
+          const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+          if (!n0) return { missing: true };
+          const r = n0.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          const top = document.elementFromPoint(x, y);
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .enter-title-cuts"));
+          const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
+          const src = document.getElementById("sourcePane");
+          return {
+            x,
+            y,
+            top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+            hitStrip,
+            inNode,
+            srcHidden: !src || src.hidden,
+            enter: !!document.getElementById("enterCanvas"),
+          };
+        });
+        const mea4ok = !!(mea4 && !mea4.missing && mea4.inNode && !mea4.hitStrip && mea4.srcHidden && mea4.enter);
+        record(
+          "MEA4",
+          "Title-band cluster does not intercept #enterCanvas n0 clicks; enter stays; no source",
+          !!mea4ok,
+          JSON.stringify(mea4)
+        );
+
+        await isoBtn.click();
+        await page.waitForTimeout(80);
+        await shot(page, "map-enter-attach.png");
+        const meaShot = checks.find((c) => c.id === "shot:map-enter-attach.png");
+        const mea5ok = !!(mea1ok && mea2ok && mea3 && mea3.enter && mea4ok && meaShot && meaShot.pass);
+        record(
+          "MEA5",
+          "screenshot map-enter-attach.png is not a black frame; Map enter-attach graphic proven",
+          !!mea5ok,
+          JSON.stringify({
+            shot: meaShot ? meaShot.detail : "missing",
+            mea1: !!mea1ok,
+            mea2: !!mea2ok,
+            mea3: !!(mea3 && mea3.enter && mea3.hits === 0),
+            mea4: !!mea4ok,
+          })
+        );
+        assertNoStampDir("MEA5b", "Map enter-attach graphic step did not write .graphide/stamps/");
+        const afterMeaPosts = await page.evaluate((before) => {
+          const posts = window.__vscodePosts || [];
+          const added = posts.slice(before);
+          return {
+            before,
+            after: posts.length,
+            peek: added.some((m) => m && (m.type === "peekSource" || m.type === "enterRun" || m.type === "selectNode")),
+            enterRun: added.some((m) => m && m.type === "enterRun"),
+          };
+        }, beforeMeaPosts);
+        record(
+          "MEA5c",
+          "Map enter-attach clicks did not post peekSource / enterRun / selectNode",
+          afterMeaPosts.after === afterMeaPosts.before && !afterMeaPosts.peek && !afterMeaPosts.enterRun,
+          JSON.stringify(afterMeaPosts)
+        );
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+
       await page.evaluate(() => {
         const back = document.getElementById("backBtn");
         if (back && !back.disabled) back.click();

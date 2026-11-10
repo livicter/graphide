@@ -7376,32 +7376,33 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
 #sliceCanvas .vnode.grey:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim),
 #sliceCanvas .vnode.slice-dim:not(.ego):not(.ego-dim):not(.dim):not(.hit):not(.route-dim):not(.lens-dim) { opacity: 0.48; }
 
-/* ADE MWC + MED — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE MWC + MED + MEA — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.enter-title-cuts) > .flow-title,
-.stage:has(.mwc-strip) > .flow-title { max-width: calc(100% - 560px); }
+.stage:has(.mwc-strip) > .flow-title { max-width: calc(100% - 420px); }
 .enter-title-cuts {
   position: absolute;
   top: 6px;
   right: 12px;
   left: auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  max-width: min(680px, 72%);
+  align-items: flex-end;
+  gap: 6px;
+  max-width: min(400px, 48%);
   z-index: 4;
   margin: 0;
   pointer-events: none;
 }
 .enter-title-cuts .mwc-strip,
-.enter-title-cuts .med-strip {
+.enter-title-cuts .med-strip,
+.enter-title-cuts .mea-strip {
   position: static;
   top: auto;
   right: auto;
   left: auto;
-  max-width: none;
-  flex: 1 1 auto;
+  max-width: 100%;
+  flex: 0 0 auto;
   min-width: 0;
   z-index: auto;
   pointer-events: auto;
@@ -7525,7 +7526,8 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
   background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
 }
 .enter-title-cuts .mwc-bar,
-.enter-title-cuts .med-bar { min-width: 48px; flex: 1 1 64px; }
+.enter-title-cuts .med-bar,
+.enter-title-cuts .mea-bar { min-width: 48px; flex: 1 1 64px; }
 .med-bar-empty { flex: 1; }
 .med-seg {
   margin: 0;
@@ -7542,6 +7544,77 @@ button.residual-filter-clear[data-residual-filter-clear="1"]:hover:not(:active):
   box-shadow:
     inset 0 0 0 2px var(--vscode-charts-orange, #d18616),
     0 0 0 1px var(--vscode-charts-orange, #d18616);
+}
+
+/* ADE MEA — Map enter-attach graphic (attached vs isolated leaves; not MWC / MED / SHA). */
+.mea-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.mea-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.mea-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.mea-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mea-stat b { font-variant-numeric: tabular-nums; }
+.mea-stat.mea-now, .mea-seg.mea-now {
+  border-color: var(--vscode-charts-blue, #2184d4);
+  box-shadow: inset 0 0 0 1px var(--vscode-charts-blue, #2184d4);
+}
+.mea-strip.mea-focusing .mea-stat.mea-idle,
+.mea-strip.mea-focusing .mea-seg.mea-idle { opacity: 0.55; }
+.mea-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.mea-bar-empty { flex: 1; }
+.mea-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.mea-seg.mea-attached { background: color-mix(in srgb, var(--vscode-charts-blue, #2184d4) 70%, transparent); }
+.mea-seg.mea-isolated { background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 70%, transparent); }
+#enterCanvas .vnode.mea-hit:not(.dim):not(.ego-dim) {
+  box-shadow:
+    inset 3px 0 0 var(--vscode-charts-blue, #2184d4),
+    0 0 0 1px var(--vscode-charts-blue, #2184d4);
 }
 
 
