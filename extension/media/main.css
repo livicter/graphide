@@ -4699,6 +4699,59 @@ html.bright .route-hop {
 .traj-strip-title { font-weight: 650; font-size: 13px; }
 .traj-strip-sub { font-size: 11px; opacity: 0.72; }
 .traj-strip-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+
+/* ADE PFL — Present/fixture lens chips on Trace (stage-safe; does not steal L). */
+.pfl-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 4px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, #444) 70%, transparent);
+}
+.pfl-meta {
+  font-size: 11px;
+  opacity: 0.78;
+  white-space: nowrap;
+}
+.pfl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pfl-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, #444) 80%, transparent);
+  background: color-mix(in srgb, var(--vscode-button-secondaryBackground, #333) 55%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.pfl-chip .pfl-k { font-weight: 650; }
+.pfl-chip .pfl-n { font-variant-numeric: tabular-nums; opacity: 0.8; }
+.pfl-chip.pfl-now {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 22%, transparent);
+}
+.pfl-strip.pfl-lensing .pfl-chip.pfl-idle { opacity: 0.55; }
+.traj-page.pfl-lensing .traj-node.pfl-on,
+#trajCanvas.pfl-lensing .traj-node.pfl-on {
+  outline: 2px solid var(--vscode-focusBorder, #2f81f7);
+  outline-offset: 2px;
+  z-index: 2;
+}
+/* Existing .dim / residual / TSS ahead / PTD dim keep their opacity (do not override). */
+.traj-page.pfl-lensing .traj-node.pfl-dim:not(.dim):not(.residual-filtered):not(.tss-ahead):not(.ptd-dim),
+#trajCanvas.pfl-lensing .traj-node.pfl-dim:not(.dim):not(.residual-filtered):not(.tss-ahead):not(.ptd-dim) {
+  opacity: 0.32;
+}
+
 .traj-stat {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
   border: 1px solid var(--g-line, rgba(127,127,127,0.35));
