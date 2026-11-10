@@ -222,6 +222,7 @@ let overviewMixFilter = null;
 let overviewCommunityFilter = null;
 /** ADE MAC — Map-altitude kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let mapMixFilter = null;
+let mapWalkCutFocus = null; // ADE MWC: lit|grey or null
 /** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
@@ -730,6 +731,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     mapMixFilter = null;
     applyMapMixPaint();
+    return;
+  }
+  // ADE MWC: Escape clears Map walk-cut graphic focus when enter is open (stay in community).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    typeof enterCanvasActive === "function" &&
+    enterCanvasActive() &&
+    mapWalkCutFocus
+  ) {
+    e.preventDefault();
+    mapWalkCutFocus = null;
+    if (typeof applyMapWalkCutPaint === "function") applyMapWalkCutPaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -21692,6 +21706,148 @@ function enterBehaviorCaption(nid, hops, kindHint) {
   return parts.join(" · ");
 }
 
+
+/** ADE MWC — lit vs grey walk cut from the same enter nodes the canvas paints (24-cap included). */
+function mapWalkCutNodes(inner) {
+  return ((inner && inner.nodes) || []).slice(0, 24);
+}
+
+function mapWalkCutMetrics(inner) {
+  const nodes = mapWalkCutNodes(inner);
+  let lit = 0;
+  let grey = 0;
+  for (const n of nodes) {
+    if (n && n.lit) lit += 1;
+    else grey += 1;
+  }
+  return { lit, grey, total: nodes.length };
+}
+
+function mapWalkCutGraphicHtml(inner) {
+  const m = mapWalkCutMetrics(inner);
+  const focusing = !!mapWalkCutFocus;
+  const onFor = (key) => !!(mapWalkCutFocus && String(mapWalkCutFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="mwc-stat' +
+    (onFor(key) ? " mwc-now" : focusing ? " mwc-idle" : "") +
+    '" data-mwc="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-mwc-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="mwc-seg mwc-' +
+      esc(key) +
+      (onFor(key) ? " mwc-now" : focusing ? " mwc-idle" : "") +
+      '" data-mwc="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="mwc-strip' +
+    (focusing ? " mwc-focusing" : "") +
+    '" data-mwc="1" role="group" aria-label="Map walk-cut graphic">' +
+    '<span class="mwc-meta">Walk cut</span>' +
+    '<span class="mwc-counts">' +
+    stat("lit", "lit", m.lit) +
+    stat("grey", "grey", m.grey) +
+    "</span>" +
+    '<div class="mwc-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="mwc-bar-empty"></span>'
+      : seg("lit", m.lit) + seg("grey", m.grey)) +
+    "</div></div>"
+  );
+}
+
+function jumpMapWalkCut(which) {
+  if (!which) return;
+  const key = String(which);
+  if (mapWalkCutFocus && String(mapWalkCutFocus) === key) mapWalkCutFocus = null;
+  else mapWalkCutFocus = key;
+  applyMapWalkCutPaint();
+}
+
+function applyMapWalkCutPaint() {
+  if (!canvas) return;
+  const focus = mapWalkCutFocus ? String(mapWalkCutFocus) : "";
+  canvas.querySelectorAll(".mwc-stat[data-mwc], .mwc-seg[data-mwc]").forEach((el) => {
+    const key = el.getAttribute("data-mwc") || "";
+    if (key === "1") return;
+    const on = !!(focus && key === focus);
+    el.classList.toggle("mwc-now", on);
+    el.classList.toggle("mwc-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".mwc-strip");
+  if (strip) strip.classList.toggle("mwc-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("mwc-focusing", !!focus);
+  const want = focus === "lit" ? "1" : focus === "grey" ? "0" : "";
+  canvas.querySelectorAll("#enterCanvas .vnode[data-lit]").forEach((el) => {
+    const lit = el.getAttribute("data-lit") || "";
+    const hit = !!(want && lit === want);
+    el.classList.toggle("mwc-hit", hit);
+    el.classList.toggle("mwc-idle", !!(focus && !hit));
+  });
+}
+
+function bindMapWalkCutGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".mwc-stat[data-mwc], .mwc-seg[data-mwc]").forEach((el) => {
+    const key = el.getAttribute("data-mwc") || "";
+    if (key === "1") return;
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapWalkCut(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapWalkCut(key);
+    };
+  });
+  applyMapWalkCutPaint();
+}
+
+function syncMapWalkCutGraphic(inner) {
+  if (!canvas) return;
+  const stage = canvas.querySelector(".stage");
+  if (!stage || !document.getElementById("enterCanvas")) {
+    return;
+  }
+  const html = mapWalkCutGraphicHtml(inner);
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const next = tmp.firstElementChild;
+  if (!next) return;
+  const existing = stage.querySelector(".mwc-strip");
+  if (existing) existing.replaceWith(next);
+  else {
+    const title = stage.querySelector(".flow-title");
+    if (title) title.insertAdjacentElement("afterend", next);
+    else stage.insertAdjacentElement("afterbegin", next);
+  }
+  bindMapWalkCutGraphic();
+}
+
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
   noteShownMembers(nodes);
@@ -21806,13 +21962,17 @@ function renderInner(msg, animate, opts) {
         "Inside this community — walk lit, siblings grey · " + nodes.length + " review-relevant";
     }
     bindStage(canvas.querySelector(".stage"), { reset: false });
+    if (typeof syncMapWalkCutGraphic === "function") syncMapWalkCutGraphic(inner);
   } else {
     unmountReviewCanvas();
     canvas.innerHTML =
-      '<div class="stage">' +
+      '<div class="stage' +
+      (mapWalkCutFocus ? " mwc-focusing" : "") +
+      '">' +
       '<div class="flow-title">Inside this community — walk lit, siblings grey · ' +
       nodes.length +
       " review-relevant</div>" +
+      mapWalkCutGraphicHtml(inner) +
       '<div class="viewport" data-lod="0">' +
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
       "</div></div>";
@@ -21821,6 +21981,7 @@ function renderInner(msg, animate, opts) {
   }
   setZoomUi(true);
   mountEnterCanvas(inner);
+  if (typeof bindMapWalkCutGraphic === "function") bindMapWalkCutGraphic();
   applyGraphFilter();
   applyEgoPaint();
   const leafNodes = nodes

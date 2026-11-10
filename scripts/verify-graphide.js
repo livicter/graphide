@@ -14949,6 +14949,238 @@ async function main() {
     await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(80);
 
+    // ADE Map walk-cut graphic (MWC1–MWC5) — enter b-render in this document; do not page.goto.
+    {
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+      await page.waitForSelector('.bubble-card[data-bubble="b-render"]', { timeout: 8000 });
+      const mwcEnter = await page.evaluate(() => {
+        const card = document.querySelector('.bubble-card[data-bubble="b-render"]');
+        if (!card) return { clicked: false };
+        card.click();
+        return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+      });
+      await page
+        .waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .vnode[data-lit]").length > 1,
+          null,
+          { timeout: 10000 }
+        )
+        .catch(() => failFast("MWC enter b-render did not mount — " + JSON.stringify(mwcEnter)));
+      await page.waitForTimeout(120);
+      const beforeMwcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const mwc1 = await page.evaluate(() => {
+        const strip = document.querySelector('.mwc-strip[data-mwc="1"]');
+        const n = (key) => {
+          const el = document.querySelector('[data-mwc-n="' + key + '"]');
+          return el ? Number((el.textContent || "").trim()) : NaN;
+        };
+        const title = ((document.querySelector("#canvas .flow-title") || {}).textContent || "").replace(/\s+/g, " ").trim();
+        const titleN = Number((title.match(/(\d+)\s+review-relevant/i) || [])[1] || NaN);
+        const vnodes = document.querySelectorAll("#enterCanvas .vnode[data-lit]").length;
+        const litDom = document.querySelectorAll("#enterCanvas .vnode[data-lit='1']").length;
+        const greyDom = document.querySelectorAll("#enterCanvas .vnode[data-lit='0']").length;
+        const src = document.getElementById("sourcePane");
+        const captions = document.querySelectorAll("#enterCanvas .vnode[data-mbe-caption='1']").length;
+        return {
+          strip: !!strip,
+          lit: n("lit"),
+          grey: n("grey"),
+          titleN,
+          vnodes,
+          litDom,
+          greyDom,
+          bar: !!document.querySelector(".mwc-bar"),
+          litSeg: !!document.querySelector(".mwc-seg.mwc-lit"),
+          greySeg: !!document.querySelector(".mwc-seg.mwc-grey"),
+          enter: !!document.getElementById("enterCanvas"),
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          extraCanvas: document.querySelectorAll("#canvas .react-flow").length,
+          srcHidden: !src || src.hidden,
+          captions,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const mwc1ok = !!(
+        mwc1 &&
+        mwcEnter &&
+        mwcEnter.clicked &&
+        mwc1.strip &&
+        mwc1.enter &&
+        mwc1.bar &&
+        mwc1.lit === 1 &&
+        mwc1.grey === 23 &&
+        mwc1.titleN === 24 &&
+        mwc1.vnodes === 24 &&
+        mwc1.lit + mwc1.grey === mwc1.titleN &&
+        mwc1.lit === mwc1.litDom &&
+        mwc1.grey === mwc1.greyDom &&
+        mwc1.litSeg &&
+        mwc1.greySeg &&
+        mwc1.xy > 1 &&
+        mwc1.extraCanvas === 1 &&
+        mwc1.srcHidden &&
+        mwc1.ws === "map"
+      );
+      record(
+        "MWC1",
+        "Map enter .mwc-strip lit/grey match title N and vnode data-lit (b-render 1/23/24); enter XYFlow stays; no source",
+        !!mwc1ok,
+        JSON.stringify(mwc1)
+      );
+
+      const mwc2 = await page.evaluate(() => {
+        const btn = document.querySelector('.mwc-stat[data-mwc="grey"]');
+        if (btn) btn.click();
+        const greyHit = document.querySelectorAll("#enterCanvas .vnode[data-lit='0'].mwc-hit").length;
+        const litHit = document.querySelectorAll("#enterCanvas .vnode[data-lit='1'].mwc-hit").length;
+        const src = document.getElementById("sourcePane");
+        return {
+          clicked: !!btn,
+          greyHit,
+          litHit,
+          mwcNow: !!document.querySelector('.mwc-stat[data-mwc="grey"].mwc-now'),
+          focusing: !!document.querySelector(".mwc-strip.mwc-focusing, .stage.mwc-focusing"),
+          enter: !!document.getElementById("enterCanvas"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const mwc2ok = !!(
+        mwc2 &&
+        mwc2.clicked &&
+        mwc2.greyHit === 23 &&
+        mwc2.litHit === 0 &&
+        mwc2.mwcNow &&
+        mwc2.focusing &&
+        mwc2.enter &&
+        mwc2.srcHidden &&
+        mwc2.xy > 1 &&
+        mwc2.ws === "map"
+      );
+      record(
+        "MWC2",
+        "Click Grey highlights off-walk enter members; Map enter stays; no source",
+        !!mwc2ok,
+        JSON.stringify(mwc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const mwc3 = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          focusing: !!document.querySelector(".mwc-strip.mwc-focusing, .stage.mwc-focusing"),
+          mwcNow: document.querySelectorAll(".mwc-stat.mwc-now, .mwc-seg.mwc-now").length,
+          hit: document.querySelectorAll("#enterCanvas .vnode.mwc-hit").length,
+          enter: !!document.getElementById("enterCanvas"),
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const mwc3ok = !!(
+        mwc3 &&
+        mwc3.ws === "map" &&
+        mwc3.enter &&
+        !mwc3.focusing &&
+        mwc3.mwcNow === 0 &&
+        mwc3.hit === 0 &&
+        mwc3.srcHidden
+      );
+      record(
+        "MWC3",
+        "Escape clears walk-cut graphic focus; Map enter stays",
+        !!mwc3ok,
+        JSON.stringify(mwc3)
+      );
+
+      const mwc4 = await page.evaluate(() => {
+        const captions = document.querySelectorAll("#enterCanvas .vnode[data-mbe-caption='1']").length;
+        const btn = document.querySelector('.mwc-stat[data-mwc="lit"]');
+        if (btn) btn.click();
+        const litHit = document.querySelectorAll("#enterCanvas .vnode[data-lit='1'].mwc-hit").length;
+        const greyHit = document.querySelectorAll("#enterCanvas .vnode[data-lit='0'].mwc-hit").length;
+        const src = document.getElementById("sourcePane");
+        return {
+          captions,
+          clicked: !!btn,
+          litHit,
+          greyHit,
+          mwcNow: !!document.querySelector('.mwc-stat[data-mwc="lit"].mwc-now'),
+          focusing: !!document.querySelector(".mwc-strip.mwc-focusing, .stage.mwc-focusing"),
+          enter: !!document.getElementById("enterCanvas"),
+          srcHidden: !src || src.hidden,
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const mwc4ok = !!(
+        mwc4 &&
+        mwc4.captions >= 1 &&
+        mwc4.clicked &&
+        mwc4.litHit === 1 &&
+        mwc4.greyHit === 0 &&
+        mwc4.mwcNow &&
+        mwc4.focusing &&
+        mwc4.enter &&
+        mwc4.srcHidden &&
+        mwc4.xy > 1 &&
+        mwc4.ws === "map"
+      );
+      record(
+        "MWC4",
+        "Click Lit highlights the on-walk member; MBE captions stay; no source; enter XYFlow stays",
+        !!mwc4ok,
+        JSON.stringify(mwc4)
+      );
+
+      await shot(page, "map-walk-cut.png");
+      const mwcShot = checks.find((c) => c.id === "shot:map-walk-cut.png");
+      const mwc5ok = !!(mwc1ok && mwc2ok && mwc3ok && mwc4ok && mwcShot && mwcShot.pass);
+      record(
+        "MWC5",
+        "screenshot map-walk-cut.png not black; Map walk-cut graphic proven",
+        !!mwc5ok,
+        JSON.stringify({
+          shot: mwcShot ? mwcShot.detail : "missing",
+          mwc1: !!mwc1ok,
+          mwc2: !!mwc2ok,
+          mwc3: !!mwc3ok,
+          mwc4: !!mwc4ok,
+        })
+      );
+      assertNoStampDir("MWC5b", "Map walk-cut graphic step did not write .graphide/stamps/");
+      const afterMwcPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && m.type === "peekSource"),
+          enterRun: added.some((m) => m && m.type === "enterRun"),
+        };
+      }, beforeMwcPosts);
+      record(
+        "MWC5c",
+        "Map walk-cut clicks did not post peekSource or enterRun",
+        !afterMwcPosts.peek && !afterMwcPosts.enterRun,
+        JSON.stringify(afterMwcPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      await page.evaluate(() => {
+        const back = document.getElementById("backBtn");
+        if (back && !back.disabled) back.click();
+        else {
+          const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+          if (crumb) crumb.click();
+        }
+      });
+      await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(80);
+    }
+
     // ADE Map-altitude community mix (MAC1–MAC3) — interactive kind/hop bars; graph-only .bubble-card filter
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });

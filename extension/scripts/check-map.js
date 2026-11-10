@@ -1272,6 +1272,21 @@ assert(dhsMap.includes("DHS1") && dhsMap.includes("dhs-strip") && dhsMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-hop-scar.md")), "decisions-hop-scar feature map missing");
 assert(featReadme.includes("decisions-hop-scar.md") && featReadme.includes("decisions-hop-scar.png"), "feature README must list decisions-hop-scar.md");
 
+const mwcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-walk-cut.md"), "utf8");
+assert(
+  mwcMap.includes("## Sub-features") &&
+    mwcMap.includes("## How to get to it (user POV)") &&
+    mwcMap.includes("## Driving it with the harness") &&
+    mwcMap.includes("## Gotchas"),
+  "map-walk-cut feature map must use the four headings"
+);
+assert(driver.includes("MWC1") && driver.includes("MWC3") && driver.includes("map-walk-cut.png") && driver.includes("mwc-stat"), "verify driver must prove Map walk-cut graphic MWC1–MWC3");
+assert(js.includes("mapWalkCutGraphicHtml") && js.includes("bindMapWalkCutGraphic") && js.includes("applyMapWalkCutPaint") && chrome.includes("mapWalkCutGraphicHtml"), "desk.js must own Map walk-cut graphic helpers");
+assert(css.includes(".mwc-strip") && css.includes(".mwc-stat") && css.includes("mwc-now") && css.includes("mwc-bar"), "main.css must theme Map walk-cut graphic + walk bar");
+assert(mwcMap.includes("MWC1") && mwcMap.includes("mwc-strip") && mwcMap.includes("map-walk-cut.png") && mwcMap.includes("peekSource"), "map-walk-cut feature map must name MWC / mwc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-walk-cut.md")), "map-walk-cut feature map missing");
+assert(featReadme.includes("map-walk-cut.md") && featReadme.includes("map-walk-cut.png"), "feature README must list map-walk-cut.md");
+
 
 
 
