@@ -1346,6 +1346,20 @@ assert(shvMap.includes("SHV1") && shvMap.includes("shv-strip") && shvMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-hop-variant.md")), "sequence-hop-variant feature map missing");
 assert(featReadme.includes("sequence-hop-variant.md") && featReadme.includes("sequence-hop-variant.png"), "feature README must list sequence-hop-variant.md");
 
+const steMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-tree-edge.md"), "utf8");
+assert(
+  steMap.includes("## Sub-features") &&
+    steMap.includes("## How to get to it (user POV)") &&
+    steMap.includes("## Driving it with the harness") &&
+    steMap.includes("## Gotchas"),
+  "slice-tree-edge feature map must use the four headings"
+);
+assert(driver.includes("STE1") && driver.includes("STE3") && driver.includes("slice-tree-edge.png") && driver.includes("ste-stat"), "verify driver must prove Slice tree-edge graphic STE1–STE3");
+assert(css.includes(".ste-strip") && css.includes(".ste-stat") && css.includes(".ste-bar") && css.includes("ste-hit") && css.includes("slice-title-cuts"), "main.css must style Slice tree-edge graphic and the Slice title-band cluster");
+assert(steMap.includes("STE1") && steMap.includes("ste-strip") && steMap.includes("slice-tree-edge.png") && steMap.includes("peekSource"), "slice-tree-edge feature map must name STE / ste-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-tree-edge.md")), "slice-tree-edge feature map missing");
+assert(featReadme.includes("slice-tree-edge.md") && featReadme.includes("slice-tree-edge.png"), "feature README must list slice-tree-edge.md");
+
 
 
 
