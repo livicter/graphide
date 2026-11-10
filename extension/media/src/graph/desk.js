@@ -199,6 +199,7 @@ let lineageEgoId = "";
 let lineageFanFilter = null; // ADE LFO: used|informed|generated
 let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
+let decisionChainFocus = null; // ADE DCG: {kind,id,from,to,rel} or null
 let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
 let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
@@ -513,6 +514,18 @@ document.addEventListener("keydown", (e) => {
     decisionAttestFilter = null;
     applyDecisionListFilters();
     syncDecisionAttestBars();
+    return;
+  }
+  // ADE DCG: Escape clears Decisions causal-graph focus when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "decisions" &&
+    decisionChainFocus
+  ) {
+    e.preventDefault();
+    decisionChainFocus = null;
+    applyDecisionCausalGraphPaint();
     return;
   }
   // ADE RAK: Escape clears Registry audit kind-mix filter when active.
@@ -8910,6 +8923,237 @@ function bindDecisionAttestChart() {
   });
 }
 
+
+/** ADE DCG — inline SVG causal graph for the selected decision (no XYFlow, no peekSource). */
+function decisionCausalLayout(steps) {
+  const ids = [];
+  const seen = new Set();
+  const add = (id) => {
+    const nid = idVal(id);
+    if (!nid || seen.has(nid)) return;
+    seen.add(nid);
+    ids.push(nid);
+  };
+  (steps || []).forEach((s) => {
+    if (s && s.from) add(s.from);
+    if (s && s.to) add(s.to);
+  });
+  const nodes = ids.map((id, i) => ({
+    id,
+    x: 28 + i * 96,
+    y: 50 + (i % 2) * 32,
+    label: shortOf(fqnOf(snapshot && snapshot.graph, id)) || shortToken(id),
+    type: kindOf(snapshot && snapshot.graph, id) || "node",
+  }));
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const edges = [];
+  (steps || []).forEach((s, i) => {
+    if (!s || !s.from || !s.to) return;
+    const a = byId.get(idVal(s.from));
+    const b = byId.get(idVal(s.to));
+    if (!a || !b) return;
+    edges.push({
+      i,
+      from: a.id,
+      to: b.id,
+      kind: s.relationship || "Calls",
+      scar: s.scar || "",
+      x1: a.x,
+      y1: a.y,
+      x2: b.x,
+      y2: b.y,
+    });
+  });
+  const w = Math.max(320, 56 + Math.max(0, nodes.length - 1) * 96);
+  const h = 140;
+  return { w, h, nodes, edges };
+}
+
+function decisionCausalGraphHtml(steps) {
+  const layout = decisionCausalLayout(steps);
+  if (!layout.nodes.length || !layout.edges.length) return "";
+  const focus = decisionChainFocus;
+  const nodeFocus = focus && focus.kind === "node" ? focus.id : "";
+  const edgeFocus =
+    focus && focus.kind === "edge" ? focus.from + "\0" + focus.to + "\0" + (focus.rel || "") : "";
+  const active = !!focus;
+  const nodeSvg = layout.nodes
+    .map((n) => {
+      const on =
+        (nodeFocus && n.id === nodeFocus) ||
+        (focus && focus.kind === "edge" && (focus.from === n.id || focus.to === n.id));
+      const dim = active && !on;
+      const cls =
+        "dcg-node" + (on ? " dcg-now" : "") + (dim ? " dcg-dim" : "") + " " + kindClass(n.type);
+      return (
+        '<g class="' +
+        cls +
+        '" data-dcg-kind="node" data-dcg-id="' +
+        esc(n.id) +
+        '" transform="translate(' +
+        n.x +
+        "," +
+        n.y +
+        ')" role="button" tabindex="0" aria-label="' +
+        esc((n.type || "node") + " " + n.label) +
+        '">' +
+        '<circle r="16" />' +
+        '<text class="dcg-label" y="32" text-anchor="middle">' +
+        esc(n.label) +
+        "</text></g>"
+      );
+    })
+    .join("");
+  const edgeSvg = layout.edges
+    .map((e) => {
+      const key = e.from + "\0" + e.to + "\0" + (e.kind || "");
+      const on = edgeFocus && key === edgeFocus;
+      const dim = active && !on;
+      const midX = (e.x1 + e.x2) / 2;
+      const midY = (e.y1 + e.y2) / 2 - 8;
+      const cls =
+        "dcg-edge" +
+        (on ? " dcg-now" : "") +
+        (dim ? " dcg-dim" : "") +
+        (e.scar ? " dcg-scar-" + e.scar : "");
+      return (
+        '<g class="' +
+        cls +
+        '" data-dcg-kind="edge" data-from="' +
+        esc(e.from) +
+        '" data-to="' +
+        esc(e.to) +
+        '" data-kind="' +
+        esc(e.kind) +
+        '" data-scar="' +
+        esc(e.scar) +
+        '" role="button" tabindex="0" aria-label="' +
+        esc(e.kind + (e.scar ? " " + e.scar : "") + " " + e.from + " to " + e.to) +
+        '">' +
+        '<line x1="' +
+        e.x1 +
+        '" y1="' +
+        e.y1 +
+        '" x2="' +
+        e.x2 +
+        '" y2="' +
+        e.y2 +
+        '" />' +
+        '<text class="dcg-edge-label" x="' +
+        midX +
+        '" y="' +
+        midY +
+        '" text-anchor="middle">' +
+        esc(e.kind + (e.scar ? " · " + e.scar : "")) +
+        "</text></g>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="dcg-strip" data-dcg="1" role="group" aria-label="Decision causal graph">' +
+    '<span class="dcg-stat"><i class="k">Causal graph</i> <b class="n" data-dcg-meta="1">' +
+    layout.edges.length +
+    " hop" +
+    (layout.edges.length === 1 ? "" : "s") +
+    " · click to focus</b></span>" +
+    '<svg class="dcg-svg" viewBox="0 0 ' +
+    layout.w +
+    " " +
+    layout.h +
+    '" width="100%" height="' +
+    layout.h +
+    '" role="img" aria-label="Derived causal hops for this decision">' +
+    '<defs><marker id="dcg-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" class="dcg-arrow-head"></path></marker></defs>' +
+    edgeSvg +
+    nodeSvg +
+    "</svg></div>"
+  );
+}
+
+function applyDecisionCausalGraphPaint() {
+  const wrap = canvas.querySelector('.dcg-strip[data-dcg="1"]');
+  if (!wrap) return;
+  const focus = decisionChainFocus;
+  wrap.classList.toggle("dcg-focusing", !!focus);
+  const nodeFocus = focus && focus.kind === "node" ? focus.id : "";
+  wrap.querySelectorAll(".dcg-node").forEach((el) => {
+    const id = el.getAttribute("data-dcg-id") || "";
+    const on =
+      (nodeFocus && id === nodeFocus) ||
+      (focus && focus.kind === "edge" && (focus.from === id || focus.to === id));
+    el.classList.toggle("dcg-now", !!on);
+    el.classList.toggle("dcg-dim", !!(focus && !on));
+  });
+  wrap.querySelectorAll(".dcg-edge").forEach((el) => {
+    const key =
+      (el.getAttribute("data-from") || "") +
+      "\0" +
+      (el.getAttribute("data-to") || "") +
+      "\0" +
+      (el.getAttribute("data-kind") || "");
+    const edgeFocus =
+      focus && focus.kind === "edge"
+        ? focus.from + "\0" + focus.to + "\0" + (focus.rel || "")
+        : "";
+    const on = !!(edgeFocus && key === edgeFocus);
+    el.classList.toggle("dcg-now", on);
+    el.classList.toggle("dcg-dim", !!(focus && !on));
+  });
+  const meta = wrap.querySelector("[data-dcg-meta='1']");
+  if (meta) {
+    const n = wrap.querySelectorAll(".dcg-edge").length;
+    meta.textContent = focus
+      ? "focused · Escape clears"
+      : n + " hop" + (n === 1 ? "" : "s") + " · click to focus";
+  }
+}
+
+function bindDecisionCausalGraph() {
+  const wrap = canvas.querySelector('.dcg-strip[data-dcg="1"]');
+  if (!wrap || wrap.dataset.dcgBound === "1") return;
+  wrap.dataset.dcgBound = "1";
+  const onPick = (el) => {
+    if (!el) return;
+    const kind = el.getAttribute("data-dcg-kind");
+    if (kind === "node") {
+      const id = el.getAttribute("data-dcg-id") || "";
+      if (!id) return;
+      decisionChainFocus =
+        decisionChainFocus && decisionChainFocus.kind === "node" && decisionChainFocus.id === id
+          ? null
+          : { kind: "node", id };
+    } else if (kind === "edge") {
+      const from = el.getAttribute("data-from") || "";
+      const to = el.getAttribute("data-to") || "";
+      const rel = el.getAttribute("data-kind") || "";
+      const same =
+        decisionChainFocus &&
+        decisionChainFocus.kind === "edge" &&
+        decisionChainFocus.from === from &&
+        decisionChainFocus.to === to &&
+        decisionChainFocus.rel === rel;
+      decisionChainFocus = same ? null : { kind: "edge", from, to, rel };
+    } else {
+      return;
+    }
+    applyDecisionCausalGraphPaint();
+  };
+  wrap.querySelectorAll(".dcg-node, .dcg-edge").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      onPick(el);
+    });
+    el.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      onPick(el);
+    });
+  });
+  applyDecisionCausalGraphPaint();
+}
+
 function renderDecisionBody() {
   const rows = decisionRecords().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -9002,6 +9246,7 @@ function renderDecisionBody() {
     " step" +
     (chain.length === 1 ? "" : "s") +
     " on the derived graph</div>" +
+    decisionCausalGraphHtml(chain) +
     renderChain(chain) +
     "</div></div>"
   );
@@ -18200,6 +18445,7 @@ function renderExplorerList(ws, opts) {
   canvas.querySelectorAll("[data-decision]").forEach((el) => {
     el.onclick = () => {
       selectedDecisionKey = el.getAttribute("data-decision") || "";
+      decisionChainFocus = null;
       paint({ animate: "none" });
     };
   });
@@ -18219,6 +18465,8 @@ function renderExplorerList(ws, opts) {
       showHop(el.getAttribute("data-from"), el.getAttribute("data-to"), el.getAttribute("data-kind"));
     };
   });
+  bindDecisionCausalGraph();
+  applyDecisionCausalGraphPaint();
   canvas.querySelectorAll("[data-flow]").forEach((el) => {
     // ADE CFE — Overview/Slice XYFlow vnodes carry data-flow for captions; their
     // click is owned by onNodeClick / selectNode (inline CFG expand), not tab hop.

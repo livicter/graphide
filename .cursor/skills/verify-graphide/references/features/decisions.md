@@ -26,6 +26,8 @@ Not a graph canvas. Stamp / skip stay host-only.
 
 - ADE DAM (Decisions attestation mix): Decisions list shows `.dam-strip` / `.dam-chart` / `.dam-bar` stamp/skip/broken mix from `decisionRecords()` via `attestationBucket`. Click / Enter / Space toggles `decisionAttestFilter` and paints `.expl-card[data-attest]` with `dam-hit` / `dam-dim` (non-matching also `.off`). Second click or Escape (Decisions-only, when mix filter active) clears. Graph-only — must not open Evidence / `peekSource` / source pane. Screenshot `verification/decisions-attestation-mix.png`. Asserts DAM1–DAM3.
 
+- ADE DCG (Decisions causal graph): the detail pane shows an inline SVG `.dcg-strip[data-dcg="1"] .dcg-svg` of `causalChainFor(selected)` hops and scars. Click focuses a node or edge (`.dcg-now`); Escape clears after DAM. Graph-only — must not open Evidence / `peekSource` / source pane, and must not add XYFlow (`#canvas .react-flow__node` stays 0). Screenshot `verification/decisions-causal-graph.png`. Asserts DCG1–DCG3. See [decisions-causal-graph.md](decisions-causal-graph.md).
+
 ## How to get to it (user POV)
 
 1. Review a folder. Land on Overview.

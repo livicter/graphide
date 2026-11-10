@@ -2221,6 +2221,75 @@ button.stat-chip.omc-chip:focus-visible {
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
+
+/* ADE DCG — Decisions causal graph (inline SVG, no XYFlow) */
+.dcg-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 88%, var(--vscode-focusBorder, #2f81f7) 12%);
+}
+.dcg-stat { display: flex; align-items: baseline; gap: 8px; }
+.dcg-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  font-style: normal;
+}
+.dcg-stat .n { font-size: 12px; font-weight: 600; }
+.dcg-svg { display: block; overflow: visible; }
+.dcg-edge line {
+  stroke: var(--vscode-foreground, #cccccc);
+  stroke-width: 1.6;
+  marker-end: url(#dcg-arrow);
+  opacity: 0.7;
+}
+.dcg-arrow-head { fill: var(--vscode-foreground, #cccccc); }
+.dcg-edge-label {
+  font-size: 9px;
+  fill: var(--vscode-foreground, #cccccc);
+  opacity: 0.72;
+}
+.dcg-node circle {
+  fill: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, var(--vscode-focusBorder, #2f81f7) 30%);
+  stroke: var(--vscode-focusBorder, #2f81f7);
+  stroke-width: 1.25;
+}
+.dcg-label {
+  font-size: 10px;
+  fill: var(--vscode-foreground, #cccccc);
+}
+.dcg-node, .dcg-edge { cursor: pointer; }
+.dcg-node:focus-visible circle,
+.dcg-edge:focus-visible line {
+  outline: none;
+  stroke: var(--vscode-focusBorder, #2f81f7);
+  stroke-width: 2.2;
+}
+.dcg-strip.dcg-focusing .dcg-node.dcg-dim circle,
+.dcg-strip.dcg-focusing .dcg-node.dcg-dim .dcg-label,
+.dcg-strip.dcg-focusing .dcg-edge.dcg-dim line,
+.dcg-strip.dcg-focusing .dcg-edge.dcg-dim .dcg-edge-label {
+  opacity: 0.28;
+}
+.dcg-node.dcg-now circle {
+  fill: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 55%, #fff 10%);
+  stroke-width: 2;
+  opacity: 1;
+}
+.dcg-edge.dcg-now line {
+  stroke: var(--vscode-focusBorder, #2f81f7);
+  stroke-width: 2.4;
+  opacity: 1;
+}
+.dcg-edge.dcg-scar-added line { stroke: #3fb950; }
+.dcg-edge.dcg-scar-removed line { stroke: #f85149; stroke-dasharray: 4 3; }
+
 /* ADE RAK — Registry audit kind-mix (review/stamp/skip/broken/finding) */
 .rak-strip {
   display: flex;

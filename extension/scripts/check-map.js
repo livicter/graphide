@@ -1167,6 +1167,22 @@ assert(lhsMap.includes("LHS1") && lhsMap.includes("lhs-strip") && lhsMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage-story-scrubber.md")), "lineage-story-scrubber feature map missing");
 assert(featReadme.includes("lineage-story-scrubber.md") && featReadme.includes("lineage-story-scrubber.png"), "feature README must list lineage-story-scrubber.md");
 
+const dcgMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-causal-graph.md"), "utf8");
+assert(
+  dcgMap.includes("## Sub-features") &&
+    dcgMap.includes("## How to get to it (user POV)") &&
+    dcgMap.includes("## Driving it with the harness") &&
+    dcgMap.includes("## Gotchas"),
+  "decisions-causal-graph feature map must use the four headings"
+);
+assert(driver.includes("DCG1") && driver.includes("DCG3") && driver.includes("decisions-causal-graph.png") && driver.includes("dcg-svg"), "verify driver must prove Decisions causal graph DCG1–DCG3");
+assert(js.includes("decisionCausalGraphHtml") && js.includes("bindDecisionCausalGraph") && js.includes("applyDecisionCausalGraphPaint") && chrome.includes("decisionCausalGraphHtml"), "desk.js must own Decisions causal graph helpers");
+assert(css.includes(".dcg-strip") && css.includes(".dcg-svg") && css.includes("dcg-now") && css.includes("dcg-dim"), "main.css must theme Decisions causal graph + focus paint");
+assert(dcgMap.includes("DCG1") && dcgMap.includes("dcg-strip") && dcgMap.includes("decisions-causal-graph.png") && dcgMap.includes("peekSource"), "decisions-causal-graph feature map must name DCG / dcg-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-causal-graph.md")), "decisions-causal-graph feature map missing");
+assert(featReadme.includes("decisions-causal-graph.md") && featReadme.includes("decisions-causal-graph.png"), "feature README must list decisions-causal-graph.md");
+
+
 
 
 
