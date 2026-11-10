@@ -1,9 +1,9 @@
 # graphide immutable specs v1
-# seal-sha256: af6559c0c760d64155b2cf74b54dd8773f192ce21498a6c4cd8cbef5878abc7f
+# seal-sha256: a45e084b91471ad1ac52c10db01fffd55237b2fc0178af8e5f6f2dd02fac83b4
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
-1d43eae8cd88140e2da35b8f49870333c5e9ba8cd85c29e9d364da2e3c491d1e  .cursor/skills/verify-graphide/references/features/README.md
+42e5cb224c2ad1c50d874a7ae70292ce657e47dceb29328d60f3c58430a671c3  .cursor/skills/verify-graphide/references/features/README.md
 f5a35dc3f3c3ae3b7252cc5aec3e49f238de19650a70ce8a8cb72965789b78eb  .cursor/skills/verify-graphide/references/features/all-programs.md
 7c7d00eadb50157f5657847d7af7beb74aa40f151ea3c4e39b038b2ae01b93d5  .cursor/skills/verify-graphide/references/features/appearance.md
 1b3c3df8548e0c7fada59be5dd9853df5c2aab4140a81b50467191c5eb4eb0f0  .cursor/skills/verify-graphide/references/features/apple-chrome-icons.md
@@ -37,6 +37,7 @@ e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills
 08c5569648fd786010093dbc3d92309ca9bf50b26cb441e4821c969f9e690b66  .cursor/skills/verify-graphide/references/features/keys.md
 4e2fb6953bc376033ffae18f36d2a38fac3219ea719d241e682b76481d37cddc  .cursor/skills/verify-graphide/references/features/kind-filters.md
 1888d708ce13f3a3f35fef139f76af48a79c1125e2eb16f768a06d606eb20254  .cursor/skills/verify-graphide/references/features/lens.md
+c48d44fdb3c98f3a377727395fa9708ebe6a3aa61d9674df3acd2cd6035881d3  .cursor/skills/verify-graphide/references/features/lifecycle-hop-tip.md
 f92004cc1d50015f0a737a3a0896792d12ced1b3a859c4a90363bc2a9cf3ae8f  .cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md
 95245c4efe596d1abaad74b0c22105068add16b78191658ebbb6c4e53b6b1e3b  .cursor/skills/verify-graphide/references/features/lifecycle-transition-overlay.md
 99f63082dfff16b6f32004138bc380cb956d0617763788ac9b42d2125a67a87b  .cursor/skills/verify-graphide/references/features/lifecycle.md
@@ -108,6 +109,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-d99c4c21073336669f30acd4293025a0cf2c1fbfa04a504cbc7daed42d316586  extension/scripts/check-map.js
+50fd9bf0e6f565bc3e85cea5b2565cf681915650ac6b18660914120473b307c0  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-381cfa3c0436440b537249f5af30216cb32b55f1b0ddc15df156fa645663f399  scripts/verify-graphide.js
+c4b693baf6c19ecfd40a9b5cba6fef457eb4d56e4717c16eeb6886a9ec31e698  scripts/verify-graphide.js

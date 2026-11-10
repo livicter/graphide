@@ -45823,6 +45823,265 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Lifecycle hop tip (LHT1–LHT5) — TEH/SHT/DHT-style hover tip on Lifecycle transitions; no title-band
+    await page.waitForFunction(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      return !!(edge && edge.getAttribute("data-from") && edge.getAttribute("data-to"));
+    }, { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const beforeLht = await page.evaluate(() => ({
+      posts: (window.__vscodePosts || []).length,
+      transOn: document.querySelectorAll("#lcTrans .lc-trans.on").length,
+      scrubbing: !!(document.querySelector(".lc-page.lss-scrubbing, #lcCanvas.lss-scrubbing, .lss-strip.lss-scrubbing")),
+    }));
+    const lht1 = await page.evaluate(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const titled = !!edge.querySelector("title") || !!document.querySelector("#lcCanvas .react-flow__edge title, #lcCanvas svg title");
+      return {
+        ok: true,
+        from: edge.getAttribute("data-from") || "",
+        to: edge.getAttribute("data-to") || "",
+        kind: edge.getAttribute("data-kind") || "",
+        cursor: getComputedStyle(edge).cursor,
+        titled,
+      };
+    });
+    const lht1ok = !!(
+      lht1 &&
+      lht1.ok &&
+      lht1.from === "broken" &&
+      lht1.to === "walking" &&
+      lht1.kind === "recover" &&
+      lht1.cursor === "help" &&
+      !lht1.titled
+    );
+    record(
+      "LHT1",
+      "recover Lifecycle hop carries from/to/kind; cursor:help; no SVG <title>",
+      !!lht1ok,
+      JSON.stringify(lht1)
+    );
+
+    const lht2 = await page.evaluate(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const rect = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2,
+          pointerId: 1,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("lifecycleHopTip");
+      const tipKind = tip && tip.querySelector("[data-lht-kind], [data-lht-event]");
+      const tipHop = tip && tip.querySelector("[data-lht-transition], [data-lht-hop]");
+      const tipFrom = tip && tip.querySelector("[data-lht-from]");
+      const tipTo = tip && tip.querySelector("[data-lht-to]");
+      const fromLane = tip && tip.querySelector('[data-lht-lane="from"]');
+      const toLane = tip && tip.querySelector('[data-lht-lane="to"]');
+      const src = document.getElementById("sourcePane");
+      const tipBtns = tip ? tip.querySelectorAll("button, a, [data-open-source]").length : 0;
+      return {
+        ok: true,
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        role: tip ? tip.getAttribute("role") || "" : "",
+        lht: tip ? tip.getAttribute("data-lht") || "" : "",
+        tipPe: tip ? getComputedStyle(tip).pointerEvents : "",
+        kindAttr: tip ? tip.getAttribute("data-kind") || "" : "",
+        fromLaneAttr: tip ? tip.getAttribute("data-from-lane") || "" : "",
+        toLaneAttr: tip ? tip.getAttribute("data-to-lane") || "" : "",
+        kindText: tipKind ? (tipKind.textContent || "").replace(/\s+/g, " ").trim() : "",
+        hopText: tipHop ? (tipHop.textContent || "").replace(/\s+/g, " ").trim() : "",
+        fromText: tipFrom ? (tipFrom.textContent || "").trim() : "",
+        toText: tipTo ? (tipTo.textContent || "").trim() : "",
+        fromLaneText: fromLane ? (fromLane.textContent || "").trim() : "",
+        toLaneText: toLane ? (toLane.textContent || "").trim() : "",
+        tipBtns,
+        srcHidden: !src || src.hidden,
+        lc: !!document.getElementById("lcCanvas"),
+      };
+    });
+    const lht2ok = !!(
+      lht2 &&
+      lht2.ok &&
+      lht2.tip &&
+      !lht2.tipHidden &&
+      lht2.role === "tooltip" &&
+      lht2.lht === "1" &&
+      (lht2.tipPe === "none" || lht2.tipPe === "") &&
+      lht2.kindAttr === "recover" &&
+      /recover/i.test(lht2.kindText) &&
+      /broken/i.test(lht2.fromText) &&
+      /walking/i.test(lht2.toText) &&
+      lht2.hopText.includes("→") &&
+      lht2.fromLaneAttr === "events" &&
+      lht2.toLaneAttr === "main" &&
+      /Wait \/ retry/i.test(lht2.fromLaneText) &&
+      /Review/i.test(lht2.toLaneText) &&
+      !lht2.tipBtns &&
+      lht2.srcHidden &&
+      lht2.lc
+    );
+    record(
+      "LHT2",
+      "pointerenter on recover shows #lifecycleHopTip with recover, Broken→Walking, Wait / retry and Review lanes; tip pointer-events:none; no source",
+      !!lht2ok,
+      JSON.stringify(lht2)
+    );
+
+    const lht3 = await page.evaluate(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      if (edge) {
+        edge.dispatchEvent(
+          new PointerEvent("pointerleave", {
+            bubbles: true,
+            pointerId: 1,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterLeave = document.getElementById("lifecycleHopTip");
+      const hiddenAfterLeave = !tipAfterLeave || tipAfterLeave.hidden;
+      const node =
+        document.querySelector('#lcCanvas [data-lc-id="broken"]') ||
+        document.querySelector("#lcCanvas [data-lc-id], #lcCanvas .vnode");
+      if (node) {
+        const r = node.getBoundingClientRect();
+        node.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: r.left + r.width / 2,
+            clientY: r.top + r.height / 2,
+            pointerId: 2,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterNode = document.getElementById("lifecycleHopTip");
+      return {
+        hiddenAfterLeave,
+        hopHiddenAfterNode: !tipAfterNode || tipAfterNode.hidden,
+        hadNode: !!node,
+      };
+    });
+    const lht3ok = !!(lht3 && lht3.hiddenAfterLeave && lht3.hopHiddenAfterNode);
+    record(
+      "LHT3",
+      "pointerleave hides Lifecycle hop tip; vnode hover does not resurrect it",
+      !!lht3ok,
+      JSON.stringify(lht3)
+    );
+
+    const lht4 = await page.evaluate(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      const n =
+        document.querySelector('#lcCanvas [data-lc-id="broken"]') ||
+        document.querySelector('#lcCanvas [data-lc-id="walking"]') ||
+        document.querySelector("#lcCanvas [data-lc-id]");
+      if (!edge || !n) return { missing: true };
+      const er = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: er.left + er.width / 2,
+          clientY: er.top + er.height / 2,
+          pointerId: 3,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("lifecycleHopTip");
+      const r = n.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const top = document.elementFromPoint(x, y);
+      const hitTip = !!(top && top.closest && top.closest("#lifecycleHopTip"));
+      const inNode = !!(top && (top === n || (top.closest && top.closest("#lcCanvas [data-lc-id], #lcCanvas .vnode"))));
+      const src = document.getElementById("sourcePane");
+      return {
+        x,
+        y,
+        tipVisible: !!(tip && !tip.hidden),
+        tipPe: tip ? getComputedStyle(tip).pointerEvents : "",
+        top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+        hitTip,
+        inNode,
+        srcHidden: !src || src.hidden,
+        lc: !!document.getElementById("lcCanvas"),
+      };
+    });
+    const lht4ok = !!(
+      lht4 &&
+      !lht4.missing &&
+      lht4.tipVisible &&
+      (lht4.tipPe === "none" || lht4.tipPe === "") &&
+      lht4.inNode &&
+      !lht4.hitTip &&
+      lht4.srcHidden &&
+      lht4.lc
+    );
+    record(
+      "LHT4",
+      "Visible #lifecycleHopTip does not intercept #lcCanvas vnode clicks; Lifecycle stays; no source",
+      !!lht4ok,
+      JSON.stringify(lht4)
+    );
+
+    await page.evaluate(() => {
+      const edge = document.querySelector('#lcCanvas .react-flow__edge[data-kind="recover"]');
+      if (!edge) return;
+      const r = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: r.left + r.width / 2,
+          clientY: r.top + r.height / 2,
+          pointerId: 4,
+          pointerType: "mouse",
+        })
+      );
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "lifecycle-hop-tip.png");
+    const lhtShot = checks.find((c) => c.id === "shot:lifecycle-hop-tip.png");
+    const lht5ok = !!(lht1ok && lht2ok && lht3ok && lht4ok && lhtShot && lhtShot.pass);
+    record(
+      "LHT5",
+      "screenshot lifecycle-hop-tip.png is not a black frame; Lifecycle hop tip proven",
+      !!lht5ok,
+      JSON.stringify({
+        shot: lhtShot ? lhtShot.detail : "missing",
+        lht1: !!lht1ok,
+        lht2: !!lht2ok,
+        lht3: !!lht3ok,
+        lht4: !!lht4ok,
+      })
+    );
+    assertNoStampDir("LHT5b", "Lifecycle hop tip step did not write .graphide/stamps/");
+    const afterLht = await page.evaluate((before) => {
+      const posts = window.__vscodePosts || [];
+      const added = posts.slice(before.posts);
+      return {
+        before: before.posts,
+        after: posts.length,
+        peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop" || m.type === "selectNode" || m.type === "enterRun")),
+        transOn: document.querySelectorAll("#lcTrans .lc-trans.on").length,
+        transOnBefore: before.transOn,
+        scrubbing: !!(document.querySelector(".lc-page.lss-scrubbing, #lcCanvas.lss-scrubbing, .lss-strip.lss-scrubbing")),
+        scrubbingBefore: before.scrubbing,
+      };
+    }, beforeLht);
+    record(
+      "LHT5c",
+      "Lifecycle hop tip hover did not post peekSource / showHop / selectNode / enterRun and did not advance lcCursor",
+      afterLht.after === afterLht.before && !afterLht.peek && afterLht.transOn === afterLht.transOnBefore && afterLht.scrubbing === afterLht.scrubbingBefore,
+      JSON.stringify(afterLht)
+    );
+
     const lineageUrl = origin + LINEAGE_HARNESS;
     console.log("lineage " + lineageUrl);
     await page.goto(lineageUrl, { waitUntil: "domcontentloaded", timeout: 30000 });

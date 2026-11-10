@@ -1587,6 +1587,21 @@ assert(dhtMap.includes("DHT1") && dhtMap.includes("dataflowHopTip") && dhtMap.in
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-hop-tip.md")), "dataflow-hop-tip feature map missing");
 assert(featReadme.includes("dataflow-hop-tip.md") && featReadme.includes("dataflow-hop-tip.png"), "feature README must list dataflow-hop-tip.md");
 
+const lhtMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-hop-tip.md"), "utf8");
+assert(
+  lhtMap.includes("## Sub-features") &&
+    lhtMap.includes("## How to get to it (user POV)") &&
+    lhtMap.includes("## Driving it with the harness") &&
+    lhtMap.includes("## Gotchas"),
+  "lifecycle-hop-tip feature map must use the four headings"
+);
+assert(driver.includes("LHT1") && driver.includes("LHT3") && driver.includes("lifecycle-hop-tip.png") && driver.includes("lifecycleHopTip"), "verify driver must prove Lifecycle hop tip LHT1–LHT3");
+assert(css.includes("#lifecycleHopTip") && css.includes("cursor: help") && /#lcCanvas \.react-flow__edge/.test(css), "main.css must style #lifecycleHopTip and Lifecycle edge cursor:help");
+assert(js.includes("showLifecycleHopTip") && js.includes("hideLifecycleHopTip") && js.includes("lifecycleHopTipEl") && js.includes('data-lht'), "desk.js Lifecycle hop tip helpers missing");
+assert(lhtMap.includes("LHT1") && lhtMap.includes("lifecycleHopTip") && lhtMap.includes("lifecycle-hop-tip.png") && lhtMap.includes("peekSource"), "lifecycle-hop-tip feature map must name LHT / lifecycleHopTip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-hop-tip.md")), "lifecycle-hop-tip feature map missing");
+assert(featReadme.includes("lifecycle-hop-tip.md") && featReadme.includes("lifecycle-hop-tip.png"), "feature README must list lifecycle-hop-tip.md");
+
 
 
 
