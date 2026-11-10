@@ -112,6 +112,7 @@ owns this folder.
 | [python-desk.md](python-desk.md) | Python fixture desk | `?python=1` · `verification/python-desk.png` |
 | [js-desk.md](js-desk.md) | JavaScript fixture desk | `?js=1` · `verification/js-desk.png` |
 | [ts-desk.md](ts-desk.md) | TypeScript fixture desk | `?ts=1` · `verification/ts-desk.png` |
+| [go-desk.md](go-desk.md) | Go fixture desk | `?go=1` · `verification/go-desk.png` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
 
 Regression sweep: every row above must still have a source path and a
