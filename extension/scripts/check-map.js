@@ -1317,6 +1317,23 @@ assert(medMap.includes("MED1") && medMap.includes("med-strip") && medMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-distance-cut.md")), "map-enter-distance-cut feature map missing");
 assert(featReadme.includes("map-enter-distance-cut.md") && featReadme.includes("map-enter-distance-cut.png"), "feature README must list map-enter-distance-cut.md");
 
+const swrMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-role.md"), "utf8");
+assert(
+  swrMap.includes("## Sub-features") &&
+    swrMap.includes("## How to get to it (user POV)") &&
+    swrMap.includes("## Driving it with the harness") &&
+    swrMap.includes("## Gotchas"),
+  "slice-walk-role feature map must use the four headings"
+);
+assert(driver.includes("SWR1") && driver.includes("SWR3") && driver.includes("slice-walk-role.png") && driver.includes("swr-stat"), "verify driver must prove Slice walk-role graphic SWR1–SWR3");
+assert(js.includes("sliceWalkRoleGraphicHtml") && js.includes("bindSliceWalkRoleGraphic") && js.includes("applySliceWalkRolePaint") && chrome.includes("sliceWalkRoleGraphicHtml"), "desk.js must own Slice walk-role graphic helpers");
+assert(css.includes(".swr-strip") && css.includes(".swr-stat") && css.includes("swr-now") && css.includes("swr-bar"), "main.css must theme Slice walk-role graphic + role bar");
+assert(swrMap.includes("SWR1") && swrMap.includes("swr-strip") && swrMap.includes("slice-walk-role.png") && swrMap.includes("peekSource"), "slice-walk-role feature map must name SWR / swr-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-role.md")), "slice-walk-role feature map missing");
+assert(featReadme.includes("slice-walk-role.md") && featReadme.includes("slice-walk-role.png"), "feature README must list slice-walk-role.md");
+
+
+
 
 
 

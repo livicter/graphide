@@ -17062,6 +17062,7 @@
     if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
     if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
+    if (d.walkRole) attrs["data-swr-role"] = String(d.walkRole);
     if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
     const style2 = d.depth != null ? { "--d": d.depth } : void 0;
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { ...attrs, style: style2, children: [
@@ -19625,6 +19626,7 @@
         grey: !!n.grey,
         sliceDim: !!n.sliceDim,
         sliceDist: n.sliceDist,
+        walkRole: n.walkRole || "",
         showFqn: true
       })),
       hops
@@ -20151,6 +20153,7 @@
     let mapHopSizeFilter = null;
     let focusTrail = null;
     let sliceMixFilter = null;
+    let sliceWalkRoleFocus = null;
     let callPathDepth = 0;
     let cfgExpandFocus = null;
     let routeMixFilter = null;
@@ -20501,6 +20504,12 @@
         e.preventDefault();
         sliceMixFilter = null;
         applySliceMixPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceWalkRoleFocus) {
+        e.preventDefault();
+        sliceWalkRoleFocus = null;
+        if (typeof applySliceWalkRolePaint === "function") applySliceWalkRolePaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "map" || explorerWs === "slice" || explorerWs === "sequence") && focusTrail) {
@@ -35579,6 +35588,9 @@
       mountSliceCanvas(flow, msg.graph, scarSet(msg.findings, flow.name));
       bindSliceMixChart();
       applySliceMixPaint();
+      if (typeof syncSliceWalkRoleGraphic === "function") {
+        syncSliceWalkRoleGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+      }
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
       bindCallPathStrip();
@@ -35621,6 +35633,106 @@
       const top = stack[stack.length - 1];
       const bubble = top && top.kind === "bubble" ? String(top.bubble) : "";
       return ["enter", inner && inner.flow || "", String(bubble), nodes.join(",")].join("\0");
+    }
+    function sliceWalkRoleOf(n) {
+      if (!n) return "off";
+      if (n.walkRole) return String(n.walkRole);
+      if (!n.lit) return "off";
+      if (n.steiner === "start") return "start";
+      if (n.steiner === "end") return "end";
+      return "mid";
+    }
+    function sliceWalkRoleMetrics(flow, graph, scars) {
+      const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { nodes: [] };
+      const m = { start: 0, mid: 0, end: 0, off: 0, total: 0 };
+      for (const n of props.nodes || []) {
+        const role = sliceWalkRoleOf(n);
+        if (m[role] == null) m.off += 1;
+        else m[role] += 1;
+        m.total += 1;
+      }
+      return m;
+    }
+    function sliceWalkRoleGraphicHtml(flow, graph, scars) {
+      const m = sliceWalkRoleMetrics(flow, graph, scars);
+      if (!m.total) return "";
+      const focusing = !!sliceWalkRoleFocus;
+      const onFor = (key) => !!(sliceWalkRoleFocus && String(sliceWalkRoleFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="swr-stat' + (onFor(key) ? " swr-now" : focusing ? " swr-idle" : "") + '" data-swr-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-swr-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="swr-seg swr-' + esc(key) + (onFor(key) ? " swr-now" : focusing ? " swr-idle" : "") + '" data-swr-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="swr-strip' + (focusing ? " swr-focusing" : "") + '" data-swr="1" role="group" aria-label="Slice walk-role graphic"><span class="swr-meta">Walk role</span><span class="swr-counts">' + stat("start", "start", m.start) + stat("mid", "mid", m.mid) + stat("end", "end", m.end) + stat("off", "off", m.off) + '</span><div class="swr-bar" aria-hidden="true">' + (m.total === 0 ? '<span class="swr-bar-empty"></span>' : seg("start", m.start) + seg("mid", m.mid) + seg("end", m.end) + seg("off", m.off)) + "</div></div>";
+    }
+    function jumpSliceWalkRole(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sliceWalkRoleFocus && String(sliceWalkRoleFocus) === key) sliceWalkRoleFocus = null;
+      else sliceWalkRoleFocus = key;
+      applySliceWalkRolePaint();
+    }
+    function applySliceWalkRolePaint() {
+      if (!canvas) return;
+      const focus = sliceWalkRoleFocus ? String(sliceWalkRoleFocus) : "";
+      canvas.querySelectorAll(".swr-stat[data-swr-band], .swr-seg[data-swr-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-swr-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("swr-now", on2);
+        el2.classList.toggle("swr-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".swr-strip");
+      if (strip) strip.classList.toggle("swr-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("swr-focusing", !!focus);
+      canvas.querySelectorAll("#sliceCanvas .vnode[data-swr-role]").forEach((el2) => {
+        const role = el2.getAttribute("data-swr-role") || "";
+        const hit = !!(focus && role === focus);
+        el2.classList.toggle("swr-hit", hit);
+        el2.classList.toggle("swr-idle", !!(focus && !hit));
+      });
+    }
+    function bindSliceWalkRoleGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".swr-stat[data-swr-band], .swr-seg[data-swr-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-swr-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceWalkRole(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceWalkRole(key);
+        };
+      });
+      applySliceWalkRolePaint();
+    }
+    function syncSliceWalkRoleGraphic(flow, graph, scars) {
+      if (!canvas || explorerWs !== "slice") {
+        const leftover = canvas && canvas.querySelector(".swr-strip");
+        if (leftover) leftover.remove();
+        return;
+      }
+      const stage = canvas.querySelector(".stage");
+      if (!stage || !document.getElementById("sliceCanvas")) return;
+      const html = sliceWalkRoleGraphicHtml(flow, graph, scars);
+      if (!html) {
+        const old = stage.querySelector(".swr-strip");
+        if (old) old.remove();
+        return;
+      }
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      const next = tmp.firstElementChild;
+      if (!next) return;
+      const existing = stage.querySelector(".swr-strip");
+      if (existing) existing.replaceWith(next);
+      else stage.appendChild(next);
+      bindSliceWalkRoleGraphic();
     }
     function sliceCanvasProps(flow, graph, scars) {
       const treeNodes = flow && flow.tree && flow.tree.nodes || [];
@@ -35674,7 +35786,8 @@
           lit: onTree,
           grey: !onTree,
           sliceDim: !onTree,
-          sliceDist
+          sliceDist,
+          walkRole: onTree ? steiner === "start" ? "start" : steiner === "end" ? "end" : "mid" : "off"
         };
       });
       const idSet = new Set(items.map((n) => n.id));

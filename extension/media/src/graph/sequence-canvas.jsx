@@ -499,6 +499,7 @@ export function renderSliceCanvas(host, props) {
       grey: !!n.grey,
       sliceDim: !!n.sliceDim,
       sliceDist: n.sliceDist,
+      walkRole: n.walkRole || "",
       showFqn: true,
     })),
     hops
