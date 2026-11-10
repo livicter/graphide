@@ -2602,6 +2602,95 @@ table.audit.rak-filtering tbody tr.rak-hit {
   stroke-width: 2.25;
 }
 
+
+/* ADE DDS — Delta story scrubber (past / now / ahead on facts + canvas) */
+.dds-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.dds-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.dds-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.dds-stat .n { font-size: 12px; font-weight: 600; }
+.dds-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.dds-depth-label { font-size: 11px; white-space: nowrap; }
+.dds-scrub {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--vscode-focusBorder);
+}
+.dds-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.delta-page.dds-scrubbing #deltaFacts .delta-fact.dds-past,
+#deltaFacts.dds-scrubbing .delta-fact.dds-past {
+  opacity: 0.72;
+}
+.delta-page.dds-scrubbing #deltaFacts .delta-fact.dds-ahead,
+#deltaFacts.dds-scrubbing .delta-fact.dds-ahead {
+  opacity: 0.38;
+}
+.delta-page.dds-scrubbing #deltaFacts .delta-fact.dds-now,
+#deltaFacts.dds-scrubbing .delta-fact.dds-now {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.delta-page.dds-scrubbing #deltaCanvas .vnode.dds-past,
+.delta-page.dds-scrubbing #deltaCanvas .react-flow__node.dds-past,
+#deltaCanvas.dds-scrubbing .vnode.dds-past,
+#deltaCanvas.dds-scrubbing .react-flow__node.dds-past {
+  opacity: 0.7;
+}
+.delta-page.dds-scrubbing #deltaCanvas .vnode.dds-ahead,
+.delta-page.dds-scrubbing #deltaCanvas .react-flow__node.dds-ahead,
+#deltaCanvas.dds-scrubbing .vnode.dds-ahead,
+#deltaCanvas.dds-scrubbing .react-flow__node.dds-ahead {
+  opacity: 0.35;
+}
+.delta-page.dds-scrubbing #deltaCanvas .vnode.dds-now,
+.delta-page.dds-scrubbing #deltaCanvas .react-flow__node.dds-now,
+#deltaCanvas.dds-scrubbing .vnode.dds-now,
+#deltaCanvas.dds-scrubbing .react-flow__node.dds-now {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  opacity: 1;
+}
+.delta-canvas.seq-canvas .react-flow__edge.dds-past path,
+.seq-canvas .react-flow__edge.dds-past path,
+#deltaCanvas .react-flow__edge.dds-past path {
+  opacity: 0.7;
+}
+.delta-canvas.seq-canvas .react-flow__edge.dds-ahead path,
+.seq-canvas .react-flow__edge.dds-ahead path,
+#deltaCanvas .react-flow__edge.dds-ahead path {
+  opacity: 0.35;
+}
+.delta-canvas.seq-canvas .react-flow__edge.dds-now path,
+.seq-canvas .react-flow__edge.dds-now path,
+#deltaCanvas .react-flow__edge.dds-now path {
+  stroke-width: 2.25;
+}
+
 /* ADE LFO — Lineage fan size mix (Used/Informed/Generated) */
 .lfo-strip {
   display: flex;

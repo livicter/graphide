@@ -37709,6 +37709,193 @@ async function main() {
     }
 
 
+
+    // ADE Delta story scrubber (DDS1–DDS5) — past/now/ahead scrub on deltaCursor
+    // Stay on the SDO ?delta=1 document. Do not page.goto (would replace explorer later).
+    {
+      await page.waitForSelector(".dds-strip #ddsScrub, #deltaFacts .delta-fact", { timeout: 8000 });
+      const dds1 = await page.evaluate(() => {
+        const strip = document.querySelector(".dds-strip[data-dds='1']");
+        const scrub = document.getElementById("ddsScrub");
+        const facts = document.querySelectorAll("#deltaFacts .delta-fact").length;
+        const play = document.getElementById("deltaPlay");
+        const pageEl = document.querySelector('.delta-page[data-dds="1"]');
+        const sdo = !!document.querySelector(".sdo-strip .sdo-chart .sdo-bar");
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="delta"]');
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          facts,
+          play: !!play,
+          page: !!pageEl,
+          sdo,
+          srcHidden: !src || src.hidden,
+          deltaOn: !!(ws && ws.classList.contains("on")),
+        };
+      });
+      const dds1ok = !!(
+        dds1 &&
+        dds1.strip &&
+        dds1.scrub &&
+        dds1.facts >= 1 &&
+        dds1.play &&
+        dds1.page &&
+        dds1.sdo &&
+        dds1.srcHidden &&
+        dds1.deltaOn &&
+        Number(dds1.max) >= 0
+      );
+      record(
+        "DDS1",
+        "Delta .dds-strip / #ddsScrub present beside review chrome; facts available; SDO stays; no source",
+        !!dds1ok,
+        JSON.stringify(dds1)
+      );
+
+      const dds2 = await page.evaluate(() => {
+        const scrub = document.getElementById("ddsScrub");
+        const n0 = document.querySelectorAll("#deltaFacts .delta-fact").length;
+        if (!scrub || n0 < 1) return { ok: false, reason: "no scrub/facts" };
+        const target = Math.min(1, n0 - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const facts = [...document.querySelectorAll("#deltaFacts .delta-fact")];
+        const past = facts.filter((el) => el.classList.contains("dds-past")).length;
+        const now = facts.filter((el) => el.classList.contains("dds-now")).length;
+        const ahead = facts.filter((el) => el.classList.contains("dds-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".delta-page.dds-scrubbing") ||
+          document.querySelector("#deltaFacts.dds-scrubbing") ||
+          document.querySelector(".dds-strip.dds-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          facts: facts.length,
+          scrubbing,
+          sum: past + now + ahead,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dds2ok = !!(
+        dds2 &&
+        dds2.ok &&
+        dds2.scrubbing &&
+        dds2.now === 1 &&
+        dds2.sum === dds2.facts &&
+        dds2.srcHidden
+      );
+      record(
+        "DDS2",
+        "Delta scrub paints facts dds-past/dds-now/dds-ahead without opening source",
+        !!dds2ok,
+        JSON.stringify(dds2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const dds3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".delta-page.dds-scrubbing") ||
+          document.querySelector("#deltaFacts.dds-scrubbing") ||
+          document.querySelector(".dds-strip.dds-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#deltaFacts .delta-fact.dds-past, #deltaFacts .delta-fact.dds-now, #deltaFacts .delta-fact.dds-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dds3ok = !!(
+        dds3 &&
+        dds3.ws === "delta" &&
+        !dds3.scrubbing &&
+        dds3.painted === 0 &&
+        dds3.srcHidden
+      );
+      record(
+        "DDS3",
+        "Escape clears Delta story scrub without leaving Delta or opening source",
+        !!dds3ok,
+        JSON.stringify(dds3)
+      );
+
+      // DDS4 — scrub again; SDO chrome still present
+      await page.evaluate(() => {
+        const scrub = document.getElementById("ddsScrub");
+        const n = document.querySelectorAll("#deltaFacts .delta-fact").length;
+        if (!scrub || n < 1) return;
+        scrub.value = String(Math.min(1, n - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const dds4 = await page.evaluate(() => {
+        const pageEl = document.querySelector('.delta-page[data-dds="1"]');
+        const sdo = !!document.querySelector(".sdo-strip .sdo-chart .sdo-bar");
+        const scrubbing = !!(
+          document.querySelector(".delta-page.dds-scrubbing") ||
+          document.querySelector("#deltaFacts.dds-scrubbing")
+        );
+        const play = document.getElementById("deltaPlay");
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          sdo,
+          scrubbing,
+          play: !!play,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const dds4ok = !!(
+        dds4 &&
+        dds4.page &&
+        dds4.sdo &&
+        dds4.scrubbing &&
+        dds4.play &&
+        dds4.srcHidden
+      );
+      record(
+        "DDS4",
+        "DDS scrub composes with SDO; Delta chrome intact; no source",
+        !!dds4ok,
+        JSON.stringify(dds4)
+      );
+
+      await shot(page, "delta-story-scrubber.png");
+      const ddsShot = checks.find((c) => c.id === "shot:delta-story-scrubber.png");
+      const dds5ok = !!(dds1ok && dds2ok && dds3ok && dds4ok && ddsShot && ddsShot.pass);
+      record(
+        "DDS5",
+        "screenshot delta-story-scrubber.png not black; Delta story scrubber proven",
+        !!dds5ok,
+        JSON.stringify({
+          shot: ddsShot ? ddsShot.detail : "missing",
+          dds1: !!dds1ok,
+          dds2: !!dds2ok,
+          dds3: !!dds3ok,
+          dds4: !!dds4ok,
+        })
+      );
+      assertNoStampDir("DDS5b", "Delta story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // Member file path is not an FQN token. Same Delta fact filter as semantic file match (file half of deltaFacts).
     // fixtures/demo vs demo-parent exposes added crate::bus::sneaky_helper on src/bus.rs so a file query can keep the fact.
     const deltaFactsBeforeFile = await page.evaluate(() => document.querySelectorAll("#deltaFacts .delta-fact").length);
