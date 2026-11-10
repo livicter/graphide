@@ -74,11 +74,13 @@ PATH between two nodes. Play walks the directed hops. Hop-kind mix chart filters
 
 ### Sequence
 
-Story-rich hops with participant highlight. Participants group into module swimlanes; cross-module hops light both lanes as Play walks. Hop-kind mix chart filters which hops stay lit (Calls / Reads / Writes / Publishes / Subscribes). Story scrubber paints past / now / ahead on hops and swimlanes so you can freeze the conversation after N exchanges. Map focus trail chip carries here and dims non-member hops. Click the chip to jump back to the pinned Map community.
+Story-rich hops with participant highlight. Participants group into module swimlanes; cross-module hops light both lanes as Play walks. A module-cut graphic shows how many hops stay inside one module versus how many cross modules — the same numbers as the painted hop cards, not a hop-kind mix or a story scrub. Hop-kind mix chart filters which hops stay lit (Calls / Reads / Writes / Publishes / Subscribes). Story scrubber paints past / now / ahead on hops and swimlanes so you can freeze the conversation after N exchanges. Map focus trail chip carries here and dims non-member hops. Click the chip to jump back to the pinned Map community.
 
 ![Sequence story richness](UIUX_sample/sequence-story-richness.png)
 
 ![Cross-module sequence swimlane](UIUX_sample/sequence-module-swimlane.png)
+
+![Sequence module-cut](UIUX_sample/sequence-module-cut.png)
 
 ![Sequence hop-kind mix](UIUX_sample/sequence-hop-kind-mix.png)
 
@@ -185,6 +187,6 @@ A hop-scar graphic shows unique derived Steiner hops on stamped or skipped flows
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS), Lineage story scrubber (LHS), Decisions causal graph (DCG), Registry snapshot graphic (RSG), Present/fixture lens (PFL), Registry audit subjects (RAS), Passport impact/layer graphic (PIL), Timeline parent-cut graphic (TPC), Decisions hop-scar graphic (DHS), Map walk-cut graphic (MWC).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS), Lineage story scrubber (LHS), Decisions causal graph (DCG), Registry snapshot graphic (RSG), Present/fixture lens (PFL), Registry audit subjects (RAS), Passport impact/layer graphic (PIL), Timeline parent-cut graphic (TPC), Decisions hop-scar graphic (DHS), Map walk-cut graphic (MWC), Sequence module-cut graphic (SMC).
 
-Parked next: none (MWC shipped).
+Parked next: none (SMC shipped).

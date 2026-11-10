@@ -20154,6 +20154,7 @@
     let cfgExpandFocus = null;
     let routeMixFilter = null;
     let seqHopKindFilter = null;
+    let sequenceModuleCutFocus = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20464,6 +20465,12 @@
         e.preventDefault();
         seqHopKindFilter = null;
         applySeqHopKindPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && sequenceModuleCutFocus) {
+        e.preventDefault();
+        sequenceModuleCutFocus = null;
+        applySequenceModuleCutPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqCursor >= 0) {
@@ -29363,6 +29370,115 @@
         }
       }
     }
+    function sequenceModuleCutPartMap(reading) {
+      const parts = reading && reading.participants || [];
+      const lanes = typeof seqModuleLanes === "function" ? seqModuleLanes(parts) : [];
+      const partModule = /* @__PURE__ */ new Map();
+      for (const lane of lanes) {
+        for (const p of lane && lane.members || []) {
+          const id2 = idVal(p.id);
+          if (id2) partModule.set(id2, lane.id);
+        }
+      }
+      return partModule;
+    }
+    function hopModuleCut(h, partModule) {
+      if (!h) return "";
+      const fromId = idVal(h.from);
+      const toId = idVal(h.to);
+      const fromMod = partModule && fromId && partModule.get(fromId) || seqModuleOf2({ fqn: h.from_fqn, file: h.file });
+      const toMod = partModule && toId && partModule.get(toId) || seqModuleOf2({ fqn: h.to_fqn, file: h.file });
+      if (fromMod && toMod && fromMod !== toMod) return "cross";
+      if (fromMod && toMod && fromMod === toMod) return "same";
+      return "";
+    }
+    function sequenceModuleCutMetrics() {
+      const flow = typeof sequenceFlow === "function" ? sequenceFlow() : null;
+      const reading = typeof sequenceOf === "function" ? sequenceOf(flow) : { hops: [] };
+      const hops = reading && reading.hops || [];
+      const partModule = sequenceModuleCutPartMap(reading);
+      let same = 0;
+      let cross = 0;
+      for (const h of hops) {
+        const cut = hopModuleCut(h, partModule);
+        if (cut === "cross") cross += 1;
+        else if (cut === "same") same += 1;
+      }
+      return { hops: hops.length, same, cross };
+    }
+    function sequenceModuleCutGraphicHtml() {
+      const m = sequenceModuleCutMetrics();
+      if (!m.hops) return "";
+      const total = Math.max(m.same + m.cross, 0);
+      const sameW = total > 0 ? Math.round(m.same / total * 100) : 0;
+      const crossW = total > 0 ? Math.max(0, 100 - sameW) : 0;
+      const focusing = !!sequenceModuleCutFocus;
+      const onFor = (key) => !!(sequenceModuleCutFocus && String(sequenceModuleCutFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="smc-stat' + (onFor(key) ? " smc-now" : focusing ? " smc-idle" : "") + '" data-smc="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-smc-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, width, n) => {
+        if (width <= 0 && n <= 0) return "";
+        return '<button type="button" class="smc-seg smc-' + esc(key) + (onFor(key) ? " smc-now" : focusing ? " smc-idle" : "") + '" data-smc="' + esc(key) + '" style="flex-grow:' + Math.max(width, n > 0 ? 1 : 0) + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="smc-strip' + (focusing ? " smc-focusing" : "") + '" data-smc="1" role="group" aria-label="Sequence module-cut graphic"><span class="smc-meta">Module cut</span><span class="smc-counts">' + stat("same", "same", m.same) + stat("cross", "cross", m.cross) + '</span><div class="smc-bar" aria-hidden="true">' + (total === 0 ? '<span class="smc-bar-empty"></span>' : seg("same", sameW, m.same) + seg("cross", crossW, m.cross)) + "</div></div>";
+    }
+    function jumpSequenceModuleCut(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sequenceModuleCutFocus && String(sequenceModuleCutFocus) === key) {
+        sequenceModuleCutFocus = null;
+      } else {
+        sequenceModuleCutFocus = key;
+      }
+      applySequenceModuleCutPaint();
+    }
+    function syncSequenceModuleCutChrome() {
+      if (!canvas) return;
+      const focus = sequenceModuleCutFocus ? String(sequenceModuleCutFocus) : "";
+      canvas.querySelectorAll("[data-smc]").forEach((el2) => {
+        if (!el2.classList.contains("smc-stat") && !el2.classList.contains("smc-seg")) return;
+        const key = el2.getAttribute("data-smc") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("smc-now", on2);
+        el2.classList.toggle("smc-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".smc-strip");
+      if (strip) strip.classList.toggle("smc-focusing", !!focus);
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("smc-focusing", !!focus);
+      const hopsEl = canvas.querySelector("#seqHops");
+      if (hopsEl) hopsEl.classList.toggle("smc-focusing", !!focus);
+    }
+    function applySequenceModuleCutPaint() {
+      if (!canvas) return;
+      const focus = sequenceModuleCutFocus ? String(sequenceModuleCutFocus) : "";
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        const cross = el2.getAttribute("data-cms-cross") === "1";
+        const cut = cross ? "cross" : "same";
+        const hit = !!(focus && cut === focus);
+        const dim = !!(focus && cut !== focus);
+        el2.classList.toggle("smc-hit", hit);
+        el2.classList.toggle("smc-dim", dim);
+      });
+      syncSequenceModuleCutChrome();
+    }
+    function bindSequenceModuleCutGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".smc-stat[data-smc], .smc-seg[data-smc]").forEach((el2) => {
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceModuleCut(el2.getAttribute("data-smc"));
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceModuleCut(el2.getAttribute("data-smc"));
+        };
+      });
+      applySequenceModuleCutPaint();
+    }
     function seqStoryScrubHtml(hops) {
       const n = hops && hops.length || 0;
       if (n < 1) return "";
@@ -29531,7 +29647,8 @@
         return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (seqCursor >= 0 && i < seqCursor ? " sss-past" : "") + (seqCursor >= 0 && i === seqCursor ? " sss-now" : "") + (seqCursor >= 0 && i > seqCursor ? " sss-ahead" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
       const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
-      return '<div class="seq-page" data-ssr="1" data-cms="1" data-shk="1" data-sss="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      const smcStrip = sequenceModuleCutGraphicHtml();
+      return '<div class="seq-page' + (sequenceModuleCutFocus ? " smc-focusing" : "") + '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + smcStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -29616,6 +29733,7 @@
       });
       applySeqStoryScrubPaint();
       syncSeqStoryScrub();
+      if (typeof applySequenceModuleCutPaint === "function") applySequenceModuleCutPaint();
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
@@ -29664,6 +29782,8 @@
       bindSeqStoryScrub();
       applySeqStoryScrubPaint();
       syncSeqStoryScrub();
+      bindSequenceModuleCutGraphic();
+      applySequenceModuleCutPaint();
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
     }
@@ -29673,6 +29793,8 @@
       bindSeqStoryScrub();
       applySeqStoryScrubPaint();
       syncSeqStoryScrub();
+      bindSequenceModuleCutGraphic();
+      applySequenceModuleCutPaint();
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

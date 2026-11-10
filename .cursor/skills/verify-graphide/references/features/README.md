@@ -58,6 +58,7 @@ owns this folder.
 | [timeline-parent-cut.md](timeline-parent-cut.md) | Timeline parent-cut graphic | explorer · `verification/timeline-parent-cut.png` |
 | [sequence-hop-kind-mix.md](sequence-hop-kind-mix.md) | Sequence hop-kind mix bars | explorer · `sequence-hop-kind-mix.png` |
 | [sequence-story-scrubber.md](sequence-story-scrubber.md) | Sequence story scrubber | explorer · `sequence-story-scrubber.png` |
+| [sequence-module-cut.md](sequence-module-cut.md) | Sequence module-cut graphic | explorer · `verification/sequence-module-cut.png` |
 | [map.md](map.md) | Community Map | explorer + self-review |
 | [map-walk-cut.md](map-walk-cut.md) | Map walk-cut graphic | explorer enter · `verification/map-walk-cut.png` |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
