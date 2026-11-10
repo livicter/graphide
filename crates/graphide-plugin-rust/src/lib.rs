@@ -456,16 +456,33 @@ fn resolve_name(
     imports.get(short).cloned()
 }
 
+/// ADE DEH — a binding is an Endpoint only from type/constructor evidence,
+/// not because a long initializer mentions `file`, `http://`, or `.channel`.
+fn http_token_not_url(blob: &str) -> bool {
+    let stripped = blob.replace("https://", "").replace("http://", "");
+    stripped.contains("http")
+}
+
+fn rust_file_type(ty: &str, whole: &str) -> bool {
+    let ty_l = ty.to_ascii_lowercase();
+    whole.contains("OpenOptions")
+        || ty.contains("OpenOptions")
+        || ty_l.contains("std::fs")
+        || ty_l.contains("std::fs::file")
+        || ty_l == "file"
+        || ty_l.ends_with("::file")
+}
+
 pub fn endpoint_meta(name: &str, ty: &str, whole: &str) -> Option<EndpointMeta> {
     let blob = format!("{name} {ty} {whole}").to_ascii_lowercase();
-    let channel = if blob.contains("broadcast") || blob.contains("channel") || blob.contains("mpsc")
-    {
+    // Channel: BroadcastChannel / mpsc. Do not match bare `ep.channel`.
+    let channel = if blob.contains("broadcast") || blob.contains("mpsc") {
         EndChannel::Channel
     } else if blob.contains("queue") || blob.contains("topic") {
         EndChannel::Queue
-    } else if blob.contains("file") || whole.contains("OpenOptions") {
+    } else if rust_file_type(ty, whole) {
         EndChannel::File
-    } else if blob.contains("http") || whole.contains("Router") || blob.contains("axum") {
+    } else if blob.contains("axum") || whole.contains("Router") || http_token_not_url(&blob) {
         EndChannel::Http
     } else {
         return None;

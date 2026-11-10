@@ -397,6 +397,48 @@ function subscribe() { return events; }
 }
 
 #[test]
+fn javascript_local_file_http_channel_are_not_endpoints() {
+    // ADE DEH — initializer mentions of `file`, `http://`, or `.channel`
+    // must not promote a local binding (or steal Function paint).
+    let src = r#"
+function paint() { return 1; }
+function sequenceCanvasProps() {
+  const paint = graphNodePaint({ file: "x.js" });
+  const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  const ch = ep && ep.channel ? String(ep.channel) : "";
+  return paint;
+}
+"#;
+    let e = extract("src/desk.js", src);
+    assert!(
+        e.nodes
+            .iter()
+            .any(|n| n.kind == NodeKind::Function && n.fqn.ends_with(".paint")),
+        "function paint must stay a Function; nodes={:?}",
+        e.nodes
+            .iter()
+            .map(|n| format!("{:?} {}", n.kind, n.fqn))
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        !e.nodes
+            .iter()
+            .any(|n| n.kind == NodeKind::Endpoint && n.fqn.ends_with(".paint")),
+        "const paint = graphNodePaint({{ file }}) must not be an Endpoint"
+    );
+    assert!(
+        !e.nodes.iter().any(|n| n.kind == NodeKind::Endpoint
+            && (n.fqn.ends_with(".hit") || n.fqn.ends_with(".ch"))),
+        "http:// SVG and ep.channel locals must not be Endpoints; nodes={:?}",
+        e.nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::Endpoint)
+            .map(|n| n.fqn.clone())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn rust_still_routed() {
     let src = r#"
 pub fn helper() {}

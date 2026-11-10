@@ -1217,6 +1217,41 @@ function assertSelfReviewSnap(snap) {
     "nodes=" + nodes.length + " edges=" + edges.length
   );
 
+  // ADE DEH — Function paint must survive JS locals that mention file/http/.channel.
+  const paintNodes = nodes.filter(
+    (n) => n && String(n.fqn || "") === "extension.media.src.graph.desk.paint"
+  );
+  const paintFn = paintNodes.some((n) => n.kind === "Function");
+  const paintEp = paintNodes.some((n) => n.kind === "Endpoint");
+  const km = (snap.findings || []).filter((f) => {
+    const k = f && (typeof f.kind === "string" ? f.kind : f.kind && f.kind.kind);
+    return k === "KindMismatch";
+  });
+  const kmPaint = km.filter((f) => /\.desk\.paint$/.test(String(f.to || "")));
+  record(
+    "DEH0",
+    "self-review graph keeps function paint as Function",
+    paintFn,
+    paintNodes.map((n) => n.kind + " " + n.fqn).join(",") || "missing"
+  );
+  record(
+    "DEH0b",
+    "self-review graph does not classify desk.paint as Endpoint",
+    paintFn && !paintEp,
+    paintNodes.map((n) => n.kind).join(",") || "missing"
+  );
+  record(
+    "DEH0c",
+    "self-review has no KindMismatch Calls targeting desk.paint",
+    kmPaint.length === 0,
+    "kindMismatch=" + km.length + " toPaint=" + kmPaint.length
+  );
+  failSnapChecks(
+    /^DEH0/,
+    "Deriver endpoint honesty snapshot failed structural checks (desk not driven).",
+    "function paint missing or KindMismatch to desk.paint"
+  );
+
   failSnapChecks(
     /^G\d/,
     "Self-review snapshot failed structural checks (desk not driven).",
@@ -43075,6 +43110,42 @@ async function main() {
 
     assertNoStampDir("R7", "Self-review step did not write .graphide/stamps/");
 
+    // ADE DEH — Registry on the live desk must not list KindMismatch Calls to paint.
+    await page.click('#workspaces [data-ws="registry"]');
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return on && on.getAttribute("data-ws") === "registry";
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector("table.audit tbody tr, #canvas .empty", { timeout: 15000 });
+    const dehReg = await page.evaluate(() => {
+      const on = document.querySelector("#workspaces [data-ws].on");
+      const rows = [...document.querySelectorAll("table.audit tbody tr")];
+      const texts = rows.map((r) => ((r.textContent || "").replace(/\s+/g, " ").trim()));
+      const km = texts.filter((t) => /KindMismatch/i.test(t));
+      return {
+        ws: on ? on.getAttribute("data-ws") : "",
+        rows: rows.length,
+        km: km.length,
+        sample: km.slice(0, 3),
+        xy: document.querySelectorAll("#canvas .react-flow__node").length,
+      };
+    });
+    record(
+      "DEH1",
+      "self-review Registry lists no KindMismatch rows",
+      dehReg.ws === "registry" && dehReg.km === 0 && dehReg.xy === 0,
+      "rows=" + dehReg.rows + " km=" + dehReg.km + " sample=" + dehReg.sample.join("|")
+    );
+    await shot(page, "deriver-endpoint-honesty.png");
+    await page.click('#workspaces [data-ws="map"]');
+    await page.waitForSelector(".bubble-card", { timeout: 15000 });
+    await page.waitForTimeout(300);
+    assertNoStampDir("DEH2", "Deriver endpoint honesty step did not write .graphide/stamps/");
+
     const readProgDesk = () =>
       page.evaluate(() => {
         const chips = [...document.querySelectorAll("#legend [data-prog]")].map((el) => ({
@@ -50814,7 +50885,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · deriver-endpoint-honesty · lineage · export · present · preset · route · lens"
   );
 }
 
