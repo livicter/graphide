@@ -2203,6 +2203,198 @@ async function main() {
     await page.waitForTimeout(40);
 
 
+
+    // ADE Registry snapshot graphic (RSG1–RSG5) — composition tiles from the snap
+    // Stay on the RAK Registry document. Do not page.goto (Timeline follows with its own click).
+    {
+      await page.waitForSelector(".rsg-strip[data-rsg='1'] .rsg-tile[data-rsg-metric], table.audit tbody tr", {
+        timeout: 8000,
+      });
+      const rsg1 = await page.evaluate(() => {
+        const strip = document.querySelector(".rsg-strip[data-rsg='1']");
+        const tiles = [...document.querySelectorAll(".rsg-tile[data-rsg-metric]")].map((el) => ({
+          key: el.getAttribute("data-rsg-metric") || "",
+          n: Number((el.querySelector("[data-rsg-n]") || {}).textContent || 0),
+        }));
+        const by = Object.fromEntries(tiles.map((t) => [t.key, t.n]));
+        const first = (
+          (document.querySelector("table.audit tbody tr[data-rsg-row='snapshot']") ||
+            document.querySelector("table.audit tbody tr") ||
+            {}).textContent || ""
+        ).replace(/\s+/g, " ").trim();
+        const m = first.match(/(\d+)\s+nodes\s+·\s+(\d+)\s+edges\s+·\s+(\d+)\s+files/i);
+        const rak = !!document.querySelector(".rak-strip .rak-chart .rak-bar");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = document.querySelector('#workspaces [data-ws="registry"]');
+        const pluginMeta = ((strip && strip.querySelector("[data-rsg-meta='1']")) || {}).textContent || "";
+        return {
+          strip: !!strip,
+          tiles: tiles.length,
+          by,
+          rowNodes: m ? Number(m[1]) : -1,
+          rowEdges: m ? Number(m[2]) : -1,
+          rowFiles: m ? Number(m[3]) : -1,
+          plugin: /rust@/i.test(first) && /rust@/i.test(pluginMeta),
+          rak,
+          srcHidden: !src || src.hidden,
+          xy,
+          regOn: !!(ws && ws.classList.contains("on")),
+        };
+      });
+      const rsg1ok = !!(
+        rsg1 &&
+        rsg1.strip &&
+        rsg1.tiles === 3 &&
+        rsg1.by.nodes === rsg1.rowNodes &&
+        rsg1.by.edges === rsg1.rowEdges &&
+        rsg1.by.files === rsg1.rowFiles &&
+        rsg1.by.nodes > 0 &&
+        rsg1.by.edges > 0 &&
+        rsg1.by.files > 0 &&
+        rsg1.plugin &&
+        rsg1.rak &&
+        rsg1.srcHidden &&
+        rsg1.xy === 0 &&
+        rsg1.regOn
+      );
+      record(
+        "RSG1",
+        "Registry .rsg-strip tiles match snapshot row counts; RAK stays; no XYFlow; no source",
+        !!rsg1ok,
+        JSON.stringify(rsg1)
+      );
+
+      const rsg2 = await page.evaluate(() => {
+        const tile = document.querySelector('.rsg-tile[data-rsg-metric="nodes"]') || document.querySelector(".rsg-tile");
+        if (!tile) return { ok: false, reason: "no tile" };
+        tile.click();
+        const now = document.querySelectorAll(".rsg-tile.rsg-now").length;
+        const dim = document.querySelectorAll(".rsg-tile.rsg-dim").length;
+        const focusing = !!document.querySelector(".rsg-strip.rsg-focusing");
+        const rowNow = !!document.querySelector("table.audit tbody tr[data-rsg-row='snapshot'].rsg-row-now");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          ok: true,
+          now,
+          dim,
+          focusing,
+          rowNow,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const rsg2ok = !!(
+        rsg2 &&
+        rsg2.ok &&
+        rsg2.focusing &&
+        rsg2.now === 1 &&
+        rsg2.dim === 2 &&
+        rsg2.rowNow &&
+        rsg2.srcHidden &&
+        rsg2.xy === 0 &&
+        rsg2.ws === "registry"
+      );
+      record(
+        "RSG2",
+        "Click snapshot tile focuses .rsg-now and the snapshot row; Registry stays; no source; no XYFlow",
+        !!rsg2ok,
+        JSON.stringify(rsg2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const rsg3 = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".rsg-strip.rsg-focusing");
+        const now = document.querySelectorAll(".rsg-tile.rsg-now").length;
+        const rowNow = !!document.querySelector("table.audit tbody tr[data-rsg-row='snapshot'].rsg-row-now");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          focusing,
+          now,
+          rowNow,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const rsg3ok = !!(
+        rsg3 &&
+        rsg3.ws === "registry" &&
+        !rsg3.focusing &&
+        rsg3.now === 0 &&
+        !rsg3.rowNow &&
+        rsg3.srcHidden &&
+        rsg3.xy === 0
+      );
+      record(
+        "RSG3",
+        "Escape clears snapshot-graphic focus without leaving Registry or opening source",
+        !!rsg3ok,
+        JSON.stringify(rsg3)
+      );
+
+      await page.evaluate(() => {
+        const tile = document.querySelector('.rsg-tile[data-rsg-metric="edges"]') || document.querySelector(".rsg-tile");
+        if (tile) tile.click();
+      });
+      await page.waitForTimeout(80);
+      const rsg4 = await page.evaluate(() => {
+        const strip = document.querySelector(".rsg-strip[data-rsg='1']");
+        const rak = !!document.querySelector(".rak-strip .rak-chart .rak-bar");
+        const focusing = !!document.querySelector(".rsg-strip.rsg-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        return {
+          strip: !!strip,
+          rak,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+        };
+      });
+      const rsg4ok = !!(
+        rsg4 &&
+        rsg4.strip &&
+        rsg4.rak &&
+        rsg4.focusing &&
+        rsg4.srcHidden &&
+        rsg4.xy === 0
+      );
+      record(
+        "RSG4",
+        "RSG composes with RAK; Registry chrome intact; no source; no XYFlow",
+        !!rsg4ok,
+        JSON.stringify(rsg4)
+      );
+
+      await shot(page, "registry-snapshot-graphic.png");
+      const rsgShot = checks.find((c) => c.id === "shot:registry-snapshot-graphic.png");
+      const rsg5ok = !!(rsg1ok && rsg2ok && rsg3ok && rsg4ok && rsgShot && rsgShot.pass);
+      record(
+        "RSG5",
+        "screenshot registry-snapshot-graphic.png not black; Registry snapshot graphic proven",
+        !!rsg5ok,
+        JSON.stringify({
+          shot: rsgShot ? rsgShot.detail : "missing",
+          rsg1: !!rsg1ok,
+          rsg2: !!rsg2ok,
+          rsg3: !!rsg3ok,
+          rsg4: !!rsg4ok,
+        })
+      );
+      assertNoStampDir("RSG5b", "Registry snapshot graphic step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     await page.click('#workspaces [data-ws="timeline"]');
     await page.waitForFunction(
       () => {

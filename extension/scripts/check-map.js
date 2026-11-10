@@ -1182,6 +1182,22 @@ assert(dcgMap.includes("DCG1") && dcgMap.includes("dcg-strip") && dcgMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-causal-graph.md")), "decisions-causal-graph feature map missing");
 assert(featReadme.includes("decisions-causal-graph.md") && featReadme.includes("decisions-causal-graph.png"), "feature README must list decisions-causal-graph.md");
 
+const rsgMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-snapshot-graphic.md"), "utf8");
+assert(
+  rsgMap.includes("## Sub-features") &&
+    rsgMap.includes("## How to get to it (user POV)") &&
+    rsgMap.includes("## Driving it with the harness") &&
+    rsgMap.includes("## Gotchas"),
+  "registry-snapshot-graphic feature map must use the four headings"
+);
+assert(driver.includes("RSG1") && driver.includes("RSG3") && driver.includes("registry-snapshot-graphic.png") && driver.includes("rsg-tile"), "verify driver must prove Registry snapshot graphic RSG1–RSG3");
+assert(js.includes("registrySnapshotGraphicHtml") && js.includes("bindRegistrySnapshotGraphic") && js.includes("applyRegistrySnapshotGraphicPaint") && chrome.includes("registrySnapshotGraphicHtml"), "desk.js must own Registry snapshot graphic helpers");
+assert(css.includes(".rsg-strip") && css.includes(".rsg-tile") && css.includes("rsg-now") && css.includes("rsg-dim"), "main.css must theme Registry snapshot graphic + focus paint");
+assert(rsgMap.includes("RSG1") && rsgMap.includes("rsg-strip") && rsgMap.includes("registry-snapshot-graphic.png") && rsgMap.includes("peekSource"), "registry-snapshot-graphic feature map must name RSG / rsg-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-snapshot-graphic.md")), "registry-snapshot-graphic feature map missing");
+assert(featReadme.includes("registry-snapshot-graphic.md") && featReadme.includes("registry-snapshot-graphic.png"), "feature README must list registry-snapshot-graphic.md");
+
+
 
 
 

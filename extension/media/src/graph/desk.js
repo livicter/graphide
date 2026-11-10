@@ -204,6 +204,7 @@ let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
 let lifecycleTransitionFilter = null; // ADE LSC: play|wait|stamp|skip|break|recover
 let registryAuditFilter = null; // ADE RAK: review|stamp|skip|broken|finding
+let registrySnapshotFocus = null; // ADE RSG: nodes|edges|files or null
 let timelineKindFilter = null; // ADE TKM: parent|coverage|stamp|skip|broken|hint
 let layoutPins = new Map();
 let zoomPopReady = false;
@@ -539,6 +540,18 @@ document.addEventListener("keydown", (e) => {
     registryAuditFilter = null;
     applyRegistryAuditPaint();
     syncRegistryAuditBars();
+    return;
+  }
+  // ADE RSG: Escape clears Registry snapshot-graphic focus when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "registry" &&
+    registrySnapshotFocus
+  ) {
+    e.preventDefault();
+    registrySnapshotFocus = null;
+    applyRegistrySnapshotGraphicPaint();
     return;
   }
   // ADE TKM: Escape clears Timeline kind-mix filter when active.
@@ -9389,6 +9402,121 @@ function applyRegistryAuditPaint() {
   syncRegistryAuditBars();
 }
 
+
+/** ADE RSG — interactive snapshot composition graphic (no XYFlow, no peekSource). */
+function registrySnapshotMetrics() {
+  const s = (snapshot && snapshot.stats) || {};
+  const graph = (snapshot && snapshot.graph) || {};
+  return {
+    nodes: (graph.nodes || []).length,
+    edges: (graph.edges || []).length,
+    files: Number(s.files) || 0,
+    plugin: (snapshot && snapshot.plugin) || "",
+    elapsed: s.elapsed_ms,
+  };
+}
+
+function registrySnapshotGraphicHtml() {
+  const m = registrySnapshotMetrics();
+  const max = Math.max(1, m.nodes, m.edges, m.files);
+  const tiles = [
+    ["nodes", "Nodes", m.nodes],
+    ["edges", "Edges", m.edges],
+    ["files", "Files", m.files],
+  ];
+  const focus = registrySnapshotFocus;
+  const tileHtml = tiles
+    .map(([key, label, n]) => {
+      const pct = Math.max(3, Math.round((n / max) * 100));
+      const on = focus === key;
+      const dim = !!(focus && focus !== key);
+      return (
+        '<button type="button" class="rsg-tile' +
+        (on ? " rsg-now" : "") +
+        (dim ? " rsg-dim" : "") +
+        '" data-rsg-metric="' +
+        key +
+        '" aria-pressed="' +
+        (on ? "true" : "false") +
+        '" aria-label="' +
+        label +
+        " " +
+        n +
+        '"><span class="rsg-k">' +
+        label +
+        '</span><b class="rsg-n" data-rsg-n="' +
+        key +
+        '">' +
+        n +
+        '</b><svg class="rsg-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">' +
+        '<rect class="rsg-bar-track" x="0" y="0" width="100" height="8" rx="2"></rect>' +
+        '<rect class="rsg-bar-fill" x="0" y="0" width="' +
+        pct +
+        '" height="8" rx="2"></rect></svg></button>'
+      );
+    })
+    .join("");
+  const cap = m.plugin
+    ? esc(m.plugin) + (m.elapsed != null ? " · " + m.elapsed + "ms" : "")
+    : "this review";
+  return (
+    '<div class="rsg-strip" data-rsg="1" role="group" aria-label="Registry snapshot graphic">' +
+    '<span class="rsg-stat"><i class="k">Snapshot</i> <b class="n" data-rsg-meta="1">' +
+    cap +
+    "</b></span>" +
+    '<div class="rsg-tiles">' +
+    tileHtml +
+    "</div></div>"
+  );
+}
+
+function applyRegistrySnapshotGraphicPaint() {
+  const strip = canvas.querySelector('.rsg-strip[data-rsg="1"]');
+  if (!strip) return;
+  const focus = registrySnapshotFocus;
+  strip.classList.toggle("rsg-focusing", !!focus);
+  strip.querySelectorAll(".rsg-tile[data-rsg-metric]").forEach((el) => {
+    const key = el.getAttribute("data-rsg-metric") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("rsg-now", on);
+    el.classList.toggle("rsg-dim", !!(focus && !on));
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const row = canvas.querySelector("table.audit tbody tr[data-rsg-row='snapshot']");
+  if (row) row.classList.toggle("rsg-row-now", !!focus);
+  const meta = strip.querySelector("[data-rsg-meta='1']");
+  if (meta && focus) {
+    const label = { nodes: "Nodes", edges: "Edges", files: "Files" }[focus] || focus;
+    meta.textContent = label + " focused · Escape clears";
+  } else if (meta) {
+    const m = registrySnapshotMetrics();
+    meta.textContent = m.plugin
+      ? m.plugin + (m.elapsed != null ? " · " + m.elapsed + "ms" : "")
+      : "this review";
+  }
+}
+
+function bindRegistrySnapshotGraphic() {
+  const strip = canvas.querySelector('.rsg-strip[data-rsg="1"]');
+  if (!strip) return;
+  if (strip.dataset.rsgBound === "1") {
+    applyRegistrySnapshotGraphicPaint();
+    return;
+  }
+  strip.dataset.rsgBound = "1";
+  strip.querySelectorAll(".rsg-tile[data-rsg-metric]").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const key = el.getAttribute("data-rsg-metric") || "";
+      if (!key) return;
+      registrySnapshotFocus = registrySnapshotFocus === key ? null : key;
+      applyRegistrySnapshotGraphicPaint();
+    });
+  });
+  applyRegistrySnapshotGraphicPaint();
+}
+
 function renderRegistryBody() {
   const ev = registryEvents().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -9406,17 +9534,20 @@ function renderRegistryBody() {
   const rakStrip = registryAuditStripHtml(ev);
   return (
     '<div class="ws-list">' +
+    registrySnapshotGraphicHtml() +
     rakStrip +
     '<table class="audit"><thead><tr><th>Kind</th><th>Subject</th><th>Detail</th></tr></thead><tbody>' +
     ev
       .map((e) => {
         const bucket = registryAuditBucket(e);
+        const snapshotRow = bucket === "review" || e.kind === "review";
         return (
           '<tr class="' +
           esc(e.verdict || e.kind) +
           '" data-rak-kind="' +
           esc(bucket) +
           '"' +
+          (snapshotRow ? ' data-rsg-row="snapshot"' : "") +
           (e.flow ? ' data-flow="' + esc(e.flow) + '"' : "") +
           "><td><span class=\"mut mut-" +
           esc(e.verdict || e.kind) +
@@ -18565,6 +18696,8 @@ function bindWorkbenchPages() {
   bindDecisionAttestChart();
   applyRegistryAuditPaint();
   bindRegistryAuditChart();
+  bindRegistrySnapshotGraphic();
+  applyRegistrySnapshotGraphicPaint();
   applyTimelineKindPaint();
   bindTimelineKindChart();
   canvas.querySelectorAll("[data-outcome-filter]").forEach((el) => {
