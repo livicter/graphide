@@ -1,9 +1,9 @@
 # graphide immutable specs v1
-# seal-sha256: 898b6b7d24b21a7acd3a40749c1a86f8a5fabf7fb881a7a63e6fb41aa469ef90
+# seal-sha256: 6bef023fbe3624e03b9828380e2a112c8295120cc86824ec5d19ecfc5b6e2146
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
-e30a72147b7712984be4234e723c1517e2070d0dbdca9c7c4d4df863841b4c73  .cursor/skills/verify-graphide/references/features/README.md
+1a8a08dce95010c1f2656ab4cdd6b8b3c1f3e6f4996c9dbfe460c40a82f0c5c3  .cursor/skills/verify-graphide/references/features/README.md
 f5a35dc3f3c3ae3b7252cc5aec3e49f238de19650a70ce8a8cb72965789b78eb  .cursor/skills/verify-graphide/references/features/all-programs.md
 7c7d00eadb50157f5657847d7af7beb74aa40f151ea3c4e39b038b2ae01b93d5  .cursor/skills/verify-graphide/references/features/appearance.md
 1b3c3df8548e0c7fada59be5dd9853df5c2aab4140a81b50467191c5eb4eb0f0  .cursor/skills/verify-graphide/references/features/apple-chrome-icons.md
@@ -67,6 +67,7 @@ fc1fa7b91e4641ad472713d47ba9d35f08e3c6a9c8fcbb5e8856588d9a49894b  .cursor/skills
 94e3d44eaa4a9b6a7fb53a1969c2c5d4070b7216713bcdf82ac7bf7a04af936a  .cursor/skills/verify-graphide/references/features/scroll-drive.md
 996e7f192f4913a73d978ee5501c60a6a9d528aa13fa7ef3a587dd9e5482cf56  .cursor/skills/verify-graphide/references/features/search.md
 3f4fe990b810259d182042c70826853e7e951cee2a6b900341acdd5e5198458b  .cursor/skills/verify-graphide/references/features/self-review.md
+8f77b9b4400b4bdd1ccc87d26b05f2c5371a7b3ef72b7985418d994c4ecf3e1d  .cursor/skills/verify-graphide/references/features/sequence-exchange-cut.md
 f09c481995790c4f326ac3bb54443bccf675118146e293eb78bb91ef2c88db07  .cursor/skills/verify-graphide/references/features/sequence-hop-kind-mix.md
 898442ae22e06424d992c92d249b0486742f9c34f729aded631a65befeff7145  .cursor/skills/verify-graphide/references/features/sequence-hop-variant.md
 758cd02f0645003e6610b4cd6f3609486347d8eec64a782f7b1cb352ab1998a0  .cursor/skills/verify-graphide/references/features/sequence-module-cut.md
@@ -94,6 +95,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-8ef49bab8360c58fd982862699a5e8897a854d432b9afcac613c8c8d9f6ccfa9  extension/scripts/check-map.js
+57dc0d80d34f5468ea09997e727cb862f7ed1c93f31f45c8edd6be9ecaf40feb  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-61aa00f15994e98357dae6612f318ea06a948b86a332a8e2776819bed25fc2e8  scripts/verify-graphide.js
+12f8be2e0b6c0b541b4a638a14fef6b29787fad39d36139a524d26e839bda5f6  scripts/verify-graphide.js

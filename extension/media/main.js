@@ -20163,6 +20163,7 @@
     let seqHopKindFilter = null;
     let sequenceModuleCutFocus = null;
     let sequenceHopVariantFocus = null;
+    let sequenceExchangeFocus = null;
     const CAM_MIN = 0.35;
     const CAM_MAX = 6.5;
     const BUBBLE_COLORS = ["#007aff", "#34c759", "#ff9f0a", "#af52de", "#ff375f", "#5ac8fa", "#ffd60a", "#30d158", "#ff453a", "#8e8e93"];
@@ -20485,6 +20486,13 @@
         e.preventDefault();
         sequenceHopVariantFocus = null;
         if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
+        if (typeof applySequenceExchangePaint === "function") applySequenceExchangePaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && sequenceExchangeFocus) {
+        e.preventDefault();
+        sequenceExchangeFocus = null;
+        if (typeof applySequenceExchangePaint === "function") applySequenceExchangePaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "sequence" && seqCursor >= 0) {
@@ -29608,6 +29616,110 @@
       });
       applySequenceHopVariantPaint();
     }
+    function sequenceExchangeIds(hops) {
+      const ids = [];
+      let ex = 0;
+      for (let i = 0; i < (hops || []).length; i++) {
+        const v = String(hops[i] && hops[i].variant || "default");
+        if (i === 0) ex = 1;
+        else if (v === "call") ex += 1;
+        ids.push(String(ex));
+      }
+      return ids;
+    }
+    function sequenceExchangeOf(h, i, hops) {
+      if (h && h.exchange != null && String(h.exchange) !== "") return String(h.exchange);
+      const list = hops || (typeof sequenceOf === "function" ? (sequenceOf(typeof sequenceFlow === "function" ? sequenceFlow() : null) || {}).hops : []) || [];
+      const ids = sequenceExchangeIds(list);
+      const idx = Number.isFinite(i) ? i : list.indexOf(h);
+      return ids[idx] || "1";
+    }
+    function sequenceExchangeMetrics() {
+      const flow = typeof sequenceFlow === "function" ? sequenceFlow() : null;
+      const reading = typeof sequenceOf === "function" ? sequenceOf(flow) : { hops: [] };
+      const hops = reading && reading.hops || [];
+      const ids = sequenceExchangeIds(hops);
+      const counts = /* @__PURE__ */ new Map();
+      const order = [];
+      for (const id2 of ids) {
+        if (!counts.has(id2)) {
+          counts.set(id2, 0);
+          order.push(id2);
+        }
+        counts.set(id2, counts.get(id2) + 1);
+      }
+      return {
+        hops: hops.length,
+        order,
+        counts,
+        nOf: (id2) => counts.get(String(id2)) || 0
+      };
+    }
+    function sequenceExchangeGraphicHtml() {
+      const m = sequenceExchangeMetrics();
+      if (!m.hops) return "";
+      const focusing = !!sequenceExchangeFocus;
+      const onFor = (key) => !!(sequenceExchangeFocus && String(sequenceExchangeFocus) === String(key));
+      const stat = (key) => {
+        const n = m.nOf(key);
+        return '<button type="button" class="sxc-stat' + (onFor(key) ? " sxc-now" : focusing ? " sxc-idle" : "") + '" data-sxc-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc("exchange " + key + " · " + n) + '"><b data-sxc-n="' + esc(key) + '">' + n + "</b> " + esc(key) + "</button>";
+      };
+      const seg = (key) => {
+        const n = m.nOf(key);
+        if (n <= 0) return "";
+        return '<button type="button" class="sxc-seg sxc-ex-' + esc(key) + (onFor(key) ? " sxc-now" : focusing ? " sxc-idle" : "") + '" data-sxc-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc("exchange " + key + " · " + n) + '"></button>';
+      };
+      return '<div class="sxc-strip' + (focusing ? " sxc-focusing" : "") + '" data-sxc="1" role="group" aria-label="Sequence exchange-cut graphic"><span class="sxc-meta">Exchange</span><span class="sxc-counts">' + m.order.map(stat).join("") + '</span><div class="sxc-bar" aria-hidden="true">' + (m.hops === 0 ? '<span class="sxc-bar-empty"></span>' : m.order.map(seg).join("")) + "</div></div>";
+    }
+    function jumpSequenceExchange(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sequenceExchangeFocus && String(sequenceExchangeFocus) === key) sequenceExchangeFocus = null;
+      else sequenceExchangeFocus = key;
+      applySequenceExchangePaint();
+    }
+    function applySequenceExchangePaint() {
+      if (!canvas) return;
+      const focus = sequenceExchangeFocus ? String(sequenceExchangeFocus) : "";
+      canvas.querySelectorAll(".sxc-stat[data-sxc-band], .sxc-seg[data-sxc-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sxc-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("sxc-now", on2);
+        el2.classList.toggle("sxc-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".sxc-strip");
+      if (strip) strip.classList.toggle("sxc-focusing", !!focus);
+      const page = canvas.querySelector(".seq-page");
+      if (page) page.classList.toggle("sxc-focusing", !!focus);
+      const hopsEl = canvas.querySelector("#seqHops");
+      if (hopsEl) hopsEl.classList.toggle("sxc-focusing", !!focus);
+      canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
+        const ex = el2.getAttribute("data-sxc-ex") || "";
+        const hit = !!(focus && ex === focus);
+        const dim = !!(focus && ex !== focus);
+        el2.classList.toggle("sxc-hit", hit);
+        el2.classList.toggle("sxc-dim", dim);
+      });
+    }
+    function bindSequenceExchangeGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".sxc-stat[data-sxc-band], .sxc-seg[data-sxc-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sxc-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceExchange(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSequenceExchange(key);
+        };
+      });
+      applySequenceExchangePaint();
+    }
     function seqStoryScrubHtml(hops) {
       const n = hops && hops.length || 0;
       if (n < 1) return "";
@@ -29773,12 +29885,13 @@
         const fromMod = partModule.get(idVal(h.from)) || seqModuleOf2({ fqn: h.from_fqn, file: h.file });
         const toMod = partModule.get(idVal(h.to)) || seqModuleOf2({ fqn: h.to_fqn, file: h.file });
         const cross = !!(fromMod && toMod && fromMod !== toMod);
-        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (seqCursor >= 0 && i < seqCursor ? " sss-past" : "") + (seqCursor >= 0 && i === seqCursor ? " sss-now" : "") + (seqCursor >= 0 && i > seqCursor ? " sss-ahead" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
+        return '<article class="seq-hop expl-card' + (i === seqCursor ? " on" : "") + (seqCursor >= 0 && i < seqCursor ? " sss-past" : "") + (seqCursor >= 0 && i === seqCursor ? " sss-now" : "") + (seqCursor >= 0 && i > seqCursor ? " sss-ahead" : "") + (focusId && related ? " ssr-hit" : "") + (focusId && !related ? " ssr-dim" : "") + (cross ? " cms-cross" : "") + (i === seqCursor && cross ? " cms-cross-hot" : "") + '" data-seq-i="' + i + '" data-kind="' + esc(h.kind || "") + '" data-seq-variant="' + esc(h.variant || "default") + '" data-sxc-ex="' + esc(sequenceExchangeOf(h, i, hops)) + '" data-from="' + esc(idVal(h.from)) + '" data-to="' + esc(idVal(h.to)) + '" data-lane-from="' + esc(fromMod) + '" data-lane-to="' + esc(toMod) + '" data-fqn="' + esc(h.from_fqn) + '"' + (cross ? ' data-cms-cross="1"' : "") + (i === 0 && cross ? ' data-testid="seq-message-cross-module-0"' : "") + (caption ? ' data-ssr-caption="1" data-caption="' + esc(caption) + '"' : "") + '"><div class="k">' + esc(seqVariantMark(h.variant) + " " + (h.kind || "") + (h.variant === "return" ? " return" : "")) + '</div><div class="t">' + esc(shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + '</div><div class="b seq-hop-caption">' + esc(caption || shortOf(h.from_fqn) + " → " + shortOf(h.to_fqn)) + "</div></article>";
       }).join("");
       const shkStrip = seqHopKindStripHtml(hopCards.map((x) => x.h));
       const smcStrip = sequenceModuleCutGraphicHtml();
       const shvStrip = sequenceHopVariantGraphicHtml();
-      return '<div class="seq-page' + (sequenceModuleCutFocus ? " smc-focusing" : "") + (sequenceHopVariantFocus ? " shv-focusing" : "") + '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1" data-shv="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + smcStrip + shvStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
+      const sxcStrip = sequenceExchangeGraphicHtml();
+      return '<div class="seq-page' + (sequenceModuleCutFocus ? " smc-focusing" : "") + (sequenceHopVariantFocus ? " shv-focusing" : "") + (sequenceExchangeFocus ? " sxc-focusing" : "") + '" data-ssr="1" data-cms="1" data-shk="1" data-sss="1" data-smc="1" data-shv="1" data-sxc="1"' + (hotCross ? ' data-cms-cross-hot="1"' : "") + ">" + review + shkStrip + smcStrip + shvStrip + sxcStrip + '<div class="seq-parts seq-swimlanes" id="seqParts" data-cms="1" style="--seq-n:' + parts.length + ";--seq-lanes:" + lanes.length + '">' + heads + '</div><div class="ws-split"><div class="ws-list" id="seqHops">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · Steiner</div><div id="seqCanvas" class="seq-canvas" style="--seq-n:' + parts.length + '"></div></div></div></div>';
     }
     function sequenceBodyKey() {
       const flow = sequenceFlow();
@@ -29865,6 +29978,7 @@
       syncSeqStoryScrub();
       if (typeof applySequenceModuleCutPaint === "function") applySequenceModuleCutPaint();
       if (typeof applySequenceHopVariantPaint === "function") applySequenceHopVariantPaint();
+      if (typeof applySequenceExchangePaint === "function") applySequenceExchangePaint();
       const focusId = seqPartFocusId ? idVal(seqPartFocusId) : "";
       canvas.querySelectorAll("#seqParts .seq-part").forEach((el2) => {
         const id2 = el2.getAttribute("data-id");
@@ -29916,6 +30030,7 @@
       bindSequenceModuleCutGraphic();
       applySequenceModuleCutPaint();
       bindSequenceHopVariantGraphic();
+      if (typeof bindSequenceExchangeGraphic === "function") bindSequenceExchangeGraphic();
       applySequenceHopVariantPaint();
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
@@ -29929,6 +30044,7 @@
       bindSequenceModuleCutGraphic();
       applySequenceModuleCutPaint();
       bindSequenceHopVariantGraphic();
+      if (typeof bindSequenceExchangeGraphic === "function") bindSequenceExchangeGraphic();
       applySequenceHopVariantPaint();
       canvas.querySelectorAll("#seqHops .seq-hop").forEach((el2) => {
         el2.onclick = (ev) => {
