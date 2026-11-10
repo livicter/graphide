@@ -17060,6 +17060,7 @@
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
     if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
     if (d.meaCut) attrs["data-mea-cut"] = String(d.meaCut);
+    if (d.mepCut) attrs["data-mep-cut"] = String(d.mepCut);
     if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
     if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
@@ -19761,7 +19762,8 @@
         showFqn: !!n.showFqn,
         shape: n.shape || "",
         sliceDist: n.sliceDist,
-        meaCut: n.meaCut || ""
+        meaCut: n.meaCut || "",
+        mepCut: n.mepCut || ""
       })),
       hops
     );
@@ -20152,6 +20154,7 @@
     let mapWalkCutFocus = null;
     let mapEnterDistFocus = null;
     let mapEnterAttachFocus = null;
+    let mapEnterPolarityFocus = null;
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let mapCommunityCutFocus = null;
@@ -20620,6 +20623,12 @@
         e.preventDefault();
         mapEnterAttachFocus = null;
         if (typeof applyMapEnterAttachPaint === "function") applyMapEnterAttachPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && typeof enterCanvasActive === "function" && enterCanvasActive() && mapEnterPolarityFocus) {
+        e.preventDefault();
+        mapEnterPolarityFocus = null;
+        if (typeof applyMapEnterPolarityPaint === "function") applyMapEnterPolarityPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -37424,6 +37433,121 @@
       if (!placeEnterTitleCut(cluster, ".mea-strip[data-mea='1']", html)) return;
       bindMapEnterAttachGraphic();
     }
+    function mapEnterPolarityHops(inner) {
+      return typeof enterEdgesAmong === "function" ? enterEdgesAmong(mapWalkCutNodes(inner)) : [];
+    }
+    function mapEnterPolarityOf(n, hops) {
+      if (!n) return "isolated";
+      if (n.mepCut === "out" || n.mepCut === "in" || n.mepCut === "both" || n.mepCut === "isolated") return n.mepCut;
+      const id2 = String(idVal(n.id));
+      let hasOut = false, hasIn = false;
+      for (const h of hops || []) {
+        if (String(idVal(h.from)) === id2 || String(idVal(h.hopFrom || "")) === id2) hasOut = true;
+        if (String(idVal(h.to)) === id2 || String(idVal(h.hopTo || "")) === id2) hasIn = true;
+      }
+      if (hasOut && hasIn) return "both";
+      if (hasOut) return "out";
+      if (hasIn) return "in";
+      return "isolated";
+    }
+    function mapEnterPolarityMetrics(inner) {
+      const nodes = typeof mapWalkCutNodes === "function" ? mapWalkCutNodes(inner) : [];
+      const hops = mapEnterPolarityHops(inner);
+      const m = { out: 0, in: 0, both: 0, isolated: 0, nodes: nodes.length, attached: 0 };
+      for (const n of nodes) {
+        const cut = mapEnterPolarityOf(n, hops);
+        if (cut === "out") m.out += 1;
+        else if (cut === "in") m.in += 1;
+        else if (cut === "both") m.both += 1;
+        else m.isolated += 1;
+        if (cut === "out" || cut === "in" || cut === "both") m.attached += 1;
+      }
+      return m;
+    }
+    function mapEnterPolarityGraphicHtml(inner) {
+      const m = mapEnterPolarityMetrics(inner);
+      if (!m.attached) return "";
+      const focusing = !!mapEnterPolarityFocus;
+      const onFor = (key) => !!(mapEnterPolarityFocus && String(mapEnterPolarityFocus) === String(key));
+      const stat = (key, n) => '<button type="button" class="mep-stat' + (onFor(key) ? " mep-now" : focusing ? " mep-idle" : "") + '" data-mep-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(key + " · " + n) + '"><b data-mep-n="' + esc(key) + '">' + n + "</b> " + esc(key) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="mep-seg mep-' + esc(key) + (onFor(key) ? " mep-now" : focusing ? " mep-idle" : "") + '" data-mep-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="mep-strip' + (focusing ? " mep-focusing" : "") + '" data-mep="1" role="group" aria-label="Map enter-polarity graphic"><span class="mep-meta">Enter polarity</span><span class="mep-counts">' + stat("out", m.out) + stat("in", m.in) + stat("both", m.both) + '</span><div class="mep-bar" aria-hidden="true">' + (m.attached === 0 ? '<span class="mep-bar-empty"></span>' : seg("out", m.out) + seg("in", m.in) + seg("both", m.both)) + "</div></div>";
+    }
+    function jumpMapEnterPolarity(which) {
+      if (!which) return;
+      const key = String(which);
+      if (mapEnterPolarityFocus && String(mapEnterPolarityFocus) === key) mapEnterPolarityFocus = null;
+      else mapEnterPolarityFocus = key;
+      applyMapEnterPolarityPaint();
+    }
+    function applyMapEnterPolarityPaint() {
+      if (!canvas) return;
+      const focus = mapEnterPolarityFocus ? String(mapEnterPolarityFocus) : "";
+      canvas.querySelectorAll(".mep-stat[data-mep-band], .mep-seg[data-mep-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mep-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("mep-now", on2);
+        el2.classList.toggle("mep-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".mep-strip");
+      if (strip) strip.classList.toggle("mep-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("mep-focusing", !!focus);
+      const cluster = canvas.querySelector(".enter-title-cuts");
+      if (cluster) cluster.classList.toggle("mep-focusing", !!focus);
+      canvas.querySelectorAll("#enterCanvas .vnode").forEach((el2) => {
+        let cut = el2.getAttribute("data-mep-cut") || "";
+        if (cut !== "out" && cut !== "in" && cut !== "both" && cut !== "isolated") {
+          const id2 = el2.getAttribute("data-id") || "";
+          const hasOut = !!canvas.querySelector("#enterCanvas .react-flow__edge[data-from='" + id2 + "']");
+          const hasIn = !!canvas.querySelector("#enterCanvas .react-flow__edge[data-to='" + id2 + "']");
+          cut = hasOut && hasIn ? "both" : hasOut ? "out" : hasIn ? "in" : "isolated";
+          el2.setAttribute("data-mep-cut", cut);
+        }
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("mep-hit", hit);
+        el2.classList.toggle("mep-idle", !!(focus && !hit));
+      });
+    }
+    function bindMapEnterPolarityGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".mep-stat[data-mep-band], .mep-seg[data-mep-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mep-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterPolarity(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterPolarity(key);
+        };
+      });
+      applyMapEnterPolarityPaint();
+    }
+    function syncMapEnterPolarityGraphic(inner) {
+      if (!canvas || typeof enterCanvasActive !== "function" || !enterCanvasActive()) {
+        const leftover = canvas && canvas.querySelector(".mep-strip");
+        if (leftover) leftover.remove();
+        return;
+      }
+      const cluster = ensureEnterTitleCuts();
+      if (!cluster) return;
+      const html = mapEnterPolarityGraphicHtml(inner);
+      if (!html) {
+        const old = cluster.querySelector(".mep-strip") || canvas.querySelector(".mep-strip");
+        if (old) old.remove();
+        return;
+      }
+      if (!placeEnterTitleCut(cluster, ".mep-strip[data-mep='1']", html)) return;
+      bindMapEnterPolarityGraphic();
+    }
     function mapEnterDistBandOf(dist) {
       const d = dist == null ? NaN : Number(dist);
       if (!Number.isFinite(d) || d >= 3) return "3";
@@ -37535,6 +37659,18 @@
         if (h.hopFrom) attached.add(String(idVal(h.hopFrom)));
         if (h.hopTo) attached.add(String(idVal(h.hopTo)));
       }
+      const mepOut = /* @__PURE__ */ new Set();
+      const mepIn = /* @__PURE__ */ new Set();
+      for (const h of hops) {
+        if (h.from) mepOut.add(String(idVal(h.from)));
+        if (h.hopFrom) mepOut.add(String(idVal(h.hopFrom)));
+        if (h.to) mepIn.add(String(idVal(h.to)));
+        if (h.hopTo) mepIn.add(String(idVal(h.hopTo)));
+      }
+      const mepCutOf = (id2) => {
+        const o = mepOut.has(id2), i = mepIn.has(id2);
+        return o && i ? "both" : o ? "out" : i ? "in" : "isolated";
+      };
       const flow = (snapshot && snapshot.flows || []).find((f) => f.name === inner.flow);
       const walk = flowWalk(flow);
       const items = nodes.map((n) => {
@@ -37569,7 +37705,8 @@
           mbeCaption: !!caption,
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance,
-          meaCut: attached.has(nid) ? "attached" : "isolated"
+          meaCut: attached.has(nid) ? "attached" : "isolated",
+          mepCut: mepCutOf(nid)
         };
       });
       const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
@@ -37639,9 +37776,10 @@
         if (typeof syncMapWalkCutGraphic === "function") syncMapWalkCutGraphic(inner);
         if (typeof syncMapEnterDistGraphic === "function") syncMapEnterDistGraphic(inner);
         if (typeof syncMapEnterAttachGraphic === "function") syncMapEnterAttachGraphic(inner);
+        if (typeof syncMapEnterPolarityGraphic === "function") syncMapEnterPolarityGraphic(inner);
       } else {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + (typeof mapEnterPolarityFocus !== "undefined" && mapEnterPolarityFocus ? " mep-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") + (typeof mapEnterPolarityGraphicHtml === "function" ? mapEnterPolarityGraphicHtml(inner) : "") + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
         enterBodyKey = document.getElementById("enterCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !stay });
       }
@@ -37650,6 +37788,7 @@
       if (typeof bindMapWalkCutGraphic === "function") bindMapWalkCutGraphic();
       if (typeof bindMapEnterDistGraphic === "function") bindMapEnterDistGraphic();
       if (typeof bindMapEnterAttachGraphic === "function") bindMapEnterAttachGraphic();
+      if (typeof bindMapEnterPolarityGraphic === "function") bindMapEnterPolarityGraphic();
       applyGraphFilter();
       applyEgoPaint();
       const leafNodes = nodes.filter((n) => n.is_leaf).map((n) => nodeById.get(String(idVal(n.id)))).filter(Boolean);

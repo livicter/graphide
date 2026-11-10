@@ -15391,7 +15391,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .enter-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
         n0.click();
         const src = document.getElementById("sourcePane");
@@ -15581,7 +15581,7 @@ async function main() {
           const x = r.left + r.width / 2;
           const y = r.top + r.height / 2;
           const top = document.elementFromPoint(x, y);
-          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .enter-title-cuts"));
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
           const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
           const src = document.getElementById("sourcePane");
           return {
@@ -15635,6 +15635,208 @@ async function main() {
           "Map enter-attach clicks did not post peekSource / enterRun / selectNode",
           afterMeaPosts.after === afterMeaPosts.before && !afterMeaPosts.peek && !afterMeaPosts.enterRun,
           JSON.stringify(afterMeaPosts)
+        );
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40);
+      }
+
+      // ADE Map enter-polarity graphic (MEP1–MEP5) — stay on enter after MEA; do not page.goto.
+      {
+        await page.waitForSelector(".mep-strip[data-mep='1']", { timeout: 8000 });
+        await page.waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .vnode[data-mep-cut]").length >= 24,
+          { timeout: 8000 }
+        );
+        await page.waitForTimeout(80);
+        const beforeMepPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+        const mep1 = await page.evaluate(() => {
+          const strip = document.querySelector(".mep-strip[data-mep='1']");
+          const cluster = document.querySelector(".enter-title-cuts[data-enter-cuts='1']");
+          const stats = [...document.querySelectorAll(".mep-stat[data-mep-band]")].map((el) => ({
+            band: el.getAttribute("data-mep-band"),
+            n: Number((el.querySelector("[data-mep-n]") || el).textContent.trim()),
+            pressed: el.getAttribute("aria-pressed") === "true",
+          }));
+          const segs = [...document.querySelectorAll(".mep-seg[data-mep-band]")].map((el) => el.getAttribute("data-mep-band"));
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mep-cut], #enterCanvas .vnode")];
+          const byCut = { out: 0, in: 0, both: 0, isolated: 0 };
+          for (const n of nodes) {
+            const c = n.getAttribute("data-mep-cut") || "";
+            if (c === "out" || c === "in" || c === "both" || c === "isolated") byCut[c] += 1;
+          }
+          const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+          const src = document.getElementById("sourcePane");
+          const enter = document.getElementById("enterCanvas");
+          return {
+            strip: !!strip,
+            cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".mea-strip[data-mea='1']") && cluster.querySelector(".mwc-strip[data-mwc='1']") && cluster.querySelector(".med-strip[data-med='1']")),
+            mea: !!document.querySelector(".mea-strip[data-mea='1']"),
+            mwc: !!document.querySelector(".mwc-strip[data-mwc='1']"),
+            med: !!document.querySelector(".med-strip[data-med='1']"),
+            enter: !!enter,
+            stats,
+            segs,
+            nodes: nodes.length,
+            stamped: byCut.out + byCut.in + byCut.both + byCut.isolated,
+            byCut,
+            out: nOf("out"),
+            inn: nOf("in"),
+            both: nOf("both"),
+            sum: nOf("out") + nOf("in") + nOf("both"),
+            srcHidden: !src || src.hidden,
+            pressed: stats.filter((s) => s.pressed).length,
+            isoBand: !!stats.find((s) => s.band === "isolated"),
+            ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          };
+        });
+        const mep1ok =
+          mep1.strip &&
+          mep1.cluster &&
+          mep1.mea &&
+          mep1.mwc &&
+          mep1.med &&
+          mep1.enter &&
+          mep1.out === 4 &&
+          mep1.inn === 4 &&
+          mep1.both === 6 &&
+          mep1.sum === 14 &&
+          mep1.stamped === 24 &&
+          mep1.byCut.out === 4 &&
+          mep1.byCut.in === 4 &&
+          mep1.byCut.both === 6 &&
+          mep1.byCut.isolated === 10 &&
+          mep1.segs.length === 3 &&
+          !mep1.isoBand &&
+          mep1.pressed === 0 &&
+          mep1.srcHidden &&
+          mep1.ws === "map";
+        record(
+          "MEP1",
+          "Map enter-polarity graphic shows 4 out / 4 in / 6 both of 14 attached leaves, matching data-mep-cut; no isolated band; MWC/MED/MEA stay; no source",
+          !!mep1ok,
+          JSON.stringify(mep1)
+        );
+
+        const inBtn = page.locator('.mep-stat[data-mep-band="in"]').first();
+        await inBtn.click();
+        await page.waitForTimeout(80);
+        const mep2 = await page.evaluate(() => {
+          const nodes = [...document.querySelectorAll("#enterCanvas .vnode[data-mep-cut]")];
+          const hits = nodes.filter((el) => el.classList.contains("mep-hit"));
+          const inHits = hits.filter((el) => el.getAttribute("data-mep-cut") === "in");
+          const idles = nodes.filter((el) => el.classList.contains("mep-idle"));
+          const inPressed = document.querySelector('.mep-stat[data-mep-band="in"][aria-pressed="true"]');
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            nodes: nodes.length,
+            hits: hits.length,
+            inHits: inHits.length,
+            idles: idles.length,
+            inPressed: !!inPressed,
+            srcHidden: !src || src.hidden,
+            ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          };
+        });
+        const mep2ok =
+          mep2.enter &&
+          mep2.hits === 4 &&
+          mep2.inHits === 4 &&
+          mep2.idles === 20 &&
+          mep2.inPressed &&
+          mep2.srcHidden &&
+          mep2.ws === "map";
+        record(
+          "MEP2",
+          "Click In highlights the 4 inbound-only enter members; enter stays; no source",
+          !!mep2ok,
+          JSON.stringify(mep2)
+        );
+
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(80);
+        const mep3 = await page.evaluate(() => {
+          const hits = document.querySelectorAll("#enterCanvas .vnode.mep-hit").length;
+          const pressed = document.querySelectorAll('.mep-stat[aria-pressed="true"]').length;
+          const focusing = !!document.querySelector(".mep-strip.mep-focusing, .stage.mep-focusing");
+          const src = document.getElementById("sourcePane");
+          return {
+            enter: !!document.getElementById("enterCanvas"),
+            hits,
+            pressed,
+            focusing,
+            srcHidden: !src || src.hidden,
+            ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+          };
+        });
+        record(
+          "MEP3",
+          "Escape clears enter-polarity graphic focus; enter stays; no source",
+          !!(mep3.enter && mep3.hits === 0 && mep3.pressed === 0 && !mep3.focusing && mep3.srcHidden && mep3.ws === "map"),
+          JSON.stringify(mep3)
+        );
+
+        const mep4 = await page.evaluate(() => {
+          const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+          if (!n0) return { missing: true };
+          const r = n0.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          const top = document.elementFromPoint(x, y);
+          const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .mea-strip, .mep-strip, .enter-title-cuts"));
+          const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
+          const src = document.getElementById("sourcePane");
+          return {
+            x,
+            y,
+            top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+            hitStrip,
+            inNode,
+            srcHidden: !src || src.hidden,
+            enter: !!document.getElementById("enterCanvas"),
+          };
+        });
+        const mep4ok = !!(mep4 && !mep4.missing && mep4.inNode && !mep4.hitStrip && mep4.srcHidden && mep4.enter);
+        record(
+          "MEP4",
+          "Title-band cluster does not intercept #enterCanvas n0 clicks; enter stays; no source",
+          !!mep4ok,
+          JSON.stringify(mep4)
+        );
+
+        await inBtn.click();
+        await page.waitForTimeout(80);
+        await shot(page, "map-enter-polarity.png");
+        const mepShot = checks.find((c) => c.id === "shot:map-enter-polarity.png");
+        const mep5ok = !!(mep1ok && mep2ok && mep3 && mep3.enter && mep4ok && mepShot && mepShot.pass);
+        record(
+          "MEP5",
+          "screenshot map-enter-polarity.png is not a black frame; Map enter-polarity graphic proven",
+          !!mep5ok,
+          JSON.stringify({
+            shot: mepShot ? mepShot.detail : "missing",
+            mep1: !!mep1ok,
+            mep2: !!mep2ok,
+            mep3: !!(mep3 && mep3.enter && mep3.hits === 0),
+            mep4: !!mep4ok,
+          })
+        );
+        assertNoStampDir("MEP5b", "Map enter-polarity graphic step did not write .graphide/stamps/");
+        const afterMepPosts = await page.evaluate((before) => {
+          const posts = window.__vscodePosts || [];
+          const added = posts.slice(before);
+          return {
+            before,
+            after: posts.length,
+            peek: added.some((m) => m && (m.type === "peekSource" || m.type === "enterRun" || m.type === "selectNode")),
+            enterRun: added.some((m) => m && m.type === "enterRun"),
+          };
+        }, beforeMepPosts);
+        record(
+          "MEP5c",
+          "Map enter-polarity clicks did not post peekSource / enterRun / selectNode",
+          afterMepPosts.after === afterMepPosts.before && !afterMepPosts.peek && !afterMepPosts.enterRun,
+          JSON.stringify(afterMepPosts)
         );
         await page.keyboard.press("Escape");
         await page.waitForTimeout(40);

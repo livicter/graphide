@@ -65,6 +65,7 @@ owns this folder.
 | [map-walk-cut.md](map-walk-cut.md) | Map walk-cut graphic | explorer enter · `verification/map-walk-cut.png` |
 | [map-enter-distance-cut.md](map-enter-distance-cut.md) | Map enter distance-cut graphic | explorer enter · `verification/map-enter-distance-cut.png` |
 | [map-enter-attach.md](map-enter-attach.md) | Map enter-attach graphic | explorer enter · `verification/map-enter-attach.png` |
+| [map-enter-polarity.md](map-enter-polarity.md) | Map enter-polarity graphic | explorer enter · `verification/map-enter-polarity.png` |
 | [map-community-cut.md](map-community-cut.md) | Map community-cut graphic | explorer Map · `verification/map-community-cut.png` |
 | [map-run-cut.md](map-run-cut.md) | Map run-cut graphic | explorer Map · `verification/map-run-cut.png` |
 | [open-evidence.md](open-evidence.md) | Evidence pane | Slice · `evidence.png` |
