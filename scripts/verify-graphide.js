@@ -16494,6 +16494,250 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+    // ADE Slice walk-role graphic (SWR1–SWR5) — stay on Slice in this document; do not page.goto.
+    // Later CPS clicks Overview itself.
+    {
+      await page.waitForSelector("#sliceCanvas .vnode[data-swr-role], #sliceCanvas .vnode[data-lit]", { timeout: 8000 });
+      await page.waitForSelector(".swr-strip[data-swr='1']", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const beforeSwrPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const swr1 = await page.evaluate(() => {
+        const strip = document.querySelector('.swr-strip[data-swr="1"]');
+        const n = (key) => {
+          const el = document.querySelector('[data-swr-n="' + key + '"]');
+          return el ? Number((el.textContent || "").trim()) : NaN;
+        };
+        const vnodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-id]")];
+        const roleOf = (el) => el.getAttribute("data-swr-role") || "";
+        const dom = { start: 0, mid: 0, end: 0, off: 0 };
+        for (const el of vnodes) {
+          const r = roleOf(el);
+          if (dom[r] == null) dom.off += 1;
+          else dom[r] += 1;
+        }
+        const roleId = (id) => {
+          const el = document.querySelector('#sliceCanvas .vnode[data-id="' + id + '"]');
+          return el ? el.getAttribute("data-swr-role") || "" : "";
+        };
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          start: n("start"),
+          mid: n("mid"),
+          end: n("end"),
+          off: n("off"),
+          vnodes: vnodes.length,
+          dom,
+          match:
+            n("start") === dom.start &&
+            n("mid") === dom.mid &&
+            n("end") === dom.end &&
+            n("off") === dom.off &&
+            n("start") + n("mid") + n("end") + n("off") === vnodes.length,
+          n0: roleId("n0"),
+          n7: roleId("n7"),
+          bar: !!document.querySelector(".swr-bar"),
+          shm: !!document.querySelector('.shm-strip[data-shm="1"]'),
+          xy: document.querySelectorAll("#sliceCanvas .react-flow__node").length,
+          extraCanvas: document.querySelectorAll("#canvas .react-flow").length,
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const swr1ok = !!(
+        swr1 &&
+        swr1.strip &&
+        swr1.bar &&
+        swr1.shm &&
+        swr1.vnodes === 29 &&
+        swr1.match &&
+        swr1.start === 1 &&
+        swr1.mid === 6 &&
+        swr1.end === 1 &&
+        swr1.off === 21 &&
+        swr1.n0 === "start" &&
+        swr1.n7 === "end" &&
+        swr1.xy === 29 &&
+        swr1.extraCanvas === 1 &&
+        swr1.srcHidden &&
+        swr1.ws === "slice"
+      );
+      record(
+        "SWR1",
+        "Slice .swr-strip start/mid/end/off match vnode roles (explorer 1/6/1/21 of 29); XYFlow stays; no source",
+        !!swr1ok,
+        JSON.stringify(swr1)
+      );
+
+      const swr2 = await page.evaluate(() => {
+        const btn = document.querySelector('.swr-stat[data-swr-band="off"]');
+        if (btn) btn.click();
+        const hits = [...document.querySelectorAll("#sliceCanvas .vnode.swr-hit")];
+        const src = document.getElementById("sourcePane");
+        const first = {
+          clicked: !!btn,
+          pressed: !!(btn && btn.getAttribute("aria-pressed") === "true"),
+          hits: hits.length,
+          allOff: hits.every((el) => el.getAttribute("data-swr-role") === "off"),
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("swr-focusing")),
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+        if (btn) btn.click();
+        const hits2 = document.querySelectorAll("#sliceCanvas .vnode.swr-hit").length;
+        const src2 = document.getElementById("sourcePane");
+        return {
+          first,
+          second: {
+            pressed: !!(btn && btn.getAttribute("aria-pressed") === "true"),
+            hits: hits2,
+            focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("swr-focusing")),
+            srcHidden: !src2 || src2.hidden,
+            slice: !!document.getElementById("sliceCanvas"),
+          },
+        };
+      });
+      const swr2ok = !!(
+        swr2 &&
+        swr2.first &&
+        swr2.first.clicked &&
+        swr2.first.pressed &&
+        swr2.first.hits === 21 &&
+        swr2.first.allOff &&
+        swr2.first.focusing &&
+        swr2.first.srcHidden &&
+        swr2.first.slice &&
+        swr2.first.ws === "slice" &&
+        swr2.second &&
+        !swr2.second.pressed &&
+        swr2.second.hits === 0 &&
+        !swr2.second.focusing &&
+        swr2.second.srcHidden &&
+        swr2.second.slice
+      );
+      record(
+        "SWR2",
+        "Click Off highlights 21 off-walk Slice members; second click clears; Slice stays; no source",
+        !!swr2ok,
+        JSON.stringify(swr2)
+      );
+
+      await page.focus('.swr-stat[data-swr-band="start"]');
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(40);
+      const swr3on = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.swr-stat[data-swr-band="start"]') && document.querySelector('.swr-stat[data-swr-band="start"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#sliceCanvas .vnode.swr-hit").length,
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("swr-focusing")),
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const swr3off = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.swr-stat[data-swr-band="start"]') && document.querySelector('.swr-stat[data-swr-band="start"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#sliceCanvas .vnode.swr-hit").length,
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("swr-focusing")),
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const swr3ok = !!(
+        swr3on &&
+        swr3on.pressed &&
+        swr3on.hits === 1 &&
+        swr3on.focusing &&
+        swr3on.srcHidden &&
+        swr3on.ws === "slice" &&
+        swr3off &&
+        !swr3off.pressed &&
+        swr3off.hits === 0 &&
+        !swr3off.focusing &&
+        swr3off.srcHidden &&
+        swr3off.ws === "slice"
+      );
+      record(
+        "SWR3",
+        "Enter toggles Start focus; Escape clears without leaving Slice or opening source",
+        !!swr3ok,
+        JSON.stringify({ on: swr3on, off: swr3off })
+      );
+
+      const swr4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const swr4ok = !!(swr4 && !swr4.missing && swr4.inNode && !swr4.hitStrip && swr4.srcHidden && swr4.slice);
+      record(
+        "SWR4",
+        "Title-band walk-role strip does not intercept #sliceCanvas n0; Slice stays; no source",
+        !!swr4ok,
+        JSON.stringify(swr4)
+      );
+
+      // Click mid for the shot so the graphic is visibly focusing, without peeking.
+      await page.evaluate(() => {
+        const mid = document.querySelector('.swr-stat[data-swr-band="mid"]');
+        if (mid) mid.click();
+      });
+      await page.waitForTimeout(40);
+      await shot(page, "slice-walk-role.png");
+      const swrShot = checks.find((c) => c.id === "shot:slice-walk-role.png");
+      const swr5ok = !!(swr1ok && swr2ok && swr3ok && swr4ok && swrShot && swrShot.pass);
+      record(
+        "SWR5",
+        "screenshot slice-walk-role.png not black; Slice walk-role graphic proven",
+        !!swr5ok,
+        JSON.stringify({
+          shot: swrShot ? swrShot.detail : "missing",
+          swr1: !!swr1ok,
+          swr2: !!swr2ok,
+          swr3: !!swr3ok,
+          swr4: !!swr4ok,
+        })
+      );
+      assertNoStampDir("SWR5b", "Slice walk-role graphic step did not write .graphide/stamps/");
+      const afterSwrPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && m.type === "peekSource"),
+        };
+      }, beforeSwrPosts);
+      record(
+        "SWR5c",
+        "Slice walk-role clicks did not post peekSource / open source",
+        afterSwrPosts.after === afterSwrPosts.before && !afterSwrPosts.peek,
+        JSON.stringify(afterSwrPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Call-path scrubber (CPS1–CPS3) — hop-depth slider; path lights, branches fade
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
