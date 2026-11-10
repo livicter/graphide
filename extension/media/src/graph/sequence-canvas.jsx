@@ -500,6 +500,7 @@ export function renderSliceCanvas(host, props) {
       sliceDim: !!n.sliceDim,
       sliceDist: n.sliceDist,
       walkRole: n.walkRole || "",
+      shhCut: n.shhCut || "",
       showFqn: true,
     })),
     hops

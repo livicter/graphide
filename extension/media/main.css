@@ -2304,7 +2304,7 @@ button.stat-chip.omc-chip:focus-visible {
     0 0 0 1px var(--vscode-focusBorder, #2f81f7);
 }
 
-/* ADE SWR + STE + SWH + SHA + SRT + SBP + SHC — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE SWR + STE + SWH + SHA + SRT + SBP + SHC + SHH — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.slice-title-cuts) .viewport > .flow-title:first-child,
 .stage:has(.slice-title-cuts) > .flow-title {
   max-width: calc(100% - 420px);
@@ -2330,7 +2330,8 @@ button.stat-chip.omc-chip:focus-visible {
 .slice-title-cuts .sha-strip,
 .slice-title-cuts .srt-strip,
 .slice-title-cuts .sbp-strip,
-.slice-title-cuts .shc-strip {
+.slice-title-cuts .shc-strip,
+.slice-title-cuts .shh-strip {
   position: static;
   top: auto;
   right: auto;
@@ -2784,6 +2785,78 @@ button.stat-chip.omc-chip:focus-visible {
 }
 #sliceCanvas .react-flow__edge.shc-dim:not(.dim) {
   opacity: 0.28;
+}
+
+
+/* ADE SHH — Slice halo-home graphic (halo home vs away; not SHC / SWR / SHA). */
+.shh-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.shh-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.shh-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.shh-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.shh-stat b { font-variant-numeric: tabular-nums; }
+.shh-stat.shh-now, .shh-seg.shh-now {
+  border-color: #38bdf8;
+  box-shadow: inset 0 0 0 1px #38bdf8;
+}
+.shh-strip.shh-focusing .shh-stat.shh-idle,
+.shh-strip.shh-focusing .shh-seg.shh-idle { opacity: 0.55; }
+.shh-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.shh-bar-empty { flex: 1; }
+.shh-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.shh-seg.shh-home { background: color-mix(in srgb, #38bdf8 75%, transparent); }
+.shh-seg.shh-away { background: color-mix(in srgb, #fb7185 70%, transparent); }
+#sliceCanvas .vnode.shh-hit:not(.dim):not(.shm-dim):not(.ego-dim) {
+  box-shadow:
+    inset 0 0 0 2px #38bdf8,
+    0 0 0 1px #38bdf8;
 }
 
 
