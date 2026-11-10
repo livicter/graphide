@@ -19834,6 +19834,288 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Slice hop tip (SHT1–SHT5) — TEH-style hover tip on Slice hops; no 10th title-band
+    await page.waitForFunction(() => {
+      const edge = document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]');
+      return !!(
+        edge &&
+        edge.getAttribute("data-kind") === "Calls" &&
+        edge.getAttribute("data-swh-cut") &&
+        edge.getAttribute("data-ste-cut") &&
+        edge.getAttribute("data-shc-cut")
+      );
+    }, { timeout: 8000 });
+    await page.waitForTimeout(40);
+    const beforeShtPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+    const sht1 = await page.evaluate(() => {
+      const edge =
+        document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]') ||
+        document.querySelector('#sliceCanvas .react-flow__edge[data-from][data-to]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const pe = getComputedStyle(edge).cursor;
+      const titled = !!edge.querySelector("title") || !!document.querySelector("#sliceCanvas .react-flow__edge title, #sliceCanvas svg title");
+      const host = document.getElementById("sliceHopTip");
+      return {
+        ok: true,
+        from: edge.getAttribute("data-from") || "",
+        to: edge.getAttribute("data-to") || "",
+        kind: edge.getAttribute("data-kind") || "",
+        swh: edge.getAttribute("data-swh-cut") || "",
+        ste: edge.getAttribute("data-ste-cut") || "",
+        shc: edge.getAttribute("data-shc-cut") || "",
+        cursor: pe,
+        titled,
+        tipHost: !!host,
+      };
+    });
+    const sht1ok = !!(
+      sht1 &&
+      sht1.ok &&
+      sht1.from === "n0" &&
+      sht1.to === "n1" &&
+      sht1.kind === "Calls" &&
+      sht1.swh === "walk" &&
+      sht1.ste === "tree" &&
+      sht1.shc === "cross" &&
+      sht1.cursor === "help" &&
+      !sht1.titled
+    );
+    record(
+      "SHT1",
+      "n0→n1 Slice hop carries from/to/kind and walk/tree/cross cuts; cursor:help; no SVG <title>",
+      !!sht1ok,
+      JSON.stringify(sht1)
+    );
+
+    const sht2 = await page.evaluate(() => {
+      const edge = document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]');
+      if (!edge) return { ok: false, reason: "no edge" };
+      const rect = edge.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: cx,
+          clientY: cy,
+          pointerId: 1,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("sliceHopTip");
+      const tipKind = tip && tip.querySelector("[data-sht-kind]");
+      const tipHop = tip && tip.querySelector("[data-sht-hop]");
+      const tipFrom = tip && tip.querySelector("[data-sht-from]");
+      const tipTo = tip && tip.querySelector("[data-sht-to]");
+      const chips = tip
+        ? [...tip.querySelectorAll("[data-sht-chip]")].map((c) => ({
+            key: c.getAttribute("data-sht-chip") || "",
+            cut: c.getAttribute("data-sht-cut") || "",
+            text: (c.textContent || "").trim(),
+          }))
+        : [];
+      const tipCs = tip ? getComputedStyle(tip).pointerEvents : "";
+      const src = document.getElementById("sourcePane");
+      return {
+        ok: true,
+        tip: !!tip,
+        tipHidden: !tip || tip.hidden,
+        role: tip ? tip.getAttribute("role") || "" : "",
+        sht: tip ? tip.getAttribute("data-sht") || "" : "",
+        tipPe: tipCs,
+        fromAttr: tip ? tip.getAttribute("data-from") || "" : "",
+        toAttr: tip ? tip.getAttribute("data-to") || "" : "",
+        kindAttr: tip ? tip.getAttribute("data-kind") || "" : "",
+        swhAttr: tip ? tip.getAttribute("data-swh-cut") || "" : "",
+        steAttr: tip ? tip.getAttribute("data-ste-cut") || "" : "",
+        shcAttr: tip ? tip.getAttribute("data-shc-cut") || "" : "",
+        kindText: tipKind ? (tipKind.textContent || "").trim() : "",
+        hopText: tipHop ? (tipHop.textContent || "").replace(/\s+/g, " ").trim() : "",
+        fromText: tipFrom ? (tipFrom.textContent || "").trim() : "",
+        toText: tipTo ? (tipTo.textContent || "").trim() : "",
+        chips,
+        srcHidden: !src || src.hidden,
+      };
+    });
+    const sht2ok = !!(
+      sht2 &&
+      sht2.ok &&
+      sht2.tip &&
+      !sht2.tipHidden &&
+      sht2.role === "tooltip" &&
+      sht2.sht === "1" &&
+      (sht2.tipPe === "none" || sht2.tipPe === "") &&
+      sht2.fromAttr === "n0" &&
+      sht2.toAttr === "n1" &&
+      sht2.kindAttr === "Calls" &&
+      sht2.kindText.toLowerCase() === "calls" &&
+      sht2.hopText.includes("→") &&
+      sht2.fromText &&
+      sht2.toText &&
+      sht2.swhAttr === "walk" &&
+      sht2.steAttr === "tree" &&
+      sht2.shcAttr === "cross" &&
+      sht2.chips.some((c) => c.key === "swh" && c.cut === "walk") &&
+      sht2.chips.some((c) => c.key === "ste" && c.cut === "tree") &&
+      sht2.chips.some((c) => c.key === "shc" && c.cut === "cross") &&
+      sht2.srcHidden
+    );
+    record(
+      "SHT2",
+      "pointerenter on n0→n1 shows #sliceHopTip tooltip with Calls, ends, walk/tree/cross chips; tip pointer-events:none; no source",
+      !!sht2ok,
+      JSON.stringify(sht2)
+    );
+
+    const sht3 = await page.evaluate(() => {
+      const edge = document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]');
+      if (edge) {
+        edge.dispatchEvent(
+          new PointerEvent("pointerleave", {
+            bubbles: true,
+            pointerId: 1,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterLeave = document.getElementById("sliceHopTip");
+      const hiddenAfterLeave = !tipAfterLeave || tipAfterLeave.hidden;
+      const node = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+      if (node) {
+        const r = node.getBoundingClientRect();
+        node.dispatchEvent(
+          new PointerEvent("pointerenter", {
+            bubbles: true,
+            clientX: r.left + r.width / 2,
+            clientY: r.top + r.height / 2,
+            pointerId: 2,
+            pointerType: "mouse",
+          })
+        );
+      }
+      const tipAfterNode = document.getElementById("sliceHopTip");
+      const hopHiddenAfterNode = !tipAfterNode || tipAfterNode.hidden;
+      const fqnTip = document.getElementById("tip");
+      return {
+        hiddenAfterLeave,
+        hopHiddenAfterNode,
+        fqnVisible: !!(fqnTip && !fqnTip.hidden),
+      };
+    });
+    const sht3ok = !!(sht3 && sht3.hiddenAfterLeave && sht3.hopHiddenAfterNode);
+    record(
+      "SHT3",
+      "pointerleave hides Slice hop tip; vnode hover does not resurrect it",
+      !!sht3ok,
+      JSON.stringify(sht3)
+    );
+
+    const sht4 = await page.evaluate(() => {
+      const edge = document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]');
+      const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+      if (!edge || !n0) return { missing: true };
+      const er = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: er.left + er.width / 2,
+          clientY: er.top + er.height / 2,
+          pointerId: 3,
+          pointerType: "mouse",
+        })
+      );
+      const tip = document.getElementById("sliceHopTip");
+      const tipVisible = !!(tip && !tip.hidden);
+      const tipPe = tip ? getComputedStyle(tip).pointerEvents : "";
+      const r = n0.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const top = document.elementFromPoint(x, y);
+      const hitStrip = !!(
+        top &&
+        top.closest &&
+        top.closest(
+          ".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts, #sliceHopTip"
+        )
+      );
+      const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+      const src = document.getElementById("sourcePane");
+      return {
+        x,
+        y,
+        tipVisible,
+        tipPe,
+        top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+        hitStrip,
+        inNode,
+        srcHidden: !src || src.hidden,
+        slice: !!document.getElementById("sliceCanvas"),
+      };
+    });
+    const sht4ok = !!(
+      sht4 &&
+      !sht4.missing &&
+      sht4.tipVisible &&
+      (sht4.tipPe === "none" || sht4.tipPe === "") &&
+      sht4.inNode &&
+      !sht4.hitStrip &&
+      sht4.srcHidden &&
+      sht4.slice
+    );
+    record(
+      "SHT4",
+      "Visible #sliceHopTip does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+      !!sht4ok,
+      JSON.stringify(sht4)
+    );
+
+    await page.evaluate(() => {
+      const edge = document.querySelector('#sliceCanvas .react-flow__edge[data-from="n0"][data-to="n1"]');
+      if (!edge) return;
+      const r = edge.getBoundingClientRect();
+      edge.dispatchEvent(
+        new PointerEvent("pointerenter", {
+          bubbles: true,
+          clientX: r.left + r.width / 2,
+          clientY: r.top + r.height / 2,
+          pointerId: 4,
+          pointerType: "mouse",
+        })
+      );
+    });
+    await page.waitForTimeout(80);
+    await shot(page, "slice-hop-tip.png");
+    const shtShot = checks.find((c) => c.id === "shot:slice-hop-tip.png");
+    const sht5ok = !!(sht1ok && sht2ok && sht3ok && sht4ok && shtShot && shtShot.pass);
+    record(
+      "SHT5",
+      "screenshot slice-hop-tip.png is not a black frame; Slice hop tip proven",
+      !!sht5ok,
+      JSON.stringify({
+        shot: shtShot ? shtShot.detail : "missing",
+        sht1: !!sht1ok,
+        sht2: !!sht2ok,
+        sht3: !!sht3ok,
+        sht4: !!sht4ok,
+      })
+    );
+    assertNoStampDir("SHT5b", "Slice hop tip step did not write .graphide/stamps/");
+    const afterShtPosts = await page.evaluate((before) => {
+      const posts = window.__vscodePosts || [];
+      const added = posts.slice(before);
+      return {
+        before,
+        after: posts.length,
+        peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop" || m.type === "selectNode" || m.type === "enterRun")),
+      };
+    }, beforeShtPosts);
+    record(
+      "SHT5c",
+      "Slice hop tip hover did not post peekSource / showHop / selectNode / enterRun",
+      afterShtPosts.after === afterShtPosts.before && !afterShtPosts.peek,
+      JSON.stringify(afterShtPosts)
+    );
+
     // ADE Call-path scrubber (CPS1–CPS3) — hop-depth slider; path lights, branches fade
     await page.click('#workspaces [data-ws="overview"]');
     await page.waitForSelector('#workspaces [data-ws="overview"].on', { timeout: 8000 });
