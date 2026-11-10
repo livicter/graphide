@@ -1360,6 +1360,20 @@ assert(steMap.includes("STE1") && steMap.includes("ste-strip") && steMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-tree-edge.md")), "slice-tree-edge feature map missing");
 assert(featReadme.includes("slice-tree-edge.md") && featReadme.includes("slice-tree-edge.png"), "feature README must list slice-tree-edge.md");
 
+const mccMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-community-cut.md"), "utf8");
+assert(
+  mccMap.includes("## Sub-features") &&
+    mccMap.includes("## How to get to it (user POV)") &&
+    mccMap.includes("## Driving it with the harness") &&
+    mccMap.includes("## Gotchas"),
+  "map-community-cut feature map must use the four headings"
+);
+assert(driver.includes("MCC1") && driver.includes("MCC3") && driver.includes("map-community-cut.png") && driver.includes("mcc-stat"), "verify driver must prove Map community-cut graphic MCC1–MCC3");
+assert(css.includes(".mcc-strip") && css.includes(".mcc-stat") && css.includes(".mcc-bar") && css.includes("mcc-hit"), "main.css must style Map community-cut graphic");
+assert(mccMap.includes("MCC1") && mccMap.includes("mcc-strip") && mccMap.includes("map-community-cut.png") && mccMap.includes("peekSource"), "map-community-cut feature map must name MCC / mcc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-community-cut.md")), "map-community-cut feature map missing");
+assert(featReadme.includes("map-community-cut.md") && featReadme.includes("map-community-cut.png"), "feature README must list map-community-cut.md");
+
 
 
 

@@ -1967,6 +1967,80 @@ button.stat-chip.omc-chip:focus-visible {
   outline-offset: 1px;
 }
 
+/* ADE MCC — Map community-cut graphic (title-band; do not shrink .viewport / G4b). */
+.stage:has(.mcc-strip) > .flow-title {
+  max-width: calc(100% - 420px);
+}
+.mcc-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.mcc-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.mcc-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mcc-stat {
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+.mcc-stat b { font-variant-numeric: tabular-nums; }
+.mcc-stat.mcc-now, .mcc-seg.mcc-now {
+  border-color: var(--vscode-charts-green, #3fb950);
+  box-shadow: inset 0 0 0 1px var(--vscode-charts-green, #3fb950);
+}
+.mcc-strip.mcc-focusing .mcc-stat.mcc-idle,
+.mcc-strip.mcc-focusing .mcc-seg.mcc-idle { opacity: 0.55; }
+.mcc-bar {
+  flex: 1 1 180px;
+  display: flex;
+  height: 10px;
+  min-width: 120px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.mcc-bar-empty { flex: 1; }
+.mcc-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.mcc-seg.mcc-on { background: color-mix(in srgb, var(--vscode-charts-green, #3fb950) 70%, transparent); }
+.mcc-seg.mcc-off { background: color-mix(in srgb, var(--vscode-foreground, #ccc) 28%, transparent); }
+.comm-wrap.mcc-focusing .bubble-card.mcc-hit:not(.dim):not(.mac-dim):not(.mcs-dim):not(.mhs-dim),
+.programs-view.mcc-focusing .bubble-card.mcc-hit:not(.dim):not(.mac-dim):not(.mcs-dim):not(.mhs-dim) {
+  box-shadow:
+    inset 0 0 0 2px var(--vscode-charts-green, #3fb950),
+    0 0 0 1px var(--vscode-charts-green, #3fb950);
+}
+
 /* ADE SHM — Slice hop-kind mix chart (OMC/MAC parity on Slice Steiner) */
 .shm-strip {
   display: flex;
