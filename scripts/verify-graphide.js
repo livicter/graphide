@@ -17973,7 +17973,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18167,7 +18167,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18359,7 +18359,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18556,7 +18556,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18752,7 +18752,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18956,7 +18956,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -19156,7 +19156,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -19366,7 +19366,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -19419,6 +19419,213 @@ async function main() {
         "Slice halo-home clicks did not post peekSource / showHop / open source",
         afterShhPosts.after === afterShhPosts.before && !afterShhPosts.peek,
         JSON.stringify(afterShhPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+
+    // ADE Slice fan-degree graphic (SFD1–SFD5) — single vs multi painted-hop degree; same Slice desk as SHH
+    {
+      await page.waitForSelector(".sfd-strip[data-sfd='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .vnode[data-sfd-cut]").length >= 29,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeSfdPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const sfd1 = await page.evaluate(() => {
+        const strip = document.querySelector(".sfd-strip[data-sfd='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".sfd-stat[data-sfd-band]")].map((el) => ({
+          band: el.getAttribute("data-sfd-band"),
+          n: Number((el.querySelector("[data-sfd-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".sfd-seg[data-sfd-band]")].map((el) => el.getAttribute("data-sfd-band"));
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-sfd-cut], #sliceCanvas .vnode")];
+        const byCut = { single: 0, multi: 0 };
+        for (const n of nodes) {
+          const c = n.getAttribute("data-sfd-cut") || "";
+          if (c === "single" || c === "multi") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".shh-strip[data-shh='1']") && cluster.querySelector(".shc-strip[data-shc='1']") && cluster.querySelector(".sbp-strip[data-sbp='1']") && cluster.querySelector(".srt-strip[data-srt='1']") && cluster.querySelector(".sha-strip[data-sha='1']") && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          shh: !!document.querySelector(".shh-strip[data-shh='1']"),
+          shc: !!document.querySelector(".shc-strip[data-shc='1']"),
+          sbp: !!document.querySelector(".sbp-strip[data-sbp='1']"),
+          srt: !!document.querySelector(".srt-strip[data-srt='1']"),
+          sha: !!document.querySelector(".sha-strip[data-sha='1']"),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          nodes: nodes.length,
+          stamped: byCut.single + byCut.multi,
+          byCut,
+          single: nOf("single"),
+          multi: nOf("multi"),
+          sum: nOf("single") + nOf("multi"),
+          walkBand: stats.some((s) => s.band === "walk") || segs.includes("walk"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const sfd1ok =
+        sfd1.strip &&
+        sfd1.cluster &&
+        sfd1.shh &&
+        sfd1.shc &&
+        sfd1.sbp &&
+        sfd1.srt &&
+        sfd1.sha &&
+        sfd1.swh &&
+        sfd1.ste &&
+        sfd1.swr &&
+        sfd1.sliceOn &&
+        sfd1.canvas &&
+        sfd1.single === 16 &&
+        sfd1.multi === 13 &&
+        sfd1.sum === 29 &&
+        sfd1.stamped === 29 &&
+        sfd1.byCut.single === 16 &&
+        sfd1.byCut.multi === 13 &&
+        sfd1.segs.length === 2 &&
+        !sfd1.walkBand &&
+        sfd1.pressed === 0 &&
+        sfd1.srcHidden;
+      record(
+        "SFD1",
+        "Slice fan-degree graphic shows 16 single / 13 multi of 29, matching data-sfd-cut; SHH/SHC/SBP/SRT/SHA/SWH/STE/SWR stay; no walk band; no source",
+        !!sfd1ok,
+        JSON.stringify(sfd1)
+      );
+
+      const singleBtn = page.locator('.sfd-stat[data-sfd-band="single"]').first();
+      await singleBtn.click();
+      await page.waitForTimeout(80);
+      const sfd2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-sfd-cut]")];
+        const hits = nodes.filter((el) => el.classList.contains("sfd-hit"));
+        const idles = nodes.filter((el) => el.classList.contains("sfd-idle"));
+        const singleHits = hits.filter((el) => el.getAttribute("data-sfd-cut") === "single");
+        const singlePressed = document.querySelector('.sfd-stat[data-sfd-band="single"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          nodes: nodes.length,
+          hits: hits.length,
+          idles: idles.length,
+          singleHits: singleHits.length,
+          singlePressed: !!singlePressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sfd2ok =
+        sfd2.sliceOn &&
+        sfd2.hits === 16 &&
+        sfd2.singleHits === 16 &&
+        sfd2.idles === 13 &&
+        sfd2.singlePressed &&
+        sfd2.srcHidden;
+      record(
+        "SFD2",
+        "Click Single highlights the 16 single-degree Slice members; Slice stays; no source",
+        !!sfd2ok,
+        JSON.stringify(sfd2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const sfd3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .vnode.sfd-hit").length;
+        const pressed = document.querySelectorAll('.sfd-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".sfd-strip.sfd-focusing, .stage.sfd-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SFD3",
+        "Escape clears fan-degree graphic focus; Slice stays; no source",
+        !!(sfd3.sliceOn && sfd3.hits === 0 && sfd3.pressed === 0 && !sfd3.focusing && sfd3.srcHidden),
+        JSON.stringify(sfd3)
+      );
+
+      const sfd4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .sfd-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const sfd4ok = !!(sfd4 && !sfd4.missing && sfd4.inNode && !sfd4.hitStrip && sfd4.srcHidden && sfd4.slice);
+      record(
+        "SFD4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!sfd4ok,
+        JSON.stringify(sfd4)
+      );
+
+      await singleBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-fan-degree.png");
+      const sfdShot = checks.find((c) => c.id === "shot:slice-fan-degree.png");
+      const sfd5ok = !!(sfd1ok && sfd2ok && sfd3 && sfd3.sliceOn && sfd4ok && sfdShot && sfdShot.pass);
+      record(
+        "SFD5",
+        "screenshot slice-fan-degree.png is not a black frame; Slice fan-degree graphic proven",
+        !!sfd5ok,
+        JSON.stringify({
+          shot: sfdShot ? sfdShot.detail : "missing",
+          sfd1: !!sfd1ok,
+          sfd2: !!sfd2ok,
+          sfd3: !!(sfd3 && sfd3.sliceOn && sfd3.hits === 0),
+          sfd4: !!sfd4ok,
+        })
+      );
+      assertNoStampDir("SFD5b", "Slice fan-degree graphic step did not write .graphide/stamps/");
+      const afterSfdPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeSfdPosts);
+      record(
+        "SFD5c",
+        "Slice fan-degree clicks did not post peekSource / showHop / open source",
+        afterSfdPosts.after === afterSfdPosts.before && !afterSfdPosts.peek,
+        JSON.stringify(afterSfdPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);

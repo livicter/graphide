@@ -95,6 +95,7 @@ owns this folder.
 | [slice-bridge-polarity.md](slice-bridge-polarity.md) | Slice bridge-polarity graphic | explorer Slice · `verification/slice-bridge-polarity.png` |
 | [slice-hop-community.md](slice-hop-community.md) | Slice hop-community graphic | explorer Slice · `verification/slice-hop-community.png` |
 | [slice-halo-home.md](slice-halo-home.md) | Slice halo-home graphic | explorer Slice · `verification/slice-halo-home.png` |
+| [slice-fan-degree.md](slice-fan-degree.md) | Slice fan-degree graphic | explorer Slice · `verification/slice-fan-degree.png` |
 | [slice-runs.md](slice-runs.md) | Slice subsystem-run boxes + enter | explorer Slice · `.run` · `slice-runs.png` |
 | [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |
