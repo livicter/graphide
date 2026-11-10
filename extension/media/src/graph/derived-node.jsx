@@ -146,6 +146,7 @@ export function DerivedNode({ data }) {
   if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
   if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
   if (d.walkRole) attrs["data-swr-role"] = String(d.walkRole);
+  if (d.shhCut) attrs["data-shh-cut"] = String(d.shhCut);
   if (d.isLeaf != null) attrs["data-leaf"] = d.isLeaf ? "1" : "0";
   const style = d.depth != null ? { "--d": d.depth } : undefined;
 

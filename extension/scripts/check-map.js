@@ -1486,6 +1486,20 @@ assert(shcMap.includes("SHC1") && shcMap.includes("shc-strip") && shcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-community.md")), "slice-hop-community feature map missing");
 assert(featReadme.includes("slice-hop-community.md") && featReadme.includes("slice-hop-community.png"), "feature README must list slice-hop-community.md");
 
+const shhMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-home.md"), "utf8");
+assert(
+  shhMap.includes("## Sub-features") &&
+    shhMap.includes("## How to get to it (user POV)") &&
+    shhMap.includes("## Driving it with the harness") &&
+    shhMap.includes("## Gotchas"),
+  "slice-halo-home feature map must use the four headings"
+);
+assert(driver.includes("SHH1") && driver.includes("SHH3") && driver.includes("slice-halo-home.png") && driver.includes("shh-stat"), "verify driver must prove Slice halo-home graphic SHH1–SHH3");
+assert(css.includes(".shh-strip") && css.includes(".shh-stat") && css.includes(".shh-bar") && css.includes("shh-hit"), "main.css must style Slice halo-home graphic");
+assert(shhMap.includes("SHH1") && shhMap.includes("shh-strip") && shhMap.includes("slice-halo-home.png") && shhMap.includes("peekSource"), "slice-halo-home feature map must name SHH / shh-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-home.md")), "slice-halo-home feature map missing");
+assert(featReadme.includes("slice-halo-home.md") && featReadme.includes("slice-halo-home.png"), "feature README must list slice-halo-home.md");
+
 const mepMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md"), "utf8");
 assert(
   mepMap.includes("## Sub-features") &&

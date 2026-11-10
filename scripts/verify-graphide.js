@@ -17775,7 +17775,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17969,7 +17969,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18161,7 +18161,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18358,7 +18358,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18554,7 +18554,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18758,7 +18758,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18958,7 +18958,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -19011,6 +19011,216 @@ async function main() {
         "Slice hop-community clicks did not post peekSource / showHop / open source",
         afterShcPosts.after === afterShcPosts.before && !afterShcPosts.peek,
         JSON.stringify(afterShcPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice halo-home graphic (SHH1–SHH5) — home vs away halo vnodes; same Slice desk as SHC
+    {
+      await page.waitForSelector(".shh-strip[data-shh='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .vnode[data-shh-cut]").length >= 29,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeShhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const shh1 = await page.evaluate(() => {
+        const strip = document.querySelector(".shh-strip[data-shh='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".shh-stat[data-shh-band]")].map((el) => ({
+          band: el.getAttribute("data-shh-band"),
+          n: Number((el.querySelector("[data-shh-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".shh-seg[data-shh-band]")].map((el) => el.getAttribute("data-shh-band"));
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-shh-cut], #sliceCanvas .vnode")];
+        const byCut = { home: 0, away: 0, walk: 0 };
+        for (const n of nodes) {
+          const c = n.getAttribute("data-shh-cut") || "";
+          if (c === "home" || c === "away" || c === "walk") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const n17 = document.querySelector('#sliceCanvas .vnode[data-id="n17"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".shc-strip[data-shc='1']") && cluster.querySelector(".sbp-strip[data-sbp='1']") && cluster.querySelector(".srt-strip[data-srt='1']") && cluster.querySelector(".sha-strip[data-sha='1']") && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          shc: !!document.querySelector(".shc-strip[data-shc='1']"),
+          sbp: !!document.querySelector(".sbp-strip[data-sbp='1']"),
+          srt: !!document.querySelector(".srt-strip[data-srt='1']"),
+          sha: !!document.querySelector(".sha-strip[data-sha='1']"),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          nodes: nodes.length,
+          stamped: byCut.home + byCut.away + byCut.walk,
+          byCut,
+          home: nOf("home"),
+          away: nOf("away"),
+          sum: nOf("home") + nOf("away"),
+          walkBand: stats.some((s) => s.band === "walk") || segs.includes("walk"),
+          bothBand: stats.some((s) => s.band === "both") || segs.includes("both"),
+          n17: n17 ? n17.getAttribute("data-shh-cut") : "",
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const shh1ok =
+        shh1.strip &&
+        shh1.cluster &&
+        shh1.shc &&
+        shh1.sbp &&
+        shh1.srt &&
+        shh1.sha &&
+        shh1.swh &&
+        shh1.ste &&
+        shh1.swr &&
+        shh1.sliceOn &&
+        shh1.canvas &&
+        shh1.home === 7 &&
+        shh1.away === 14 &&
+        shh1.sum === 21 &&
+        shh1.stamped === 29 &&
+        shh1.byCut.home === 7 &&
+        shh1.byCut.away === 14 &&
+        shh1.byCut.walk === 8 &&
+        shh1.segs.length === 2 &&
+        !shh1.walkBand &&
+        !shh1.bothBand &&
+        shh1.n17 === "away" &&
+        shh1.pressed === 0 &&
+        shh1.srcHidden;
+      record(
+        "SHH1",
+        "Slice halo-home graphic shows 7 home / 14 away of 21 halo, matching data-shh-cut (8 walk stamped, no walk band); SHC/SBP/SRT/SHA/SWH/STE/SWR stay; no source",
+        !!shh1ok,
+        JSON.stringify(shh1)
+      );
+
+      const homeBtn = page.locator('.shh-stat[data-shh-band="home"]').first();
+      await homeBtn.click();
+      await page.waitForTimeout(80);
+      const shh2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const nodes = [...document.querySelectorAll("#sliceCanvas .vnode[data-shh-cut]")];
+        const hits = nodes.filter((el) => el.classList.contains("shh-hit"));
+        const idles = nodes.filter((el) => el.classList.contains("shh-idle"));
+        const homeHits = hits.filter((el) => el.getAttribute("data-shh-cut") === "home");
+        const homePressed = document.querySelector('.shh-stat[data-shh-band="home"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          nodes: nodes.length,
+          hits: hits.length,
+          idles: idles.length,
+          homeHits: homeHits.length,
+          homePressed: !!homePressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shh2ok =
+        shh2.sliceOn &&
+        shh2.hits === 7 &&
+        shh2.homeHits === 7 &&
+        shh2.idles === 22 &&
+        shh2.homePressed &&
+        shh2.srcHidden;
+      record(
+        "SHH2",
+        "Click Home highlights the 7 home halo members; Slice stays; no source",
+        !!shh2ok,
+        JSON.stringify(shh2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const shh3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .vnode.shh-hit").length;
+        const pressed = document.querySelectorAll('.shh-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".shh-strip.shh-focusing, .stage.shh-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SHH3",
+        "Escape clears halo-home graphic focus; Slice stays; no source",
+        !!(shh3.sliceOn && shh3.hits === 0 && shh3.pressed === 0 && !shh3.focusing && shh3.srcHidden),
+        JSON.stringify(shh3)
+      );
+
+      const shh4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .shh-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const shh4ok = !!(shh4 && !shh4.missing && shh4.inNode && !shh4.hitStrip && shh4.srcHidden && shh4.slice);
+      record(
+        "SHH4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!shh4ok,
+        JSON.stringify(shh4)
+      );
+
+      await homeBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-halo-home.png");
+      const shhShot = checks.find((c) => c.id === "shot:slice-halo-home.png");
+      const shh5ok = !!(shh1ok && shh2ok && shh3 && shh3.sliceOn && shh4ok && shhShot && shhShot.pass);
+      record(
+        "SHH5",
+        "screenshot slice-halo-home.png is not a black frame; Slice halo-home graphic proven",
+        !!shh5ok,
+        JSON.stringify({
+          shot: shhShot ? shhShot.detail : "missing",
+          shh1: !!shh1ok,
+          shh2: !!shh2ok,
+          shh3: !!(shh3 && shh3.sliceOn && shh3.hits === 0),
+          shh4: !!shh4ok,
+        })
+      );
+      assertNoStampDir("SHH5b", "Slice halo-home graphic step did not write .graphide/stamps/");
+      const afterShhPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeShhPosts);
+      record(
+        "SHH5c",
+        "Slice halo-home clicks did not post peekSource / showHop / open source",
+        afterShhPosts.after === afterShhPosts.before && !afterShhPosts.peek,
+        JSON.stringify(afterShhPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
