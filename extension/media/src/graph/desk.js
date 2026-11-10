@@ -226,6 +226,7 @@ let mapWalkCutFocus = null; // ADE MWC: lit|grey or null
 let mapEnterDistFocus = null; // ADE MED: 0|1|2|3 (3 means 3+)
 let mapEnterAttachFocus = null; // ADE MEA: attached|isolated
 let mapEnterPolarityFocus = null; // ADE MEP: out|in|both
+let mapEnterVerbSpanFocus = null; // ADE MEV: mix|mono
 /** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
@@ -956,6 +957,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     mapEnterPolarityFocus = null;
     if (typeof applyMapEnterPolarityPaint === "function") applyMapEnterPolarityPaint();
+    return;
+  }
+  // ADE MEV: Escape clears Map enter verb-span graphic focus when enter is open (stay in community).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    typeof enterCanvasActive === "function" &&
+    enterCanvasActive() &&
+    mapEnterVerbSpanFocus
+  ) {
+    e.preventDefault();
+    mapEnterVerbSpanFocus = null;
+    if (typeof applyMapEnterVerbSpanPaint === "function") applyMapEnterVerbSpanPaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -24900,6 +24914,164 @@ function placeEnterTitleCut(cluster, sel, html) {
 }
 
 
+
+/** ADE MEV — distinct incident verbs on the full graph (not only enterEdgesAmong). */
+function mapEnterVerbSpanVerbs(id) {
+  const kinds = new Set();
+  const edges = typeof incidentEdges === "function" ? incidentEdges(id) : [];
+  for (const e of edges || []) {
+    if (e && e.kind) kinds.add(String(e.kind));
+  }
+  return kinds;
+}
+
+function mapEnterVerbSpanOf(n) {
+  if (!n) return "mono";
+  if (n.mevCut === "mix" || n.mevCut === "mono") return n.mevCut;
+  const kinds = mapEnterVerbSpanVerbs(n.id != null ? n.id : n);
+  return kinds.size >= 2 ? "mix" : "mono";
+}
+
+function mapEnterVerbSpanMetrics(inner) {
+  const props = typeof enterCanvasProps === "function" ? enterCanvasProps(inner) : { nodes: [] };
+  const m = { mix: 0, mono: 0, total: 0 };
+  for (const n of props.nodes || []) {
+    const cut = mapEnterVerbSpanOf(n);
+    if (cut === "mix") m.mix += 1;
+    else m.mono += 1;
+    m.total += 1;
+  }
+  return m;
+}
+
+function mapEnterVerbSpanGraphicHtml(inner) {
+  const m = mapEnterVerbSpanMetrics(inner);
+  if (!m.total) return "";
+  const focusing = !!mapEnterVerbSpanFocus;
+  const onFor = (key) => !!(mapEnterVerbSpanFocus && String(mapEnterVerbSpanFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="mev-stat' +
+    (onFor(key) ? " mev-now" : focusing ? " mev-idle" : "") +
+    '" data-mev-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-mev-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="mev-seg mev-' +
+      esc(key) +
+      (onFor(key) ? " mev-now" : focusing ? " mev-idle" : "") +
+      '" data-mev-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="mev-strip' +
+    (focusing ? " mev-focusing" : "") +
+    '" data-mev="1" role="group" aria-label="Map enter verb-span graphic">' +
+    '<span class="mev-meta">Verb span</span>' +
+    '<span class="mev-counts">' +
+    stat("mix", "mix", m.mix) +
+    stat("mono", "mono", m.mono) +
+    "</span>" +
+    '<div class="mev-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="mev-bar-empty"></span>'
+      : seg("mix", m.mix) + seg("mono", m.mono)) +
+    "</div></div>"
+  );
+}
+
+function jumpMapEnterVerbSpan(which) {
+  if (!which) return;
+  const key = String(which);
+  if (mapEnterVerbSpanFocus && String(mapEnterVerbSpanFocus) === key) mapEnterVerbSpanFocus = null;
+  else mapEnterVerbSpanFocus = key;
+  applyMapEnterVerbSpanPaint();
+}
+
+function applyMapEnterVerbSpanPaint() {
+  if (!canvas) return;
+  const focus = mapEnterVerbSpanFocus ? String(mapEnterVerbSpanFocus) : "";
+  canvas.querySelectorAll(".mev-stat[data-mev-band], .mev-seg[data-mev-band]").forEach((el) => {
+    const key = el.getAttribute("data-mev-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("mev-now", on);
+    el.classList.toggle("mev-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".mev-strip");
+  if (strip) strip.classList.toggle("mev-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("mev-focusing", !!focus);
+  const cluster = canvas.querySelector(".enter-title-cuts");
+  if (cluster) cluster.classList.toggle("mev-focusing", !!focus);
+  canvas.querySelectorAll("#enterCanvas .vnode").forEach((el) => {
+    let cut = el.getAttribute("data-mev-cut") || "";
+    if (!cut) {
+      const id = el.getAttribute("data-id") || "";
+      cut = mapEnterVerbSpanOf({ id });
+      el.setAttribute("data-mev-cut", cut);
+    }
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("mev-hit", hit);
+    el.classList.toggle("mev-idle", !!(focus && !hit));
+  });
+}
+
+function bindMapEnterVerbSpanGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".mev-stat[data-mev-band], .mev-seg[data-mev-band]").forEach((el) => {
+    const key = el.getAttribute("data-mev-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterVerbSpan(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterVerbSpan(key);
+    };
+  });
+  applyMapEnterVerbSpanPaint();
+}
+
+function syncMapEnterVerbSpanGraphic(inner) {
+  if (!canvas || typeof enterCanvasActive !== "function" || !enterCanvasActive()) {
+    const leftover = canvas && canvas.querySelector(".mev-strip");
+    if (leftover) leftover.remove();
+    return;
+  }
+  const cluster = typeof ensureEnterTitleCuts === "function" ? ensureEnterTitleCuts() : null;
+  if (!cluster) return;
+  const html = mapEnterVerbSpanGraphicHtml(inner);
+  if (!html) {
+    const old = cluster.querySelector(".mev-strip") || canvas.querySelector(".mev-strip");
+    if (old) old.remove();
+    return;
+  }
+  if (!placeEnterTitleCut(cluster, ".mev-strip[data-mev='1']", html)) return;
+  bindMapEnterVerbSpanGraphic();
+}
+
+
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
   noteShownMembers(nodes);
@@ -24961,6 +25133,7 @@ function enterCanvasProps(inner) {
       sliceDist: n.distance == null ? undefined : n.distance,
       meaCut: attached.has(nid) ? "attached" : "isolated",
       mepCut: mepCutOf(nid),
+      mevCut: mapEnterVerbSpanOf({ id: nid }),
     };
   });
   const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
@@ -25039,6 +25212,7 @@ function renderInner(msg, animate, opts) {
     if (typeof syncMapEnterDistGraphic === "function") syncMapEnterDistGraphic(inner);
     if (typeof syncMapEnterAttachGraphic === "function") syncMapEnterAttachGraphic(inner);
     if (typeof syncMapEnterPolarityGraphic === "function") syncMapEnterPolarityGraphic(inner);
+    if (typeof syncMapEnterVerbSpanGraphic === "function") syncMapEnterVerbSpanGraphic(inner);
   } else {
     unmountReviewCanvas();
     canvas.innerHTML =
@@ -25046,6 +25220,7 @@ function renderInner(msg, animate, opts) {
       (mapWalkCutFocus ? " mwc-focusing" : "") +
       (mapEnterDistFocus ? " med-focusing" : "") +
       (typeof mapEnterPolarityFocus !== "undefined" && mapEnterPolarityFocus ? " mep-focusing" : "") +
+      (typeof mapEnterVerbSpanFocus !== "undefined" && mapEnterVerbSpanFocus ? " mev-focusing" : "") +
       '">' +
       '<div class="flow-title">Inside this community — walk lit, siblings grey · ' +
       nodes.length +
@@ -25055,6 +25230,7 @@ function renderInner(msg, animate, opts) {
       mapEnterDistGraphicHtml(inner) +
       (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") +
       (typeof mapEnterPolarityGraphicHtml === "function" ? mapEnterPolarityGraphicHtml(inner) : "") +
+      (typeof mapEnterVerbSpanGraphicHtml === "function" ? mapEnterVerbSpanGraphicHtml(inner) : "") +
       "</div>" +
       '<div class="viewport" data-lod="0">' +
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
@@ -25068,6 +25244,7 @@ function renderInner(msg, animate, opts) {
   if (typeof bindMapEnterDistGraphic === "function") bindMapEnterDistGraphic();
   if (typeof bindMapEnterAttachGraphic === "function") bindMapEnterAttachGraphic();
   if (typeof bindMapEnterPolarityGraphic === "function") bindMapEnterPolarityGraphic();
+  if (typeof bindMapEnterVerbSpanGraphic === "function") bindMapEnterVerbSpanGraphic();
   applyGraphFilter();
   applyEgoPaint();
   const leafNodes = nodes

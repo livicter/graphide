@@ -17061,6 +17061,7 @@
     if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
     if (d.meaCut) attrs["data-mea-cut"] = String(d.meaCut);
     if (d.mepCut) attrs["data-mep-cut"] = String(d.mepCut);
+    if (d.mevCut) attrs["data-mev-cut"] = String(d.mevCut);
     if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
     if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
@@ -19765,7 +19766,8 @@
         shape: n.shape || "",
         sliceDist: n.sliceDist,
         meaCut: n.meaCut || "",
-        mepCut: n.mepCut || ""
+        mepCut: n.mepCut || "",
+        mevCut: n.mevCut || ""
       })),
       hops
     );
@@ -20157,6 +20159,7 @@
     let mapEnterDistFocus = null;
     let mapEnterAttachFocus = null;
     let mapEnterPolarityFocus = null;
+    let mapEnterVerbSpanFocus = null;
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let mapCommunityCutFocus = null;
@@ -20645,6 +20648,12 @@
         e.preventDefault();
         mapEnterPolarityFocus = null;
         if (typeof applyMapEnterPolarityPaint === "function") applyMapEnterPolarityPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && typeof enterCanvasActive === "function" && enterCanvasActive() && mapEnterVerbSpanFocus) {
+        e.preventDefault();
+        mapEnterVerbSpanFocus = null;
+        if (typeof applyMapEnterVerbSpanPaint === "function") applyMapEnterVerbSpanPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -37937,6 +37946,113 @@
       else cluster.appendChild(next);
       return next;
     }
+    function mapEnterVerbSpanVerbs(id2) {
+      const kinds = /* @__PURE__ */ new Set();
+      const edges = typeof incidentEdges === "function" ? incidentEdges(id2) : [];
+      for (const e of edges || []) {
+        if (e && e.kind) kinds.add(String(e.kind));
+      }
+      return kinds;
+    }
+    function mapEnterVerbSpanOf(n) {
+      if (!n) return "mono";
+      if (n.mevCut === "mix" || n.mevCut === "mono") return n.mevCut;
+      const kinds = mapEnterVerbSpanVerbs(n.id != null ? n.id : n);
+      return kinds.size >= 2 ? "mix" : "mono";
+    }
+    function mapEnterVerbSpanMetrics(inner) {
+      const props = typeof enterCanvasProps === "function" ? enterCanvasProps(inner) : { nodes: [] };
+      const m = { mix: 0, mono: 0, total: 0 };
+      for (const n of props.nodes || []) {
+        const cut = mapEnterVerbSpanOf(n);
+        if (cut === "mix") m.mix += 1;
+        else m.mono += 1;
+        m.total += 1;
+      }
+      return m;
+    }
+    function mapEnterVerbSpanGraphicHtml(inner) {
+      const m = mapEnterVerbSpanMetrics(inner);
+      if (!m.total) return "";
+      const focusing = !!mapEnterVerbSpanFocus;
+      const onFor = (key) => !!(mapEnterVerbSpanFocus && String(mapEnterVerbSpanFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="mev-stat' + (onFor(key) ? " mev-now" : focusing ? " mev-idle" : "") + '" data-mev-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-mev-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="mev-seg mev-' + esc(key) + (onFor(key) ? " mev-now" : focusing ? " mev-idle" : "") + '" data-mev-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="mev-strip' + (focusing ? " mev-focusing" : "") + '" data-mev="1" role="group" aria-label="Map enter verb-span graphic"><span class="mev-meta">Verb span</span><span class="mev-counts">' + stat("mix", "mix", m.mix) + stat("mono", "mono", m.mono) + '</span><div class="mev-bar" aria-hidden="true">' + (m.total === 0 ? '<span class="mev-bar-empty"></span>' : seg("mix", m.mix) + seg("mono", m.mono)) + "</div></div>";
+    }
+    function jumpMapEnterVerbSpan(which) {
+      if (!which) return;
+      const key = String(which);
+      if (mapEnterVerbSpanFocus && String(mapEnterVerbSpanFocus) === key) mapEnterVerbSpanFocus = null;
+      else mapEnterVerbSpanFocus = key;
+      applyMapEnterVerbSpanPaint();
+    }
+    function applyMapEnterVerbSpanPaint() {
+      if (!canvas) return;
+      const focus = mapEnterVerbSpanFocus ? String(mapEnterVerbSpanFocus) : "";
+      canvas.querySelectorAll(".mev-stat[data-mev-band], .mev-seg[data-mev-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mev-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("mev-now", on2);
+        el2.classList.toggle("mev-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".mev-strip");
+      if (strip) strip.classList.toggle("mev-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("mev-focusing", !!focus);
+      const cluster = canvas.querySelector(".enter-title-cuts");
+      if (cluster) cluster.classList.toggle("mev-focusing", !!focus);
+      canvas.querySelectorAll("#enterCanvas .vnode").forEach((el2) => {
+        let cut = el2.getAttribute("data-mev-cut") || "";
+        if (!cut) {
+          const id2 = el2.getAttribute("data-id") || "";
+          cut = mapEnterVerbSpanOf({ id: id2 });
+          el2.setAttribute("data-mev-cut", cut);
+        }
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("mev-hit", hit);
+        el2.classList.toggle("mev-idle", !!(focus && !hit));
+      });
+    }
+    function bindMapEnterVerbSpanGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".mev-stat[data-mev-band], .mev-seg[data-mev-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mev-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterVerbSpan(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterVerbSpan(key);
+        };
+      });
+      applyMapEnterVerbSpanPaint();
+    }
+    function syncMapEnterVerbSpanGraphic(inner) {
+      if (!canvas || typeof enterCanvasActive !== "function" || !enterCanvasActive()) {
+        const leftover = canvas && canvas.querySelector(".mev-strip");
+        if (leftover) leftover.remove();
+        return;
+      }
+      const cluster = typeof ensureEnterTitleCuts === "function" ? ensureEnterTitleCuts() : null;
+      if (!cluster) return;
+      const html = mapEnterVerbSpanGraphicHtml(inner);
+      if (!html) {
+        const old = cluster.querySelector(".mev-strip") || canvas.querySelector(".mev-strip");
+        if (old) old.remove();
+        return;
+      }
+      if (!placeEnterTitleCut(cluster, ".mev-strip[data-mev='1']", html)) return;
+      bindMapEnterVerbSpanGraphic();
+    }
     function enterCanvasProps(inner) {
       const nodes = (inner.nodes || []).slice(0, 24);
       noteShownMembers(nodes);
@@ -37995,7 +38111,8 @@
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
           sliceDist: n.distance == null ? void 0 : n.distance,
           meaCut: attached.has(nid) ? "attached" : "isolated",
-          mepCut: mepCutOf(nid)
+          mepCut: mepCutOf(nid),
+          mevCut: mapEnterVerbSpanOf({ id: nid })
         };
       });
       const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
@@ -38066,9 +38183,10 @@
         if (typeof syncMapEnterDistGraphic === "function") syncMapEnterDistGraphic(inner);
         if (typeof syncMapEnterAttachGraphic === "function") syncMapEnterAttachGraphic(inner);
         if (typeof syncMapEnterPolarityGraphic === "function") syncMapEnterPolarityGraphic(inner);
+        if (typeof syncMapEnterVerbSpanGraphic === "function") syncMapEnterVerbSpanGraphic(inner);
       } else {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + (typeof mapEnterPolarityFocus !== "undefined" && mapEnterPolarityFocus ? " mep-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") + (typeof mapEnterPolarityGraphicHtml === "function" ? mapEnterPolarityGraphicHtml(inner) : "") + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + (typeof mapEnterPolarityFocus !== "undefined" && mapEnterPolarityFocus ? " mep-focusing" : "") + (typeof mapEnterVerbSpanFocus !== "undefined" && mapEnterVerbSpanFocus ? " mev-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") + (typeof mapEnterPolarityGraphicHtml === "function" ? mapEnterPolarityGraphicHtml(inner) : "") + (typeof mapEnterVerbSpanGraphicHtml === "function" ? mapEnterVerbSpanGraphicHtml(inner) : "") + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
         enterBodyKey = document.getElementById("enterCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !stay });
       }
@@ -38078,6 +38196,7 @@
       if (typeof bindMapEnterDistGraphic === "function") bindMapEnterDistGraphic();
       if (typeof bindMapEnterAttachGraphic === "function") bindMapEnterAttachGraphic();
       if (typeof bindMapEnterPolarityGraphic === "function") bindMapEnterPolarityGraphic();
+      if (typeof bindMapEnterVerbSpanGraphic === "function") bindMapEnterVerbSpanGraphic();
       applyGraphFilter();
       applyEgoPaint();
       const leafNodes = nodes.filter((n) => n.is_leaf).map((n) => nodeById.get(String(idVal(n.id)))).filter(Boolean);

@@ -1514,6 +1514,21 @@ assert(mepMap.includes("MEP1") && mepMap.includes("mep-strip") && mepMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md")), "map-enter-polarity feature map missing");
 assert(featReadme.includes("map-enter-polarity.md") && featReadme.includes("map-enter-polarity.png"), "feature README must list map-enter-polarity.md");
 
+const mevMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-verb-span.md"), "utf8");
+assert(
+  mevMap.includes("## Sub-features") &&
+    mevMap.includes("## How to get to it (user POV)") &&
+    mevMap.includes("## Driving it with the harness") &&
+    mevMap.includes("## Gotchas"),
+  "map-enter-verb-span feature map must use the four headings"
+);
+assert(driver.includes("MEV1") && driver.includes("MEV3") && driver.includes("map-enter-verb-span.png") && driver.includes("mev-stat"), "verify driver must prove Map enter verb-span graphic MEV1–MEV3");
+assert(css.includes(".mev-strip") && css.includes(".mev-stat") && css.includes(".mev-bar") && css.includes("mev-hit"), "main.css must style Map enter verb-span graphic");
+assert(mevMap.includes("MEV1") && mevMap.includes("mev-strip") && mevMap.includes("map-enter-verb-span.png") && mevMap.includes("peekSource"), "map-enter-verb-span feature map must name MEV / mev-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-verb-span.md")), "map-enter-verb-span feature map missing");
+assert(featReadme.includes("map-enter-verb-span.md") && featReadme.includes("map-enter-verb-span.png"), "feature README must list map-enter-verb-span.md");
+
+
 
 
 
