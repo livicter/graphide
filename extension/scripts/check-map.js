@@ -1257,6 +1257,21 @@ assert(tpcMap.includes("TPC1") && tpcMap.includes("tpc-strip") && tpcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/timeline-parent-cut.md")), "timeline-parent-cut feature map missing");
 assert(featReadme.includes("timeline-parent-cut.md") && featReadme.includes("timeline-parent-cut.png"), "feature README must list timeline-parent-cut.md");
 
+const dhsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-hop-scar.md"), "utf8");
+assert(
+  dhsMap.includes("## Sub-features") &&
+    dhsMap.includes("## How to get to it (user POV)") &&
+    dhsMap.includes("## Driving it with the harness") &&
+    dhsMap.includes("## Gotchas"),
+  "decisions-hop-scar feature map must use the four headings"
+);
+assert(driver.includes("DHS1") && driver.includes("DHS3") && driver.includes("decisions-hop-scar.png") && driver.includes("dhs-stat"), "verify driver must prove Decisions hop-scar graphic DHS1–DHS3");
+assert(js.includes("decisionHopScarGraphicHtml") && js.includes("bindDecisionHopScarGraphic") && js.includes("applyDecisionHopScarPaint") && chrome.includes("decisionHopScarGraphicHtml"), "desk.js must own Decisions hop-scar graphic helpers");
+assert(css.includes(".dhs-strip") && css.includes(".dhs-stat") && css.includes("dhs-now") && css.includes("dhs-bar"), "main.css must theme Decisions hop-scar graphic + hop bar");
+assert(dhsMap.includes("DHS1") && dhsMap.includes("dhs-strip") && dhsMap.includes("decisions-hop-scar.png") && dhsMap.includes("peekSource"), "decisions-hop-scar feature map must name DHS / dhs-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions-hop-scar.md")), "decisions-hop-scar feature map missing");
+assert(featReadme.includes("decisions-hop-scar.md") && featReadme.includes("decisions-hop-scar.png"), "feature README must list decisions-hop-scar.md");
+
 
 
 

@@ -2290,6 +2290,70 @@ button.stat-chip.omc-chip:focus-visible {
 .dcg-edge.dcg-scar-added line { stroke: #3fb950; }
 .dcg-edge.dcg-scar-removed line { stroke: #f85149; stroke-dasharray: 4 3; }
 
+/* ADE DHS — Decisions hop-scar composition (not a kind-mix / DCG SVG / subject clone). */
+.dhs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  margin: 0 0 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+}
+.dhs-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.dhs-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.dhs-stat {
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+.dhs-stat b { font-variant-numeric: tabular-nums; }
+.dhs-stat.dhs-now, .dhs-seg.dhs-now {
+  border-color: var(--vscode-focusBorder, #2f81f7);
+  box-shadow: inset 0 0 0 1px var(--vscode-focusBorder, #2f81f7);
+}
+.dhs-strip.dhs-focusing .dhs-stat.dhs-idle,
+.dhs-strip.dhs-focusing .dhs-seg.dhs-idle { opacity: 0.55; }
+.dhs-bar {
+  flex: 1 1 180px;
+  display: flex;
+  height: 10px;
+  min-width: 120px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.dhs-bar-empty { flex: 1; }
+.dhs-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.dhs-seg.dhs-derived { background: color-mix(in srgb, var(--vscode-focusBorder, #2f81f7) 70%, transparent); }
+.dhs-seg.dhs-added { background: color-mix(in srgb, var(--vscode-testing-iconPassed, #3fb950) 70%, transparent); }
+.dhs-seg.dhs-removed { background: color-mix(in srgb, var(--vscode-errorForeground, #f85149) 70%, transparent); }
+.ws-split.dhs-focusing .expl-card.dhs-hit,
+.expl-card.dhs-hit {
+  box-shadow: inset 3px 0 0 var(--vscode-focusBorder, #2f81f7);
+}
+/* Do not override DAM / outcome dim or hide rules. */
+.expl-card.dam-dim.dhs-hit { box-shadow: inset 3px 0 0 var(--vscode-focusBorder, #2f81f7); }
+
 /* ADE RAK — Registry audit kind-mix (review/stamp/skip/broken/finding) */
 .rak-strip {
   display: flex;

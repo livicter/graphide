@@ -200,6 +200,7 @@ let lineageFanFilter = null; // ADE LFO: used|informed|generated
 let decisionOutcomeFilter = "";
 let decisionAttestFilter = null; // ADE DAM: stamp|skip|broken
 let decisionChainFocus = null; // ADE DCG: {kind,id,from,to,rel} or null
+let decisionHopScarFocus = null; // ADE DHS: derived|added|removed or null
 let passportDeltaFilter = null; // ADE PTD: planned|residual|extra
 let passportImpactLayerFocus = null; // ADE PIL: {axis:'layer'|'impact', value:string} or null
 let structuralDiffFilter = null; // ADE SDO: added|removed|changed|moved|rerouted
@@ -539,6 +540,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     decisionChainFocus = null;
     applyDecisionCausalGraphPaint();
+    return;
+  }
+  // ADE DHS: Escape clears Decisions hop-scar graphic focus when active (selection stays).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "decisions" &&
+    decisionHopScarFocus
+  ) {
+    e.preventDefault();
+    decisionHopScarFocus = null;
+    if (typeof applyDecisionHopScarPaint === "function") applyDecisionHopScarPaint();
     return;
   }
   // ADE RAK: Escape clears Registry audit kind-mix filter when active.
@@ -9215,6 +9228,178 @@ function bindDecisionCausalGraph() {
   applyDecisionCausalGraphPaint();
 }
 
+
+/** ADE DHS — unique derived Steiner hops vs StampBroken added/removed (no double-count). */
+function decisionHopScarMetrics() {
+  const seenFlow = new Set();
+  let derived = 0;
+  const rows = typeof decisionRecords === "function" ? decisionRecords() : [];
+  for (const r of rows) {
+    if (!r || (r.kind !== "stamp" && r.kind !== "skip")) continue;
+    const flowName = r.flow;
+    if (!flowName || seenFlow.has(flowName)) continue;
+    seenFlow.add(flowName);
+    const flow = ((snapshot && snapshot.flows) || []).find((f) => f.name === flowName);
+    derived += ((flow && flow.tree && flow.tree.edges) || []).length;
+  }
+  const seenAdded = new Set();
+  const seenRemoved = new Set();
+  let added = 0;
+  let removed = 0;
+  for (const f of (snapshot && snapshot.findings) || []) {
+    if (findingKindOf(f) !== "StampBroken") continue;
+    for (const e of f.added || []) {
+      const k = idVal(e.from) + "\0" + idVal(e.to) + "\0" + (e.kind || "");
+      if (seenAdded.has(k)) continue;
+      seenAdded.add(k);
+      added += 1;
+    }
+    for (const e of f.removed || []) {
+      const k = idVal(e.from) + "\0" + idVal(e.to) + "\0" + (e.kind || "");
+      if (seenRemoved.has(k)) continue;
+      seenRemoved.add(k);
+      removed += 1;
+    }
+  }
+  return { derived, added, removed };
+}
+
+function decisionHopScarCutsFor(r) {
+  const cuts = [];
+  if (!r) return cuts;
+  if (r.kind === "stamp" || r.kind === "skip") {
+    const flow = ((snapshot && snapshot.flows) || []).find((f) => f.name === r.flow);
+    if (((flow && flow.tree && flow.tree.edges) || []).length) cuts.push("derived");
+  }
+  if (r.kind === "finding") {
+    if ((r.added || []).length) cuts.push("added");
+    if ((r.removed || []).length) cuts.push("removed");
+  }
+  return cuts;
+}
+
+function decisionHopScarGraphicHtml() {
+  const m = decisionHopScarMetrics();
+  const total = Math.max(0, m.derived + m.added + m.removed);
+  const focusing = !!decisionHopScarFocus;
+  const onFor = (key) => !!(decisionHopScarFocus && String(decisionHopScarFocus) === String(key));
+  const stat = (key, label, n) =>
+    '<button type="button" class="dhs-stat' +
+    (onFor(key) ? " dhs-now" : focusing ? " dhs-idle" : "") +
+    '" data-dhs="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(label + " · " + n) +
+    '"><b data-dhs-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(label) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="dhs-seg dhs-' +
+      esc(key) +
+      (onFor(key) ? " dhs-now" : focusing ? " dhs-idle" : "") +
+      '" data-dhs="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="dhs-strip' +
+    (focusing ? " dhs-focusing" : "") +
+    '" data-dhs="1" role="group" aria-label="Decisions hop-scar graphic">' +
+    '<span class="dhs-meta">Hop scar</span>' +
+    '<span class="dhs-counts">' +
+    stat("derived", "derived", m.derived) +
+    stat("added", "added", m.added) +
+    stat("removed", "removed", m.removed) +
+    "</span>" +
+    '<div class="dhs-bar" aria-hidden="true">' +
+    (total === 0
+      ? '<span class="dhs-bar-empty"></span>'
+      : seg("derived", m.derived) + seg("added", m.added) + seg("removed", m.removed)) +
+    "</div></div>"
+  );
+}
+
+function jumpDecisionHopScar(which) {
+  if (!which) return;
+  const key = String(which);
+  if (decisionHopScarFocus && String(decisionHopScarFocus) === key) {
+    decisionHopScarFocus = null;
+    applyDecisionHopScarPaint();
+    return;
+  }
+  decisionHopScarFocus = key;
+  const rows = typeof decisionRecords === "function" ? decisionRecords() : [];
+  const match = rows.find((r) => decisionHopScarCutsFor(r).includes(key));
+  if (match && typeof decisionKey === "function") {
+    const next = decisionKey(match);
+    if (next && next !== selectedDecisionKey) {
+      selectedDecisionKey = next;
+      decisionChainFocus = null;
+      if (typeof paint === "function") {
+        paint({ animate: "none" });
+        return;
+      }
+    }
+  }
+  applyDecisionHopScarPaint();
+}
+
+function applyDecisionHopScarPaint() {
+  if (!canvas) return;
+  const focus = decisionHopScarFocus ? String(decisionHopScarFocus) : "";
+  canvas.querySelectorAll(".dhs-stat[data-dhs], .dhs-seg[data-dhs]").forEach((el) => {
+    const key = el.getAttribute("data-dhs") || "";
+    if (key === "1") return;
+    const on = !!(focus && key === focus);
+    el.classList.toggle("dhs-now", on);
+    el.classList.toggle("dhs-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".dhs-strip");
+  if (strip) strip.classList.toggle("dhs-focusing", !!focus);
+  const split = canvas.querySelector(".ws-split");
+  if (split) split.classList.toggle("dhs-focusing", !!focus);
+  canvas.querySelectorAll(".expl-card[data-decision]").forEach((el) => {
+    const cuts = (el.getAttribute("data-dhs-cut") || "").split(/\s+/).filter(Boolean);
+    const hit = !!(focus && cuts.includes(focus));
+    el.classList.toggle("dhs-hit", hit);
+    el.classList.toggle("dhs-idle", !!(focus && !hit));
+  });
+}
+
+function bindDecisionHopScarGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".dhs-stat[data-dhs], .dhs-seg[data-dhs]").forEach((el) => {
+    const key = el.getAttribute("data-dhs") || "";
+    if (key === "1") return;
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpDecisionHopScar(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpDecisionHopScar(key);
+    };
+  });
+  applyDecisionHopScarPaint();
+}
+
 function renderDecisionBody() {
   const rows = decisionRecords().filter((r) =>
     matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -9247,6 +9432,10 @@ function renderDecisionBody() {
         esc(r.outcome || r.verdict || "") +
         '" data-attest="' +
         esc(attestationBucket(r)) +
+        '"' +
+        (decisionHopScarCutsFor(r).length
+          ? ' data-dhs-cut="' + esc(decisionHopScarCutsFor(r).join(" ")) + '"'
+          : "") +
         '"><div class="k">' +
         esc(r.outcome || r.verdict || r.kind) +
         '</div><div class="t">' +
@@ -9282,10 +9471,14 @@ function renderDecisionBody() {
       .join("") +
     "</div>";
   const damStrip = decisionAttestStripHtml(rows);
+  const dhsStrip = decisionHopScarGraphicHtml();
   return (
-    '<div class="ws-split">' +
+    '<div class="ws-split' +
+    (decisionHopScarFocus ? " dhs-focusing" : "") +
+    '">' +
     '<div class="ws-list">' +
     damStrip +
+    dhsStrip +
     strip +
     list +
     "</div>" +
@@ -19281,6 +19474,7 @@ function renderExplorerList(ws, opts) {
   });
   bindDecisionCausalGraph();
   applyDecisionCausalGraphPaint();
+  if (typeof bindDecisionHopScarGraphic === "function") bindDecisionHopScarGraphic();
   canvas.querySelectorAll("[data-flow]").forEach((el) => {
     // ADE CFE — Overview/Slice XYFlow vnodes carry data-flow for captions; their
     // click is owned by onNodeClick / selectNode (inline CFG expand), not tab hop.
@@ -19377,6 +19571,7 @@ function applyTimelineScrub() {
 function bindWorkbenchPages() {
   applyDecisionListFilters();
   bindDecisionAttestChart();
+  if (typeof bindDecisionHopScarGraphic === "function") bindDecisionHopScarGraphic();
   applyRegistryAuditPaint();
   bindRegistryAuditChart();
   bindRegistrySnapshotGraphic();
