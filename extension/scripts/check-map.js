@@ -1416,6 +1416,20 @@ assert(mrcMap.includes("MRC1") && mrcMap.includes("mrc-strip") && mrcMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-run-cut.md")), "map-run-cut feature map missing");
 assert(featReadme.includes("map-run-cut.md") && featReadme.includes("map-run-cut.png"), "feature README must list map-run-cut.md");
 
+const shaMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-attach.md"), "utf8");
+assert(
+  shaMap.includes("## Sub-features") &&
+    shaMap.includes("## How to get to it (user POV)") &&
+    shaMap.includes("## Driving it with the harness") &&
+    shaMap.includes("## Gotchas"),
+  "slice-halo-attach feature map must use the four headings"
+);
+assert(driver.includes("SHA1") && driver.includes("SHA3") && driver.includes("slice-halo-attach.png") && driver.includes("sha-stat"), "verify driver must prove Slice halo-attach graphic SHA1–SHA3");
+assert(css.includes(".sha-strip") && css.includes(".sha-stat") && css.includes(".sha-bar") && css.includes("sha-hit"), "main.css must style Slice halo-attach graphic");
+assert(shaMap.includes("SHA1") && shaMap.includes("sha-strip") && shaMap.includes("slice-halo-attach.png") && shaMap.includes("peekSource"), "slice-halo-attach feature map must name SHA / sha-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-halo-attach.md")), "slice-halo-attach feature map missing");
+assert(featReadme.includes("slice-halo-attach.md") && featReadme.includes("slice-halo-attach.png"), "feature README must list slice-halo-attach.md");
+
 
 
 

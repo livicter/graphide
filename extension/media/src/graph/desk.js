@@ -237,6 +237,7 @@ let sliceMixFilter = null;
 let sliceWalkRoleFocus = null; // ADE SWR: start|mid|end|off
 let sliceTreeEdgeFocus = null; // ADE STE: tree|extra
 let sliceWalkHopFocus = null; // ADE SWH: walk|halo
+let sliceHaloAttachFocus = null; // ADE SHA: bridge|outer
 /** ADE CPS — Call-path scrubber depth (0 = off). Directed Calls walk from selection. */
 let callPathDepth = 0;
 let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
@@ -764,6 +765,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     sliceWalkHopFocus = null;
     if (typeof applySliceWalkHopPaint === "function") applySliceWalkHopPaint();
+    return;
+  }
+  // ADE SHA: Escape clears Slice halo-attach graphic focus when active (stay on Slice).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "slice" &&
+    sliceHaloAttachFocus
+  ) {
+    e.preventDefault();
+    sliceHaloAttachFocus = null;
+    if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
     return;
   }
   // ADE CFT: Escape clears cross-desk focus trail when active (Map/Slice/Sequence).
@@ -22337,6 +22350,9 @@ function renderFlowchart(msg, opts) {
   if (typeof syncSliceWalkHopGraphic === "function") {
     syncSliceWalkHopGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
   }
+  if (typeof syncSliceHaloAttachGraphic === "function") {
+    syncSliceHaloAttachGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+  }
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindCallPathStrip();
@@ -22523,7 +22539,7 @@ function ensureSliceTitleCuts() {
     cluster = document.createElement("div");
     cluster.className = "slice-title-cuts";
     cluster.setAttribute("data-slice-cuts", "1");
-    const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip");
+    const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip");
     if (loose && loose.parentElement === stage) {
       stage.insertBefore(cluster, loose);
       cluster.appendChild(loose);
@@ -22551,7 +22567,7 @@ function placeSliceTitleCut(cluster, sel, html) {
 function clearSliceTitleCutsIfEmpty() {
   if (!canvas) return;
   const cluster = canvas.querySelector(".slice-title-cuts");
-  if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip")) cluster.remove();
+  if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip")) cluster.remove();
 }
 
 function syncSliceWalkRoleGraphic(flow, graph, scars) {
@@ -22929,6 +22945,180 @@ function syncSliceWalkHopGraphic(flow, graph, scars) {
 }
 
 
+/** ADE SHA — among halo hops, bridge (one end on the walk) vs outer (neither). */
+function sliceHaloAttachOf(h, nodes) {
+  if (!h) return "outer";
+  if (h.attach === "walk" || h.attach === "bridge" || h.attach === "outer") return h.attach;
+  const set = nodes || (typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(currentFlow() || defaultRunFlow()) : new Set());
+  const from = String(idVal(h.from));
+  const to = String(idVal(h.to));
+  const a = set.has(from);
+  const b = set.has(to);
+  if (a && b) return "walk";
+  if (a || b) return "bridge";
+  return "outer";
+}
+
+function sliceHaloAttachMetrics(flow, graph, scars) {
+  const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { hops: [] };
+  const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : new Set();
+  const m = { bridge: 0, outer: 0, walk: 0, hops: 0, halo: 0 };
+  for (const h of props.hops || []) {
+    const cut = sliceHaloAttachOf(h, nodes);
+    if (cut === "bridge") m.bridge += 1;
+    else if (cut === "outer") m.outer += 1;
+    else m.walk += 1;
+    if (cut !== "walk") m.halo += 1;
+    m.hops += 1;
+  }
+  return m;
+}
+
+function sliceHaloAttachGraphicHtml(flow, graph, scars) {
+  const m = sliceHaloAttachMetrics(flow, graph, scars);
+  if (!m.halo) return "";
+  const focusing = !!sliceHaloAttachFocus;
+  const onFor = (key) => !!(sliceHaloAttachFocus && String(sliceHaloAttachFocus) === String(key));
+  const stat = (key, n) =>
+    '<button type="button" class="sha-stat' +
+    (onFor(key) ? " sha-now" : focusing ? " sha-idle" : "") +
+    '" data-sha-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(key + " · " + n) +
+    '"><b data-sha-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(key) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="sha-seg sha-' +
+      esc(key) +
+      (onFor(key) ? " sha-now" : focusing ? " sha-idle" : "") +
+      '" data-sha-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="sha-strip' +
+    (focusing ? " sha-focusing" : "") +
+    '" data-sha="1" role="group" aria-label="Slice halo-attach graphic">' +
+    '<span class="sha-meta">Halo attach</span>' +
+    '<span class="sha-counts">' +
+    stat("bridge", m.bridge) +
+    stat("outer", m.outer) +
+    "</span>" +
+    '<div class="sha-bar" aria-hidden="true">' +
+    (m.halo === 0
+      ? '<span class="sha-bar-empty"></span>'
+      : seg("bridge", m.bridge) + seg("outer", m.outer)) +
+    "</div></div>"
+  );
+}
+
+function jumpSliceHaloAttach(which) {
+  if (!which) return;
+  const key = String(which);
+  if (sliceHaloAttachFocus && String(sliceHaloAttachFocus) === key) sliceHaloAttachFocus = null;
+  else sliceHaloAttachFocus = key;
+  applySliceHaloAttachPaint();
+}
+
+function applySliceHaloAttachPaint() {
+  if (!canvas) return;
+  const focus = sliceHaloAttachFocus ? String(sliceHaloAttachFocus) : "";
+  canvas.querySelectorAll(".sha-stat[data-sha-band], .sha-seg[data-sha-band]").forEach((el) => {
+    const key = el.getAttribute("data-sha-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("sha-now", on);
+    el.classList.toggle("sha-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".sha-strip");
+  if (strip) strip.classList.toggle("sha-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("sha-focusing", !!focus);
+  const cluster = canvas.querySelector(".slice-title-cuts");
+  if (cluster) cluster.classList.toggle("sha-focusing", !!focus);
+  if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+  const flow = typeof currentFlow === "function" ? currentFlow() || defaultRunFlow() : null;
+  const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : new Set();
+  canvas.querySelectorAll("#sliceCanvas .react-flow__edge").forEach((el) => {
+    const from = el.getAttribute("data-from") || "";
+    const to = el.getAttribute("data-to") || "";
+    const a = nodes.has(from);
+    const b = nodes.has(to);
+    const cut = a && b ? "walk" : a || b ? "bridge" : "outer";
+    el.setAttribute("data-sha-cut", cut);
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("sha-hit", hit);
+    el.classList.toggle("sha-dim", !!(focus && !hit));
+  });
+}
+
+function scheduleSliceHaloAttachPaint() {
+  if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+      requestAnimationFrame(() => {
+        if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+      });
+    });
+  }
+}
+
+function bindSliceHaloAttachGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".sha-stat[data-sha-band], .sha-seg[data-sha-band]").forEach((el) => {
+    const key = el.getAttribute("data-sha-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceHaloAttach(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceHaloAttach(key);
+    };
+  });
+  scheduleSliceHaloAttachPaint();
+}
+
+function syncSliceHaloAttachGraphic(flow, graph, scars) {
+  if (!canvas || explorerWs !== "slice") {
+    const leftover = canvas && canvas.querySelector(".sha-strip");
+    if (leftover) leftover.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  const cluster = ensureSliceTitleCuts();
+  if (!cluster) return;
+  const html = sliceHaloAttachGraphicHtml(flow, graph, scars);
+  if (!html) {
+    const old = cluster.querySelector(".sha-strip") || canvas.querySelector(".sha-strip");
+    if (old) old.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  if (!placeSliceTitleCut(cluster, ".sha-strip[data-sha='1']", html)) return;
+  bindSliceHaloAttachGraphic();
+}
+
+
 function sliceCanvasProps(flow, graph, scars) {
   const treeNodes = (flow && flow.tree && flow.tree.nodes) || [];
   const treeEdges = (flow && flow.tree && flow.tree.edges) || [];
@@ -23004,6 +23194,7 @@ function sliceCanvasProps(flow, graph, scars) {
       scar: !!scar,
       treeCut: treeCut || "extra",
       walkHop: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : "halo",
+      attach: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : treeIdSet.has(from) || treeIdSet.has(to) ? "bridge" : "outer",
     });
   };
   (treeEdges || []).forEach((e) => {
@@ -23048,6 +23239,7 @@ function mountSliceCanvas(flow, graph, scars) {
   stampXyFlowAttrs();
   if (typeof scheduleSliceTreeEdgePaint === "function") scheduleSliceTreeEdgePaint();
   if (typeof scheduleSliceWalkHopPaint === "function") scheduleSliceWalkHopPaint();
+  if (typeof scheduleSliceHaloAttachPaint === "function") scheduleSliceHaloAttachPaint();
 }
 
 function renderSteiner(flow, graph, animate, scars) {

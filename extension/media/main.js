@@ -20158,6 +20158,7 @@
     let sliceWalkRoleFocus = null;
     let sliceTreeEdgeFocus = null;
     let sliceWalkHopFocus = null;
+    let sliceHaloAttachFocus = null;
     let callPathDepth = 0;
     let cfgExpandFocus = null;
     let routeMixFilter = null;
@@ -20541,6 +20542,12 @@
         e.preventDefault();
         sliceWalkHopFocus = null;
         if (typeof applySliceWalkHopPaint === "function") applySliceWalkHopPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceHaloAttachFocus) {
+        e.preventDefault();
+        sliceHaloAttachFocus = null;
+        if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "map" || explorerWs === "slice" || explorerWs === "sequence") && focusTrail) {
@@ -36134,6 +36141,9 @@
       if (typeof syncSliceWalkHopGraphic === "function") {
         syncSliceWalkHopGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
       }
+      if (typeof syncSliceHaloAttachGraphic === "function") {
+        syncSliceHaloAttachGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+      }
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
       bindCallPathStrip();
@@ -36263,7 +36273,7 @@
         cluster = document.createElement("div");
         cluster.className = "slice-title-cuts";
         cluster.setAttribute("data-slice-cuts", "1");
-        const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip");
+        const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip");
         if (loose && loose.parentElement === stage) {
           stage.insertBefore(cluster, loose);
           cluster.appendChild(loose);
@@ -36289,7 +36299,7 @@
     function clearSliceTitleCutsIfEmpty() {
       if (!canvas) return;
       const cluster = canvas.querySelector(".slice-title-cuts");
-      if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip")) cluster.remove();
+      if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip")) cluster.remove();
     }
     function syncSliceWalkRoleGraphic(flow, graph, scars) {
       if (!canvas || explorerWs !== "slice") {
@@ -36563,6 +36573,130 @@
       if (!placeSliceTitleCut(cluster, ".swh-strip[data-swh='1']", html)) return;
       bindSliceWalkHopGraphic();
     }
+    function sliceHaloAttachOf(h, nodes) {
+      if (!h) return "outer";
+      if (h.attach === "walk" || h.attach === "bridge" || h.attach === "outer") return h.attach;
+      const set3 = nodes || (typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(currentFlow() || defaultRunFlow()) : /* @__PURE__ */ new Set());
+      const from = String(idVal(h.from));
+      const to = String(idVal(h.to));
+      const a = set3.has(from);
+      const b = set3.has(to);
+      if (a && b) return "walk";
+      if (a || b) return "bridge";
+      return "outer";
+    }
+    function sliceHaloAttachMetrics(flow, graph, scars) {
+      const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { hops: [] };
+      const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : /* @__PURE__ */ new Set();
+      const m = { bridge: 0, outer: 0, walk: 0, hops: 0, halo: 0 };
+      for (const h of props.hops || []) {
+        const cut = sliceHaloAttachOf(h, nodes);
+        if (cut === "bridge") m.bridge += 1;
+        else if (cut === "outer") m.outer += 1;
+        else m.walk += 1;
+        if (cut !== "walk") m.halo += 1;
+        m.hops += 1;
+      }
+      return m;
+    }
+    function sliceHaloAttachGraphicHtml(flow, graph, scars) {
+      const m = sliceHaloAttachMetrics(flow, graph, scars);
+      if (!m.halo) return "";
+      const focusing = !!sliceHaloAttachFocus;
+      const onFor = (key) => !!(sliceHaloAttachFocus && String(sliceHaloAttachFocus) === String(key));
+      const stat = (key, n) => '<button type="button" class="sha-stat' + (onFor(key) ? " sha-now" : focusing ? " sha-idle" : "") + '" data-sha-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(key + " · " + n) + '"><b data-sha-n="' + esc(key) + '">' + n + "</b> " + esc(key) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="sha-seg sha-' + esc(key) + (onFor(key) ? " sha-now" : focusing ? " sha-idle" : "") + '" data-sha-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="sha-strip' + (focusing ? " sha-focusing" : "") + '" data-sha="1" role="group" aria-label="Slice halo-attach graphic"><span class="sha-meta">Halo attach</span><span class="sha-counts">' + stat("bridge", m.bridge) + stat("outer", m.outer) + '</span><div class="sha-bar" aria-hidden="true">' + (m.halo === 0 ? '<span class="sha-bar-empty"></span>' : seg("bridge", m.bridge) + seg("outer", m.outer)) + "</div></div>";
+    }
+    function jumpSliceHaloAttach(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sliceHaloAttachFocus && String(sliceHaloAttachFocus) === key) sliceHaloAttachFocus = null;
+      else sliceHaloAttachFocus = key;
+      applySliceHaloAttachPaint();
+    }
+    function applySliceHaloAttachPaint() {
+      if (!canvas) return;
+      const focus = sliceHaloAttachFocus ? String(sliceHaloAttachFocus) : "";
+      canvas.querySelectorAll(".sha-stat[data-sha-band], .sha-seg[data-sha-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sha-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("sha-now", on2);
+        el2.classList.toggle("sha-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".sha-strip");
+      if (strip) strip.classList.toggle("sha-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("sha-focusing", !!focus);
+      const cluster = canvas.querySelector(".slice-title-cuts");
+      if (cluster) cluster.classList.toggle("sha-focusing", !!focus);
+      if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+      const flow = typeof currentFlow === "function" ? currentFlow() || defaultRunFlow() : null;
+      const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : /* @__PURE__ */ new Set();
+      canvas.querySelectorAll("#sliceCanvas .react-flow__edge").forEach((el2) => {
+        const from = el2.getAttribute("data-from") || "";
+        const to = el2.getAttribute("data-to") || "";
+        const a = nodes.has(from);
+        const b = nodes.has(to);
+        const cut = a && b ? "walk" : a || b ? "bridge" : "outer";
+        el2.setAttribute("data-sha-cut", cut);
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("sha-hit", hit);
+        el2.classList.toggle("sha-dim", !!(focus && !hit));
+      });
+    }
+    function scheduleSliceHaloAttachPaint() {
+      if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => {
+          if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+          requestAnimationFrame(() => {
+            if (typeof applySliceHaloAttachPaint === "function") applySliceHaloAttachPaint();
+          });
+        });
+      }
+    }
+    function bindSliceHaloAttachGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".sha-stat[data-sha-band], .sha-seg[data-sha-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sha-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceHaloAttach(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceHaloAttach(key);
+        };
+      });
+      scheduleSliceHaloAttachPaint();
+    }
+    function syncSliceHaloAttachGraphic(flow, graph, scars) {
+      if (!canvas || explorerWs !== "slice") {
+        const leftover = canvas && canvas.querySelector(".sha-strip");
+        if (leftover) leftover.remove();
+        if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+        return;
+      }
+      const cluster = ensureSliceTitleCuts();
+      if (!cluster) return;
+      const html = sliceHaloAttachGraphicHtml(flow, graph, scars);
+      if (!html) {
+        const old = cluster.querySelector(".sha-strip") || canvas.querySelector(".sha-strip");
+        if (old) old.remove();
+        if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+        return;
+      }
+      if (!placeSliceTitleCut(cluster, ".sha-strip[data-sha='1']", html)) return;
+      bindSliceHaloAttachGraphic();
+    }
     function sliceCanvasProps(flow, graph, scars) {
       const treeNodes = flow && flow.tree && flow.tree.nodes || [];
       const treeEdges = flow && flow.tree && flow.tree.edges || [];
@@ -36635,7 +36769,8 @@
           kind: kind || "Calls",
           scar: !!scar,
           treeCut: treeCut || "extra",
-          walkHop: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : "halo"
+          walkHop: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : "halo",
+          attach: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : treeIdSet.has(from) || treeIdSet.has(to) ? "bridge" : "outer"
         });
       };
       (treeEdges || []).forEach((e) => {
@@ -36676,6 +36811,7 @@
       stampXyFlowAttrs();
       if (typeof scheduleSliceTreeEdgePaint === "function") scheduleSliceTreeEdgePaint();
       if (typeof scheduleSliceWalkHopPaint === "function") scheduleSliceWalkHopPaint();
+      if (typeof scheduleSliceHaloAttachPaint === "function") scheduleSliceHaloAttachPaint();
     }
     function renderSteiner(flow, graph, animate, scars) {
       const nodes = flow.tree?.nodes || [];
