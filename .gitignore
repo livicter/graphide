@@ -10,6 +10,7 @@ extension/scripts/python-snap.json
 extension/scripts/js-snap.json
 extension/scripts/ts-snap.json
 extension/scripts/go-snap.json
+extension/scripts/c-snap.json
 extension/*.vsix
 extension/bin/graphide
 extension/bin/graphide.exe
