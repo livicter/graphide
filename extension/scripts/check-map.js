@@ -1444,6 +1444,20 @@ assert(meaMap.includes("MEA1") && meaMap.includes("mea-strip") && meaMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-attach.md")), "map-enter-attach feature map missing");
 assert(featReadme.includes("map-enter-attach.md") && featReadme.includes("map-enter-attach.png"), "feature README must list map-enter-attach.md");
 
+const srtMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-run-touch.md"), "utf8");
+assert(
+  srtMap.includes("## Sub-features") &&
+    srtMap.includes("## How to get to it (user POV)") &&
+    srtMap.includes("## Driving it with the harness") &&
+    srtMap.includes("## Gotchas"),
+  "slice-run-touch feature map must use the four headings"
+);
+assert(driver.includes("SRT1") && driver.includes("SRT3") && driver.includes("slice-run-touch.png") && driver.includes("srt-stat"), "verify driver must prove Slice run-touch graphic SRT1–SRT3");
+assert(css.includes(".srt-strip") && css.includes(".srt-stat") && css.includes(".srt-bar") && css.includes("srt-hit"), "main.css must style Slice run-touch graphic");
+assert(srtMap.includes("SRT1") && srtMap.includes("srt-strip") && srtMap.includes("slice-run-touch.png") && srtMap.includes("peekSource"), "slice-run-touch feature map must name SRT / srt-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-run-touch.md")), "slice-run-touch feature map missing");
+assert(featReadme.includes("slice-run-touch.md") && featReadme.includes("slice-run-touch.png"), "feature README must list slice-run-touch.md");
+
 
 
 
