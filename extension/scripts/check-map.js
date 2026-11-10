@@ -1472,6 +1472,20 @@ assert(sbpMap.includes("SBP1") && sbpMap.includes("sbp-strip") && sbpMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-bridge-polarity.md")), "slice-bridge-polarity feature map missing");
 assert(featReadme.includes("slice-bridge-polarity.md") && featReadme.includes("slice-bridge-polarity.png"), "feature README must list slice-bridge-polarity.md");
 
+const shcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-community.md"), "utf8");
+assert(
+  shcMap.includes("## Sub-features") &&
+    shcMap.includes("## How to get to it (user POV)") &&
+    shcMap.includes("## Driving it with the harness") &&
+    shcMap.includes("## Gotchas"),
+  "slice-hop-community feature map must use the four headings"
+);
+assert(driver.includes("SHC1") && driver.includes("SHC3") && driver.includes("slice-hop-community.png") && driver.includes("shc-stat"), "verify driver must prove Slice hop-community graphic SHC1–SHC3");
+assert(css.includes(".shc-strip") && css.includes(".shc-stat") && css.includes(".shc-bar") && css.includes("shc-hit"), "main.css must style Slice hop-community graphic");
+assert(shcMap.includes("SHC1") && shcMap.includes("shc-strip") && shcMap.includes("slice-hop-community.png") && shcMap.includes("peekSource"), "slice-hop-community feature map must name SHC / shc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-hop-community.md")), "slice-hop-community feature map missing");
+assert(featReadme.includes("slice-hop-community.md") && featReadme.includes("slice-hop-community.png"), "feature README must list slice-hop-community.md");
+
 const mepMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md"), "utf8");
 assert(
   mepMap.includes("## Sub-features") &&

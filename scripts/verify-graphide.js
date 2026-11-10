@@ -17775,7 +17775,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17969,7 +17969,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18161,7 +18161,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18358,7 +18358,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18554,7 +18554,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18758,7 +18758,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18811,6 +18811,206 @@ async function main() {
         "Slice bridge-polarity clicks did not post peekSource / showHop / open source",
         afterSbpPosts.after === afterSbpPosts.before && !afterSbpPosts.peek,
         JSON.stringify(afterSbpPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice hop-community graphic (SHC1–SHC5) — same vs cross Map community; same Slice desk as SBP
+    {
+      await page.waitForSelector(".shc-strip[data-shc='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-shc-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeShcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const shc1 = await page.evaluate(() => {
+        const strip = document.querySelector(".shc-strip[data-shc='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".shc-stat[data-shc-band]")].map((el) => ({
+          band: el.getAttribute("data-shc-band"),
+          n: Number((el.querySelector("[data-shc-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".shc-seg[data-shc-band]")].map((el) => el.getAttribute("data-shc-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-shc-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { same: 0, cross: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-shc-cut") || "";
+          if (c === "same" || c === "cross") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".sbp-strip[data-sbp='1']") && cluster.querySelector(".srt-strip[data-srt='1']") && cluster.querySelector(".sha-strip[data-sha='1']") && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          sbp: !!document.querySelector(".sbp-strip[data-sbp='1']"),
+          srt: !!document.querySelector(".srt-strip[data-srt='1']"),
+          sha: !!document.querySelector(".sha-strip[data-sha='1']"),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.same + byCut.cross,
+          byCut,
+          same: nOf("same"),
+          cross: nOf("cross"),
+          sum: nOf("same") + nOf("cross"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const shc1ok =
+        shc1.strip &&
+        shc1.cluster &&
+        shc1.sbp &&
+        shc1.srt &&
+        shc1.sha &&
+        shc1.swh &&
+        shc1.ste &&
+        shc1.swr &&
+        shc1.sliceOn &&
+        shc1.canvas &&
+        shc1.same === 10 &&
+        shc1.cross === 22 &&
+        shc1.sum === 32 &&
+        shc1.stamped === 32 &&
+        shc1.byCut.same === 10 &&
+        shc1.byCut.cross === 22 &&
+        shc1.segs.length === 2 &&
+        shc1.pressed === 0 &&
+        shc1.srcHidden;
+      record(
+        "SHC1",
+        "Slice hop-community graphic shows 10 same / 22 cross of 32, matching data-shc-cut; SBP/SRT/SHA/SWH/STE/SWR stay; no source",
+        !!shc1ok,
+        JSON.stringify(shc1)
+      );
+
+      const sameBtn = page.locator('.shc-stat[data-shc-band="same"]').first();
+      await sameBtn.click();
+      await page.waitForTimeout(80);
+      const shc2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-shc-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("shc-hit"));
+        const dims = edges.filter((el) => el.classList.contains("shc-dim"));
+        const sameHits = hits.filter((el) => el.getAttribute("data-shc-cut") === "same");
+        const samePressed = document.querySelector('.shc-stat[data-shc-band="same"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          sameHits: sameHits.length,
+          samePressed: !!samePressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const shc2ok =
+        shc2.sliceOn &&
+        shc2.hits === 10 &&
+        shc2.sameHits === 10 &&
+        shc2.dims === 22 &&
+        shc2.samePressed &&
+        shc2.srcHidden;
+      record(
+        "SHC2",
+        "Click Same highlights the 10 same-community Slice hops; Slice stays; no source",
+        !!shc2ok,
+        JSON.stringify(shc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const shc3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.shc-hit").length;
+        const pressed = document.querySelectorAll('.shc-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".shc-strip.shc-focusing, .stage.shc-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SHC3",
+        "Escape clears hop-community graphic focus; Slice stays; no source",
+        !!(shc3.sliceOn && shc3.hits === 0 && shc3.pressed === 0 && !shc3.focusing && shc3.srcHidden),
+        JSON.stringify(shc3)
+      );
+
+      const shc4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip, .shc-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const shc4ok = !!(shc4 && !shc4.missing && shc4.inNode && !shc4.hitStrip && shc4.srcHidden && shc4.slice);
+      record(
+        "SHC4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!shc4ok,
+        JSON.stringify(shc4)
+      );
+
+      await sameBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-hop-community.png");
+      const shcShot = checks.find((c) => c.id === "shot:slice-hop-community.png");
+      const shc5ok = !!(shc1ok && shc2ok && shc3 && shc3.sliceOn && shc4ok && shcShot && shcShot.pass);
+      record(
+        "SHC5",
+        "screenshot slice-hop-community.png is not a black frame; Slice hop-community graphic proven",
+        !!shc5ok,
+        JSON.stringify({
+          shot: shcShot ? shcShot.detail : "missing",
+          shc1: !!shc1ok,
+          shc2: !!shc2ok,
+          shc3: !!(shc3 && shc3.sliceOn && shc3.hits === 0),
+          shc4: !!shc4ok,
+        })
+      );
+      assertNoStampDir("SHC5b", "Slice hop-community graphic step did not write .graphide/stamps/");
+      const afterShcPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeShcPosts);
+      record(
+        "SHC5c",
+        "Slice hop-community clicks did not post peekSource / showHop / open source",
+        afterShcPosts.after === afterShcPosts.before && !afterShcPosts.peek,
+        JSON.stringify(afterShcPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);

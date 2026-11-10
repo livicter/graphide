@@ -2304,7 +2304,7 @@ button.stat-chip.omc-chip:focus-visible {
     0 0 0 1px var(--vscode-focusBorder, #2f81f7);
 }
 
-/* ADE SWR + STE + SWH + SHA + SRT + SBP — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE SWR + STE + SWH + SHA + SRT + SBP + SHC — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.slice-title-cuts) .viewport > .flow-title:first-child,
 .stage:has(.slice-title-cuts) > .flow-title {
   max-width: calc(100% - 420px);
@@ -2329,7 +2329,8 @@ button.stat-chip.omc-chip:focus-visible {
 .slice-title-cuts .swh-strip,
 .slice-title-cuts .sha-strip,
 .slice-title-cuts .srt-strip,
-.slice-title-cuts .sbp-strip {
+.slice-title-cuts .sbp-strip,
+.slice-title-cuts .shc-strip {
   position: static;
   top: auto;
   right: auto;
@@ -2710,6 +2711,81 @@ button.stat-chip.omc-chip:focus-visible {
 #sliceCanvas .react-flow__edge.sbp-dim:not(.dim) {
   opacity: 0.28;
 }
+
+/* ADE SHC — Slice hop-community graphic (same vs cross Map community; not MCC / SMC / SHA / SBP). */
+.shc-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.shc-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.shc-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.shc-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.shc-stat b { font-variant-numeric: tabular-nums; }
+.shc-stat.shc-now, .shc-seg.shc-now {
+  border-color: #7c5cff;
+  box-shadow: inset 0 0 0 1px #7c5cff;
+}
+.shc-strip.shc-focusing .shc-stat.shc-idle,
+.shc-strip.shc-focusing .shc-seg.shc-idle { opacity: 0.55; }
+.shc-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.shc-bar-empty { flex: 1; }
+.shc-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.shc-seg.shc-same { background: color-mix(in srgb, #7c5cff 70%, transparent); }
+.shc-seg.shc-cross { background: color-mix(in srgb, var(--vscode-charts-yellow, #e2c08d) 75%, transparent); }
+#sliceCanvas .react-flow__edge.shc-hit:not(.dim) path,
+#sliceCanvas .react-flow__edge.shc-hit:not(.dim) .react-flow__edge-path {
+  stroke: #7c5cff;
+  stroke-width: 2.5px;
+}
+#sliceCanvas .react-flow__edge.shc-dim:not(.dim) {
+  opacity: 0.28;
+}
+
 
 /* ADE RKM — Route hop-kind mix chart (SHM/OMC parity on PATH receipt) */
 .rkm-strip {
