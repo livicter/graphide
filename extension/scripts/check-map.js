@@ -1472,6 +1472,20 @@ assert(sbpMap.includes("SBP1") && sbpMap.includes("sbp-strip") && sbpMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-bridge-polarity.md")), "slice-bridge-polarity feature map missing");
 assert(featReadme.includes("slice-bridge-polarity.md") && featReadme.includes("slice-bridge-polarity.png"), "feature README must list slice-bridge-polarity.md");
 
+const mepMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md"), "utf8");
+assert(
+  mepMap.includes("## Sub-features") &&
+    mepMap.includes("## How to get to it (user POV)") &&
+    mepMap.includes("## Driving it with the harness") &&
+    mepMap.includes("## Gotchas"),
+  "map-enter-polarity feature map must use the four headings"
+);
+assert(driver.includes("MEP1") && driver.includes("MEP3") && driver.includes("map-enter-polarity.png") && driver.includes("mep-stat"), "verify driver must prove Map enter-polarity graphic MEP1–MEP3");
+assert(css.includes(".mep-strip") && css.includes(".mep-stat") && css.includes(".mep-bar") && css.includes("mep-hit"), "main.css must style Map enter-polarity graphic");
+assert(mepMap.includes("MEP1") && mepMap.includes("mep-strip") && mepMap.includes("map-enter-polarity.png") && mepMap.includes("peekSource"), "map-enter-polarity feature map must name MEP / mep-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/map-enter-polarity.md")), "map-enter-polarity feature map missing");
+assert(featReadme.includes("map-enter-polarity.md") && featReadme.includes("map-enter-polarity.png"), "feature README must list map-enter-polarity.md");
+
 
 
 
