@@ -16251,6 +16251,208 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Map run-cut graphic (MRC1–MRC5) — flowchart run vs off; same Map desk as MCC
+    {
+      await page.waitForSelector(".mrc-strip[data-mrc='1']", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const beforeMrcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const mrc1 = await page.evaluate(() => {
+        const strip = document.querySelector(".mrc-strip[data-mrc='1']");
+        const cluster = document.querySelector(".map-title-cuts[data-map-cuts='1']");
+        const stats = [...document.querySelectorAll(".mrc-stat[data-mrc-band]")].map((el) => ({
+          band: el.getAttribute("data-mrc-band"),
+          n: Number((el.querySelector("[data-mrc-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".mrc-seg[data-mrc-band]")].map((el) => el.getAttribute("data-mrc-band"));
+        const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+        const byCut = { run: 0, off: 0 };
+        const runIds = [];
+        for (const el of cards) {
+          const c = el.getAttribute("data-mrc-cut") || "";
+          if (c === "run" || c === "off") byCut[c] += 1;
+          if (c === "run") runIds.push(el.getAttribute("data-bubble") || "");
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".mcc-strip[data-mcc='1']")),
+          mcc: !!document.querySelector(".mcc-strip[data-mcc='1']"),
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          stats,
+          segs,
+          cards: cards.length,
+          stamped: byCut.run + byCut.off,
+          byCut,
+          runIds,
+          run: nOf("run"),
+          off: nOf("off"),
+          sum: nOf("run") + nOf("off"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const mrc1ok =
+        mrc1.strip &&
+        mrc1.cluster &&
+        mrc1.mcc &&
+        mrc1.mapOn &&
+        !mrc1.enter &&
+        mrc1.run === 3 &&
+        mrc1.off === 9 &&
+        mrc1.sum === 12 &&
+        mrc1.cards === 12 &&
+        mrc1.stamped === 12 &&
+        mrc1.run === mrc1.byCut.run &&
+        mrc1.off === mrc1.byCut.off &&
+        mrc1.runIds.includes("b-render") &&
+        mrc1.runIds.includes("b-origin") &&
+        mrc1.runIds.includes("b-physics") &&
+        mrc1.segs.length === 2 &&
+        mrc1.pressed === 0 &&
+        mrc1.srcHidden;
+      record(
+        "MRC1",
+        "Map run-cut graphic shows 3 run / 9 off of 12 cards, including b-physics; MCC stays; no source",
+        !!mrc1ok,
+        JSON.stringify(mrc1)
+      );
+
+      const runBtn = page.locator('.mrc-stat[data-mrc-band="run"]').first();
+      await runBtn.click();
+      await page.waitForTimeout(80);
+      const mrc2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        const cards = [...document.querySelectorAll(".bubble-card[data-mrc-cut]")];
+        const hits = cards.filter((el) => el.classList.contains("mrc-hit"));
+        const dims = cards.filter((el) => el.classList.contains("mrc-dim"));
+        const runHits = hits.filter((el) => el.getAttribute("data-mrc-cut") === "run").map((el) => el.getAttribute("data-bubble"));
+        const runPressed = document.querySelector('.mrc-stat[data-mrc-band="run"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          cards: cards.length,
+          hits: hits.length,
+          dims: dims.length,
+          runHits,
+          runPressed: !!runPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const mrc2ok =
+        mrc2.mapOn &&
+        !mrc2.enter &&
+        mrc2.hits === 3 &&
+        mrc2.dims === 9 &&
+        mrc2.runHits.includes("b-physics") &&
+        mrc2.runHits.includes("b-render") &&
+        mrc2.runHits.includes("b-origin") &&
+        mrc2.runPressed &&
+        mrc2.srcHidden;
+      record(
+        "MRC2",
+        "Click Run highlights the 3 run-bearing Map cards including b-physics; Map stays; no enter; no source",
+        !!mrc2ok,
+        JSON.stringify(mrc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const mrc3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        const hits = document.querySelectorAll(".bubble-card.mrc-hit").length;
+        const pressed = document.querySelectorAll('.mrc-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".mrc-strip.mrc-focusing, .comm-wrap.mrc-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "MRC3",
+        "Escape clears run-cut graphic focus; Map stays; no enter; no source",
+        !!(mrc3.mapOn && !mrc3.enter && mrc3.hits === 0 && mrc3.pressed === 0 && !mrc3.focusing && mrc3.srcHidden),
+        JSON.stringify(mrc3)
+      );
+
+      const mrc4 = await page.evaluate(() => {
+        const card =
+          document.querySelector('.bubble-card[data-bubble="b-lod"]') ||
+          document.querySelector('.bubble-card[data-bubble="b-integration"]') ||
+          document.querySelector(".bubble-card[data-bubble]");
+        if (!card) return { missing: true };
+        const r = card.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".mcc-strip, .mrc-strip, .map-title-cuts"));
+        const inCard = !!(top && (top === card || (top.closest && top.closest(".bubble-card[data-bubble]"))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          id: card.getAttribute("data-bubble"),
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inCard,
+          srcHidden: !src || src.hidden,
+          enter: !!document.getElementById("enterCanvas"),
+        };
+      });
+      const mrc4ok = !!(mrc4 && !mrc4.missing && mrc4.inCard && !mrc4.hitStrip && mrc4.srcHidden && !mrc4.enter);
+      record(
+        "MRC4",
+        "Title-band cluster does not intercept Map card clicks; Map stays; no enter; no source",
+        !!mrc4ok,
+        JSON.stringify(mrc4)
+      );
+
+      await runBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "map-run-cut.png");
+      const mrcShot = checks.find((c) => c.id === "shot:map-run-cut.png");
+      const mrc5ok = !!(mrc1ok && mrc2ok && mrc3 && mrc3.mapOn && mrc4ok && mrcShot && mrcShot.pass);
+      record(
+        "MRC5",
+        "screenshot map-run-cut.png is not a black frame; Map run-cut graphic proven",
+        !!mrc5ok,
+        JSON.stringify({
+          shot: mrcShot ? mrcShot.detail : "missing",
+          mrc1: !!mrc1ok,
+          mrc2: !!mrc2ok,
+          mrc3: !!(mrc3 && mrc3.mapOn && mrc3.hits === 0),
+          mrc4: !!mrc4ok,
+        })
+      );
+      assertNoStampDir("MRC5b", "Map run-cut graphic step did not write .graphide/stamps/");
+      const afterMrcPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "enterRun" || m.type === "enterNode")),
+        };
+      }, beforeMrcPosts);
+      record(
+        "MRC5c",
+        "Map run-cut clicks did not post peekSource / enterRun / open source",
+        afterMrcPosts.after === afterMrcPosts.before && !afterMrcPosts.peek,
+        JSON.stringify(afterMrcPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Sequence module-cut graphic (SMC1–SMC5) — same-document Sequence visit; do not page.goto.
     // Later SHM clicks Slice itself.
     {

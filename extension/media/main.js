@@ -20152,6 +20152,7 @@
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let mapCommunityCutFocus = null;
+    let mapRunCutFocus = null;
     let focusTrail = null;
     let sliceMixFilter = null;
     let sliceWalkRoleFocus = null;
@@ -20559,6 +20560,12 @@
         e.preventDefault();
         mapCommunityCutFocus = null;
         if (typeof applyMapCommunityCutPaint === "function") applyMapCommunityCutPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "map" && mapRunCutFocus) {
+        e.preventDefault();
+        mapRunCutFocus = null;
+        if (typeof applyMapRunCutPaint === "function") applyMapRunCutPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "map" && mapSizeFilter) {
@@ -28606,7 +28613,7 @@
       if (el2) {
         el2.outerHTML = html;
       } else {
-        const anchor = host.querySelector(".mhs-strip, .mcs-strip, .mac-strip, .mcc-strip, .shm-strip, .cps-strip, .flow-title") || null;
+        const anchor = host.querySelector(".mhs-strip, .mcs-strip, .mac-strip, .mcc-strip, .mrc-strip, .map-title-cuts, .shm-strip, .cps-strip, .flow-title") || null;
         if (anchor) anchor.insertAdjacentHTML("beforebegin", html);
         else if (stage) stage.insertAdjacentHTML("afterbegin", html);
         else {
@@ -34274,6 +34281,43 @@
         else stage.insertAdjacentHTML("afterbegin", html);
       }
     }
+    function ensureMapTitleCuts() {
+      if (!canvas) return null;
+      const stage = canvas.querySelector(".stage");
+      if (!stage || document.getElementById("enterCanvas")) return null;
+      let cluster = stage.querySelector(".map-title-cuts[data-map-cuts='1']");
+      if (!cluster) {
+        cluster = document.createElement("div");
+        cluster.className = "map-title-cuts";
+        cluster.setAttribute("data-map-cuts", "1");
+        const loose = stage.querySelector(".mcc-strip, .mrc-strip");
+        if (loose && loose.parentElement === stage) {
+          stage.insertBefore(cluster, loose);
+          cluster.appendChild(loose);
+        } else {
+          const title = stage.querySelector(".flow-title");
+          if (title) title.insertAdjacentElement("afterend", cluster);
+          else stage.insertAdjacentElement("afterbegin", cluster);
+        }
+      }
+      return cluster;
+    }
+    function placeMapTitleCut(cluster, sel, html) {
+      if (!cluster || !html) return null;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      const next = tmp.firstElementChild;
+      if (!next) return null;
+      const existing = cluster.querySelector(sel) || canvas && canvas.querySelector(sel);
+      if (existing) existing.replaceWith(next);
+      else cluster.appendChild(next);
+      return next;
+    }
+    function clearMapTitleCutsIfEmpty() {
+      if (!canvas) return;
+      const cluster = canvas.querySelector(".map-title-cuts");
+      if (cluster && !cluster.querySelector(".mcc-strip, .mrc-strip")) cluster.remove();
+    }
     function mapCommunityCutOf(b) {
       const marks = typeof bubbleMarks === "function" ? bubbleMarks(b) : { onTree: 0 };
       return marks && marks.onTree > 0 ? "on" : "off";
@@ -34319,6 +34363,10 @@
         if (mapHopSizeFilter) {
           mapHopSizeFilter = null;
           applyMapHopSizePaint();
+        }
+        if (mapRunCutFocus) {
+          mapRunCutFocus = null;
+          if (typeof applyMapRunCutPaint === "function") applyMapRunCutPaint();
         }
       }
       applyMapCommunityCutPaint();
@@ -34369,29 +34417,158 @@
     }
     function refreshMapCommunityCutStrip(bubbles) {
       if (!canvas) return;
-      const stage = canvas.querySelector(".stage");
-      if (!stage || document.getElementById("enterCanvas")) {
+      if (document.getElementById("enterCanvas") || explorerWs !== "map") {
         const leftover = canvas.querySelector(".mcc-strip");
         if (leftover) leftover.remove();
+        if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
         return;
       }
+      const cluster = ensureMapTitleCuts();
+      if (!cluster) return;
       const html = mapCommunityCutGraphicHtml(bubbles);
-      let strip = stage.querySelector(".mcc-strip");
       if (!html) {
-        if (strip) strip.remove();
+        const old = cluster.querySelector(".mcc-strip") || canvas.querySelector(".mcc-strip");
+        if (old) old.remove();
+        if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
         return;
       }
-      if (strip) {
-        strip.outerHTML = html;
-      } else {
-        const mhs = stage.querySelector(".mhs-strip");
-        const mcs = stage.querySelector(".mcs-strip");
-        const mac = stage.querySelector(".mac-strip");
-        const title = stage.querySelector(".flow-title");
-        if (title) title.insertAdjacentHTML("afterend", html);
-        else stage.insertAdjacentHTML("afterbegin", html);
-      }
+      if (!placeMapTitleCut(cluster, ".mcc-strip[data-mcc='1']", html)) return;
       bindMapCommunityCutGraphic();
+    }
+    function mapRunFlow() {
+      const cur = typeof currentFlow === "function" ? currentFlow() : null;
+      if (cur && cur.flowchart && (cur.flowchart.runs || []).length) return cur;
+      const story = typeof storyFlow === "function" ? storyFlow() : null;
+      if (story && story.flowchart && (story.flowchart.runs || []).length) return story;
+      return cur || story || null;
+    }
+    function mapRunIdSet(flow) {
+      const ids = /* @__PURE__ */ new Set();
+      const f = flow || mapRunFlow();
+      for (const r of f && f.flowchart && f.flowchart.runs || []) {
+        const id2 = r && r.bubble != null ? String(idVal(r.bubble)) : "";
+        if (id2) ids.add(id2);
+      }
+      return ids;
+    }
+    function mapRunCutOf(b, runIds) {
+      const ids = runIds || mapRunIdSet();
+      const id2 = b ? String(idVal(b.id)) : "";
+      return id2 && ids.has(id2) ? "run" : "off";
+    }
+    function mapRunCutMetrics(bubbles) {
+      const list = bubbles || (typeof mapAltitudeBubbles === "function" ? mapAltitudeBubbles() : []);
+      const ids = mapRunIdSet();
+      const m = { run: 0, off: 0, total: 0 };
+      for (const b of list) {
+        const cut = mapRunCutOf(b, ids);
+        if (cut === "run") m.run += 1;
+        else m.off += 1;
+        m.total += 1;
+      }
+      return m;
+    }
+    function mapRunCutGraphicHtml(bubbles) {
+      const m = mapRunCutMetrics(bubbles);
+      if (!m.total) return "";
+      const focusing = !!mapRunCutFocus;
+      const onFor = (key) => !!(mapRunCutFocus && String(mapRunCutFocus) === String(key));
+      const labelOf = (key) => key === "run" ? "run" : "off";
+      const stat = (key, n) => '<button type="button" class="mrc-stat' + (onFor(key) ? " mrc-now" : focusing ? " mrc-idle" : "") + '" data-mrc-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(labelOf(key) + " · " + n) + '"><b data-mrc-n="' + esc(key) + '">' + n + "</b> " + esc(labelOf(key)) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="mrc-seg mrc-' + esc(key) + (onFor(key) ? " mrc-now" : focusing ? " mrc-idle" : "") + '" data-mrc-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(labelOf(key) + " · " + n) + '"></button>';
+      };
+      return '<div class="mrc-strip' + (focusing ? " mrc-focusing" : "") + '" data-mrc="1" role="group" aria-label="Map run-cut graphic"><span class="mrc-meta">Run cut</span><span class="mrc-counts">' + stat("run", m.run) + stat("off", m.off) + '</span><div class="mrc-bar" aria-hidden="true">' + (m.total === 0 ? '<span class="mrc-bar-empty"></span>' : seg("run", m.run) + seg("off", m.off)) + "</div></div>";
+    }
+    function jumpMapRunCut(which) {
+      if (!which) return;
+      const key = String(which);
+      if (mapRunCutFocus && String(mapRunCutFocus) === key) mapRunCutFocus = null;
+      else {
+        mapRunCutFocus = key;
+        if (mapMixFilter) {
+          mapMixFilter = null;
+          applyMapMixPaint();
+        }
+        if (mapSizeFilter) {
+          mapSizeFilter = null;
+          applyMapSizePaint();
+        }
+        if (mapHopSizeFilter) {
+          mapHopSizeFilter = null;
+          applyMapHopSizePaint();
+        }
+        if (mapCommunityCutFocus) {
+          mapCommunityCutFocus = null;
+          if (typeof applyMapCommunityCutPaint === "function") applyMapCommunityCutPaint();
+        }
+      }
+      applyMapRunCutPaint();
+    }
+    function applyMapRunCutPaint() {
+      if (!canvas) return;
+      const focus = mapRunCutFocus ? String(mapRunCutFocus) : "";
+      canvas.querySelectorAll(".mrc-stat[data-mrc-band], .mrc-seg[data-mrc-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mrc-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("mrc-now", on2);
+        el2.classList.toggle("mrc-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".mrc-strip");
+      if (strip) strip.classList.toggle("mrc-focusing", !!focus);
+      const host = canvas.querySelector(".comm-wrap") || canvas;
+      host.classList.toggle("mrc-focusing", !!focus);
+      const cluster = canvas.querySelector(".map-title-cuts");
+      if (cluster) cluster.classList.toggle("mrc-focusing", !!focus);
+      const ids = mapRunIdSet();
+      canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el2) => {
+        const id2 = el2.getAttribute("data-bubble") || "";
+        const cut = ids.has(id2) ? "run" : "off";
+        el2.setAttribute("data-mrc-cut", cut);
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("mrc-hit", hit);
+        el2.classList.toggle("mrc-dim", !!(focus && !hit));
+      });
+    }
+    function bindMapRunCutGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".mrc-stat[data-mrc-band], .mrc-seg[data-mrc-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mrc-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapRunCut(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapRunCut(key);
+        };
+      });
+      applyMapRunCutPaint();
+    }
+    function refreshMapRunCutStrip(bubbles) {
+      if (!canvas) return;
+      if (document.getElementById("enterCanvas") || explorerWs !== "map") {
+        const leftover = canvas.querySelector(".mrc-strip");
+        if (leftover) leftover.remove();
+        if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
+        return;
+      }
+      const cluster = ensureMapTitleCuts();
+      if (!cluster) return;
+      const html = mapRunCutGraphicHtml(bubbles);
+      if (!html) {
+        const old = cluster.querySelector(".mrc-strip") || canvas.querySelector(".mrc-strip");
+        if (old) old.remove();
+        if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
+        return;
+      }
+      if (!placeMapTitleCut(cluster, ".mrc-strip[data-mrc='1']", html)) return;
+      bindMapRunCutGraphic();
     }
     function communitySizeChartHtml(bubbles) {
       const entries = (bubbles || []).map((b) => ({ id: idVal(b.id), label: shortOf(b.label) || "bubble", n: (b.members || []).length })).filter((e) => e.id && e.n > 0).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, 12);
@@ -35508,6 +35685,7 @@
       el2.style.setProperty("--c", colorOfBubble(b));
       el2.setAttribute("data-bubble", id2);
       el2.setAttribute("data-mcc-cut", marks.onTree > 0 ? "on" : "off");
+      el2.setAttribute("data-mrc-cut", mapRunCutOf(b));
       if (clusterKind) el2.setAttribute("data-cluster", clusterKind.kind || "");
       else el2.removeAttribute("data-cluster");
       el2.innerHTML = bubbleCardInnerHtml(b, role, n, marks);
@@ -35693,6 +35871,7 @@
         refreshMapSizeStrip(clusters);
         refreshMapHopSizeStrip(clusters);
         refreshMapCommunityCutStrip(clusters);
+        if (typeof refreshMapRunCutStrip === "function") refreshMapRunCutStrip(clusters);
         bindStage(canvas.querySelector(".stage"), { reset: false });
       } else {
         const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -35710,7 +35889,7 @@
           const clusterKind = (snapshot && snapshot.delta && snapshot.delta.cluster_facts || []).find(
             (c) => String(c.bubble) === String(id2)
           );
-          html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '" data-mcc-cut="' + (marks.onTree > 0 ? "on" : "off") + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + bubbleCardInnerHtml(b, role, n, marks) + "</button>";
+          html += '<button type="button" class="bubble-card' + roleClass + here + '" style="left:' + p.x + "px;top:" + p.y + "px;--c:" + colorOfBubble(b) + '" data-bubble="' + id2 + '" data-mcc-cut="' + (marks.onTree > 0 ? "on" : "off") + '" data-mrc-cut="' + mapRunCutOf(b) + '"' + (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") + ">" + bubbleCardInnerHtml(b, role, n, marks) + "</button>";
         }
         canvas.innerHTML = renderStoryRailHtml() + '<div class="stage"><div class="flow-title">' + mapFlowTitle(pathIds) + "</div>" + mapMixStripHtml(clusters) + mapSizeStripHtml(clusters) + mapHopSizeStripHtml(clusters) + '<div class="viewport" data-lod="0"><div class="comm-wrap" style="width:' + W + "px;height:" + H2 + 'px">' + edgeSvg("comm-edges", edges, pos, W, H2) + html + "</div></div></div>";
         bindStage(canvas.querySelector(".stage"), { reset: !(opts && opts.keepCam) });
@@ -35727,6 +35906,7 @@
       bindMapHopSizeChart();
       applyMapHopSizePaint();
       refreshMapCommunityCutStrip(clusters);
+      if (typeof refreshMapRunCutStrip === "function") refreshMapRunCutStrip(clusters);
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
       bindDraggable(wrap, ".bubble-card", {

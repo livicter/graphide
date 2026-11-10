@@ -229,6 +229,7 @@ let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapHopSizeFilter = null;
 let mapCommunityCutFocus = null; // ADE MCC: on|off
+let mapRunCutFocus = null; // ADE MRC: run|off
 /** ADE CFT — Cross-desk focus trail pin; graph-only (never peekSource). null | { bubbleId, label } */
 let focusTrail = null;
 /** ADE SHM — Slice hop-kind mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
@@ -800,6 +801,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     mapCommunityCutFocus = null;
     if (typeof applyMapCommunityCutPaint === "function") applyMapCommunityCutPaint();
+    return;
+  }
+  // ADE MRC: Escape clears Map run-cut graphic focus when active (stay on Map).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "map" &&
+    mapRunCutFocus
+  ) {
+    e.preventDefault();
+    mapRunCutFocus = null;
+    if (typeof applyMapRunCutPaint === "function") applyMapRunCutPaint();
     return;
   }
   // ADE MCS: Escape clears Map-altitude community-size filter when active.
@@ -11036,7 +11049,7 @@ function ensureFocusTrailChip() {
     el.outerHTML = html;
   } else {
     const anchor =
-      host.querySelector(".mhs-strip, .mcs-strip, .mac-strip, .mcc-strip, .shm-strip, .cps-strip, .flow-title") ||
+      host.querySelector(".mhs-strip, .mcs-strip, .mac-strip, .mcc-strip, .mrc-strip, .map-title-cuts, .shm-strip, .cps-strip, .flow-title") ||
       null;
     if (anchor) anchor.insertAdjacentHTML("beforebegin", html);
     else if (stage) stage.insertAdjacentHTML("afterbegin", html);
@@ -19805,6 +19818,48 @@ function refreshMapHopSizeStrip(bubbles) {
 }
 
 
+
+/** ADE MCC + MRC — title-band cluster (absolute; do not shrink .viewport). */
+function ensureMapTitleCuts() {
+  if (!canvas) return null;
+  const stage = canvas.querySelector(".stage");
+  if (!stage || document.getElementById("enterCanvas")) return null;
+  let cluster = stage.querySelector(".map-title-cuts[data-map-cuts='1']");
+  if (!cluster) {
+    cluster = document.createElement("div");
+    cluster.className = "map-title-cuts";
+    cluster.setAttribute("data-map-cuts", "1");
+    const loose = stage.querySelector(".mcc-strip, .mrc-strip");
+    if (loose && loose.parentElement === stage) {
+      stage.insertBefore(cluster, loose);
+      cluster.appendChild(loose);
+    } else {
+      const title = stage.querySelector(".flow-title");
+      if (title) title.insertAdjacentElement("afterend", cluster);
+      else stage.insertAdjacentElement("afterbegin", cluster);
+    }
+  }
+  return cluster;
+}
+
+function placeMapTitleCut(cluster, sel, html) {
+  if (!cluster || !html) return null;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const next = tmp.firstElementChild;
+  if (!next) return null;
+  const existing = cluster.querySelector(sel) || (canvas && canvas.querySelector(sel));
+  if (existing) existing.replaceWith(next);
+  else cluster.appendChild(next);
+  return next;
+}
+
+function clearMapTitleCutsIfEmpty() {
+  if (!canvas) return;
+  const cluster = canvas.querySelector(".map-title-cuts");
+  if (cluster && !cluster.querySelector(".mcc-strip, .mrc-strip")) cluster.remove();
+}
+
 /** ADE MCC — on-tree vs off-tree mass of Map altitude community cards. */
 function mapCommunityCutOf(b) {
   const marks = typeof bubbleMarks === "function" ? bubbleMarks(b) : { onTree: 0 };
@@ -19895,6 +19950,10 @@ function jumpMapCommunityCut(which) {
       mapHopSizeFilter = null;
       applyMapHopSizePaint();
     }
+    if (mapRunCutFocus) {
+      mapRunCutFocus = null;
+      if (typeof applyMapRunCutPaint === "function") applyMapRunCutPaint();
+    }
   }
   applyMapCommunityCutPaint();
 }
@@ -19947,29 +20006,209 @@ function bindMapCommunityCutGraphic() {
 
 function refreshMapCommunityCutStrip(bubbles) {
   if (!canvas) return;
-  const stage = canvas.querySelector(".stage");
-  if (!stage || document.getElementById("enterCanvas")) {
+  if (document.getElementById("enterCanvas") || explorerWs !== "map") {
     const leftover = canvas.querySelector(".mcc-strip");
     if (leftover) leftover.remove();
+    if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
     return;
   }
+  const cluster = ensureMapTitleCuts();
+  if (!cluster) return;
   const html = mapCommunityCutGraphicHtml(bubbles);
-  let strip = stage.querySelector(".mcc-strip");
   if (!html) {
-    if (strip) strip.remove();
+    const old = cluster.querySelector(".mcc-strip") || canvas.querySelector(".mcc-strip");
+    if (old) old.remove();
+    if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
     return;
   }
-  if (strip) {
-    strip.outerHTML = html;
-  } else {
-    const mhs = stage.querySelector(".mhs-strip");
-    const mcs = stage.querySelector(".mcs-strip");
-    const mac = stage.querySelector(".mac-strip");
-    const title = stage.querySelector(".flow-title");
-    if (title) title.insertAdjacentHTML("afterend", html);
-    else stage.insertAdjacentHTML("afterbegin", html);
-  }
+  if (!placeMapTitleCut(cluster, ".mcc-strip[data-mcc='1']", html)) return;
   bindMapCommunityCutGraphic();
+}
+
+
+/** ADE MRC — run-bearing vs off-run mass of Map altitude community cards. */
+function mapRunFlow() {
+  const cur = typeof currentFlow === "function" ? currentFlow() : null;
+  if (cur && cur.flowchart && ((cur.flowchart.runs || []).length)) return cur;
+  const story = typeof storyFlow === "function" ? storyFlow() : null;
+  if (story && story.flowchart && ((story.flowchart.runs || []).length)) return story;
+  return cur || story || null;
+}
+
+function mapRunIdSet(flow) {
+  const ids = new Set();
+  const f = flow || mapRunFlow();
+  for (const r of (f && f.flowchart && f.flowchart.runs) || []) {
+    const id = r && r.bubble != null ? String(idVal(r.bubble)) : "";
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+function mapRunCutOf(b, runIds) {
+  const ids = runIds || mapRunIdSet();
+  const id = b ? String(idVal(b.id)) : "";
+  return id && ids.has(id) ? "run" : "off";
+}
+
+function mapRunCutMetrics(bubbles) {
+  const list = bubbles || (typeof mapAltitudeBubbles === "function" ? mapAltitudeBubbles() : []);
+  const ids = mapRunIdSet();
+  const m = { run: 0, off: 0, total: 0 };
+  for (const b of list) {
+    const cut = mapRunCutOf(b, ids);
+    if (cut === "run") m.run += 1;
+    else m.off += 1;
+    m.total += 1;
+  }
+  return m;
+}
+
+function mapRunCutGraphicHtml(bubbles) {
+  const m = mapRunCutMetrics(bubbles);
+  if (!m.total) return "";
+  const focusing = !!mapRunCutFocus;
+  const onFor = (key) => !!(mapRunCutFocus && String(mapRunCutFocus) === String(key));
+  const labelOf = (key) => (key === "run" ? "run" : "off");
+  const stat = (key, n) =>
+    '<button type="button" class="mrc-stat' +
+    (onFor(key) ? " mrc-now" : focusing ? " mrc-idle" : "") +
+    '" data-mrc-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(labelOf(key) + " · " + n) +
+    '"><b data-mrc-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(labelOf(key)) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="mrc-seg mrc-' +
+      esc(key) +
+      (onFor(key) ? " mrc-now" : focusing ? " mrc-idle" : "") +
+      '" data-mrc-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(labelOf(key) + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="mrc-strip' +
+    (focusing ? " mrc-focusing" : "") +
+    '" data-mrc="1" role="group" aria-label="Map run-cut graphic">' +
+    '<span class="mrc-meta">Run cut</span>' +
+    '<span class="mrc-counts">' +
+    stat("run", m.run) +
+    stat("off", m.off) +
+    "</span>" +
+    '<div class="mrc-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="mrc-bar-empty"></span>'
+      : seg("run", m.run) + seg("off", m.off)) +
+    "</div></div>"
+  );
+}
+
+function jumpMapRunCut(which) {
+  if (!which) return;
+  const key = String(which);
+  if (mapRunCutFocus && String(mapRunCutFocus) === key) mapRunCutFocus = null;
+  else {
+    mapRunCutFocus = key;
+    if (mapMixFilter) {
+      mapMixFilter = null;
+      applyMapMixPaint();
+    }
+    if (mapSizeFilter) {
+      mapSizeFilter = null;
+      applyMapSizePaint();
+    }
+    if (mapHopSizeFilter) {
+      mapHopSizeFilter = null;
+      applyMapHopSizePaint();
+    }
+    if (mapCommunityCutFocus) {
+      mapCommunityCutFocus = null;
+      if (typeof applyMapCommunityCutPaint === "function") applyMapCommunityCutPaint();
+    }
+  }
+  applyMapRunCutPaint();
+}
+
+function applyMapRunCutPaint() {
+  if (!canvas) return;
+  const focus = mapRunCutFocus ? String(mapRunCutFocus) : "";
+  canvas.querySelectorAll(".mrc-stat[data-mrc-band], .mrc-seg[data-mrc-band]").forEach((el) => {
+    const key = el.getAttribute("data-mrc-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("mrc-now", on);
+    el.classList.toggle("mrc-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".mrc-strip");
+  if (strip) strip.classList.toggle("mrc-focusing", !!focus);
+  const host = canvas.querySelector(".comm-wrap") || canvas;
+  host.classList.toggle("mrc-focusing", !!focus);
+  const cluster = canvas.querySelector(".map-title-cuts");
+  if (cluster) cluster.classList.toggle("mrc-focusing", !!focus);
+  const ids = mapRunIdSet();
+  canvas.querySelectorAll(".bubble-card[data-bubble]").forEach((el) => {
+    const id = el.getAttribute("data-bubble") || "";
+    const cut = ids.has(id) ? "run" : "off";
+    el.setAttribute("data-mrc-cut", cut);
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("mrc-hit", hit);
+    el.classList.toggle("mrc-dim", !!(focus && !hit));
+  });
+}
+
+function bindMapRunCutGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".mrc-stat[data-mrc-band], .mrc-seg[data-mrc-band]").forEach((el) => {
+    const key = el.getAttribute("data-mrc-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapRunCut(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapRunCut(key);
+    };
+  });
+  applyMapRunCutPaint();
+}
+
+function refreshMapRunCutStrip(bubbles) {
+  if (!canvas) return;
+  if (document.getElementById("enterCanvas") || explorerWs !== "map") {
+    const leftover = canvas.querySelector(".mrc-strip");
+    if (leftover) leftover.remove();
+    if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
+    return;
+  }
+  const cluster = ensureMapTitleCuts();
+  if (!cluster) return;
+  const html = mapRunCutGraphicHtml(bubbles);
+  if (!html) {
+    const old = cluster.querySelector(".mrc-strip") || canvas.querySelector(".mrc-strip");
+    if (old) old.remove();
+    if (typeof clearMapTitleCutsIfEmpty === "function") clearMapTitleCutsIfEmpty();
+    return;
+  }
+  if (!placeMapTitleCut(cluster, ".mrc-strip[data-mrc='1']", html)) return;
+  bindMapRunCutGraphic();
 }
 
 
@@ -21513,6 +21752,7 @@ function applyBubbleCardEl(el, b, id, p, pathRank, path, pathIds) {
   el.style.setProperty("--c", colorOfBubble(b));
   el.setAttribute("data-bubble", id);
   el.setAttribute("data-mcc-cut", marks.onTree > 0 ? "on" : "off");
+  el.setAttribute("data-mrc-cut", mapRunCutOf(b));
   if (clusterKind) el.setAttribute("data-cluster", clusterKind.kind || "");
   else el.removeAttribute("data-cluster");
   el.innerHTML = bubbleCardInnerHtml(b, role, n, marks);
@@ -21706,6 +21946,7 @@ function renderBubbleMap(clusters, opts) {
     refreshMapSizeStrip(clusters);
     refreshMapHopSizeStrip(clusters);
     refreshMapCommunityCutStrip(clusters);
+  if (typeof refreshMapRunCutStrip === "function") refreshMapRunCutStrip(clusters);
     bindStage(canvas.querySelector(".stage"), { reset: false });
   } else {
     const byId = new Map(clusters.map((b) => [idVal(b.id), b]));
@@ -21737,6 +21978,8 @@ function renderBubbleMap(clusters, opts) {
         id +
         '" data-mcc-cut="' +
         (marks.onTree > 0 ? "on" : "off") +
+        '" data-mrc-cut="' +
+        mapRunCutOf(b) +
         '"' +
         (clusterKind ? ' data-cluster="' + esc(clusterKind.kind || "") + '"' : "") +
         ">" +
@@ -21775,6 +22018,7 @@ function renderBubbleMap(clusters, opts) {
   bindMapHopSizeChart();
   applyMapHopSizePaint();
   refreshMapCommunityCutStrip(clusters);
+  if (typeof refreshMapRunCutStrip === "function") refreshMapRunCutStrip(clusters);
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindDraggable(wrap, ".bubble-card", {
