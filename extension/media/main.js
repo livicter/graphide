@@ -20125,6 +20125,7 @@
     let lineageFanFilter = null;
     let decisionOutcomeFilter = "";
     let decisionAttestFilter = null;
+    let decisionChainFocus = null;
     let passportDeltaFilter = null;
     let structuralDiffFilter = null;
     let lifecycleTransitionFilter = null;
@@ -20399,6 +20400,12 @@
         decisionAttestFilter = null;
         applyDecisionListFilters();
         syncDecisionAttestBars();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "decisions" && decisionChainFocus) {
+        e.preventDefault();
+        decisionChainFocus = null;
+        applyDecisionCausalGraphPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "registry" && registryAuditFilter) {
@@ -27248,6 +27255,135 @@
         };
       });
     }
+    function decisionCausalLayout(steps) {
+      const ids = [];
+      const seen = /* @__PURE__ */ new Set();
+      const add = (id2) => {
+        const nid = idVal(id2);
+        if (!nid || seen.has(nid)) return;
+        seen.add(nid);
+        ids.push(nid);
+      };
+      (steps || []).forEach((s) => {
+        if (s && s.from) add(s.from);
+        if (s && s.to) add(s.to);
+      });
+      const nodes = ids.map((id2, i) => ({
+        id: id2,
+        x: 28 + i * 96,
+        y: 50 + i % 2 * 32,
+        label: shortOf(fqnOf(snapshot && snapshot.graph, id2)) || shortToken(id2),
+        type: kindOf(snapshot && snapshot.graph, id2) || "node"
+      }));
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      const edges = [];
+      (steps || []).forEach((s, i) => {
+        if (!s || !s.from || !s.to) return;
+        const a = byId.get(idVal(s.from));
+        const b = byId.get(idVal(s.to));
+        if (!a || !b) return;
+        edges.push({
+          i,
+          from: a.id,
+          to: b.id,
+          kind: s.relationship || "Calls",
+          scar: s.scar || "",
+          x1: a.x,
+          y1: a.y,
+          x2: b.x,
+          y2: b.y
+        });
+      });
+      const w = Math.max(320, 56 + Math.max(0, nodes.length - 1) * 96);
+      const h = 140;
+      return { w, h, nodes, edges };
+    }
+    function decisionCausalGraphHtml(steps) {
+      const layout = decisionCausalLayout(steps);
+      if (!layout.nodes.length || !layout.edges.length) return "";
+      const focus = decisionChainFocus;
+      const nodeFocus = focus && focus.kind === "node" ? focus.id : "";
+      const edgeFocus = focus && focus.kind === "edge" ? focus.from + "\0" + focus.to + "\0" + (focus.rel || "") : "";
+      const active = !!focus;
+      const nodeSvg = layout.nodes.map((n) => {
+        const on2 = nodeFocus && n.id === nodeFocus || focus && focus.kind === "edge" && (focus.from === n.id || focus.to === n.id);
+        const dim = active && !on2;
+        const cls = "dcg-node" + (on2 ? " dcg-now" : "") + (dim ? " dcg-dim" : "") + " " + kindClass(n.type);
+        return '<g class="' + cls + '" data-dcg-kind="node" data-dcg-id="' + esc(n.id) + '" transform="translate(' + n.x + "," + n.y + ')" role="button" tabindex="0" aria-label="' + esc((n.type || "node") + " " + n.label) + '"><circle r="16" /><text class="dcg-label" y="32" text-anchor="middle">' + esc(n.label) + "</text></g>";
+      }).join("");
+      const edgeSvg2 = layout.edges.map((e) => {
+        const key = e.from + "\0" + e.to + "\0" + (e.kind || "");
+        const on2 = edgeFocus && key === edgeFocus;
+        const dim = active && !on2;
+        const midX = (e.x1 + e.x2) / 2;
+        const midY = (e.y1 + e.y2) / 2 - 8;
+        const cls = "dcg-edge" + (on2 ? " dcg-now" : "") + (dim ? " dcg-dim" : "") + (e.scar ? " dcg-scar-" + e.scar : "");
+        return '<g class="' + cls + '" data-dcg-kind="edge" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-scar="' + esc(e.scar) + '" role="button" tabindex="0" aria-label="' + esc(e.kind + (e.scar ? " " + e.scar : "") + " " + e.from + " to " + e.to) + '"><line x1="' + e.x1 + '" y1="' + e.y1 + '" x2="' + e.x2 + '" y2="' + e.y2 + '" /><text class="dcg-edge-label" x="' + midX + '" y="' + midY + '" text-anchor="middle">' + esc(e.kind + (e.scar ? " · " + e.scar : "")) + "</text></g>";
+      }).join("");
+      return '<div class="dcg-strip" data-dcg="1" role="group" aria-label="Decision causal graph"><span class="dcg-stat"><i class="k">Causal graph</i> <b class="n" data-dcg-meta="1">' + layout.edges.length + " hop" + (layout.edges.length === 1 ? "" : "s") + ' · click to focus</b></span><svg class="dcg-svg" viewBox="0 0 ' + layout.w + " " + layout.h + '" width="100%" height="' + layout.h + '" role="img" aria-label="Derived causal hops for this decision"><defs><marker id="dcg-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" class="dcg-arrow-head"></path></marker></defs>' + edgeSvg2 + nodeSvg + "</svg></div>";
+    }
+    function applyDecisionCausalGraphPaint() {
+      const wrap = canvas.querySelector('.dcg-strip[data-dcg="1"]');
+      if (!wrap) return;
+      const focus = decisionChainFocus;
+      wrap.classList.toggle("dcg-focusing", !!focus);
+      const nodeFocus = focus && focus.kind === "node" ? focus.id : "";
+      wrap.querySelectorAll(".dcg-node").forEach((el2) => {
+        const id2 = el2.getAttribute("data-dcg-id") || "";
+        const on2 = nodeFocus && id2 === nodeFocus || focus && focus.kind === "edge" && (focus.from === id2 || focus.to === id2);
+        el2.classList.toggle("dcg-now", !!on2);
+        el2.classList.toggle("dcg-dim", !!(focus && !on2));
+      });
+      wrap.querySelectorAll(".dcg-edge").forEach((el2) => {
+        const key = (el2.getAttribute("data-from") || "") + "\0" + (el2.getAttribute("data-to") || "") + "\0" + (el2.getAttribute("data-kind") || "");
+        const edgeFocus = focus && focus.kind === "edge" ? focus.from + "\0" + focus.to + "\0" + (focus.rel || "") : "";
+        const on2 = !!(edgeFocus && key === edgeFocus);
+        el2.classList.toggle("dcg-now", on2);
+        el2.classList.toggle("dcg-dim", !!(focus && !on2));
+      });
+      const meta2 = wrap.querySelector("[data-dcg-meta='1']");
+      if (meta2) {
+        const n = wrap.querySelectorAll(".dcg-edge").length;
+        meta2.textContent = focus ? "focused · Escape clears" : n + " hop" + (n === 1 ? "" : "s") + " · click to focus";
+      }
+    }
+    function bindDecisionCausalGraph() {
+      const wrap = canvas.querySelector('.dcg-strip[data-dcg="1"]');
+      if (!wrap || wrap.dataset.dcgBound === "1") return;
+      wrap.dataset.dcgBound = "1";
+      const onPick = (el2) => {
+        if (!el2) return;
+        const kind = el2.getAttribute("data-dcg-kind");
+        if (kind === "node") {
+          const id2 = el2.getAttribute("data-dcg-id") || "";
+          if (!id2) return;
+          decisionChainFocus = decisionChainFocus && decisionChainFocus.kind === "node" && decisionChainFocus.id === id2 ? null : { kind: "node", id: id2 };
+        } else if (kind === "edge") {
+          const from = el2.getAttribute("data-from") || "";
+          const to = el2.getAttribute("data-to") || "";
+          const rel = el2.getAttribute("data-kind") || "";
+          const same = decisionChainFocus && decisionChainFocus.kind === "edge" && decisionChainFocus.from === from && decisionChainFocus.to === to && decisionChainFocus.rel === rel;
+          decisionChainFocus = same ? null : { kind: "edge", from, to, rel };
+        } else {
+          return;
+        }
+        applyDecisionCausalGraphPaint();
+      };
+      wrap.querySelectorAll(".dcg-node, .dcg-edge").forEach((el2) => {
+        el2.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          onPick(el2);
+        });
+        el2.addEventListener("keydown", (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          onPick(el2);
+        });
+      });
+      applyDecisionCausalGraphPaint();
+    }
     function renderDecisionBody() {
       const rows = decisionRecords().filter(
         (r) => matchesExplorerQuery([r.title, r.body, r.flow, r.verdict, r.kind].join(" "))
@@ -27279,7 +27415,7 @@
         return '<button type="button" class="outcome-filter' + on2 + '" data-outcome-filter="' + esc(pair[0]) + '">' + esc(pair[1]) + "</button>";
       }).join("") + "</div>";
       const damStrip = decisionAttestStripHtml(rows);
-      return '<div class="ws-split"><div class="ws-list">' + damStrip + strip + list + '</div><div class="ws-detail"><div class="k">Decision record</div><div class="t">' + esc(selected2.title) + '</div><div class="outcome ' + esc(selected2.verdict || "") + '">' + esc(selected2.outcome || selected2.verdict || "") + "</div>" + (selected2.flow ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected2.flow) + '">Open slice</button>' : "") + '<div class="flow-title">Causal chain · ' + chain.length + " step" + (chain.length === 1 ? "" : "s") + " on the derived graph</div>" + renderChain(chain) + "</div></div>";
+      return '<div class="ws-split"><div class="ws-list">' + damStrip + strip + list + '</div><div class="ws-detail"><div class="k">Decision record</div><div class="t">' + esc(selected2.title) + '</div><div class="outcome ' + esc(selected2.verdict || "") + '">' + esc(selected2.outcome || selected2.verdict || "") + "</div>" + (selected2.flow ? '<button type="button" class="crumb-btn" data-open-slice="' + esc(selected2.flow) + '">Open slice</button>' : "") + '<div class="flow-title">Causal chain · ' + chain.length + " step" + (chain.length === 1 ? "" : "s") + " on the derived graph</div>" + decisionCausalGraphHtml(chain) + renderChain(chain) + "</div></div>";
     }
     function registryAuditBucket(e) {
       if (!e) return "";
@@ -33316,6 +33452,7 @@
       canvas.querySelectorAll("[data-decision]").forEach((el2) => {
         el2.onclick = () => {
           selectedDecisionKey = el2.getAttribute("data-decision") || "";
+          decisionChainFocus = null;
           paint({ animate: "none" });
         };
       });
@@ -33335,6 +33472,8 @@
           showHop(el2.getAttribute("data-from"), el2.getAttribute("data-to"), el2.getAttribute("data-kind"));
         };
       });
+      bindDecisionCausalGraph();
+      applyDecisionCausalGraphPaint();
       canvas.querySelectorAll("[data-flow]").forEach((el2) => {
         if (el2.closest("#sliceCanvas, #deltaCanvas, #dfCanvas, #lcCanvas, #seqCanvas, #lineageCanvas, #enterCanvas, #trajCanvas")) return;
         el2.onclick = () => {

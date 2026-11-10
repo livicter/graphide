@@ -1646,6 +1646,194 @@ async function main() {
     await page.waitForTimeout(40);
 
 
+
+    // ADE Decisions causal graph (DCG1–DCG5) — inline SVG of derived Steiner hops
+    // Stay on the DAM Decisions document. Do not page.goto (UH / Open-slice follow).
+    {
+      await page.waitForSelector(".dcg-strip[data-dcg='1'] .dcg-svg, #canvas .expl-card[data-decision]", {
+        timeout: 8000,
+      });
+      // Prefer a boot/broken record so the derived boot tree + StampBroken scar are in the graph.
+      await page.evaluate(() => {
+        const cards = [...document.querySelectorAll("#canvas .expl-card[data-decision]")];
+        const boot =
+          cards.find((el) => /boot/i.test(el.textContent || "") && /broken|stamp/i.test(el.textContent || "")) ||
+          cards.find((el) => /boot/i.test(el.textContent || "")) ||
+          cards[0];
+        if (boot && !boot.classList.contains("on")) boot.click();
+      });
+      await page.waitForTimeout(80);
+      const dcg1 = await page.evaluate(() => {
+        const strip = document.querySelector(".dcg-strip[data-dcg='1']");
+        const svg = document.querySelector(".dcg-strip .dcg-svg");
+        const nodes = document.querySelectorAll(".dcg-strip .dcg-node").length;
+        const edges = document.querySelectorAll(".dcg-strip .dcg-edge").length;
+        const chain = document.querySelectorAll(".chain .chain-step").length;
+        const openSlice = !!document.querySelector("[data-open-slice]");
+        const dam = !!document.querySelector(".dam-strip .dam-chart .dam-bar");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws = document.querySelector('#workspaces [data-ws="decisions"]');
+        return {
+          strip: !!strip,
+          svg: !!svg,
+          nodes,
+          edges,
+          chain,
+          openSlice,
+          dam,
+          srcHidden: !src || src.hidden,
+          xy,
+          decOn: !!(ws && ws.classList.contains("on")),
+        };
+      });
+      const dcg1ok = !!(
+        dcg1 &&
+        dcg1.strip &&
+        dcg1.svg &&
+        dcg1.nodes >= 2 &&
+        dcg1.edges >= 1 &&
+        dcg1.chain >= 1 &&
+        dcg1.dam &&
+        dcg1.srcHidden &&
+        dcg1.xy === 0 &&
+        dcg1.decOn
+      );
+      record(
+        "DCG1",
+        "Decisions .dcg-strip SVG paints derived hops; list/DAM stay; no XYFlow; no source",
+        !!dcg1ok,
+        JSON.stringify(dcg1)
+      );
+
+      const dcg2 = await page.evaluate(() => {
+        const edge = document.querySelector(".dcg-strip .dcg-edge") || document.querySelector(".dcg-strip .dcg-node");
+        if (!edge) return { ok: false, reason: "no graph target" };
+        edge.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        const now = document.querySelectorAll(".dcg-strip .dcg-now").length;
+        const dim = document.querySelectorAll(".dcg-strip .dcg-dim").length;
+        const focusing = !!document.querySelector(".dcg-strip.dcg-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          ok: true,
+          now,
+          dim,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const dcg2ok = !!(
+        dcg2 &&
+        dcg2.ok &&
+        dcg2.focusing &&
+        dcg2.now >= 1 &&
+        dcg2.dim >= 1 &&
+        dcg2.srcHidden &&
+        dcg2.xy === 0 &&
+        dcg2.ws === "decisions"
+      );
+      record(
+        "DCG2",
+        "Click causal-graph node/edge focuses .dcg-now; Decisions stays; no source; no XYFlow",
+        !!dcg2ok,
+        JSON.stringify(dcg2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const dcg3 = await page.evaluate(() => {
+        const focusing = !!document.querySelector(".dcg-strip.dcg-focusing");
+        const now = document.querySelectorAll(".dcg-strip .dcg-now").length;
+        const painted = document.querySelectorAll(".dcg-strip .dcg-dim, .dcg-strip .dcg-now").length;
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "";
+        return {
+          focusing,
+          now,
+          painted,
+          srcHidden: !src || src.hidden,
+          xy,
+          ws,
+        };
+      });
+      const dcg3ok = !!(
+        dcg3 &&
+        dcg3.ws === "decisions" &&
+        !dcg3.focusing &&
+        dcg3.now === 0 &&
+        dcg3.srcHidden &&
+        dcg3.xy === 0
+      );
+      record(
+        "DCG3",
+        "Escape clears causal-graph focus without leaving Decisions or opening source",
+        !!dcg3ok,
+        JSON.stringify(dcg3)
+      );
+
+      await page.evaluate(() => {
+        const edge = document.querySelector(".dcg-strip .dcg-edge") || document.querySelector(".dcg-strip .dcg-node");
+        if (edge) edge.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      });
+      await page.waitForTimeout(80);
+      const dcg4 = await page.evaluate(() => {
+        const strip = document.querySelector(".dcg-strip[data-dcg='1']");
+        const dam = !!document.querySelector(".dam-strip .dam-chart .dam-bar");
+        const openSlice = !!document.querySelector("[data-open-slice]");
+        const focusing = !!document.querySelector(".dcg-strip.dcg-focusing");
+        const src = document.getElementById("sourcePane");
+        const xy = document.querySelectorAll("#canvas .react-flow__node").length;
+        return {
+          strip: !!strip,
+          dam,
+          openSlice,
+          focusing,
+          srcHidden: !src || src.hidden,
+          xy,
+        };
+      });
+      const dcg4ok = !!(
+        dcg4 &&
+        dcg4.strip &&
+        dcg4.dam &&
+        dcg4.focusing &&
+        dcg4.srcHidden &&
+        dcg4.xy === 0
+      );
+      record(
+        "DCG4",
+        "DCG composes with DAM; Decisions chrome intact; no source; no XYFlow",
+        !!dcg4ok,
+        JSON.stringify(dcg4)
+      );
+
+      await shot(page, "decisions-causal-graph.png");
+      const dcgShot = checks.find((c) => c.id === "shot:decisions-causal-graph.png");
+      const dcg5ok = !!(dcg1ok && dcg2ok && dcg3ok && dcg4ok && dcgShot && dcgShot.pass);
+      record(
+        "DCG5",
+        "screenshot decisions-causal-graph.png not black; Decisions causal graph proven",
+        !!dcg5ok,
+        JSON.stringify({
+          shot: dcgShot ? dcgShot.detail : "missing",
+          dcg1: !!dcg1ok,
+          dcg2: !!dcg2ok,
+          dcg3: !!dcg3ok,
+          dcg4: !!dcg4ok,
+        })
+      );
+      assertNoStampDir("DCG5b", "Decisions causal graph step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     const beforeUhPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
     const unmatchedDesk = await page.evaluate(() => {
       const cov = document.getElementById("coverage");
