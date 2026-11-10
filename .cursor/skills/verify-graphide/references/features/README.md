@@ -29,6 +29,7 @@ owns this folder.
 | [write-bus.md](write-bus.md) | Agent write-bus stub (ADE) | `agent-write-bus.js` · I9–I11 |
 | [trace-passport-deeplink.md](trace-passport-deeplink.md) | Trace↔Passport deep-link (ADE) | `?trace=1&passport=1` · DL1–DL5 · `trajectory-deeplink.png` |
 | [lineage.md](lineage.md) | Lineage workspace | `?lineage=1` · `verification/lineage.png` |
+| [lineage-story-scrubber.md](lineage-story-scrubber.md) | Lineage story scrubber | `?lineage=1` · `verification/lineage-story-scrubber.png` |
 | [export.md](export.md) | PNG / SVG / Share Card | explorer Map · `export-share.png` |
 | [presentation.md](presentation.md) | Present + Style | `F` / `#presetBtn` · `present.png` |
 | [route.md](route.md) | PATH probe | Sequence snap · `R` · `route.png` |
