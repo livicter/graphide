@@ -223,6 +223,7 @@ let overviewCommunityFilter = null;
 /** ADE MAC — Map-altitude kind/hop mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let mapMixFilter = null;
 let mapWalkCutFocus = null; // ADE MWC: lit|grey or null
+let mapEnterDistFocus = null; // ADE MED: 0|1|2|3 (3 means 3+)
 /** ADE MCS — Map-altitude community-size filter; graph-only (never peekSource). null | bubbleId string */
 let mapSizeFilter = null;
 /** ADE MHS — Map-altitude community-hop-size filter; graph-only (never peekSource). null | bubbleId string */
@@ -757,6 +758,19 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     mapWalkCutFocus = null;
     if (typeof applyMapWalkCutPaint === "function") applyMapWalkCutPaint();
+    return;
+  }
+  // ADE MED: Escape clears Map enter distance-cut graphic focus when enter is open (stay in community).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    typeof enterCanvasActive === "function" &&
+    enterCanvasActive() &&
+    mapEnterDistFocus
+  ) {
+    e.preventDefault();
+    mapEnterDistFocus = null;
+    if (typeof applyMapEnterDistPaint === "function") applyMapEnterDistPaint();
     return;
   }
   // ADE OMC: Escape clears Overview mix filter when active (before residual Trace|Passport owner).
@@ -22014,24 +22028,171 @@ function bindMapWalkCutGraphic() {
 
 function syncMapWalkCutGraphic(inner) {
   if (!canvas) return;
-  const stage = canvas.querySelector(".stage");
-  if (!stage || !document.getElementById("enterCanvas")) {
-    return;
+  const cluster = ensureEnterTitleCuts();
+  if (!cluster) return;
+  if (!placeEnterTitleCut(cluster, ".mwc-strip[data-mwc='1']", mapWalkCutGraphicHtml(inner))) return;
+  bindMapWalkCutGraphic();
+}
+
+function syncMapEnterDistGraphic(inner) {
+  if (!canvas) return;
+  const cluster = ensureEnterTitleCuts();
+  if (!cluster) return;
+  if (!placeEnterTitleCut(cluster, ".med-strip[data-med='1']", mapEnterDistGraphicHtml(inner))) return;
+  bindMapEnterDistGraphic();
+}
+
+/** ADE MED — hop-distance bands from the same enter nodes the canvas paints (24-cap included). */
+function mapEnterDistBandOf(dist) {
+  const d = dist == null ? NaN : Number(dist);
+  if (!Number.isFinite(d) || d >= 3) return "3";
+  if (d <= 0) return "0";
+  if (d === 1) return "1";
+  return "2";
+}
+
+function mapEnterDistMetrics(inner) {
+  const nodes = mapWalkCutNodes(inner);
+  const m = { "0": 0, "1": 0, "2": 0, "3": 0, total: nodes.length };
+  for (const n of nodes) {
+    const band = mapEnterDistBandOf(n && n.distance);
+    m[band] += 1;
   }
-  const html = mapWalkCutGraphicHtml(inner);
+  return m;
+}
+
+function mapEnterDistGraphicHtml(inner) {
+  const m = mapEnterDistMetrics(inner);
+  const focusing = !!mapEnterDistFocus;
+  const onFor = (key) => !!(mapEnterDistFocus && String(mapEnterDistFocus) === String(key));
+  const labelOf = (key) => (key === "3" ? "3+" : key);
+  const stat = (key, n) =>
+    '<button type="button" class="med-stat' +
+    (onFor(key) ? " med-now" : focusing ? " med-idle" : "") +
+    '" data-med-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(labelOf(key) + " · " + n) +
+    '"><b data-med-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(labelOf(key)) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="med-seg med-d' +
+      esc(key) +
+      (onFor(key) ? " med-now" : focusing ? " med-idle" : "") +
+      '" data-med-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(labelOf(key) + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="med-strip' +
+    (focusing ? " med-focusing" : "") +
+    '" data-med="1" role="group" aria-label="Map enter distance-cut graphic">' +
+    '<span class="med-meta">Distance</span>' +
+    '<span class="med-counts">' +
+    stat("0", m["0"]) +
+    stat("1", m["1"]) +
+    stat("2", m["2"]) +
+    stat("3", m["3"]) +
+    "</span>" +
+    '<div class="med-bar" aria-hidden="true">' +
+    (m.total === 0
+      ? '<span class="med-bar-empty"></span>'
+      : seg("0", m["0"]) + seg("1", m["1"]) + seg("2", m["2"]) + seg("3", m["3"])) +
+    "</div></div>"
+  );
+}
+
+function jumpMapEnterDist(which) {
+  if (which == null || which === "") return;
+  const key = String(which);
+  if (mapEnterDistFocus && String(mapEnterDistFocus) === key) mapEnterDistFocus = null;
+  else mapEnterDistFocus = key;
+  applyMapEnterDistPaint();
+}
+
+function applyMapEnterDistPaint() {
+  if (!canvas) return;
+  const focus = mapEnterDistFocus != null && mapEnterDistFocus !== "" ? String(mapEnterDistFocus) : "";
+  canvas.querySelectorAll(".med-stat[data-med-band], .med-seg[data-med-band]").forEach((el) => {
+    const key = el.getAttribute("data-med-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("med-now", on);
+    el.classList.toggle("med-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".med-strip");
+  if (strip) strip.classList.toggle("med-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("med-focusing", !!focus);
+  canvas.querySelectorAll("#enterCanvas .vnode[data-slice-dist]").forEach((el) => {
+    const band = mapEnterDistBandOf(el.getAttribute("data-slice-dist"));
+    const hit = !!(focus && band === focus);
+    el.classList.toggle("med-hit", hit);
+    el.classList.toggle("med-idle", !!(focus && !hit));
+  });
+}
+
+function bindMapEnterDistGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".med-stat[data-med-band], .med-seg[data-med-band]").forEach((el) => {
+    const key = el.getAttribute("data-med-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterDist(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpMapEnterDist(key);
+    };
+  });
+  applyMapEnterDistPaint();
+}
+
+function ensureEnterTitleCuts() {
+  if (!canvas) return null;
+  const stage = canvas.querySelector(".stage");
+  if (!stage || !document.getElementById("enterCanvas")) return null;
+  let cluster = stage.querySelector(".enter-title-cuts[data-enter-cuts='1']");
+  if (!cluster) {
+    cluster = document.createElement("div");
+    cluster.className = "enter-title-cuts";
+    cluster.setAttribute("data-enter-cuts", "1");
+    const title = stage.querySelector(".flow-title");
+    if (title) title.insertAdjacentElement("afterend", cluster);
+    else stage.insertAdjacentElement("afterbegin", cluster);
+  }
+  return cluster;
+}
+
+function placeEnterTitleCut(cluster, sel, html) {
+  if (!cluster || !html) return null;
   const tmp = document.createElement("div");
   tmp.innerHTML = html;
   const next = tmp.firstElementChild;
-  if (!next) return;
-  const existing = stage.querySelector(".mwc-strip");
+  if (!next) return null;
+  const existing = cluster.querySelector(sel) || (canvas && canvas.querySelector(sel));
   if (existing) existing.replaceWith(next);
-  else {
-    const title = stage.querySelector(".flow-title");
-    if (title) title.insertAdjacentElement("afterend", next);
-    else stage.insertAdjacentElement("afterbegin", next);
-  }
-  bindMapWalkCutGraphic();
+  else cluster.appendChild(next);
+  return next;
 }
+
 
 function enterCanvasProps(inner) {
   const nodes = (inner.nodes || []).slice(0, 24);
@@ -22148,16 +22309,21 @@ function renderInner(msg, animate, opts) {
     }
     bindStage(canvas.querySelector(".stage"), { reset: false });
     if (typeof syncMapWalkCutGraphic === "function") syncMapWalkCutGraphic(inner);
+    if (typeof syncMapEnterDistGraphic === "function") syncMapEnterDistGraphic(inner);
   } else {
     unmountReviewCanvas();
     canvas.innerHTML =
       '<div class="stage' +
       (mapWalkCutFocus ? " mwc-focusing" : "") +
+      (mapEnterDistFocus ? " med-focusing" : "") +
       '">' +
       '<div class="flow-title">Inside this community — walk lit, siblings grey · ' +
       nodes.length +
       " review-relevant</div>" +
+      '<div class="enter-title-cuts" data-enter-cuts="1">' +
       mapWalkCutGraphicHtml(inner) +
+      mapEnterDistGraphicHtml(inner) +
+      "</div>" +
       '<div class="viewport" data-lod="0">' +
       '<div id="enterCanvas" class="enter-canvas enter-wrap"></div>' +
       "</div></div>";
@@ -22167,6 +22333,7 @@ function renderInner(msg, animate, opts) {
   setZoomUi(true);
   mountEnterCanvas(inner);
   if (typeof bindMapWalkCutGraphic === "function") bindMapWalkCutGraphic();
+  if (typeof bindMapEnterDistGraphic === "function") bindMapEnterDistGraphic();
   applyGraphFilter();
   applyEgoPaint();
   const leafNodes = nodes

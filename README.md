@@ -54,6 +54,10 @@ A walk-cut graphic shows how many of this community’s review-relevant members 
 
 ![Map walk-cut](UIUX_sample/map-walk-cut.png)
 
+A distance-cut graphic, in the same title band, shows how many of those members sit at hop distance 0, 1, 2, or 3+ from the walk — the same `data-slice-dist` the enter canvas already paints, not a second lit/grey cut.
+
+![Map enter distance-cut](UIUX_sample/map-enter-distance-cut.png)
+
 ![Cross-desk focus trail](UIUX_sample/cross-desk-focus-trail.png)
 
 ![Focus trail return](UIUX_sample/focus-trail-return.png)
@@ -187,6 +191,6 @@ A hop-scar graphic shows unique derived Steiner hops on stamped or skipped flows
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS), Lineage story scrubber (LHS), Decisions causal graph (DCG), Registry snapshot graphic (RSG), Present/fixture lens (PFL), Registry audit subjects (RAS), Passport impact/layer graphic (PIL), Timeline parent-cut graphic (TPC), Decisions hop-scar graphic (DHS), Map walk-cut graphic (MWC), Sequence module-cut graphic (SMC).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS), Lineage story scrubber (LHS), Decisions causal graph (DCG), Registry snapshot graphic (RSG), Present/fixture lens (PFL), Registry audit subjects (RAS), Passport impact/layer graphic (PIL), Timeline parent-cut graphic (TPC), Decisions hop-scar graphic (DHS), Map walk-cut graphic (MWC), Sequence module-cut graphic (SMC), Map enter distance-cut graphic (MED).
 
-Parked next: none (SMC shipped).
+Parked next: none (MED shipped).

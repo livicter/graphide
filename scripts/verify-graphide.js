@@ -15181,6 +15181,285 @@ async function main() {
       await page.waitForTimeout(80);
     }
 
+    // ADE Map enter distance-cut graphic (MED1–MED5) — re-enter b-render in this document; do not page.goto.
+    {
+      await page.click('#workspaces [data-ws="map"]');
+      await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
+      await page.waitForSelector('.bubble-card[data-bubble="b-render"]', { timeout: 8000 });
+      const medEnter = await page.evaluate(() => {
+        const card = document.querySelector('.bubble-card[data-bubble="b-render"]');
+        if (!card) return { clicked: false };
+        card.click();
+        return { clicked: true, id: card.getAttribute("data-bubble") || "" };
+      });
+      await page
+        .waitForFunction(
+          () => document.querySelectorAll("#enterCanvas .vnode[data-slice-dist]").length > 1,
+          null,
+          { timeout: 10000 }
+        )
+        .catch(() => failFast("MED enter b-render did not mount — " + JSON.stringify(medEnter)));
+      await page.waitForTimeout(120);
+      const beforeMedPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const med1 = await page.evaluate(() => {
+        const strip = document.querySelector('.med-strip[data-med="1"]');
+        const n = (key) => {
+          const el = document.querySelector('[data-med-n="' + key + '"]');
+          return el ? Number((el.textContent || "").trim()) : NaN;
+        };
+        const title = ((document.querySelector("#canvas .flow-title") || {}).textContent || "").replace(/\s+/g, " ").trim();
+        const titleN = Number((title.match(/(\d+)\s+review-relevant/i) || [])[1] || NaN);
+        const vnodes = [...document.querySelectorAll("#enterCanvas .vnode[data-slice-dist]")];
+        const bandOf = (d) => {
+          const v = Number(d);
+          if (!Number.isFinite(v) || v >= 3) return "3";
+          if (v <= 0) return "0";
+          if (v === 1) return "1";
+          return "2";
+        };
+        const dom = { "0": 0, "1": 0, "2": 0, "3": 0 };
+        for (const el of vnodes) dom[bandOf(el.getAttribute("data-slice-dist"))] += 1;
+        const distOf = (id) => {
+          const el = document.querySelector('#enterCanvas .vnode[data-id="' + id + '"]');
+          return el ? el.getAttribute("data-slice-dist") : null;
+        };
+        const src = document.getElementById("sourcePane");
+        return {
+          strip: !!strip,
+          cluster: !!document.querySelector(".enter-title-cuts[data-enter-cuts='1']"),
+          mwc: !!document.querySelector('.mwc-strip[data-mwc="1"]'),
+          d0: n("0"),
+          d1: n("1"),
+          d2: n("2"),
+          d3: n("3"),
+          titleN,
+          vnodes: vnodes.length,
+          dom,
+          match:
+            n("0") === dom["0"] &&
+            n("1") === dom["1"] &&
+            n("2") === dom["2"] &&
+            n("3") === dom["3"] &&
+            n("0") + n("1") + n("2") + n("3") === vnodes.length,
+          n0: distOf("n0"),
+          n12: distOf("n12"),
+          n108: distOf("n108"),
+          n1200: distOf("n1200"),
+          bar: !!document.querySelector(".med-bar"),
+          enter: !!document.getElementById("enterCanvas"),
+          xy: document.querySelectorAll("#enterCanvas .react-flow__node").length,
+          extraCanvas: document.querySelectorAll("#canvas .react-flow").length,
+          srcHidden: !src || src.hidden,
+          ws: (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") || "",
+        };
+      });
+      const med1ok = !!(
+        med1 &&
+        medEnter &&
+        medEnter.clicked &&
+        med1.strip &&
+        med1.cluster &&
+        med1.mwc &&
+        med1.enter &&
+        med1.bar &&
+        med1.titleN === 24 &&
+        med1.vnodes === 24 &&
+        med1.match &&
+        med1.d0 === 1 &&
+        med1.d1 >= 1 &&
+        med1.d2 >= 1 &&
+        med1.d3 >= 1 &&
+        med1.n0 === "0" &&
+        med1.n12 === "1" &&
+        med1.n108 === "2" &&
+        med1.n1200 === "3" &&
+        med1.xy > 1 &&
+        med1.extraCanvas === 1 &&
+        med1.srcHidden &&
+        med1.ws === "map"
+      );
+      record(
+        "MED1",
+        "Map enter .med-strip 0/1/2/3+ match vnode data-slice-dist (b-render 24; n0/n12/n108/n1200); MWC stays; no source",
+        !!med1ok,
+        JSON.stringify(med1)
+      );
+
+      const med2 = await page.evaluate(() => {
+        const btn = document.querySelector('.med-stat[data-med-band="3"]');
+        if (btn) btn.click();
+        const hits = [...document.querySelectorAll("#enterCanvas .vnode.med-hit")];
+        const src = document.getElementById("sourcePane");
+        const first = {
+          clicked: !!btn,
+          pressed: !!(btn && btn.getAttribute("aria-pressed") === "true"),
+          hits: hits.length,
+          allFar: hits.every((el) => Number(el.getAttribute("data-slice-dist")) >= 3),
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("med-focusing")),
+          srcHidden: !src || src.hidden,
+          enter: !!document.getElementById("enterCanvas"),
+        };
+        if (btn) btn.click();
+        const hits2 = document.querySelectorAll("#enterCanvas .vnode.med-hit").length;
+        const src2 = document.getElementById("sourcePane");
+        return {
+          first,
+          second: {
+            pressed: !!(btn && btn.getAttribute("aria-pressed") === "true"),
+            hits: hits2,
+            focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("med-focusing")),
+            srcHidden: !src2 || src2.hidden,
+            enter: !!document.getElementById("enterCanvas"),
+          },
+        };
+      });
+      const med2ok = !!(
+        med2 &&
+        med2.first &&
+        med2.first.clicked &&
+        med2.first.pressed &&
+        med2.first.hits === (med1 && med1.d3) &&
+        med2.first.hits >= 1 &&
+        med2.first.allFar &&
+        med2.first.focusing &&
+        med2.first.srcHidden &&
+        med2.first.enter &&
+        med2.second &&
+        !med2.second.pressed &&
+        med2.second.hits === 0 &&
+        !med2.second.focusing &&
+        med2.second.srcHidden &&
+        med2.second.enter
+      );
+      record(
+        "MED2",
+        "Click 3+ highlights far enter members; second click clears; enter stays; no source",
+        !!med2ok,
+        JSON.stringify(med2)
+      );
+
+      await page.focus('.med-stat[data-med-band="1"]');
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(40);
+      const med3on = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.med-stat[data-med-band="1"]') && document.querySelector('.med-stat[data-med-band="1"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#enterCanvas .vnode.med-hit").length,
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("med-focusing")),
+          srcHidden: !src || src.hidden,
+          enter: !!document.getElementById("enterCanvas"),
+        };
+      });
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const med3off = await page.evaluate(() => {
+        const src = document.getElementById("sourcePane");
+        return {
+          pressed: !!(document.querySelector('.med-stat[data-med-band="1"]') && document.querySelector('.med-stat[data-med-band="1"]').getAttribute("aria-pressed") === "true"),
+          hits: document.querySelectorAll("#enterCanvas .vnode.med-hit").length,
+          focusing: !!(document.querySelector(".stage") && document.querySelector(".stage").classList.contains("med-focusing")),
+          srcHidden: !src || src.hidden,
+          enter: !!document.getElementById("enterCanvas"),
+        };
+      });
+      const med3ok = !!(
+        med3on &&
+        med3on.pressed &&
+        med3on.hits === (med1 && med1.d1) &&
+        med3on.focusing &&
+        med3on.srcHidden &&
+        med3on.enter &&
+        med3off &&
+        !med3off.pressed &&
+        med3off.hits === 0 &&
+        !med3off.focusing &&
+        med3off.srcHidden &&
+        med3off.enter
+      );
+      record(
+        "MED3",
+        "Enter toggles distance-1 focus; Escape clears without leaving enter or opening source",
+        !!med3ok,
+        JSON.stringify({ on: med3on, off: med3off })
+      );
+
+      const med4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#enterCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".med-strip, .mwc-strip, .enter-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#enterCanvas .vnode[data-id="n0"]'))));
+        n0.click();
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          selected: n0.classList.contains("selected"),
+          srcHidden: !src || src.hidden,
+          enter: !!document.getElementById("enterCanvas"),
+        };
+      });
+      const med4ok = !!(med4 && !med4.missing && med4.inNode && !med4.hitStrip && med4.selected && med4.srcHidden && med4.enter);
+      record(
+        "MED4",
+        "Title-band cluster does not intercept #enterCanvas n0 clicks; enter stays; no source",
+        !!med4ok,
+        JSON.stringify(med4)
+      );
+
+      await shot(page, "map-enter-distance-cut.png");
+      const medShot = checks.find((c) => c.id === "shot:map-enter-distance-cut.png");
+      const med5ok = !!(med1ok && med2ok && med3ok && med4ok && medShot && medShot.pass);
+      record(
+        "MED5",
+        "screenshot map-enter-distance-cut.png not black; Map enter distance-cut graphic proven",
+        !!med5ok,
+        JSON.stringify({
+          shot: medShot ? medShot.detail : "missing",
+          med1: !!med1ok,
+          med2: !!med2ok,
+          med3: !!med3ok,
+          med4: !!med4ok,
+        })
+      );
+      assertNoStampDir("MED5b", "Map enter distance-cut graphic step did not write .graphide/stamps/");
+      const afterMedPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && m.type === "peekSource"),
+          enterRun: added.some((m) => m && m.type === "enterRun"),
+        };
+      }, beforeMedPosts);
+      record(
+        "MED5c",
+        "Map enter distance-cut clicks did not post peekSource or enterRun",
+        !afterMedPosts.peek && !afterMedPosts.enterRun,
+        JSON.stringify(afterMedPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      await page.evaluate(() => {
+        const back = document.getElementById("backBtn");
+        if (back && !back.disabled) back.click();
+        else {
+          const crumb = document.querySelector("#meta [data-go=programs], #meta [data-up=map]");
+          if (crumb) crumb.click();
+        }
+      });
+      await page.waitForSelector(".bubble-card[data-bubble]", { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(80);
+    }
+
     // ADE Map-altitude community mix (MAC1–MAC3) — interactive kind/hop bars; graph-only .bubble-card filter
     await page.click('#workspaces [data-ws="map"]');
     await page.waitForSelector('#workspaces [data-ws="map"].on', { timeout: 8000 });
