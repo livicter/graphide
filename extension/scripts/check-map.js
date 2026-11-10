@@ -1137,6 +1137,22 @@ assert(ddsMap.includes("DDS1") && ddsMap.includes("dds-strip") && ddsMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-story-scrubber.md")), "delta-story-scrubber feature map missing");
 assert(featReadme.includes("delta-story-scrubber.md") && featReadme.includes("delta-story-scrubber.png"), "feature README must list delta-story-scrubber.md");
 
+const lssMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md"), "utf8");
+assert(
+  lssMap.includes("## Sub-features") &&
+    lssMap.includes("## How to get to it (user POV)") &&
+    lssMap.includes("## Driving it with the harness") &&
+    lssMap.includes("## Gotchas"),
+  "lifecycle-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("LSS1") && driver.includes("LSS3") && driver.includes("lifecycle-story-scrubber.png") && driver.includes("lssScrub"), "verify driver must prove Lifecycle story scrubber LSS1–LSS3");
+assert(js.includes("lcStoryScrubHtml") && js.includes("bindLcStoryScrub") && js.includes("applyLcStoryScrubPaint") && js.includes("syncLcStoryScrub") && chrome.includes("lcStoryScrubHtml"), "desk.js must own Lifecycle story scrubber helpers");
+assert(css.includes(".lss-strip") && css.includes(".lss-scrub") && css.includes("lss-past") && css.includes("lss-now") && css.includes("lss-ahead"), "main.css must theme Lifecycle story scrubber + past/now/ahead");
+assert(lssMap.includes("LSS1") && lssMap.includes("lss-strip") && lssMap.includes("lifecycle-story-scrubber.png") && lssMap.includes("peekSource"), "lifecycle-story-scrubber feature map must name LSS / lss-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md")), "lifecycle-story-scrubber feature map missing");
+assert(featReadme.includes("lifecycle-story-scrubber.md") && featReadme.includes("lifecycle-story-scrubber.png"), "feature README must list lifecycle-story-scrubber.md");
+
+
 
 
 

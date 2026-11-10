@@ -2998,6 +2998,106 @@ table.audit.rak-filtering tbody tr.rak-hit {
   outline-offset: 2px;
 }
 
+
+/* ADE LSS — Lifecycle story scrubber (past / now / ahead on events + canvas) */
+.lss-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.lss-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.lss-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.lss-stat .n { font-size: 12px; font-weight: 600; }
+.lss-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.lss-depth-label { font-size: 11px; white-space: nowrap; }
+.lss-scrub {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--vscode-focusBorder);
+}
+.lss-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.lc-page.lss-scrubbing #lcTrans .lc-trans.lss-past:not(.dim):not(.hit),
+#lcTrans.lss-scrubbing .lc-trans.lss-past:not(.dim):not(.hit) {
+  opacity: 0.72;
+}
+.lc-page.lss-scrubbing #lcTrans .lc-trans.lss-ahead:not(.dim):not(.hit),
+#lcTrans.lss-scrubbing .lc-trans.lss-ahead:not(.dim):not(.hit) {
+  opacity: 0.38;
+}
+.lc-page.lss-scrubbing #lcTrans .lc-trans.lss-now:not(.dim),
+#lcTrans.lss-scrubbing .lc-trans.lss-now:not(.dim) {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.lc-page.lss-scrubbing #lcLanes .lc-state.lss-past:not(.dim):not(.hit),
+.lc-page.lss-scrubbing #lcCanvas .vnode.lss-past:not(.dim):not(.hit),
+.lc-page.lss-scrubbing #lcCanvas .react-flow__node.lss-past:not(.dim):not(.hit),
+#lcCanvas.lss-scrubbing .vnode.lss-past:not(.dim):not(.hit),
+#lcCanvas.lss-scrubbing .react-flow__node.lss-past:not(.dim):not(.hit) {
+  opacity: 0.7;
+}
+.lc-page.lss-scrubbing #lcLanes .lc-state.lss-ahead:not(.dim):not(.hit),
+.lc-page.lss-scrubbing #lcCanvas .vnode.lss-ahead:not(.dim):not(.hit),
+.lc-page.lss-scrubbing #lcCanvas .react-flow__node.lss-ahead:not(.dim):not(.hit),
+#lcCanvas.lss-scrubbing .vnode.lss-ahead:not(.dim):not(.hit),
+#lcCanvas.lss-scrubbing .react-flow__node.lss-ahead:not(.dim):not(.hit) {
+  opacity: 0.35;
+}
+.lc-page.lss-scrubbing #lcLanes .lc-state.lss-now:not(.dim),
+.lc-page.lss-scrubbing #lcCanvas .vnode.lss-now:not(.dim),
+.lc-page.lss-scrubbing #lcCanvas .react-flow__node.lss-now:not(.dim),
+#lcCanvas.lss-scrubbing .vnode.lss-now:not(.dim),
+#lcCanvas.lss-scrubbing .react-flow__node.lss-now:not(.dim) {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  opacity: 1;
+}
+/* Graph Find .dim/.hit opacity wins over story-prefix paint (SG9). */
+.lc-page.lss-scrubbing #lcLanes .lc-state.dim,
+.lc-page.lss-scrubbing #lcEnds .lc-end.dim,
+.lc-page.lss-scrubbing #lcTrans .lc-trans.dim,
+.lc-page.lss-scrubbing #lcCanvas .vnode.dim,
+.lc-page.lss-scrubbing #lcCanvas .react-flow__node.dim {
+  opacity: 0.18;
+}
+.lc-canvas.seq-canvas .react-flow__edge.lss-past path,
+.seq-canvas .react-flow__edge.lss-past path,
+#lcCanvas .react-flow__edge.lss-past path {
+  opacity: 0.7;
+}
+.lc-canvas.seq-canvas .react-flow__edge.lss-ahead path,
+.seq-canvas .react-flow__edge.lss-ahead path,
+#lcCanvas .react-flow__edge.lss-ahead path {
+  opacity: 0.35;
+}
+.lc-canvas.seq-canvas .react-flow__edge.lss-now path,
+.seq-canvas .react-flow__edge.lss-now path,
+#lcCanvas .react-flow__edge.lss-now path {
+  stroke-width: 2.25;
+}
+
 /* ADE VTS — Value-trail Sankey (pick node → producers|focus|consumers) */
 .vts-strip {
   display: flex;

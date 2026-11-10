@@ -1,9 +1,9 @@
 # graphide immutable specs v1
-# seal-sha256: d11231978d8c2cfca618b3fbf7a40b87829aebfb61250ca31e2cc66e8e73a31f
+# seal-sha256: f43de872b2e21fd8df4da3eae512c3ae5e421312692d590dcd7b3d3e314c160a
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
-d22072d8293b29ca881992383384490af8c3baac2c8302567eb59f9e05ae2d64  .cursor/skills/verify-graphide/references/features/README.md
+502c15b417843101be8d2b956ac5ddda3f47e7fe7325dd308c7df33121b52f22  .cursor/skills/verify-graphide/references/features/README.md
 f5a35dc3f3c3ae3b7252cc5aec3e49f238de19650a70ce8a8cb72965789b78eb  .cursor/skills/verify-graphide/references/features/all-programs.md
 7c7d00eadb50157f5657847d7af7beb74aa40f151ea3c4e39b038b2ae01b93d5  .cursor/skills/verify-graphide/references/features/appearance.md
 1b3c3df8548e0c7fada59be5dd9853df5c2aab4140a81b50467191c5eb4eb0f0  .cursor/skills/verify-graphide/references/features/apple-chrome-icons.md
@@ -34,6 +34,7 @@ e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills
 08c5569648fd786010093dbc3d92309ca9bf50b26cb441e4821c969f9e690b66  .cursor/skills/verify-graphide/references/features/keys.md
 4e2fb6953bc376033ffae18f36d2a38fac3219ea719d241e682b76481d37cddc  .cursor/skills/verify-graphide/references/features/kind-filters.md
 1888d708ce13f3a3f35fef139f76af48a79c1125e2eb16f768a06d606eb20254  .cursor/skills/verify-graphide/references/features/lens.md
+e83338cc869de9190a70159213aa91c8a98515367bc86e88729207ff2188a15c  .cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md
 95245c4efe596d1abaad74b0c22105068add16b78191658ebbb6c4e53b6b1e3b  .cursor/skills/verify-graphide/references/features/lifecycle-transition-overlay.md
 99f63082dfff16b6f32004138bc380cb956d0617763788ac9b42d2125a67a87b  .cursor/skills/verify-graphide/references/features/lifecycle.md
 4e01accd5d288a4b5be0c02321da67980b6c77b757dc34881e4d2b0fc636988f  .cursor/skills/verify-graphide/references/features/lineage.md
@@ -77,6 +78,6 @@ f2d11e31f49cfd85a7c2168a4d8e2123cbd616832b20c70e78a0713877165336  .cursor/skills
 d87d840308649ee9c4d89a40daab6cb9335cd5edb0a549e85edb51146790ca11  .cursor/skills/verify-graphide/references/features/write-bus.md
 51788281daeb380b4e271ae4ef1fbd0ece23f48d458c9e53fecbdb4e3b965603  .cursor/skills/verify-graphide/references/features/zoom.md
 f6827c24d9ac2f816049287c3348951152da69942071b6b920bc03beb96cd283  extension/scripts/check-immutable-specs.js
-d8dcacea08abfdfab33fab13161ecaa7fc56f520e10669b67f77897fdc555a49  extension/scripts/check-map.js
+e3017865ded3983f30a7932a24eb24284cbb7d62422b228891fb62a385a31ad3  extension/scripts/check-map.js
 14c84c46b56424a37b4da5e21b0804b08c88438131becba03f18907ca5663e10  package.json
-8fe5bd6a3cc1c2e869445d516692e0686aadfcca1c8062b4f0adc7a5b021c2c8  scripts/verify-graphide.js
+e3889faa97430f7ad488ec327fcd8d82c4fb8a00994877131e2e5e22abd43fe3  scripts/verify-graphide.js

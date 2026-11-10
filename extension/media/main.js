@@ -20521,6 +20521,15 @@
         syncLifecycleTransitionBars();
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "lifecycle" && lcCursor >= 0) {
+        e.preventDefault();
+        stopLcWalk();
+        lcCursor = -1;
+        applyLcStoryScrubPaint();
+        syncLcStoryScrub();
+        paint({ animate: "none" });
+        return;
+      }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && passportDeltaFilter) {
         e.preventDefault();
         passportDeltaFilter = null;
@@ -30046,7 +30055,7 @@
       if (lcCursor >= hops.length) lcCursor = hops.length - 1;
       const hot = lcCursor >= 0 ? hops[lcCursor] : null;
       const now2 = hot ? hot.to : lcCurrentId(flow);
-      const review = '<div class="review-strip" id="lcReview"><button type="button" class="review-step" id="lcOverview">Overview</button><button type="button" class="review-step" id="lcPrev">Prev</button><button type="button" class="review-step' + (lcWalk.playing ? " on" : "") + '" id="lcPlay" aria-pressed="' + (lcWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="lcNext">Next</button><span id="lcStatus">' + (hot ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now2) + "</span></div>";
+      const review = '<div class="review-strip" id="lcReview"><button type="button" class="review-step" id="lcOverview">Overview</button><button type="button" class="review-step" id="lcPrev">Prev</button><button type="button" class="review-step' + (lcWalk.playing ? " on" : "") + '" id="lcPlay" aria-pressed="' + (lcWalk.playing ? "true" : "false") + '">Play</button><button type="button" class="review-step" id="lcNext">Next</button><span id="lcStatus">' + (hot ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now2) + "</span></div>" + lcStoryScrubHtml(hops);
       const laneCols = lanes.map((lane) => {
         const col = states.filter((s) => s.lane === lane.id).slice().sort((a, b) => (a.col || 0) - (b.col || 0));
         const cards = col.map((s) => {
@@ -30058,14 +30067,14 @@
         return '<div class="lc-lane" data-lc-lane="' + esc(lane.id) + '"><div class="k">' + esc(lane.label || lane.id) + "</div>" + cards + "</div>";
       }).join("");
       const list = hops.map((h, i) => {
-        return '<article class="lc-trans expl-card' + (i === lcCursor ? " on" : "") + '" data-lc-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-lc-event="' + esc(h.label || "") + '"><div class="k">' + esc(h.label || "event") + '</div><div class="t">' + esc(h.from + " → " + h.to) + "</div></article>";
+        return '<article class="lc-trans expl-card' + (i === lcCursor ? " on" : "") + (lcCursor >= 0 && i < lcCursor ? " lss-past" : "") + (lcCursor >= 0 && i === lcCursor ? " lss-now" : "") + (lcCursor >= 0 && i > lcCursor ? " lss-ahead" : "") + '" data-lc-i="' + i + '" data-from="' + esc(h.from) + '" data-to="' + esc(h.to) + '" data-lc-event="' + esc(h.label || "") + '"><div class="k">' + esc(h.label || "event") + '</div><div class="t">' + esc(h.from + " → " + h.to) + "</div></article>";
       }).join("");
       const endCards = ends.map((e) => {
         const match = lcEndMatch(e);
         return '<button type="button" class="lc-end vnode kind-' + esc(e.kind || "Type") + (lcQ && match ? " hit" : "") + (lcQ && !match ? " dim" : "") + '" data-id="' + esc(idVal(e.id)) + '" data-fqn="' + esc(e.fqn) + '" data-kind="' + esc(e.kind || "") + '"' + (e.file ? ' data-file="' + esc(e.file) + '"' : "") + '"><span class="name">' + esc(shortOf(e.fqn)) + '</span> <span class="meta">' + esc(e.kind || "") + "</span></button>";
       }).join("");
       const endsBlock = ends.length ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>" : "";
-      return '<div class="lc-page">' + lifecycleTransitionStripHtml() + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
+      return '<div class="lc-page' + (lcCursor >= 0 ? " lss-scrubbing" : "") + '" data-lss="1">' + lifecycleTransitionStripHtml() + review + '<div class="lc-lanes" id="lcLanes" style="--lc-n:' + lanes.length + '">' + laneCols + '</div><div class="ws-split"><div class="ws-list" id="lcTrans">' + list + '</div><div class="ws-detail"><div class="k">' + esc(flow && flow.name || "flow") + ' · review machine</div><div id="lcCanvas" class="lc-canvas seq-canvas"></div>' + endsBlock + "</div></div></div>";
     }
     function lifecycleWorkspaceKey() {
       const flow = lifecycleFlow();
@@ -30092,7 +30101,10 @@
           from: h.from,
           to: h.to,
           kind: h.label || "",
-          label: h.label || ""
+          label: h.label || "",
+          story: lcCursor < 0 ? "" : i < lcCursor ? "past" : i === lcCursor ? "now" : "ahead",
+          storyPrefix: "lss",
+          hot: i === lcCursor
         })),
         cursor: lcCursor,
         nowId: now2,
@@ -30123,6 +30135,8 @@
         const i = parseInt(el2.getAttribute("data-lc-i"), 10);
         el2.classList.toggle("on", i === lcCursor);
       });
+      applyLcStoryScrubPaint();
+      syncLcStoryScrub();
       canvas.querySelectorAll("#lcLanes .lc-state").forEach((el2) => {
         const id2 = el2.getAttribute("data-lc-id");
         el2.classList.toggle("on", now2 === id2 || !!(hot && (hot.from === id2 || hot.to === id2)));
@@ -30136,6 +30150,103 @@
         play.classList.toggle("on", !!lcWalk.playing);
         play.setAttribute("aria-pressed", lcWalk.playing ? "true" : "false");
       }
+    }
+    function lcStoryScrubHtml(hops) {
+      const n = hops && hops.length || 0;
+      if (n < 1) return "";
+      const max = Math.max(0, n - 1);
+      const active = lcCursor >= 0;
+      const val = active ? Math.min(lcCursor, max) : 0;
+      return '<div class="lss-strip" data-lss="1" role="group" aria-label="Lifecycle story scrubber"><span class="lss-stat"><i class="k">Story</i> <b class="n" data-lss-meta="1">' + (active ? lcCursor + 1 + "/" + n : "idle · " + n + " events") + '</b></span><label class="lss-slider-wrap"><span class="lss-depth-label">event <b data-lss-val="1">' + (active ? String(lcCursor + 1) : "—") + '</b></span><input type="range" id="lssScrub" class="lss-scrub" min="0" max="' + max + '" value="' + val + '" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + val + '" aria-label="Scrub lifecycle event" /></label><span class="lss-hint">past · now · ahead on events and canvas</span></div>';
+    }
+    function syncLcStoryScrub() {
+      const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+      const n = hops.length;
+      const max = Math.max(0, n - 1);
+      const active = lcCursor >= 0 && n > 0;
+      const input = document.getElementById("lssScrub");
+      if (input) {
+        input.max = String(max);
+        input.setAttribute("aria-valuemax", String(max));
+        if (active) {
+          input.value = String(Math.min(lcCursor, max));
+          input.setAttribute("aria-valuenow", input.value);
+        }
+      }
+      const strip = canvas.querySelector(".lss-strip[data-lss='1']");
+      if (strip) {
+        strip.classList.toggle("lss-scrubbing", active);
+        const meta2 = strip.querySelector("[data-lss-meta='1']");
+        if (meta2) meta2.textContent = active ? lcCursor + 1 + "/" + n : "idle · " + n + " events";
+        const valEl = strip.querySelector("[data-lss-val='1']");
+        if (valEl) valEl.textContent = active ? String(lcCursor + 1) : "—";
+      }
+      const page = canvas.querySelector(".lc-page");
+      if (page) page.classList.toggle("lss-scrubbing", active);
+      const host = document.getElementById("lcCanvas");
+      if (host) host.classList.toggle("lss-scrubbing", active);
+      const list = canvas.querySelector("#lcTrans");
+      if (list) list.classList.toggle("lss-scrubbing", active);
+    }
+    function bindLcStoryScrub() {
+      const input = document.getElementById("lssScrub");
+      if (!input || input.dataset.lssBound === "1") return;
+      input.dataset.lssBound = "1";
+      input.addEventListener("input", () => {
+        const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+        if (!hops.length) return;
+        stopLcWalk();
+        const v = parseInt(input.value, 10);
+        if (!Number.isFinite(v)) return;
+        lcCursor = Math.max(0, Math.min(v, hops.length - 1));
+        applyLcStoryScrubPaint();
+        syncLcStoryScrub();
+        if (typeof patchLifecycleChrome === "function") patchLifecycleChrome();
+        const host = document.getElementById("lcCanvas");
+        if (host && typeof renderLifecycleCanvas === "function" && typeof lifecycleCanvasProps === "function") {
+          renderLifecycleCanvas(host, lifecycleCanvasProps());
+        }
+      });
+    }
+    function applyLcStoryScrubPaint() {
+      const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+      const active = lcCursor >= 0 && hops.length > 0;
+      const page = canvas.querySelector(".lc-page");
+      if (page) page.classList.toggle("lss-scrubbing", active);
+      const host = document.getElementById("lcCanvas");
+      if (host) host.classList.toggle("lss-scrubbing", active);
+      const strip = canvas.querySelector(".lss-strip[data-lss='1']");
+      if (strip) strip.classList.toggle("lss-scrubbing", active);
+      const list = canvas.querySelector("#lcTrans");
+      if (list) list.classList.toggle("lss-scrubbing", active);
+      canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
+        el2.classList.remove("lss-past", "lss-now", "lss-ahead");
+        if (!active) return;
+        const i = parseInt(el2.getAttribute("data-lc-i"), 10);
+        if (!Number.isFinite(i)) return;
+        if (i < lcCursor) el2.classList.add("lss-past");
+        else if (i === lcCursor) el2.classList.add("lss-now");
+        else el2.classList.add("lss-ahead");
+      });
+      const nowIds = /* @__PURE__ */ new Set();
+      const pastIds = /* @__PURE__ */ new Set();
+      const aheadIds = /* @__PURE__ */ new Set();
+      if (active) {
+        hops.forEach((h, i) => {
+          const bucket = i < lcCursor ? pastIds : i === lcCursor ? nowIds : aheadIds;
+          if (h && h.from) bucket.add(h.from);
+          if (h && h.to) bucket.add(h.to);
+        });
+      }
+      canvas.querySelectorAll("#lcLanes .lc-state, #lcCanvas .vnode, #lcCanvas .react-flow__node, #lcCanvas .lc-state").forEach((el2) => {
+        el2.classList.remove("lss-past", "lss-now", "lss-ahead");
+        if (!active) return;
+        const id2 = el2.getAttribute("data-lc-id") || el2.getAttribute("data-id") || "";
+        if (!id2) return;
+        if (nowIds.has(id2)) el2.classList.add("lss-now");
+        else if (pastIds.has(id2)) el2.classList.add("lss-past");
+        else if (aheadIds.has(id2)) el2.classList.add("lss-ahead");
+      });
     }
     function paintLifecycleWorkspace(title) {
       canvas.className = "play explorer-list";
@@ -30154,8 +30265,14 @@
       else unmountReviewCanvas();
       applyGraphFilter();
       applyLifecycleTransitionPaint();
+      bindLcStoryScrub();
+      applyLcStoryScrubPaint();
+      syncLcStoryScrub();
     }
     function bindLifecyclePage() {
+      bindLcStoryScrub();
+      applyLcStoryScrubPaint();
+      syncLcStoryScrub();
       canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el2) => {
         el2.onclick = (ev) => {
           ev.stopPropagation();

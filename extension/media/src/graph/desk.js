@@ -187,6 +187,7 @@ let dfBodyKey = "";
 let dfRoleFilter = null; // ADE RDF — lane role filter (graph-only)
 let valueTrailFocus = null; // ADE VTS: node id for producer→consumer trail
 let lcCursor = -1;
+/** ADE LSS — Lifecycle story scrub active when lcCursor >= 0 (past/now/ahead paint). */
 let lcWalk = { playing: false, timer: 0 };
 let lcBodyKey = "";
 let sliceBodyKey = "";
@@ -735,6 +736,21 @@ document.addEventListener("keydown", (e) => {
     lifecycleTransitionFilter = null;
     applyLifecycleTransitionPaint();
     syncLifecycleTransitionBars();
+    return;
+  }
+  // ADE LSS: Escape clears Lifecycle story scrub (lcCursor → idle) when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "lifecycle" &&
+    lcCursor >= 0
+  ) {
+    e.preventDefault();
+    stopLcWalk();
+    lcCursor = -1;
+    applyLcStoryScrubPaint();
+    syncLcStoryScrub();
+    paint({ animate: "none" });
     return;
   }
   // ADE PTD: Escape clears Passport↔Trajectory delta mix filter when active.
@@ -12824,7 +12840,8 @@ function renderLifecycleBody() {
     (hot
       ? lcCursor + 1 + "/" + hops.length + " · " + (hot.label || "") + " " + hot.from + " → " + hot.to
       : hops.length + " events · " + (flow && flow.name ? flow.name : "flow") + " · " + now) +
-    "</span></div>";
+    "</span></div>" +
+    lcStoryScrubHtml(hops);
   const laneCols = lanes
     .map((lane) => {
       const col = states
@@ -12873,6 +12890,9 @@ function renderLifecycleBody() {
       return (
         '<article class="lc-trans expl-card' +
         (i === lcCursor ? " on" : "") +
+        (lcCursor >= 0 && i < lcCursor ? " lss-past" : "") +
+        (lcCursor >= 0 && i === lcCursor ? " lss-now" : "") +
+        (lcCursor >= 0 && i > lcCursor ? " lss-ahead" : "") +
         '" data-lc-i="' +
         i +
         '" data-from="' +
@@ -12917,7 +12937,9 @@ function renderLifecycleBody() {
     ? '<div class="k">plugin Type / Endpoint</div><div id="lcEnds" class="lc-ends">' + endCards + "</div>"
     : "";
   return (
-    '<div class="lc-page">' +
+    '<div class="lc-page' +
+    (lcCursor >= 0 ? " lss-scrubbing" : "") +
+    '" data-lss="1">' +
     lifecycleTransitionStripHtml() +
     review +
     '<div class="lc-lanes" id="lcLanes" style="--lc-n:' +
@@ -12966,6 +12988,9 @@ function lifecycleCanvasProps() {
       to: h.to,
       kind: h.label || "",
       label: h.label || "",
+      story: lcCursor < 0 ? "" : i < lcCursor ? "past" : i === lcCursor ? "now" : "ahead",
+      storyPrefix: "lss",
+      hot: i === lcCursor,
     })),
     cursor: lcCursor,
     nowId: now,
@@ -12997,6 +13022,8 @@ function patchLifecycleChrome() {
     const i = parseInt(el.getAttribute("data-lc-i"), 10);
     el.classList.toggle("on", i === lcCursor);
   });
+  applyLcStoryScrubPaint();
+  syncLcStoryScrub();
   canvas.querySelectorAll("#lcLanes .lc-state").forEach((el) => {
     const id = el.getAttribute("data-lc-id");
     el.classList.toggle("on", now === id || !!(hot && (hot.from === id || hot.to === id)));
@@ -13012,6 +13039,132 @@ function patchLifecycleChrome() {
     play.classList.toggle("on", !!lcWalk.playing);
     play.setAttribute("aria-pressed", lcWalk.playing ? "true" : "false");
   }
+}
+
+
+/** ADE LSS — story scrub strip bound to lcCursor (transition order). */
+function lcStoryScrubHtml(hops) {
+  const n = (hops && hops.length) || 0;
+  if (n < 1) return "";
+  const max = Math.max(0, n - 1);
+  const active = lcCursor >= 0;
+  const val = active ? Math.min(lcCursor, max) : 0;
+  return (
+    '<div class="lss-strip" data-lss="1" role="group" aria-label="Lifecycle story scrubber">' +
+    '<span class="lss-stat"><i class="k">Story</i> <b class="n" data-lss-meta="1">' +
+    (active ? lcCursor + 1 + "/" + n : "idle · " + n + " events") +
+    "</b></span>" +
+    '<label class="lss-slider-wrap">' +
+    '<span class="lss-depth-label">event <b data-lss-val="1">' +
+    (active ? String(lcCursor + 1) : "—") +
+    "</b></span>" +
+    '<input type="range" id="lssScrub" class="lss-scrub" min="0" max="' +
+    max +
+    '" value="' +
+    val +
+    '" aria-valuemin="0" aria-valuemax="' +
+    max +
+    '" aria-valuenow="' +
+    val +
+    '" aria-label="Scrub lifecycle event" />' +
+    "</label>" +
+    '<span class="lss-hint">past · now · ahead on events and canvas</span>' +
+    "</div>"
+  );
+}
+
+function syncLcStoryScrub() {
+  const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+  const n = hops.length;
+  const max = Math.max(0, n - 1);
+  const active = lcCursor >= 0 && n > 0;
+  const input = document.getElementById("lssScrub");
+  if (input) {
+    input.max = String(max);
+    input.setAttribute("aria-valuemax", String(max));
+    if (active) {
+      input.value = String(Math.min(lcCursor, max));
+      input.setAttribute("aria-valuenow", input.value);
+    }
+  }
+  const strip = canvas.querySelector(".lss-strip[data-lss='1']");
+  if (strip) {
+    strip.classList.toggle("lss-scrubbing", active);
+    const meta = strip.querySelector("[data-lss-meta='1']");
+    if (meta) meta.textContent = active ? lcCursor + 1 + "/" + n : "idle · " + n + " events";
+    const valEl = strip.querySelector("[data-lss-val='1']");
+    if (valEl) valEl.textContent = active ? String(lcCursor + 1) : "—";
+  }
+  const page = canvas.querySelector(".lc-page");
+  if (page) page.classList.toggle("lss-scrubbing", active);
+  const host = document.getElementById("lcCanvas");
+  if (host) host.classList.toggle("lss-scrubbing", active);
+  const list = canvas.querySelector("#lcTrans");
+  if (list) list.classList.toggle("lss-scrubbing", active);
+}
+
+function bindLcStoryScrub() {
+  const input = document.getElementById("lssScrub");
+  if (!input || input.dataset.lssBound === "1") return;
+  input.dataset.lssBound = "1";
+  input.addEventListener("input", () => {
+    const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+    if (!hops.length) return;
+    stopLcWalk();
+    const v = parseInt(input.value, 10);
+    if (!Number.isFinite(v)) return;
+    lcCursor = Math.max(0, Math.min(v, hops.length - 1));
+    applyLcStoryScrubPaint();
+    syncLcStoryScrub();
+    if (typeof patchLifecycleChrome === "function") patchLifecycleChrome();
+    const host = document.getElementById("lcCanvas");
+    if (host && typeof renderLifecycleCanvas === "function" && typeof lifecycleCanvasProps === "function") {
+      renderLifecycleCanvas(host, lifecycleCanvasProps());
+    }
+  });
+}
+
+function applyLcStoryScrubPaint() {
+  const hops = typeof lcTrans === "function" ? lcTrans() || [] : [];
+  const active = lcCursor >= 0 && hops.length > 0;
+  const page = canvas.querySelector(".lc-page");
+  if (page) page.classList.toggle("lss-scrubbing", active);
+  const host = document.getElementById("lcCanvas");
+  if (host) host.classList.toggle("lss-scrubbing", active);
+  const strip = canvas.querySelector(".lss-strip[data-lss='1']");
+  if (strip) strip.classList.toggle("lss-scrubbing", active);
+  const list = canvas.querySelector("#lcTrans");
+  if (list) list.classList.toggle("lss-scrubbing", active);
+
+  canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el) => {
+    el.classList.remove("lss-past", "lss-now", "lss-ahead");
+    if (!active) return;
+    const i = parseInt(el.getAttribute("data-lc-i"), 10);
+    if (!Number.isFinite(i)) return;
+    if (i < lcCursor) el.classList.add("lss-past");
+    else if (i === lcCursor) el.classList.add("lss-now");
+    else el.classList.add("lss-ahead");
+  });
+
+  const nowIds = new Set();
+  const pastIds = new Set();
+  const aheadIds = new Set();
+  if (active) {
+    hops.forEach((h, i) => {
+      const bucket = i < lcCursor ? pastIds : i === lcCursor ? nowIds : aheadIds;
+      if (h && h.from) bucket.add(h.from);
+      if (h && h.to) bucket.add(h.to);
+    });
+  }
+  canvas.querySelectorAll("#lcLanes .lc-state, #lcCanvas .vnode, #lcCanvas .react-flow__node, #lcCanvas .lc-state").forEach((el) => {
+    el.classList.remove("lss-past", "lss-now", "lss-ahead");
+    if (!active) return;
+    const id = el.getAttribute("data-lc-id") || el.getAttribute("data-id") || "";
+    if (!id) return;
+    if (nowIds.has(id)) el.classList.add("lss-now");
+    else if (pastIds.has(id)) el.classList.add("lss-past");
+    else if (aheadIds.has(id)) el.classList.add("lss-ahead");
+  });
 }
 
 function paintLifecycleWorkspace(title) {
@@ -13036,9 +13189,15 @@ function paintLifecycleWorkspace(title) {
   else unmountReviewCanvas();
   applyGraphFilter();
   applyLifecycleTransitionPaint();
+  bindLcStoryScrub();
+  applyLcStoryScrubPaint();
+  syncLcStoryScrub();
 }
 
 function bindLifecyclePage() {
+  bindLcStoryScrub();
+  applyLcStoryScrubPaint();
+  syncLcStoryScrub();
   canvas.querySelectorAll("#lcTrans .lc-trans").forEach((el) => {
     el.onclick = (ev) => {
       ev.stopPropagation();
