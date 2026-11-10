@@ -16634,6 +16634,170 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+    // ADE Sequence exchange-cut graphic (SXC1–SXC5) — call-exchange mass; same Sequence desk as SHV
+    {
+      await page.waitForSelector(".sxc-strip[data-sxc='1']", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const beforeSxcPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const sxc1 = await page.evaluate(() => {
+        const strip = document.querySelector(".sxc-strip[data-sxc='1']");
+        const stats = [...document.querySelectorAll(".sxc-stat[data-sxc-band]")].map((el) => ({
+          band: el.getAttribute("data-sxc-band"),
+          n: Number((el.querySelector("[data-sxc-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".sxc-seg[data-sxc-band]")].map((el) => el.getAttribute("data-sxc-band"));
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop")];
+        const byEx = {};
+        for (const el of hops) {
+          const ex = el.getAttribute("data-sxc-ex") || "";
+          byEx[ex] = (byEx[ex] || 0) + 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        return {
+          strip: !!strip,
+          shv: !!document.querySelector(".shv-strip[data-shv='1']"),
+          smc: !!document.querySelector(".smc-strip[data-smc='1']"),
+          seqOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#seqCanvas"),
+          stats,
+          segs,
+          hops: hops.length,
+          byEx,
+          e1: nOf("1"),
+          e2: nOf("2"),
+          e3: nOf("3"),
+          sum: nOf("1") + nOf("2") + nOf("3"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const sxc1ok =
+        sxc1.strip &&
+        sxc1.shv &&
+        sxc1.smc &&
+        sxc1.seqOn &&
+        sxc1.canvas &&
+        sxc1.e1 === 3 &&
+        sxc1.e2 === 3 &&
+        sxc1.e3 === 3 &&
+        sxc1.sum === 9 &&
+        sxc1.hops === 9 &&
+        sxc1.byEx["1"] === 3 &&
+        sxc1.byEx["2"] === 3 &&
+        sxc1.byEx["3"] === 3 &&
+        sxc1.segs.length === 3 &&
+        sxc1.pressed === 0 &&
+        sxc1.srcHidden;
+      record(
+        "SXC1",
+        "Sequence exchange-cut graphic shows 3 / 3 / 3 of 9 hops, matching data-sxc-ex; SHV/SMC stay; no source",
+        !!sxc1ok,
+        JSON.stringify(sxc1)
+      );
+
+      const ex2Btn = page.locator('.sxc-stat[data-sxc-band="2"]').first();
+      await ex2Btn.click();
+      await page.waitForTimeout(80);
+      const sxc2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        const hops = [...document.querySelectorAll("#seqHops .seq-hop[data-sxc-ex]")];
+        const hits = hops.filter((el) => el.classList.contains("sxc-hit"));
+        const dims = hops.filter((el) => el.classList.contains("sxc-dim"));
+        const twoHits = hits.filter((el) => el.getAttribute("data-sxc-ex") === "2");
+        const twoPressed = document.querySelector('.sxc-stat[data-sxc-band="2"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          seqOn: !!(ws && ws.classList.contains("on")),
+          hops: hops.length,
+          hits: hits.length,
+          dims: dims.length,
+          twoHits: twoHits.length,
+          twoPressed: !!twoPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sxc2ok =
+        sxc2.seqOn &&
+        sxc2.hits === 3 &&
+        sxc2.twoHits === 3 &&
+        sxc2.dims === 6 &&
+        sxc2.twoPressed &&
+        sxc2.srcHidden;
+      record(
+        "SXC2",
+        "Click exchange 2 highlights the 3 hops in that call exchange; Sequence stays; no source",
+        !!sxc2ok,
+        JSON.stringify(sxc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const sxc3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="sequence"]');
+        const hits = document.querySelectorAll("#seqHops .seq-hop.sxc-hit").length;
+        const pressed = document.querySelectorAll('.sxc-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".sxc-strip.sxc-focusing, .seq-page.sxc-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          seqOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SXC3",
+        "Escape clears exchange-cut graphic focus; Sequence stays; no source",
+        !!(sxc3.seqOn && sxc3.hits === 0 && sxc3.pressed === 0 && !sxc3.focusing && sxc3.srcHidden),
+        JSON.stringify(sxc3)
+      );
+
+      await ex2Btn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "sequence-exchange-cut.png");
+      const sxcShot = checks.find((c) => c.id === "shot:sequence-exchange-cut.png");
+      const sxc5ok = !!(sxc1ok && sxc2ok && sxc3 && sxc3.seqOn && sxcShot && sxcShot.pass);
+      record(
+        "SXC4",
+        "verification/sequence-exchange-cut.png is not a black frame",
+        !!(sxcShot && sxcShot.pass),
+        sxcShot ? sxcShot.detail : "missing"
+      );
+      record(
+        "SXC5",
+        "screenshot sequence-exchange-cut.png is not a black frame; Sequence exchange-cut graphic proven",
+        !!sxc5ok,
+        JSON.stringify({
+          shot: sxcShot ? sxcShot.detail : "missing",
+          sxc1: !!sxc1ok,
+          sxc2: !!sxc2ok,
+          sxc3: !!(sxc3 && sxc3.seqOn && sxc3.hits === 0),
+        })
+      );
+      assertNoStampDir("SXC5b", "Sequence exchange-cut graphic step did not write .graphide/stamps/");
+      const afterSxcPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeSxcPosts);
+      record(
+        "SXC5c",
+        "Sequence exchange-cut clicks did not post peekSource / showHop / open source",
+        afterSxcPosts.after === afterSxcPosts.before && !afterSxcPosts.peek,
+        JSON.stringify(afterSxcPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Slice hop-kind mix (SHM1–SHM3) — interactive kind/hop bars; graph-only #sliceCanvas filter
     await page.click('#workspaces [data-ws="slice"]');
     await page.waitForSelector('#workspaces [data-ws="slice"].on', { timeout: 8000 });

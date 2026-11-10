@@ -1388,6 +1388,20 @@ assert(swhMap.includes("SWH1") && swhMap.includes("swh-strip") && swhMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-walk-hop.md")), "slice-walk-hop feature map missing");
 assert(featReadme.includes("slice-walk-hop.md") && featReadme.includes("slice-walk-hop.png"), "feature README must list slice-walk-hop.md");
 
+const sxcMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-exchange-cut.md"), "utf8");
+assert(
+  sxcMap.includes("## Sub-features") &&
+    sxcMap.includes("## How to get to it (user POV)") &&
+    sxcMap.includes("## Driving it with the harness") &&
+    sxcMap.includes("## Gotchas"),
+  "sequence-exchange-cut feature map must use the four headings"
+);
+assert(driver.includes("SXC1") && driver.includes("SXC3") && driver.includes("sequence-exchange-cut.png") && driver.includes("sxc-stat"), "verify driver must prove Sequence exchange-cut graphic SXC1–SXC3");
+assert(css.includes(".sxc-strip") && css.includes(".sxc-stat") && css.includes(".sxc-bar") && css.includes("sxc-hit"), "main.css must style Sequence exchange-cut graphic");
+assert(sxcMap.includes("SXC1") && sxcMap.includes("sxc-strip") && sxcMap.includes("sequence-exchange-cut.png") && sxcMap.includes("peekSource"), "sequence-exchange-cut feature map must name SXC / sxc-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/sequence-exchange-cut.md")), "sequence-exchange-cut feature map missing");
+assert(featReadme.includes("sequence-exchange-cut.md") && featReadme.includes("sequence-exchange-cut.png"), "feature README must list sequence-exchange-cut.md");
+
 
 
 
