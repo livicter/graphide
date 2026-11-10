@@ -2,6 +2,18 @@ use graphide_ir::{Edge, EdgeKind, Extract, Finding, FindingKind, Graph, Node, No
 use indexmap::IndexMap;
 use std::collections::HashSet;
 
+/// ADE DEH — when two kinds share an FQN, keep Function over Type over Endpoint.
+fn prefer_kind(incoming: NodeKind, existing: NodeKind) -> bool {
+    fn rank(k: NodeKind) -> u8 {
+        match k {
+            NodeKind::Function => 2,
+            NodeKind::Type => 1,
+            NodeKind::Endpoint => 0,
+        }
+    }
+    rank(incoming) > rank(existing)
+}
+
 /// Hash-join extracts into a linked graph. Engine owns IDs.
 pub fn link(extracts: &[Extract]) -> (Graph, Vec<Finding>) {
     let mut findings = Vec::new();
@@ -41,16 +53,22 @@ pub fn link(extracts: &[Extract]) -> (Graph, Vec<Finding>) {
                 continue;
             }
             let id = NodeId::from_identity(def.kind, &def.fqn);
-            nodes_by_fqn.insert(
-                def.fqn.clone(),
-                Node {
-                    id,
-                    fqn: def.fqn.clone(),
-                    kind: def.kind,
-                    span: def.span.clone(),
-                    endpoint: def.endpoint.clone(),
-                },
-            );
+            let incoming = Node {
+                id,
+                fqn: def.fqn.clone(),
+                kind: def.kind,
+                span: def.span.clone(),
+                endpoint: def.endpoint.clone(),
+            };
+            // ADE DEH — FQN index is kind-blind, but a later Endpoint must
+            // not drop a Function (or Type) with the same FQN. Prefer
+            // Function > Type > Endpoint.
+            if let Some(existing) = nodes_by_fqn.get(&def.fqn) {
+                if !prefer_kind(def.kind, existing.kind) {
+                    continue;
+                }
+            }
+            nodes_by_fqn.insert(def.fqn.clone(), incoming);
         }
     }
 
@@ -265,5 +283,71 @@ mod tests {
         let (g, findings) = link(&extracts);
         assert!(g.edges.is_empty());
         assert!(matches!(findings[0].kind, FindingKind::KindMismatch { .. }));
+    }
+
+    #[test]
+    fn function_is_not_dropped_when_later_endpoint_shares_fqn() {
+        fn span(file: &str) -> Span {
+            Span {
+                file: file.into(),
+                start: Pos { line: 1, column: 1 },
+                end: Pos { line: 1, column: 8 },
+            }
+        }
+        let extracts = vec![Extract {
+            plugin: "javascript@0.1.0".into(),
+            file: "src/desk.js".into(),
+            nodes: vec![
+                NodeDef {
+                    fqn: "src.desk.bootDesk".into(),
+                    kind: NodeKind::Function,
+                    span: Span {
+                        file: "src/desk.js".into(),
+                        start: Pos { line: 1, column: 1 },
+                        end: Pos { line: 1, column: 20 },
+                    },
+                    endpoint: None,
+                },
+                NodeDef {
+                    fqn: "src.desk.paint".into(),
+                    kind: NodeKind::Function,
+                    span: Span {
+                        file: "src/desk.js".into(),
+                        start: Pos { line: 1, column: 1 },
+                        end: Pos { line: 3, column: 1 },
+                    },
+                    endpoint: None,
+                },
+                NodeDef {
+                    fqn: "src.desk.paint".into(),
+                    kind: NodeKind::Endpoint,
+                    span: Span {
+                        file: "src/desk.js".into(),
+                        start: Pos { line: 8, column: 1 },
+                        end: Pos { line: 8, column: 40 },
+                    },
+                    endpoint: Some(graphide_ir::EndpointMeta {
+                        role: graphide_ir::EndRole::Sink,
+                        channel: graphide_ir::EndChannel::File,
+                    }),
+                },
+            ],
+            refs: vec![Ref {
+                from: "src.desk.bootDesk".into(),
+                to: Some("src.desk.paint".into()),
+                kind: EdgeKind::Calls,
+                span: span("src/desk.js"),
+            }],
+        }];
+        let (g, findings) = link(&extracts);
+        assert!(
+            g.nodes.iter().any(|n| n.fqn == "src.desk.paint" && n.kind == NodeKind::Function),
+            "Function paint must survive a later same-FQN Endpoint; nodes={:?}",
+            g.nodes.iter().map(|n| format!("{:?} {}", n.kind, n.fqn)).collect::<Vec<_>>()
+        );
+        assert!(
+            !findings.iter().any(|f| matches!(f.kind, FindingKind::KindMismatch { .. })),
+            "Calls to the surviving Function must not be KindMismatch; findings={findings:?}"
+        );
     }
 }

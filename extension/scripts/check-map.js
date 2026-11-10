@@ -363,6 +363,7 @@ assert(featReadme.includes("ts-desk.md") && featReadme.includes("ts-desk.png"), 
 assert(featReadme.includes("go-desk.md") && featReadme.includes("go-desk.png"), "feature README must list go-desk.md");
 assert(featReadme.includes("c-desk.md") && featReadme.includes("c-desk.png"), "feature README must list c-desk.md");
 assert(featReadme.includes("cpp-desk.md") && featReadme.includes("cpp-desk.png"), "feature README must list cpp-desk.md");
+assert(featReadme.includes("deriver-endpoint-honesty.md") && featReadme.includes("deriver-endpoint-honesty.png"), "feature README must list deriver-endpoint-honesty.md");
 assert(featReadme.includes("apple-chrome.md") && featReadme.includes("apple-chrome.png"), "feature README must list apple-chrome.md");
 assert(featReadme.includes("apple-chrome-icons.md") && featReadme.includes("apple-chrome-icons.png"), "feature README must list apple-chrome-icons.md");
 assert(featReadme.includes("program-chips.md") && featReadme.includes("program-chips.png"), "feature README must list program-chips.md");
@@ -494,6 +495,7 @@ assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/go-desk.md")), "go-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/c-desk.md")), "c-desk feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/cpp-desk.md")), "cpp-desk feature map missing");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/deriver-endpoint-honesty.md")), "deriver-endpoint-honesty feature map missing");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md")), "decisions feature map missing");
 const decisionsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/decisions.md"), "utf8");
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry.md")), "registry feature map missing");
@@ -1908,6 +1910,7 @@ assert(driver.includes("ts-desk.png") && driver.includes("TS_HARNESS") && driver
 assert(driver.includes("go-desk.png") && driver.includes("GO_HARNESS") && driver.includes("GO0") && driver.includes("go@"), "verify driver must drive the Go desk on fixtures/go");
 assert(driver.includes("c-desk.png") && driver.includes("C_HARNESS") && driver.includes("C0") && driver.includes("c@"), "verify driver must drive the C desk on fixtures/c");
 assert(driver.includes("cpp-desk.png") && driver.includes("CPP_HARNESS") && driver.includes("CPP0") && driver.includes("cpp@"), "verify driver must drive the C++ desk on fixtures/cpp");
+assert(driver.includes("deriver-endpoint-honesty.png") && driver.includes("DEH0") && driver.includes("desk.paint"), "verify driver must prove deriver endpoint honesty on live-snap");
 assert(driver.includes("L6b") && driver.includes("#lcCanvas .react-flow__node"), "verify driver must prove Lifecycle XYFlow");
 assert(driver.includes("M2c") && driver.includes("#sliceCanvas .react-flow__node"), "verify driver must prove Slice XYFlow");
 assert(driver.includes("M2d") && driver.includes("map-spine-hop.png") && driver.includes("b-integration") && driver.includes("data-hop-from") && driver.includes("solarsim::ext"), "verify driver must prove the Map story hop is the derived edge, not Calls between community ids");
@@ -2236,6 +2239,14 @@ assert(
     cppDeskMap.includes("## Driving it with the harness") &&
     cppDeskMap.includes("## Gotchas"),
   "cpp-desk feature map must use the four headings"
+);
+const dehMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/deriver-endpoint-honesty.md"), "utf8");
+assert(
+  dehMap.includes("## Sub-features") &&
+    dehMap.includes("## How to get to it (user POV)") &&
+    dehMap.includes("## Driving it with the harness") &&
+    dehMap.includes("## Gotchas"),
+  "deriver-endpoint-honesty feature map must use the four headings"
 );
 const appleChromeMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/apple-chrome.md"), "utf8");
 assert(
