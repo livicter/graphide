@@ -594,6 +594,8 @@
     loadNamedSnap("go-snap.json", "__graphideGo", "__graphideGoError", afterPaint, params.get("require") === "1");
   } else if (params.get("c") === "1") {
     loadNamedSnap("c-snap.json", "__graphideC", "__graphideCError", afterPaint, params.get("require") === "1");
+  } else if (params.get("cpp") === "1") {
+    loadNamedSnap("cpp-snap.json", "__graphideCpp", "__graphideCppError", afterPaint, params.get("require") === "1");
   } else if (params.get("live") === "1") {
     loadNamedSnap("live-snap.json", "__graphideLive", "__graphideLiveError", afterPaint, params.get("require") === "1");
   } else {

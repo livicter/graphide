@@ -28,6 +28,7 @@ const JS_SNAP = path.join(EXT, "scripts", "js-snap.json");
 const TS_SNAP = path.join(EXT, "scripts", "ts-snap.json");
 const GO_SNAP = path.join(EXT, "scripts", "go-snap.json");
 const C_SNAP = path.join(EXT, "scripts", "c-snap.json");
+const CPP_SNAP = path.join(EXT, "scripts", "cpp-snap.json");
 const DEMO = path.join(ROOT, "fixtures", "demo");
 const DEMO_PARENT = path.join(ROOT, "fixtures", "demo-parent");
 const PYTHON = path.join(ROOT, "fixtures", "python");
@@ -35,6 +36,7 @@ const JS = path.join(ROOT, "fixtures", "js");
 const TS = path.join(ROOT, "fixtures", "ts");
 const GO = path.join(ROOT, "fixtures", "go");
 const C = path.join(ROOT, "fixtures", "c");
+const CPP = path.join(ROOT, "fixtures", "cpp");
 const HARNESS = "/scripts/webview-harness.html?mode=explorer&probe=0";
 const LIVE_HARNESS = "/scripts/webview-harness.html?live=1&probe=0&require=1";
 const DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=delta";
@@ -63,6 +65,7 @@ const JS_HARNESS = "/scripts/webview-harness.html?js=1&probe=0&require=1&ws=data
 const TS_HARNESS = "/scripts/webview-harness.html?ts=1&probe=0&require=1&ws=dataflow";
 const GO_HARNESS = "/scripts/webview-harness.html?go=1&probe=0&require=1&ws=dataflow";
 const C_HARNESS = "/scripts/webview-harness.html?c=1&probe=0&require=1&ws=dataflow";
+const CPP_HARNESS = "/scripts/webview-harness.html?cpp=1&probe=0&require=1&ws=dataflow";
 const LINEAGE_HARNESS = "/scripts/webview-harness.html?lineage=1&probe=0&require=1&ws=lineage";
 const LINEAGE_DELTA_HARNESS = "/scripts/webview-harness.html?delta=1&probe=0&require=1&ws=lineage";
 const SYNTHETIC_NODES = 2050;
@@ -1053,6 +1056,81 @@ function assertCSnap(snap) {
     /^C0/,
     "C snapshot failed structural checks (desk not driven).",
     "empty C desk on fixtures/c"
+  );
+  return {
+    nodes: nodes.length,
+    hops: best ? best.hops : 0,
+    source: hasSource,
+    sink: hasSink,
+    plugin,
+  };
+}
+
+function deriveCppSnap() {
+  return deriveReviewSnap({
+    dest: CPP_SNAP,
+    label: "cpp",
+    args: ["--root", CPP, "--json", "--progress", "--no-parent"],
+  });
+}
+
+function loadCppSnap() {
+  return loadJsonSnap(CPP_SNAP, deriveCppSnap, "cpp");
+}
+
+function assertCppSnap(snap) {
+  const nodes = (snap.graph && snap.graph.nodes) || [];
+  const edges = (snap.graph && snap.graph.edges) || [];
+  const files = snap.stats && snap.stats.files != null ? Number(snap.stats.files) : 0;
+  const plugin = String(snap.plugin || "");
+  const cppFiles = nodes.filter((n) => /\.cpp$/i.test(((n && n.span) || {}).file || "")).length;
+  const flows = snap.flows || [];
+  const named = flows.find((f) => f && f.name === "data-subscription");
+  const hits = ((named && named.hits) || []).map((h) => String(h || ""));
+  const tree = (named && named.tree) || { nodes: [], edges: [] };
+  const treeNodes = (tree.nodes || []).length;
+  const treeEdges = (tree.edges || []).length;
+  const hasSubscribe = hits.some((h) => /subscribe/i.test(h));
+  const hasEvents = hits.some((h) => /events/i.test(h));
+  const readings = flows.map((f) => {
+    const df = (f && f.dataflow) || { nodes: [], hops: [] };
+    const roles = (df.nodes || []).map((n) => n && n.role).filter(Boolean);
+    return {
+      name: f && f.name,
+      nodes: (df.nodes || []).length,
+      hops: (df.hops || []).length,
+      roles,
+    };
+  });
+  const best = readings.reduce((a, b) => (b.hops > (a ? a.hops : 0) ? b : a), readings[0] || null);
+  const hasSource = !!(best && best.roles.indexOf("source") >= 0);
+  const hasSink = !!(best && best.roles.indexOf("sink") >= 0);
+  const text = JSON.stringify(snap);
+  const subscribe = /subscribe/i.test(text) && /events/i.test(text);
+  record(
+    "CPP0",
+    "cpp fixture snap is cpp@ with a real graph",
+    /cpp@/i.test(plugin) && nodes.length > 0 && edges.length > 0 && files > 0 && cppFiles > 0,
+    "plugin=" + plugin + " nodes=" + nodes.length + " edges=" + edges.length + " files=" + files + " cpp=" + cppFiles
+  );
+  record(
+    "CPP0b",
+    "cpp fixture snap has named flow data-subscription with a Steiner tree",
+    !!(named && hasSubscribe && hasEvents && treeNodes >= 2 && treeEdges >= 1),
+    named
+      ? "hits=" + hits.join(",") + " tree=" + treeNodes + "n/" + treeEdges + "e"
+      : "flows=" + flows.map((f) => f && f.name).join(",")
+  );
+  record(
+    "CPP0c",
+    "cpp fixture snap has a flow with Source and Sink hops",
+    !!(best && best.nodes >= 2 && best.hops >= 1 && hasSource && hasSink && subscribe),
+    readings.map((r) => r.name + ":" + r.nodes + "n/" + r.hops + "h/" + r.roles.join("+")).join(" ")
+  );
+  failSnapChecks(
+    /^CPP0/,
+    "C++ snapshot failed structural checks (desk not driven).",
+    "empty C++ desk on fixtures/cpp"
   );
   return {
     nodes: nodes.length,
@@ -49295,6 +49373,148 @@ async function main() {
     );
     assertNoStampDir("C7", "C desk step did not write .graphide/stamps/");
 
+    const cppSnap = loadCppSnap();
+    const cppGraph = assertCppSnap(cppSnap);
+    const cppUrl = origin + CPP_HARNESS;
+    console.log("cpp " + cppUrl);
+    await page.goto(cppUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const cppBoot = await page
+      .waitForFunction(
+        () => {
+          if (window.__graphideCppError) return "error";
+          if (window.__graphideCpp === true && document.body.classList.contains("desk")) return "ok";
+          const err = document.querySelector(".empty.error");
+          if (err && /cpp-snap/i.test(err.textContent || "")) return "error";
+          return "";
+        },
+        null,
+        { timeout: 25000 }
+      )
+      .then((h) => h.jsonValue())
+      .catch((e) => "timeout:" + String(e && e.message ? e.message : e));
+    const cppHost = await page.evaluate(() => ({
+      live: window.__graphideCpp === true,
+      error: window.__graphideCppError || "",
+      ws:
+        ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+          document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+        "",
+      empty: ((document.querySelector(".empty.error") || {}).textContent || "").trim(),
+      plugin: ((document.getElementById("status") || {}).textContent || ""),
+    }));
+    if (cppBoot !== "ok" || !cppHost.live) {
+      const why =
+        cppHost.error ||
+        cppHost.empty ||
+        (cppBoot && cppBoot !== "ok" ? cppBoot : "") ||
+        "harness did not load the cpp fixture";
+      record("CPP1", "cpp desk loaded the fixtures/cpp snap", false, why);
+      failFast("desk could not be driven from the cpp fixture — " + why);
+    }
+    record("CPP1", "cpp desk loaded the fixtures/cpp snap", true, cppHost.ws + " " + cppGraph.plugin);
+    if (cppHost.ws !== "dataflow") {
+      await page.click('#workspaces [data-ws="dataflow"]');
+      await page.waitForTimeout(200);
+    }
+    await page.waitForSelector("#dfCanvas .df-node, #dfHops .df-hop", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const cppDesk = await page.evaluate(() => {
+      const sources = document.querySelectorAll('#dfCanvas .df-node[data-df-role="source"]').length;
+      const sinks = document.querySelectorAll('#dfCanvas .df-node[data-df-role="sink"]').length;
+      const nodes = document.querySelectorAll("#dfCanvas .df-node").length;
+      const hops = document.querySelectorAll("#dfHops .df-hop").length;
+      const xy = document.querySelectorAll("#dfCanvas .react-flow__node").length;
+      const shapes = [...document.querySelectorAll("#dfCanvas .vnode[data-shape]")].map((el) =>
+        el.getAttribute("data-shape")
+      );
+      const roles = [...document.querySelectorAll("#dfCanvas .df-node[data-df-role]")].map((el) =>
+        el.getAttribute("data-df-role")
+      );
+      const text = [
+        ...[...document.querySelectorAll("#dfCanvas .df-node, #dfHops .df-hop")].map((el) =>
+          (el.textContent || "").replace(/\s+/g, " ").trim()
+        ),
+      ];
+      const blob = text.join(" ");
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        sources,
+        sinks,
+        nodes,
+        hops,
+        xy,
+        xyFlow: !!document.querySelector("#dfCanvas .react-flow"),
+        shapes: [...new Set(shapes)],
+        shapeN: shapes.length,
+        roles,
+        subscribe: /subscribe/i.test(blob) && /events/i.test(blob),
+        publish: /publish/i.test(blob),
+        text: text.slice(0, 6),
+      };
+    });
+    record("CPP2", "C++ Data-flow workspace is active", cppDesk.ws === "dataflow", cppDesk.ws);
+    record(
+      "CPP3",
+      "C++ Data-flow paints Source and Sink (not a raw IR dump)",
+      cppDesk.sources >= 1 && cppDesk.sinks >= 1 && cppDesk.nodes >= 2,
+      "roles=" + cppDesk.roles.join(",") + " " + cppDesk.text.slice(0, 3).join(" | ")
+    );
+    record(
+      "CPP4",
+      "C++ Data-flow names subscribe / publish / events",
+      cppDesk.subscribe && cppDesk.publish,
+      cppDesk.text.join(" | ")
+    );
+    record(
+      "CPP5",
+      "C++ Data-flow XYFlow nodes expose data-shape",
+      cppDesk.xyFlow && cppDesk.xy > 1 && cppDesk.xy <= 48 && cppDesk.shapeN > 1,
+      "xy=" + cppDesk.xy + " shapes=" + cppDesk.shapes.join(",")
+    );
+    await shot(page, "cpp-desk.png");
+
+    await page.evaluate(() => {
+      const tab = document.querySelector('#workspaces [data-ws="map"]');
+      if (tab) tab.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const on = document.querySelector("#workspaces [data-ws].on");
+        return !!(on && on.getAttribute("data-ws") === "map");
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await page.waitForSelector(".bubble-card", { timeout: 10000 });
+    await page.waitForTimeout(200);
+    const cppMap = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".bubble-card")];
+      const names = cards.map((el) => ((el.querySelector(".name") || {}).textContent || "").trim());
+      const loneStart =
+        cards.length <= 1 &&
+        (names.length === 0 || /^(main|program|start|_program)$/i.test(names[0] || ""));
+      return {
+        ws:
+          ((document.querySelector("#workspaces [data-ws].on") || {}).getAttribute &&
+            document.querySelector("#workspaces [data-ws].on").getAttribute("data-ws")) ||
+          "",
+        cards: cards.length,
+        xy: document.querySelectorAll(".react-flow__node").length,
+        names: names.slice(0, 8),
+        loneStart,
+      };
+    });
+    record(
+      "CPP6",
+      "C++ Map is community LOD (cards, xy=0, not a lone START)",
+      cppMap.ws === "map" && cppMap.cards >= 2 && cppMap.xy === 0 && !cppMap.loneStart,
+      "cards=" + cppMap.cards + " xy=" + cppMap.xy + " names=" + cppMap.names.join(",")
+    );
+    assertNoStampDir("CPP7", "C++ desk step did not write .graphide/stamps/");
+
     // ADE Trace↔Passport deep-link harness — both fixtures, traj+gate preserved across hops.
     const deeplinkUrl = origin + DEEPLINK_HARNESS;
     console.log("ade-deeplink " + deeplinkUrl);
@@ -50587,12 +50807,14 @@ async function main() {
       GO_HARNESS +
       "` (Go desk on fixtures/go) then `" +
       C_HARNESS +
-      "` (C desk on fixtures/c) served from `extension/`.",
+      "` (C desk on fixtures/c) then `" +
+      CPP_HARNESS +
+      "` (C++ desk on fixtures/cpp) served from `extension/`.",
     "PASS verify-graphide · " +
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · go-desk · c-desk · cpp-desk · lineage · export · present · preset · route · lens"
   );
 }
 
