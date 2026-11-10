@@ -2777,6 +2777,106 @@ table.audit.rak-filtering tbody tr.rak-hit {
 }
 
 
+
+/* ADE LHS — Lineage story scrubber (past / now / ahead on incident hops + canvas) */
+.lhs-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.lhs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.lhs-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.lhs-stat .n { font-size: 12px; font-weight: 600; }
+.lhs-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.lhs-depth-label { font-size: 11px; white-space: nowrap; }
+.lhs-scrub {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--vscode-focusBorder);
+}
+.lhs-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.explorer-lineage.lhs-scrubbing #lineageHops .expl-card.hop.lhs-past:not(.dim):not(.hit):not(.lfo-dim),
+#lineageHops.lhs-scrubbing .expl-card.hop.lhs-past:not(.dim):not(.hit):not(.lfo-dim) {
+  opacity: 0.72;
+}
+.explorer-lineage.lhs-scrubbing #lineageHops .expl-card.hop.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim),
+#lineageHops.lhs-scrubbing .expl-card.hop.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim) {
+  opacity: 0.38;
+}
+.explorer-lineage.lhs-scrubbing #lineageHops .expl-card.hop.lhs-now:not(.dim):not(.lfo-dim),
+#lineageHops.lhs-scrubbing .expl-card.hop.lhs-now:not(.dim):not(.lfo-dim) {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.explorer-lineage.lhs-scrubbing #lineageCanvas .vnode.lhs-past:not(.dim):not(.hit):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .react-flow__node.lhs-past:not(.dim):not(.hit):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .ego-node.lhs-past:not(.dim):not(.hit):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .vnode.lhs-past:not(.dim):not(.hit):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .react-flow__node.lhs-past:not(.dim):not(.hit):not(.lfo-dim) {
+  opacity: 0.7;
+}
+.explorer-lineage.lhs-scrubbing #lineageCanvas .vnode.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .react-flow__node.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .ego-node.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .vnode.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .react-flow__node.lhs-ahead:not(.dim):not(.hit):not(.lfo-dim) {
+  opacity: 0.35;
+}
+.explorer-lineage.lhs-scrubbing #lineageCanvas .vnode.lhs-now:not(.dim):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .react-flow__node.lhs-now:not(.dim):not(.lfo-dim),
+.explorer-lineage.lhs-scrubbing #lineageCanvas .ego-node.lhs-now:not(.dim):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .vnode.lhs-now:not(.dim):not(.lfo-dim),
+#lineageCanvas.lhs-scrubbing .react-flow__node.lhs-now:not(.dim):not(.lfo-dim) {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  opacity: 1;
+}
+.lineage-canvas.seq-canvas .react-flow__edge.lhs-past path,
+#lineageCanvas .react-flow__edge.lhs-past path {
+  opacity: 0.7;
+}
+.lineage-canvas.seq-canvas .react-flow__edge.lhs-ahead path,
+#lineageCanvas .react-flow__edge.lhs-ahead path {
+  opacity: 0.35;
+}
+.lineage-canvas.seq-canvas .react-flow__edge.lhs-now path,
+#lineageCanvas .react-flow__edge.lhs-now path {
+  stroke-width: 2.25;
+}
+/* Graph Find / LFO .dim opacity wins over story-prefix paint. */
+.explorer-lineage.lhs-scrubbing #lineageHops .expl-card.hop.dim,
+.explorer-lineage.lhs-scrubbing #lineageHops .expl-card.hop.lfo-dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .vnode.dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .vnode.lfo-dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .react-flow__node.dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .react-flow__node.lfo-dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .ego-node.dim,
+.explorer-lineage.lhs-scrubbing #lineageCanvas .ego-node.lfo-dim {
+  opacity: 0.18;
+}
+
 /* ADE PTD — Passport↔Trajectory delta mix (planned/residual/extra) */
 .ptd-strip {
   display: flex;

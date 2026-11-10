@@ -40618,6 +40618,188 @@ async function main() {
     });
     await page.waitForTimeout(40);
 
+
+    // ADE Lineage story scrubber (LHS1–LHS5) — past/now/ahead scrub on lineageHopCursor
+    // Stay on the LFO lineage document. Do not page.goto (PTD follows with its own goto).
+    {
+      await page.waitForSelector(".lhs-strip #lhsScrub, #lineageHops .expl-card.hop", { timeout: 8000 });
+      const lhs1 = await page.evaluate(() => {
+        const strip = document.querySelector(".lhs-strip[data-lhs='1']");
+        const scrub = document.getElementById("lhsScrub");
+        const hops = document.querySelectorAll("#lineageHops .expl-card.hop").length;
+        const pageEl = document.querySelector(".explorer-lineage, .stage[data-lhs='1']");
+        const lfo = !!document.querySelector(".lfo-strip .lfo-chart .lfo-bar, .lfo-strip .lfo-bar");
+        const src = document.getElementById("sourcePane");
+        const ev = document.getElementById("evidencePane") || document.querySelector("[data-evidence]");
+        const ws = document.querySelector('#workspaces [data-ws="lineage"]');
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          hops,
+          page: !!pageEl,
+          lfo,
+          srcHidden: !src || src.hidden,
+          evHidden: !ev || ev.hidden,
+          linOn: !!(ws && ws.classList.contains("on")),
+        };
+      });
+      const lhs1ok = !!(
+        lhs1 &&
+        lhs1.strip &&
+        lhs1.scrub &&
+        lhs1.hops >= 1 &&
+        lhs1.page &&
+        lhs1.lfo &&
+        lhs1.srcHidden &&
+        lhs1.linOn &&
+        Number(lhs1.max) >= 0
+      );
+      record(
+        "LHS1",
+        "Lineage .lhs-strip / #lhsScrub present above hops; LFO stays; no source",
+        !!lhs1ok,
+        JSON.stringify(lhs1)
+      );
+
+      const lhs2 = await page.evaluate(() => {
+        const scrub = document.getElementById("lhsScrub");
+        const n0 = document.querySelectorAll("#lineageHops .expl-card.hop").length;
+        if (!scrub || n0 < 1) return { ok: false, reason: "no scrub/hops" };
+        const target = Math.min(1, n0 - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const hops = [...document.querySelectorAll("#lineageHops .expl-card.hop")];
+        const past = hops.filter((el) => el.classList.contains("lhs-past")).length;
+        const now = hops.filter((el) => el.classList.contains("lhs-now")).length;
+        const ahead = hops.filter((el) => el.classList.contains("lhs-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".explorer-lineage.lhs-scrubbing") ||
+          document.querySelector("#lineageHops.lhs-scrubbing") ||
+          document.querySelector(".lhs-strip.lhs-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          hops: hops.length,
+          scrubbing,
+          sum: past + now + ahead,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lhs2ok = !!(
+        lhs2 &&
+        lhs2.ok &&
+        lhs2.scrubbing &&
+        lhs2.now === 1 &&
+        lhs2.sum === lhs2.hops &&
+        lhs2.srcHidden
+      );
+      record(
+        "LHS2",
+        "Lineage scrub paints hops lhs-past/lhs-now/lhs-ahead without opening source",
+        !!lhs2ok,
+        JSON.stringify(lhs2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const lhs3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".explorer-lineage.lhs-scrubbing") ||
+          document.querySelector("#lineageHops.lhs-scrubbing") ||
+          document.querySelector(".lhs-strip.lhs-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#lineageHops .expl-card.hop.lhs-past, #lineageHops .expl-card.hop.lhs-now, #lineageHops .expl-card.hop.lhs-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lhs3ok = !!(
+        lhs3 &&
+        lhs3.ws === "lineage" &&
+        !lhs3.scrubbing &&
+        lhs3.painted === 0 &&
+        lhs3.srcHidden
+      );
+      record(
+        "LHS3",
+        "Escape clears Lineage story scrub without leaving Lineage or opening source",
+        !!lhs3ok,
+        JSON.stringify(lhs3)
+      );
+
+      await page.evaluate(() => {
+        const scrub = document.getElementById("lhsScrub");
+        const n = document.querySelectorAll("#lineageHops .expl-card.hop").length;
+        if (!scrub || n < 1) return;
+        scrub.value = String(Math.min(1, n - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const lhs4 = await page.evaluate(() => {
+        const pageEl = document.querySelector(".explorer-lineage, .stage[data-lhs='1']");
+        const lfo = !!document.querySelector(".lfo-strip .lfo-chart .lfo-bar, .lfo-strip .lfo-bar");
+        const scrubbing = !!(
+          document.querySelector(".explorer-lineage.lhs-scrubbing") ||
+          document.querySelector("#lineageHops.lhs-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          lfo,
+          scrubbing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lhs4ok = !!(
+        lhs4 &&
+        lhs4.page &&
+        lhs4.lfo &&
+        lhs4.scrubbing &&
+        lhs4.srcHidden
+      );
+      record(
+        "LHS4",
+        "LHS scrub composes with LFO; Lineage chrome intact; no source",
+        !!lhs4ok,
+        JSON.stringify(lhs4)
+      );
+
+      await shot(page, "lineage-story-scrubber.png");
+      const lhsShot = checks.find((c) => c.id === "shot:lineage-story-scrubber.png");
+      const lhs5ok = !!(lhs1ok && lhs2ok && lhs3ok && lhs4ok && lhsShot && lhsShot.pass);
+      record(
+        "LHS5",
+        "screenshot lineage-story-scrubber.png not black; Lineage story scrubber proven",
+        !!lhs5ok,
+        JSON.stringify({
+          shot: lhsShot ? lhsShot.detail : "missing",
+          lhs1: !!lhs1ok,
+          lhs2: !!lhs2ok,
+          lhs3: !!lhs3ok,
+          lhs4: !!lhs4ok,
+        })
+      );
+      assertNoStampDir("LHS5b", "Lineage story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Passport↔Trajectory delta mix (PTD1–PTD5) — planned/residual/extra bars on Trace
     {
       const ptdUrl =

@@ -123,11 +123,13 @@ Trajectory DAG and Upstream Plan Passport (ADE Phase 1). Passport↔Trajectory d
 
 ### Lineage
 
-Ego of the start hop. Used, Informed, and Generated with behavior captions. Fan size mix chart filters provenance neighbors by Used / Informed / Generated member count.
+Ego of the start hop. Used, Informed, and Generated with behavior captions. Fan size mix chart filters provenance neighbors by Used / Informed / Generated member count. Lineage story scrubber paints past / now / ahead on incident hops (and mappable canvas nodes) so you can freeze the provenance walk after N hops.
 
 ![Lineage behavior captions](UIUX_sample/lineage-behavior-captions.png)
 
 ![Lineage fan size mix](UIUX_sample/lineage-fan-size-mix.png)
+
+![Lineage story scrubber](UIUX_sample/lineage-story-scrubber.png)
 
 ### Registry
 
@@ -155,6 +157,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS), Lifecycle story scrubber (LSS), Lineage story scrubber (LHS).
 
-Parked next: none (LSS shipped).
+Parked next: none (LHS shipped).

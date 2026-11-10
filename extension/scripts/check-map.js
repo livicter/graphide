@@ -1152,6 +1152,22 @@ assert(lssMap.includes("LSS1") && lssMap.includes("lss-strip") && lssMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md")), "lifecycle-story-scrubber feature map missing");
 assert(featReadme.includes("lifecycle-story-scrubber.md") && featReadme.includes("lifecycle-story-scrubber.png"), "feature README must list lifecycle-story-scrubber.md");
 
+const lhsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage-story-scrubber.md"), "utf8");
+assert(
+  lhsMap.includes("## Sub-features") &&
+    lhsMap.includes("## How to get to it (user POV)") &&
+    lhsMap.includes("## Driving it with the harness") &&
+    lhsMap.includes("## Gotchas"),
+  "lineage-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("LHS1") && driver.includes("LHS3") && driver.includes("lineage-story-scrubber.png") && driver.includes("lhsScrub"), "verify driver must prove Lineage story scrubber LHS1–LHS3");
+assert(js.includes("lineageStoryScrubHtml") && js.includes("bindLineageStoryScrub") && js.includes("applyLineageStoryScrubPaint") && js.includes("syncLineageStoryScrub") && chrome.includes("lineageStoryScrubHtml"), "desk.js must own Lineage story scrubber helpers");
+assert(css.includes(".lhs-strip") && css.includes(".lhs-scrub") && css.includes("lhs-past") && css.includes("lhs-now") && css.includes("lhs-ahead"), "main.css must theme Lineage story scrubber + past/now/ahead");
+assert(lhsMap.includes("LHS1") && lhsMap.includes("lhs-strip") && lhsMap.includes("lineage-story-scrubber.png") && lhsMap.includes("peekSource"), "lineage-story-scrubber feature map must name LHS / lhs-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/lineage-story-scrubber.md")), "lineage-story-scrubber feature map missing");
+assert(featReadme.includes("lineage-story-scrubber.md") && featReadme.includes("lineage-story-scrubber.png"), "feature README must list lineage-story-scrubber.md");
+
+
 
 
 

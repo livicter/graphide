@@ -20386,6 +20386,14 @@
         syncLineageFanBars();
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "lineage" && lineageHopCursor >= 0) {
+        e.preventDefault();
+        lineageHopCursor = -1;
+        applyLineageStoryScrubPaint();
+        syncLineageStoryScrub();
+        paint({ animate: "none" });
+        return;
+      }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "decisions" && decisionAttestFilter) {
         e.preventDefault();
         decisionAttestFilter = null;
@@ -33609,7 +33617,10 @@
           from: h.from,
           to: h.to,
           kind: h.kind || "",
-          caption: lineageBehaviorCaption(h.dir === "out" || h.side === "down" ? h.from : h.to, hops, focus) || storyBehaviorCaption(h.from, h.to)
+          caption: lineageBehaviorCaption(h.dir === "out" || h.side === "down" ? h.from : h.to, hops, focus) || storyBehaviorCaption(h.from, h.to),
+          story: lineageHopCursor < 0 ? "" : i < lineageHopCursor ? "past" : i === lineageHopCursor ? "now" : "ahead",
+          storyPrefix: "lhs",
+          hot: i === lineageHopCursor
         })),
         cursor: lineageHopCursor,
         hotIds,
@@ -33761,6 +33772,118 @@
         fan: filter2 || null
       });
     }
+    function lineageIncidentHops() {
+      if (!lineageEgoId || typeof walkDirectedLineage !== "function") return [];
+      try {
+        const reading = walkDirectedLineage(lineageEgoId, typeof egoHops === "number" ? egoHops : 1);
+        return reading && reading.hops || [];
+      } catch (err) {
+        return [];
+      }
+    }
+    function lineageStoryScrubHtml(hops) {
+      const n = hops && hops.length || 0;
+      if (n < 1) return "";
+      const max = Math.max(0, n - 1);
+      const active = lineageHopCursor >= 0;
+      const val = active ? Math.min(lineageHopCursor, max) : 0;
+      return '<div class="lhs-strip" data-lhs="1" role="group" aria-label="Lineage story scrubber"><span class="lhs-stat"><i class="k">Story</i> <b class="n" data-lhs-meta="1">' + (active ? lineageHopCursor + 1 + "/" + n : "idle · " + n + " hops") + '</b></span><label class="lhs-slider-wrap"><span class="lhs-depth-label">hop <b data-lhs-val="1">' + (active ? String(lineageHopCursor + 1) : "—") + '</b></span><input type="range" id="lhsScrub" class="lhs-scrub" min="0" max="' + max + '" value="' + val + '" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + val + '" aria-label="Scrub lineage incident hop" /></label><span class="lhs-hint">past · now · ahead on hops and canvas</span></div>';
+    }
+    function syncLineageStoryScrub() {
+      const hops = lineageIncidentHops();
+      const n = hops.length;
+      const max = Math.max(0, n - 1);
+      const active = lineageHopCursor >= 0 && n > 0;
+      const input = document.getElementById("lhsScrub");
+      if (input) {
+        input.max = String(max);
+        input.setAttribute("aria-valuemax", String(max));
+        if (active) {
+          input.value = String(Math.min(lineageHopCursor, max));
+          input.setAttribute("aria-valuenow", input.value);
+        }
+      }
+      const strip = canvas.querySelector(".lhs-strip[data-lhs='1']");
+      if (strip) {
+        strip.classList.toggle("lhs-scrubbing", active);
+        const meta2 = strip.querySelector("[data-lhs-meta='1']");
+        if (meta2) meta2.textContent = active ? lineageHopCursor + 1 + "/" + n : "idle · " + n + " hops";
+        const valEl = strip.querySelector("[data-lhs-val='1']");
+        if (valEl) valEl.textContent = active ? String(lineageHopCursor + 1) : "—";
+      }
+      if (canvas.classList.contains("explorer-lineage")) canvas.classList.toggle("lhs-scrubbing", active);
+      const host = document.getElementById("lineageCanvas");
+      if (host) host.classList.toggle("lhs-scrubbing", active);
+      const list = document.getElementById("lineageHops");
+      if (list) list.classList.toggle("lhs-scrubbing", active);
+      const stage = canvas.querySelector(".stage");
+      if (stage) {
+        stage.classList.toggle("lhs-scrubbing", active);
+        if (!stage.getAttribute("data-lhs")) stage.setAttribute("data-lhs", "1");
+      }
+    }
+    function bindLineageStoryScrub() {
+      const input = document.getElementById("lhsScrub");
+      if (!input || input.dataset.lhsBound === "1") return;
+      input.dataset.lhsBound = "1";
+      input.addEventListener("input", () => {
+        const hops = lineageIncidentHops();
+        if (!hops.length) return;
+        const v = parseInt(input.value, 10);
+        if (!Number.isFinite(v)) return;
+        lineageHopCursor = Math.max(0, Math.min(v, hops.length - 1));
+        applyLineageStoryScrubPaint();
+        syncLineageStoryScrub();
+        if (typeof mountLineageCanvas === "function" && lineageEgoId) {
+          const reading = walkDirectedLineage(lineageEgoId, typeof egoHops === "number" ? egoHops : 1);
+          mountLineageCanvas(reading, lineageEgoId);
+        }
+      });
+    }
+    function applyLineageStoryScrubPaint() {
+      const hops = lineageIncidentHops();
+      const active = lineageHopCursor >= 0 && hops.length > 0;
+      if (canvas.classList.contains("explorer-lineage")) canvas.classList.toggle("lhs-scrubbing", active);
+      const host = document.getElementById("lineageCanvas");
+      if (host) host.classList.toggle("lhs-scrubbing", active);
+      const strip = canvas.querySelector(".lhs-strip[data-lhs='1']");
+      if (strip) strip.classList.toggle("lhs-scrubbing", active);
+      const list = document.getElementById("lineageHops");
+      if (list) list.classList.toggle("lhs-scrubbing", active);
+      const stage = canvas.querySelector(".stage");
+      if (stage) {
+        stage.classList.toggle("lhs-scrubbing", active);
+        if (!stage.getAttribute("data-lhs")) stage.setAttribute("data-lhs", "1");
+      }
+      canvas.querySelectorAll("#lineageHops .expl-card.hop").forEach((el2) => {
+        el2.classList.remove("lhs-past", "lhs-now", "lhs-ahead");
+        if (!active) return;
+        const i = parseInt(el2.getAttribute("data-lineage-i"), 10);
+        if (!Number.isFinite(i)) return;
+        if (i < lineageHopCursor) el2.classList.add("lhs-past");
+        else if (i === lineageHopCursor) el2.classList.add("lhs-now");
+        else el2.classList.add("lhs-ahead");
+      });
+      const nowIds = /* @__PURE__ */ new Set();
+      const pastIds = /* @__PURE__ */ new Set();
+      const aheadIds = /* @__PURE__ */ new Set();
+      if (active) {
+        hops.forEach((h, i) => {
+          const bucket = i < lineageHopCursor ? pastIds : i === lineageHopCursor ? nowIds : aheadIds;
+          if (h && h.from) bucket.add(String(h.from));
+          if (h && h.to) bucket.add(String(h.to));
+        });
+      }
+      canvas.querySelectorAll("#lineageCanvas .vnode, #lineageCanvas .react-flow__node, #lineageCanvas .ego-node").forEach((el2) => {
+        el2.classList.remove("lhs-past", "lhs-now", "lhs-ahead");
+        if (!active) return;
+        const id2 = el2.getAttribute("data-id") || el2.getAttribute("data-lc-id") || "";
+        if (!id2) return;
+        if (nowIds.has(String(id2))) el2.classList.add("lhs-now");
+        else if (pastIds.has(String(id2))) el2.classList.add("lhs-past");
+        else if (aheadIds.has(String(id2))) el2.classList.add("lhs-ahead");
+      });
+    }
     function renderLineage(opts) {
       const keepCam = !!(opts && opts.keepCam);
       renderTabs(snapshot.flows || [], currentFlow() && currentFlow().name);
@@ -33809,7 +33932,7 @@
           ].join(" ")
         );
       }).slice(0, 24).map(({ e, i }) => {
-        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '" data-lbc-caption="1"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(
+        return '<button type="button" class="expl-card hop' + (i === lineageHopCursor ? " on" : "") + (lineageHopCursor >= 0 && i < lineageHopCursor ? " lhs-past" : "") + (lineageHopCursor >= 0 && i === lineageHopCursor ? " lhs-now" : "") + (lineageHopCursor >= 0 && i > lineageHopCursor ? " lhs-ahead" : "") + '" data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" data-kind="' + esc(e.kind) + '" data-dir="' + esc(e.dir || "") + '" data-lineage-i="' + i + '" data-lbc-caption="1"><div class="k">' + esc(e.kind) + " " + (e.dir === "out" ? "→" : "←") + '</div><div class="t">' + esc(shortOf(fqnOf(snapshot.graph, e.dir === "out" ? e.to : e.from))) + '</div><div class="b">' + esc(
           lineageBehaviorCaption(e.dir === "out" ? e.from : e.to, hops, id2) || storyBehaviorCaption(e.from, e.to) || shortToken(e.from) + " → " + shortToken(e.to)
         ) + "</div></button>";
       });
@@ -33829,10 +33952,10 @@
       };
       const key = lineageWorkspaceKey(id2, reading);
       const keep = !!(canvas.classList.contains("explorer-lineage") && document.getElementById("lineageCanvas") && key === lineageBodyKey);
-      canvas.className = "play has-stage explorer-lineage";
+      canvas.className = "play has-stage explorer-lineage" + (lineageHopCursor >= 0 ? " lhs-scrubbing" : "");
       if (!keep) {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div>' + lineageFanStripHtml(buckets) + '<div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div><div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
+        canvas.innerHTML = '<div class="stage"><div class="viewport" data-lod="0"><div class="flow-title">Lineage · ego of ' + esc(shortOf(node && node.fqn || id2)) + " · " + egoHops + "-hop</div>" + pathRow + '<div id="lineageCanvas" class="lineage-canvas lineage-wrap"></div>' + lineageFanStripHtml(buckets) + '<div class="flow-title">Provenance on derived edges</div><div class="prov-row xy">' + provCol("used", "Used · Reads", buckets.used) + provCol("informed", "Informed · Calls", buckets.informed) + provCol("generated", "Generated · Writes", buckets.generated) + '</div><div class="flow-title">Incident hops</div>' + lineageStoryScrubHtml(hops) + '<div class="expl-list compact hops" id="lineageHops">' + (hopCards.join("") || '<div class="empty">No incident hops on the derived graph.</div>') + "</div></div></div>";
         lineageBodyKey = document.getElementById("lineageCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !keepCam });
       } else {
@@ -33877,6 +34000,9 @@
       const downN = reading.nodes.filter((n) => n.side === "down").length;
       bindLineageFanChart();
       applyLineageFanPaint();
+      bindLineageStoryScrub();
+      applyLineageStoryScrubPaint();
+      syncLineageStoryScrub();
       window.__graphideLineage = {
         focus: id2,
         fqn: node && node.fqn || "",
