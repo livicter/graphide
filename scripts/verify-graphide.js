@@ -16069,6 +16069,188 @@ async function main() {
     );
     assertNoStampDir("MHS5", "Map-altitude community-hop-size mix step did not write .graphide/stamps/");
 
+    // ADE Map community-cut graphic (MCC1–MCC5) — on-tree vs off-tree altitude cards; same Map desk as MHS
+    {
+      // Clear a leftover MHS/MCS/MAC filter from the hop×size shot so card highlight stays honest.
+      // Do not Escape here — a live cross-desk trail must stay for later FTR tests.
+      await page.evaluate(() => {
+        document
+          .querySelectorAll('.mhs-bar[aria-pressed="true"], .mcs-bar[aria-pressed="true"], .mac-bar[aria-pressed="true"]')
+          .forEach((el) => el.click());
+      });
+      await page.waitForTimeout(40);
+      await page.waitForSelector(".mcc-strip[data-mcc='1']", { timeout: 8000 });
+      await page.waitForSelector(".bubble-card[data-mcc-cut]", { timeout: 8000 });
+      await page.waitForTimeout(80);
+      const beforeMccPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const mcc1 = await page.evaluate(() => {
+        const strip = document.querySelector(".mcc-strip[data-mcc='1']");
+        const stats = [...document.querySelectorAll(".mcc-stat[data-mcc-band]")].map((el) => ({
+          band: el.getAttribute("data-mcc-band"),
+          n: Number((el.querySelector("[data-mcc-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".mcc-seg[data-mcc-band]")].map((el) => el.getAttribute("data-mcc-band"));
+        const cards = [...document.querySelectorAll(".bubble-card[data-bubble]")];
+        const byCut = { on: 0, off: 0 };
+        const ids = { on: [], off: [] };
+        for (const c of cards) {
+          const cut = c.getAttribute("data-mcc-cut") || "";
+          if (cut === "on" || cut === "off") {
+            byCut[cut] += 1;
+            ids[cut].push(c.getAttribute("data-bubble"));
+          }
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        return {
+          strip: !!strip,
+          mhs: !!document.querySelector(".mhs-strip[data-mhs='1']"),
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          cards: cards.length,
+          stamped: byCut.on + byCut.off,
+          byCut,
+          ids,
+          on: nOf("on"),
+          off: nOf("off"),
+          sum: nOf("on") + nOf("off"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+          segs,
+        };
+      });
+      const mcc1ok =
+        mcc1.strip &&
+        mcc1.mhs &&
+        mcc1.mapOn &&
+        !mcc1.enter &&
+        mcc1.cards === 12 &&
+        mcc1.on === 8 &&
+        mcc1.off === 4 &&
+        mcc1.sum === 12 &&
+        mcc1.stamped === 12 &&
+        mcc1.on === mcc1.byCut.on &&
+        mcc1.off === mcc1.byCut.off &&
+        (mcc1.ids.on || []).includes("b-render") &&
+        (mcc1.ids.off || []).includes("b-physics") &&
+        mcc1.segs.length === 2 &&
+        mcc1.pressed === 0 &&
+        mcc1.srcHidden;
+      record(
+        "MCC1",
+        "Map community-cut graphic shows 8 on-tree / 4 off-tree of 12 cards, matching data-mcc-cut; no enter; no source",
+        !!mcc1ok,
+        JSON.stringify(mcc1)
+      );
+
+      const offBtn = page.locator('.mcc-stat[data-mcc-band="off"]').first();
+      await offBtn.click();
+      await page.waitForTimeout(80);
+      const mcc2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        const cards = [...document.querySelectorAll(".bubble-card[data-mcc-cut]")];
+        const hits = cards.filter((el) => el.classList.contains("mcc-hit"));
+        const dims = cards.filter((el) => el.classList.contains("mcc-dim"));
+        const offHits = hits.filter((el) => el.getAttribute("data-mcc-cut") === "off");
+        const physicsHit = !!document.querySelector('.bubble-card[data-bubble="b-physics"].mcc-hit');
+        const offPressed = document.querySelector('.mcc-stat[data-mcc-band="off"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          cards: cards.length,
+          hits: hits.length,
+          dims: dims.length,
+          offHits: offHits.length,
+          physicsHit,
+          offPressed: !!offPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const mcc2ok =
+        mcc2.mapOn &&
+        !mcc2.enter &&
+        mcc2.hits === 4 &&
+        mcc2.offHits === 4 &&
+        mcc2.dims === 8 &&
+        mcc2.physicsHit &&
+        mcc2.offPressed &&
+        mcc2.srcHidden;
+      record(
+        "MCC2",
+        "Click Off highlights the 4 off-tree Map cards including b-physics; Map stays; no enter; no source",
+        !!mcc2ok,
+        JSON.stringify(mcc2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const mcc3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="map"]');
+        const hits = document.querySelectorAll(".bubble-card.mcc-hit").length;
+        const pressed = document.querySelectorAll('.mcc-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".mcc-strip.mcc-focusing, .comm-wrap.mcc-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          mapOn: !!(ws && ws.classList.contains("on")),
+          enter: !!document.getElementById("enterCanvas"),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "MCC3",
+        "Escape clears community-cut graphic focus; Map stays; no enter; no source",
+        !!(mcc3.mapOn && !mcc3.enter && mcc3.hits === 0 && mcc3.pressed === 0 && !mcc3.focusing && mcc3.srcHidden),
+        JSON.stringify(mcc3)
+      );
+
+      await offBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "map-community-cut.png");
+      const mccShot = checks.find((c) => c.id === "shot:map-community-cut.png");
+      const mcc5ok = !!(mcc1ok && mcc2ok && mcc3 && mcc3.mapOn && mccShot && mccShot.pass);
+      record(
+        "MCC4",
+        "screenshot map-community-cut.png is not a black frame",
+        !!(mccShot && mccShot.pass),
+        mccShot ? mccShot.detail : "missing"
+      );
+      record(
+        "MCC5",
+        "screenshot map-community-cut.png not black; Map community-cut graphic proven",
+        !!mcc5ok,
+        JSON.stringify({
+          shot: mccShot ? mccShot.detail : "missing",
+          mcc1: !!mcc1ok,
+          mcc2: !!mcc2ok,
+          mcc3: !!(mcc3 && mcc3.mapOn && mcc3.hits === 0),
+        })
+      );
+      assertNoStampDir("MCC5b", "Map community-cut graphic step did not write .graphide/stamps/");
+      const afterMccPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "enterRun" || m.type === "enterNode")),
+        };
+      }, beforeMccPosts);
+      record(
+        "MCC5c",
+        "Map community-cut clicks did not post peekSource / enterRun / open source",
+        afterMccPosts.after === afterMccPosts.before && !afterMccPosts.peek,
+        JSON.stringify(afterMccPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     // ADE Sequence module-cut graphic (SMC1–SMC5) — same-document Sequence visit; do not page.goto.
     // Later SHM clicks Slice itself.
     {
