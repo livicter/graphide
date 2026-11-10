@@ -64,3 +64,5 @@ Interactive kind-mix bars (RAK1–RAK5) live in [registry-audit-kind-mix.md](reg
   product hooks.
 - Do not XYFlow this list. Do not invent extra audit columns. Do not
   stamp.
+
+- ADE RAS (Registry audit subjects): below the RAK strip, `.ras-strip[data-ras="1"]` cards name unique audit subjects (flow when present, else title) with row counts and kind-tick sparks from the same `registryEvents()` rows as the table — not invented. Click focuses matching rows; Escape clears after RAK then RSG. Graph-only — must not open Evidence / `peekSource` / source pane, must not add XYFlow, and must not hide rows (RAK owns kind filter). Screenshot `verification/registry-audit-subjects.png`. Asserts RAS1–RAS5. See [registry-audit-subjects.md](registry-audit-subjects.md).

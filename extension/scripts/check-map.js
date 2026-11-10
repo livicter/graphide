@@ -1212,6 +1212,21 @@ assert(pflMap.includes("PFL1") && pflMap.includes("pfl-strip") && pflMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/present-fixture-lens.md")), "present-fixture-lens feature map missing");
 assert(featReadme.includes("present-fixture-lens.md") && featReadme.includes("present-fixture-lens.png"), "feature README must list present-fixture-lens.md");
 
+const rasMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-audit-subjects.md"), "utf8");
+assert(
+  rasMap.includes("## Sub-features") &&
+    rasMap.includes("## How to get to it (user POV)") &&
+    rasMap.includes("## Driving it with the harness") &&
+    rasMap.includes("## Gotchas"),
+  "registry-audit-subjects feature map must use the four headings"
+);
+assert(driver.includes("RAS1") && driver.includes("RAS3") && driver.includes("registry-audit-subjects.png") && driver.includes("ras-card"), "verify driver must prove Registry audit subjects RAS1–RAS3");
+assert(js.includes("registryAuditSubjectGraphicHtml") && js.includes("bindRegistryAuditSubjectGraphic") && js.includes("applyRegistryAuditSubjectPaint") && chrome.includes("registryAuditSubjectGraphicHtml"), "desk.js must own Registry audit-subject graphic helpers");
+assert(css.includes(".ras-strip") && css.includes(".ras-card") && css.includes("ras-now") && css.includes("ras-tick"), "main.css must theme Registry audit-subject graphic + kind ticks");
+assert(rasMap.includes("RAS1") && rasMap.includes("ras-strip") && rasMap.includes("registry-audit-subjects.png") && rasMap.includes("peekSource"), "registry-audit-subjects feature map must name RAS / ras-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/registry-audit-subjects.md")), "registry-audit-subjects feature map missing");
+assert(featReadme.includes("registry-audit-subjects.md") && featReadme.includes("registry-audit-subjects.png"), "feature README must list registry-audit-subjects.md");
+
 
 
 
