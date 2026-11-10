@@ -1122,6 +1122,22 @@ assert(tssMap.includes("TSS1") && tssMap.includes("tss-strip") && tssMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trajectory-story-scrubber.md")), "trajectory-story-scrubber feature map missing");
 assert(featReadme.includes("trajectory-story-scrubber.md") && featReadme.includes("trajectory-story-scrubber.png"), "feature README must list trajectory-story-scrubber.md");
 
+const ddsMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-story-scrubber.md"), "utf8");
+assert(
+  ddsMap.includes("## Sub-features") &&
+    ddsMap.includes("## How to get to it (user POV)") &&
+    ddsMap.includes("## Driving it with the harness") &&
+    ddsMap.includes("## Gotchas"),
+  "delta-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("DDS1") && driver.includes("DDS3") && driver.includes("delta-story-scrubber.png") && driver.includes("ddsScrub"), "verify driver must prove Delta story scrubber DDS1–DDS3");
+assert(js.includes("deltaStoryScrubHtml") && js.includes("bindDeltaStoryScrub") && js.includes("applyDeltaStoryScrubPaint") && js.includes("syncDeltaStoryScrub") && chrome.includes("deltaStoryScrubHtml"), "desk.js must own Delta story scrubber helpers");
+assert(css.includes(".dds-strip") && css.includes(".dds-scrub") && css.includes("dds-past") && css.includes("dds-now") && css.includes("dds-ahead"), "main.css must theme Delta story scrubber + past/now/ahead");
+assert(ddsMap.includes("DDS1") && ddsMap.includes("dds-strip") && ddsMap.includes("delta-story-scrubber.png") && ddsMap.includes("peekSource"), "delta-story-scrubber feature map must name DDS / dds-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/delta-story-scrubber.md")), "delta-story-scrubber feature map missing");
+assert(featReadme.includes("delta-story-scrubber.md") && featReadme.includes("delta-story-scrubber.png"), "feature README must list delta-story-scrubber.md");
+
+
 
 
 

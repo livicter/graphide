@@ -171,6 +171,7 @@ let selectedDecisionKey = "";
 let timelineCursor = 0;
 let deltaView = "delta";
 let deltaCursor = -1;
+/** ADE DDS — Delta story scrub active when deltaCursor >= 0 (past/now/ahead paint). */
 let deltaWalk = { playing: false, timer: 0 };
 let seqCursor = -1;
 /** ADE SSS — Sequence story scrub active when seqCursor >= 0 (past/now/ahead paint). */
@@ -706,6 +707,21 @@ document.addEventListener("keydown", (e) => {
     structuralDiffFilter = null;
     applyStructuralDiffPaint();
     syncStructuralDiffBars();
+    return;
+  }
+  // ADE DDS: Escape clears Delta story scrub (deltaCursor → idle) when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "delta" &&
+    deltaCursor >= 0
+  ) {
+    e.preventDefault();
+    stopDeltaWalk();
+    deltaCursor = -1;
+    applyDeltaStoryScrubPaint();
+    syncDeltaStoryScrub();
+    paint({ animate: "none" });
     return;
   }
   // ADE LSC: Escape clears Lifecycle transition overlay filter when active (Lifecycle stays open).
@@ -10159,7 +10175,15 @@ function deltaCanvasProps() {
   const reading = deltaReading(deltaView, hot);
   return {
     nodes: reading.nodes,
-    hops: reading.hops,
+    hops: (reading.hops || []).map((h, i) => {
+      const story =
+        deltaCursor < 0 ? "" : i < deltaCursor ? "past" : i === deltaCursor ? "now" : "ahead";
+      return Object.assign({}, h, {
+        story,
+        storyPrefix: "dds",
+        hot: i === deltaCursor,
+      });
+    }),
     cursor: deltaCursor,
     hotIds: reading.hotIds,
     onNodeClick: (id) => {
@@ -10195,6 +10219,8 @@ function patchDeltaChrome() {
     const i = parseInt(el.getAttribute("data-delta-i"), 10);
     el.classList.toggle("on", i === deltaCursor);
   });
+  applyDeltaStoryScrubPaint();
+  syncDeltaStoryScrub();
   canvas.querySelectorAll("#deltaView [data-delta-view]").forEach((el) => {
     if (el.id === "deltaCanvas") return;
     const on = el.getAttribute("data-delta-view") === deltaView;
@@ -10219,6 +10245,148 @@ function patchDeltaChrome() {
   if (typeof applyStructuralDiffPaint === "function") applyStructuralDiffPaint();
 }
 
+
+/** ADE DDS — story scrub strip bound to deltaCursor (fact order). */
+function deltaStoryScrubHtml(facts) {
+  const n = (facts && facts.length) || 0;
+  if (n < 1) return "";
+  const max = Math.max(0, n - 1);
+  const active = deltaCursor >= 0;
+  const val = active ? Math.min(deltaCursor, max) : 0;
+  return (
+    '<div class="dds-strip" data-dds="1" role="group" aria-label="Delta story scrubber">' +
+    '<span class="dds-stat"><i class="k">Story</i> <b class="n" data-dds-meta="1">' +
+    (active ? deltaCursor + 1 + "/" + n : "idle · " + n + " facts") +
+    "</b></span>" +
+    '<label class="dds-slider-wrap">' +
+    '<span class="dds-depth-label">fact <b data-dds-val="1">' +
+    (active ? String(deltaCursor + 1) : "—") +
+    "</b></span>" +
+    '<input type="range" id="ddsScrub" class="dds-scrub" min="0" max="' +
+    max +
+    '" value="' +
+    val +
+    '" aria-valuemin="0" aria-valuemax="' +
+    max +
+    '" aria-valuenow="' +
+    val +
+    '" aria-label="Scrub architecture-delta fact" />' +
+    "</label>" +
+    '<span class="dds-hint">past · now · ahead on facts and canvas</span>' +
+    "</div>"
+  );
+}
+
+function deltaStoryClassForIndex(i) {
+  if (deltaCursor < 0 || i < 0) return "";
+  if (i < deltaCursor) return " dds-past";
+  if (i === deltaCursor) return " dds-now";
+  return " dds-ahead";
+}
+
+function deltaFactFqns(f) {
+  const out = [];
+  if (!f) return out;
+  if (f.from_fqn) out.push(f.from_fqn);
+  if (f.to_fqn) out.push(f.to_fqn);
+  if (f.fqn) out.push(f.fqn);
+  return out;
+}
+
+function syncDeltaStoryScrub() {
+  const facts = typeof deltaFacts === "function" ? deltaFacts() || [] : [];
+  const n = facts.length;
+  const max = Math.max(0, n - 1);
+  const active = deltaCursor >= 0 && n > 0;
+  const input = document.getElementById("ddsScrub");
+  if (input) {
+    input.max = String(max);
+    input.setAttribute("aria-valuemax", String(max));
+    if (active) {
+      input.value = String(Math.min(deltaCursor, max));
+      input.setAttribute("aria-valuenow", input.value);
+    }
+  }
+  const strip = canvas.querySelector(".dds-strip[data-dds='1']");
+  if (strip) {
+    strip.classList.toggle("dds-scrubbing", active);
+    const meta = strip.querySelector("[data-dds-meta='1']");
+    if (meta) meta.textContent = active ? deltaCursor + 1 + "/" + n : "idle · " + n + " facts";
+    const valEl = strip.querySelector("[data-dds-val='1']");
+    if (valEl) valEl.textContent = active ? String(deltaCursor + 1) : "—";
+  }
+  const page = canvas.querySelector(".delta-page");
+  if (page) page.classList.toggle("dds-scrubbing", active);
+  const host = document.getElementById("deltaCanvas");
+  if (host) host.classList.toggle("dds-scrubbing", active);
+  const list = canvas.querySelector("#deltaFacts");
+  if (list) list.classList.toggle("dds-scrubbing", active);
+}
+
+function bindDeltaStoryScrub() {
+  const input = document.getElementById("ddsScrub");
+  if (!input || input.dataset.ddsBound === "1") return;
+  input.dataset.ddsBound = "1";
+  input.addEventListener("input", () => {
+    const facts = deltaFacts() || [];
+    if (!facts.length) return;
+    stopDeltaWalk();
+    const v = parseInt(input.value, 10);
+    if (!Number.isFinite(v)) return;
+    deltaCursor = Math.max(0, Math.min(v, facts.length - 1));
+    if (typeof applyDeltaFactView === "function") applyDeltaFactView(facts[deltaCursor]);
+    applyDeltaStoryScrubPaint();
+    syncDeltaStoryScrub();
+    if (typeof patchDeltaChrome === "function") patchDeltaChrome();
+    const host = document.getElementById("deltaCanvas");
+    if (host && typeof mountDeltaCanvas === "function" && typeof deltaCanvasProps === "function") {
+      mountDeltaCanvas(host, deltaCanvasProps());
+    }
+  });
+}
+
+function applyDeltaStoryScrubPaint() {
+  const facts = typeof deltaFacts === "function" ? deltaFacts() || [] : [];
+  const active = deltaCursor >= 0 && facts.length > 0;
+  const page = canvas.querySelector(".delta-page");
+  if (page) page.classList.toggle("dds-scrubbing", active);
+  const host = document.getElementById("deltaCanvas");
+  if (host) host.classList.toggle("dds-scrubbing", active);
+  const strip = canvas.querySelector(".dds-strip[data-dds='1']");
+  if (strip) strip.classList.toggle("dds-scrubbing", active);
+  const list = canvas.querySelector("#deltaFacts");
+  if (list) list.classList.toggle("dds-scrubbing", active);
+
+  canvas.querySelectorAll("#deltaFacts .delta-fact").forEach((el) => {
+    el.classList.remove("dds-past", "dds-now", "dds-ahead");
+    if (!active) return;
+    const i = parseInt(el.getAttribute("data-delta-i"), 10);
+    if (!Number.isFinite(i)) return;
+    if (i < deltaCursor) el.classList.add("dds-past");
+    else if (i === deltaCursor) el.classList.add("dds-now");
+    else el.classList.add("dds-ahead");
+  });
+
+  const nowFqns = new Set();
+  const pastFqns = new Set();
+  const aheadFqns = new Set();
+  if (active) {
+    facts.forEach((f, i) => {
+      const bucket = i < deltaCursor ? pastFqns : i === deltaCursor ? nowFqns : aheadFqns;
+      deltaFactFqns(f).forEach((fqn) => bucket.add(fqn));
+    });
+  }
+  canvas.querySelectorAll("#deltaCanvas .vnode, #deltaCanvas .react-flow__node").forEach((el) => {
+    el.classList.remove("dds-past", "dds-now", "dds-ahead");
+    if (!active) return;
+    const fqn = el.getAttribute("data-fqn") || "";
+    if (!fqn) return;
+    if (nowFqns.has(fqn)) el.classList.add("dds-now");
+    else if (pastFqns.has(fqn)) el.classList.add("dds-past");
+    else if (aheadFqns.has(fqn)) el.classList.add("dds-ahead");
+  });
+}
+
 function paintDeltaWorkspace(title) {
   canvas.className = "play explorer-list";
   const html = renderDeltaBody();
@@ -10241,6 +10409,9 @@ function paintDeltaWorkspace(title) {
   else if (!host) unmountReviewCanvas();
   if (typeof bindStructuralDiffChart === "function") bindStructuralDiffChart();
   if (typeof applyStructuralDiffPaint === "function") applyStructuralDiffPaint();
+  bindDeltaStoryScrub();
+  applyDeltaStoryScrubPaint();
+  syncDeltaStoryScrub();
 }
 
 function renderDeltaBody() {
@@ -10309,7 +10480,8 @@ function renderDeltaBody() {
       : facts.length
         ? facts.length + " facts"
         : "identical pair") +
-    "</span></div>";
+    "</span></div>" +
+    deltaStoryScrubHtml(facts);
   const list = facts
     .map((f, i) => {
       const community = f.class === "community";
@@ -10321,6 +10493,9 @@ function renderDeltaBody() {
         esc(f.status || "") +
         (community ? " community" : "") +
         (i === deltaCursor ? " on" : "") +
+        (deltaCursor >= 0 && i < deltaCursor ? " dds-past" : "") +
+        (deltaCursor >= 0 && i === deltaCursor ? " dds-now" : "") +
+        (deltaCursor >= 0 && i > deltaCursor ? " dds-ahead" : "") +
         '" data-delta-kind="' +
         esc(f.status || "") +
         '" data-delta-class="' +
@@ -10343,7 +10518,9 @@ function renderDeltaBody() {
     })
     .join("");
   return (
-    '<div class="delta-page">' +
+    '<div class="delta-page' +
+    (deltaCursor >= 0 ? " dds-scrubbing" : "") +
+    '" data-dds="1">' +
     switcher +
     structuralDiffStripHtml() +
     review +
@@ -10361,6 +10538,9 @@ function renderDeltaBody() {
 }
 
 function bindDeltaPage() {
+  bindDeltaStoryScrub();
+  applyDeltaStoryScrubPaint();
+  syncDeltaStoryScrub();
   canvas.querySelectorAll("[data-delta-view]").forEach((el) => {
     if (el.id === "deltaCanvas") return;
     el.onclick = (ev) => {

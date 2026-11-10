@@ -82,9 +82,11 @@ Story-rich hops with participant highlight. Participants group into module swiml
 
 ### Delta
 
-Parent vs head Architecture Delta. Structural status bars filter Added / Removed / Changed / Moved / Rerouted on the fact list and graph.
+Parent vs head Architecture Delta. Structural status bars filter Added / Removed / Changed / Moved / Rerouted on the fact list and graph. Architecture-delta story scrubber paints past / now / ahead on facts (and mappable canvas nodes) so you can freeze the review walk after N changes.
 
 ![Structural diff overlay](UIUX_sample/structural-diff-overlay.png)
+
+![Delta story scrubber](UIUX_sample/delta-story-scrubber.png)
 
 ### Lifecycle
 
@@ -151,6 +153,6 @@ Stamps, skips, and broken attestations. Attestation mix chart filters the ledger
 
 ## Progress
 
-On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS).
+On `main` now: ADE Phase 1 Trajectory, Passport, and Immutable Verification. Behavior charts landed: Overview mix and community size (OMC), story captions (SBC), data-flow richer lanes (RDF), sequence story richness (SSR), community-size chart (CSC), Map enter captions (MBE), Lineage captions (LBC), Map-altitude community mix (MAC), Map-altitude community-size mix (MCS), Map-altitude community-hop-size mix (MHS), Slice hop-kind mix (SHM), Call-path scrubber (CPS), Route hop-kind mix (RKM), Decisions attestation mix (DAM), Lineage fan size mix (LFO), Passport↔Trajectory delta mix (PTD), Cross-desk focus trail (CFT), Focus Trail Return (FTR), Value-trail Sankey (VTS), CFG expand-on-click (CFE), Cross-module sequence swimlane (CMS), Structural diff overlay (SDO), Lifecycle transition overlay (LSC), Registry audit kind-mix (RAK), Timeline kind-mix (TKM), Sequence hop-kind mix (SHK), Sequence story scrubber (SSS), Dataflow story scrubber (DSS), Trajectory story scrubber (TSS), Delta story scrubber (DDS).
 
-Parked next: none (TSS shipped).
+Parked next: none (DDS shipped).
