@@ -1,5 +1,5 @@
 # graphide immutable specs v1
-# seal-sha256: f43de872b2e21fd8df4da3eae512c3ae5e421312692d590dcd7b3d3e314c160a
+# seal-sha256: 03514b67e8d83920c51baff7b6cc6e23e8e4275d3bd9b4c4b3e87e4e6a5b25c7
 # do not edit by hand; regenerate with:
 #   ADE_ALLOW_SPEC_MUTATION=1 node extension/scripts/check-immutable-specs.js --write --allow-spec-mutation
 
@@ -34,7 +34,7 @@ e33fe4a9233b3cd76f3c936d70c9680a664f6b9b038f63341ece775e8a76edd3  .cursor/skills
 08c5569648fd786010093dbc3d92309ca9bf50b26cb441e4821c969f9e690b66  .cursor/skills/verify-graphide/references/features/keys.md
 4e2fb6953bc376033ffae18f36d2a38fac3219ea719d241e682b76481d37cddc  .cursor/skills/verify-graphide/references/features/kind-filters.md
 1888d708ce13f3a3f35fef139f76af48a79c1125e2eb16f768a06d606eb20254  .cursor/skills/verify-graphide/references/features/lens.md
-e83338cc869de9190a70159213aa91c8a98515367bc86e88729207ff2188a15c  .cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md
+f92004cc1d50015f0a737a3a0896792d12ced1b3a859c4a90363bc2a9cf3ae8f  .cursor/skills/verify-graphide/references/features/lifecycle-story-scrubber.md
 95245c4efe596d1abaad74b0c22105068add16b78191658ebbb6c4e53b6b1e3b  .cursor/skills/verify-graphide/references/features/lifecycle-transition-overlay.md
 99f63082dfff16b6f32004138bc380cb956d0617763788ac9b42d2125a67a87b  .cursor/skills/verify-graphide/references/features/lifecycle.md
 4e01accd5d288a4b5be0c02321da67980b6c77b757dc34881e4d2b0fc636988f  .cursor/skills/verify-graphide/references/features/lineage.md
