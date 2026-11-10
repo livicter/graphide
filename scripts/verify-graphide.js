@@ -39777,6 +39777,192 @@ async function main() {
       await page.waitForTimeout(40);
     }
 
+
+    // ADE Lifecycle story scrubber (LSS1–LSS5) — past/now/ahead scrub on lcCursor
+    // Stay on the LSC lifecycle document. Do not page.goto (lineage follows with its own goto).
+    {
+      await page.waitForSelector(".lss-strip #lssScrub, #lcTrans .lc-trans", { timeout: 8000 });
+      const lss1 = await page.evaluate(() => {
+        const strip = document.querySelector(".lss-strip[data-lss='1']");
+        const scrub = document.getElementById("lssScrub");
+        const hops = document.querySelectorAll("#lcTrans .lc-trans").length;
+        const play = document.getElementById("lcPlay");
+        const pageEl = document.querySelector('.lc-page[data-lss="1"]');
+        const lsc = !!document.querySelector(".lsc-strip .lsc-chart .lsc-bar, .lsc-strip .lsc-bar");
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="lifecycle"]');
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          hops,
+          play: !!play,
+          page: !!pageEl,
+          lsc,
+          srcHidden: !src || src.hidden,
+          lcOn: !!(ws && ws.classList.contains("on")),
+        };
+      });
+      const lss1ok = !!(
+        lss1 &&
+        lss1.strip &&
+        lss1.scrub &&
+        lss1.hops >= 1 &&
+        lss1.play &&
+        lss1.page &&
+        lss1.lsc &&
+        lss1.srcHidden &&
+        lss1.lcOn &&
+        Number(lss1.max) >= 0
+      );
+      record(
+        "LSS1",
+        "Lifecycle .lss-strip / #lssScrub present beside review chrome; events available; LSC stays; no source",
+        !!lss1ok,
+        JSON.stringify(lss1)
+      );
+
+      const lss2 = await page.evaluate(() => {
+        const scrub = document.getElementById("lssScrub");
+        const n0 = document.querySelectorAll("#lcTrans .lc-trans").length;
+        if (!scrub || n0 < 1) return { ok: false, reason: "no scrub/hops" };
+        const target = Math.min(1, n0 - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const hops = [...document.querySelectorAll("#lcTrans .lc-trans")];
+        const past = hops.filter((el) => el.classList.contains("lss-past")).length;
+        const now = hops.filter((el) => el.classList.contains("lss-now")).length;
+        const ahead = hops.filter((el) => el.classList.contains("lss-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".lc-page.lss-scrubbing") ||
+          document.querySelector("#lcTrans.lss-scrubbing") ||
+          document.querySelector(".lss-strip.lss-scrubbing")
+        );
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          hops: hops.length,
+          scrubbing,
+          sum: past + now + ahead,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lss2ok = !!(
+        lss2 &&
+        lss2.ok &&
+        lss2.scrubbing &&
+        lss2.now === 1 &&
+        lss2.sum === lss2.hops &&
+        lss2.srcHidden
+      );
+      record(
+        "LSS2",
+        "Lifecycle scrub paints events lss-past/lss-now/lss-ahead without opening source",
+        !!lss2ok,
+        JSON.stringify(lss2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const lss3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".lc-page.lss-scrubbing") ||
+          document.querySelector("#lcTrans.lss-scrubbing") ||
+          document.querySelector(".lss-strip.lss-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#lcTrans .lc-trans.lss-past, #lcTrans .lc-trans.lss-now, #lcTrans .lc-trans.lss-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lss3ok = !!(
+        lss3 &&
+        lss3.ws === "lifecycle" &&
+        !lss3.scrubbing &&
+        lss3.painted === 0 &&
+        lss3.srcHidden
+      );
+      record(
+        "LSS3",
+        "Escape clears Lifecycle story scrub without leaving Lifecycle or opening source",
+        !!lss3ok,
+        JSON.stringify(lss3)
+      );
+
+      await page.evaluate(() => {
+        const scrub = document.getElementById("lssScrub");
+        const n = document.querySelectorAll("#lcTrans .lc-trans").length;
+        if (!scrub || n < 1) return;
+        scrub.value = String(Math.min(1, n - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const lss4 = await page.evaluate(() => {
+        const pageEl = document.querySelector('.lc-page[data-lss="1"]');
+        const lsc = !!document.querySelector(".lsc-strip .lsc-chart .lsc-bar, .lsc-strip .lsc-bar");
+        const scrubbing = !!(
+          document.querySelector(".lc-page.lss-scrubbing") ||
+          document.querySelector("#lcTrans.lss-scrubbing")
+        );
+        const play = document.getElementById("lcPlay");
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          lsc,
+          scrubbing,
+          play: !!play,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const lss4ok = !!(
+        lss4 &&
+        lss4.page &&
+        lss4.lsc &&
+        lss4.scrubbing &&
+        lss4.play &&
+        lss4.srcHidden
+      );
+      record(
+        "LSS4",
+        "LSS scrub composes with LSC; Lifecycle chrome intact; no source",
+        !!lss4ok,
+        JSON.stringify(lss4)
+      );
+
+      await shot(page, "lifecycle-story-scrubber.png");
+      const lssShot = checks.find((c) => c.id === "shot:lifecycle-story-scrubber.png");
+      const lss5ok = !!(lss1ok && lss2ok && lss3ok && lss4ok && lssShot && lssShot.pass);
+      record(
+        "LSS5",
+        "screenshot lifecycle-story-scrubber.png not black; Lifecycle story scrubber proven",
+        !!lss5ok,
+        JSON.stringify({
+          shot: lssShot ? lssShot.detail : "missing",
+          lss1: !!lss1ok,
+          lss2: !!lss2ok,
+          lss3: !!lss3ok,
+          lss4: !!lss4ok,
+        })
+      );
+      assertNoStampDir("LSS5b", "Lifecycle story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
     const lineageUrl = origin + LINEAGE_HARNESS;
     console.log("lineage " + lineageUrl);
     await page.goto(lineageUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
