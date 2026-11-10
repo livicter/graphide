@@ -17059,6 +17059,7 @@
     if (d.hops) attrs["data-hops"] = d.hops;
     if (d.dist != null) attrs["data-dist"] = String(d.dist);
     if (d.sliceDist != null) attrs["data-slice-dist"] = String(d.sliceDist);
+    if (d.meaCut) attrs["data-mea-cut"] = String(d.meaCut);
     if (d.mbeCaption) attrs["data-mbe-caption"] = "1";
     if (d.lbcCaption) attrs["data-lbc-caption"] = "1";
     if (d.lit != null) attrs["data-lit"] = d.lit ? "1" : "0";
@@ -19759,7 +19760,8 @@
         surface: n.surface || "enter-node",
         showFqn: !!n.showFqn,
         shape: n.shape || "",
-        sliceDist: n.sliceDist
+        sliceDist: n.sliceDist,
+        meaCut: n.meaCut || ""
       })),
       hops
     );
@@ -20149,6 +20151,7 @@
     let mapMixFilter = null;
     let mapWalkCutFocus = null;
     let mapEnterDistFocus = null;
+    let mapEnterAttachFocus = null;
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let mapCommunityCutFocus = null;
@@ -20597,6 +20600,12 @@
         e.preventDefault();
         mapEnterDistFocus = null;
         if (typeof applyMapEnterDistPaint === "function") applyMapEnterDistPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && typeof enterCanvasActive === "function" && enterCanvasActive() && mapEnterAttachFocus) {
+        e.preventDefault();
+        mapEnterAttachFocus = null;
+        if (typeof applyMapEnterAttachPaint === "function") applyMapEnterAttachPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -37027,6 +37036,119 @@
       if (!placeEnterTitleCut(cluster, ".med-strip[data-med='1']", mapEnterDistGraphicHtml(inner))) return;
       bindMapEnterDistGraphic();
     }
+    function mapEnterAttachNodeSet(inner) {
+      const hops = typeof enterEdgesAmong === "function" ? enterEdgesAmong(mapWalkCutNodes(inner)) : [];
+      const attached = /* @__PURE__ */ new Set();
+      for (const h of hops || []) {
+        if (h.from) attached.add(String(idVal(h.from)));
+        if (h.to) attached.add(String(idVal(h.to)));
+        if (h.hopFrom) attached.add(String(idVal(h.hopFrom)));
+        if (h.hopTo) attached.add(String(idVal(h.hopTo)));
+      }
+      return attached;
+    }
+    function mapEnterAttachOf(n, attached) {
+      if (!n) return "isolated";
+      if (n.meaCut === "attached" || n.meaCut === "isolated") return n.meaCut;
+      const id2 = String(idVal(n.id));
+      const set3 = attached || /* @__PURE__ */ new Set();
+      return set3.has(id2) ? "attached" : "isolated";
+    }
+    function mapEnterAttachMetrics(inner) {
+      const nodes = mapWalkCutNodes(inner);
+      const attached = mapEnterAttachNodeSet(inner);
+      const m = { attached: 0, isolated: 0, total: nodes.length };
+      for (const n of nodes) {
+        if (mapEnterAttachOf(n, attached) === "attached") m.attached += 1;
+        else m.isolated += 1;
+      }
+      return m;
+    }
+    function mapEnterAttachGraphicHtml(inner) {
+      const m = mapEnterAttachMetrics(inner);
+      if (!m.total) return "";
+      const focusing = !!mapEnterAttachFocus;
+      const onFor = (key) => !!(mapEnterAttachFocus && String(mapEnterAttachFocus) === String(key));
+      const stat = (key, n) => '<button type="button" class="mea-stat' + (onFor(key) ? " mea-now" : focusing ? " mea-idle" : "") + '" data-mea-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(key + " · " + n) + '"><b data-mea-n="' + esc(key) + '">' + n + "</b> " + esc(key) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="mea-seg mea-' + esc(key) + (onFor(key) ? " mea-now" : focusing ? " mea-idle" : "") + '" data-mea-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="mea-strip' + (focusing ? " mea-focusing" : "") + '" data-mea="1" role="group" aria-label="Map enter-attach graphic"><span class="mea-meta">Enter attach</span><span class="mea-counts">' + stat("attached", m.attached) + stat("isolated", m.isolated) + '</span><div class="mea-bar" aria-hidden="true">' + (m.total === 0 ? '<span class="mea-bar-empty"></span>' : seg("attached", m.attached) + seg("isolated", m.isolated)) + "</div></div>";
+    }
+    function jumpMapEnterAttach(which) {
+      if (!which) return;
+      const key = String(which);
+      if (mapEnterAttachFocus && String(mapEnterAttachFocus) === key) mapEnterAttachFocus = null;
+      else mapEnterAttachFocus = key;
+      applyMapEnterAttachPaint();
+    }
+    function applyMapEnterAttachPaint() {
+      if (!canvas) return;
+      const focus = mapEnterAttachFocus ? String(mapEnterAttachFocus) : "";
+      canvas.querySelectorAll(".mea-stat[data-mea-band], .mea-seg[data-mea-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mea-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("mea-now", on2);
+        el2.classList.toggle("mea-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".mea-strip");
+      if (strip) strip.classList.toggle("mea-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("mea-focusing", !!focus);
+      const cluster = canvas.querySelector(".enter-title-cuts");
+      if (cluster) cluster.classList.toggle("mea-focusing", !!focus);
+      canvas.querySelectorAll("#enterCanvas .vnode").forEach((el2) => {
+        let cut = el2.getAttribute("data-mea-cut") || "";
+        if (cut !== "attached" && cut !== "isolated") {
+          const id2 = el2.getAttribute("data-id") || "";
+          const hitHop = !!canvas.querySelector(
+            "#enterCanvas .react-flow__edge[data-from='" + id2 + "'], #enterCanvas .react-flow__edge[data-to='" + id2 + "']"
+          );
+          cut = hitHop ? "attached" : "isolated";
+          el2.setAttribute("data-mea-cut", cut);
+        }
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("mea-hit", hit);
+        el2.classList.toggle("mea-idle", !!(focus && !hit));
+      });
+    }
+    function bindMapEnterAttachGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".mea-stat[data-mea-band], .mea-seg[data-mea-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-mea-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterAttach(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapEnterAttach(key);
+        };
+      });
+      applyMapEnterAttachPaint();
+    }
+    function syncMapEnterAttachGraphic(inner) {
+      if (!canvas || typeof enterCanvasActive !== "function" || !enterCanvasActive()) {
+        const leftover = canvas && canvas.querySelector(".mea-strip");
+        if (leftover) leftover.remove();
+        return;
+      }
+      const cluster = ensureEnterTitleCuts();
+      if (!cluster) return;
+      const html = mapEnterAttachGraphicHtml(inner);
+      if (!html) {
+        const old = cluster.querySelector(".mea-strip") || canvas.querySelector(".mea-strip");
+        if (old) old.remove();
+        return;
+      }
+      if (!placeEnterTitleCut(cluster, ".mea-strip[data-mea='1']", html)) return;
+      bindMapEnterAttachGraphic();
+    }
     function mapEnterDistBandOf(dist) {
       const d = dist == null ? NaN : Number(dist);
       if (!Number.isFinite(d) || d >= 3) return "3";
@@ -37131,6 +37253,13 @@
       const nodes = (inner.nodes || []).slice(0, 24);
       noteShownMembers(nodes);
       const hops = enterEdgesAmong(nodes);
+      const attached = /* @__PURE__ */ new Set();
+      for (const h of hops) {
+        if (h.from) attached.add(String(idVal(h.from)));
+        if (h.to) attached.add(String(idVal(h.to)));
+        if (h.hopFrom) attached.add(String(idVal(h.hopFrom)));
+        if (h.hopTo) attached.add(String(idVal(h.hopTo)));
+      }
       const flow = (snapshot && snapshot.flows || []).find((f) => f.name === inner.flow);
       const walk = flowWalk(flow);
       const items = nodes.map((n) => {
@@ -37164,7 +37293,8 @@
           caption,
           mbeCaption: !!caption,
           shape: leaf ? "" : shapeOf({ id: nid, kind: "Type" }),
-          sliceDist: n.distance == null ? void 0 : n.distance
+          sliceDist: n.distance == null ? void 0 : n.distance,
+          meaCut: attached.has(nid) ? "attached" : "isolated"
         };
       });
       const hotIds = new Set(nodes.filter((n) => n.lit).map((n) => String(idVal(n.id))));
@@ -37233,9 +37363,10 @@
         bindStage(canvas.querySelector(".stage"), { reset: false });
         if (typeof syncMapWalkCutGraphic === "function") syncMapWalkCutGraphic(inner);
         if (typeof syncMapEnterDistGraphic === "function") syncMapEnterDistGraphic(inner);
+        if (typeof syncMapEnterAttachGraphic === "function") syncMapEnterAttachGraphic(inner);
       } else {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + (mapEnterDistFocus ? " med-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="enter-title-cuts" data-enter-cuts="1">' + mapWalkCutGraphicHtml(inner) + mapEnterDistGraphicHtml(inner) + (typeof mapEnterAttachGraphicHtml === "function" ? mapEnterAttachGraphicHtml(inner) : "") + '</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
         enterBodyKey = document.getElementById("enterCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !stay });
       }
@@ -37243,6 +37374,7 @@
       mountEnterCanvas(inner);
       if (typeof bindMapWalkCutGraphic === "function") bindMapWalkCutGraphic();
       if (typeof bindMapEnterDistGraphic === "function") bindMapEnterDistGraphic();
+      if (typeof bindMapEnterAttachGraphic === "function") bindMapEnterAttachGraphic();
       applyGraphFilter();
       applyEgoPaint();
       const leafNodes = nodes.filter((n) => n.is_leaf).map((n) => nodeById.get(String(idVal(n.id)))).filter(Boolean);
