@@ -5542,6 +5542,7 @@ function showTip(text, ev) {
   if (!tip || !text) return;
   if (typeof hideSliceHopTip === "function") hideSliceHopTip();
   if (typeof hideDataflowHopTip === "function") hideDataflowHopTip();
+  if (typeof hideLifecycleHopTip === "function") hideLifecycleHopTip();
   tip.textContent = text;
   tip.hidden = false;
   const x = Math.min(ev.clientX + 12, window.innerWidth - 16 - tip.offsetWidth);
@@ -14986,6 +14987,7 @@ function bindLcStoryScrub() {
     const host = document.getElementById("lcCanvas");
     if (host && typeof renderLifecycleCanvas === "function" && typeof lifecycleCanvasProps === "function") {
       renderLifecycleCanvas(host, lifecycleCanvasProps());
+      if (typeof scheduleLifecycleHopTipBind === "function") scheduleLifecycleHopTipBind();
     }
   });
 }
@@ -15033,6 +15035,190 @@ function applyLcStoryScrubPaint() {
   });
 }
 
+
+/** LHT: floating Lifecycle hop hover tip (event · from→to · lanes); TEH/SHT/DHT pattern, no SVG <title>. */
+function lifecycleHopTipEl() {
+  let el = document.getElementById("lifecycleHopTip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "lifecycleHopTip";
+    el.hidden = true;
+    el.setAttribute("data-lht", "1");
+    el.setAttribute("role", "tooltip");
+    el.setAttribute("aria-hidden", "true");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function lifecycleLaneLabel(lane) {
+  const id = String(lane || "");
+  if (!id) return "";
+  const reading = typeof lifecycleOf === "function" ? lifecycleOf(typeof lifecycleFlow === "function" ? lifecycleFlow() : null) : null;
+  const hit = ((reading && reading.lanes) || []).find((l) => String(l.id) === id);
+  return (hit && hit.label) || id;
+}
+
+function lifecycleHopTipState(id) {
+  const sid = String(id || "");
+  const empty = { id: sid, name: sid, lane: "", laneLabel: "" };
+  if (!sid) return empty;
+  const host = document.getElementById("lcCanvas");
+  const node = host && host.querySelector('[data-lc-id="' + sid + '"]');
+  const nameEl = node && node.querySelector && node.querySelector(".name");
+  const name = (nameEl && (nameEl.textContent || "").trim()) || (node && (node.getAttribute("data-lc-id") || "")) || sid;
+  const lane = (node && (node.getAttribute("data-lc-lane") || "")) || "";
+  let fallbackLane = lane;
+  if (!fallbackLane && typeof lcStates === "function") {
+    const st = (lcStates() || []).find((s) => String(s.id) === sid);
+    if (st) fallbackLane = st.lane || "";
+  }
+  return { id: sid, name: name || sid, lane: fallbackLane, laneLabel: lifecycleLaneLabel(fallbackLane) };
+}
+
+function hideLifecycleHopTip() {
+  const el = document.getElementById("lifecycleHopTip");
+  if (!el) return;
+  el.hidden = true;
+  el.setAttribute("aria-hidden", "true");
+  el.removeAttribute("data-from");
+  el.removeAttribute("data-to");
+  el.removeAttribute("data-kind");
+  el.removeAttribute("data-from-lane");
+  el.removeAttribute("data-to-lane");
+  el.removeAttribute("data-tip-place");
+  el.innerHTML = "";
+}
+
+function positionLifecycleHopTip(el, ev, edge) {
+  if (!el) return;
+  const margin = 8;
+  const tipW = el.offsetWidth || 160;
+  const tipH = el.offsetHeight || 48;
+  let x;
+  let y;
+  if (edge && typeof edge.getBoundingClientRect === "function") {
+    const r = edge.getBoundingClientRect();
+    x = r.left + r.width / 2 - tipW / 2;
+    y = r.bottom + 8;
+    if (y + tipH > window.innerHeight - margin) {
+      y = r.top - tipH - 8;
+      el.setAttribute("data-tip-place", "above");
+    } else {
+      el.setAttribute("data-tip-place", "below");
+    }
+  } else {
+    x = (ev && ev.clientX != null ? ev.clientX : 0) + 12;
+    y = (ev && ev.clientY != null ? ev.clientY : 0) + 14;
+    el.setAttribute("data-tip-place", "cursor");
+  }
+  x = Math.max(margin, Math.min(x, window.innerWidth - margin - tipW));
+  y = Math.max(margin, Math.min(y, window.innerHeight - margin - tipH));
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+}
+
+function showLifecycleHopTip(edge, ev) {
+  if (!edge) return;
+  if (ev && ev.pointerType === "touch") return;
+  if (typeof hideTip === "function") hideTip();
+  if (typeof hideSliceHopTip === "function") hideSliceHopTip();
+  if (typeof hideDataflowHopTip === "function") hideDataflowHopTip();
+  const el = lifecycleHopTipEl();
+  const from = edge.getAttribute("data-from") || "";
+  const to = edge.getAttribute("data-to") || "";
+  const kind = edge.getAttribute("data-kind") || "";
+  const fromSt = lifecycleHopTipState(from);
+  const toSt = lifecycleHopTipState(to);
+  el.setAttribute("data-from", from);
+  el.setAttribute("data-to", to);
+  el.setAttribute("data-kind", kind);
+  if (fromSt.lane) el.setAttribute("data-from-lane", fromSt.lane);
+  else el.removeAttribute("data-from-lane");
+  if (toSt.lane) el.setAttribute("data-to-lane", toSt.lane);
+  else el.removeAttribute("data-to-lane");
+  let html =
+    '<div class="lht-head" data-lht-event="1"><span class="lht-kind" data-lht-kind="1">' +
+    esc(kind || "event") +
+    "</span></div>";
+  html +=
+    '<div class="lht-ends lht-hop" data-lht-transition="1" data-lht-hop="1"><span data-lht-from="1">' +
+    esc(fromSt.name) +
+    '</span><span class="lht-arrow" aria-hidden="true">→</span><span data-lht-to="1">' +
+    esc(toSt.name) +
+    "</span></div>";
+  if (fromSt.laneLabel || toSt.laneLabel) {
+    html += '<div class="lht-lanes lht-meta" data-lht-lanes="1">';
+    if (fromSt.laneLabel) {
+      html +=
+        '<span class="lht-chip lht-chip--' +
+        esc(fromSt.lane) +
+        '" data-lht-lane="from" data-lc-lane="' +
+        esc(fromSt.lane) +
+        '">' +
+        esc(fromSt.laneLabel) +
+        "</span>";
+    }
+    if (toSt.laneLabel) {
+      html +=
+        '<span class="lht-chip lht-chip--' +
+        esc(toSt.lane) +
+        '" data-lht-lane="to" data-lc-lane="' +
+        esc(toSt.lane) +
+        '">' +
+        esc(toSt.laneLabel) +
+        "</span>";
+    }
+    html += "</div>";
+  }
+  el.innerHTML = html;
+  el.hidden = false;
+  el.setAttribute("aria-hidden", "false");
+  positionLifecycleHopTip(el, ev, edge);
+}
+
+function bindLifecycleHopTip() {
+  const host = document.getElementById("lcCanvas");
+  if (!host) return;
+  if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+  host.querySelectorAll(".react-flow__edge[data-from][data-to][data-kind]").forEach((edge) => {
+    if (edge.dataset.lhtBound) return;
+    edge.dataset.lhtBound = "1";
+    edge.addEventListener("pointerenter", (ev) => {
+      if (ev && ev.pointerType === "touch") return;
+      showLifecycleHopTip(edge, ev);
+    });
+    edge.addEventListener("pointermove", (ev) => {
+      if (ev && ev.pointerType === "touch") return;
+      const tipEl = document.getElementById("lifecycleHopTip");
+      if (tipEl && !tipEl.hidden) positionLifecycleHopTip(tipEl, ev, edge);
+    });
+    edge.addEventListener("pointerleave", () => hideLifecycleHopTip());
+  });
+  host.querySelectorAll("[data-lc-id]").forEach((g) => {
+    if (g.dataset.lhtNodeBound) return;
+    g.dataset.lhtNodeBound = "1";
+    g.addEventListener("pointerenter", () => hideLifecycleHopTip());
+  });
+}
+
+function scheduleLifecycleHopTipBind() {
+  if (typeof hideLifecycleHopTip === "function" && !document.getElementById("lcCanvas")) {
+    hideLifecycleHopTip();
+    return;
+  }
+  const run = () => {
+    if (typeof bindLifecycleHopTip === "function") bindLifecycleHopTip();
+  };
+  run();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      run();
+      requestAnimationFrame(run);
+    });
+  }
+}
+
 function paintLifecycleWorkspace(title) {
   canvas.className = "play explorer-list";
   const html = renderLifecycleBody();
@@ -15058,9 +15244,11 @@ function paintLifecycleWorkspace(title) {
   bindLcStoryScrub();
   applyLcStoryScrubPaint();
   syncLcStoryScrub();
+  if (typeof scheduleLifecycleHopTipBind === "function") scheduleLifecycleHopTipBind();
 }
 
 function bindLifecyclePage() {
+  if (typeof scheduleLifecycleHopTipBind === "function") scheduleLifecycleHopTipBind();
   bindLcStoryScrub();
   applyLcStoryScrubPaint();
   syncLcStoryScrub();
