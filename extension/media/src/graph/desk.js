@@ -233,6 +233,7 @@ let focusTrail = null;
 /** ADE SHM — Slice hop-kind mix filter; graph-only (never peekSource). null | {axis:'kind'|'hop', value:string} */
 let sliceMixFilter = null;
 let sliceWalkRoleFocus = null; // ADE SWR: start|mid|end|off
+let sliceTreeEdgeFocus = null; // ADE STE: tree|extra
 /** ADE CPS — Call-path scrubber depth (0 = off). Directed Calls walk from selection. */
 let callPathDepth = 0;
 let cfgExpandFocus = null; // ADE CFE: Overview/Slice inline CFG expand focus
@@ -722,6 +723,18 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     sliceWalkRoleFocus = null;
     if (typeof applySliceWalkRolePaint === "function") applySliceWalkRolePaint();
+    return;
+  }
+  // ADE STE: Escape clears Slice tree-edge graphic focus when active (stay on Slice).
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "slice" &&
+    sliceTreeEdgeFocus
+  ) {
+    e.preventDefault();
+    sliceTreeEdgeFocus = null;
+    if (typeof applySliceTreeEdgePaint === "function") applySliceTreeEdgePaint();
     return;
   }
   // ADE CFT: Escape clears cross-desk focus trail when active (Map/Slice/Sequence).
@@ -21702,6 +21715,9 @@ function renderFlowchart(msg, opts) {
   if (typeof syncSliceWalkRoleGraphic === "function") {
     syncSliceWalkRoleGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
   }
+  if (typeof syncSliceTreeEdgeGraphic === "function") {
+    syncSliceTreeEdgeGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+  }
   if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
   if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
   bindCallPathStrip();
@@ -21879,29 +21895,245 @@ function bindSliceWalkRoleGraphic() {
   applySliceWalkRolePaint();
 }
 
+function ensureSliceTitleCuts() {
+  if (!canvas) return null;
+  const stage = canvas.querySelector(".stage");
+  if (!stage || !document.getElementById("sliceCanvas")) return null;
+  let cluster = stage.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+  if (!cluster) {
+    cluster = document.createElement("div");
+    cluster.className = "slice-title-cuts";
+    cluster.setAttribute("data-slice-cuts", "1");
+    const loose = stage.querySelector(".swr-strip, .ste-strip");
+    if (loose && loose.parentElement === stage) {
+      stage.insertBefore(cluster, loose);
+      cluster.appendChild(loose);
+    } else {
+      const title = stage.querySelector(".flow-title");
+      if (title) title.insertAdjacentElement("afterend", cluster);
+      else stage.insertAdjacentElement("afterbegin", cluster);
+    }
+  }
+  return cluster;
+}
+
+function placeSliceTitleCut(cluster, sel, html) {
+  if (!cluster || !html) return null;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const next = tmp.firstElementChild;
+  if (!next) return null;
+  const existing = cluster.querySelector(sel) || (canvas && canvas.querySelector(sel));
+  if (existing) existing.replaceWith(next);
+  else cluster.appendChild(next);
+  return next;
+}
+
+function clearSliceTitleCutsIfEmpty() {
+  if (!canvas) return;
+  const cluster = canvas.querySelector(".slice-title-cuts");
+  if (cluster && !cluster.querySelector(".swr-strip, .ste-strip")) cluster.remove();
+}
+
 function syncSliceWalkRoleGraphic(flow, graph, scars) {
   if (!canvas || explorerWs !== "slice") {
     const leftover = canvas && canvas.querySelector(".swr-strip");
     if (leftover) leftover.remove();
+    clearSliceTitleCutsIfEmpty();
     return;
   }
-  const stage = canvas.querySelector(".stage");
-  if (!stage || !document.getElementById("sliceCanvas")) return;
+  const cluster = ensureSliceTitleCuts();
+  if (!cluster) return;
   const html = sliceWalkRoleGraphicHtml(flow, graph, scars);
   if (!html) {
-    const old = stage.querySelector(".swr-strip");
+    const old = cluster.querySelector(".swr-strip") || canvas.querySelector(".swr-strip");
     if (old) old.remove();
+    clearSliceTitleCutsIfEmpty();
     return;
   }
-  const tmp = document.createElement("div");
-  tmp.innerHTML = html;
-  const next = tmp.firstElementChild;
-  if (!next) return;
-  const existing = stage.querySelector(".swr-strip");
-  if (existing) existing.replaceWith(next);
-  else stage.appendChild(next);
+  if (!placeSliceTitleCut(cluster, ".swr-strip[data-swr='1']", html)) return;
   bindSliceWalkRoleGraphic();
 }
+
+/** ADE STE — tree vs extra hop mass for the painted Slice edges. */
+function sliceTreeEdgeKeySet(flow) {
+  const keys = new Set();
+  const edges = (flow && flow.tree && flow.tree.edges) || [];
+  for (const e of edges) {
+    const from = idVal(e.from);
+    const to = idVal(e.to);
+    if (!from || !to || from === to) continue;
+    keys.add(from + "\t" + to + "\t" + (e.kind || "Calls"));
+  }
+  return keys;
+}
+
+function sliceTreeEdgeOf(h, keys) {
+  if (!h) return "extra";
+  if (h.treeCut === "tree" || h.treeCut === "extra") return h.treeCut;
+  const set = keys || sliceTreeEdgeKeySet(currentFlow() || defaultRunFlow());
+  const from = idVal(h.from);
+  const to = idVal(h.to);
+  const kind = h.kind || "Calls";
+  return set.has(from + "\t" + to + "\t" + kind) ? "tree" : "extra";
+}
+
+function sliceTreeEdgeMetrics(flow, graph, scars) {
+  const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { hops: [] };
+  const keys = sliceTreeEdgeKeySet(flow);
+  const m = { tree: 0, extra: 0, hops: 0 };
+  for (const h of props.hops || []) {
+    const cut = sliceTreeEdgeOf(h, keys);
+    if (cut === "tree") m.tree += 1;
+    else m.extra += 1;
+    m.hops += 1;
+  }
+  return m;
+}
+
+function sliceTreeEdgeGraphicHtml(flow, graph, scars) {
+  const m = sliceTreeEdgeMetrics(flow, graph, scars);
+  if (!m.hops) return "";
+  const focusing = !!sliceTreeEdgeFocus;
+  const onFor = (key) => !!(sliceTreeEdgeFocus && String(sliceTreeEdgeFocus) === String(key));
+  const stat = (key, n) =>
+    '<button type="button" class="ste-stat' +
+    (onFor(key) ? " ste-now" : focusing ? " ste-idle" : "") +
+    '" data-ste-band="' +
+    esc(key) +
+    '" aria-pressed="' +
+    (onFor(key) ? "true" : "false") +
+    '" title="' +
+    esc(key + " · " + n) +
+    '"><b data-ste-n="' +
+    esc(key) +
+    '">' +
+    n +
+    "</b> " +
+    esc(key) +
+    "</button>";
+  const seg = (key, n) => {
+    if (n <= 0) return "";
+    return (
+      '<button type="button" class="ste-seg ste-' +
+      esc(key) +
+      (onFor(key) ? " ste-now" : focusing ? " ste-idle" : "") +
+      '" data-ste-band="' +
+      esc(key) +
+      '" style="flex-grow:' +
+      n +
+      '" aria-label="' +
+      esc(key + " · " + n) +
+      '"></button>'
+    );
+  };
+  return (
+    '<div class="ste-strip' +
+    (focusing ? " ste-focusing" : "") +
+    '" data-ste="1" role="group" aria-label="Slice tree-edge graphic">' +
+    '<span class="ste-meta">Tree edge</span>' +
+    '<span class="ste-counts">' +
+    stat("tree", m.tree) +
+    stat("extra", m.extra) +
+    "</span>" +
+    '<div class="ste-bar" aria-hidden="true">' +
+    (m.hops === 0
+      ? '<span class="ste-bar-empty"></span>'
+      : seg("tree", m.tree) + seg("extra", m.extra)) +
+    "</div></div>"
+  );
+}
+
+function jumpSliceTreeEdge(which) {
+  if (!which) return;
+  const key = String(which);
+  if (sliceTreeEdgeFocus && String(sliceTreeEdgeFocus) === key) sliceTreeEdgeFocus = null;
+  else sliceTreeEdgeFocus = key;
+  applySliceTreeEdgePaint();
+}
+
+function applySliceTreeEdgePaint() {
+  if (!canvas) return;
+  const focus = sliceTreeEdgeFocus ? String(sliceTreeEdgeFocus) : "";
+  canvas.querySelectorAll(".ste-stat[data-ste-band], .ste-seg[data-ste-band]").forEach((el) => {
+    const key = el.getAttribute("data-ste-band") || "";
+    const on = !!(focus && key === focus);
+    el.classList.toggle("ste-now", on);
+    el.classList.toggle("ste-idle", !!(focus && !on));
+    if (el.tagName === "BUTTON") el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const strip = canvas.querySelector(".ste-strip");
+  if (strip) strip.classList.toggle("ste-focusing", !!focus);
+  const stage = canvas.querySelector(".stage");
+  if (stage) stage.classList.toggle("ste-focusing", !!focus);
+  const cluster = canvas.querySelector(".slice-title-cuts");
+  if (cluster) cluster.classList.toggle("ste-focusing", !!focus);
+  if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+  const flow = typeof currentFlow === "function" ? currentFlow() || defaultRunFlow() : null;
+  const keys = sliceTreeEdgeKeySet(flow);
+  canvas.querySelectorAll("#sliceCanvas .react-flow__edge").forEach((el) => {
+    const from = el.getAttribute("data-from") || "";
+    const to = el.getAttribute("data-to") || "";
+    const kind = el.getAttribute("data-kind") || "Calls";
+    const cut = keys.has(from + "\t" + to + "\t" + kind) ? "tree" : "extra";
+    el.setAttribute("data-ste-cut", cut);
+    const hit = !!(focus && cut === focus);
+    el.classList.toggle("ste-hit", hit);
+    el.classList.toggle("ste-dim", !!(focus && !hit));
+  });
+}
+
+function scheduleSliceTreeEdgePaint() {
+  if (typeof applySliceTreeEdgePaint === "function") applySliceTreeEdgePaint();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      if (typeof applySliceTreeEdgePaint === "function") applySliceTreeEdgePaint();
+      requestAnimationFrame(() => {
+        if (typeof applySliceTreeEdgePaint === "function") applySliceTreeEdgePaint();
+      });
+    });
+  }
+}
+
+function bindSliceTreeEdgeGraphic() {
+  if (!canvas) return;
+  canvas.querySelectorAll(".ste-stat[data-ste-band], .ste-seg[data-ste-band]").forEach((el) => {
+    const key = el.getAttribute("data-ste-band") || "";
+    el.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceTreeEdge(key);
+    };
+    el.onkeydown = (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      jumpSliceTreeEdge(key);
+    };
+  });
+  scheduleSliceTreeEdgePaint();
+}
+
+function syncSliceTreeEdgeGraphic(flow, graph, scars) {
+  if (!canvas || explorerWs !== "slice") {
+    const leftover = canvas && canvas.querySelector(".ste-strip");
+    if (leftover) leftover.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  const cluster = ensureSliceTitleCuts();
+  if (!cluster) return;
+  const html = sliceTreeEdgeGraphicHtml(flow, graph, scars);
+  if (!html) {
+    const old = cluster.querySelector(".ste-strip") || canvas.querySelector(".ste-strip");
+    if (old) old.remove();
+    if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+    return;
+  }
+  if (!placeSliceTitleCut(cluster, ".ste-strip[data-ste='1']", html)) return;
+  bindSliceTreeEdgeGraphic();
+}
+
 
 function sliceCanvasProps(flow, graph, scars) {
   const treeNodes = (flow && flow.tree && flow.tree.nodes) || [];
@@ -21964,7 +22196,7 @@ function sliceCanvasProps(flow, graph, scars) {
   const idSet = new Set(items.map((n) => n.id));
   const hops = [];
   const hopSeen = new Set();
-  const pushHop = (from, to, kind, scar) => {
+  const pushHop = (from, to, kind, scar, treeCut) => {
     if (!idSet.has(from) || !idSet.has(to) || from === to) return;
     const key = from + "\t" + to + "\t" + (kind || "Calls");
     if (hopSeen.has(key)) return;
@@ -21975,6 +22207,7 @@ function sliceCanvasProps(flow, graph, scars) {
       to,
       kind: kind || "Calls",
       scar: !!scar,
+      treeCut: treeCut || "extra",
     });
   };
   (treeEdges || []).forEach((e) => {
@@ -21983,11 +22216,11 @@ function sliceCanvasProps(flow, graph, scars) {
     const scar =
       scars &&
       (scars.has(fqnOf(graph, e.from) + ">" + fqnOf(graph, e.to)) || scars.has(fqnOf(graph, from) + ">" + fqnOf(graph, to)));
-    pushHop(from, to, e.kind || "Calls", scar);
+    pushHop(from, to, e.kind || "Calls", scar, "tree");
   });
   for (const e of (graph && graph.edges) || []) {
     if (hops.length >= 80) break;
-    pushHop(idVal(e.from), idVal(e.to), e.kind || "Calls", false);
+    pushHop(idVal(e.from), idVal(e.to), e.kind || "Calls", false, "extra");
   }
   return {
     nodes: items,
@@ -22017,6 +22250,7 @@ function mountSliceCanvas(flow, graph, scars) {
   }
   renderSliceCanvas(host, sliceCanvasProps(flow, graph, scars));
   stampXyFlowAttrs();
+  if (typeof scheduleSliceTreeEdgePaint === "function") scheduleSliceTreeEdgePaint();
 }
 
 function renderSteiner(flow, graph, animate, scars) {

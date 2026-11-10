@@ -16833,7 +16833,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -16890,6 +16890,196 @@ async function main() {
         "Slice walk-role clicks did not post peekSource / open source",
         afterSwrPosts.after === afterSwrPosts.before && !afterSwrPosts.peek,
         JSON.stringify(afterSwrPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice tree-edge graphic (STE1–STE5) — tree vs extra hop mass; same Slice desk as SWR
+    {
+      await page.waitForSelector(".ste-strip[data-ste='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-ste-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeStePosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const ste1 = await page.evaluate(() => {
+        const strip = document.querySelector(".ste-strip[data-ste='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".ste-stat[data-ste-band]")].map((el) => ({
+          band: el.getAttribute("data-ste-band"),
+          n: Number((el.querySelector("[data-ste-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".ste-seg[data-ste-band]")].map((el) => el.getAttribute("data-ste-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-ste-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { tree: 0, extra: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-ste-cut") || "";
+          if (c === "tree" || c === "extra") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".swr-strip[data-swr='1']")),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.tree + byCut.extra,
+          byCut,
+          tree: nOf("tree"),
+          extra: nOf("extra"),
+          sum: nOf("tree") + nOf("extra"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const ste1ok =
+        ste1.strip &&
+        ste1.cluster &&
+        ste1.swr &&
+        ste1.sliceOn &&
+        ste1.canvas &&
+        ste1.tree === 7 &&
+        ste1.extra === 25 &&
+        ste1.sum === 32 &&
+        ste1.stamped === 32 &&
+        ste1.tree === ste1.byCut.tree &&
+        ste1.extra === ste1.byCut.extra &&
+        ste1.segs.length === 2 &&
+        ste1.pressed === 0 &&
+        ste1.srcHidden;
+      record(
+        "STE1",
+        "Slice tree-edge graphic shows 7 tree / 25 extra of 32 hops, matching data-ste-cut; SWR stays; no source",
+        !!ste1ok,
+        JSON.stringify(ste1)
+      );
+
+      const extraBtn = page.locator('.ste-stat[data-ste-band="extra"]').first();
+      await extraBtn.click();
+      await page.waitForTimeout(80);
+      const ste2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-ste-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("ste-hit"));
+        const dims = edges.filter((el) => el.classList.contains("ste-dim"));
+        const extraHits = hits.filter((el) => el.getAttribute("data-ste-cut") === "extra");
+        const extraPressed = document.querySelector('.ste-stat[data-ste-band="extra"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          extraHits: extraHits.length,
+          extraPressed: !!extraPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const ste2ok =
+        ste2.sliceOn &&
+        ste2.hits === 25 &&
+        ste2.extraHits === 25 &&
+        ste2.dims === 7 &&
+        ste2.extraPressed &&
+        ste2.srcHidden;
+      record(
+        "STE2",
+        "Click Extra highlights the 25 extra Slice hops; Slice stays; no source",
+        !!ste2ok,
+        JSON.stringify(ste2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const ste3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.ste-hit").length;
+        const pressed = document.querySelectorAll('.ste-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".ste-strip.ste-focusing, .stage.ste-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "STE3",
+        "Escape clears tree-edge graphic focus; Slice stays; no source",
+        !!(ste3.sliceOn && ste3.hits === 0 && ste3.pressed === 0 && !ste3.focusing && ste3.srcHidden),
+        JSON.stringify(ste3)
+      );
+
+      const ste4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const ste4ok = !!(ste4 && !ste4.missing && ste4.inNode && !ste4.hitStrip && ste4.srcHidden && ste4.slice);
+      record(
+        "STE4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!ste4ok,
+        JSON.stringify(ste4)
+      );
+
+      await extraBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-tree-edge.png");
+      const steShot = checks.find((c) => c.id === "shot:slice-tree-edge.png");
+      const ste5ok = !!(ste1ok && ste2ok && ste3 && ste3.sliceOn && ste4ok && steShot && steShot.pass);
+      record(
+        "STE5",
+        "screenshot slice-tree-edge.png is not a black frame; Slice tree-edge graphic proven",
+        !!ste5ok,
+        JSON.stringify({
+          shot: steShot ? steShot.detail : "missing",
+          ste1: !!ste1ok,
+          ste2: !!ste2ok,
+          ste3: !!(ste3 && ste3.sliceOn && ste3.hits === 0),
+          ste4: !!ste4ok,
+        })
+      );
+      assertNoStampDir("STE5b", "Slice tree-edge graphic step did not write .graphide/stamps/");
+      const afterStePosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeStePosts);
+      record(
+        "STE5c",
+        "Slice tree-edge clicks did not post peekSource / showHop / open source",
+        afterStePosts.after === afterStePosts.before && !afterStePosts.peek,
+        JSON.stringify(afterStePosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
