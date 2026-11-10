@@ -87,6 +87,7 @@ owns this folder.
 | [slice-walk-role.md](slice-walk-role.md) | Slice walk-role graphic | explorer Slice · `verification/slice-walk-role.png` |
 | [slice-tree-edge.md](slice-tree-edge.md) | Slice tree-edge graphic | explorer Slice · `verification/slice-tree-edge.png` |
 | [slice-walk-hop.md](slice-walk-hop.md) | Slice walk-hop graphic | explorer Slice · `verification/slice-walk-hop.png` |
+| [slice-halo-attach.md](slice-halo-attach.md) | Slice halo-attach graphic | explorer Slice · `verification/slice-halo-attach.png` |
 | [slice-runs.md](slice-runs.md) | Slice subsystem-run boxes + enter | explorer Slice · `.run` · `slice-runs.png` |
 | [stamp-recheck.md](stamp-recheck.md) | Recheck overlay on stored run positions | explorer Slice · stamp overlay · `stamp-recheck.png` |
 | [unmatched-hint.md](unmatched-hint.md) | UnmatchedHint finding | explorer · `#coverage` · `unmatched-hint.png` |

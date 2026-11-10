@@ -17381,7 +17381,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17575,7 +17575,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17767,7 +17767,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17820,6 +17820,203 @@ async function main() {
         "Slice walk-hop clicks did not post peekSource / showHop / open source",
         afterSwhPosts.after === afterSwhPosts.before && !afterSwhPosts.peek,
         JSON.stringify(afterSwhPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice halo-attach graphic (SHA1–SHA5) — bridge vs outer halo hops; same Slice desk as SWH
+    {
+      await page.waitForSelector(".sha-strip[data-sha='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sha-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeShaPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const sha1 = await page.evaluate(() => {
+        const strip = document.querySelector(".sha-strip[data-sha='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".sha-stat[data-sha-band]")].map((el) => ({
+          band: el.getAttribute("data-sha-band"),
+          n: Number((el.querySelector("[data-sha-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".sha-seg[data-sha-band]")].map((el) => el.getAttribute("data-sha-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sha-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { walk: 0, bridge: 0, outer: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-sha-cut") || "";
+          if (c === "walk" || c === "bridge" || c === "outer") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.walk + byCut.bridge + byCut.outer,
+          byCut,
+          bridge: nOf("bridge"),
+          outer: nOf("outer"),
+          sum: nOf("bridge") + nOf("outer"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+          walkBand: !!stats.find((s) => s.band === "walk"),
+        };
+      });
+      const sha1ok =
+        sha1.strip &&
+        sha1.cluster &&
+        sha1.swh &&
+        sha1.ste &&
+        sha1.swr &&
+        sha1.sliceOn &&
+        sha1.canvas &&
+        sha1.bridge === 22 &&
+        sha1.outer === 2 &&
+        sha1.sum === 24 &&
+        sha1.stamped === 32 &&
+        sha1.byCut.walk === 8 &&
+        sha1.byCut.bridge === 22 &&
+        sha1.byCut.outer === 2 &&
+        sha1.segs.length === 2 &&
+        !sha1.walkBand &&
+        sha1.pressed === 0 &&
+        sha1.srcHidden;
+      record(
+        "SHA1",
+        "Slice halo-attach graphic shows 22 bridge / 2 outer of 24 halo hops, matching data-sha-cut; no walk band; SWH/STE/SWR stay; no source",
+        !!sha1ok,
+        JSON.stringify(sha1)
+      );
+
+      const outerBtn = page.locator('.sha-stat[data-sha-band="outer"]').first();
+      await outerBtn.click();
+      await page.waitForTimeout(80);
+      const sha2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-sha-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("sha-hit"));
+        const dims = edges.filter((el) => el.classList.contains("sha-dim"));
+        const outerHits = hits.filter((el) => el.getAttribute("data-sha-cut") === "outer");
+        const outerPressed = document.querySelector('.sha-stat[data-sha-band="outer"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          outerHits: outerHits.length,
+          outerPressed: !!outerPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const sha2ok =
+        sha2.sliceOn &&
+        sha2.hits === 2 &&
+        sha2.outerHits === 2 &&
+        sha2.dims === 30 &&
+        sha2.outerPressed &&
+        sha2.srcHidden;
+      record(
+        "SHA2",
+        "Click Outer highlights the 2 outer Slice hops; Slice stays; no source",
+        !!sha2ok,
+        JSON.stringify(sha2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const sha3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.sha-hit").length;
+        const pressed = document.querySelectorAll('.sha-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".sha-strip.sha-focusing, .stage.sha-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SHA3",
+        "Escape clears halo-attach graphic focus; Slice stays; no source",
+        !!(sha3.sliceOn && sha3.hits === 0 && sha3.pressed === 0 && !sha3.focusing && sha3.srcHidden),
+        JSON.stringify(sha3)
+      );
+
+      const sha4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const sha4ok = !!(sha4 && !sha4.missing && sha4.inNode && !sha4.hitStrip && sha4.srcHidden && sha4.slice);
+      record(
+        "SHA4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!sha4ok,
+        JSON.stringify(sha4)
+      );
+
+      await outerBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-halo-attach.png");
+      const shaShot = checks.find((c) => c.id === "shot:slice-halo-attach.png");
+      const sha5ok = !!(sha1ok && sha2ok && sha3 && sha3.sliceOn && sha4ok && shaShot && shaShot.pass);
+      record(
+        "SHA5",
+        "screenshot slice-halo-attach.png is not a black frame; Slice halo-attach graphic proven",
+        !!sha5ok,
+        JSON.stringify({
+          shot: shaShot ? shaShot.detail : "missing",
+          sha1: !!sha1ok,
+          sha2: !!sha2ok,
+          sha3: !!(sha3 && sha3.sliceOn && sha3.hits === 0),
+          sha4: !!sha4ok,
+        })
+      );
+      assertNoStampDir("SHA5b", "Slice halo-attach graphic step did not write .graphide/stamps/");
+      const afterShaPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeShaPosts);
+      record(
+        "SHA5c",
+        "Slice halo-attach clicks did not post peekSource / showHop / open source",
+        afterShaPosts.after === afterShaPosts.before && !afterShaPosts.peek,
+        JSON.stringify(afterShaPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
