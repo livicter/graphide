@@ -20,6 +20,7 @@ owns this folder.
 | [lifecycle.md](lifecycle.md) | Lifecycle workspace | `?lifecycle=1` · `verification/lifecycle.png` |
 | [lifecycle-transition-overlay.md](lifecycle-transition-overlay.md) | Lifecycle transition event bars | `?lifecycle=1` · `verification/lifecycle-transition-overlay.png` |
 | [trace.md](trace.md) | Trace Trajectory DAG (ADE) | `?trace=1` · `verification/trajectory-dag.png` · `trajectory-fixtures.png` · TF1–TF5 · ZC1–ZC3 zoom chrome |
+| [trajectory-story-scrubber.md](trajectory-story-scrubber.md) | Trajectory story scrubber | Trace · `trajectory-story-scrubber.png` |
 | [passport.md](passport.md) | Plan Passport (ADE) | `?passport=1` · `verification/passport.png` · `passport-fixtures.png` · PF1–PF5 |
 | [immutable-harness.md](immutable-harness.md) | Immutable spec seal (ADE) | `npm run verify:immutable` · `#adeSealChip` · SC1–SC3 · `seal-status-chip.png` |
 | [fs-sandbox.md](fs-sandbox.md) | Product-path FS sandbox stub (ADE) | `--gate-write` · I6–I8 |

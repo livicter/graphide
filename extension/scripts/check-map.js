@@ -1107,6 +1107,23 @@ assert(dssMap.includes("DSS1") && dssMap.includes("dss-strip") && dssMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/dataflow-story-scrubber.md")), "dataflow-story-scrubber feature map missing");
 assert(featReadme.includes("dataflow-story-scrubber.md") && featReadme.includes("dataflow-story-scrubber.png"), "feature README must list dataflow-story-scrubber.md");
 
+const tssMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trajectory-story-scrubber.md"), "utf8");
+assert(
+  tssMap.includes("## Sub-features") &&
+    tssMap.includes("## How to get to it (user POV)") &&
+    tssMap.includes("## Driving it with the harness") &&
+    tssMap.includes("## Gotchas"),
+  "trajectory-story-scrubber feature map must use the four headings"
+);
+assert(driver.includes("TSS1") && driver.includes("TSS3") && driver.includes("trajectory-story-scrubber.png") && driver.includes("tssScrub"), "verify driver must prove Trajectory story scrubber TSS1–TSS3");
+assert(js.includes("trajStoryScrubHtml") && js.includes("bindTrajStoryScrub") && js.includes("applyTrajStoryScrubPaint") && js.includes("syncTrajStoryScrub") && chrome.includes("trajStoryScrubHtml"), "desk.js must own Trajectory story scrubber helpers");
+assert(css.includes(".tss-strip") && css.includes(".tss-scrub") && css.includes("tss-past") && css.includes("tss-now") && css.includes("tss-ahead"), "main.css must theme Trajectory story scrubber + past/now/ahead");
+assert(tssMap.includes("TSS1") && tssMap.includes("tss-strip") && tssMap.includes("trajectory-story-scrubber.png") && tssMap.includes("peekSource"), "trajectory-story-scrubber feature map must name TSS / tss-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/trajectory-story-scrubber.md")), "trajectory-story-scrubber feature map missing");
+assert(featReadme.includes("trajectory-story-scrubber.md") && featReadme.includes("trajectory-story-scrubber.png"), "feature README must list trajectory-story-scrubber.md");
+
+
+
 
 
 

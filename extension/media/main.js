@@ -20519,6 +20519,14 @@
         syncPassportDeltaBars();
         return;
       }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "trace" && trajStoryCursor >= 0) {
+        e.preventDefault();
+        trajStoryCursor = -1;
+        applyTrajStoryScrubPaint();
+        syncTrajStoryScrub();
+        paint({ animate: "none" });
+        return;
+      }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "trace" || explorerWs === "passport") && trajResidualFilter) {
         e.preventDefault();
         clearTrajResidualFilter();
@@ -30103,6 +30111,7 @@
     let trajFocusSeeded = false;
     let trajScale = 1;
     let trajResidualFilter = false;
+    let trajStoryCursor = -1;
     function residualFilterMatchingCount() {
       try {
         if (typeof passportResidualTrajIds === "function") return passportResidualTrajIds().size;
@@ -30258,6 +30267,112 @@
       parts.push(residualCopy);
       return parts.filter(Boolean).join(" · ");
     }
+    function trajStoryScrubHtml(nodes) {
+      const n = nodes && nodes.length || 0;
+      if (n < 1) return "";
+      const max = Math.max(0, n - 1);
+      const active = trajStoryCursor >= 0;
+      const val = active ? Math.min(trajStoryCursor, max) : 0;
+      return '<div class="tss-strip" data-tss="1" role="group" aria-label="Trajectory story scrubber"><span class="tss-stat"><i class="k">Story</i> <b class="n" data-tss-meta="1">' + (active ? trajStoryCursor + 1 + "/" + n : "idle · " + n + " subtasks") + '</b></span><label class="tss-slider-wrap"><span class="tss-depth-label">subtask <b data-tss-val="1">' + (active ? String(trajStoryCursor + 1) : "—") + '</b></span><input type="range" id="tssScrub" class="tss-scrub" min="0" max="' + max + '" value="' + val + '" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + val + '" aria-label="Scrub trajectory story subtask" /></label><span class="tss-hint">past · now · ahead on nodes and edges</span></div>';
+    }
+    function trajStoryIndexOf(nodes, id2) {
+      if (!id2 || !nodes || !nodes.length) return -1;
+      return nodes.findIndex((n) => n.id === id2);
+    }
+    function trajStoryClassForIndex(i) {
+      if (trajStoryCursor < 0 || i < 0) return "";
+      if (i < trajStoryCursor) return " tss-past";
+      if (i === trajStoryCursor) return " tss-now";
+      return " tss-ahead";
+    }
+    function trajStoryEdgeClass(fromIdx, toIdx) {
+      if (trajStoryCursor < 0 || fromIdx < 0 || toIdx < 0) return "";
+      if (fromIdx === trajStoryCursor || toIdx === trajStoryCursor) return " tss-now";
+      if (fromIdx < trajStoryCursor && toIdx < trajStoryCursor) return " tss-past";
+      return " tss-ahead";
+    }
+    function syncTrajStoryScrub() {
+      const nodes = trajectoryFixture().nodes || [];
+      const n = nodes.length;
+      const max = Math.max(0, n - 1);
+      const active = trajStoryCursor >= 0 && n > 0;
+      const input = document.getElementById("tssScrub");
+      if (input) {
+        input.max = String(max);
+        input.setAttribute("aria-valuemax", String(max));
+        if (active) {
+          input.value = String(Math.min(trajStoryCursor, max));
+          input.setAttribute("aria-valuenow", input.value);
+        }
+      }
+      const strip = canvas.querySelector(".tss-strip[data-tss='1']");
+      if (strip) {
+        strip.classList.toggle("tss-scrubbing", active);
+        const meta2 = strip.querySelector("[data-tss-meta='1']");
+        if (meta2) meta2.textContent = active ? trajStoryCursor + 1 + "/" + n : "idle · " + n + " subtasks";
+        const valEl = strip.querySelector("[data-tss-val='1']");
+        if (valEl) valEl.textContent = active ? String(trajStoryCursor + 1) : "—";
+      }
+      const page = canvas.querySelector(".traj-page");
+      if (page) page.classList.toggle("tss-scrubbing", active);
+      const host = document.getElementById("trajCanvas");
+      if (host) host.classList.toggle("tss-scrubbing", active);
+    }
+    function bindTrajStoryScrub() {
+      const input = document.getElementById("tssScrub");
+      if (!input || input.dataset.tssBound === "1") return;
+      input.dataset.tssBound = "1";
+      input.addEventListener("input", () => {
+        const nodes = trajectoryFixture().nodes || [];
+        if (!nodes.length) return;
+        const v = parseInt(input.value, 10);
+        if (!Number.isFinite(v)) return;
+        trajStoryCursor = Math.max(0, Math.min(v, nodes.length - 1));
+        trajSelectedId = nodes[trajStoryCursor].id;
+        trajPinFocus = "";
+        applyTrajStoryScrubPaint();
+        syncTrajStoryScrub();
+        const host = document.getElementById("trajCanvas");
+        if (host) {
+          host.querySelectorAll(".traj-node").forEach((el2) => {
+            el2.classList.toggle("on", el2.getAttribute("data-id") === trajSelectedId);
+            el2.setAttribute("aria-pressed", el2.getAttribute("data-id") === trajSelectedId ? "true" : "false");
+          });
+          if (trajSelectedId) host.setAttribute("data-focus", trajSelectedId);
+          else host.removeAttribute("data-focus");
+        }
+        syncAdeDeepLink("trace");
+      });
+    }
+    function applyTrajStoryScrubPaint() {
+      const nodes = trajectoryFixture().nodes || [];
+      const active = trajStoryCursor >= 0 && nodes.length > 0;
+      const page = canvas.querySelector(".traj-page");
+      if (page) page.classList.toggle("tss-scrubbing", active);
+      const host = document.getElementById("trajCanvas");
+      if (host) host.classList.toggle("tss-scrubbing", active);
+      const strip = canvas.querySelector(".tss-strip[data-tss='1']");
+      if (strip) strip.classList.toggle("tss-scrubbing", active);
+      const byId = new Map(nodes.map((n, i) => [n.id, i]));
+      canvas.querySelectorAll("#trajCanvas .traj-node").forEach((el2) => {
+        el2.classList.remove("tss-past", "tss-now", "tss-ahead");
+        if (!active) return;
+        const i = byId.get(el2.getAttribute("data-id"));
+        if (i == null || !Number.isFinite(i)) return;
+        if (i < trajStoryCursor) el2.classList.add("tss-past");
+        else if (i === trajStoryCursor) el2.classList.add("tss-now");
+        else el2.classList.add("tss-ahead");
+      });
+      canvas.querySelectorAll("#trajCanvas .traj-edge").forEach((el2) => {
+        el2.classList.remove("tss-past", "tss-now", "tss-ahead");
+        if (!active) return;
+        const fi = byId.get(el2.getAttribute("data-from"));
+        const ti = byId.get(el2.getAttribute("data-to"));
+        if (fi == null || ti == null) return;
+        const cls = trajStoryEdgeClass(fi, ti).trim();
+        if (cls) el2.classList.add(cls);
+      });
+    }
     function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
       const byId = new Map(nodes.map((n) => [n.id, n]));
       const focusOn = !!selectedId;
@@ -30374,6 +30489,7 @@
       if (!nodes.length) {
         trajSelectedId = "";
         trajPinFocus = "";
+        trajStoryCursor = -1;
         return renderTrajectoryEmptyBody(fix);
       }
       const nodeW = 188;
@@ -30402,6 +30518,8 @@
         const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
         const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
         const dim = focusOn && !near.has(n.id) ? " dim" : "";
+        const storyIdx = trajStoryIndexOf(nodes, n.id);
+        const storyCls = trajStoryClassForIndex(storyIdx);
         const pinArt = selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
         const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
         const deps = Array.isArray(n.deps) ? n.deps : trajNodeDeps(fix, n);
@@ -30410,7 +30528,7 @@
         const dels = Number(n.dels);
         const diffMeta = (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "");
         const nodeInfo = trajNodeInfoLabel(n, fix);
-        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + ptdClass + dim + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ptdKindAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
+        return '<button type="button" class="traj-node status-' + esc(n.status || "pending") + on2 + neighbor + adjResidual + residualFilteredClass + ptdClass + dim + storyCls + '" data-id="' + esc(n.id) + '"' + adjResidualAttr2 + residualBearingAttr + residualFilteredAttr + ptdKindAttr + ' data-artifact="' + esc(art) + '" data-diff="' + esc(diff) + '" data-kind="' + esc(n.kind || "") + '" data-role="' + esc(n.role || "") + '" data-phase="' + esc(n.phase || "") + '" data-agent="' + esc(n.agent || "") + '" data-duration="' + esc(Number.isFinite(Number(n.durationMs)) ? String(n.durationMs) : "") + '" data-deps="' + esc(depAttr) + '"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' style="left:' + n.x + "px;top:" + n.y + 'px" title="' + esc(nodeInfo) + '" aria-label="' + esc(nodeInfo) + '" data-traj-node-info="1" aria-pressed="' + (on2 ? "true" : "false") + '" tabindex="0"><div class="traj-node-top"><span class="traj-status-chip status-' + esc(n.status || "pending") + '">' + esc(trajStatusLabel(n.status)) + "</span>" + (n.phase ? '<span class="traj-phase-chip" data-traj-phase-chip="' + esc(n.phase) + '">' + esc(n.phase) + "</span>" : "") + (n.kind ? '<span class="traj-kind">' + esc(n.kind) + "</span>" : "") + '</div><div class="traj-label">' + esc(n.label || n.id) + '</div><div class="traj-node-meta">' + (n.role ? '<span class="traj-role-chip" data-traj-role-chip="' + esc(n.role) + '">' + esc(n.role) + "</span>" : "") + (deps.length ? '<span class="traj-dep-badge" data-dep-count="' + deps.length + '">' + deps.length + " dep" + (deps.length === 1 ? "" : "s") + "</span>" : "") + (n.agent ? '<span class="traj-agent-chip" data-traj-agent-chip="' + esc(n.agent) + '">' + esc(n.agent) + "</span>" : "") + "</div>" + (art ? '<div class="traj-pin artifact' + pinArt + '" data-traj-pin="artifact" data-tip-ready="1" aria-label="' + esc("artifact · " + art) + '">' + esc(art) + "</div>" : "") + (diff || diffMeta ? '<div class="traj-pin diff' + pinDiff + '" data-traj-pin="diff" data-tip-ready="1"' + (Number.isFinite(adds) ? ' data-adds="' + esc(String(adds)) + '"' : "") + (Number.isFinite(dels) ? ' data-dels="' + esc(String(dels)) + '"' : "") + ' aria-label="' + esc(
           "diff" + (diff ? " " + diff : "") + (Number.isFinite(adds) ? " +" + adds : "") + (Number.isFinite(dels) ? " −" + dels : "")
         ) + '">' + esc((diff || "Δ") + diffMeta) + "</div>" : "") + "</button>";
       }).join("");
@@ -30476,7 +30594,8 @@
         const chipFocus = focusOn ? onPathKinds.has(k) ? " on-path" : " dim" : "";
         return '<span class="traj-legend-chip kind-' + esc(k) + chipFocus + '" data-kind="' + esc(k) + '"' + (focusOn && onPathKinds.has(k) ? ' data-on-path="1"' : "") + (focusOn && !onPathKinds.has(k) ? ' data-dim="1"' : "") + '><svg class="traj-legend-stroke" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="1" y1="5" x2="21" y2="5"></line></svg><span class="traj-legend-label">' + esc(k) + "</span></span>";
       }).join("") + adjResidualChips + focusResidualChip + residualFilterToggle + residualFilterCountChip + legendClearFilterCue + "</div>";
-      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + '"><div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + passportDeltaStripHtml() + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
+      const tssActive = trajStoryCursor >= 0;
+      return '<div class="traj-page' + (focusOn ? " has-focus" : "") + (tssActive ? " tss-scrubbing" : "") + '" data-tss="1">' + trajStoryScrubHtml(nodes) + '<div class="traj-strip"><span class="traj-strip-title">' + esc(fix.title || "Execution trajectory") + '</span><span class="traj-strip-sub">' + esc(fix.subtitle || "") + '</span><span class="traj-strip-stats"><span class="traj-stat" data-stat="done"><b>' + done + '</b> done</span><span class="traj-stat" data-stat="running"><b>' + running + '</b> running</span><span class="traj-stat" data-stat="pending"><b>' + pending + '</b> pending</span><span class="traj-stat" data-stat="deps"><b>' + edges.length + "</b> deps</span></span>" + edgeLegend + passportDeltaStripHtml() + renderTrajZoomBar() + renderSealStatusChip() + renderAdeHop("passport", "Open Passport →") + '</div><div class="traj-layout"><div id="trajCanvas" class="traj-canvas" data-testid="trajectory-dag" data-fixture="' + esc(fix.id) + '" data-traj-scale="' + esc(String(Number(trajScale) || 1)) + '"' + (selectedId ? ' data-focus="' + esc(selectedId) + '"' : "") + (trajResidualFilter && residualTrajs.size === 0 ? ' data-residual-filter-empty="1"' : "") + ' tabindex="0" style="min-width:' + Math.ceil(maxX * (Number(trajScale) || 1)) + "px;min-height:" + Math.ceil(maxY * (Number(trajScale) || 1)) + 'px"><div id="trajScaleLayer" class="traj-scale-layer" data-traj-scale-layer="1" style="width:' + maxX + "px;height:" + maxY + "px;transform:scale(" + (Number(trajScale) || 1) + ');transform-origin:0 0"><svg class="traj-edges" width="' + maxX + '" height="' + maxY + '" aria-hidden="true"><defs><marker id="trajArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker><marker id="trajArrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--vscode-focusBorder, #2f81f7)"></path></marker></defs>' + edgeLines + "</svg>" + nodeHtml + hopChipHtml + "</div>" + renderResidualFilterEmptyChrome("trace") + "</div>" + renderTrajectoryDetail(fix, selectedId) + '</div><div class="traj-meta" data-fixture-version="' + esc(String(fix.version || 1)) + '">' + nodes.length + " subtasks · " + edges.length + " deps · fixture " + esc(fix.id) + (fix.version ? " v" + esc(String(fix.version)) : "") + " · click node / pin · next → hop · [ ] / ←→ / jk step · +/−/0 zoom</div></div>";
     }
     function paintTrajectoryWorkspace(title) {
       unmountAllReviewCanvases();
@@ -30485,6 +30604,9 @@
       canvas.innerHTML = '<div class="expl-wrap"><div class="flow-title">' + esc(title || "Trace") + "</div>" + html + "</div>";
       setZoomUi(false);
       if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
+      bindTrajStoryScrub();
+      applyTrajStoryScrubPaint();
+      syncTrajStoryScrub();
     }
     function stepTrajectory(dir) {
       const nodes = trajectoryFixture().nodes || [];
@@ -30750,6 +30872,9 @@
     function bindTrajectoryPage() {
       const host = document.getElementById("trajCanvas");
       if (!host) return;
+      bindTrajStoryScrub();
+      applyTrajStoryScrubPaint();
+      syncTrajStoryScrub();
       hideTrajPinTip();
       if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
       host.querySelectorAll(".traj-node").forEach((el2) => {
