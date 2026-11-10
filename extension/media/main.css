@@ -2304,7 +2304,7 @@ button.stat-chip.omc-chip:focus-visible {
     0 0 0 1px var(--vscode-focusBorder, #2f81f7);
 }
 
-/* ADE SWR + STE + SWH + SHA + SRT — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
+/* ADE SWR + STE + SWH + SHA + SRT + SBP — title-band cluster (absolute; do not shrink .viewport or overlay vnodes). */
 .stage:has(.slice-title-cuts) .viewport > .flow-title:first-child,
 .stage:has(.slice-title-cuts) > .flow-title {
   max-width: calc(100% - 420px);
@@ -2328,7 +2328,8 @@ button.stat-chip.omc-chip:focus-visible {
 .slice-title-cuts .ste-strip,
 .slice-title-cuts .swh-strip,
 .slice-title-cuts .sha-strip,
-.slice-title-cuts .srt-strip {
+.slice-title-cuts .srt-strip,
+.slice-title-cuts .sbp-strip {
   position: static;
   top: auto;
   right: auto;
@@ -2633,6 +2634,80 @@ button.stat-chip.omc-chip:focus-visible {
   stroke-width: 2.5px;
 }
 #sliceCanvas .react-flow__edge.srt-dim:not(.dim) {
+  opacity: 0.28;
+}
+
+/* ADE SBP — Slice bridge-polarity graphic (out vs in halo-bridge hops; not SHA / SWH / SRT). */
+.sbp-strip {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  left: auto;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 8px;
+  max-width: min(520px, 62%);
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background, #1c1c1e) 55%, transparent);
+  pointer-events: auto;
+}
+.sbp-meta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.sbp-counts { display: flex; flex-wrap: nowrap; gap: 4px; }
+.sbp-stat {
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.4));
+  background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.sbp-stat b { font-variant-numeric: tabular-nums; }
+.sbp-stat.sbp-now, .sbp-seg.sbp-now {
+  border-color: var(--vscode-charts-red, #f14c4c);
+  box-shadow: inset 0 0 0 1px var(--vscode-charts-red, #f14c4c);
+}
+.sbp-strip.sbp-focusing .sbp-stat.sbp-idle,
+.sbp-strip.sbp-focusing .sbp-seg.sbp-idle { opacity: 0.55; }
+.sbp-bar {
+  flex: 1 1 80px;
+  display: flex;
+  height: 10px;
+  min-width: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--vscode-foreground, #ccc) 14%, transparent);
+}
+.sbp-bar-empty { flex: 1; }
+.sbp-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.sbp-seg.sbp-out { background: color-mix(in srgb, var(--vscode-textLink-foreground, #4fc1ff) 70%, transparent); }
+.sbp-seg.sbp-in { background: color-mix(in srgb, var(--vscode-charts-red, #f14c4c) 70%, transparent); }
+#sliceCanvas .react-flow__edge.sbp-hit:not(.dim) path,
+#sliceCanvas .react-flow__edge.sbp-hit:not(.dim) .react-flow__edge-path {
+  stroke: var(--vscode-charts-red, #f14c4c);
+  stroke-width: 2.5px;
+}
+#sliceCanvas .react-flow__edge.sbp-dim:not(.dim) {
   opacity: 0.28;
 }
 

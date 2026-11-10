@@ -1458,6 +1458,20 @@ assert(srtMap.includes("SRT1") && srtMap.includes("srt-strip") && srtMap.include
 assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-run-touch.md")), "slice-run-touch feature map missing");
 assert(featReadme.includes("slice-run-touch.md") && featReadme.includes("slice-run-touch.png"), "feature README must list slice-run-touch.md");
 
+const sbpMap = fs.readFileSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-bridge-polarity.md"), "utf8");
+assert(
+  sbpMap.includes("## Sub-features") &&
+    sbpMap.includes("## How to get to it (user POV)") &&
+    sbpMap.includes("## Driving it with the harness") &&
+    sbpMap.includes("## Gotchas"),
+  "slice-bridge-polarity feature map must use the four headings"
+);
+assert(driver.includes("SBP1") && driver.includes("SBP3") && driver.includes("slice-bridge-polarity.png") && driver.includes("sbp-stat"), "verify driver must prove Slice bridge-polarity graphic SBP1–SBP3");
+assert(css.includes(".sbp-strip") && css.includes(".sbp-stat") && css.includes(".sbp-bar") && css.includes("sbp-hit"), "main.css must style Slice bridge-polarity graphic");
+assert(sbpMap.includes("SBP1") && sbpMap.includes("sbp-strip") && sbpMap.includes("slice-bridge-polarity.png") && sbpMap.includes("peekSource"), "slice-bridge-polarity feature map must name SBP / sbp-strip / proof / no peekSource");
+assert(fs.existsSync(path.join(__dirname, "../../.cursor/skills/verify-graphide/references/features/slice-bridge-polarity.md")), "slice-bridge-polarity feature map missing");
+assert(featReadme.includes("slice-bridge-polarity.md") && featReadme.includes("slice-bridge-polarity.png"), "feature README must list slice-bridge-polarity.md");
+
 
 
 

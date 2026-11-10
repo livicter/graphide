@@ -20163,6 +20163,7 @@
     let sliceWalkHopFocus = null;
     let sliceHaloAttachFocus = null;
     let sliceRunTouchFocus = null;
+    let sliceBridgePolarityFocus = null;
     let callPathDepth = 0;
     let cfgExpandFocus = null;
     let routeMixFilter = null;
@@ -20558,6 +20559,12 @@
         e.preventDefault();
         sliceRunTouchFocus = null;
         if (typeof applySliceRunTouchPaint === "function") applySliceRunTouchPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "slice" && sliceBridgePolarityFocus) {
+        e.preventDefault();
+        sliceBridgePolarityFocus = null;
+        if (typeof applySliceBridgePolarityPaint === "function") applySliceBridgePolarityPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && (explorerWs === "map" || explorerWs === "slice" || explorerWs === "sequence") && focusTrail) {
@@ -36163,6 +36170,9 @@
       if (typeof syncSliceRunTouchGraphic === "function") {
         syncSliceRunTouchGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
       }
+      if (typeof syncSliceBridgePolarityGraphic === "function") {
+        syncSliceBridgePolarityGraphic(flow, msg.graph, scarSet(msg.findings, flow.name));
+      }
       if (typeof ensureFocusTrailChip === "function") ensureFocusTrailChip();
       if (typeof applyFocusTrailPaint === "function") applyFocusTrailPaint();
       bindCallPathStrip();
@@ -36292,7 +36302,7 @@
         cluster = document.createElement("div");
         cluster.className = "slice-title-cuts";
         cluster.setAttribute("data-slice-cuts", "1");
-        const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip");
+        const loose = stage.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip");
         if (loose && loose.parentElement === stage) {
           stage.insertBefore(cluster, loose);
           cluster.appendChild(loose);
@@ -36318,7 +36328,7 @@
     function clearSliceTitleCutsIfEmpty() {
       if (!canvas) return;
       const cluster = canvas.querySelector(".slice-title-cuts");
-      if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip")) cluster.remove();
+      if (cluster && !cluster.querySelector(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .sbp-strip")) cluster.remove();
     }
     function syncSliceWalkRoleGraphic(flow, graph, scars) {
       if (!canvas || explorerWs !== "slice") {
@@ -36842,6 +36852,130 @@
       if (!placeSliceTitleCut(cluster, ".srt-strip[data-srt='1']", html)) return;
       bindSliceRunTouchGraphic();
     }
+    function sliceBridgePolarityOf(h, nodes) {
+      if (!h) return "outer";
+      if (h.polarity === "walk" || h.polarity === "out" || h.polarity === "in" || h.polarity === "outer") return h.polarity;
+      const set3 = nodes || (typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(currentFlow() || defaultRunFlow()) : /* @__PURE__ */ new Set());
+      const a = set3.has(String(idVal(h.from)));
+      const b = set3.has(String(idVal(h.to)));
+      if (a && b) return "walk";
+      if (a) return "out";
+      if (b) return "in";
+      return "outer";
+    }
+    function sliceBridgePolarityMetrics(flow, graph, scars) {
+      const props = typeof sliceCanvasProps === "function" ? sliceCanvasProps(flow, graph, scars) : { hops: [] };
+      const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : /* @__PURE__ */ new Set();
+      const m = { out: 0, in: 0, walk: 0, outer: 0, hops: 0, bridge: 0 };
+      for (const h of props.hops || []) {
+        const cut = sliceBridgePolarityOf(h, nodes);
+        if (cut === "out") m.out += 1;
+        else if (cut === "in") m.in += 1;
+        else if (cut === "walk") m.walk += 1;
+        else m.outer += 1;
+        if (cut === "out" || cut === "in") m.bridge += 1;
+        m.hops += 1;
+      }
+      return m;
+    }
+    function sliceBridgePolarityGraphicHtml(flow, graph, scars) {
+      const m = sliceBridgePolarityMetrics(flow, graph, scars);
+      if (!m.bridge) return "";
+      const focusing = !!sliceBridgePolarityFocus;
+      const onFor = (key) => !!(sliceBridgePolarityFocus && String(sliceBridgePolarityFocus) === String(key));
+      const stat = (key, n) => '<button type="button" class="sbp-stat' + (onFor(key) ? " sbp-now" : focusing ? " sbp-idle" : "") + '" data-sbp-band="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(key + " · " + n) + '"><b data-sbp-n="' + esc(key) + '">' + n + "</b> " + esc(key) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="sbp-seg sbp-' + esc(key) + (onFor(key) ? " sbp-now" : focusing ? " sbp-idle" : "") + '" data-sbp-band="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="sbp-strip' + (focusing ? " sbp-focusing" : "") + '" data-sbp="1" role="group" aria-label="Slice bridge-polarity graphic"><span class="sbp-meta">Bridge polarity</span><span class="sbp-counts">' + stat("out", m.out) + stat("in", m.in) + '</span><div class="sbp-bar" aria-hidden="true">' + (m.bridge === 0 ? '<span class="sbp-bar-empty"></span>' : seg("out", m.out) + seg("in", m.in)) + "</div></div>";
+    }
+    function jumpSliceBridgePolarity(which) {
+      if (!which) return;
+      const key = String(which);
+      if (sliceBridgePolarityFocus && String(sliceBridgePolarityFocus) === key) sliceBridgePolarityFocus = null;
+      else sliceBridgePolarityFocus = key;
+      applySliceBridgePolarityPaint();
+    }
+    function applySliceBridgePolarityPaint() {
+      if (!canvas) return;
+      const focus = sliceBridgePolarityFocus ? String(sliceBridgePolarityFocus) : "";
+      canvas.querySelectorAll(".sbp-stat[data-sbp-band], .sbp-seg[data-sbp-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sbp-band") || "";
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("sbp-now", on2);
+        el2.classList.toggle("sbp-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".sbp-strip");
+      if (strip) strip.classList.toggle("sbp-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("sbp-focusing", !!focus);
+      const cluster = canvas.querySelector(".slice-title-cuts");
+      if (cluster) cluster.classList.toggle("sbp-focusing", !!focus);
+      if (typeof stampXyFlowAttrs === "function") stampXyFlowAttrs();
+      const flow = typeof currentFlow === "function" ? currentFlow() || defaultRunFlow() : null;
+      const nodes = typeof sliceWalkHopNodeSet === "function" ? sliceWalkHopNodeSet(flow) : /* @__PURE__ */ new Set();
+      canvas.querySelectorAll("#sliceCanvas .react-flow__edge").forEach((el2) => {
+        const from = el2.getAttribute("data-from") || "";
+        const to = el2.getAttribute("data-to") || "";
+        const a = nodes.has(from);
+        const b = nodes.has(to);
+        const cut = a && b ? "walk" : a ? "out" : b ? "in" : "outer";
+        el2.setAttribute("data-sbp-cut", cut);
+        const hit = !!(focus && cut === focus);
+        el2.classList.toggle("sbp-hit", hit);
+        el2.classList.toggle("sbp-dim", !!(focus && !hit));
+      });
+    }
+    function scheduleSliceBridgePolarityPaint() {
+      if (typeof applySliceBridgePolarityPaint === "function") applySliceBridgePolarityPaint();
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => {
+          if (typeof applySliceBridgePolarityPaint === "function") applySliceBridgePolarityPaint();
+          requestAnimationFrame(() => {
+            if (typeof applySliceBridgePolarityPaint === "function") applySliceBridgePolarityPaint();
+          });
+        });
+      }
+    }
+    function bindSliceBridgePolarityGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".sbp-stat[data-sbp-band], .sbp-seg[data-sbp-band]").forEach((el2) => {
+        const key = el2.getAttribute("data-sbp-band") || "";
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceBridgePolarity(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpSliceBridgePolarity(key);
+        };
+      });
+      scheduleSliceBridgePolarityPaint();
+    }
+    function syncSliceBridgePolarityGraphic(flow, graph, scars) {
+      if (!canvas || explorerWs !== "slice") {
+        const leftover = canvas && canvas.querySelector(".sbp-strip");
+        if (leftover) leftover.remove();
+        if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+        return;
+      }
+      const cluster = ensureSliceTitleCuts();
+      if (!cluster) return;
+      const html = sliceBridgePolarityGraphicHtml(flow, graph, scars);
+      if (!html) {
+        const old = cluster.querySelector(".sbp-strip") || canvas.querySelector(".sbp-strip");
+        if (old) old.remove();
+        if (typeof clearSliceTitleCutsIfEmpty === "function") clearSliceTitleCutsIfEmpty();
+        return;
+      }
+      if (!placeSliceTitleCut(cluster, ".sbp-strip[data-sbp='1']", html)) return;
+      bindSliceBridgePolarityGraphic();
+    }
     function sliceCanvasProps(flow, graph, scars) {
       const treeNodes = flow && flow.tree && flow.tree.nodes || [];
       const treeEdges = flow && flow.tree && flow.tree.edges || [];
@@ -36917,7 +37051,8 @@
           treeCut: treeCut || "extra",
           walkHop: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : "halo",
           attach: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : treeIdSet.has(from) || treeIdSet.has(to) ? "bridge" : "outer",
-          runTouch: runTouchSet.has(from) || runTouchSet.has(to) ? "touch" : "off"
+          runTouch: runTouchSet.has(from) || runTouchSet.has(to) ? "touch" : "off",
+          polarity: treeIdSet.has(from) && treeIdSet.has(to) ? "walk" : treeIdSet.has(from) ? "out" : treeIdSet.has(to) ? "in" : "outer"
         });
       };
       (treeEdges || []).forEach((e) => {
@@ -36960,6 +37095,7 @@
       if (typeof scheduleSliceWalkHopPaint === "function") scheduleSliceWalkHopPaint();
       if (typeof scheduleSliceHaloAttachPaint === "function") scheduleSliceHaloAttachPaint();
       if (typeof scheduleSliceRunTouchPaint === "function") scheduleSliceRunTouchPaint();
+      if (typeof scheduleSliceBridgePolarityPaint === "function") scheduleSliceBridgePolarityPaint();
     }
     function renderSteiner(flow, graph, animate, scars) {
       const nodes = flow.tree?.nodes || [];
