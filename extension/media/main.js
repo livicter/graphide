@@ -20145,6 +20145,7 @@
     let overviewMixFilter = null;
     let overviewCommunityFilter = null;
     let mapMixFilter = null;
+    let mapWalkCutFocus = null;
     let mapSizeFilter = null;
     let mapHopSizeFilter = null;
     let focusTrail = null;
@@ -20517,6 +20518,12 @@
         e.preventDefault();
         mapMixFilter = null;
         applyMapMixPaint();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && typeof enterCanvasActive === "function" && enterCanvasActive() && mapWalkCutFocus) {
+        e.preventDefault();
+        mapWalkCutFocus = null;
+        if (typeof applyMapWalkCutPaint === "function") applyMapWalkCutPaint();
         return;
       }
       if (e.key === "Escape" && !e.defaultPrevented && explorerWs === "overview" && overviewMixFilter) {
@@ -35721,6 +35728,99 @@
       }
       return parts.join(" · ");
     }
+    function mapWalkCutNodes(inner) {
+      return (inner && inner.nodes || []).slice(0, 24);
+    }
+    function mapWalkCutMetrics(inner) {
+      const nodes = mapWalkCutNodes(inner);
+      let lit = 0;
+      let grey = 0;
+      for (const n of nodes) {
+        if (n && n.lit) lit += 1;
+        else grey += 1;
+      }
+      return { lit, grey, total: nodes.length };
+    }
+    function mapWalkCutGraphicHtml(inner) {
+      const m = mapWalkCutMetrics(inner);
+      const focusing = !!mapWalkCutFocus;
+      const onFor = (key) => !!(mapWalkCutFocus && String(mapWalkCutFocus) === String(key));
+      const stat = (key, label, n) => '<button type="button" class="mwc-stat' + (onFor(key) ? " mwc-now" : focusing ? " mwc-idle" : "") + '" data-mwc="' + esc(key) + '" aria-pressed="' + (onFor(key) ? "true" : "false") + '" title="' + esc(label + " · " + n) + '"><b data-mwc-n="' + esc(key) + '">' + n + "</b> " + esc(label) + "</button>";
+      const seg = (key, n) => {
+        if (n <= 0) return "";
+        return '<button type="button" class="mwc-seg mwc-' + esc(key) + (onFor(key) ? " mwc-now" : focusing ? " mwc-idle" : "") + '" data-mwc="' + esc(key) + '" style="flex-grow:' + n + '" aria-label="' + esc(key + " · " + n) + '"></button>';
+      };
+      return '<div class="mwc-strip' + (focusing ? " mwc-focusing" : "") + '" data-mwc="1" role="group" aria-label="Map walk-cut graphic"><span class="mwc-meta">Walk cut</span><span class="mwc-counts">' + stat("lit", "lit", m.lit) + stat("grey", "grey", m.grey) + '</span><div class="mwc-bar" aria-hidden="true">' + (m.total === 0 ? '<span class="mwc-bar-empty"></span>' : seg("lit", m.lit) + seg("grey", m.grey)) + "</div></div>";
+    }
+    function jumpMapWalkCut(which) {
+      if (!which) return;
+      const key = String(which);
+      if (mapWalkCutFocus && String(mapWalkCutFocus) === key) mapWalkCutFocus = null;
+      else mapWalkCutFocus = key;
+      applyMapWalkCutPaint();
+    }
+    function applyMapWalkCutPaint() {
+      if (!canvas) return;
+      const focus = mapWalkCutFocus ? String(mapWalkCutFocus) : "";
+      canvas.querySelectorAll(".mwc-stat[data-mwc], .mwc-seg[data-mwc]").forEach((el2) => {
+        const key = el2.getAttribute("data-mwc") || "";
+        if (key === "1") return;
+        const on2 = !!(focus && key === focus);
+        el2.classList.toggle("mwc-now", on2);
+        el2.classList.toggle("mwc-idle", !!(focus && !on2));
+        if (el2.tagName === "BUTTON") el2.setAttribute("aria-pressed", on2 ? "true" : "false");
+      });
+      const strip = canvas.querySelector(".mwc-strip");
+      if (strip) strip.classList.toggle("mwc-focusing", !!focus);
+      const stage = canvas.querySelector(".stage");
+      if (stage) stage.classList.toggle("mwc-focusing", !!focus);
+      const want = focus === "lit" ? "1" : focus === "grey" ? "0" : "";
+      canvas.querySelectorAll("#enterCanvas .vnode[data-lit]").forEach((el2) => {
+        const lit = el2.getAttribute("data-lit") || "";
+        const hit = !!(want && lit === want);
+        el2.classList.toggle("mwc-hit", hit);
+        el2.classList.toggle("mwc-idle", !!(focus && !hit));
+      });
+    }
+    function bindMapWalkCutGraphic() {
+      if (!canvas) return;
+      canvas.querySelectorAll(".mwc-stat[data-mwc], .mwc-seg[data-mwc]").forEach((el2) => {
+        const key = el2.getAttribute("data-mwc") || "";
+        if (key === "1") return;
+        el2.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapWalkCut(key);
+        };
+        el2.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          jumpMapWalkCut(key);
+        };
+      });
+      applyMapWalkCutPaint();
+    }
+    function syncMapWalkCutGraphic(inner) {
+      if (!canvas) return;
+      const stage = canvas.querySelector(".stage");
+      if (!stage || !document.getElementById("enterCanvas")) {
+        return;
+      }
+      const html = mapWalkCutGraphicHtml(inner);
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      const next = tmp.firstElementChild;
+      if (!next) return;
+      const existing = stage.querySelector(".mwc-strip");
+      if (existing) existing.replaceWith(next);
+      else {
+        const title = stage.querySelector(".flow-title");
+        if (title) title.insertAdjacentElement("afterend", next);
+        else stage.insertAdjacentElement("afterbegin", next);
+      }
+      bindMapWalkCutGraphic();
+    }
     function enterCanvasProps(inner) {
       const nodes = (inner.nodes || []).slice(0, 24);
       noteShownMembers(nodes);
@@ -35825,14 +35925,16 @@
           title.textContent = "Inside this community — walk lit, siblings grey · " + nodes.length + " review-relevant";
         }
         bindStage(canvas.querySelector(".stage"), { reset: false });
+        if (typeof syncMapWalkCutGraphic === "function") syncMapWalkCutGraphic(inner);
       } else {
         unmountReviewCanvas();
-        canvas.innerHTML = '<div class="stage"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + ' review-relevant</div><div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
+        canvas.innerHTML = '<div class="stage' + (mapWalkCutFocus ? " mwc-focusing" : "") + '"><div class="flow-title">Inside this community — walk lit, siblings grey · ' + nodes.length + " review-relevant</div>" + mapWalkCutGraphicHtml(inner) + '<div class="viewport" data-lod="0"><div id="enterCanvas" class="enter-canvas enter-wrap"></div></div></div>';
         enterBodyKey = document.getElementById("enterCanvas") ? key : "";
         bindStage(canvas.querySelector(".stage"), { reset: !stay });
       }
       setZoomUi(true);
       mountEnterCanvas(inner);
+      if (typeof bindMapWalkCutGraphic === "function") bindMapWalkCutGraphic();
       applyGraphFilter();
       applyEgoPaint();
       const leafNodes = nodes.filter((n) => n.is_leaf).map((n) => nodeById.get(String(idVal(n.id)))).filter(Boolean);

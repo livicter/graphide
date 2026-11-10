@@ -63,6 +63,8 @@ Assertions the driver owns:
 
 Optional pins: `?mode=explorer&ws=map`, `?drill=1` (clicks the first `.bubble-card`).
 
+- ADE MWC (Map walk-cut graphic): under the enter title, `.mwc-strip[data-mwc="1"]` shows lit vs grey counts from the same `inner.nodes` the enter canvas paints (24-cap included, not invented). Click highlights matching `#enterCanvas .vnode[data-lit]`; Escape clears without leaving the community. Graph-only — must not open Evidence / `peekSource` / source pane, must not post `enterRun`, and must not add a second XYFlow. Screenshot `verification/map-walk-cut.png`. Asserts MWC1–MWC5. See [map-walk-cut.md](map-walk-cut.md).
+
 ## Gotchas
 
 - Overview also embeds a CFG (`.vnode`). Map must be the **community** workspace, not that CFG.
