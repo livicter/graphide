@@ -17573,7 +17573,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17767,7 +17767,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -17959,7 +17959,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18156,7 +18156,7 @@ async function main() {
         const x = r.left + r.width / 2;
         const y = r.top + r.height / 2;
         const top = document.elementFromPoint(x, y);
-        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .slice-title-cuts"));
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
         const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
         const src = document.getElementById("sourcePane");
         return {
@@ -18209,6 +18209,202 @@ async function main() {
         "Slice halo-attach clicks did not post peekSource / showHop / open source",
         afterShaPosts.after === afterShaPosts.before && !afterShaPosts.peek,
         JSON.stringify(afterShaPosts)
+      );
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+    }
+
+    // ADE Slice run-touch graphic (SRT1–SRT5) — touch vs off-run hops; same Slice desk as SHA
+    {
+      await page.waitForSelector(".srt-strip[data-srt='1']", { timeout: 8000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll("#sliceCanvas .react-flow__edge[data-srt-cut]").length >= 32,
+        { timeout: 8000 }
+      );
+      await page.waitForTimeout(80);
+      const beforeSrtPosts = await page.evaluate(() => (window.__vscodePosts || []).length);
+      const srt1 = await page.evaluate(() => {
+        const strip = document.querySelector(".srt-strip[data-srt='1']");
+        const cluster = document.querySelector(".slice-title-cuts[data-slice-cuts='1']");
+        const stats = [...document.querySelectorAll(".srt-stat[data-srt-band]")].map((el) => ({
+          band: el.getAttribute("data-srt-band"),
+          n: Number((el.querySelector("[data-srt-n]") || el).textContent.trim()),
+          pressed: el.getAttribute("aria-pressed") === "true",
+        }));
+        const segs = [...document.querySelectorAll(".srt-seg[data-srt-band]")].map((el) => el.getAttribute("data-srt-band"));
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-srt-cut], #sliceCanvas .react-flow__edge")];
+        const byCut = { touch: 0, off: 0 };
+        for (const e of edges) {
+          const c = e.getAttribute("data-srt-cut") || "";
+          if (c === "touch" || c === "off") byCut[c] += 1;
+        }
+        const nOf = (k) => (stats.find((s) => s.band === k) || { n: -1 }).n;
+        const src = document.getElementById("sourcePane");
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        return {
+          strip: !!strip,
+          cluster: !!(cluster && cluster.contains(strip) && cluster.querySelector(".sha-strip[data-sha='1']") && cluster.querySelector(".swh-strip[data-swh='1']") && cluster.querySelector(".ste-strip[data-ste='1']") && cluster.querySelector(".swr-strip[data-swr='1']")),
+          sha: !!document.querySelector(".sha-strip[data-sha='1']"),
+          swh: !!document.querySelector(".swh-strip[data-swh='1']"),
+          ste: !!document.querySelector(".ste-strip[data-ste='1']"),
+          swr: !!document.querySelector(".swr-strip[data-swr='1']"),
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          canvas: !!document.querySelector("#sliceCanvas"),
+          stats,
+          segs,
+          edges: edges.length,
+          stamped: byCut.touch + byCut.off,
+          byCut,
+          touch: nOf("touch"),
+          off: nOf("off"),
+          sum: nOf("touch") + nOf("off"),
+          srcHidden: !src || src.hidden,
+          pressed: stats.filter((s) => s.pressed).length,
+        };
+      });
+      const srt1ok =
+        srt1.strip &&
+        srt1.cluster &&
+        srt1.sha &&
+        srt1.swh &&
+        srt1.ste &&
+        srt1.swr &&
+        srt1.sliceOn &&
+        srt1.canvas &&
+        srt1.touch === 15 &&
+        srt1.off === 17 &&
+        srt1.sum === 32 &&
+        srt1.stamped === 32 &&
+        srt1.byCut.touch === 15 &&
+        srt1.byCut.off === 17 &&
+        srt1.segs.length === 2 &&
+        srt1.pressed === 0 &&
+        srt1.srcHidden;
+      record(
+        "SRT1",
+        "Slice run-touch graphic shows 15 touch / 17 off of 32 hops, matching data-srt-cut; SHA/SWH/STE/SWR stay; no source",
+        !!srt1ok,
+        JSON.stringify(srt1)
+      );
+
+      const offBtn = page.locator('.srt-stat[data-srt-band="off"]').first();
+      await offBtn.click();
+      await page.waitForTimeout(80);
+      const srt2 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const edges = [...document.querySelectorAll("#sliceCanvas .react-flow__edge[data-srt-cut]")];
+        const hits = edges.filter((el) => el.classList.contains("srt-hit"));
+        const dims = edges.filter((el) => el.classList.contains("srt-dim"));
+        const offHits = hits.filter((el) => el.getAttribute("data-srt-cut") === "off");
+        const offPressed = document.querySelector('.srt-stat[data-srt-band="off"][aria-pressed="true"]');
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          edges: edges.length,
+          hits: hits.length,
+          dims: dims.length,
+          offHits: offHits.length,
+          offPressed: !!offPressed,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const srt2ok =
+        srt2.sliceOn &&
+        srt2.hits === 17 &&
+        srt2.offHits === 17 &&
+        srt2.dims === 15 &&
+        srt2.offPressed &&
+        srt2.srcHidden;
+      record(
+        "SRT2",
+        "Click Off highlights the 17 off-run Slice hops; Slice stays; no source",
+        !!srt2ok,
+        JSON.stringify(srt2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(80);
+      const srt3 = await page.evaluate(() => {
+        const ws = document.querySelector('#workspaces [data-ws="slice"]');
+        const hits = document.querySelectorAll("#sliceCanvas .react-flow__edge.srt-hit").length;
+        const pressed = document.querySelectorAll('.srt-stat[aria-pressed="true"]').length;
+        const focusing = !!document.querySelector(".srt-strip.srt-focusing, .stage.srt-focusing");
+        const src = document.getElementById("sourcePane");
+        return {
+          sliceOn: !!(ws && ws.classList.contains("on")),
+          hits,
+          pressed,
+          focusing,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      record(
+        "SRT3",
+        "Escape clears run-touch graphic focus; Slice stays; no source",
+        !!(srt3.sliceOn && srt3.hits === 0 && srt3.pressed === 0 && !srt3.focusing && srt3.srcHidden),
+        JSON.stringify(srt3)
+      );
+
+      const srt4 = await page.evaluate(() => {
+        const n0 = document.querySelector('#sliceCanvas .vnode[data-id="n0"]');
+        if (!n0) return { missing: true };
+        const r = n0.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const top = document.elementFromPoint(x, y);
+        const hitStrip = !!(top && top.closest && top.closest(".swr-strip, .ste-strip, .swh-strip, .sha-strip, .srt-strip, .slice-title-cuts"));
+        const inNode = !!(top && (top === n0 || (top.closest && top.closest('#sliceCanvas .vnode[data-id="n0"]'))));
+        const src = document.getElementById("sourcePane");
+        return {
+          x,
+          y,
+          top: top ? (top.className || top.tagName || "").toString().slice(0, 80) : "",
+          hitStrip,
+          inNode,
+          srcHidden: !src || src.hidden,
+          slice: !!document.getElementById("sliceCanvas"),
+        };
+      });
+      const srt4ok = !!(srt4 && !srt4.missing && srt4.inNode && !srt4.hitStrip && srt4.srcHidden && srt4.slice);
+      record(
+        "SRT4",
+        "Title-band cluster does not intercept #sliceCanvas n0 clicks; Slice stays; no source",
+        !!srt4ok,
+        JSON.stringify(srt4)
+      );
+
+      await offBtn.click();
+      await page.waitForTimeout(80);
+      await shot(page, "slice-run-touch.png");
+      const srtShot = checks.find((c) => c.id === "shot:slice-run-touch.png");
+      const srt5ok = !!(srt1ok && srt2ok && srt3 && srt3.sliceOn && srt4ok && srtShot && srtShot.pass);
+      record(
+        "SRT5",
+        "screenshot slice-run-touch.png is not a black frame; Slice run-touch graphic proven",
+        !!srt5ok,
+        JSON.stringify({
+          shot: srtShot ? srtShot.detail : "missing",
+          srt1: !!srt1ok,
+          srt2: !!srt2ok,
+          srt3: !!(srt3 && srt3.sliceOn && srt3.hits === 0),
+          srt4: !!srt4ok,
+        })
+      );
+      assertNoStampDir("SRT5b", "Slice run-touch graphic step did not write .graphide/stamps/");
+      const afterSrtPosts = await page.evaluate((before) => {
+        const posts = window.__vscodePosts || [];
+        const added = posts.slice(before);
+        return {
+          before,
+          after: posts.length,
+          peek: added.some((m) => m && (m.type === "peekSource" || m.type === "showHop")),
+        };
+      }, beforeSrtPosts);
+      record(
+        "SRT5c",
+        "Slice run-touch clicks did not post peekSource / showHop / open source",
+        afterSrtPosts.after === afterSrtPosts.before && !afterSrtPosts.peek,
+        JSON.stringify(afterSrtPosts)
       );
       await page.keyboard.press("Escape");
       await page.waitForTimeout(40);
