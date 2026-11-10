@@ -734,6 +734,20 @@ document.addEventListener("keydown", (e) => {
     syncPassportDeltaBars();
     return;
   }
+  // ADE TSS: Escape clears Trace story scrub (trajStoryCursor → idle) when active.
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    explorerWs === "trace" &&
+    trajStoryCursor >= 0
+  ) {
+    e.preventDefault();
+    trajStoryCursor = -1;
+    applyTrajStoryScrubPaint();
+    syncTrajStoryScrub();
+    paint({ animate: "none" });
+    return;
+  }
   // ADE ESC: after chrome owners (Keys/Export/llm/source/route/lens/present), Escape clears residual filter on Trace/Passport.
   if (
     e.key === "Escape" &&
@@ -12955,6 +12969,8 @@ let trajPinFocus = "";
 let trajFocusSeeded = false;
 let trajScale = 1;
 let trajResidualFilter = false;
+/** ADE TSS — Trajectory story scrub active when trajStoryCursor >= 0 (past/now/ahead paint). */
+let trajStoryCursor = -1;
 
 /** ADE residual-filter dedicated aria-live (ALR1–ALR3) — persistent AT region; does not replace flashToast. */
 function residualFilterMatchingCount() {
@@ -13191,6 +13207,143 @@ function trajNodeInfoLabel(n, fix) {
   parts.push(status);
   parts.push(residualCopy);
   return parts.filter(Boolean).join(" · ");
+}
+
+
+/** ADE TSS — story scrub strip bound to trajStoryCursor (fixture node order). */
+function trajStoryScrubHtml(nodes) {
+  const n = (nodes && nodes.length) || 0;
+  if (n < 1) return "";
+  const max = Math.max(0, n - 1);
+  const active = trajStoryCursor >= 0;
+  const val = active ? Math.min(trajStoryCursor, max) : 0;
+  return (
+    '<div class="tss-strip" data-tss="1" role="group" aria-label="Trajectory story scrubber">' +
+    '<span class="tss-stat"><i class="k">Story</i> <b class="n" data-tss-meta="1">' +
+    (active ? trajStoryCursor + 1 + "/" + n : "idle · " + n + " subtasks") +
+    "</b></span>" +
+    '<label class="tss-slider-wrap">' +
+    '<span class="tss-depth-label">subtask <b data-tss-val="1">' +
+    (active ? String(trajStoryCursor + 1) : "—") +
+    "</b></span>" +
+    '<input type="range" id="tssScrub" class="tss-scrub" min="0" max="' +
+    max +
+    '" value="' +
+    val +
+    '" aria-valuemin="0" aria-valuemax="' +
+    max +
+    '" aria-valuenow="' +
+    val +
+    '" aria-label="Scrub trajectory story subtask" />' +
+    "</label>" +
+    '<span class="tss-hint">past · now · ahead on nodes and edges</span>' +
+    "</div>"
+  );
+}
+
+function trajStoryIndexOf(nodes, id) {
+  if (!id || !nodes || !nodes.length) return -1;
+  return nodes.findIndex((n) => n.id === id);
+}
+
+function trajStoryClassForIndex(i) {
+  if (trajStoryCursor < 0 || i < 0) return "";
+  if (i < trajStoryCursor) return " tss-past";
+  if (i === trajStoryCursor) return " tss-now";
+  return " tss-ahead";
+}
+
+function trajStoryEdgeClass(fromIdx, toIdx) {
+  if (trajStoryCursor < 0 || fromIdx < 0 || toIdx < 0) return "";
+  if (fromIdx === trajStoryCursor || toIdx === trajStoryCursor) return " tss-now";
+  if (fromIdx < trajStoryCursor && toIdx < trajStoryCursor) return " tss-past";
+  return " tss-ahead";
+}
+
+function syncTrajStoryScrub() {
+  const nodes = (trajectoryFixture().nodes || []);
+  const n = nodes.length;
+  const max = Math.max(0, n - 1);
+  const active = trajStoryCursor >= 0 && n > 0;
+  const input = document.getElementById("tssScrub");
+  if (input) {
+    input.max = String(max);
+    input.setAttribute("aria-valuemax", String(max));
+    if (active) {
+      input.value = String(Math.min(trajStoryCursor, max));
+      input.setAttribute("aria-valuenow", input.value);
+    }
+  }
+  const strip = canvas.querySelector(".tss-strip[data-tss='1']");
+  if (strip) {
+    strip.classList.toggle("tss-scrubbing", active);
+    const meta = strip.querySelector("[data-tss-meta='1']");
+    if (meta) meta.textContent = active ? trajStoryCursor + 1 + "/" + n : "idle · " + n + " subtasks";
+    const valEl = strip.querySelector("[data-tss-val='1']");
+    if (valEl) valEl.textContent = active ? String(trajStoryCursor + 1) : "—";
+  }
+  const page = canvas.querySelector(".traj-page");
+  if (page) page.classList.toggle("tss-scrubbing", active);
+  const host = document.getElementById("trajCanvas");
+  if (host) host.classList.toggle("tss-scrubbing", active);
+}
+
+function bindTrajStoryScrub() {
+  const input = document.getElementById("tssScrub");
+  if (!input || input.dataset.tssBound === "1") return;
+  input.dataset.tssBound = "1";
+  input.addEventListener("input", () => {
+    const nodes = trajectoryFixture().nodes || [];
+    if (!nodes.length) return;
+    const v = parseInt(input.value, 10);
+    if (!Number.isFinite(v)) return;
+    trajStoryCursor = Math.max(0, Math.min(v, nodes.length - 1));
+    trajSelectedId = nodes[trajStoryCursor].id;
+    trajPinFocus = "";
+    // In-place story paint (DSS parity) so harness can assert classes without a full remount race.
+    applyTrajStoryScrubPaint();
+    syncTrajStoryScrub();
+    const host = document.getElementById("trajCanvas");
+    if (host) {
+      host.querySelectorAll(".traj-node").forEach((el) => {
+        el.classList.toggle("on", el.getAttribute("data-id") === trajSelectedId);
+        el.setAttribute("aria-pressed", el.getAttribute("data-id") === trajSelectedId ? "true" : "false");
+      });
+      if (trajSelectedId) host.setAttribute("data-focus", trajSelectedId);
+      else host.removeAttribute("data-focus");
+    }
+    syncAdeDeepLink("trace");
+  });
+}
+
+function applyTrajStoryScrubPaint() {
+  const nodes = trajectoryFixture().nodes || [];
+  const active = trajStoryCursor >= 0 && nodes.length > 0;
+  const page = canvas.querySelector(".traj-page");
+  if (page) page.classList.toggle("tss-scrubbing", active);
+  const host = document.getElementById("trajCanvas");
+  if (host) host.classList.toggle("tss-scrubbing", active);
+  const strip = canvas.querySelector(".tss-strip[data-tss='1']");
+  if (strip) strip.classList.toggle("tss-scrubbing", active);
+  const byId = new Map(nodes.map((n, i) => [n.id, i]));
+  canvas.querySelectorAll("#trajCanvas .traj-node").forEach((el) => {
+    el.classList.remove("tss-past", "tss-now", "tss-ahead");
+    if (!active) return;
+    const i = byId.get(el.getAttribute("data-id"));
+    if (i == null || !Number.isFinite(i)) return;
+    if (i < trajStoryCursor) el.classList.add("tss-past");
+    else if (i === trajStoryCursor) el.classList.add("tss-now");
+    else el.classList.add("tss-ahead");
+  });
+  canvas.querySelectorAll("#trajCanvas .traj-edge").forEach((el) => {
+    el.classList.remove("tss-past", "tss-now", "tss-ahead");
+    if (!active) return;
+    const fi = byId.get(el.getAttribute("data-from"));
+    const ti = byId.get(el.getAttribute("data-to"));
+    if (fi == null || ti == null) return;
+    const cls = trajStoryEdgeClass(fi, ti).trim();
+    if (cls) el.classList.add(cls);
+  });
 }
 
 function renderTrajectoryEdges(nodes, edges, nodeW, nodeH, selectedId) {
@@ -13559,6 +13712,7 @@ function renderTrajectoryBody() {
   if (!nodes.length) {
     trajSelectedId = "";
     trajPinFocus = "";
+    trajStoryCursor = -1;
     return renderTrajectoryEmptyBody(fix);
   }
   const nodeW = 188;
@@ -13599,6 +13753,8 @@ function renderTrajectoryBody() {
       const ptdDim = !!(passportDeltaFilter && ptdKind && ptdKind !== passportDeltaFilter);
       const ptdClass = (ptdHit ? " ptd-hit" : "") + (ptdDim ? " ptd-dim" : "");
       const dim = focusOn && !near.has(n.id) ? " dim" : "";
+      const storyIdx = trajStoryIndexOf(nodes, n.id);
+      const storyCls = trajStoryClassForIndex(storyIdx);
       const pinArt =
         selectedId === n.id && trajPinFocus === "artifact" ? " pin-focus" : "";
       const pinDiff = selectedId === n.id && trajPinFocus === "diff" ? " pin-focus" : "";
@@ -13619,6 +13775,7 @@ function renderTrajectoryBody() {
         residualFilteredClass +
         ptdClass +
         dim +
+        storyCls +
         '" data-id="' +
         esc(n.id) +
         '"' +
@@ -13929,10 +14086,13 @@ function renderTrajectoryBody() {
         residualFilterCountChip +
         legendClearFilterCue +
         "</div>";
+  const tssActive = trajStoryCursor >= 0;
   return (
     '<div class="traj-page' +
     (focusOn ? " has-focus" : "") +
-    '">' +
+    (tssActive ? " tss-scrubbing" : "") +
+    '" data-tss="1">' +
+    trajStoryScrubHtml(nodes) +
     '<div class="traj-strip">' +
     '<span class="traj-strip-title">' +
     esc(fix.title || "Execution trajectory") +
@@ -14025,6 +14185,9 @@ function paintTrajectoryWorkspace(title) {
   setZoomUi(false);
   // ADE LRP: while residual filter stays ON, refresh live-region N on paint (Approve/focus/fixture) without toast.
   if (trajResidualFilter && typeof syncResidualFilterLive === "function") syncResidualFilterLive(true);
+  bindTrajStoryScrub();
+  applyTrajStoryScrubPaint();
+  syncTrajStoryScrub();
 }
 
 function stepTrajectory(dir) {
@@ -14379,6 +14542,9 @@ function hopTrajectoryNext(nextId) {
 function bindTrajectoryPage() {
   const host = document.getElementById("trajCanvas");
   if (!host) return;
+  bindTrajStoryScrub();
+  applyTrajStoryScrubPaint();
+  syncTrajStoryScrub();
   hideTrajPinTip();
   if (typeof hideTrajEdgeTip === "function") hideTrajEdgeTip();
   host.querySelectorAll(".traj-node").forEach((el) => {

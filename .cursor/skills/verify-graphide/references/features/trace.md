@@ -172,3 +172,7 @@ Driver assertions:
   residual-filter empty chrome via `renderResidualFilterEmptyChrome` / `clearTrajResidualFilter`; legend clear-filter cue via `legendClearFilterCue` / `data-legend-clear-filter` when ON + bearings.
 - Digit keys stay 1–9 on the first nine workspaces. Trace is click-only
   beyond that (same as Passport).
+
+## ADE TSS — Trajectory story scrubber (story-prefix)
+
+See [trajectory-story-scrubber.md](trajectory-story-scrubber.md). Past/now/ahead scrub on `trajStoryCursor`.

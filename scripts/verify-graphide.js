@@ -3642,6 +3642,208 @@ async function main() {
     await page.click("#trajZoomFit");
     await page.waitForTimeout(40);
 
+
+    // ADE Trajectory story scrubber (TSS1–TSS5) — past/now/ahead scrub on trajStoryCursor
+    // Stay on the current harness document (no page.goto) so later Passport / Overview / Map
+    // suites keep the explorer + passport fixture already loaded.
+    {
+      await page.click('#workspaces [data-ws="trace"]');
+      await page.waitForSelector("#trajCanvas[data-testid='trajectory-dag']", { timeout: 8000 });
+      await page.waitForSelector("#trajCanvas .traj-node, .tss-strip #tssScrub", { timeout: 8000 });
+      const tss1 = await page.evaluate(() => {
+        const strip = document.querySelector(".tss-strip[data-tss='1']");
+        const scrub = document.getElementById("tssScrub");
+        const nodes = document.querySelectorAll("#trajCanvas .traj-node").length;
+        const pageEl = document.querySelector('.traj-page[data-tss="1"]');
+        const src = document.getElementById("sourcePane");
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        return {
+          strip: !!strip,
+          scrub: !!scrub,
+          min: scrub ? scrub.min : "",
+          max: scrub ? scrub.max : "",
+          nodes,
+          page: !!pageEl,
+          ws,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const tss1ok = !!(
+        tss1 &&
+        tss1.strip &&
+        tss1.scrub &&
+        tss1.nodes >= 3 &&
+        tss1.page &&
+        tss1.ws === "trace" &&
+        tss1.srcHidden &&
+        Number(tss1.max) >= 1
+      );
+      record(
+        "TSS1",
+        "Trace .tss-strip / #tssScrub present; trajectory nodes available",
+        !!tss1ok,
+        JSON.stringify(tss1)
+      );
+
+      const tss2 = await page.evaluate(() => {
+        const scrub = document.getElementById("tssScrub");
+        const before = document.querySelectorAll("#trajCanvas .traj-node").length;
+        if (!scrub || before < 1) return { ok: false, reason: "no scrub/nodes" };
+        const target = Math.min(2, before - 1);
+        scrub.value = String(target);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+        const nodes = [...document.querySelectorAll("#trajCanvas .traj-node")];
+        const past = nodes.filter((el) => el.classList.contains("tss-past")).length;
+        const now = nodes.filter((el) => el.classList.contains("tss-now")).length;
+        const ahead = nodes.filter((el) => el.classList.contains("tss-ahead")).length;
+        const scrubbing = !!(
+          document.querySelector(".traj-page.tss-scrubbing") ||
+          document.querySelector("#trajCanvas.tss-scrubbing") ||
+          document.querySelector(".tss-strip.tss-scrubbing")
+        );
+        const selected = document.querySelector("#trajCanvas .traj-node.on");
+        const src = document.getElementById("sourcePane");
+        return {
+          ok: true,
+          target,
+          past,
+          now,
+          ahead,
+          nodes: nodes.length,
+          scrubbing,
+          sum: past + now + ahead,
+          selectedId: selected ? selected.getAttribute("data-id") : "",
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const tss2ok = !!(
+        tss2 &&
+        tss2.ok &&
+        tss2.scrubbing &&
+        tss2.now === 1 &&
+        tss2.sum === tss2.nodes &&
+        tss2.srcHidden
+      );
+      record(
+        "TSS2",
+        "Story scrub paints traj-node tss-past/tss-now/tss-ahead without opening source",
+        !!tss2ok,
+        JSON.stringify(tss2)
+      );
+
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      const tss3 = await page.evaluate(() => {
+        const scrubbing = !!(
+          document.querySelector(".traj-page.tss-scrubbing") ||
+          document.querySelector("#trajCanvas.tss-scrubbing") ||
+          document.querySelector(".tss-strip.tss-scrubbing")
+        );
+        const painted = document.querySelectorAll(
+          "#trajCanvas .traj-node.tss-past, #trajCanvas .traj-node.tss-now, #trajCanvas .traj-node.tss-ahead"
+        ).length;
+        const ws =
+          (document.querySelector("#workspaces [data-ws].on") || {}).getAttribute?.("data-ws") ||
+          "";
+        const src = document.getElementById("sourcePane");
+        return {
+          ws,
+          scrubbing,
+          painted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const tss3ok = !!(
+        tss3 &&
+        tss3.ws === "trace" &&
+        !tss3.scrubbing &&
+        tss3.painted === 0 &&
+        tss3.srcHidden
+      );
+      record(
+        "TSS3",
+        "Escape clears Trace story scrub without leaving Trace or opening source",
+        !!tss3ok,
+        JSON.stringify(tss3)
+      );
+
+      // TSS4 — scrub again; residual/zoom chrome still present; edges painted
+      await page.evaluate(() => {
+        const scrub = document.getElementById("tssScrub");
+        const nodes = document.querySelectorAll("#trajCanvas .traj-node").length;
+        if (!scrub || nodes < 1) return;
+        scrub.value = String(Math.min(2, nodes - 1));
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(80);
+      const tss4 = await page.evaluate(() => {
+        const pageEl = document.querySelector('.traj-page[data-tss="1"]');
+        const legend = document.getElementById("trajEdgeLegend");
+        const zoom = document.getElementById("trajZoomBar");
+        const scrubbing = !!(
+          document.querySelector(".traj-page.tss-scrubbing") ||
+          document.querySelector("#trajCanvas.tss-scrubbing")
+        );
+        const edgeNow = document.querySelectorAll("#trajCanvas .traj-edge.tss-now").length;
+        const edgePainted = document.querySelectorAll(
+          "#trajCanvas .traj-edge.tss-past, #trajCanvas .traj-edge.tss-now, #trajCanvas .traj-edge.tss-ahead"
+        ).length;
+        const src = document.getElementById("sourcePane");
+        return {
+          page: !!pageEl,
+          legend: !!legend,
+          zoom: !!zoom,
+          scrubbing,
+          edgeNow,
+          edgePainted,
+          srcHidden: !src || src.hidden,
+        };
+      });
+      const tss4ok = !!(
+        tss4 &&
+        tss4.page &&
+        tss4.legend &&
+        tss4.zoom &&
+        tss4.scrubbing &&
+        tss4.edgePainted >= 1 &&
+        tss4.srcHidden
+      );
+      record(
+        "TSS4",
+        "TSS scrub composes with legend/zoom; edges painted; no source",
+        !!tss4ok,
+        JSON.stringify(tss4)
+      );
+
+      await shot(page, "trajectory-story-scrubber.png");
+      const tssShot = checks.find((c) => c.id === "shot:trajectory-story-scrubber.png");
+      const tss5ok = !!(tss1ok && tss2ok && tss3ok && tss4ok && tssShot && tssShot.pass);
+      record(
+        "TSS5",
+        "screenshot trajectory-story-scrubber.png not black; Trajectory story scrubber proven",
+        !!tss5ok,
+        JSON.stringify({
+          shot: tssShot ? tssShot.detail : "missing",
+          tss1: !!tss1ok,
+          tss2: !!tss2ok,
+          tss3: !!tss3ok,
+          tss4: !!tss4ok,
+        })
+      );
+      assertNoStampDir("TSS5b", "Trajectory story scrubber step did not write .graphide/stamps/");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(40);
+      await page.evaluate(() => {
+        const on = document.querySelector("#trajCanvas .traj-node.on");
+        if (on) on.click();
+      });
+      const tssFit = await page.$("#trajZoomFit");
+      if (tssFit) await tssFit.click();
+      await page.waitForTimeout(40);
+    }
+
     // ADE Plan Passport (Phase 1.2) — fixture gate; stacked after A1a Trace.
     await page.click('#workspaces [data-ws="passport"]');
     await page.waitForFunction(
@@ -29380,39 +29582,33 @@ async function main() {
       null,
       { timeout: 8000 }
     );
-    const s1agPlanted = await page.evaluate(() => {
+    const s1agPair = await page.evaluate(() => {
+      const snapCue = () => {
+        const d = window.__graphideScrollDrive || {};
+        return {
+          reviewStayCleared: !!d.reviewStayCleared,
+          cueAttr: !!(
+            document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
+            document.querySelector('[data-scroll-review-clear="1"]')
+          ),
+          ws: window.__graphideScrollDriveWorkspaceKey || "",
+        };
+      };
       if (typeof window.__graphideSetScrollDriveWorkspaceKey === "function") {
         window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a");
       }
       if (typeof window.__graphideClearScrollDriveLastStayOnReviewRestart === "function") {
         window.__graphideClearScrollDriveLastStayOnReviewRestart();
       }
-      const d = window.__graphideScrollDrive || {};
-      return {
-        reviewStayCleared: !!d.reviewStayCleared,
-        cueAttr: !!(
-          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
-          document.querySelector('[data-scroll-review-clear="1"]')
-        ),
-        ws: window.__graphideScrollDriveWorkspaceKey || "",
-      };
-    });
-    const s1agSameKey = await page.evaluate(() => {
+      const planted = snapCue();
       const changed =
         typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
           ? window.__graphideSetScrollDriveWorkspaceKey("ws-s1ag://folder-a")
           : false;
-      const d = window.__graphideScrollDrive || {};
-      return {
-        changed: !!changed,
-        reviewStayCleared: !!d.reviewStayCleared,
-        cueAttr: !!(
-          document.querySelector('.viewport[data-scroll-review-clear="1"]') ||
-          document.querySelector('[data-scroll-review-clear="1"]')
-        ),
-        ws: window.__graphideScrollDriveWorkspaceKey || "",
-      };
+      return { planted, sameKey: Object.assign({ changed: !!changed }, snapCue()) };
     });
+    const s1agPlanted = s1agPair.planted;
+    const s1agSameKey = s1agPair.sameKey;
     const s1agHopped = await page.evaluate(() => {
       const changed =
         typeof window.__graphideSetScrollDriveWorkspaceKey === "function"
@@ -43026,7 +43222,7 @@ async function main() {
       checks.length +
       "/" +
       checks.length +
-      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
+      " · chrome 17/17 · overview · decisions · registry · timeline · self-review rust graph · map community · enter-bubble · ego · search · kind-filters · ask · keys · path-walk · appearance · apple-chrome · apple-chrome-icons · coverage-mark · hop-card · fit-reorg · zoom · canvas-recycle · delta-onanalysis · map-offview · panel-timeout · program-chips · all-programs · progress · cancel-review · flow-hints · flow-tabs · slice-grey · slice-runs · slice-enter-recycle · stamp-recheck · unmatched-hint · uncovered-node · open-slice · draft-hint · proposed-uncovered · stamp posted · delta · sticky-clusters · delta-sticky-views · structural-diff-overlay · lifecycle-transition-overlay · registry-audit-kind-mix · timeline-kind-mix · sequence-hop-kind-mix · sequence-story-scrubber · sequence · dataflow-story-scrubber · trajectory-story-scrubber · dataflow · lifecycle · trace · passport · passport-fixtures · trajectory-fixtures · ade-deeplink · ade-deeplink-reverse · ade-trace-passport-hl · ade-dep-list-focus · ade-risk-traj-map · ade-hop-affordance · ade-passport-residual · ade-pin-residual · ade-hop-residual-badge · ade-adj-residual · ade-focus-residual · immutable · fs-sandbox · write-bus · python-desk · js-desk · ts-desk · lineage · export · present · preset · route · lens"
   );
 }
 

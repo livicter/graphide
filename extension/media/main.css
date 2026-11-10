@@ -4202,6 +4202,74 @@ html.bright .route-hop {
 
 /* ADE A1a — Trace trajectory DAG (fixture, read-only) */
 .traj-page { display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
+
+/* ADE TSS — Trajectory story scrubber (past / now / ahead) */
+.tss-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.35));
+  border-radius: 6px;
+}
+.tss-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.tss-stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+.tss-stat .n { font-size: 12px; font-weight: 600; }
+.tss-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.tss-depth-label { font-size: 11px; white-space: nowrap; }
+.tss-scrub {
+  flex: 1 1 auto;
+  min-width: 120px;
+  accent-color: var(--vscode-focusBorder);
+}
+.tss-hint {
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.traj-page.tss-scrubbing .traj-node.tss-past,
+#trajCanvas.tss-scrubbing .traj-node.tss-past {
+  opacity: 0.72;
+}
+.traj-page.tss-scrubbing .traj-node.tss-ahead,
+#trajCanvas.tss-scrubbing .traj-node.tss-ahead {
+  opacity: 0.38;
+}
+.traj-page.tss-scrubbing .traj-node.tss-now,
+#trajCanvas.tss-scrubbing .traj-node.tss-now {
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.traj-page.tss-scrubbing .traj-edge.tss-past,
+#trajCanvas.tss-scrubbing .traj-edge.tss-past {
+  opacity: 0.55;
+}
+.traj-page.tss-scrubbing .traj-edge.tss-ahead,
+#trajCanvas.tss-scrubbing .traj-edge.tss-ahead {
+  opacity: 0.28;
+}
+.traj-page.tss-scrubbing .traj-edge.tss-now,
+#trajCanvas.tss-scrubbing .traj-edge.tss-now {
+  stroke-width: 2.4;
+  opacity: 1;
+}
+
 .traj-strip {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
   padding: 8px 10px; border-radius: 8px;
