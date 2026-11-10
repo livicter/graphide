@@ -116,6 +116,7 @@ owns this folder.
 | [c-desk.md](c-desk.md) | C fixture desk | `?c=1` · `verification/c-desk.png` |
 | [cpp-desk.md](cpp-desk.md) | C++ fixture desk | `?cpp=1` · `verification/cpp-desk.png` |
 | [deriver-endpoint-honesty.md](deriver-endpoint-honesty.md) | Deriver endpoint honesty | `?live=1` · `verification/deriver-endpoint-honesty.png` |
+| [deriver-crate-root-refs.md](deriver-crate-root-refs.md) | Deriver crate-root refs | `?live=1` · `verification/deriver-crate-root-refs.png` |
 | [host-adapter.md](host-adapter.md) | Webview ↔ host | `__vscodePosts` |
 
 Regression sweep: every row above must still have a source path and a
